@@ -1,0 +1,24 @@
+[gd_scene load_steps=2 format=3 uid="uid://csdmm1n6b4hoe"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uhxab"]
+border_width_left = 10
+border_width_top = 10
+border_width_right = 10
+border_width_bottom = 10
+border_color = Color(0.277528, 0.277528, 0.277528, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="DropSlot" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+
+[node name="Panel" type="Panel" parent="."]
+custom_minimum_size = Vector2(200, 300)
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_uhxab")
