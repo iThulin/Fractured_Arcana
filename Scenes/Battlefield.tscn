@@ -1,12 +1,21 @@
-[gd_scene load_steps=6 format=3 uid="uid://dgi6v10ltygfn"]
+[gd_scene load_steps=11 format=3 uid="uid://dgi6v10ltygfn"]
 
-[ext_resource type="Script" uid="uid://c7wh8e46s1af8" path="res://Scripts/GameManager.cs" id="1_ijhqi"]
-[ext_resource type="Script" uid="uid://cmv52oxovfl16" path="res://Scripts/CardData.cs" id="1_ya2tu"]
-[ext_resource type="Script" uid="uid://cmy15kdfht3q1" path="res://Scripts/DeckManager.cs" id="2_ijhqi"]
+[ext_resource type="Script" uid="uid://c7wh8e46s1af8" path="res://Scripts/Systems/GameManager.cs" id="1_ijhqi"]
+[ext_resource type="Script" uid="uid://cmv52oxovfl16" path="res://Scripts/Cards/CardData.cs" id="1_ya2tu"]
+[ext_resource type="Script" uid="uid://cmy15kdfht3q1" path="res://Scripts/Systems/DeckManager.cs" id="2_ijhqi"]
 [ext_resource type="PackedScene" uid="uid://iuge2orfh1hw" path="res://Scenes/CardUI.tscn" id="3_tpnw0"]
 [ext_resource type="PackedScene" uid="uid://csdmm1n6b4hoe" path="res://Scenes/DropSlot.tscn" id="5_tpnw0"]
+[ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/HexGridManager.cs" id="6_xukim"]
+[ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/HexTile.tscn" id="7_jf4gb"]
+[ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scenes/CameraController.cs" id="8_emk3e"]
 
-[node name="Main Scene" type="Node2D"]
+[sub_resource type="Sky" id="Sky_jf4gb"]
+
+[sub_resource type="Environment" id="Environment_jf4gb"]
+background_mode = 2
+sky = SubResource("Sky_jf4gb")
+
+[node name="Main Scene" type="Node3D"]
 script = ExtResource("1_ijhqi")
 
 [node name="CardData" type="Node2D" parent="."]
@@ -99,3 +108,22 @@ offset_top = 93.0
 offset_right = 81.0
 offset_bottom = 124.0
 text = "Remove"
+
+[node name="HexGridManager" type="Node3D" parent="."]
+script = ExtResource("6_xukim")
+HexTileScene3D = ExtResource("7_jf4gb")
+GridWidth = 10
+GridHeight = 10
+HexRadius = 1.025
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.5, -2.18557e-08, 0, -4.37114e-08, 1, -0.5, -0.866025, -3.78552e-08, 0, 2.66986, 0)
+shadow_enabled = true
+
+[node name="CameraController" type="Node3D" parent="."]
+script = ExtResource("8_emk3e")
+
+[node name="Camera3D" type="Camera3D" parent="CameraController"]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 10, 0)
+environment = SubResource("Environment_jf4gb")
+current = true

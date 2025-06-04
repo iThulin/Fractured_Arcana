@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://iuge2orfh1hw"]
 
-[ext_resource type="Script" uid="uid://birxykmprpeas" path="res://Scripts/CardUi.cs" id="1_huidv"]
+[ext_resource type="Script" uid="uid://birxykmprpeas" path="res://Scripts/Cards/CardUi.cs" id="1_huidv"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_obeoo"]
 bg_color = Color(1, 1, 1, 1)
@@ -13,46 +13,6 @@ corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
-
-[sub_resource type="Animation" id="Animation_obeoo"]
-resource_name = "hover_enter"
-length = 0.25
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath(".:scale")
-tracks/0/interp = 2
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.25),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [Vector2(1, 1), Vector2(1.2, 1.2)]
-}
-tracks/1/type = "value"
-tracks/1/imported = false
-tracks/1/enabled = true
-tracks/1/path = NodePath(".:z_index")
-tracks/1/interp = 0
-tracks/1/loop_wrap = true
-tracks/1/keys = {
-"times": PackedFloat32Array(0, 0.05),
-"transitions": PackedFloat32Array(1, 0.1),
-"update": 1,
-"values": [0, 100]
-}
-tracks/2/type = "value"
-tracks/2/imported = false
-tracks/2/enabled = false
-tracks/2/path = NodePath(".:position")
-tracks/2/interp = 1
-tracks/2/loop_wrap = true
-tracks/2/keys = {
-"times": PackedFloat32Array(0, 0.25),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [Vector2(5, -14), Vector2(5, -44)]
-}
 
 [sub_resource type="Animation" id="Animation_547ju"]
 length = 0.001
@@ -105,6 +65,46 @@ tracks/3/keys = {
 "values": [Vector2(5, -14)]
 }
 
+[sub_resource type="Animation" id="Animation_obeoo"]
+resource_name = "hover_enter"
+length = 0.25
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:scale")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.1, 1.1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:z_index")
+tracks/1/interp = 0
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.05),
+"transitions": PackedFloat32Array(1, 0.1),
+"update": 1,
+"values": [0, 100]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = false
+tracks/2/path = NodePath(".:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(5, -14), Vector2(5, -44)]
+}
+
 [sub_resource type="Animation" id="Animation_hcufj"]
 resource_name = "hover_exit"
 length = 0.5
@@ -118,7 +118,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.25),
 "transitions": PackedFloat32Array(1, 1),
 "update": 0,
-"values": [Vector2(1.2, 1.2), Vector2(1, 1)]
+"values": [Vector2(1.1, 1.1), Vector2(1, 1)]
 }
 tracks/1/type = "value"
 tracks/1/imported = false

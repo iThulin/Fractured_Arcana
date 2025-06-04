@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-public partial class GameManager : Node2D
+public partial class GameManager : Node3D
 {
 
     private DeckManager deckManager;

@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3 uid="uid://kr82jj8kd6i1"]
+
+[ext_resource type="Script" uid="uid://cwuubbch02nc6" path="res://Scripts/Tiles/HexTile.cs" id="1_y3rtd"]
+[ext_resource type="CylinderMesh" uid="uid://c6txik1r44jjl" path="res://Hex_mesh.tres" id="2_1spyd"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1spyd"]
+albedo_color = Color(0.522904, 0.55825, 0.306631, 1)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_7nvip"]
+height = 0.2
+radius = 0.85
+
+[node name="HexTile" type="Node3D"]
+script = ExtResource("1_y3rtd")
+Radius = 50.0
+HoverColor = Color(0.345098, 0.470588, 0.337255, 1)
+
+[node name="HexMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, 0, 0, 0)
+mesh = ExtResource("2_1spyd")
+surface_material_override/0 = SubResource("StandardMaterial3D_1spyd")
+
+[node name="Area3D" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D"]
+shape = SubResource("CylinderShape3D_7nvip")
+
+[node name="CoordLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0.277201, 0)
+billboard = 1
+text = "Test"
