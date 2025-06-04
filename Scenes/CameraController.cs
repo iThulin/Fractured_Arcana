@@ -26,15 +26,16 @@ public partial class CameraController : Node3D
 
     private Vector3 boundsMin = new Vector3(-10, 0, -10);
     private Vector3 boundsMax = new Vector3(100, 0, 100);
-    private float targetZoomDistance;
-    private float zoomLerpSpeed = 10f; // You can adjust for speed
+
+    private Vector3 zoomDirection = Vector3.Zero;
+    private float zoomStepRemaining = 0f;
+    private float zoomLerpSpeed = 10f;
+    private const float MouseToKeyboardRotationRatio = 200f;
 
     public override void _Ready()
     {
         cameraPivot = GetNode<Node3D>("CameraPivot");
         camera = cameraPivot.GetNode<Camera3D>("Camera3D");
-
-        targetZoomDistance = camera.Position.Length();
 
         var gridManager = GetNodeOrNull<Node3D>("/root/Main Scene/HexGridManager");
         if (gridManager is HexGridManager hexGrid)
@@ -55,14 +56,27 @@ public partial class CameraController : Node3D
             if (mouseEvent.ButtonIndex == MouseButton.Right)
                 dragging = mouseEvent.Pressed;
 
-            // Set target zoom distance
-            if (mouseEvent.ButtonIndex == MouseButton.WheelUp)
-                targetZoomDistance -= ZoomSpeed;
-            if (mouseEvent.ButtonIndex == MouseButton.WheelDown)
-                targetZoomDistance += ZoomSpeed;
+            if (mouseEvent.ButtonIndex == MouseButton.WheelUp || mouseEvent.ButtonIndex == MouseButton.WheelDown)
+            {
+                Vector2 mousePos = GetViewport().GetMousePosition();
+                var spaceState = GetWorld3D().DirectSpaceState;
+                Vector3 from = camera.ProjectRayOrigin(mousePos);
+                Vector3 to = from + camera.ProjectRayNormal(mousePos) * 1000f;
 
-            // Clamp zoom distance
-            targetZoomDistance = Mathf.Clamp(targetZoomDistance, MinZoom, MaxZoom);
+                var result = spaceState.IntersectRay(new PhysicsRayQueryParameters3D
+                {
+                    From = from,
+                    To = to,
+                    CollisionMask = 1
+                });
+
+                if (result.Count > 0)
+                    zoomDirection = ((Vector3)result["position"] - camera.GlobalTransform.Origin).Normalized();
+                else
+                    zoomDirection = camera.GlobalTransform.Basis.Z * -1f;
+
+                zoomStepRemaining += (mouseEvent.ButtonIndex == MouseButton.WheelUp ? 1 : -1) * ZoomSpeed;
+            }
         }
 
         if (@event is InputEventMouseMotion motionEvent)
@@ -70,75 +84,84 @@ public partial class CameraController : Node3D
     }
 
     public override void _Process(double delta)
-{
-    Vector3 inputDirection = Vector3.Zero;
-
-    // Read camera-facing directions
-    Vector3 forward = -cameraPivot.GlobalTransform.Basis.Z;
-    forward.Y = 0; // flatten
-    forward = forward.Normalized();
-
-    Vector3 right = cameraPivot.GlobalTransform.Basis.X;
-    right.Y = 0;
-    right = right.Normalized();
-
-    // WASD / Arrow keys
-    if (Input.IsActionPressed("ui_up"))    inputDirection += forward;
-    if (Input.IsActionPressed("ui_down"))  inputDirection -= forward;
-    if (Input.IsActionPressed("ui_right")) inputDirection += right;
-    if (Input.IsActionPressed("ui_left"))  inputDirection -= right;
-
-    // Edge scroll (relative)
-    Vector2 mousePos = GetViewport().GetMousePosition();
-    Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
-
-    if (mousePos.X < EdgeScrollMargin) inputDirection -= right;
-    if (mousePos.X > viewportSize.X - EdgeScrollMargin) inputDirection += right;
-    if (mousePos.Y < EdgeScrollMargin) inputDirection += forward;
-    if (mousePos.Y > viewportSize.Y - EdgeScrollMargin) inputDirection -= forward;
-
-    // Normalize to prevent diagonal boost
-    if (inputDirection != Vector3.Zero)
-        inputDirection = inputDirection.Normalized();
-
-    Vector3 newPosition = Position + inputDirection * MoveSpeed * (float)delta;
-
-    // Right-click drag
-    if (dragging)
     {
-        Vector2 deltaMouse = GetViewport().GetMousePosition() - lastMousePos;
-        Vector3 dragRight = -right * deltaMouse.X;
-        Vector3 dragForward = forward * deltaMouse.Y;
-        newPosition += (dragRight + dragForward) * DragSpeed;
-    }
+        // Movement
+        Vector3 inputDirection = Vector3.Zero;
 
-    // Clamp camera bounds
-    newPosition.X = Mathf.Clamp(newPosition.X, boundsMin.X, boundsMax.X);
-    newPosition.Z = Mathf.Clamp(newPosition.Z, boundsMin.Z, boundsMax.Z);
-    Position = newPosition;
+        Vector3 forward = -cameraPivot.GlobalTransform.Basis.Z;
+        forward.Y = 0;
+        forward = forward.Normalized();
 
-    // Middle mouse rotate
-    if (Input.IsMouseButtonPressed(MouseButton.Middle))
-    {
-        yaw -= mouseDelta.X * RotationSpeed;
-        pitch -= mouseDelta.Y * RotationSpeed;
-        pitch = Mathf.Clamp(pitch, MinPitch, MaxPitch);
+        Vector3 right = cameraPivot.GlobalTransform.Basis.X;
+        right.Y = 0;
+        right = right.Normalized();
+
+        if (Input.IsActionPressed("ui_up")) inputDirection += forward;
+        if (Input.IsActionPressed("ui_down")) inputDirection -= forward;
+        if (Input.IsActionPressed("ui_right")) inputDirection += right;
+        if (Input.IsActionPressed("ui_left")) inputDirection -= right;
+
+        Vector2 mousePos = GetViewport().GetMousePosition();
+        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
+
+        if (mousePos.X < EdgeScrollMargin) inputDirection -= right;
+        if (mousePos.X > viewportSize.X - EdgeScrollMargin) inputDirection += right;
+        if (mousePos.Y < EdgeScrollMargin) inputDirection += forward;
+        if (mousePos.Y > viewportSize.Y - EdgeScrollMargin) inputDirection -= forward;
+
+        if (inputDirection != Vector3.Zero)
+            inputDirection = inputDirection.Normalized();
+
+        Vector3 newPosition = Position + inputDirection * MoveSpeed * (float)delta;
+
+        if (dragging)
+        {
+            Vector2 deltaMouse = GetViewport().GetMousePosition() - lastMousePos;
+            Vector3 dragRight = -right * deltaMouse.X;
+            Vector3 dragForward = forward * deltaMouse.Y;
+            newPosition += (dragRight + dragForward) * DragSpeed;
+        }
+
+        newPosition.X = Mathf.Clamp(newPosition.X, boundsMin.X, boundsMax.X);
+        newPosition.Z = Mathf.Clamp(newPosition.Z, boundsMin.Z, boundsMax.Z);
+        Position = newPosition;
+
+        // Rotation
+        if (Input.IsMouseButtonPressed(MouseButton.Middle))
+        {
+            yaw -= mouseDelta.X * RotationSpeed;
+            pitch -= mouseDelta.Y * RotationSpeed;
+            pitch = Mathf.Clamp(pitch, MinPitch, MaxPitch);
+            cameraPivot.RotationDegrees = new Vector3(pitch, yaw, 0);
+        }
+        // Keyboard camera rotation (Q/E)
+        if (Input.IsActionPressed("rotate_left"))
+            yaw -= RotationSpeed * MouseToKeyboardRotationRatio * (float)delta;
+        if (Input.IsActionPressed("rotate_right"))
+            yaw += RotationSpeed * MouseToKeyboardRotationRatio * (float)delta;
+
+
         cameraPivot.RotationDegrees = new Vector3(pitch, yaw, 0);
+
+        // Zoom
+        if (Mathf.Abs(zoomStepRemaining) > 0.01f)
+        {
+            float step = zoomStepRemaining * zoomLerpSpeed * (float)delta;
+            Vector3 proposed = camera.GlobalPosition + zoomDirection * step;
+
+            float distanceToPivot = (proposed - cameraPivot.GlobalPosition).Length();
+            if (distanceToPivot >= MinZoom && distanceToPivot <= MaxZoom)
+            {
+                camera.GlobalPosition = proposed;
+                zoomStepRemaining -= step / ZoomSpeed;
+            }
+            else
+            {
+                zoomStepRemaining = 0;
+            }
+        }
+
+        mouseDelta = Vector2.Zero;
+        lastMousePos = GetViewport().GetMousePosition();
     }
-
-    // Smooth zoom toward targetZoomDistance
-    Vector3 zoomDirection = camera.GlobalTransform.Basis.Z.Normalized();
-    float currentDistance = camera.Position.Length();
-    float zoomDelta = targetZoomDistance - currentDistance;
-
-    if (Mathf.Abs(zoomDelta) > 0.01f)
-    {
-        float zoomStep = zoomDelta * zoomLerpSpeed * (float)delta;
-        camera.Position += zoomDirection * zoomStep;
-    }
-
-    mouseDelta = Vector2.Zero;
-    lastMousePos = GetViewport().GetMousePosition();
-}
-
 }
