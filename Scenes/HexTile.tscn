@@ -28,4 +28,5 @@ shape = SubResource("CylinderShape3D_7nvip")
 [node name="CoordLabel" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0.277201, 0)
 billboard = 1
-text = "Test"
+text = "Test
+"
