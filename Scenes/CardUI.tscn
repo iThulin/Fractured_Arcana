@@ -1,18 +1,41 @@
-[gd_scene load_steps=7 format=3 uid="uid://iuge2orfh1hw"]
+[gd_scene load_steps=11 format=3 uid="uid://iuge2orfh1hw"]
 
 [ext_resource type="Script" uid="uid://birxykmprpeas" path="res://Scripts/Cards/CardUi.cs" id="1_huidv"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_obeoo"]
+[sub_resource type="Gradient" id="Gradient_obeoo"]
+offsets = PackedFloat32Array(0, 0.803279, 1)
+colors = PackedColorArray(0, 0, 0, 0, 0, 0.389783, 0.389783, 0.453552, 0, 0.859401, 0.859401, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_hcufj"]
+gradient = SubResource("Gradient_obeoo")
+height = 10
+fill_to = Vector2(0, 0.5)
+repeat = 2
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_547ju"]
+texture = SubResource("GradientTexture2D_hcufj")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hcufj"]
 bg_color = Color(1, 1, 1, 1)
-border_width_left = 10
-border_width_top = 10
-border_width_right = 10
-border_width_bottom = 10
-border_color = Color(0.863014, 0.440625, 9.62615e-07, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 2
+border_color = Color(1, 0.564706, 0, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_detail = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_547ju"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 5
+border_width_top = 2
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(1, 0.564706, 0, 1)
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 4
 
 [sub_resource type="Animation" id="Animation_547ju"]
 length = 0.001
@@ -161,13 +184,15 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 5.0
 offset_top = -14.0
-offset_right = 5.0
-offset_bottom = -14.0
+offset_right = -1715.0
+offset_bottom = -794.0
 grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 6
 size_flags_vertical = 3
 focus_mode = 2
+mouse_filter = 2
+mouse_default_cursor_shape = 5
 script = ExtResource("1_huidv")
 
 [node name="CardVisual" type="Control" parent="."]
@@ -177,37 +202,53 @@ offset_right = 40.0
 offset_bottom = 40.0
 mouse_filter = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="CardVisual"]
+[node name="Transition" type="Panel" parent="CardVisual"]
+visible = false
+z_index = 1
+custom_minimum_size = Vector2(200, 10)
+layout_mode = 2
+offset_top = 145.0
+offset_right = 200.0
+offset_bottom = 155.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_547ju")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CardVisual"]
 custom_minimum_size = Vector2(200, 300)
 layout_mode = 2
 offset_right = 200.0
 offset_bottom = 300.0
-mouse_filter = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Border" type="Panel" parent="CardVisual/MarginContainer"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_obeoo")
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CardVisual/MarginContainer/Border"]
-custom_minimum_size = Vector2(160, 250)
-layout_mode = 2
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 170.0
-offset_bottom = 270.0
 size_flags_vertical = 0
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 4
 
-[node name="NameLabel" type="Label" parent="CardVisual/MarginContainer/Border/VBoxContainer"]
+[node name="TopCardPanel" type="Panel" parent="CardVisual/VBoxContainer"]
+custom_minimum_size = Vector2(200, 148)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_hcufj")
+
+[node name="TopCardControl" type="Control" parent="CardVisual/VBoxContainer/TopCardPanel"]
+custom_minimum_size = Vector2(200, 148)
+layout_mode = 2
+anchors_preset = 0
+offset_right = 200.0
+offset_bottom = 148.0
+mouse_default_cursor_shape = 2
+
+[node name="TopSpellContainer" type="VBoxContainer" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl"]
+custom_minimum_size = Vector2(190, 140)
+layout_mode = 2
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 195.0
+offset_bottom = 145.0
+mouse_filter = 2
+
+[node name="NameLabel" type="Label" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
 custom_minimum_size = Vector2(160, 30)
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 24
@@ -216,29 +257,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="SchoolLabel" type="Label" parent="CardVisual/MarginContainer/Border/VBoxContainer"]
-custom_minimum_size = Vector2(160, 30)
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 18
-text = "School"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="ManaLabel" type="Label" parent="CardVisual/MarginContainer/Border/VBoxContainer"]
-custom_minimum_size = Vector2(160, 30)
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 18
-text = "Mana Cost"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="DescriptionLabel" type="RichTextLabel" parent="CardVisual/MarginContainer/Border/VBoxContainer"]
+[node name="DescriptionLabel" type="RichTextLabel" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
 custom_minimum_size = Vector2(160, 30)
 layout_mode = 2
 size_flags_vertical = 3
@@ -248,6 +267,76 @@ theme_override_font_sizes/normal_font_size = 18
 text = "Description"
 scroll_active = false
 horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SchoolLabel" type="Label" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
+custom_minimum_size = Vector2(160, 20)
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 12
+text = "School"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="BottomCardPanel" type="Panel" parent="CardVisual/VBoxContainer"]
+custom_minimum_size = Vector2(200, 148)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_547ju")
+
+[node name="BottomCardControl" type="Control" parent="CardVisual/VBoxContainer/BottomCardPanel"]
+custom_minimum_size = Vector2(200, 148)
+layout_mode = 2
+anchors_preset = 0
+offset_right = 200.0
+offset_bottom = 148.0
+mouse_default_cursor_shape = 2
+
+[node name="BottomSpellContainer" type="VBoxContainer" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl"]
+custom_minimum_size = Vector2(190, 140)
+layout_mode = 2
+offset_left = 5.0
+offset_top = 3.0
+offset_right = 195.0
+offset_bottom = 143.0
+mouse_filter = 2
+
+[node name="NameLabel" type="Label" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
+custom_minimum_size = Vector2(160, 30)
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 24
+text = "Spell Name"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
+custom_minimum_size = Vector2(160, 30)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_colors/default_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/normal_font_size = 18
+text = "Description"
+scroll_active = false
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SchoolLabel" type="Label" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
+custom_minimum_size = Vector2(160, 20)
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 12
+text = "School"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
 
 [node name="HoverAnimator" type="AnimationPlayer" parent="."]
 libraries = {

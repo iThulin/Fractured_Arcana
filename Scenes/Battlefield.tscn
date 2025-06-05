@@ -112,7 +112,7 @@ text = "Remove"
 [node name="HexGridManager" type="Node3D" parent="."]
 script = ExtResource("6_xukim")
 HexTileScene3D = ExtResource("7_jf4gb")
-GridWidth = 10
+GridWidth = 20
 GridHeight = 10
 HexRadius = 1.025
 

@@ -3,7 +3,8 @@ using System;
 
 public partial class CardUi : Control
 {
-    public CardData CardData { get; private set; }
+    public CardData TopCardData { get; private set; }
+    public CardData BottomCardData { get; private set; }
     private bool _isHovered = false;
     private Control _visualNode;
     private Color _normalColor = new Color(1, 1, 1, 1);
@@ -20,6 +21,10 @@ public partial class CardUi : Control
     private AnimationPlayer hoverAnimator;
     [Signal]
     public delegate void CardDroppedEventHandler();
+    [Signal]
+    public delegate void TopCardSelectedEventHandler(CardData card);
+    [Signal]
+    public delegate void BottomCardSelectedEventHandler(CardData card);
 
     public override void _Ready()
     {
@@ -30,6 +35,13 @@ public partial class CardUi : Control
 
         MouseEntered += OnMouseEntered;
         MouseExited += OnMouseExited;
+
+        var topArea = GetNode<Control>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl");
+        var BottomArea = GetNode<Control>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl");
+
+        topArea.GuiInput += OnTopCardInput;
+        BottomArea.GuiInput += OnBottomCardInput;
+        
     }
 
     private void OnMouseEntered()
@@ -57,6 +69,24 @@ public partial class CardUi : Control
         //RectScale = originalScale;
         //ZIndex = originalZIndex;
         //GD.Print($"[CardUi] Moved up to: {Position}, Z index: {ZIndex}");
+    }
+
+    private void OnTopCardInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+        {
+            EmitSignal(SignalName.TopCardSelected, TopCardData);
+            GD.Print($"Top card selected: {TopCardData.CardName}");
+        }
+    }
+
+    private void OnBottomCardInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+        {
+            EmitSignal(SignalName.BottomCardSelected, BottomCardData);
+            GD.Print($"Bottom card selected: {BottomCardData.CardName}");
+        }
     }
 
     public override Variant _GetDragData(Vector2 atPosition)
@@ -91,18 +121,27 @@ public partial class CardUi : Control
         }
     }
 
-    public void SetCard(CardData data)
+    public void SetCard(CardData TopData, CardData BottomData)
     {
-        CardData = data;
+        //CardData = data;
 
-        var nameLabel = GetNodeOrNull<Label>("CardVisual/MarginContainer/Border/VBoxContainer/NameLabel");
-        var schoolLabel = GetNodeOrNull<Label>("CardVisual/MarginContainer/Border/VBoxContainer/SchoolLabel");
-        var manaLabel = GetNodeOrNull<Label>("CardVisual/MarginContainer/Border/VBoxContainer/ManaLabel");
-        var descLabel = GetNodeOrNull<RichTextLabel>("CardVisual/MarginContainer/Border/VBoxContainer/DescriptionLabel");
+        // Top Card Data
+        var nameLabelTop = GetNodeOrNull<Label>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/NameLabel");
+        var schoolLabelTop = GetNodeOrNull<Label>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/SchoolLabel");
+        var descLabelTop = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/DescriptionLabel");
 
-        if (nameLabel != null) nameLabel.Text = data.CardName;
-        if (schoolLabel != null) schoolLabel.Text = data.School;
-        if (manaLabel != null) manaLabel.Text = data.ManaCost.ToString();
-        if (descLabel != null) descLabel.Text = data.Description;
+        if (nameLabelTop != null) nameLabelTop.Text = TopData.CardName;
+        if (schoolLabelTop != null) schoolLabelTop.Text = TopData.School;
+        if (descLabelTop != null) descLabelTop.Text = TopData.Description;
+
+        // Bottom Card Data
+        var nameLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameLabel");
+        var schoolLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/SchoolLabel");
+        var descLabelBot = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/DescriptionLabel");
+
+        if (nameLabelBot != null) nameLabelBot.Text = BottomData.CardName;
+        if (schoolLabelBot != null) schoolLabelBot.Text = BottomData.School;
+        if (descLabelBot != null) descLabelBot.Text = BottomData.Description;
+
     }
 }
