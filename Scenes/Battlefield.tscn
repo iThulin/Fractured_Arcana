@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://csdmm1n6b4hoe" path="res://Scenes/DropSlot.tscn" id="5_tpnw0"]
 [ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/HexGridManager.cs" id="6_xukim"]
 [ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/HexTile.tscn" id="7_jf4gb"]
-[ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scenes/CameraController.cs" id="8_emk3e"]
+[ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scripts/UI/CameraController.cs" id="8_emk3e"]
 
 [sub_resource type="Sky" id="Sky_jf4gb"]
 

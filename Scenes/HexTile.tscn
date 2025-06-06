@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://kr82jj8kd6i1"]
 
 [ext_resource type="Script" uid="uid://cwuubbch02nc6" path="res://Scripts/Tiles/HexTile.cs" id="1_y3rtd"]
-[ext_resource type="CylinderMesh" uid="uid://c6txik1r44jjl" path="res://Hex_mesh.tres" id="2_1spyd"]
+[ext_resource type="CylinderMesh" uid="uid://c6txik1r44jjl" path="res://Assets/Hex_mesh.tres" id="2_1spyd"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1spyd"]
 albedo_color = Color(0.522904, 0.55825, 0.306631, 1)

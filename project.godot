@@ -13,7 +13,6 @@ config_version=5
 config/name="Wizard Card Game"
 run/main_scene="uid://dgi6v10ltygfn"
 config/features=PackedStringArray("4.4", "C#", "GL Compatibility")
-config/icon="res://icon.svg"
 
 [display]
 

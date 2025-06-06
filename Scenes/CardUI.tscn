@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://iuge2orfh1hw"]
+[gd_scene load_steps=13 format=3 uid="uid://iuge2orfh1hw"]
 
 [ext_resource type="Script" uid="uid://birxykmprpeas" path="res://Scripts/Cards/CardUi.cs" id="1_huidv"]
 
@@ -38,15 +38,15 @@ corner_radius_bottom_left = 5
 corner_detail = 4
 
 [sub_resource type="Animation" id="Animation_547ju"]
-length = 0.001
+length = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
 tracks/0/path = NodePath(".:scale")
-tracks/0/interp = 1
+tracks/0/interp = 2
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0),
+"times": PackedFloat32Array(0.1),
 "transitions": PackedFloat32Array(1),
 "update": 0,
 "values": [Vector2(1, 1)]
@@ -54,42 +54,42 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath(".:position:y")
-tracks/1/interp = 1
+tracks/1/path = NodePath(".:z_index")
+tracks/1/interp = 2
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [-14.0]
-}
-tracks/2/type = "value"
-tracks/2/imported = false
-tracks/2/enabled = true
-tracks/2/path = NodePath(".:z_index")
-tracks/2/interp = 1
-tracks/2/loop_wrap = true
-tracks/2/keys = {
-"times": PackedFloat32Array(0),
+"times": PackedFloat32Array(0.1),
 "transitions": PackedFloat32Array(1),
 "update": 1,
 "values": [0]
 }
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CardVisual/VBoxContainer/TopCardPanel:modulate")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.1),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
 tracks/3/type = "value"
 tracks/3/imported = false
 tracks/3/enabled = true
-tracks/3/path = NodePath(".:position")
-tracks/3/interp = 1
+tracks/3/path = NodePath("CardVisual/VBoxContainer/BottomCardPanel:modulate")
+tracks/3/interp = 2
 tracks/3/loop_wrap = true
 tracks/3/keys = {
-"times": PackedFloat32Array(0),
+"times": PackedFloat32Array(0.1),
 "transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Vector2(5, -14)]
+"values": [Color(1, 1, 1, 1)]
 }
 
 [sub_resource type="Animation" id="Animation_obeoo"]
-resource_name = "hover_enter"
+resource_name = "hover_enter_bottom"
 length = 0.25
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -107,7 +107,7 @@ tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
 tracks/1/path = NodePath(".:z_index")
-tracks/1/interp = 0
+tracks/1/interp = 2
 tracks/1/loop_wrap = true
 tracks/1/keys = {
 "times": PackedFloat32Array(0, 0.05),
@@ -117,19 +117,19 @@ tracks/1/keys = {
 }
 tracks/2/type = "value"
 tracks/2/imported = false
-tracks/2/enabled = false
-tracks/2/path = NodePath(".:position")
-tracks/2/interp = 1
+tracks/2/enabled = true
+tracks/2/path = NodePath("CardVisual/VBoxContainer/TopCardPanel:modulate")
+tracks/2/interp = 2
 tracks/2/loop_wrap = true
 tracks/2/keys = {
 "times": PackedFloat32Array(0, 0.25),
 "transitions": PackedFloat32Array(1, 1),
 "update": 0,
-"values": [Vector2(5, -14), Vector2(5, -44)]
+"values": [Color(1, 1, 1, 1), Color(0.361575, 0.361575, 0.361575, 1)]
 }
 
 [sub_resource type="Animation" id="Animation_hcufj"]
-resource_name = "hover_exit"
+resource_name = "hover_exit_bottom"
 length = 0.5
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -147,7 +147,7 @@ tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
 tracks/1/path = NodePath(".:z_index")
-tracks/1/interp = 0
+tracks/1/interp = 2
 tracks/1/loop_wrap = true
 tracks/1/keys = {
 "times": PackedFloat32Array(0, 0.05),
@@ -157,22 +157,104 @@ tracks/1/keys = {
 }
 tracks/2/type = "value"
 tracks/2/imported = false
-tracks/2/enabled = false
-tracks/2/path = NodePath(".:position")
-tracks/2/interp = 1
+tracks/2/enabled = true
+tracks/2/path = NodePath("CardVisual/VBoxContainer/TopCardPanel:modulate")
+tracks/2/interp = 2
 tracks/2/loop_wrap = true
 tracks/2/keys = {
 "times": PackedFloat32Array(0, 0.25),
-"transitions": PackedFloat32Array(1, 0.176777),
+"transitions": PackedFloat32Array(1, 1),
 "update": 0,
-"values": [Vector2(5, -44), Vector2(5, -14)]
+"values": [Color(0.360784, 0.360784, 0.360784, 1), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_af8jv"]
+resource_name = "hover_exit_top"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:scale")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(1.1, 1.1), Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:z_index")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.05),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [100, 0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CardVisual/VBoxContainer/BottomCardPanel:modulate")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0.360784, 0.360784, 0.360784, 1), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_vypdv"]
+resource_name = "hover_enter_top"
+length = 0.25
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:scale")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.1, 1.1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:z_index")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.05),
+"transitions": PackedFloat32Array(1, 0.1),
+"update": 1,
+"values": [0, 100]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CardVisual/VBoxContainer/BottomCardPanel:modulate")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0.360784, 0.360784, 0.360784, 1)]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_af8jv"]
 _data = {
 &"RESET": SubResource("Animation_547ju"),
-&"hover_enter": SubResource("Animation_obeoo"),
-&"hover_exit": SubResource("Animation_hcufj")
+&"hover_enter_bottom": SubResource("Animation_obeoo"),
+&"hover_enter_top": SubResource("Animation_vypdv"),
+&"hover_exit_bottom": SubResource("Animation_hcufj"),
+&"hover_exit_top": SubResource("Animation_af8jv")
 }
 
 [node name="CardUi" type="Control"]
@@ -342,3 +424,4 @@ autowrap_mode = 3
 libraries = {
 &"": SubResource("AnimationLibrary_af8jv")
 }
+blend_times = [&"hover_enter_bottom", &"hover_enter_bottom", 0.25, &"hover_enter_bottom", &"hover_enter_top", 0.25, &"hover_enter_bottom", &"hover_exit_bottom", 0.25, &"hover_enter_bottom", &"hover_exit_top", 0.25]
