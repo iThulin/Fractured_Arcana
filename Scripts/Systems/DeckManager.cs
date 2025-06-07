@@ -175,7 +175,7 @@ public partial class DeckManager : Node2D
 
         float maxArcSpanDeg = 20f;
         float minArcSpanDeg = 1f;
-        float stepPerCard = 1.5f;
+        float stepPerCard = 2.75f;
         float arcSpanDeg = Mathf.Min(maxArcSpanDeg, stepPerCard * (count - 1));
 
         arcSpanDeg = Mathf.Max(minArcSpanDeg, arcSpanDeg);

@@ -33,8 +33,82 @@ public partial class CardUi : Control
 
         topArea.MouseExited += () => hoverAnimator?.Play("RESET");
         bottomArea.MouseExited += () => hoverAnimator?.Play("RESET");
+
+        topArea.GuiInput += OnCardGuiInput;
+        bottomArea.GuiInput += OnCardGuiInput;
     }
 
+    private void OnCardGuiInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
+        {
+            if (mb.Pressed)
+            {
+                _dragPressed = true;
+                _dragStartPosition = mb.GlobalPosition;
+            }
+            else
+            {
+                _dragPressed = false;
+                if (!_dragQueued)
+                {
+                    SnapBack();
+                }
+            }
+        }
+        else if (_dragPressed && @event is InputEventMouseMotion motion)
+        {
+            if (!_dragQueued && (motion.GlobalPosition - _dragStartPosition).Length() > DragThreshold)
+            {
+                _dragQueued = true;
+                SetDragPreview(CreateDragPreview());
+                GetViewport().SetInputAsHandled();
+            }
+        }
+    }
+
+    private Control CreateDragPreview()
+    {
+        var preview = Duplicate() as CardUi;
+        preview.SetCard(TopCardData, BottomCardData);
+        preview.Modulate = new Color(1, 1, 1, 0.5f);
+        preview.Scale = new Vector2(1.1f, 1.1f);
+        return preview;
+    }
+
+    public override Variant _GetDragData(Vector2 atPosition)
+    {
+        _dragQueued = false;
+        return this;
+    }
+
+    public override bool _CanDropData(Vector2 atPosition, Variant data)
+    {
+        return data.Obj is CardUi;
+    }
+
+    public override void _DropData(Vector2 atPosition, Variant data)
+    {
+        if (data.Obj is CardUi droppedCard && droppedCard != this)
+        {
+            var container = GetParent();
+            if (container is Control control)
+            {
+                int dropIndex = control.GetChildren().IndexOf(this);
+                control.RemoveChild(droppedCard);
+                control.AddChild(droppedCard);
+                control.MoveChild(droppedCard, dropIndex);
+                droppedCard.SnapBack();
+                EmitSignal(SignalName.CardDropped);
+            }
+        }
+    }
+
+    private void SnapBack()
+    {
+        Position = _originalPosition;
+        EmitSignal(SignalName.CardDropped);
+    }
 
     public void SetCard(CardData TopData, CardData BottomData)
     {
