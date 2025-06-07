@@ -18,6 +18,7 @@ public partial class CardUi : Control
     private Vector2 _dragStartPosition;
     private Vector2 _originalPosition;
     private const float DragThreshold = 10f;
+    private bool _dragTopCard = false;
 
     public override void _Ready()
     {
@@ -34,18 +35,20 @@ public partial class CardUi : Control
         topArea.MouseExited += () => hoverAnimator?.Play("RESET");
         bottomArea.MouseExited += () => hoverAnimator?.Play("RESET");
 
-        topArea.GuiInput += OnCardGuiInput;
-        bottomArea.GuiInput += OnCardGuiInput;
+        topArea.GuiInput += (e) => OnCardGuiInput(e, true);
+        bottomArea.GuiInput += (e) => OnCardGuiInput(e, false);
     }
 
-    private void OnCardGuiInput(InputEvent @event)
+    private void OnCardGuiInput(InputEvent @event, bool isTop)
     {
         if (@event is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
         {
             if (mb.Pressed)
             {
                 _dragPressed = true;
+                _dragQueued = false;
                 _dragStartPosition = mb.GlobalPosition;
+                _dragTopCard = isTop;
             }
             else
             {
@@ -78,28 +81,47 @@ public partial class CardUi : Control
 
     public override Variant _GetDragData(Vector2 atPosition)
     {
+        GD.Print($"Started dragging card: {( _dragTopCard ? "TOP" : "BOTTOM") }");
         _dragQueued = false;
-        return this;
+        
+        // Save the drag data statically
+        DragPayloadManager.DraggedCard = this;
+        DragPayloadManager.IsTopHalf = _dragTopCard;
+
+        return new Godot.Collections.Dictionary
+        {
+            { "card", this },
+            { "is_top", _dragTopCard }
+        };
     }
 
     public override bool _CanDropData(Vector2 atPosition, Variant data)
     {
-        return data.Obj is CardUi;
+        if (data.Obj is Godot.Collections.Dictionary dict)
+        {
+            return dict.ContainsKey("card") && dict["card"] is CardUi;
+        }
+        return false;
     }
 
     public override void _DropData(Vector2 atPosition, Variant data)
     {
-        if (data.Obj is CardUi droppedCard && droppedCard != this)
+        if (data.Obj is Godot.Collections.Dictionary dict)
         {
-            var container = GetParent();
-            if (container is Control control)
+            if (dict.ContainsKey("card") && dict["card"] is object cardObj && cardObj is CardUi)
             {
-                int dropIndex = control.GetChildren().IndexOf(this);
-                control.RemoveChild(droppedCard);
-                control.AddChild(droppedCard);
-                control.MoveChild(droppedCard, dropIndex);
-                droppedCard.SnapBack();
-                EmitSignal(SignalName.CardDropped);
+                CardUi droppedCard = (CardUi)cardObj;
+
+                var container = GetParent();
+                if (container is Control control)
+                {
+                    int dropIndex = control.GetChildren().IndexOf(this);
+                    control.RemoveChild(droppedCard);
+                    control.AddChild(droppedCard);
+                    control.MoveChild(droppedCard, dropIndex);
+                    droppedCard.SnapBack();
+                    EmitSignal(SignalName.CardDropped);
+                }
             }
         }
     }

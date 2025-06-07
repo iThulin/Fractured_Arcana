@@ -24,9 +24,12 @@ public partial class HexTile : Node3D
             meshInstance.SetSurfaceOverrideMaterial(0, material);
             baseColor = material.AlbedoColor;
         }
+
         var area = GetNode<Area3D>("Area3D");
         area.MouseEntered += OnMouseEntered;
         area.MouseExited += OnMouseExited;
+
+        area.Connect("input_event", new Callable(this, nameof(OnAreaInputEvent)));
     }
 
     private void OnMouseEntered()
@@ -47,5 +50,27 @@ public partial class HexTile : Node3D
     {
         GD.Print($"Set Coords: {q}, {r}");
         coordLabel.Text = $"({q}, {r})";
+    }
+
+    private void OnAreaInputEvent(Node camera, InputEvent @event, Vector3 position, Vector3 normal, int shapeIdx)
+    {
+        if (@event is InputEventMouseButton mouseButton && mouseButton.Pressed && mouseButton.ButtonIndex == MouseButton.Left)
+        {
+            if (GetViewport().GuiIsDragging())
+            {
+                var card = DragPayloadManager.DraggedCard;
+                bool isTop = DragPayloadManager.IsTopHalf;
+
+                if (card != null)
+                {
+                    GD.Print($"Card dropped on tile at {GlobalPosition} — Playing {(isTop ? "TOP" : "BOTTOM")} spell.");
+
+                    if (isTop)
+                        card.EmitSignal(CardUi.SignalName.TopCardSelected, card.TopCardData);
+                    else
+                        card.EmitSignal(CardUi.SignalName.BottomCardSelected, card.BottomCardData);
+                }
+            }
+        }
     }
 } 
