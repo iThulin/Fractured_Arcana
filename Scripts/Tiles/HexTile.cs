@@ -25,11 +25,12 @@ public partial class HexTile : Node3D
             baseColor = material.AlbedoColor;
         }
 
-        var area = GetNode<Area3D>("Area3D");
+        var area = GetNode<StaticBody3D>("StaticBody3D");
         area.MouseEntered += OnMouseEntered;
         area.MouseExited += OnMouseExited;
 
-        area.Connect("input_event", new Callable(this, nameof(OnAreaInputEvent)));
+        var staticArea = GetNode<Area3D>("Area3D");
+        staticArea.Connect("input_event", new Callable(this, nameof(OnAreaInputEvent)));
     }
 
     private void OnMouseEntered()
@@ -54,10 +55,15 @@ public partial class HexTile : Node3D
 
     private void OnAreaInputEvent(Node camera, InputEvent @event, Vector3 position, Vector3 normal, int shapeIdx)
     {
+        //GD.Print("Funct trigger");
         if (@event is InputEventMouseButton mouseButton && mouseButton.Pressed && mouseButton.ButtonIndex == MouseButton.Left)
         {
-            if (GetViewport().GuiIsDragging())
+            
+            GD.Print("if @event");
+            if (DragPayloadManager.IsDragging)
             {
+                GD.Print("if dragging");
+
                 var card = DragPayloadManager.DraggedCard;
                 bool isTop = DragPayloadManager.IsTopHalf;
 
@@ -69,6 +75,8 @@ public partial class HexTile : Node3D
                         card.EmitSignal(CardUi.SignalName.TopCardSelected, card.TopCardData);
                     else
                         card.EmitSignal(CardUi.SignalName.BottomCardSelected, card.BottomCardData);
+
+                    DragPayloadManager.IsDragging = false; // reset here too
                 }
             }
         }

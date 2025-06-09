@@ -171,10 +171,10 @@ public partial class DeckManager : Node2D
         Vector2 screenHeight = GetViewport().GetVisibleRect().Size;
         float radius = screenHeight.Y * 4f;
 
-        Vector2 arcCenter = new Vector2(handUIContainer.Size.X / 2f, handUIContainer.Size.Y + radius * .95f);
+        Vector2 arcCenter = new Vector2(handUIContainer.Size.X / 2f, handUIContainer.Size.Y + radius * .9625f);
 
         float maxArcSpanDeg = 20f;
-        float minArcSpanDeg = 1f;
+        float minArcSpanDeg = .5f;
         float stepPerCard = 2.75f;
         float arcSpanDeg = Mathf.Min(maxArcSpanDeg, stepPerCard * (count - 1));
 
@@ -197,7 +197,7 @@ public partial class DeckManager : Node2D
 
                 Vector2 localPos = arcCenter + arcOffset;
                 card.Position = localPos - (card.Size / 2f);
-                card.Rotation = angle * 0.5f;
+                card.Rotation = angle * 1f;
             }
         }
         UpdateCardCounts();

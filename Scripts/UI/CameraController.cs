@@ -51,24 +51,58 @@ public partial class CameraController : Node3D
 
     public override void _Input(InputEvent @event)
     {
+        //GD.Print("CameraController _Input triggered");
         if (@event is InputEventMouseButton mouseEvent)
         {
+            GD.Print("Left click detected");
             if (mouseEvent.ButtonIndex == MouseButton.Right)
                 dragging = mouseEvent.Pressed;
 
             if (mouseEvent.ButtonIndex == MouseButton.WheelUp || mouseEvent.ButtonIndex == MouseButton.WheelDown)
             {
-                Vector2 mousePos = GetViewport().GetMousePosition();
-                var spaceState = GetWorld3D().DirectSpaceState;
-                Vector3 from = camera.ProjectRayOrigin(mousePos);
-                Vector3 to = from + camera.ProjectRayNormal(mousePos) * 1000f;
+                var mousePos = GetViewport().GetMousePosition();
+                var from = camera.ProjectRayOrigin(mousePos);
+                var to = from + camera.ProjectRayNormal(mousePos) * 1000f;
 
+                var spaceState = GetWorld3D().DirectSpaceState;
                 var result = spaceState.IntersectRay(new PhysicsRayQueryParameters3D
                 {
                     From = from,
                     To = to,
-                    CollisionMask = 1
+                    CollisionMask = 1 // make sure your tiles are on this layer
                 });
+
+                if (result.Count > 0)
+                {
+                    GD.Print("Ray hit something!");
+
+                if (result.TryGetValue("collider", out var colliderVar) && colliderVar.VariantType == Variant.Type.Object)
+                {
+                    GodotObject colliderObject = colliderVar.AsGodotObject();
+                    if (colliderObject is Node colliderNode)
+                    {
+                        // Walk up to find the HexTile ancestor
+                        var tile = colliderNode.GetParentOrNull<HexTile>();
+                        while (tile == null && colliderNode.GetParent() != null)
+                        {
+                            colliderNode = colliderNode.GetParent();
+                            tile = colliderNode as HexTile;
+                        }
+
+                        if (tile != null)
+                        {
+                            GD.Print($"Ray hit tile at {tile.GlobalPosition}");
+                            // Do your card logic here
+                        }
+                    }
+                }
+                }
+                // === Debug Raycast Result Keys ===
+                //GD.Print($"Ray hit result count: {result.Count}");
+                foreach (var key in result.Keys)
+                {
+                    //GD.Print($"Raycast result key: {key}");
+                }
 
                 if (result.Count > 0)
                     zoomDirection = ((Vector3)result["position"] - camera.GlobalTransform.Origin).Normalized();
@@ -77,6 +111,12 @@ public partial class CameraController : Node3D
 
                 zoomStepRemaining += (mouseEvent.ButtonIndex == MouseButton.WheelUp ? 1 : -1) * ZoomSpeed;
             }
+
+            if (mouseEvent.ButtonIndex == MouseButton.Left && !mouseEvent.Pressed)
+            {
+                TryDropCardOnTile();
+            }
+
         }
 
         if (@event is InputEventMouseMotion motionEvent)
@@ -163,5 +203,59 @@ public partial class CameraController : Node3D
 
         mouseDelta = Vector2.Zero;
         lastMousePos = GetViewport().GetMousePosition();
+    }
+
+    private HexTile GetParentHexTile(Node node)
+    {
+        while (node != null && node is not HexTile)
+        {
+            node = node.GetParent();
+        }
+        return node as HexTile;
+    }
+
+    private void TryDropCardOnTile()
+    {
+        if (!DragPayloadManager.IsDragging) return;
+
+        Vector2 mousePos = GetViewport().GetMousePosition();
+        Vector3 from = camera.ProjectRayOrigin(mousePos);
+        Vector3 to = from + camera.ProjectRayNormal(mousePos) * 1000f;
+
+        var result = GetWorld3D().DirectSpaceState.IntersectRay(new PhysicsRayQueryParameters3D
+        {
+            From = from,
+            To = to,
+            CollisionMask = 1 // Set this properly to match your tiles
+        });
+
+        GD.Print($"IsDragging: {DragPayloadManager.IsDragging}");
+
+        if (DragPayloadManager.IsDragging && result.TryGetValue("collider", out var colliderVar))
+        {
+            Node colliderNode = colliderVar.As<Node>();
+            if (colliderNode != null)
+            {
+                var hexTile = GetParentHexTile(colliderNode);
+                if (hexTile != null)
+                {
+                    GD.Print($"Ray hit tile at {hexTile.GlobalPosition}");
+
+                    var card = DragPayloadManager.DraggedCard;
+                    bool isTop = DragPayloadManager.IsTopHalf;
+
+                    if (card != null)
+                    {
+                        GD.Print($"Card dropped on tile at {hexTile.GlobalPosition} — Playing {(isTop ? "TOP" : "BOTTOM")} spell.");
+                        if (isTop)
+                            card.EmitSignal(CardUi.SignalName.TopCardSelected, card.TopCardData);
+                        else
+                            card.EmitSignal(CardUi.SignalName.BottomCardSelected, card.BottomCardData);
+
+                        DragPayloadManager.IsDragging = false;
+                    }
+                }
+            }
+        }
     }
 }
