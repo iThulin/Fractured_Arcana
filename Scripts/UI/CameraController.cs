@@ -20,6 +20,7 @@ public partial class CameraController : Node3D
 
     private Camera3D camera;
     private Node3D cameraPivot;
+    private CardDropHandler cardDropHandler;
     private Vector2 lastMousePos;
     private Vector2 mouseDelta;
     private bool dragging = false;
@@ -36,6 +37,8 @@ public partial class CameraController : Node3D
     {
         cameraPivot = GetNode<Node3D>("CameraPivot");
         camera = cameraPivot.GetNode<Camera3D>("Camera3D");
+
+        cardDropHandler = GetNodeOrNull<CardDropHandler>("/root/Main Scene/CardDropHandler");
 
         var gridManager = GetNodeOrNull<Node3D>("/root/Main Scene/HexGridManager");
         if (gridManager is HexGridManager hexGrid)
@@ -114,7 +117,7 @@ public partial class CameraController : Node3D
 
             if (mouseEvent.ButtonIndex == MouseButton.Left && !mouseEvent.Pressed)
             {
-                TryDropCardOnTile();
+                cardDropHandler?.TryDropCardOnTile();
             }
 
         }
@@ -203,59 +206,5 @@ public partial class CameraController : Node3D
 
         mouseDelta = Vector2.Zero;
         lastMousePos = GetViewport().GetMousePosition();
-    }
-
-    private HexTile GetParentHexTile(Node node)
-    {
-        while (node != null && node is not HexTile)
-        {
-            node = node.GetParent();
-        }
-        return node as HexTile;
-    }
-
-    private void TryDropCardOnTile()
-    {
-        if (!DragPayloadManager.IsDragging) return;
-
-        Vector2 mousePos = GetViewport().GetMousePosition();
-        Vector3 from = camera.ProjectRayOrigin(mousePos);
-        Vector3 to = from + camera.ProjectRayNormal(mousePos) * 1000f;
-
-        var result = GetWorld3D().DirectSpaceState.IntersectRay(new PhysicsRayQueryParameters3D
-        {
-            From = from,
-            To = to,
-            CollisionMask = 1 // Set this properly to match your tiles
-        });
-
-        GD.Print($"IsDragging: {DragPayloadManager.IsDragging}");
-
-        if (DragPayloadManager.IsDragging && result.TryGetValue("collider", out var colliderVar))
-        {
-            Node colliderNode = colliderVar.As<Node>();
-            if (colliderNode != null)
-            {
-                var hexTile = GetParentHexTile(colliderNode);
-                if (hexTile != null)
-                {
-                    GD.Print($"Ray hit tile at {hexTile.GlobalPosition}");
-
-                    var card = DragPayloadManager.DraggedCard;
-                    bool isTop = DragPayloadManager.IsTopHalf;
-
-                    if (card != null)
-                    {
-                        GD.Print($"Card dropped on tile at {hexTile.GlobalPosition} — Playing {(isTop ? "TOP" : "BOTTOM")} spell.");
-                        if (isTop)
-                            card.EmitSignal(CardUi.SignalName.TopCardSelected, card.TopCardData);
-                        else
-                            card.EmitSignal(CardUi.SignalName.BottomCardSelected, card.BottomCardData);
-
-                        DragPayloadManager.IsDragging = false;
-                    }
-                }
-            }
-        }
     }
 }

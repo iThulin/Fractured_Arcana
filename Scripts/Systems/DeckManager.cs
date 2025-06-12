@@ -61,20 +61,7 @@ public partial class DeckManager : Node2D
 
     public override void _Input(InputEvent @event)
     {
-        if (@event is InputEventKey keyEvent && keyEvent.Pressed)
-        {
-            if (keyEvent.Keycode == Key.D)
-            {
-                DrawCards(1);
-                PositionHandCards();
-            }
 
-            if (keyEvent.Keycode == Key.R)
-            {
-                RemoveLastCardFromHand();
-                PositionHandCards();
-            }
-        }
     }
 
     private void UpdateCardCounts()
@@ -100,7 +87,7 @@ public partial class DeckManager : Node2D
                 CardName = $"Top {i}",
                 Description = $"Top spell {i}.",
                 ManaCost = i % 3 + 1,
-                School = "Fire",
+                School = CardSchool.Elemental,
                 Type = CardType.Attack,
                 Target = TargetType.Self,
                 Effects = new Dictionary<string, float> { { "damage", i * 2 } }
@@ -111,7 +98,7 @@ public partial class DeckManager : Node2D
                 CardName = $"Bottom {i}",
                 Description = $"Bottom spell {i}.",
                 ManaCost = i % 4 + 1,
-                School = "Ice",
+                School = CardSchool.Elemental,
                 Type = CardType.Skill,
                 Target = TargetType.Self,
                 Effects = new Dictionary<string, float> { { "block", i } }

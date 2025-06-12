@@ -133,7 +133,7 @@ public partial class CardUi : Control
     {
         DragPayloadManager.DraggedCard = this;
         DragPayloadManager.IsTopHalf = _dragTopCard;
-        DragPayloadManager.IsDragging = true;  // <== ✅ must be set!
+        DragPayloadManager.IsDragging = true;
 
         return new Godot.Collections.Dictionary
         {
@@ -146,7 +146,7 @@ public partial class CardUi : Control
     {
         if (data.Obj is Godot.Collections.Dictionary dict)
         {
-            return dict.ContainsKey("card") && dict["card"] is CardUi;
+            return dict.ContainsKey("card"); //&& dict["card"] is CardUi;
         }
         return false;
     }
@@ -172,7 +172,6 @@ public partial class CardUi : Control
             }
         }
         DragPayloadManager.IsDragging = false;
-
     }
 
     private void SnapBack()
@@ -192,7 +191,7 @@ public partial class CardUi : Control
         var descLabelTop = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/DescriptionLabel");
 
         if (nameLabelTop != null) nameLabelTop.Text = TopData.CardName;
-        if (schoolLabelTop != null) schoolLabelTop.Text = TopData.School;
+        if (schoolLabelTop != null) schoolLabelTop.Text = TopData.School.ToString();
         if (descLabelTop != null) descLabelTop.Text = TopData.Description;
 
         var nameLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameLabel");
@@ -200,7 +199,7 @@ public partial class CardUi : Control
         var descLabelBot = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/DescriptionLabel");
 
         if (nameLabelBot != null) nameLabelBot.Text = BottomData.CardName;
-        if (schoolLabelBot != null) schoolLabelBot.Text = BottomData.School;
+        if (schoolLabelBot != null) schoolLabelBot.Text = BottomData.School.ToString();
         if (descLabelBot != null) descLabelBot.Text = BottomData.Description;
     }
 }

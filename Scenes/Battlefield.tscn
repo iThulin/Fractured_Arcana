@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://dgi6v10ltygfn"]
+[gd_scene load_steps=12 format=3 uid="uid://dgi6v10ltygfn"]
 
 [ext_resource type="Script" uid="uid://c7wh8e46s1af8" path="res://Scripts/Systems/GameManager.cs" id="1_ijhqi"]
 [ext_resource type="Script" uid="uid://cmv52oxovfl16" path="res://Scripts/Cards/CardData.cs" id="1_ya2tu"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/HexGridManager.cs" id="6_xukim"]
 [ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/HexTile.tscn" id="7_jf4gb"]
 [ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scripts/UI/CameraController.cs" id="8_emk3e"]
+[ext_resource type="Script" uid="uid://7xc312fm8dtm" path="res://Scenes/CardDropHandler.cs" id="9_22unj"]
 
 [sub_resource type="Sky" id="Sky_jf4gb"]
 
@@ -133,3 +134,6 @@ environment = SubResource("Environment_jf4gb")
 current = true
 
 [node name="RayCast3D" type="RayCast3D" parent="CameraController/CameraPivot/Camera3D"]
+
+[node name="CardDropHandler" type="Node3D" parent="."]
+script = ExtResource("9_22unj")

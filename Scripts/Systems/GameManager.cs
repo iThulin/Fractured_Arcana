@@ -18,7 +18,7 @@ public partial class GameManager : Node3D
                 CardName = "Fireball",
                 Description = "Deal 10 fire damage.",
                 ManaCost = 3,
-                School = "Elemental",
+                School = CardSchool.Elemental,
                 Type = CardType.Attack,
                 Target = TargetType.AllEnemies,
                 Effects = new Dictionary<string, float>
@@ -33,7 +33,7 @@ public partial class GameManager : Node3D
                 CardName = "Shield",
                 Description = "Gain 8 Block.",
                 ManaCost = 1,
-                School = "Abjuration",
+                School = CardSchool.Abjuration,
                 Type = CardType.Skill,
                 Target = TargetType.Self,
                 Effects = new Dictionary<string, float>
@@ -46,7 +46,7 @@ public partial class GameManager : Node3D
                 CardName = "Reveal Weakness",
                 Description = "Reduce enemy defense by 2.",
                 ManaCost = 1,
-                School = "Illusion",
+                School = CardSchool.Illusion,
                 Type = CardType.Environment,
                 Target = TargetType.SingleEnemy,
                 Effects = new Dictionary<string, float>
