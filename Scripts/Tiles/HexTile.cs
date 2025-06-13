@@ -46,7 +46,7 @@ public partial class HexTile : Node3D
 
     public void SetCoordinatesLabel(int q, int r)
     {
-        GD.Print($"Set Coords: {q}, {r}");
+        //GD.Print($"Set Coords: {q}, {r}");
         coordLabel.Text = $"({q}, {r})";
     }
 

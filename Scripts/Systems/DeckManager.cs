@@ -5,21 +5,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 public partial class DeckManager : Node2D
 {
-    [Export] public PackedScene CardUIPackedScene;
-    [Export] public PackedScene DropSlotScene;
     [Export] public int MaxHandSize = 5;
 
     public Control DropSlotInstance { get; private set; }
     private Control handUIContainer;
-
-    private Label deckCountLabel;
-    private Label handCountLabel;
-    private Label discardCountLabel;
-
-    private Button drawButton;
-    private Button discardButton;
-    private Button reshuffleButton;
-    private Button removeButton;
+    private DeckUiManager uiManager;
 
     public struct SplitCard
     {
@@ -39,24 +29,13 @@ public partial class DeckManager : Node2D
 
     public override void _Ready()
     {
-        handUIContainer = GetNode<Control>("../../CanvasLayer/HandUI");
-        DropSlotInstance = DropSlotScene.Instantiate<Control>();
+        uiManager = GetNodeOrNull<DeckUiManager>("../../DeckUI/DeckUIManager");
+        GD.Print(uiManager == null ? "DeckUIManager is NULL" : "DeckUIManager found");
 
-        deckCountLabel = GetNode<Label>("../../CanvasLayer/DeckCountLabel");
-        handCountLabel = GetNode<Label>("../../CanvasLayer/HandCountLabel");
-        discardCountLabel = GetNode<Label>("../../CanvasLayer/DiscardCountLabel");
+        handUIContainer = GetNodeOrNull<Control>("../../DeckUI/HandUI");
+        GD.Print(handUIContainer == null ? "HandUI is NULL" : "HandUI found");
 
-        drawButton = GetNode<Button>("../../DrawButton");
-        discardButton = GetNode<Button>("../../DiscardButton");
-        reshuffleButton = GetNode<Button>("../../ReshuffleButton");
-        removeButton = GetNode<Button>("../../RemoveButton");
-
-        PositionHandCards();
-
-        drawButton.Pressed += OnDrawButtonPressed;
-        discardButton.Pressed += OnDiscardButtonPressed;
-        reshuffleButton.Pressed += OnReshuffleButtonPressed;
-        removeButton.Pressed += OnRemoveButtonPressed;
+        PrintDeckState();
     }
 
     public override void _Input(InputEvent @event)
@@ -64,17 +43,11 @@ public partial class DeckManager : Node2D
 
     }
 
-    private void UpdateCardCounts()
-    {
-        deckCountLabel.Text = $"{DrawPile.Count}";
-        handCountLabel.Text = $"Hand: {Hand.Count}";
-        discardCountLabel.Text = $"Discard: {DiscardPile.Count}";
-    }
-
     public void InitializeDeck(List<SplitCard> startingDeck)
     {
         DrawPile = new List<SplitCard>(startingDeck);
         ShuffleDrawPile();
+        uiManager.SafeRefreshUI();
     }
 
     public List<SplitCard> GenerateTestDeck(int count)
@@ -117,14 +90,29 @@ public partial class DeckManager : Node2D
             int j = rand.Next(i + 1);
             (DrawPile[i], DrawPile[j]) = (DrawPile[j], DrawPile[i]);
         }
+
+        //uiManager.RefreshUI();
     }
 
     public void DrawCards(int count)
     {
         for (int i = 0; i < count; i++)
         {
-            if (Hand.Count >= MaxHandSize) return;
+
+            if (DrawPile.Count == 0 && DiscardPile.Count == 0)
+            {
+                GD.Print("No cards left to draw!");
+                return;
+            }
+
+            if (Hand.Count >= MaxHandSize)
+            {
+                GD.Print("Hand is full!");
+                return;
+            }
+
             if (DrawPile.Count == 0) Reshuffle();
+
             if (DrawPile.Count > 0)
             {
                 var card = DrawPile[0];
@@ -134,7 +122,7 @@ public partial class DeckManager : Node2D
                 GD.Print($"Drew card: {card.TopData.CardName} / {card.BottomData.CardName}");
             }
         }
-        RefreshHandUI();
+        uiManager.SafeRefreshUI();
     }
 
     private void RemoveLastCardFromHand()
@@ -148,53 +136,25 @@ public partial class DeckManager : Node2D
 
         if (Hand.Count > 0)
             Hand.RemoveAt(Hand.Count - 1);
+
+        uiManager.SafeRefreshUI();
     }
 
-    private void PositionHandCards()
+    public void RemoveCardFromHand(SplitCard card)
     {
-        int count = handUIContainer.GetChildCount();
-        if (count == 0) return;
-
-        Vector2 screenHeight = GetViewport().GetVisibleRect().Size;
-        float radius = screenHeight.Y * 4f;
-
-        Vector2 arcCenter = new Vector2(handUIContainer.Size.X / 2f, handUIContainer.Size.Y + radius * .9625f);
-
-        float maxArcSpanDeg = 20f;
-        float minArcSpanDeg = .5f;
-        float stepPerCard = 2.75f;
-        float arcSpanDeg = Mathf.Min(maxArcSpanDeg, stepPerCard * (count - 1));
-
-        arcSpanDeg = Mathf.Max(minArcSpanDeg, arcSpanDeg);
-        float arcSpan = Mathf.DegToRad(arcSpanDeg);
-
-        float angleStart = (count > 1) ? -arcSpan / 2f : 0f;
-        float angleStep = (count > 1) ? arcSpan / (count - 1) : 0f;
-
-        for (int i = 0; i < count; i++)
+        if (Hand.Remove(card))
         {
-            if (handUIContainer.GetChild(i) is Control card)
-            {
-                float angle = angleStart + angleStep * i;
-
-                Vector2 arcOffset = new Vector2(
-                    Mathf.Sin(angle),
-                    -Mathf.Cos(angle)
-                ) * radius;
-
-                Vector2 localPos = arcCenter + arcOffset;
-                card.Position = localPos - (card.Size / 2f);
-                card.Rotation = angle * 1f;
-            }
+            //RefreshHandUI(); Call Deck UI Manager
+            GD.Print($"Removed card: {card.TopData.CardName}");
         }
-        UpdateCardCounts();
+        uiManager.SafeRefreshUI();
     }
-
     public void Reshuffle()
     {
         DrawPile.AddRange(DiscardPile);
         DiscardPile.Clear();
         ShuffleDrawPile();
+        uiManager.SafeRefreshUI();
     }
 
     public void DiscardCard(SplitCard card)
@@ -204,73 +164,11 @@ public partial class DeckManager : Node2D
             Hand.Remove(card);
             DiscardPile.Add(card);
         }
+        uiManager.SafeRefreshUI();
     }
 
-    private void OnDiscardButtonPressed()
+    public void PrintDeckState()
     {
-        if (Hand.Count == 0) return;
-
-        var card = Hand[^1];
-        Hand.RemoveAt(Hand.Count - 1);
-        DiscardPile.Add(card);
-
-        if (handUIContainer.GetChildCount() > 0)
-        {
-            handUIContainer.GetChild(handUIContainer.GetChildCount() - 1).QueueFree();
-        }
-
-        RefreshHandUI();
-        GD.Print($"Discarded: {card.TopData.CardName} / {card.BottomData.CardName}");
-    }
-
-    private void OnReshuffleButtonPressed()
-    {
-        DrawPile.AddRange(DiscardPile);
-        DiscardPile.Clear();
-        ShuffleDrawPile();
-        RefreshHandUI();
-        GD.Print("Reshuffled discard pile into draw pile");
-    }
-
-    private void OnDrawButtonPressed()
-    {
-        DrawCards(1);
-    }
-
-    private void OnRemoveButtonPressed()
-    {
-        if (Hand.Count == 0) return;
-
-        var card = Hand[^1];
-        Hand.RemoveAt(Hand.Count - 1);
-        DiscardPile.Add(card);
-
-        RefreshHandUI();
-        GD.Print($"Removed (discarded): {card.TopData.CardName} / {card.BottomData.CardName}");
-    }
-
-    private void RefreshHandUI()
-    {
-        List<Node> toRemove = new();
-        foreach (Node child in handUIContainer.GetChildren())
-        {
-            if (child is CardUi)
-                toRemove.Add(child);
-        }
-        foreach (Node node in toRemove)
-        {
-            handUIContainer.RemoveChild(node);
-            node.QueueFree();
-        }
-
-        foreach (var card in Hand)
-        {
-            CardUi cardUiInstance = CardUIPackedScene.Instantiate<CardUi>();
-            cardUiInstance.SetCard(card.TopData, card.BottomData);
-            handUIContainer.AddChild(cardUiInstance);
-            cardUiInstance.CardDropped += () => PositionHandCards();
-        }
-
-        PositionHandCards();
+        GD.Print($"Draw: {DrawPile.Count}, Hand: {Hand.Count}, Discard: {DiscardPile.Count}");
     }
 }

@@ -34,7 +34,7 @@ public partial class HexGridManager : Node3D
                 var tile = HexTileScene3D.Instantiate<HexTile>();
                 tile.Position = new Vector3(x, 0, z); // Flat grid on xy plane
 
-                GD.Print($"Placed tile at ({q}, {r}) -> Position: {tile.Position}");
+                //GD.Print($"Placed tile at ({q}, {r}) -> Position: {tile.Position}");
                 AddChild(tile);
                 tile.Call("SetCoordinatesLabel", q, r);
             }
