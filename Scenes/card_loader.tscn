@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8q3kngvci30u"]
+
+[ext_resource type="Script" uid="uid://bd86cskqdftnn" path="res://Scenes/CardLoader.cs" id="1_7gkqb"]
+
+[node name="CardLoader" type="Node"]
+script = ExtResource("1_7gkqb")

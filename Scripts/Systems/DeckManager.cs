@@ -2,26 +2,17 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 public partial class DeckManager : Node2D
 {
     [Export] public int MaxHandSize = 5;
+    [Export] public NodePath CardLoaderPath;
+    //private CardLoader cardLoader;
 
     public Control DropSlotInstance { get; private set; }
     private Control handUIContainer;
     private DeckUiManager uiManager;
-
-    public struct SplitCard
-    {
-        public CardData TopData;
-        public CardData BottomData;
-
-        public SplitCard(CardData top, CardData bottom)
-        {
-            TopData = top;
-            BottomData = bottom;
-        }
-    }
 
     public List<SplitCard> DrawPile = new();
     public List<SplitCard> DiscardPile = new();
@@ -34,8 +25,6 @@ public partial class DeckManager : Node2D
 
         handUIContainer = GetNodeOrNull<Control>("../../DeckUI/HandUI");
         GD.Print(handUIContainer == null ? "HandUI is NULL" : "HandUI found");
-
-        PrintDeckState();
     }
 
     public override void _Input(InputEvent @event)
@@ -50,36 +39,32 @@ public partial class DeckManager : Node2D
         uiManager.SafeRefreshUI();
     }
 
-    public List<SplitCard> GenerateTestDeck(int count)
+    public List<SplitCard> GenerateStartingDeck(CardSchool school, int count = 5)
     {
-        var testDeck = new List<SplitCard>();
-        for (int i = 1; i <= count; i++)
+        var rng = new Random();
+
+        // Filter only cards fom school
+        var candidates = CardLoader.MasterCardList
+        .Where(c => c.TopData.School == school && c.BottomData.School == school)
+        .ToList();
+
+        GD.Print($"{candidates.Count} {school} cards available. Selecting {count} cards for starting deck.");
+
+        if (candidates.Count < count)
         {
-            var top = new CardData
-            {
-                CardName = $"Top {i}",
-                Description = $"Top spell {i}.",
-                ManaCost = i % 3 + 1,
-                School = CardSchool.Elemental,
-                Type = CardType.Attack,
-                Target = TargetType.Self,
-                Effects = new Dictionary<string, float> { { "damage", i * 2 } }
-            };
-
-            var bottom = new CardData
-            {
-                CardName = $"Bottom {i}",
-                Description = $"Bottom spell {i}.",
-                ManaCost = i % 4 + 1,
-                School = CardSchool.Elemental,
-                Type = CardType.Skill,
-                Target = TargetType.Self,
-                Effects = new Dictionary<string, float> { { "block", i } }
-            };
-
-            testDeck.Add(new SplitCard(top, bottom));
+            GD.PrintErr($"Not Enough cards for {school}. Only {candidates.Count} available.");
+            return new List<SplitCard>();
         }
-        return testDeck;
+
+        // Shuffle candidates
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            int j = rng.Next(i, candidates.Count);
+            (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+        }
+
+        // Select the first 'count' cards
+        return candidates.Take(count).ToList();
     }
 
     public void ShuffleDrawPile()

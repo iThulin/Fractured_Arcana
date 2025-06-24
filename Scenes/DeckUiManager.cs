@@ -81,8 +81,6 @@ public partial class DeckUiManager : Node2D
 
         Vector2 arcCenter = new Vector2(screenSize.X / 2f, screenSize.Y + radius * .95f);
 
-        GD.Print($"Arc center {arcCenter}");
-
         float maxArcSpanDeg = 40f;
         float minArcSpanDeg = .5f;
         float stepPerCard = 2f;
@@ -93,8 +91,6 @@ public partial class DeckUiManager : Node2D
 
         float angleStart = (count > 1) ? -arcSpan / 2f : 0f;
         float angleStep = (count > 1) ? arcSpan / (count - 1) : 0f;
-
-        GD.Print($"cardStep: {angleStep}");
 
         for (int i = 0; i < count; i++)
         {

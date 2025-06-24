@@ -334,7 +334,7 @@ layout_mode = 2
 size_flags_vertical = 0
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 18
 text = "Spell Name"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -346,19 +346,32 @@ layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
 theme_override_colors/default_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/normal_font_size = 18
+theme_override_font_sizes/normal_font_size = 14
 text = "Description"
 scroll_active = false
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SchoolLabel" type="Label" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
+[node name="ChannelLabel" type="RichTextLabel" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
+custom_minimum_size = Vector2(160, 30)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_colors/default_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/normal_font_size = 14
+text = "Channel
+"
+scroll_active = false
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ManaLabel" type="Label" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
 custom_minimum_size = Vector2(160, 20)
 layout_mode = 2
 size_flags_vertical = 8
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 12
-text = "School"
+text = "Mana"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
@@ -387,14 +400,13 @@ offset_right = 195.0
 offset_bottom = 143.0
 mouse_filter = 2
 
-[node name="NameLabel" type="Label" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
-custom_minimum_size = Vector2(160, 30)
+[node name="ManaLabel" type="Label" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
+custom_minimum_size = Vector2(160, 20)
 layout_mode = 2
-size_flags_vertical = 0
+size_flags_vertical = 8
 theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 24
-text = "Spell Name"
+theme_override_font_sizes/font_size = 12
+text = "Mana"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
@@ -405,19 +417,33 @@ layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
 theme_override_colors/default_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/normal_font_size = 18
+theme_override_font_sizes/normal_font_size = 14
 text = "Description"
 scroll_active = false
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SchoolLabel" type="Label" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
-custom_minimum_size = Vector2(160, 20)
+[node name="ChannelLabel" type="RichTextLabel" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
+custom_minimum_size = Vector2(160, 30)
 layout_mode = 2
-size_flags_vertical = 8
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_colors/default_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/normal_font_size = 14
+text = "Channel
+"
+scroll_active = false
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameLabel" type="Label" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
+custom_minimum_size = Vector2(160, 30)
+layout_mode = 2
+size_flags_vertical = 0
 theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 12
-text = "School"
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 18
+text = "Spell Name"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
