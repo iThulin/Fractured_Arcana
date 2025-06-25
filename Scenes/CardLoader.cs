@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using Microsoft.VisualBasic.FileIO;
 
 public static class CardLoader
 {
@@ -8,32 +9,40 @@ public static class CardLoader
 
     public static void LoadCardsFromCSV(string path)
     {
-        var file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
-        if (file == null)
+        MasterCardList.Clear();
+
+        using var fileStream = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+        if (fileStream == null)
         {
             GD.PrintErr("Could not open card CSV file.");
             return;
         }
 
-        file.GetLine(); //skip Header
-        while (!file.EofReached())
+        // Read entire file content into a string
+        string csvText = fileStream.GetAsText();
+
+        using var reader = new System.IO.StringReader(csvText);
+        using var parser = new TextFieldParser(reader);
+        parser.TextFieldType = FieldType.Delimited;
+        parser.SetDelimiters(",");
+
+        parser.ReadLine(); // Skip header
+
+        while (!parser.EndOfData)
         {
-            string line = file.GetLine();
-            var fields = line.Split(',');
+            string[] fields = parser.ReadFields();
 
-            if (fields.Length < 20) continue; // Check # of columns
+            if (fields.Length < 21) continue;
 
-            // Parse Enums
+            // Parse Enums and fields
             Enum.TryParse(fields[0], true, out CardSchool school);
             int.TryParse(fields[2], out int topManaCost);
             int.TryParse(fields[18], out int bottomManaCost);
 
-            // Parse floats
             float.TryParse(fields[7], out float topValue);
             float.TryParse(fields[10], out float topChannelValue);
             float.TryParse(fields[17], out float bottomValue);
             float.TryParse(fields[20], out float bottomChannelValue);
-
 
             var top = new CardData
             {
@@ -44,12 +53,6 @@ public static class CardLoader
                 School = school,
                 Type = CardType.Attack,
                 Target = TargetType.Self,
-                /*
-                Effects = new Dictionary<string, st>
-                {
-                    { "keyword" , fields[5]}
-                },
-                */
             };
 
             var bottom = new CardData
@@ -61,8 +64,8 @@ public static class CardLoader
                 School = school,
                 Type = CardType.Skill,
                 Target = TargetType.Self,
-                //Effects = new Dictionary<string, float> { { "block", i } }
             };
+
             MasterCardList.Add(new SplitCard(top, bottom));
         }
 

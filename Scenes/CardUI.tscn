@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://iuge2orfh1hw"]
+[gd_scene load_steps=17 format=3 uid="uid://iuge2orfh1hw"]
 
 [ext_resource type="Script" uid="uid://birxykmprpeas" path="res://Scripts/Cards/CardUi.cs" id="1_huidv"]
 
@@ -26,6 +26,12 @@ corner_radius_top_left = 5
 corner_radius_top_right = 5
 corner_detail = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_obeoo"]
+bg_color = Color(0.0570326, 0.73304, 0.73306, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_af8jv"]
+bg_color = Color(0.666492, 0.509483, 0.884333, 1)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_547ju"]
 bg_color = Color(1, 1, 1, 1)
 border_width_left = 5
@@ -36,6 +42,12 @@ border_color = Color(1, 0.564706, 0, 1)
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 corner_detail = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vypdv"]
+bg_color = Color(0.0588235, 0.733333, 0.733333, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6si4d"]
+bg_color = Color(0.666667, 0.509804, 0.886275, 1)
 
 [sub_resource type="Animation" id="Animation_547ju"]
 length = 0.01
@@ -328,9 +340,32 @@ offset_right = 195.0
 offset_bottom = 145.0
 mouse_filter = 2
 
-[node name="NameLabel" type="Label" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+
+[node name="ManaPanel" type="Panel" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/HBoxContainer"]
+custom_minimum_size = Vector2(25, 30)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_obeoo")
+
+[node name="ManaLabel" type="Label" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/HBoxContainer/ManaPanel"]
+custom_minimum_size = Vector2(25, 30)
+layout_mode = 2
+offset_right = 25.0
+offset_bottom = 30.0
+size_flags_vertical = 0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="NameLabel" type="Label" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/HBoxContainer"]
 custom_minimum_size = Vector2(160, 30)
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 0
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
@@ -349,32 +384,28 @@ theme_override_colors/default_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/normal_font_size = 14
 text = "Description"
 scroll_active = false
-horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ChannelLabel" type="RichTextLabel" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
+[node name="ChannelPanel" type="Panel" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
 custom_minimum_size = Vector2(160, 30)
 layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_af8jv")
+
+[node name="ChannelLabel" type="RichTextLabel" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/ChannelPanel"]
+custom_minimum_size = Vector2(160, 30)
+layout_mode = 2
+offset_right = 190.0
+offset_bottom = 30.0
 size_flags_vertical = 3
 mouse_filter = 2
 theme_override_colors/default_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/normal_font_size = 14
-text = "Channel
+text = "description
 "
+fit_content = true
 scroll_active = false
-horizontal_alignment = 1
 vertical_alignment = 1
-
-[node name="ManaLabel" type="Label" parent="CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer"]
-custom_minimum_size = Vector2(160, 20)
-layout_mode = 2
-size_flags_vertical = 8
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 12
-text = "Mana"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
 
 [node name="BottomCardPanel" type="Panel" parent="CardVisual/VBoxContainer"]
 custom_minimum_size = Vector2(200, 148)
@@ -395,18 +426,40 @@ mouse_default_cursor_shape = 2
 custom_minimum_size = Vector2(190, 140)
 layout_mode = 2
 offset_left = 5.0
-offset_top = 3.0
-offset_right = 195.0
-offset_bottom = 143.0
+offset_top = 2.0
+offset_right = 196.0
+offset_bottom = 142.0
 mouse_filter = 2
 
-[node name="ManaLabel" type="Label" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
-custom_minimum_size = Vector2(160, 20)
+[node name="NameHBoxContainer" type="HBoxContainer" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
 layout_mode = 2
+
+[node name="ManaPanel" type="Panel" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameHBoxContainer"]
+custom_minimum_size = Vector2(25, 25)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_vypdv")
+
+[node name="ManaLabel" type="Label" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameHBoxContainer/ManaPanel"]
+custom_minimum_size = Vector2(25, 25)
+layout_mode = 2
+offset_right = 25.0
+offset_bottom = 30.0
 size_flags_vertical = 8
 theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 12
-text = "Mana"
+theme_override_font_sizes/font_size = 18
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="NameLabel" type="Label" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameHBoxContainer"]
+custom_minimum_size = Vector2(160, 30)
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 18
+text = "Spell Name"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
@@ -420,33 +473,27 @@ theme_override_colors/default_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/normal_font_size = 14
 text = "Description"
 scroll_active = false
-horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ChannelLabel" type="RichTextLabel" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
+[node name="ChannelPanel" type="Panel" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
+custom_minimum_size = Vector2(190, 50)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_6si4d")
+
+[node name="ChannelLabel" type="RichTextLabel" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/ChannelPanel"]
 custom_minimum_size = Vector2(160, 30)
 layout_mode = 2
+offset_right = 190.0
+offset_bottom = 50.0
 size_flags_vertical = 3
 mouse_filter = 2
 theme_override_colors/default_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/normal_font_size = 14
-text = "Channel
+text = "description
+
 "
 scroll_active = false
-horizontal_alignment = 1
 vertical_alignment = 1
-
-[node name="NameLabel" type="Label" parent="CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer"]
-custom_minimum_size = Vector2(160, 30)
-layout_mode = 2
-size_flags_vertical = 0
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 18
-text = "Spell Name"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
 
 [node name="HoverAnimator" type="AnimationPlayer" parent="."]
 libraries = {

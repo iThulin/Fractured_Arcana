@@ -186,23 +186,28 @@ public partial class CardUi : Control
         TopCardData = TopData;
         BottomCardData = BottomData;
 
-        var nameLabelTop = GetNodeOrNull<Label>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/NameLabel");
-        var manaLabelTop = GetNodeOrNull<Label>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/ManaLabel");
+        var nameLabelTop = GetNodeOrNull<Label>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/HBoxContainer/NameLabel");
+        var manaLabelTop = GetNodeOrNull<Label>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/HBoxContainer/ManaPanel/ManaLabel");
         var descLabelTop = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/DescriptionLabel");
-        var channelLabelTop = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/ChannelLabel");
+        var channelPanelTop = GetNodeOrNull<Panel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/ChannelPanel"); 
+        var channelLabelTop = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/ChannelPanel/ChannelLabel");
 
         if (nameLabelTop != null) nameLabelTop.Text = TopData.CardName;
-        if (descLabelTop != null) descLabelTop.Text = TopData.Description;
-        if (channelLabelTop != null) channelLabelTop.Text = TopData.ChannelDescription;
         if (manaLabelTop != null) manaLabelTop.Text = TopData.ManaCost.ToString();
+        if (descLabelTop != null) descLabelTop.Text = TopData.Description;
+        if (channelPanelTop != null) channelPanelTop.Visible = !string.IsNullOrWhiteSpace(TopData.ChannelDescription);
+        if (channelLabelTop != null) channelLabelTop.Text = TopData.ChannelDescription; 
 
-        var nameLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameLabel");
-        var manaLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/ManaLabel");
+
+        var nameLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameHBoxContainer/NameLabel");
+        var manaLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameHBoxContainer/ManaPanel/ManaLabel");
         var descLabelBot = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/DescriptionLabel");
-        var channelLabelBot = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/ChannelLabel");
+        var channelPanelBot = GetNodeOrNull<Panel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/ChannelPanel");
+        var channelLabelBot = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/ChannelPanel/ChannelLabel");
         if (nameLabelBot != null) nameLabelBot.Text = BottomData.CardName;
         if (manaLabelBot != null) manaLabelBot.Text = BottomData.ManaCost.ToString();
         if (descLabelBot != null) descLabelBot.Text = BottomData.Description;
+        if (channelPanelBot != null) channelPanelBot.Visible = !string.IsNullOrWhiteSpace(BottomData.ChannelDescription);
         if (channelLabelBot != null) channelLabelBot.Text = BottomData.ChannelDescription;
     }
 }
