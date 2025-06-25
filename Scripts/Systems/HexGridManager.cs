@@ -13,7 +13,8 @@ public partial class HexGridManager : Node3D
 
     public override void _Ready()
     {
-        GenerateHexGrid();
+        //GenerateHexGrid();
+        GenerateAxialHexGrid();
         CenterCameraOverGrid();
     }
 
@@ -44,6 +45,33 @@ public partial class HexGridManager : Node3D
         GridBoundsMin = new Vector3(0, 0, 0);
         GridBoundsMax = new Vector3(maxX, 0, maxZ);
 
+    }
+
+    private void GenerateAxialHexGrid()
+    {
+        for (int q = 0; q < GridWidth; q++)
+        {
+            for (int r = 0; r < GridHeight; r++)
+            {
+                // Axial (q,r) to world position for flat top
+
+                float x = HexRadius * 3f / 2f * q;
+                float z = HexRadius * Mathf.Sqrt(3f) * (r + q / 2f); //q/2 is a float
+
+                var tile = HexTileScene3D.Instantiate<HexTile>();
+                tile.Position = new Vector3(x, 0, z);
+
+
+                AddChild(tile);
+                tile.Call("SetCoordinatesLabel", q, r);
+            }
+        }
+
+        float maxX = HexRadius * 3f / 2f * GridWidth - 1;
+        float maxZ = HexRadius * Mathf.Sqrt(3f) * (GridHeight + (GridWidth - 1) / 2f);
+
+        GridBoundsMin = new Vector3(0, 0, 0);
+        GridBoundsMax = new Vector3(maxX, 0, maxZ);
     }
         private void CenterCameraOverGrid()
     {
