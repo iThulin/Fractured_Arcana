@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public enum CardType { Attack, Skill, Environment, Summon, Reaction }
 public enum TargetType { None, SingleEnemy, AllEnemies, Tile, Self, Global }
-public enum CardSchool { Engineer, Necromancer, Enchanter, Elementalist, Arcanist }
+public enum CardSchool { Generic, Engineer, Necromancer, Enchanter, Elementalist, Arcanist }
 public enum Controller { Player, Computer }
 public enum Zone { Library, Hand, Grave, Stack, Exile }
 

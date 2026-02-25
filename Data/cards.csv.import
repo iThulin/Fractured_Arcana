@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://deytov6hia0as"
+
+[deps]
+
+files=["res://Data/cards.Top Name [1].translation", "res://Data/cards.Mana [2].translation", "res://Data/cards.Top Effect [3].translation", "res://Data/cards.Top Channel [4].translation", "res://Data/cards.Keyword [5].translation", "res://Data/cards.Target 1 [6].translation", "res://Data/cards.Type 1 [7].translation", "res://Data/cards.Amount 1 [8].translation", "res://Data/cards.Keyword 2 [9].translation", "res://Data/cards.Target 2 [10].translation", "res://Data/cards.Type 2 [11].translation", "res://Data/cards.Amount 2 [12].translation", "res://Data/cards.Channel Keyword [13].translation", "res://Data/cards.Channel Target [14].translation", "res://Data/cards.Channel Type [15].translation", "res://Data/cards.Channel Amount [16].translation", "res://Data/cards.Bottom Name [17].translation", "res://Data/cards.Mana [18].translation", "res://Data/cards.Bottom Effect [19].translation", "res://Data/cards.Bottom Channel [20].translation", "res://Data/cards.Keyword [21].translation", "res://Data/cards.Target 1 [22].translation", "res://Data/cards.Type 1 [23].translation", "res://Data/cards.Amount 1 [24].translation", "res://Data/cards.Keyword 2 [25].translation", "res://Data/cards.Target 2 [26].translation", "res://Data/cards.Type 2 [27].translation", "res://Data/cards.Amount 2 [28].translation", "res://Data/cards.Channel Keyword [29].translation", "res://Data/cards.Channel Target [30].translation", "res://Data/cards.Channel Type [31].translation", "res://Data/cards.Channel Amount [32].translation"]
+
+source_file="res://Data/cards.csv"
+dest_files=["res://Data/cards.Top Name [1].translation", "res://Data/cards.Mana [2].translation", "res://Data/cards.Top Effect [3].translation", "res://Data/cards.Top Channel [4].translation", "res://Data/cards.Keyword [5].translation", "res://Data/cards.Target 1 [6].translation", "res://Data/cards.Type 1 [7].translation", "res://Data/cards.Amount 1 [8].translation", "res://Data/cards.Keyword 2 [9].translation", "res://Data/cards.Target 2 [10].translation", "res://Data/cards.Type 2 [11].translation", "res://Data/cards.Amount 2 [12].translation", "res://Data/cards.Channel Keyword [13].translation", "res://Data/cards.Channel Target [14].translation", "res://Data/cards.Channel Type [15].translation", "res://Data/cards.Channel Amount [16].translation", "res://Data/cards.Bottom Name [17].translation", "res://Data/cards.Mana [18].translation", "res://Data/cards.Bottom Effect [19].translation", "res://Data/cards.Bottom Channel [20].translation", "res://Data/cards.Keyword [21].translation", "res://Data/cards.Target 1 [22].translation", "res://Data/cards.Type 1 [23].translation", "res://Data/cards.Amount 1 [24].translation", "res://Data/cards.Keyword 2 [25].translation", "res://Data/cards.Target 2 [26].translation", "res://Data/cards.Type 2 [27].translation", "res://Data/cards.Amount 2 [28].translation", "res://Data/cards.Channel Keyword [29].translation", "res://Data/cards.Channel Target [30].translation", "res://Data/cards.Channel Type [31].translation", "res://Data/cards.Channel Amount [32].translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

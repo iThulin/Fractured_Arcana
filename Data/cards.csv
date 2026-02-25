@@ -1,4 +1,8 @@
 Class [0],Top Name [1],Mana [2],Top Effect [3],Top Channel [4],Keyword [5],Target 1 [6],Type 1 [7],Amount 1 [8],Keyword 2 [9],Target 2 [10],Type 2 [11],Amount 2 [12],Channel Keyword [13],Channel Target [14],Channel Type [15],Channel Amount [16],Bottom Name [17],Mana [18],Bottom Effect [19],Bottom Channel [20],Keyword [21],Target 1 [22],Type 1 [23],Amount 1 [24],Keyword 2 [25],Target 2 [26],Type 2 [27],Amount 2 [28],Channel Keyword [29],Channel Target [30],Channel Type [31],Channel Amount [32],
+Generic,Damage,1,Deal 1 Damage,,Deal,Any,,1,,,,,,,,,Damage AOE_!,1,Deal 1 to all enemies in range 1,,Deal,AOE_1,,1
+Generic,Shield,1,Gain 1 Shield,,Buff,Any,Shield,1,,,,,,,,,Add Armor,1,Gain 1 Armor,,Gain,Any,Armor,1,,,,,,,,,
+Generic,Move,1,Move 1 space,,Move,PLayer,,1,,,,,,,,,Move Enemy,1,Move an enemy 1 Space,,Move,Enemy,,1,,,,,,,,,
+Generic,Draw a card,1,Draw a card,,Draw,PLayer,Card,1,,,,,,,,,Burn Card,1,Burn an enemies card,,Draw,Enemy,Card,-1,,,,,,,,,
 Engineer,Arc bolt,2,Deal 3 damage,Channel: Deal 3 damage to second target in range 1,Deal,LOS,,3,,,,,Deal,AOE_1,,3,Boots of Striding,1,Move 2 tiles,Channel: Move 2 tiles,Move,Any,,2,,,,,Move,Any,,2,
 Engineer,Deploy turret,3,"Deploy a turret (6 hp, 3 damage, range 3)",Channel: Add a shield to turret,Deploy,AOE_2,Turret,1,,,,,Gain,Current,Shield,1,Magnetic pull,2,Push an enemy 1 tile,Channel: Push an enemy 1 tile,Move,Enemy,,1,,,,,Move,Enemy,,1,
 Engineer,Overload turret,2,"Deal 3 damage to turret, it can shoot twice",,Deal,Melee,Turret,3,Buff,Mech,Attack,1,,,,,Fabricate Armor,1,Gain 3 armor,,Gain,Any,Armor,3,,,,,,,,,

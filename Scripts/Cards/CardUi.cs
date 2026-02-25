@@ -3,6 +3,7 @@ using System;
 
 public partial class CardUi : Control
 {
+    public Card CardInstance { get; private set; }
     public CardHalf TopHalf { get; private set; }
     public CardHalf BottomHalf { get; private set; }
 
@@ -86,6 +87,12 @@ public partial class CardUi : Control
             pendingHoverState = "";
             hoverSwitchTimer = 0f;
         }
+    }
+
+    public void SetCard(Card card)
+    {
+        CardInstance = card;
+        SetCard(card.TopHalf, card.BottomHalf); // call your existing SetCard(CardHalf, CardHalf)
     }
 
     private void OnCardGuiInput(InputEvent @event, bool isTop)

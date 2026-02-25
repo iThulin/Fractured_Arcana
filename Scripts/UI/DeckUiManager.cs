@@ -56,7 +56,7 @@ public partial class DeckUiManager : Node2D
 		foreach (var card in deckManager.Hand)
 		{
 			var cardUi = CardUIPackedScene.Instantiate<CardUi>();
-			cardUi.SetCard(card.TopHalf, card.BottomHalf);
+			cardUi.SetCard(card);
 			cardUi.CardDropped += () => PositionHandCards();
 			handUIContainer.AddChild(cardUi);
 		}

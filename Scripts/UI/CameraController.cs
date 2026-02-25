@@ -54,11 +54,10 @@ public partial class CameraController : Node3D
 
     public override void _Input(InputEvent @event)
     {
-        //GD.Print("CameraController _Input triggered");
         if (@event is InputEventMouseButton mouseEvent)
         {
-            GD.Print("Left click detected");
             if (mouseEvent.ButtonIndex == MouseButton.Right)
+                //GD.Print("Right click detected");
                 dragging = mouseEvent.Pressed;
 
             if (mouseEvent.ButtonIndex == MouseButton.WheelUp || mouseEvent.ButtonIndex == MouseButton.WheelDown)
@@ -104,7 +103,7 @@ public partial class CameraController : Node3D
                 //GD.Print($"Ray hit result count: {result.Count}");
                 foreach (var key in result.Keys)
                 {
-                    //GD.Print($"Raycast result key: {key}");
+                    GD.Print($"Raycast result key: {key}");
                 }
 
                 if (result.Count > 0)

@@ -17,6 +17,7 @@ public sealed class StackItem {
     public Entity Caster;
     public TargetSet Targets;
     public EffectSnapshot Snapshot;
+    public Card SourceCard;
 }
 
 public sealed class GameStack {
@@ -47,8 +48,10 @@ public sealed class Resolver {
     public void ResolveTop(GameState s){
         if (_stack.IsEmpty) return;
         var item = _stack.Pop();
+
         foreach (var eff in item.Ability.Effects)
             eff.Resolve(s, item.Caster, item.Targets, item.Snapshot);
+
         _bus.Emit("AbilityResolved", item);
 
         if (item.Ability is CardHalf half && half.ConsumesCardOnResolve)
@@ -57,6 +60,7 @@ public sealed class Resolver {
 }
 
 public static class Rules {
+    
     public static bool CanCast(Ability a, GameState s, Entity caster){
         if (a.Speed == PlaySpeed.Sorcery && s.Step != "Main") return false;
         if (!a.CanPlay(s, caster)) return false;
@@ -64,15 +68,87 @@ public static class Rules {
     }
     public static bool TryCast(Ability a, GameState s, Entity caster){
         if (!CanCast(a, s, caster)) { s.Log("Cast failed (timing/conditions/cost)."); return false; }
+
         TargetSet targets = null;
         if (a.Targeting != null && !a.Targeting.Select(s, caster, out targets)) return false;
+
         foreach (var c in a.Costs) c.Pay(s, caster);
+
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
         var item = new StackItem{ Ability=a, Caster=caster, Targets=targets, Snapshot=snap };
+
         s.Stack.Push(item);
         s.Priority.OnStackItemAdded();
         s.Bus.Emit("AbilityCast", item);
         s.Log($"Cast → {a.Name} [{a.Speed}] (stack size {s.StackCount()})");
+        return true;
+    }
+
+    public static bool TryCastWithTargets(Ability a, GameState s, Entity caster, TargetSet targets)
+    {
+        if (!CanCast(a, s, caster))
+        {
+            s.Log("Cast failed (timing/conditions/cost).");
+            return false;
+        }
+
+        // If the ability expects targets, require them
+        if (a.Targeting != null)
+        {
+            if (targets == null || targets.Items == null || targets.Items.Count == 0)
+            {
+                s.Log("Cast failed (missing targets).");
+                return false;
+            }
+        }
+        else
+        {
+            // If ability expects no targets, ignore any provided
+            targets = null;
+        }
+
+        foreach (var c in a.Costs) c.Pay(s, caster);
+
+        var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
+        var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap};
+
+        s.Stack.Push(item);
+        s.Priority.OnStackItemAdded();
+        s.Bus.Emit("AbilityCast", item);
+        s.Log($"Cast (preselected) → {a.Name} [{a.Speed}] (stack size {s.StackCount()})");
+        return true;
+    }
+
+    public static bool TryCastWithTargets(Ability a, GameState s, Entity caster, TargetSet targets, Card sourceCard)
+    {
+        if (!CanCast(a, s, caster))
+        {
+            s.Log("Cast failed (timing/conditions/cost).");
+            return false;
+        }
+
+        if (a.Targeting != null)
+        {
+            if (targets == null || targets.Items == null || targets.Items.Count == 0)
+            {
+                s.Log("Cast failed (missing targets).");
+                return false;
+            }
+        }
+        else
+        {
+            targets = null;
+        }
+
+        foreach (var c in a.Costs) c.Pay(s, caster);
+
+        var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
+        var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap, SourceCard = sourceCard };
+
+        s.Stack.Push(item);
+        s.Priority.OnStackItemAdded();
+        s.Bus.Emit("AbilityCast", item);
+        s.Log($"Cast (preselected) → {a.Name} [{a.Speed}] (stack size {s.StackCount()})");
         return true;
     }
 }

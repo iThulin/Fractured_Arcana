@@ -10,7 +10,9 @@
 [ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/HexTile.tscn" id="7_jf4gb"]
 [ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scripts/UI/CameraController.cs" id="8_emk3e"]
 [ext_resource type="Script" uid="uid://7xc312fm8dtm" path="res://Scripts/Cards/CardDropHandler.cs" id="9_22unj"]
-[ext_resource type="Script" uid="uid://cgjk3uj7xgowv" path="res://Scenes/GameRunner.cs" id="18_5hwhw"]
+[ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Unit.tscn" id="12_7jq7h"]
+[ext_resource type="PackedScene" uid="uid://chfd280du8r83" path="res://Scenes/TargetDummy.tscn" id="13_lhd6x"]
+[ext_resource type="Script" uid="uid://cgjk3uj7xgowv" path="res://Scripts/Systems/GameRunner.cs" id="18_5hwhw"]
 
 [sub_resource type="Sky" id="Sky_jf4gb"]
 
@@ -141,3 +143,5 @@ script = ExtResource("9_22unj")
 
 [node name="GameRunner" type="Node3D" parent="." unique_id=1742499247]
 script = ExtResource("18_5hwhw")
+PlayerUnitScene = ExtResource("12_7jq7h")
+DummyUnitScene = ExtResource("13_lhd6x")

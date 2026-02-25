@@ -1,18 +1,27 @@
 using Godot;
-using System;
-using System.Collections.Generic;
 
 public partial class GameManager : Node3D
 {
+    private DeckManager deckManager;
 
-	private DeckManager deckManager;
+    public override void _Ready()
+    {
+        // ✅ Load cards once (CSV, not the old txt loader)
+        if (CardDatabase.Blueprints.Count == 0)
+            CardDatabase.LoadFromCsv("res://Data/cards.csv"); // <-- use your actual CSV path
 
-	public override void _Ready()
-	{
-		CardLoader.LoadCardsFromCSV("res://Data/MasterCards.txt");
-		deckManager = GetNode<DeckManager>("Player/DeckManager");
+        deckManager = GetNodeOrNull<DeckManager>("Player/DeckManager");
+        if (deckManager == null)
+        {
+            GD.PrintErr("DeckManager not found at Player/DeckManager");
+            return;
+        }
 
-		deckManager.InitializeDeck(deckManager.GenerateStartingDeck(CardSchool.Engineer, 10));
-		deckManager.DrawCards(10);
-	}
+        // ✅ Build starting deck from CardDatabase (your updated DeckManager method)
+        var startingDeck = deckManager.GenerateStartingDeck(CardSchool.Generic, 4);
+        deckManager.InitializeDeck(startingDeck);
+
+        // Optional: draw opening hand
+        deckManager.DrawCards(3);
+    }
 }

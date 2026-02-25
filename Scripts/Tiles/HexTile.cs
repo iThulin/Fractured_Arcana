@@ -4,12 +4,30 @@ using System;
 public partial class HexTile : Node3D
 {
     [Export] public float Radius = 1f;
-    [Export] public Color HoverColor = new Color(1.0f, 0.9f, 0.4f);
+    [Export] public Color HoverColor = new Color(1.0f, 0.9f, 0.4f);    
+    [Export] public bool IsWalkable = true;
 
     private MeshInstance3D meshInstance;
     private StandardMaterial3D material;
     private Label3D coordLabel;
     private Color baseColor;
+
+    public Unit Occupant { get; private set; }
+    public Vector2I Axial { get; set; }
+    public bool IsOccupied => Occupant != null;
+    public bool CanEnter(Unit u) => IsWalkable && !IsOccupied;
+    public bool TrySetOccupant(Unit u)
+    {
+        if (u == null) return false;
+        if (Occupant != null) return false;
+        Occupant = u;
+        return true;
+    }
+
+    public void ClearOccupant(Unit u)
+    {
+        if (u != null && Occupant == u) Occupant = null;
+    }
 
     public override void _Ready()
     {
@@ -35,7 +53,7 @@ public partial class HexTile : Node3D
         if (material != null)
             material.AlbedoColor = HoverColor;
 
-        GD.Print($"Hovering tile at: {GlobalPosition}");
+        //GD.Print($"Hovering tile at: {GlobalPosition}");
     }
 
     private void OnMouseExited()
@@ -46,7 +64,7 @@ public partial class HexTile : Node3D
 
     public void SetCoordinatesLabel(int q, int r)
     {
-        //GD.Print($"Set Coords: {q}, {r}");
+        Axial = new Vector2I(q, r);
         coordLabel.Text = $"({q}, {r})";
     }
 

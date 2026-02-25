@@ -9,6 +9,11 @@ public sealed class GameState {
     public Resolver Resolver;
 
     public string Step = "Main";
+    public HexGridManager Grid;
+    public Unit PlayerUnit;
+    public Unit EnemyUnit;
+    public List<Unit> UnitsInPlay = new();
+
     public Entity PlayerA = new(){ Name="A"};
     public Entity PlayerB = new(){ Name="B"};
 

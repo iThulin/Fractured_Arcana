@@ -9,6 +9,7 @@ public sealed class ManaCost : ICost
     public ManaCost(int a) { Amount = a; }
     public bool CanPay(GameState s, Entity caster) => s.Mana[caster] >= Amount;
     public void Pay(GameState s, Entity caster) { s.Mana[caster] -= Amount; }
+    
 }
 
 public interface ICondition { bool IsSatisfied(GameState s, Entity caster); }
