@@ -10,6 +10,8 @@
 [ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/HexTile.tscn" id="7_jf4gb"]
 [ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scripts/UI/CameraController.cs" id="8_emk3e"]
 [ext_resource type="Script" uid="uid://7xc312fm8dtm" path="res://Scripts/Cards/CardDropHandler.cs" id="9_22unj"]
+[ext_resource type="PackedScene" uid="uid://dpnt6dp1jietn" path="res://Scenes/HexTile_Stone_Blocker.tscn" id="9_h4djk"]
+[ext_resource type="PackedScene" uid="uid://csb2mcllkxlj6" path="res://Scenes/HexTile_Crystal_Blocker.tscn" id="10_d0vbo"]
 [ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Unit.tscn" id="12_7jq7h"]
 [ext_resource type="PackedScene" uid="uid://chfd280du8r83" path="res://Scenes/TargetDummy.tscn" id="13_lhd6x"]
 [ext_resource type="Script" uid="uid://cgjk3uj7xgowv" path="res://Scripts/Systems/GameRunner.cs" id="18_5hwhw"]
@@ -130,6 +132,8 @@ HexTileScene3D = ExtResource("7_jf4gb")
 GridWidth = 20
 GridHeight = 10
 HexRadius = 1.025
+RockObstacleScene = ExtResource("9_h4djk")
+CrystalObstacleScene = ExtResource("10_d0vbo")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=170383794]
 transform = Transform3D(0.86602503, -0.35355324, 0.35355338, 0, 0.7071065, 0.70710677, -0.4999998, -0.61237216, 0.6123724, 0, 2.66986, 0)

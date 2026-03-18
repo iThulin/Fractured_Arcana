@@ -3,7 +3,8 @@ using System;
 
 public partial class HexTile : Node3D
 {
-    [Export] public Color HoverColor = new Color(1.0f, 0.9f, 0.4f);    
+    [Export] public Color HoverColor = new Color(1.0f, 0.9f, 0.4f);
+    [Export] public bool ShowDebugInfo = true;
 
     private MeshInstance3D meshInstance;
     private StandardMaterial3D material;
@@ -56,6 +57,32 @@ public partial class HexTile : Node3D
         baseColor = color;
         if (material != null)
             material.AlbedoColor = color;
+    }
+
+    public void RefreshLabel(TileData tileData)
+    {
+        if (coordLabel == null || tileData == null)
+            return;
+
+        if (!ShowDebugInfo)
+        {
+            coordLabel.Text = "";
+            return;
+        }
+        
+        string terrain = tileData.TerrainType.ToString();
+        string element = tileData.ElementType.ToString();
+
+        if (tileData.ElementType == TileElementType.None)
+            element = "-";
+
+        string blocked = tileData.IsBlocked ? "Yes" : "No";
+
+        coordLabel.Text =
+            $"({tileData.Axial.X}, {tileData.Axial.Y})\n" +
+            $"Type: {terrain}\n" +
+            $"Imbue: {element}\n" +
+            $"Block: {blocked}";
     }
 
 } 

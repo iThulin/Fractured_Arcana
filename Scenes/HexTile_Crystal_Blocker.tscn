@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://csb2mcllkxlj6"]
+
+[ext_resource type="Script" uid="uid://cwuubbch02nc6" path="res://Scripts/Tiles/HexTile.cs" id="1_lpgxt"]
+[ext_resource type="CylinderMesh" uid="uid://c6txik1r44jjl" path="res://Assets/UI Asset/Hex_mesh.tres" id="2_6k6oh"]
+[ext_resource type="Shape3D" uid="uid://b60tsccwqe5vl" path="res://Scenes/HexTile_collider.tres" id="3_j4n6f"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1spyd"]
+albedo_color = Color(0.522904, 0.55825, 0.306631, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lpgxt"]
+albedo_color = Color(1, 0.12156863, 1, 1)
+
+[sub_resource type="PrismMesh" id="PrismMesh_6k6oh"]
+material = SubResource("StandardMaterial3D_lpgxt")
+
+[node name="HexTile" type="Node3D" unique_id=783053476]
+script = ExtResource("1_lpgxt")
+HoverColor = Color(0.345098, 0.470588, 0.337255, 1)
+
+[node name="HexMesh" type="MeshInstance3D" parent="." unique_id=858530921]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, 0, 0, 0)
+mesh = ExtResource("2_6k6oh")
+surface_material_override/0 = SubResource("StandardMaterial3D_1spyd")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=2034632664]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=1112261517]
+shape = ExtResource("3_j4n6f")
+
+[node name="CoordLabel" type="Label3D" parent="." unique_id=1061788109]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 1.3493445, 4.6864894e-08)
+billboard = 1
+text = "Test
+"
+
+[node name="Area3D" type="Area3D" parent="." unique_id=962639784]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=1257839623]
+shape = ExtResource("3_j4n6f")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=762372301]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5737107, 0)
+mesh = SubResource("PrismMesh_6k6oh")

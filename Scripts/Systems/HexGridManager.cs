@@ -9,6 +9,10 @@ public partial class HexGridManager : Node3D
     [Export] public int GridHeight = 6;
     [Export] public float HexRadius = 1f;
 
+    [Export] public PackedScene RockObstacleScene;
+    [Export] public PackedScene CrystalObstacleScene;
+    [Export] public Node3D ObstacleParent;
+
     public Vector3 GridBoundsMin { get; private set; }
     public Vector3 GridBoundsMax { get; private set; }
 
@@ -16,7 +20,7 @@ public partial class HexGridManager : Node3D
 
     public override void _Ready()
     {
-        GenerateAxialHexGrid();
+        GenerateMap();
         CallDeferred(nameof(CenterCameraOverGrid));
     }
 
@@ -37,7 +41,18 @@ public partial class HexGridManager : Node3D
         return new Vector3(x, 0f, z);
     }
 
-    private void GenerateAxialHexGrid()
+    public void GenerateMap()
+    {
+        GenerateBaseGrid();
+        AssignTerrain();
+        AssignElements();
+        GenerateObstacles();
+        ApplyTileVisuals();
+        SpawnObstacleVisuals();
+        RefreshAllTileLabels();
+    }
+
+    private void GenerateBaseGrid()
     {
         Tiles.Clear();
 
@@ -65,10 +80,11 @@ public partial class HexGridManager : Node3D
                     TileView = tileNode,
                     IsWalkable = true,
                     IsBlocked = false,
-                    ElementId = 0
+                    //ElementId = 0
                 };
 
                 Tiles[coord] = tileData;
+                tileNode.RefreshLabel(tileData);
 
                 var p = tileNode.GlobalPosition;
                 if (first)
@@ -87,6 +103,192 @@ public partial class HexGridManager : Node3D
 
         GridBoundsMin = min;
         GridBoundsMax = max;
+    }
+
+    private void AssignTerrain()
+    {
+        foreach (var kvp in Tiles)
+        {
+            TileData tile = kvp.Value;
+            float roll = GD.Randf();
+
+            if (roll < 0.10f)
+            {
+                tile.TerrainType = TileTerrainType.Water;
+                tile.IsWalkable = false;
+                tile.MoveCost = 999;
+            }
+            else if (roll < 0.20f)
+            {
+                tile.TerrainType = TileTerrainType.Forest;
+                tile.MoveCost = 2;
+            }
+            else if (roll < 0.28f)
+            {
+                tile.TerrainType = TileTerrainType.Stone;
+            }
+            else
+            {
+                tile.TerrainType = TileTerrainType.Grass;
+                tile.MoveCost = 1;
+            }
+        }
+    }
+
+    private void AssignElements()
+    {
+        foreach (var kvp in Tiles)
+        {
+            TileData tile = kvp.Value;
+
+            float roll = GD.Randf();
+
+            if (roll < 0.08f)
+            {
+                tile.ElementType = TileElementType.Fire;
+                tile.ElementStrength = 1.0f;
+                tile.IsHazardous = true;
+            }
+            else if (roll < 0.14f)
+            {
+                tile.ElementType = TileElementType.Arcane;
+                tile.ElementStrength = 0.8f;
+            }
+            else if (roll < 0.20f)
+            {
+                tile.ElementType = TileElementType.Frost;
+                tile.ElementStrength = 0.9f;
+            }
+            else
+            {
+                tile.ElementType = TileElementType.None;
+                tile.ElementStrength = 0f;
+            }
+        }
+    }
+
+    private void GenerateObstacles()
+    {
+        foreach (var kvp in Tiles)
+        {
+            TileData tile = kvp.Value;
+
+            if (tile.TerrainType == TileTerrainType.Water)
+                continue;
+
+            if (GD.Randf() < 0.12f)
+            {
+                tile.IsBlocked = true;
+                tile.IsWalkable = false;
+                tile.BlocksLineOfSight = true;
+                tile.ObstacleKind = "rock";
+            }
+        }
+    }
+
+    private void SpawnObstacleVisuals()
+    {
+        foreach (var kvp in Tiles)
+        {
+            TileData tile = kvp.Value;
+
+            if (string.IsNullOrEmpty(tile.ObstacleKind))
+                continue;
+
+            PackedScene scene = null;
+
+            switch (tile.ObstacleKind)
+            {
+                case "rock":
+                    scene = RockObstacleScene;
+                    break;
+                case "crystal":
+                    scene = CrystalObstacleScene;
+                    break;
+            }
+
+            if (scene == null || tile.TileView == null)
+                continue;
+
+            var obstacle = scene.Instantiate<Node3D>();
+
+            if (ObstacleParent != null)
+            {
+                ObstacleParent.AddChild(obstacle);
+                obstacle.GlobalPosition = tile.TileView.GlobalPosition + new Vector3(0f, 0.5f, 0f);
+            }
+            else
+            {
+                AddChild(obstacle);
+                obstacle.Position = tile.TileView.Position + new Vector3(0f, 0.5f, 0f);
+            }
+        }
+    }
+
+    private void ApplyTileVisuals()
+    {
+        foreach (var kvp in Tiles)
+        {
+            TileData tile = kvp.Value;
+            if (tile.TileView == null)
+                continue;
+
+            ApplyVisualToTile(tile);
+        }
+    }
+
+    private void ApplyVisualToTile(TileData tile)
+    {
+        Color color = Colors.White;
+
+        switch (tile.TerrainType)
+        {
+            case TileTerrainType.Grass:
+                color = new Color(0.45f, 0.75f, 0.45f);
+                break;
+            case TileTerrainType.Water:
+                color = new Color(0.2f, 0.45f, 0.85f);
+                break;
+            case TileTerrainType.Lava:
+                color = new Color(0.9f, 0.3f, 0.1f);
+                break;
+            case TileTerrainType.Forest:
+                color = new Color(0.2f, 0.5f, 0.2f);
+                break;
+            case TileTerrainType.Stone:
+                color = new Color(0.5f, 0.5f, 0.55f);
+                break;
+            case TileTerrainType.Arcane:
+                color = new Color(0.55f, 0.25f, 0.8f);
+                break;
+            case TileTerrainType.Ice:
+                color = new Color(0.7f, 0.9f, 1.0f);
+                break;
+        }
+
+        // element overlay tint
+        switch (tile.ElementType)
+        {
+            case TileElementType.Fire:
+                color = color.Lerp(new Color(1f, 0.3f, 0.1f), 0.4f);
+                break;
+            case TileElementType.Arcane:
+                color = color.Lerp(new Color(0.7f, 0.2f, 1f), 0.4f);
+                break;
+            case TileElementType.Frost:
+                color = color.Lerp(new Color(0.8f, 0.95f, 1f), 0.4f);
+                break;
+        }
+
+        tile.TileView.SetBaseColor(color);
+    }
+
+    private void RefreshAllTileLabels()
+    {
+        foreach (var tile in Tiles.Values)
+        {
+            tile.TileView?.RefreshLabel(tile);
+        }
     }
 
     private void CenterCameraOverGrid()
