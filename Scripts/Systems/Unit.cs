@@ -34,7 +34,7 @@ public partial class Unit : Node3D
 
     public Stats Stats = new Stats();
 
-    public HexTile CurrentTile { get; private set; }
+    public TileData CurrentTile { get; private set; }
     private HealthBarRoot _healthBar;
 
     public override void _Ready()
@@ -62,34 +62,54 @@ public partial class Unit : Node3D
         Stats.MovePoints = Stats.BaseSpeed;
     }
 
-    public void PlaceOnTile(HexTile tile)
-    {
-        if (tile == null) return;
 
-        if (CurrentTile != null) CurrentTile.ClearOccupant(this);
-        CurrentTile = tile;
+    public void PlaceOnTile(TileData tile)
+    {
+        if (tile == null)
+            return;
 
         if (!tile.TrySetOccupant(this))
         {
-            GD.PrintErr("Tile already occupied.");
+            GD.PrintErr($"Cannot place {Name} on tile {tile.Axial}; tile is blocked or occupied.");
             return;
         }
 
-        GlobalPosition = tile.GlobalPosition;
+        CurrentTile?.ClearOccupant(this);
+        CurrentTile = tile;
+
+        if (tile.TileView != null)
+            GlobalPosition = tile.TileView.GlobalPosition;
     }
 
-    public bool TryMoveTo(HexGridManager grid, HexTile dest)
+    public bool TryMoveTo(HexGridManager grid, TileData dest)
     {
-        if (grid == null || dest == null || CurrentTile == null) return false;
-        if (!dest.CanEnter(this)) return false;
+        if (grid == null || dest == null || CurrentTile == null)
+            return false;
+
+        if (!dest.CanEnter(this))
+            return false;
 
         int dist = grid.Distance(CurrentTile, dest);
-        if (dist <= 0) return false;
-        if (dist > Stats.MovePoints) return false;
+        if (dist <= 0)
+            return false;
+        if (dist > Stats.MovePoints)
+            return false;
 
         Stats.MovePoints -= dist;
         PlaceOnTile(dest);
         return true;
+    }
+
+        public bool TryMoveTo(HexGridManager grid, HexTile destView)
+    {
+        if (grid == null || destView == null)
+            return false;
+
+        var destTile = grid.GetTile(destView.Axial);
+        if (destTile == null)
+            return false;
+
+        return TryMoveTo(grid, destTile);
     }
 
     public void ApplyDamage(int amount)

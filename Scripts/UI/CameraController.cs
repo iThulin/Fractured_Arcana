@@ -8,15 +8,15 @@ public partial class CameraController : Node3D
     [Export] public float MinZoom = 5f;
     [Export] public float MaxZoom = 40f;
     [Export] public float EdgeScrollMargin = 20f;
-    [Export] public float EdgeScrollSpeed = 8f;
     [Export] public float DragSpeed = 0.01f;
 
     [Export] public float RotationSpeed = 0.3f;
-    [Export] public float MinPitch = 0f;
-    [Export] public float MaxPitch = 50f;
+    [Export] public float MinPitch = -80f;
+    [Export] public float MaxPitch = -10f;
+    [Export] public float pad = 4f;
 
-    private float yaw = 0f;
-    private float pitch = 20f;
+    private float yaw = -45f;
+    private float pitch = -35f;
 
     private Camera3D camera;
     private Node3D cameraPivot;
@@ -28,28 +28,55 @@ public partial class CameraController : Node3D
     private Vector3 boundsMin = new Vector3(-10, 0, -10);
     private Vector3 boundsMax = new Vector3(100, 0, 100);
 
-    private Vector3 zoomDirection = Vector3.Zero;
     private float zoomStepRemaining = 0f;
     private float zoomLerpSpeed = 10f;
     private const float MouseToKeyboardRotationRatio = 200f;
 
     public override void _Ready()
     {
-        cameraPivot = GetNode<Node3D>("CameraPivot");
-        camera = cameraPivot.GetNode<Camera3D>("Camera3D");
-
+        EnsureCameraNodes();
         cardDropHandler = GetNodeOrNull<CardDropHandler>("/root/Main Scene/CardDropHandler");
 
-        var gridManager = GetNodeOrNull<Node3D>("/root/Main Scene/HexGridManager");
-        if (gridManager is HexGridManager hexGrid)
-        {
-            boundsMin = hexGrid.GridBoundsMin;
-            boundsMax = hexGrid.GridBoundsMax;
-        }
-        else
-        {
-            GD.PrintErr("HexGridManager not found. Using default bounds.");
-        }
+        if (cameraPivot != null)
+            cameraPivot.RotationDegrees = new Vector3(pitch, yaw, 0f);
+    }
+
+    public void FrameGrid(Vector3 min, Vector3 max)
+    {
+        if (!EnsureCameraNodes())
+            return;
+
+        camera.Current = true;
+
+        boundsMin = min;
+        boundsMax = max;
+
+        Vector3 center = (min + max) * 0.5f;
+        Vector3 size = max - min;
+        float boardSpan = Mathf.Max(size.X, size.Z);
+
+        // Reset rig local transforms
+        Position = center;
+        cameraPivot.Position = Vector3.Zero;
+        cameraPivot.RotationDegrees = Vector3.Zero;
+        camera.Position = Vector3.Zero;
+        camera.RotationDegrees = Vector3.Zero;
+
+        yaw = -45f;
+        pitch = -35f;
+        cameraPivot.RotationDegrees = new Vector3(pitch, yaw, 0f);
+
+        float zoomDistance = Mathf.Clamp(boardSpan * 0.9f, MinZoom, MaxZoom);
+        camera.Position = new Vector3(0f, 0f, zoomDistance);
+
+        zoomStepRemaining = 0f;
+
+        GD.Print($"FrameGrid center: {center}");
+        GD.Print($"Controller pos: {Position}");
+        GD.Print($"Pivot rot: {cameraPivot.RotationDegrees}");
+        GD.Print($"Camera local pos: {camera.Position}");
+        GD.Print($"Camera global pos: {camera.GlobalPosition}");
+        GD.Print($"Camera current: {camera.Current}");
     }
 
     public override void _Input(InputEvent @event)
@@ -57,68 +84,17 @@ public partial class CameraController : Node3D
         if (@event is InputEventMouseButton mouseEvent)
         {
             if (mouseEvent.ButtonIndex == MouseButton.Right)
-                //GD.Print("Right click detected");
                 dragging = mouseEvent.Pressed;
 
             if (mouseEvent.ButtonIndex == MouseButton.WheelUp || mouseEvent.ButtonIndex == MouseButton.WheelDown)
             {
-                var mousePos = GetViewport().GetMousePosition();
-                var from = camera.ProjectRayOrigin(mousePos);
-                var to = from + camera.ProjectRayNormal(mousePos) * 1000f;
-
-                var spaceState = GetWorld3D().DirectSpaceState;
-                var result = spaceState.IntersectRay(new PhysicsRayQueryParameters3D
-                {
-                    From = from,
-                    To = to,
-                    CollisionMask = 1 // make sure your tiles are on this layer
-                });
-
-                if (result.Count > 0)
-                {
-                    GD.Print("Ray hit something!");
-
-                if (result.TryGetValue("collider", out var colliderVar) && colliderVar.VariantType == Variant.Type.Object)
-                {
-                    GodotObject colliderObject = colliderVar.AsGodotObject();
-                    if (colliderObject is Node colliderNode)
-                    {
-                        // Walk up to find the HexTile ancestor
-                        var tile = colliderNode.GetParentOrNull<HexTile>();
-                        while (tile == null && colliderNode.GetParent() != null)
-                        {
-                            colliderNode = colliderNode.GetParent();
-                            tile = colliderNode as HexTile;
-                        }
-
-                        if (tile != null)
-                        {
-                            GD.Print($"Ray hit tile at {tile.GlobalPosition}");
-                            // Do your card logic here
-                        }
-                    }
-                }
-                }
-                // === Debug Raycast Result Keys ===
-                //GD.Print($"Ray hit result count: {result.Count}");
-                foreach (var key in result.Keys)
-                {
-                    GD.Print($"Raycast result key: {key}");
-                }
-
-                if (result.Count > 0)
-                    zoomDirection = ((Vector3)result["position"] - camera.GlobalTransform.Origin).Normalized();
-                else
-                    zoomDirection = camera.GlobalTransform.Basis.Z * -1f;
-
-                zoomStepRemaining += (mouseEvent.ButtonIndex == MouseButton.WheelUp ? 1 : -1) * ZoomSpeed;
+                zoomStepRemaining += (mouseEvent.ButtonIndex == MouseButton.WheelUp ? -1 : 1) * ZoomSpeed;
             }
 
             if (mouseEvent.ButtonIndex == MouseButton.Left && !mouseEvent.Pressed)
             {
                 cardDropHandler?.TryDropCardOnTile();
             }
-
         }
 
         if (@event is InputEventMouseMotion motionEvent)
@@ -127,7 +103,6 @@ public partial class CameraController : Node3D
 
     public override void _Process(double delta)
     {
-        // Movement
         Vector3 inputDirection = Vector3.Zero;
 
         Vector3 forward = -cameraPivot.GlobalTransform.Basis.Z;
@@ -164,46 +139,59 @@ public partial class CameraController : Node3D
             newPosition += (dragRight + dragForward) * DragSpeed;
         }
 
-        newPosition.X = Mathf.Clamp(newPosition.X, boundsMin.X, boundsMax.X);
-        newPosition.Z = Mathf.Clamp(newPosition.Z, boundsMin.Z, boundsMax.Z);
+        newPosition.X = Mathf.Clamp(newPosition.X, boundsMin.X - pad, boundsMax.X + pad);
+        newPosition.Z = Mathf.Clamp(newPosition.Z, boundsMin.Z - pad, boundsMax.Z + pad);
         Position = newPosition;
 
-        // Rotation
         if (Input.IsMouseButtonPressed(MouseButton.Middle))
         {
             yaw -= mouseDelta.X * RotationSpeed;
             pitch -= mouseDelta.Y * RotationSpeed;
             pitch = Mathf.Clamp(pitch, MinPitch, MaxPitch);
-            cameraPivot.RotationDegrees = new Vector3(pitch, yaw, 0);
         }
-        // Keyboard camera rotation (Q/E)
+
         if (Input.IsActionPressed("rotate_left"))
             yaw -= RotationSpeed * MouseToKeyboardRotationRatio * (float)delta;
         if (Input.IsActionPressed("rotate_right"))
             yaw += RotationSpeed * MouseToKeyboardRotationRatio * (float)delta;
 
+        cameraPivot.RotationDegrees = new Vector3(pitch, yaw, 0f);
 
-        cameraPivot.RotationDegrees = new Vector3(pitch, yaw, 0);
-
-        // Zoom
         if (Mathf.Abs(zoomStepRemaining) > 0.01f)
         {
             float step = zoomStepRemaining * zoomLerpSpeed * (float)delta;
-            Vector3 proposed = camera.GlobalPosition + zoomDirection * step;
 
-            float distanceToPivot = (proposed - cameraPivot.GlobalPosition).Length();
-            if (distanceToPivot >= MinZoom && distanceToPivot <= MaxZoom)
-            {
-                camera.GlobalPosition = proposed;
-                zoomStepRemaining -= step / ZoomSpeed;
-            }
-            else
-            {
-                zoomStepRemaining = 0;
-            }
+            Vector3 localPos = camera.Position;
+            localPos.Z = Mathf.Clamp(localPos.Z + step, MinZoom, MaxZoom);
+            camera.Position = localPos;
+
+            zoomStepRemaining -= step / ZoomSpeed;
         }
 
         mouseDelta = Vector2.Zero;
         lastMousePos = GetViewport().GetMousePosition();
+    }
+
+    private bool EnsureCameraNodes()
+    {
+        if (cameraPivot == null)
+            cameraPivot = GetNodeOrNull<Node3D>("CameraPivot");
+
+        if (camera == null && cameraPivot != null)
+            camera = cameraPivot.GetNodeOrNull<Camera3D>("Camera3D");
+
+        if (cameraPivot == null)
+        {
+            GD.PrintErr("CameraController: CameraPivot not found.");
+            return false;
+        }
+
+        if (camera == null)
+        {
+            GD.PrintErr("CameraController: Camera3D not found under CameraPivot.");
+            return false;
+        }
+
+        return true;
     }
 }
