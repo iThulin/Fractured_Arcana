@@ -46,6 +46,15 @@ public partial class HexTile : Node3D
             material.AlbedoColor = baseColor;
     }
 
+    public void SetHeight(int height)
+    {
+        var pos = Position;
+        pos.Y = height * 0.5f; // scale factor (tune this)
+        Position = pos;
+
+        GD.Print($"SetHeight on tile {Axial}: height={height}, new pos={Position}");
+    }
+
     public void SetCoordinatesLabel(int q, int r)
     {
         Axial = new Vector2I(q, r);
@@ -82,7 +91,8 @@ public partial class HexTile : Node3D
             $"({tileData.Axial.X}, {tileData.Axial.Y})\n" +
             $"Type: {terrain}\n" +
             $"Imbue: {element}\n" +
-            $"Block: {blocked}";
+            $"Block: {blocked}\n" +
+            $"H: {tileData.Height}";
     }
 
 } 

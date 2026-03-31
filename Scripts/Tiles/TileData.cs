@@ -34,6 +34,7 @@ public class TileData
 	// Tile properties
     public bool IsWalkable = true;
     public bool IsBlocked = false;
+	public bool BlocksMovementByHeight = false;
 	public bool BlocksLineOfSight = false;
 	public bool IsHazardous = false;
 

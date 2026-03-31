@@ -13,16 +13,27 @@ public partial class HexGridManager : Node3D
     [Export] public PackedScene CrystalObstacleScene;
     [Export] public Node3D ObstacleParent;
 
-    // Temporary spawn points
+    // Temporary Spawn conditions
     [Export] public Vector2I PlayerSpawnCoord = new Vector2I(1, 1);
     [Export] public Vector2I EnemySpawnCoord = new Vector2I(4, 2);
     [Export] public int ReservedSpawnRadius = 1;
+    [Export] public MapTheme Theme = MapTheme.ArcaneMeadow;
 
     public Vector3 GridBoundsMin { get; private set; }
     public Vector3 GridBoundsMax { get; private set; }
     private readonly HashSet<Vector2I> ReservedTiles = new();
 
+    public bool BlocksMovementByHeight = false;
+
     public readonly Dictionary<Vector2I, TileData> Tiles = new();
+
+    public enum MapTheme
+    {
+        ArcaneMeadow,
+        FrozenBasin,
+        VolcanicScar,
+        OvergrownRuins
+    }
 
     public override void _Ready()
     {
@@ -51,20 +62,22 @@ public partial class HexGridManager : Node3D
     {
         GenerateBaseGrid();
 
-        ClearReservedTiles();
         ReserveRadius(PlayerSpawnCoord, ReservedSpawnRadius);
         ReserveRadius(EnemySpawnCoord, ReservedSpawnRadius);
+        ClearReservedTiles();
 
-        AssignTerrain();
-        AssignElements();
-        GenerateObstacles();
+        GenerateTheme();
+        //GenerateThemeFeatures();
 
         EnsureReservedTilesArePlayable();
         EnsureConnectivity(PlayerSpawnCoord, EnemySpawnCoord);
 
         ApplyTileVisuals();
+        ApplyTileHeights();
         RefreshAllTileLabels();
         SpawnObstacleVisuals();
+
+        
     }
 
     private void GenerateBaseGrid()
@@ -118,6 +131,35 @@ public partial class HexGridManager : Node3D
 
         GridBoundsMin = min;
         GridBoundsMax = max;
+    }
+
+    private void GenerateTheme()
+    {
+        switch (Theme)
+        {
+            case MapTheme.ArcaneMeadow:
+                GenerateArcaneMeadow();
+                GenerateArcaneMeadowFeature();
+                break;
+
+            case MapTheme.FrozenBasin:
+                GenerateFrozenBasin();
+                GenerateFrozenBasinFeature();
+                break;
+
+            case MapTheme.VolcanicScar:
+                GenerateVolcanicScar();
+                GenerateVolcanicScarFeature();
+                break;
+        }
+    }
+
+        private void ApplyTileHeights()
+    {
+        foreach (var tile in Tiles.Values)
+        {
+            tile.TileView?.SetHeight(tile.Height);
+        }
     }
 
     private void AssignTerrain()
@@ -379,38 +421,41 @@ public partial class HexGridManager : Node3D
                     tile.IsWalkable = false;
                     tile.IsBlocked = false;
                     tile.MoveCost = 999;
+                    tile.Height = Math.Min(tile.Height, -1);
                     break;
 
-            case TileTerrainType.Forest:
-                tile.IsWalkable = true;
-                tile.IsBlocked = false;
-                tile.MoveCost = 2;
-                break;
+                case TileTerrainType.Forest:
+                    tile.IsWalkable = true;
+                    tile.IsBlocked = false;
+                    tile.MoveCost = 2;
+                    tile.Height = Math.Max(tile.Height, 1);
+                    break;
 
-            case TileTerrainType.Stone:
-                tile.IsWalkable = true;
-                tile.IsBlocked = false;
-                tile.MoveCost = 1;
-                break;
+                case TileTerrainType.Stone:
+                    tile.IsWalkable = true;
+                    tile.IsBlocked = false;
+                    tile.MoveCost = 1;
+                    tile.Height = Math.Max(tile.Height, 1);
+                    break;
 
-            case TileTerrainType.Ice:
-                tile.IsWalkable = true;
-                tile.IsBlocked = false;
-                tile.MoveCost = 1;
-                break;
+                case TileTerrainType.Ice:
+                    tile.IsWalkable = true;
+                    tile.IsBlocked = false;
+                    tile.MoveCost = 1;
+                    break;
 
-            case TileTerrainType.Lava:
-                tile.IsWalkable = true;
-                tile.IsBlocked = false;
-                tile.MoveCost = 2;
-                tile.IsHazardous = true;
-                break;
+                case TileTerrainType.Lava:
+                    tile.IsWalkable = true;
+                    tile.IsBlocked = false;
+                    tile.MoveCost = 2;
+                    tile.IsHazardous = true;
+                    break;
 
-            case TileTerrainType.Arcane:
-                tile.IsWalkable = true;
-                tile.IsBlocked = false;
-                tile.MoveCost = 1;
-                break;
+                case TileTerrainType.Arcane:
+                    tile.IsWalkable = true;
+                    tile.IsBlocked = false;
+                    tile.MoveCost = 1;
+                    break;
             }
         }
     }
@@ -514,6 +559,133 @@ public partial class HexGridManager : Node3D
 
             if (element == TileElementType.Fire)
                 tile.IsHazardous = true;
+        }
+    }
+
+    private void PaintHeightPatch(Vector2I center, int radius, int peakHeight)
+    {
+        foreach (var kvp in Tiles)
+        {
+            Vector2I coord = kvp.Key;
+            TileData tile = kvp.Value;
+
+            int dist = Distance(center, coord);
+            if (dist > radius)
+                continue;
+
+            int height = Math.Max(0, peakHeight - dist);
+
+            tile.Height = Math.Max(tile.Height, height);
+        }
+    }
+
+    private void PaintHeightHill(Vector2I center, int radius, int peakHeight)
+    {
+        foreach (var kvp in Tiles)
+        {
+            Vector2I coord = kvp.Key;
+            TileData tile = kvp.Value;
+
+            if (IsReserved(coord))
+                continue;
+
+            int dist = Distance(center, coord);
+            if (dist > radius)
+                continue;
+
+            int appliedHeight = Math.Max(0, peakHeight - dist);
+            tile.Height = Math.Max(tile.Height, appliedHeight);
+        }
+    }
+
+    private void PaintHeightBasin(Vector2I center, int radius, int depth)
+    {
+        foreach (var kvp in Tiles)
+        {
+            Vector2I coord = kvp.Key;
+            TileData tile = kvp.Value;
+
+            if (IsReserved(coord))
+                continue;
+
+            int dist = Distance(center, coord);
+            if (dist > radius)
+                continue;
+
+            int depression = Math.Max(0, depth - dist);
+            tile.Height -= depression;
+        }
+    }
+
+    private void PaintHeightRidge(Vector2I start, Vector2I direction, int length, int ridgeHeight)
+    {
+        Vector2I current = start;
+
+        for (int i = 0; i < length; i++)
+        {
+            if (!Tiles.TryGetValue(current, out var tile))
+                break;
+
+            if (!IsReserved(current))
+                tile.Height = Math.Max(tile.Height, ridgeHeight);
+
+            foreach (var neighbor in GetNeighbors(current))
+            {
+                if (!Tiles.TryGetValue(neighbor, out var neighborTile))
+                    continue;
+
+                if (IsReserved(neighbor))
+                    continue;
+
+                neighborTile.Height = Math.Max(neighborTile.Height, ridgeHeight - 1);
+            }
+
+            current += direction;
+        }
+    }
+
+    private void GenerateBasin()
+    {
+        Vector2I center = GetRandomCoord();
+
+        foreach (var kvp in Tiles)
+        {
+            int dist = Distance(center, kvp.Key);
+            if (dist <= 2)
+            {
+                kvp.Value.Height -= (2 - dist);
+            }
+        }
+    }
+
+    private void GenerateHill()
+    {
+        PaintHeightPatch(GetRandomCoord(), 2, 2);
+    }
+
+    private void GenerateRidge()
+    {
+        Vector2I start = GetRandomCoord();
+        Vector2I dir = HexDirs[(int)(GD.Randi() % (uint)HexDirs.Length)];
+
+        Vector2I current = start;
+
+        for (int i = 0; i < 5; i++)
+        {
+            if (Tiles.TryGetValue(current, out var tile))
+            {
+                tile.Height += 2;
+
+                foreach (var neighbor in GetNeighbors(current))
+                {
+                    if (Tiles.TryGetValue(neighbor, out var n))
+                        n.Height += 1;
+                }
+            }
+
+            current += dir;
+            if (!Tiles.ContainsKey(current))
+                break;
         }
     }
 
@@ -661,6 +833,306 @@ public partial class HexGridManager : Node3D
             goalTile.MoveCost = 1;
             goalTile.ObstacleKind = "";
         }
+    }
+
+    private void ClearTileObstacleState(TileData tile)
+    {
+        tile.IsBlocked = false;
+        tile.BlocksLineOfSight = false;
+        tile.ObstacleKind = "";
+    }
+
+    // Themes
+    private void GenerateArcaneMeadow()
+    {
+        SetAllTilesToTerrain(TileTerrainType.Grass);
+
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Forest, 2, 0.8f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Forest, 1, 0.8f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Water, 2, 0.65f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Stone, 1, 0.7f);
+
+        PaintElementPatch(GetRandomCoord(), TileElementType.Arcane, 2, 1.0f, 0.75f);
+        PaintElementPatch(GetRandomCoord(), TileElementType.Frost, 1, 0.8f, 0.7f);
+
+        PaintObstacleCluster(GetRandomCoord(), "rock", 3);
+
+        if (GD.Randf() < 0.7f)
+            PaintObstacleCluster(GetRandomCoord(), "crystal", 3);
+    }
+
+    private void GenerateFrozenBasin()
+    {
+        SetAllTilesToTerrain(TileTerrainType.Ice);
+
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Water, 2, 0.7f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Stone, 2, 0.75f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Ice, 2, 0.9f);
+
+        PaintElementPatch(GetRandomCoord(), TileElementType.Frost, 2, 1.0f, 0.8f);
+        PaintElementPatch(GetRandomCoord(), TileElementType.Frost, 1, 0.9f, 0.75f);
+
+        PaintObstacleCluster(GetRandomCoord(), "rock", 3);
+
+        if (GD.Randf() < 0.5f)
+            PaintObstacleCluster(GetRandomCoord(), "crystal", 2);
+    }
+
+    private void GenerateVolcanicScar()
+    {
+        SetAllTilesToTerrain(TileTerrainType.Stone);
+
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Lava, 2, 0.75f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Stone, 2, 0.9f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Forest, 1, 0.5f);
+
+        PaintElementPatch(GetRandomCoord(), TileElementType.Fire, 2, 1.0f, 0.8f);
+        PaintElementPatch(GetRandomCoord(), TileElementType.Fire, 1, 0.9f, 0.75f);
+
+        PaintObstacleCluster(GetRandomCoord(), "rock", 4);
+        PaintObstacleCluster(GetRandomCoord(), "rock", 3);
+
+        if (GD.Randf() < 0.4f)
+            PaintObstacleCluster(GetRandomCoord(), "crystal", 2);
+    }
+
+    private void GenerateOvergrownRuins()
+    {
+        SetAllTilesToTerrain(TileTerrainType.Stone);
+
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Forest, 2, 0.8f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Forest, 2, 0.75f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Grass, 2, 0.8f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Water, 1, 0.65f);
+
+        PaintElementPatch(GetRandomCoord(), TileElementType.Arcane, 1, 0.9f, 0.7f);
+        PaintElementPatch(GetRandomCoord(), TileElementType.Frost, 1, 0.8f, 0.7f);
+
+        PaintObstacleCluster(GetRandomCoord(), "rock", 4);
+        PaintObstacleCluster(GetRandomCoord(), "rock", 3);
+
+        if (GD.Randf() < 0.6f)
+            PaintObstacleCluster(GetRandomCoord(), "crystal", 3);
+    }
+
+    private void MakeLava(TileData tile)
+    {
+        ClearTileObstacleState(tile);
+        tile.TerrainType = TileTerrainType.Lava;
+        tile.IsWalkable = true;
+        tile.IsBlocked = false;
+        tile.MoveCost = 2;
+        tile.IsHazardous = true;
+        tile.ElementType = TileElementType.Fire;
+        tile.ElementStrength = 1.0f;
+    }
+
+    private void MakeArcaneGround(TileData tile)
+    {
+        ClearTileObstacleState(tile);
+        tile.TerrainType = TileTerrainType.Arcane;
+        tile.IsWalkable = true;
+        tile.IsBlocked = false;
+        tile.MoveCost = 1;
+        tile.ElementType = TileElementType.Arcane;
+        tile.ElementStrength = 1.0f;
+    }
+
+    private void MakeIce(TileData tile)
+    {
+        ClearTileObstacleState(tile);
+        tile.TerrainType = TileTerrainType.Ice;
+        tile.IsWalkable = true;
+        tile.IsBlocked = false;
+        tile.MoveCost = 1;
+        tile.ElementType = TileElementType.Frost;
+        tile.ElementStrength = 1.0f;
+    }
+
+    private void MakeRockObstacle(TileData tile)
+    {
+        tile.IsBlocked = true;
+        tile.IsWalkable = false;
+        tile.BlocksLineOfSight = true;
+        tile.ObstacleKind = "rock";
+    }
+
+    private void MakeCrystalObstacle(TileData tile)
+    {
+        tile.IsBlocked = true;
+        tile.IsWalkable = false;
+        tile.BlocksLineOfSight = true;
+        tile.ObstacleKind = "crystal";
+    }
+
+    private void GenerateArcaneMeadowFeature()
+    {
+        Vector2I center = GetRandomCentralCoord();
+
+        PaintHeightHill(center, 2, 2);
+
+        PaintFilledRadius(center, 2, tile =>
+        {
+            MakeArcaneGround(tile);
+        }, 0.85f);
+
+        PaintRingFeature(center, 2, tile =>
+        {
+            if (GD.Randf() < 0.4f)
+                MakeCrystalObstacle(tile);
+        }, 0.7f);
+    }
+
+    private void GenerateFrozenBasinFeature()
+    {
+        Vector2I center = GetRandomCentralCoord();
+
+        PaintHeightBasin(center, 2, 2);
+
+        PaintFilledRadius(center, 2, tile =>
+        {
+            MakeIce(tile);
+        }, 0.9f);
+
+        PaintRingFeature(center, 2, tile =>
+        {
+            if (GD.Randf() < 0.35f)
+                MakeRockObstacle(tile);
+        }, 0.75f);
+    }
+
+    private void GenerateVolcanicScarFeature()
+    {
+        Vector2I start = GetRandomCoord();
+        Vector2I dir = HexDirs[(int)(GD.Randi() % (uint)HexDirs.Length)];
+
+        PaintHeightRidge(start, dir, 5, 2);
+
+        PaintLinearFeature(start, dir, 5, tile =>
+        {
+            MakeLava(tile);
+            tile.Height -= 1; // cut a lava trench through the ridge
+        }, 0.25f);
+    }
+
+    private void GenerateOvergrownRuinsFeature()
+    {
+        Vector2I center = GetRandomCentralCoord();
+
+        PaintRingFeature(center, 2, tile =>
+        {
+            tile.Height = Math.Max(tile.Height, 2);
+            tile.TerrainType = TileTerrainType.Stone;
+            tile.IsWalkable = true;
+            tile.IsBlocked = false;
+            tile.MoveCost = 1;
+
+            if (GD.Randf() < 0.7f)
+                MakeRockObstacle(tile);
+        }, 0.75f);
+
+        PaintFilledRadius(center, 1, tile =>
+        {
+            tile.TerrainType = TileTerrainType.Grass;
+            tile.IsWalkable = true;
+            tile.IsBlocked = false;
+            tile.MoveCost = 1;
+            tile.Height = Math.Max(tile.Height, 1);
+
+            if (GD.Randf() < 0.5f)
+            {
+                tile.ElementType = TileElementType.Arcane;
+                tile.ElementStrength = 0.8f;
+            }
+        }, 1.0f);
+    }
+
+    private void PaintLinearFeature(Vector2I start, Vector2I direction, int length, Action<TileData> applyToTile, float branchChance = 0.0f)
+    {
+        Vector2I current = start;
+
+        for (int i = 0; i < length; i++)
+        {
+            if (Tiles.TryGetValue(current, out var tile) && !IsReserved(current))
+            {
+                applyToTile(tile);
+            }
+
+            if (GD.Randf() < branchChance)
+            {
+                var neighbors = GetNeighbors(current);
+                if (neighbors.Count > 0)
+                {
+                    var branch = neighbors[(int)(GD.Randi() % (uint)neighbors.Count)];
+                    if (Tiles.TryGetValue(branch, out var branchTile) && !IsReserved(branch))
+                        applyToTile(branchTile);
+                }
+            }
+
+            current += direction;
+
+            if (!Tiles.ContainsKey(current))
+                break;
+        }
+    }
+
+    private void PaintRingFeature(Vector2I center, int radius, Action<TileData> applyToTile, float edgeChance = 1.0f)
+    {
+        foreach (var kvp in Tiles)
+        {
+            Vector2I coord = kvp.Key;
+            TileData tile = kvp.Value;
+
+            if (IsReserved(coord))
+                continue;
+
+            int dist = Distance(center, coord);
+            if (dist != radius)
+                continue;
+
+            if (GD.Randf() > edgeChance)
+                continue;
+
+            applyToTile(tile);
+        }
+    }
+
+    private void PaintFilledRadius(Vector2I center, int radius, Action<TileData> applyToTile, float edgeChance = 1.0f)
+    {
+        foreach (var kvp in Tiles)
+        {
+            Vector2I coord = kvp.Key;
+            TileData tile = kvp.Value;
+
+            if (IsReserved(coord))
+                continue;
+
+            int dist = Distance(center, coord);
+            if (dist > radius)
+                continue;
+
+            if (dist == radius && GD.Randf() > edgeChance)
+                continue;
+
+            applyToTile(tile);
+        }
+    }
+
+    private Vector2I GetRandomCentralCoord()
+    {
+        var candidates = new List<Vector2I>();
+        Vector2I approxCenter = new Vector2I(GridWidth / 2, GridHeight / 2);
+
+        foreach (var coord in Tiles.Keys)
+        {
+            if (Distance(coord, approxCenter) <= 3)
+                candidates.Add(coord);
+        }
+
+        if (candidates.Count == 0)
+            return GetRandomCoord();
+
+        return candidates[(int)(GD.Randi() % (uint)candidates.Count)];
     }
 
     private void CenterCameraOverGrid()
