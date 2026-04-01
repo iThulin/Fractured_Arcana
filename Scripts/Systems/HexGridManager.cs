@@ -434,7 +434,6 @@ private void ApplyVisualToTile(TileData tile)
             break;
     }
 
-    // ✅ APPLY ELEMENT TINT HERE (inside method)
     switch (tile.ElementType)
     {
         case TileElementType.Fire:
