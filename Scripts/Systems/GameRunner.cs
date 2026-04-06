@@ -1,20 +1,40 @@
 using Godot;
 using System.Collections.Generic;
 
-public partial class GameRunner : Node
+public partial class GameRunner : Node3D
 {
+    // Scene references
+
     [Export] public PackedScene PlayerUnitScene;
     [Export] public PackedScene DummyUnitScene;
-    [Export] public NodePath GridPath = "../HexGridManager"; // adjust to your scene tree
+    [Export] public NodePath GridPath = "../HexGridManager";
+
+    // Core game state and references
+
     public GameState State;
     private Entity Me, Opp;
     private List<Card> _compiled = new();
     private DeckManager deckManager;
     private CardDropHandler dropper;
     private HexGridManager grid;
-    private Unit playerUnit;
-    private Unit dummyUnit;
-    
+
+    // Deployment phase settings
+
+    [Export] public bool EnableDeploymentPhase = true;
+    [Export] public bool AutoStartAfterDeployment = true;
+    private bool isInDeploymentPhase = false;
+    private Unit selectedDeployUnit = null;
+    private HashSet<Vector2I> playerDeployCoords = new();
+
+    // Test unit spawn settings
+
+    [Export] public int TestPlayerCount = 2;
+    [Export] public int TestEnemyCount = 3;
+
+    private Unit playerUnit; // keep as primary unit for existing mana/UI logic
+    private Unit dummyUnit;  // keep as primary enemy for existing references
+    private readonly List<Unit> playerUnits = new();
+    private readonly List<Unit> enemyUnits = new();
 
     public override void _Ready()
     {
@@ -52,13 +72,22 @@ public partial class GameRunner : Node
 
         // Listen to events
         State.Bus.OnEvent += OnGameEvent;
-        State.OpenPriorityWindow();
+
+        if (!EnableDeploymentPhase)
+            State.OpenPriorityWindow();
 
         State.Mana[Me] = 3;
         GD.Print("Keys: [T]=cast top of card 1 | [B]=bottom | [Y]=channel top | [SPACE]=pass | [R]=resolve top");
     }
+
     private void OnCardDroppedOnTile(CardUi cardUi, bool isTop, HexTile tile)
     {
+        if (isInDeploymentPhase)
+        {
+            GD.Print("Cannot cast during deployment.");
+            return;
+        }
+
         var half = isTop ? cardUi.TopHalf : cardUi.BottomHalf;
         if (half == null) { State.Log("Dropped half was null."); return; }
 
@@ -72,7 +101,6 @@ public partial class GameRunner : Node
         if (ok && playerUnit != null)
         {
             playerUnit.Stats.Mana = State.Mana[Me];
-            //playerUnit.UpdateManaUI(); // or your label/bar update method
             playerUnit.SyncManaToBar();
         }
     }
@@ -91,6 +119,12 @@ public partial class GameRunner : Node
 
     public override void _UnhandledInput(InputEvent e)
     {
+        if (isInDeploymentPhase)
+        {
+            HandleDeploymentInput(e);
+            return;
+        }
+
         if (e.IsActionPressed("ui_select")) { Pass(); } // space by default
         if (e.IsActionPressed("ui_accept")) { ResolveTop(); } // enter
         if (e is InputEventKey k && k.Pressed)
@@ -110,6 +144,7 @@ public partial class GameRunner : Node
         if (a == null) { GD.Print("No top half."); return; }
         if (Rules.TryCast(a, State, Me)) GD.Print($"→ Cast top: {a.Name}");
     }
+
     void CastTopChannel(int handIndex)
     {
         if (State.HandA.Count <= handIndex) return;
@@ -117,6 +152,7 @@ public partial class GameRunner : Node
         if (a==null){ GD.Print("No channel."); return; }
         if (Rules.TryCast(a, State, Me)) GD.Print($"→ Cast channel: {a.Name}");
     }
+
     void CastBottom(int handIndex)
     {
         if (State.HandA.Count <= handIndex) return;
@@ -150,6 +186,22 @@ public partial class GameRunner : Node
         }
     }
 
+    // --- Unit Spawning ---
+
+    private void BuildPlayerDeploymentArea()
+    {
+        playerDeployCoords.Clear();
+
+        foreach (var zone in grid.SpawnZones)
+        {
+            if (zone.Side != HexGridManager.SpawnSide.Player)
+                continue;
+
+            foreach (var coord in zone.Tiles)
+                playerDeployCoords.Add(coord);
+        }
+    }
+
     private void SpawnTestUnits()
     {
         grid = GetNodeOrNull<HexGridManager>(GridPath);
@@ -165,58 +217,267 @@ public partial class GameRunner : Node
             return;
         }
 
-        var playerSlot = grid.ClaimNextSpawnSlot(HexGridManager.SpawnSide.Player);
-        var enemySlot  = grid.ClaimNextSpawnSlot(HexGridManager.SpawnSide.Enemy);
+        playerUnits.Clear();
+        enemyUnits.Clear();
 
-        var playerTile = grid.GetTileAtSpawnSlot(playerSlot);
-        var dummyTile  = grid.GetTileAtSpawnSlot(enemySlot);
-
-        if (playerTile == null || dummyTile == null)
+        // Spawn players
+        for (int i = 0; i < TestPlayerCount; i++)
         {
-            GD.PrintErr("Could not find valid spawn slots for player/enemy.");
+            var unit = SpawnUnitFromSide(
+                HexGridManager.SpawnSide.Player,
+                PlayerUnitScene,
+                teamId: 0,
+                isPlayerControlled: true,
+                namePrefix: "Player",
+                maxHealth: 20,
+                health: 20,
+                baseSpeed: 3,
+                maxMana: 0,
+                mana: 0,
+                armor: 0,
+                shield: 0);
+
+            if (unit != null)
+                playerUnits.Add(unit);
+        }
+
+        // Spawn enemies
+        for (int i = 0; i < TestEnemyCount; i++)
+        {
+            var unit = SpawnUnitFromSide(
+                HexGridManager.SpawnSide.Enemy,
+                DummyUnitScene,
+                teamId: 1,
+                isPlayerControlled: false,
+                namePrefix: "Dummy",
+                maxHealth: 50,
+                health: 50,
+                baseSpeed: 0,
+                maxMana: 0,
+                mana: 0,
+                armor: 0,
+                shield: 0);
+
+            if (unit != null)
+                enemyUnits.Add(unit);
+        }
+
+        if (playerUnits.Count == 0 || enemyUnits.Count == 0)
+        {
+            GD.PrintErr("Failed to spawn at least one player and one enemy.");
             return;
         }
 
-        // Spawn player
-        playerUnit = PlayerUnitScene.Instantiate<Unit>();
-        AddChild(playerUnit);
-        playerUnit.IsPlayerControlled = true;
-        playerUnit.TeamId = 0;
-
-        playerUnit.StartMaxHealth = 20;
-        playerUnit.StartHealth = 20;
-        playerUnit.StartBaseSpeed = 3;
-        playerUnit.StartMaxMana = 0;
-        playerUnit.StartMana = 0;
-
-        playerUnit.PlaceOnTile(playerTile);
-
-        // Spawn dummy
-        dummyUnit = DummyUnitScene.Instantiate<Unit>();
-        AddChild(dummyUnit);
-        dummyUnit.IsPlayerControlled = false;
-        dummyUnit.TeamId = 1;
-
-        dummyUnit.StartMaxHealth = 50;
-        dummyUnit.StartHealth = 50;
-        dummyUnit.StartArmor = 0;
-        dummyUnit.StartShield = 0;
-        dummyUnit.StartBaseSpeed = 0;
-        dummyUnit.StartMaxMana = 0;
-        dummyUnit.StartMana = 0;
-
-        dummyUnit.PlaceOnTile(dummyTile);
-
-        GD.Print($"Spawned Player at {playerTile.Axial}, Dummy at {dummyTile.Axial}");
+        // Keep these for compatibility with the current code
+        playerUnit = playerUnits[0];
+        dummyUnit = enemyUnits[0];
 
         State.Grid = grid;
         State.PlayerUnit = playerUnit;
         State.EnemyUnit = dummyUnit;
         State.UnitsInPlay.Clear();
-        State.UnitsInPlay.Add(playerUnit);
-        State.UnitsInPlay.Add(dummyUnit);
 
-        playerUnit.Name = "Player";
-        dummyUnit.Name = "Dummy";
+        foreach (var u in playerUnits)
+            State.UnitsInPlay.Add(u);
+
+        foreach (var u in enemyUnits)
+            State.UnitsInPlay.Add(u);
+
+        GD.Print($"Spawned {playerUnits.Count} player unit(s) and {enemyUnits.Count} enemy unit(s).");
+
+        BuildPlayerDeploymentArea();
+
+        if (EnableDeploymentPhase)
+        {
+            StartDeploymentPhase();
+        }
     }
+
+    private Unit SpawnUnitFromSide(
+        HexGridManager.SpawnSide side,
+        PackedScene scene,
+        int teamId,
+        bool isPlayerControlled,
+        string namePrefix,
+        int maxHealth,
+        int health,
+        int baseSpeed,
+        int maxMana,
+        int mana,
+        int armor,
+        int shield)
+    {
+        var slot = grid.ClaimNextSpawnSlot(side);
+        if (slot == null)
+        {
+            GD.PrintErr($"No available spawn slot for side: {side}");
+            return null;
+        }
+
+        var tile = grid.GetTileAtSpawnSlot(slot);
+        if (tile == null)
+        {
+            GD.PrintErr($"Spawn slot had no valid tile for side: {side}");
+            return null;
+        }
+
+        var unit = scene.Instantiate<Unit>();
+        AddChild(unit);
+
+        unit.IsPlayerControlled = isPlayerControlled;
+        unit.TeamId = teamId;
+
+        unit.StartMaxHealth = maxHealth;
+        unit.StartHealth = health;
+        unit.StartBaseSpeed = baseSpeed;
+        unit.StartMaxMana = maxMana;
+        unit.StartMana = mana;
+        unit.StartArmor = armor;
+        unit.StartShield = shield;
+
+        unit.PlaceOnTile(tile);
+
+        int countForName = side == HexGridManager.SpawnSide.Player
+            ? playerUnits.Count + 1
+            : enemyUnits.Count + 1;
+
+        unit.Name = $"{namePrefix}_{countForName}";
+
+        GD.Print($"Spawned {unit.Name} at {tile.Axial}");
+        return unit;
+    }
+
+    private void StartDeploymentPhase()
+    {
+        isInDeploymentPhase = true;
+        selectedDeployUnit = null;
+
+        HighlightDeploymentTiles(true);
+        GD.Print("Deployment phase started. Select a friendly unit and place it within the highlighted zone. Press Enter to confirm.");
+    }
+
+    private void EndDeploymentPhase()
+    {
+        isInDeploymentPhase = false;
+        selectedDeployUnit = null;
+
+        HighlightDeploymentTiles(false);
+        GD.Print("Deployment phase ended.");
+
+        if (AutoStartAfterDeployment)
+            State.OpenPriorityWindow();
+    }
+
+    private void HighlightDeploymentTiles(bool enabled)
+    {
+        foreach (var coord in playerDeployCoords)
+        {
+            var tileView = grid.GetTileView(coord);
+            if (tileView == null)
+                continue;
+
+            tileView.SetDeploymentHighlight(enabled);
+        }
+    }
+
+    private void HandleDeploymentInput(InputEvent e)
+    {
+        if (e is InputEventKey key && key.Pressed && key.Keycode == Key.Enter)
+        {
+            EndDeploymentPhase();
+            return;
+        }
+
+        if (e is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+        {
+            TryHandleDeploymentClick();
+        }
+    }
+
+    private void TryHandleDeploymentClick()
+    {
+        var camera = GetViewport().GetCamera3D();
+        if (camera == null)
+            return;
+
+        Vector2 mousePos = GetViewport().GetMousePosition();
+        Vector3 from = camera.ProjectRayOrigin(mousePos);
+        Vector3 to = from + camera.ProjectRayNormal(mousePos) * 1000f;
+
+        var spaceState = GetWorld3D().DirectSpaceState;
+        var query = PhysicsRayQueryParameters3D.Create(from, to);
+        var result = spaceState.IntersectRay(query);
+
+        if (result.Count == 0)
+            return;
+
+        if (!result.TryGetValue("collider", out var colliderVar))
+            return;
+
+        var collider = colliderVar.AsGodotObject() as Node;
+        if (collider == null)
+            return;
+
+        // Try unit first
+        Node current = collider;
+        while (current != null)
+        {
+            if (current is Unit unit)
+            {
+                TrySelectDeploymentUnit(unit);
+                return;
+            }
+
+            if (current is HexTile tile)
+            {
+                TryPlaceDeploymentUnit(tile);
+                return;
+            }
+
+            current = current.GetParent();
+        }
+    }
+
+    private void TrySelectDeploymentUnit(Unit unit)
+    {
+        if (unit == null)
+            return;
+
+        if (!unit.IsPlayerControlled)
+            return;
+
+        if (!playerUnits.Contains(unit))
+            return;
+
+        selectedDeployUnit = unit;
+        GD.Print($"Selected deploy unit: {unit.Name}");
+    }
+
+    private void TryPlaceDeploymentUnit(HexTile tileView)
+    {
+        if (selectedDeployUnit == null || tileView == null)
+            return;
+
+        if (!playerDeployCoords.Contains(tileView.Axial))
+        {
+            GD.Print("That tile is outside the deployment zone.");
+            return;
+        }
+
+        var tileData = grid.GetTile(tileView.Axial);
+        if (tileData == null)
+            return;
+
+        if (!tileData.IsWalkable || tileData.IsBlocked || tileData.IsOccupied)
+        {
+            GD.Print("That deployment tile is not available.");
+            return;
+        }
+
+        selectedDeployUnit.PlaceOnTile(tileData);
+        GD.Print($"{selectedDeployUnit.Name} deployed to {tileData.Axial}");
+
+        selectedDeployUnit = null;
+    }
+
 }

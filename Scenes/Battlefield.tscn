@@ -134,6 +134,7 @@ HexRadius = 1.025
 RockObstacleScene = ExtResource("9_h4djk")
 CrystalObstacleScene = ExtResource("10_d0vbo")
 PlayerSpawnCount = 3
+ReservedSpawnRadius = 2
 LayoutType = 2
 Theme = 1
 

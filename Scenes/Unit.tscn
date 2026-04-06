@@ -8,12 +8,21 @@
 [ext_resource type="QuadMesh" uid="uid://7h2ukydtg00s" path="res://Assets/UI Asset/ManaBar_Back.tres" id="7_uqujc"]
 [ext_resource type="QuadMesh" uid="uid://cfl3ic5yketdw" path="res://Assets/UI Asset/ManaBar_Fill.tres" id="8_e33bx"]
 
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_20lhf"]
+height = 1.055
+
 [node name="Unit" type="Node3D" unique_id=1319964224]
 script = ExtResource("1_qk68r")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=815456347]
 transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0.5692696, 0)
 mesh = ExtResource("2_20lhf")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=489342476]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=1842148130]
+transform = Transform3D(1.1408834, 0, 0, 0, 1.3255237, 0, 0, 0, 1.7415875, 0, 0.6653817, 0)
+shape = SubResource("CapsuleShape3D_20lhf")
 
 [node name="HealthBarRoot" type="Node3D" parent="." unique_id=1349401647]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)

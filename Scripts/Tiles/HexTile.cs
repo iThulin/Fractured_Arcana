@@ -13,6 +13,9 @@ public partial class HexTile : Node3D
 
     public Vector2I Axial { get; set; }
 
+    private bool deploymentHighlighted = false;
+    private Color deploymentColor = new Color(0.2f, 1.0f, 0.2f, 1f);
+
     public override void _Ready()
     {
         meshInstance = GetNode<MeshInstance3D>("HexMesh");
@@ -34,16 +37,15 @@ public partial class HexTile : Node3D
 
     private void OnMouseEntered()
     {
+        RefreshVisualState();
+
         if (material != null)
             material.AlbedoColor = HoverColor;
-
-        //GD.Print($"Hovering tile at: {GlobalPosition}");
     }
 
     private void OnMouseExited()
     {
-        if (material != null)
-            material.AlbedoColor = baseColor;
+        RefreshVisualState();
     }
 
     public void SetMaterial(Material newMaterial)
@@ -79,11 +81,10 @@ public partial class HexTile : Node3D
         coordLabel.Text = $"({q}, {r})";
     }
 
-        public void SetBaseColor(Color color)
+    public void SetBaseColor(Color color)
     {
         baseColor = color;
-        if (material != null)
-            material.AlbedoColor = color;
+        RefreshVisualState();
     }
 
     public void RefreshLabel(TileData tileData)
@@ -111,6 +112,23 @@ public partial class HexTile : Node3D
             $"Imbue: {element}\n" +
             $"Block: {blocked}\n" +
             $"H: {tileData.Height}";
+    }
+
+    public void SetDeploymentHighlight(bool enabled)
+    {
+        deploymentHighlighted = enabled;
+        RefreshVisualState();
+    }
+
+    public void RefreshVisualState()
+    {
+        if (material == null)
+            return;
+
+        if (deploymentHighlighted)
+            material.AlbedoColor = baseColor.Lerp(deploymentColor, 0.45f);
+        else
+            material.AlbedoColor = baseColor;
     }
 
 } 
