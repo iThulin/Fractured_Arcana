@@ -8,6 +8,9 @@ public partial class GameRunner : Node3D
     [Export] public PackedScene PlayerUnitScene;
     [Export] public PackedScene DummyUnitScene;
     [Export] public NodePath GridPath = "../HexGridManager";
+    [Export] public NodePath CombatUIPath = "../CombatUI";
+    //res://Scripts/UI/CombatUI.cs
+
 
     // Core game state and references
 
@@ -17,6 +20,7 @@ public partial class GameRunner : Node3D
     private DeckManager deckManager;
     private CardDropHandler dropper;
     private HexGridManager grid;
+    private CombatUI combatUI;
 
     // Deployment phase settings
 
@@ -36,6 +40,21 @@ public partial class GameRunner : Node3D
     private Unit dummyUnit;  // keep as primary enemy for existing references
     private readonly List<Unit> playerUnits = new();
     private readonly List<Unit> enemyUnits = new();
+    private Unit selectedUnit = null;
+    private readonly HashSet<Vector2I> currentMoveTiles = new();
+
+    public enum CombatPhase
+    {
+        Deployment,
+        PlayerTurn,
+        EnemyTurn,
+        Victory,
+        Defeat
+    }
+
+    private CombatPhase currentPhase = CombatPhase.Deployment;
+    private int roundNumber = 1;
+    private bool enemyPhaseRunning = false;
 
     public override void _Ready()
     {
@@ -59,7 +78,7 @@ public partial class GameRunner : Node3D
         State.Draw(Me, 3);
         DumpHand();
 
-        // Get DeckManager and CardDropHandler references
+        // Get references to other nodes
         deckManager = GetNodeOrNull<DeckManager>("../Player/DeckManager");
         if (deckManager == null)
             GD.PrintErr("DeckManager not found. Fix the node path in GameRunner.");
@@ -70,6 +89,17 @@ public partial class GameRunner : Node3D
         else
             dropper.Connect(CardDropHandler.SignalName.CardDroppedOnTile,
                 new Callable(this, nameof(OnCardDroppedOnTile)));
+        combatUI = GetNodeOrNull<CombatUI>(CombatUIPath);
+        if (combatUI == null)
+            GD.PrintErr("CombatUI not found. Fix CombatUIPath.");
+        if (combatUI != null)
+            {
+                combatUI.ConfirmDeploymentPressed += OnConfirmDeploymentPressed;
+                combatUI.EndTurnPressed += OnEndTurnPressed;
+            }
+        
+        CallDeferred(nameof(RefreshPhaseUI));
+        CallDeferred(nameof(RefreshSelectedUnitUI));
 
         // Listen to events
         State.Bus.OnEvent += OnGameEvent;
@@ -79,7 +109,12 @@ public partial class GameRunner : Node3D
 
         State.Mana[Me] = 3;
         GD.Print("Keys: [T]=cast top of card 1 | [B]=bottom | [Y]=channel top | [SPACE]=pass | [R]=resolve top");
+
+        RefreshPhaseUI();
+        RefreshSelectedUnitUI();
     }
+
+    // --- Deck/Hand/Casting Logic ---
 
     private void OnCardDroppedOnTile(CardUi cardUi, bool isTop, HexTile tile)
     {
@@ -103,6 +138,7 @@ public partial class GameRunner : Node3D
         {
             playerUnit.Stats.Mana = State.Mana[Me];
             playerUnit.SyncManaToBar();
+            RefreshSelectedUnitUI();
         }
     }
 
@@ -126,6 +162,12 @@ public partial class GameRunner : Node3D
             return;
         }
 
+        if (e is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+        {
+            TryHandleMainPhaseClick();
+            return;
+        }
+
         if (e.IsActionPressed("ui_select")) { Pass(); } // space by default
         if (e.IsActionPressed("ui_accept")) { ResolveTop(); } // enter
         if (e is InputEventKey k && k.Pressed)
@@ -137,6 +179,56 @@ public partial class GameRunner : Node3D
         }
     }
 
+    private void RefreshPhaseUI()
+    {
+        if (combatUI == null)
+            return;
+
+        switch (currentPhase)
+        {
+            case CombatPhase.Deployment:
+                combatUI.SetPhaseText("Deployment Phase");
+                combatUI.SetHintText("Position your units, then confirm deployment.");
+                combatUI.SetDeploymentMode(true);
+                break;
+
+            case CombatPhase.PlayerTurn:
+                combatUI.SetPhaseText($"Round {roundNumber} - Player Turn");
+                combatUI.SetHintText("Select a unit, move, cast, then end turn.");
+                combatUI.SetDeploymentMode(false);
+                break;
+
+            case CombatPhase.EnemyTurn:
+                combatUI.SetPhaseText($"Round {roundNumber} - Enemy Turn");
+                combatUI.SetHintText("Enemies are acting...");
+                combatUI.SetDeploymentMode(false);
+                break;
+
+            case CombatPhase.Victory:
+                combatUI.SetPhaseText("Victory");
+                combatUI.SetHintText("All enemies defeated.");
+                combatUI.SetDeploymentMode(false);
+                break;
+
+            case CombatPhase.Defeat:
+                combatUI.SetPhaseText("Defeat");
+                combatUI.SetHintText("Your party has fallen.");
+                combatUI.SetDeploymentMode(false);
+                break;
+        }
+    }
+
+    private void RefreshSelectedUnitUI()
+    {
+        if (combatUI == null)
+            return;
+
+        int mana = State.Mana.ContainsKey(Me) ? State.Mana[Me] : 0;
+
+        Unit unitToShow = isInDeploymentPhase ? selectedDeployUnit : selectedUnit;
+        combatUI.ShowSelectedUnit(unitToShow, mana);
+    }
+    
     void CastTop(int handIndex)
     {
         if (State.HandA.Count <= handIndex) { GD.Print("No card."); return; }
@@ -353,6 +445,8 @@ public partial class GameRunner : Node3D
         return unit;
     }
 
+    // --- Deployment Phase Logic ---
+
     private void StartDeploymentPhase()
     {
         isInDeploymentPhase = true;
@@ -360,6 +454,11 @@ public partial class GameRunner : Node3D
 
         HighlightDeploymentTiles(true);
         GD.Print("Deployment phase started. Select a friendly unit and place it within the highlighted zone. Press Enter to confirm.");
+    
+        currentPhase = CombatPhase.Deployment;
+        RefreshPhaseUI();
+        RefreshSelectedUnitUI();
+
     }
 
     private void EndDeploymentPhase()
@@ -370,8 +469,19 @@ public partial class GameRunner : Node3D
         HighlightDeploymentTiles(false);
         GD.Print("Deployment phase ended.");
 
+        RefreshPhaseUI();
+        RefreshSelectedUnitUI();
+
         if (AutoStartAfterDeployment)
-            State.OpenPriorityWindow();
+            StartPlayerTurn();
+    }
+
+    private void OnConfirmDeploymentPressed()
+    {
+        if (!isInDeploymentPhase)
+            return;
+
+        EndDeploymentPhase();
     }
 
     private void HighlightDeploymentTiles(bool enabled)
@@ -477,12 +587,13 @@ public partial class GameRunner : Node3D
 
 
         if (selectedDeployUnit != null)
-            selectedDeployUnit.SetDeploymentSelected(false);
+            selectedDeployUnit.SetSelected(false);
 
         selectedDeployUnit = unit;
-        selectedDeployUnit.SetDeploymentSelected(true);
+        selectedDeployUnit.SetSelected(true);
 
         GD.Print($"Selected deploy unit: {unit.Name}");
+        RefreshSelectedUnitUI();
     }
 
     private void TryPlaceDeploymentUnit(HexTile tileView)
@@ -509,16 +620,17 @@ public partial class GameRunner : Node3D
         selectedDeployUnit.PlaceOnTile(tileData);
         GD.Print($"{selectedDeployUnit.Name} deployed to {tileData.Axial}");
 
-        selectedDeployUnit.SetDeploymentSelected(false);
+        selectedDeployUnit.SetSelected(false);
         selectedDeployUnit = null;
     }
 
     private void ClearDeploymentSelection()
     {
         if (selectedDeployUnit != null)
-            selectedDeployUnit.SetDeploymentSelected(false);
+            selectedDeployUnit.SetSelected(false);
 
         selectedDeployUnit = null;
+        RefreshSelectedUnitUI();
     }
 
     private void ResetDeploymentPositions()
@@ -540,7 +652,367 @@ public partial class GameRunner : Node3D
             unit.PlaceOnTile(tile);
         }
 
+        RefreshSelectedUnitUI();
         GD.Print("Deployment positions reset.");
     }
+
+    // --- Main Phase Logic ---
+
+    private void StartPlayerTurn()
+    {
+        currentPhase = CombatPhase.PlayerTurn;
+        enemyPhaseRunning = false;
+
+        foreach (var unit in playerUnits)
+            unit.StartTurn();
+
+        selectedUnit = null;
+        ClearMoveTiles();
+
+        GD.Print($"=== Round {roundNumber}: Player Turn ===");
+
+        RefreshPhaseUI();
+        RefreshSelectedUnitUI();
+    }
+
+    private void EndPlayerTurn()
+    {
+        if (currentPhase != CombatPhase.PlayerTurn)
+            return;
+
+        selectedUnit = null;
+        ClearMoveTiles();
+
+        GD.Print("=== Player Turn End ===");
+
+        RefreshPhaseUI();
+        StartEnemyTurn();
+    }
+
+    private async void StartEnemyTurn()
+    {
+        if (enemyPhaseRunning)
+            return;
+
+        currentPhase = CombatPhase.EnemyTurn;
+        enemyPhaseRunning = true;
+
+        foreach (var unit in enemyUnits)
+            unit.StartTurn();
+
+        GD.Print("=== Enemy Turn Start ===");
+        RefreshPhaseUI();
+        RefreshSelectedUnitUI();
+
+        await RunEnemyTurn();
+
+        if (CheckCombatEnd())
+            return;
+
+        roundNumber++;
+        StartPlayerTurn();
+    }
+
+    private async System.Threading.Tasks.Task RunEnemyTurn()
+    {
+        foreach (var enemy in enemyUnits)
+        {
+            if (enemy == null || !enemy.Stats.IsAlive)
+                continue;
+
+            var target = FindNearestPlayerUnit(enemy);
+            if (target == null)
+                continue;
+
+            await ActEnemyUnit(enemy, target);
+
+            if (CheckCombatEnd())
+                return;
+        }
+
+        GD.Print("=== Enemy Turn End ===");
+        enemyPhaseRunning = false;
+    }
+
+    private async System.Threading.Tasks.Task ActEnemyUnit(Unit enemy, Unit target)
+    {
+        if (enemy.CurrentTile == null || target.CurrentTile == null)
+            return;
+
+        int dist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
+
+        // If adjacent, attack
+        if (dist <= 1)
+        {
+            GD.Print($"{enemy.Name} attacks {target.Name}");
+            target.ApplyDamage(5);
+
+            RefreshSelectedUnitUI();
+            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+            return;
+        }
+
+        // Otherwise move
+        var moveOptions = grid.GetReachableTiles(enemy);
+        Vector2I bestMove = enemy.CurrentTile.Axial;
+        int bestMoveDist = dist;
+
+        foreach (var coord in moveOptions)
+        {
+            var tile = grid.GetTile(coord);
+            if (tile == null)
+                continue;
+
+            int newDist = grid.Distance(tile, target.CurrentTile);
+            if (newDist < bestMoveDist)
+            {
+                bestMoveDist = newDist;
+                bestMove = coord;
+            }
+        }
+
+        if (bestMove != enemy.CurrentTile.Axial)
+        {
+            var tile = grid.GetTile(bestMove);
+            if (tile != null && enemy.TryMoveTo(grid, tile))
+            {
+                GD.Print($"{enemy.Name} moves to {bestMove}");
+                await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+            }
+        }
+
+        // Attack after moving if now adjacent
+        if (enemy.CurrentTile != null && target.CurrentTile != null)
+        {
+            dist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
+            if (dist <= 1)
+            {
+                GD.Print($"{enemy.Name} attacks {target.Name}");
+                target.ApplyDamage(5);
+                RefreshSelectedUnitUI();
+                await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+            }
+        }
+    }
+
+    private bool CheckCombatEnd()
+    {
+        bool anyPlayersAlive = false;
+        foreach (var unit in playerUnits)
+        {
+            if (unit != null && unit.Stats.IsAlive)
+            {
+                anyPlayersAlive = true;
+                break;
+            }
+        }
+
+        bool anyEnemiesAlive = false;
+        foreach (var unit in enemyUnits)
+        {
+            if (unit != null && unit.Stats.IsAlive)
+            {
+                anyEnemiesAlive = true;
+                break;
+            }
+        }
+
+        if (!anyPlayersAlive)
+        {
+            currentPhase = CombatPhase.Defeat;
+            RefreshPhaseUI();
+            GD.Print("=== Defeat ===");
+            return true;
+        }
+
+        if (!anyEnemiesAlive)
+        {
+            currentPhase = CombatPhase.Victory;
+            RefreshPhaseUI();
+            GD.Print("=== Victory ===");
+            return true;
+        }
+
+        return false;
+    }
+
+    // Main Phase Helpers
+
+    private Unit FindNearestPlayerUnit(Unit enemy)
+    {
+        Unit best = null;
+        int bestDist = int.MaxValue;
+
+        foreach (var player in playerUnits)
+        {
+            if (player == null || !player.Stats.IsAlive || player.CurrentTile == null)
+                continue;
+
+            int dist = grid.Distance(enemy.CurrentTile, player.CurrentTile);
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                best = player;
+            }
+        }
+
+        return best;
+    }
+
+    private void ShowMoveTiles(HashSet<Vector2I> coords)
+    {
+        ClearMoveTiles();
+
+        foreach (var coord in coords)
+        {
+            var tile = grid.GetTileView(coord);
+            tile?.SetMoveHighlight(true);
+        }
+    }
+
+    private void ClearMoveTiles()
+    {
+        foreach (var coord in currentMoveTiles)
+        {
+            var tile = grid.GetTileView(coord);
+            tile?.SetMoveHighlight(false);
+        }
+
+        currentMoveTiles.Clear();
+    }
+
+    private void SelectUnit(Unit unit)
+    {
+        if (unit == null)
+            return;
+
+        if (!unit.IsPlayerControlled)
+            return;
+
+        if (selectedUnit != null)
+            selectedUnit.SetSelected(false);
+
+        selectedUnit = unit;
+        selectedUnit.SetSelected(true);
+
+        ClearMoveTiles();
+
+        var reachable = grid.GetReachableTiles(unit);
+        foreach (var coord in reachable)
+            currentMoveTiles.Add(coord);
+
+        ShowMoveTiles(currentMoveTiles);
+
+        RefreshSelectedUnitUI();
+        GD.Print($"Selected unit: {unit.Name}, move points={unit.Stats.MovePoints}");
+        GD.Print($"Reachable tiles count: {reachable.Count}");
+    }
+
+    private void TryMoveSelectedUnit(HexTile tileView)
+    {
+        if (selectedUnit == null || tileView == null)
+            return;
+
+        if (!currentMoveTiles.Contains(tileView.Axial))
+        {
+            GD.Print("Tile is not in movement range.");
+            return;
+        }
+
+        var tileData = grid.GetTile(tileView.Axial);
+        if (tileData == null)
+            return;
+
+        if (selectedUnit.TryMoveTo(grid, tileData))
+        {
+            GD.Print($"{selectedUnit.Name} moved to {tileData.Axial}");
+            RefreshSelectedUnitUI();
+
+            ClearMoveTiles();
+            currentMoveTiles.Clear();
+
+            // Recompute remaining movement if multi-step movement in one turn is allowed
+            var reachable = grid.GetReachableTiles(selectedUnit);
+            foreach (var coord in reachable)
+                currentMoveTiles.Add(coord);
+
+            ShowMoveTiles(currentMoveTiles);
+        }
+    }
+
+    private void TryHandleMainPhaseClick()
+    {
+        GD.Print($"TryHandleMainPhaseClick phase={currentPhase}");
+
+        if (currentPhase != CombatPhase.PlayerTurn)
+        {
+            GD.Print("Not player turn, ignoring click.");
+            return;
+        }
+
+        var camera = GetViewport().GetCamera3D();
+        if (camera == null)
+        {
+            GD.PrintErr("No active camera.");
+            return;
+        }
+
+        Vector2 mousePos = GetViewport().GetMousePosition();
+        Vector3 from = camera.ProjectRayOrigin(mousePos);
+        Vector3 to = from + camera.ProjectRayNormal(mousePos) * 1000f;
+
+        var spaceState = GetWorld3D().DirectSpaceState;
+        var query = PhysicsRayQueryParameters3D.Create(from, to);
+        var result = spaceState.IntersectRay(query);
+
+        if (result.Count == 0)
+        {
+            GD.Print("Main phase click hit nothing.");
+            return;
+        }
+
+        if (!result.TryGetValue("collider", out var colliderVar))
+        {
+            GD.Print("Main phase click had no collider entry.");
+            return;
+        }
+
+        var collider = colliderVar.AsGodotObject() as Node;
+        GD.Print($"Main phase click hit: {collider?.Name}");
+
+        if (collider == null)
+            return;
+
+        Node current = collider;
+        while (current != null)
+        {
+            GD.Print($"Walking node: {current.Name} ({current.GetType().Name})");
+
+            if (current is Unit unit)
+            {
+                GD.Print($"Selecting unit: {unit.Name}");
+                SelectUnit(unit);
+                return;
+            }
+
+            if (current is HexTile tile)
+            {
+                GD.Print($"Trying move to tile: {tile.Axial}");
+                TryMoveSelectedUnit(tile);
+                return;
+            }
+
+            current = current.GetParent();
+        }
+    }
+
+    private void OnEndTurnPressed()
+    {
+        if (currentPhase != CombatPhase.PlayerTurn)
+            return;
+
+        EndPlayerTurn();
+    }
+
 
 }

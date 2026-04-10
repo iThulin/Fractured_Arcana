@@ -16,6 +16,9 @@ public partial class HexTile : Node3D
     private bool deploymentHighlighted = false;
     private Color deploymentColor = new Color(0.2f, 1.0f, 0.2f, 1f);
 
+    private bool moveHighlighted = false;
+    private Color moveHighlightColor = new Color(0.2f, 0.6f, 1.0f, 1f);
+
     public override void _Ready()
     {
         meshInstance = GetNode<MeshInstance3D>("HexMesh");
@@ -40,9 +43,15 @@ public partial class HexTile : Node3D
         if (material == null)
             return;
 
-        Color c = deploymentHighlighted
-            ? baseColor.Lerp(deploymentColor, 0.45f).Lerp(HoverColor, 0.5f)
-            : HoverColor;
+        Color c = baseColor;
+
+        if (deploymentHighlighted)
+            c = c.Lerp(deploymentColor, 0.45f);
+
+        if (moveHighlighted)
+            c = c.Lerp(moveHighlightColor, 0.45f);
+
+        c = c.Lerp(HoverColor, 0.5f);
 
         material.AlbedoColor = c;
     }
@@ -124,15 +133,26 @@ public partial class HexTile : Node3D
         RefreshVisualState();
     }
 
+    public void SetMoveHighlight(bool enabled)
+    {
+        moveHighlighted = enabled;
+        RefreshVisualState();
+    }
+
     public void RefreshVisualState()
     {
         if (material == null)
             return;
 
+        Color finalColor = baseColor;
+
         if (deploymentHighlighted)
-            material.AlbedoColor = baseColor.Lerp(deploymentColor, 0.45f);
-        else
-            material.AlbedoColor = baseColor;
+            finalColor = finalColor.Lerp(deploymentColor, 0.45f);
+
+        if (moveHighlighted)
+            finalColor = finalColor.Lerp(moveHighlightColor, 0.45f);
+
+        material.AlbedoColor = finalColor;
     }
 
 } 

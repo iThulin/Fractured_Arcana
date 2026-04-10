@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" uid="uid://csb2mcllkxlj6" path="res://Scenes/HexTile_Crystal_Blocker.tscn" id="10_d0vbo"]
 [ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Unit.tscn" id="12_7jq7h"]
 [ext_resource type="PackedScene" uid="uid://chfd280du8r83" path="res://Scenes/TargetDummy.tscn" id="13_lhd6x"]
+[ext_resource type="PackedScene" uid="uid://p86b1f6aanue" path="res://Scenes/CombatUI.tscn" id="16_d0vbo"]
 [ext_resource type="Script" uid="uid://cgjk3uj7xgowv" path="res://Scripts/Systems/GameRunner.cs" id="18_5hwhw"]
 
 [sub_resource type="Sky" id="Sky_jf4gb"]
@@ -38,9 +39,11 @@ ssil_enabled = true
 script = ExtResource("1_ijhqi")
 
 [node name="CardData" type="Node2D" parent="." unique_id=1389179332]
+position = Vector2(1, 844)
 script = ExtResource("1_ya2tu")
 
 [node name="Player" type="Node2D" parent="." unique_id=73472438]
+position = Vector2(1, 844)
 
 [node name="DeckManager" type="Node2D" parent="Player" unique_id=308415042]
 script = ExtResource("2_ijhqi")
@@ -52,8 +55,10 @@ follow_viewport_enabled = true
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 3
 anchors_preset = 0
-offset_right = 10.0
-offset_bottom = 10.0
+offset_left = 1.0
+offset_top = 844.0
+offset_right = 11.0
+offset_bottom = 854.0
 size_flags_horizontal = 3
 size_flags_vertical = 2
 
@@ -103,41 +108,45 @@ CardUIPackedScene = ExtResource("3_tpnw0")
 DropSlotScene = ExtResource("5_tpnw0")
 
 [node name="DrawButton" type="Button" parent="DeckUI" unique_id=563659168]
-offset_right = 50.0
-offset_bottom = 31.0
+offset_left = 1.0
+offset_top = 844.0
+offset_right = 51.0
+offset_bottom = 875.0
 text = "Draw"
 
 [node name="DiscardButton" type="Button" parent="DeckUI" unique_id=1931340658]
-offset_top = 31.0
-offset_right = 67.0
-offset_bottom = 62.0
+offset_left = 1.0
+offset_top = 875.0
+offset_right = 68.0
+offset_bottom = 906.0
 text = "Discard"
 
 [node name="ReshuffleButton" type="Button" parent="DeckUI" unique_id=1927374555]
-offset_top = 62.0
-offset_right = 81.0
-offset_bottom = 93.0
+offset_left = 1.0
+offset_top = 906.0
+offset_right = 82.0
+offset_bottom = 937.0
 text = "Reshuffle"
 
 [node name="RemoveButton" type="Button" parent="DeckUI" unique_id=376783027]
-offset_top = 93.0
-offset_right = 81.0
-offset_bottom = 124.0
+offset_left = 1.0
+offset_top = 937.0
+offset_right = 82.0
+offset_bottom = 968.0
 text = "Remove"
 
 [node name="HexGridManager" type="Node3D" parent="." unique_id=1283187122]
 script = ExtResource("6_xukim")
-HexTileScene3D = ExtResource("7_jf4gb")
 GridWidth = 15
 GridHeight = 15
 HexRadius = 1.025
-RockObstacleScene = ExtResource("9_h4djk")
-CrystalObstacleScene = ExtResource("10_d0vbo")
 LayoutType = 2
-Theme = 1
 TerrainDensity = 0.4
 TerrainRoughness = 0.4
 HeightVariation = 1.0
+HexTileScene3D = ExtResource("7_jf4gb")
+RockObstacleScene = ExtResource("9_h4djk")
+CrystalObstacleScene = ExtResource("10_d0vbo")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=170383794]
 transform = Transform3D(0.86602503, -0.35355324, 0.35355338, 0, 0.7071065, 0.70710677, -0.4999998, -0.61237216, 0.6123724, 0, 2.66986, 0)
@@ -170,3 +179,5 @@ DummyUnitScene = ExtResource("13_lhd6x")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=2122826708]
 environment = SubResource("Environment_lhd6x")
+
+[node name="CombatUI" parent="." unique_id=393889926 instance=ExtResource("16_d0vbo")]

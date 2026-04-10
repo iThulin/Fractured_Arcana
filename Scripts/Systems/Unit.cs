@@ -42,7 +42,7 @@ public partial class Unit : Node3D
     // Selection visual
     private MeshInstance3D _selectionRing;
     private StandardMaterial3D _selectionMat;
-    private bool _deploymentSelected = false;
+    private bool _isSelected = false;
 
     public override void _Ready()
     {
@@ -64,7 +64,7 @@ public partial class Unit : Node3D
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
 
         CreateSelectionRing();
-        SetDeploymentSelected(false);
+        SetSelected(false);
     }
 
     public void StartTurn()
@@ -199,9 +199,9 @@ public partial class Unit : Node3D
         _selectionRing = ring;
     }
 
-    public void SetDeploymentSelected(bool selected)
+    public void SetSelected(bool selected)
     {
-        _deploymentSelected = selected;
+        _isSelected = selected;
 
         if (_selectionRing != null)
             _selectionRing.Visible = selected;
