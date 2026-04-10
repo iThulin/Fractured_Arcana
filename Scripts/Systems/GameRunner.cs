@@ -25,6 +25,7 @@ public partial class GameRunner : Node3D
     private bool isInDeploymentPhase = false;
     private Unit selectedDeployUnit = null;
     private HashSet<Vector2I> playerDeployCoords = new();
+    private readonly Dictionary<Unit, Vector2I> originalDeployCoords = new();
 
     // Test unit spawn settings
 
@@ -217,6 +218,8 @@ public partial class GameRunner : Node3D
             return;
         }
 
+        // Clear old Data
+        originalDeployCoords.Clear();
         playerUnits.Clear();
         enemyUnits.Clear();
 
@@ -337,6 +340,9 @@ public partial class GameRunner : Node3D
 
         unit.PlaceOnTile(tile);
 
+        if (side == HexGridManager.SpawnSide.Player)
+            originalDeployCoords[unit] = tile.Axial;
+
         int countForName = side == HexGridManager.SpawnSide.Player
             ? playerUnits.Count + 1
             : enemyUnits.Count + 1;
@@ -350,7 +356,7 @@ public partial class GameRunner : Node3D
     private void StartDeploymentPhase()
     {
         isInDeploymentPhase = true;
-        selectedDeployUnit = null;
+        ClearDeploymentSelection();
 
         HighlightDeploymentTiles(true);
         GD.Print("Deployment phase started. Select a friendly unit and place it within the highlighted zone. Press Enter to confirm.");
@@ -359,7 +365,7 @@ public partial class GameRunner : Node3D
     private void EndDeploymentPhase()
     {
         isInDeploymentPhase = false;
-        selectedDeployUnit = null;
+        ClearDeploymentSelection();
 
         HighlightDeploymentTiles(false);
         GD.Print("Deployment phase ended.");
@@ -382,15 +388,35 @@ public partial class GameRunner : Node3D
 
     private void HandleDeploymentInput(InputEvent e)
     {
-        if (e is InputEventKey key && key.Pressed && key.Keycode == Key.Enter)
+        if (e is InputEventKey key && key.Pressed)
         {
-            EndDeploymentPhase();
-            return;
+            if (key.Keycode == Key.Enter)
+            {
+                EndDeploymentPhase();
+                return;
+            }
+
+            if (key.Keycode == Key.Backspace)
+            {
+                ResetDeploymentPositions();
+                return;
+            }
         }
 
-        if (e is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+        if (e is InputEventMouseButton mb && mb.Pressed)
         {
-            TryHandleDeploymentClick();
+            if (mb.ButtonIndex == MouseButton.Left)
+            {
+                TryHandleDeploymentClick();
+                return;
+            }
+
+            if (mb.ButtonIndex == MouseButton.Right)
+            {
+                ClearDeploymentSelection();
+                GD.Print("Deployment selection cleared.");
+                return;
+            }
         }
     }
 
@@ -449,7 +475,13 @@ public partial class GameRunner : Node3D
         if (!playerUnits.Contains(unit))
             return;
 
+
+        if (selectedDeployUnit != null)
+            selectedDeployUnit.SetDeploymentSelected(false);
+
         selectedDeployUnit = unit;
+        selectedDeployUnit.SetDeploymentSelected(true);
+
         GD.Print($"Selected deploy unit: {unit.Name}");
     }
 
@@ -477,7 +509,38 @@ public partial class GameRunner : Node3D
         selectedDeployUnit.PlaceOnTile(tileData);
         GD.Print($"{selectedDeployUnit.Name} deployed to {tileData.Axial}");
 
+        selectedDeployUnit.SetDeploymentSelected(false);
         selectedDeployUnit = null;
+    }
+
+    private void ClearDeploymentSelection()
+    {
+        if (selectedDeployUnit != null)
+            selectedDeployUnit.SetDeploymentSelected(false);
+
+        selectedDeployUnit = null;
+    }
+
+    private void ResetDeploymentPositions()
+    {
+        ClearDeploymentSelection();
+
+        foreach (var kvp in originalDeployCoords)
+        {
+            var unit = kvp.Key;
+            var coord = kvp.Value;
+            var tile = grid.GetTile(coord);
+
+            if (tile == null)
+                continue;
+
+            if (!tile.IsWalkable || tile.IsBlocked)
+                continue;
+
+            unit.PlaceOnTile(tile);
+        }
+
+        GD.Print("Deployment positions reset.");
     }
 
 }

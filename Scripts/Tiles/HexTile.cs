@@ -37,10 +37,14 @@ public partial class HexTile : Node3D
 
     private void OnMouseEntered()
     {
-        RefreshVisualState();
+        if (material == null)
+            return;
 
-        if (material != null)
-            material.AlbedoColor = HoverColor;
+        Color c = deploymentHighlighted
+            ? baseColor.Lerp(deploymentColor, 0.45f).Lerp(HoverColor, 0.5f)
+            : HoverColor;
+
+        material.AlbedoColor = c;
     }
 
     private void OnMouseExited()

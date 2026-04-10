@@ -128,15 +128,16 @@ text = "Remove"
 [node name="HexGridManager" type="Node3D" parent="." unique_id=1283187122]
 script = ExtResource("6_xukim")
 HexTileScene3D = ExtResource("7_jf4gb")
-GridWidth = 10
-GridHeight = 10
+GridWidth = 15
+GridHeight = 15
 HexRadius = 1.025
 RockObstacleScene = ExtResource("9_h4djk")
 CrystalObstacleScene = ExtResource("10_d0vbo")
-PlayerSpawnCount = 3
-ReservedSpawnRadius = 2
 LayoutType = 2
 Theme = 1
+TerrainDensity = 0.4
+TerrainRoughness = 0.4
+HeightVariation = 1.0
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=170383794]
 transform = Transform3D(0.86602503, -0.35355324, 0.35355338, 0, 0.7071065, 0.70710677, -0.4999998, -0.61237216, 0.6123724, 0, 2.66986, 0)

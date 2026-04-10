@@ -11,6 +11,8 @@ public sealed class Stats
 
     public int BaseSpeed;
     public int MovePoints;
+    public bool HasMoved;
+    public bool HasActed;
 
     public int Armor;
     public int Shield;
@@ -28,7 +30,7 @@ public partial class Unit : Node3D
     [Export] public int StartHealth = 10;
     [Export] public int StartArmor = 0;
     [Export] public int StartShield = 0;
-    [Export] public int StartBaseSpeed = 3;
+    [Export] public int StartBaseSpeed = 2;
     [Export] public int StartMaxMana = 3;
     [Export] public int StartMana = 3;
 
@@ -36,6 +38,11 @@ public partial class Unit : Node3D
 
     public TileData CurrentTile { get; private set; }
     private HealthBarRoot _healthBar;
+
+    // Selection visual
+    private MeshInstance3D _selectionRing;
+    private StandardMaterial3D _selectionMat;
+    private bool _deploymentSelected = false;
 
     public override void _Ready()
     {
@@ -55,6 +62,9 @@ public partial class Unit : Node3D
         _healthBar = GetNodeOrNull<HealthBarRoot>("HealthBarRoot");
         _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
+
+        CreateSelectionRing();
+        SetDeploymentSelected(false);
     }
 
     public void StartTurn()
@@ -158,5 +168,42 @@ public partial class Unit : Node3D
     public void SyncManaToBar()
     {
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
+    }
+
+    // Selection visual methods
+    private void CreateSelectionRing()
+    {
+        var ring = new MeshInstance3D();
+        var mesh = new CylinderMesh
+        {
+            TopRadius = 0.7f,
+            BottomRadius = 0.7f,
+            Height = 0.05f,
+            RadialSegments = 24
+        };
+
+        ring.Mesh = mesh;
+        ring.Position = new Vector3(0f, 0.05f, 0f);
+
+        _selectionMat = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.2f, 1.0f, 0.2f, 0.85f),
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            NoDepthTest = false
+        };
+
+        ring.SetSurfaceOverrideMaterial(0, _selectionMat);
+        AddChild(ring);
+
+        _selectionRing = ring;
+    }
+
+    public void SetDeploymentSelected(bool selected)
+    {
+        _deploymentSelected = selected;
+
+        if (_selectionRing != null)
+            _selectionRing.Visible = selected;
     }
 }

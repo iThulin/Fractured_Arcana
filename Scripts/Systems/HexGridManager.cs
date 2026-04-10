@@ -4,33 +4,61 @@ using System.Collections.Generic;
 
 public partial class HexGridManager : Node3D
 {
-    [Export] public PackedScene HexTileScene3D;
+
+
+    [ExportGroup("Grid Generation")]
     [Export] public int GridWidth = 7;
     [Export] public int GridHeight = 6;
     [Export] public float HexRadius = 1f;
 
+    // Spawn conditions
+
+    [ExportGroup("Spawn Settings")]
+    [Export] public int SpawnZonePadding = 1;
+    [Export] public int ReservedSpawnRadius = 1;
+    [Export] public int PlayerSpawnCount = 2;
+    [Export] public int EnemySpawnCount = 3;
+
+    [ExportGroup("Gameplay Settings")]
+    public bool BlocksMovementByHeight = false;
+
+    // Debug and testing
+    [ExportGroup("Debug Settings")]
+    [Export] public bool UseDebugSpawnOverrides = false;
+    [Export] public Vector2I DebugPlayerAnchor = new Vector2I(1, 1);
+    [Export] public Vector2I DebugEnemyAnchor = new Vector2I(4, 2);
+    private Vector2I PlayerLayoutAnchor;
+    private Vector2I EnemyLayoutAnchor;
+
+    // Map generation parameters
+    [ExportGroup("Map Generation")]
+    [Export] public MapLayoutType LayoutType = MapLayoutType.CentralClash;
+    [Export] public MapTheme Theme = MapTheme.ArcaneMeadow;
+    [Export] public bool RandomizeLayout = false;
+
+    // Density controls
+
+    [ExportSubgroup("Map Presets")]
+    [Export] public DensityMode DensityControlMode = DensityMode.Preset;
+    [Export] public MapDensityPreset DensityPreset = MapDensityPreset.Standard;
+
+    // Manual density controls (used if DensityControlMode is set to Manual)
+
+    [ExportSubgroup("Manual Terrain Settings")]
+    [Export(PropertyHint.Range, "0,1,0.05")] public float TerrainDensity = 0.5f;
+    [Export(PropertyHint.Range, "0,1,0.05")] public float TerrainRoughness = 0.5f;
+    [Export(PropertyHint.Range, "0,1,0.05")] public float ObstacleDensity = 0.4f;
+    [Export(PropertyHint.Range, "0,1,0.05")] public float HeightVariation = 0.5f;
+
+    [ExportGroup("Tile Settings")]
+    [Export] public PackedScene HexTileScene3D;
     [Export] public PackedScene RockObstacleScene;
     [Export] public PackedScene CrystalObstacleScene;
     [Export] public Node3D ObstacleParent;
 
-    // Spawn conditions
-    public List<SpawnZone> SpawnZones { get; private set; } = new();
-    public List<SpawnSlot> SpawnSlots { get; private set; } = new();
-    [Export] public int PlayerSpawnCount = 2;
-    [Export] public int EnemySpawnCount = 3;
-    [Export] public int SpawnZonePadding = 1;
-    [Export] public bool UseDebugSpawnOverrides = false;
-    [Export] public Vector2I DebugPlayerAnchor = new Vector2I(1, 1);
-    [Export] public Vector2I DebugEnemyAnchor = new Vector2I(4, 2);
-    [Export] public int ReservedSpawnRadius = 1;
-    [Export] public MapLayoutType LayoutType = MapLayoutType.CentralClash;
-    [Export] public bool RandomizeLayout = false;
-    [Export] public MapTheme Theme = MapTheme.ArcaneMeadow;
-
-    private Vector2I PlayerLayoutAnchor;
-    private Vector2I EnemyLayoutAnchor;
-
     // Tile Materials
+
+    [ExportGroup("Tile Materials")]
     [Export] public Material GrassMaterial;
     [Export] public Material ForestMaterial;
     [Export] public Material StoneMaterial;
@@ -40,15 +68,17 @@ public partial class HexGridManager : Node3D
     [Export] public Material LavaMaterial;
 
     // Prop import
+    [ExportGroup("Tile Props")]
     [Export] public PackedScene GrassTuftScene;
     [Export] public PackedScene GrassTuftSceneAlt;
     [Export] public Node3D PropParent;
 
+    // Runtime data structures
+    public List<SpawnZone> SpawnZones { get; private set; } = new();
+    public List<SpawnSlot> SpawnSlots { get; private set; } = new();
     public Vector3 GridBoundsMin { get; private set; }
     public Vector3 GridBoundsMax { get; private set; }
     private readonly HashSet<Vector2I> ReservedTiles = new();
-
-    public bool BlocksMovementByHeight = false;
 
     public readonly Dictionary<Vector2I, TileData> Tiles = new();
 
@@ -91,7 +121,23 @@ public partial class HexGridManager : Node3D
         public Vector2I Anchor;
         public List<Vector2I> Tiles = new();
     }
+    
+    public enum DensityMode
+    {
+        Preset,
+        Manual
+    }
+
+    public enum MapDensityPreset
+    {
+        Sparse,
+        Standard,
+        Dense,
+        Wild
+    }
+
     // Structures
+    
     public override void _Ready()
     {
         GenerateMap();
@@ -229,10 +275,11 @@ public partial class HexGridManager : Node3D
         }
 
         // Build layout skeleton and spawn zones
+        ApplyDensityPreset();
         DetermineLayoutAnchors();
+        ApplyThemeBaseTerrain();
         GenerateLayoutSkeleton();
         GenerateSpawnPlan();
-
         ApplyThemeToLayout();
 
         // Add height variation and smooth it out to create a more natural look
@@ -339,41 +386,44 @@ public partial class HexGridManager : Node3D
             if (IsReserved(tile.Axial))
                 continue;
 
+            float chanceMultiplier = Mathf.Lerp(0.3f, 1.5f, HeightVariation);
+            int heightStep = HeightVariation < 0.35f ? 1 : 2;
+
             switch (tile.TerrainType)
             {
                 case TileTerrainType.Grass:
-                    if (GD.Randf() < 0.25f)
+                    if (GD.Randf() < 0.20f * chanceMultiplier)
                         tile.Height += 1;
                     break;
 
                 case TileTerrainType.Forest:
-                    if (GD.Randf() < 0.40f)
-                        tile.Height += 1;
+                    if (GD.Randf() < 0.30f * chanceMultiplier)
+                        tile.Height += heightStep;
                     break;
 
                 case TileTerrainType.Stone:
-                    if (GD.Randf() < 0.45f)
-                        tile.Height += 1;
+                    if (GD.Randf() < 0.35f * chanceMultiplier)
+                        tile.Height += heightStep;
                     break;
 
                 case TileTerrainType.Water:
-                    if (GD.Randf() < 0.50f)
-                        tile.Height -= 1;
+                    if (GD.Randf() < 0.35f * chanceMultiplier)
+                        tile.Height -= heightStep;
                     break;
 
                 case TileTerrainType.Lava:
-                    if (GD.Randf() < 0.35f)
-                        tile.Height -= 1;
+                    if (GD.Randf() < 0.25f * chanceMultiplier)
+                        tile.Height -= heightStep;
                     break;
 
                 case TileTerrainType.Ice:
-                    if (GD.Randf() < 0.20f)
+                    if (GD.Randf() < 0.20f * chanceMultiplier)
                         tile.Height += 1;
                     break;
 
                 case TileTerrainType.Arcane:
-                    if (GD.Randf() < 0.35f)
-                        tile.Height += 1;
+                    if (GD.Randf() < 0.25f * chanceMultiplier)
+                        tile.Height += heightStep;
                     break;
             }
         }
@@ -705,6 +755,7 @@ public partial class HexGridManager : Node3D
     }
 
     // Tile Props
+    
     private void SpawnTerrainProps()
     {
         ClearTerrainProps();
@@ -781,6 +832,7 @@ public partial class HexGridManager : Node3D
 
 
     // Paint Terrain and Features
+    
     private void PaintTerrainPatch(Vector2I center, TileTerrainType terrain, int radius, float edgeChance = 0.75f)
     {
         foreach (var kvp in Tiles)
@@ -1144,10 +1196,6 @@ public partial class HexGridManager : Node3D
             if (!Tiles.TryGetValue(coord, out var tile))
                 continue;
 
-            tile.TerrainType = TileTerrainType.Grass;
-            tile.ElementType = TileElementType.None;
-            tile.ElementStrength = 0f;
-
             tile.IsWalkable = true;
             tile.IsBlocked = false;
             tile.BlocksLineOfSight = false;
@@ -1237,8 +1285,6 @@ public partial class HexGridManager : Node3D
 
         if (Tiles.TryGetValue(goal, out var goalTile))
         {
-            goalTile.TerrainType = TileTerrainType.Grass;
-            goalTile.ElementType = TileElementType.None;
             goalTile.ElementStrength = 0f;
             goalTile.IsWalkable = true;
             goalTile.IsBlocked = false;
@@ -1250,6 +1296,7 @@ public partial class HexGridManager : Node3D
     }
 
     // Player and Enemy Spawns
+    
     private List<Vector2I> GetSideCandidates(SpawnSide side)
     {
         var result = new List<Vector2I>();
@@ -1393,12 +1440,6 @@ public partial class HexGridManager : Node3D
         {
             foreach (var coord in zone.Tiles)
                 ReservedTiles.Add(coord);
-
-            foreach (var coord in zone.Tiles)
-            {
-                foreach (var neighbor in GetNeighbors(coord))
-                    ReservedTiles.Add(neighbor);
-            }
         }
     }
 
@@ -1513,6 +1554,35 @@ public partial class HexGridManager : Node3D
 
     // Terrain helpers
 
+    private int GetTerrainPatchCount(int minCount, int maxCount)
+    {
+        return Mathf.RoundToInt(Mathf.Lerp(minCount, maxCount, TerrainDensity));
+    }
+    
+    private float GetEdgeChance()
+    {
+        // Low roughness = smoother edge fill
+        // High roughness = more broken edges
+        return Mathf.Lerp(0.95f, 0.55f, TerrainRoughness);
+    }
+
+    private int GetObstacleClusterCount(int minCount, int maxCount)
+    {
+        return Mathf.RoundToInt(Mathf.Lerp(minCount, maxCount, ObstacleDensity));
+    }
+
+    private int GetObstacleClusterSize(int minSize, int maxSize)
+    {
+        return Mathf.RoundToInt(Mathf.Lerp(minSize, maxSize, ObstacleDensity));
+    }
+
+    private int GetPatchRadius(int minRadius, int maxRadius)
+    {
+        // Low roughness = larger patches
+        // High roughness = smaller patches
+        return Mathf.RoundToInt(Mathf.Lerp(maxRadius, minRadius, TerrainRoughness));
+    }
+    
     private void CarveLane(Vector2I start, Vector2I goal, int width = 0)
     {
         Vector2I current = start;
@@ -1539,6 +1609,7 @@ public partial class HexGridManager : Node3D
 
         ClearTileForLane(goal, width);
     }
+    
     private void ClearTileObstacleState(TileData tile)
     {
         tile.IsBlocked = false;
@@ -1613,8 +1684,6 @@ public partial class HexGridManager : Node3D
 
     private void GenerateCentralClashLayout()
     {
-        SetAllTilesToTerrain(TileTerrainType.Grass);
-
         Vector2I center = GetMidpoint(PlayerLayoutAnchor, EnemyLayoutAnchor);
 
         // Raised central hill / contest point
@@ -1635,8 +1704,6 @@ public partial class HexGridManager : Node3D
 
     private void GenerateSplitLanesLayout()
     {
-        SetAllTilesToTerrain(TileTerrainType.Grass);
-
         Vector2I center = GetMidpoint(PlayerLayoutAnchor, EnemyLayoutAnchor);
 
         // Create a central blocker band to split traffic
@@ -1656,8 +1723,6 @@ public partial class HexGridManager : Node3D
 
     private void GenerateRingCourtyardLayout()
     {
-        SetAllTilesToTerrain(TileTerrainType.Stone);
-
         Vector2I center = GetMidpoint(PlayerLayoutAnchor, EnemyLayoutAnchor);
 
         // Central raised courtyard
@@ -1690,29 +1755,95 @@ public partial class HexGridManager : Node3D
         CarveLane(EnemyLayoutAnchor, center, 1);
     }
 
+    private void ApplyDensityPreset()
+    {
+        if (DensityControlMode != DensityMode.Preset)
+            return;
+
+        switch (DensityPreset)
+        {
+            case MapDensityPreset.Sparse:
+                TerrainDensity = 0.25f;
+                TerrainRoughness = 0.25f;
+                ObstacleDensity = 0.2f;
+                break;
+
+            case MapDensityPreset.Standard:
+                TerrainDensity = 0.5f;
+                TerrainRoughness = 0.5f;
+                ObstacleDensity = 0.4f;
+                break;
+
+            case MapDensityPreset.Dense:
+                TerrainDensity = 0.75f;
+                TerrainRoughness = 0.6f;
+                ObstacleDensity = 0.65f;
+                break;
+
+            case MapDensityPreset.Wild:
+                TerrainDensity = 0.9f;
+                TerrainRoughness = 0.9f;
+                ObstacleDensity = 0.75f;
+                break;
+        }
+    }
+
     // Themes
 
+    private void ApplyThemeBaseTerrain()
+    {
+        switch (Theme)
+        {
+            case MapTheme.ArcaneMeadow:
+                SetAllTilesToTerrain(TileTerrainType.Grass);
+                break;
+
+            case MapTheme.FrozenBasin:
+                SetAllTilesToTerrain(TileTerrainType.Ice);
+                break;
+
+            case MapTheme.VolcanicScar:
+                SetAllTilesToTerrain(TileTerrainType.Stone);
+                break;
+
+            case MapTheme.OvergrownRuins:
+                SetAllTilesToTerrain(TileTerrainType.Forest);
+                break;
+        }
+    }
+    
     private void ApplyArcaneMeadowTheme()
     {
-        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Forest, 2, 0.8f);
-        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Water, 1, 0.65f);
+        int forestPatches = GetTerrainPatchCount(1, 4);
+        int waterPatches = GetTerrainPatchCount(0, 2);
 
-        PaintElementPatch(GetRandomCentralCoord(), TileElementType.Arcane, 2, 1.0f, 0.8f);
+        for (int i = 0; i < forestPatches; i++)
+            PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Forest, GetPatchRadius(1, 3), GetEdgeChance());
 
-        if (GD.Randf() < 0.6f)
-            PaintObstacleCluster(GetRandomCentralCoord(), "crystal", 3);
+        for (int i = 0; i < waterPatches; i++)
+            PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Water, GetPatchRadius(1, 2), GetEdgeChance());
+
+        PaintElementPatch(GetRandomCentralCoord(), TileElementType.Arcane, GetPatchRadius(1, 2), 1.0f, GetEdgeChance());
+
+        if (GD.Randf() < Mathf.Lerp(0.2f, 0.8f, ObstacleDensity))
+            PaintObstacleCluster(GetRandomCentralCoord(), "crystal", GetObstacleClusterSize(2, 4));
     }
 
     private void ApplyFrozenBasinTheme()
     {
-        PaintTerrainPatch(GetRandomCentralCoord(), TileTerrainType.Ice, 2, 0.9f);
-        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Water, 1, 0.65f);
+        PaintTerrainPatch(GetRandomCentralCoord(), TileTerrainType.Ice, 3, 0.95f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Ice, 2, 0.85f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Water, 2, 0.75f);
 
-        PaintElementPatch(GetRandomCentralCoord(), TileElementType.Frost, 2, 1.0f, 0.85f);
+        PaintElementPatch(GetRandomCentralCoord(), TileElementType.Frost, 2, 1.0f, 0.9f);
+        PaintElementPatch(GetRandomCoord(), TileElementType.Frost, 1, 0.7f, 0.75f);
     }
 
     private void ApplyVolcanicScarTheme()
     {
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Stone, 3, 0.9f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Stone, 2, 0.85f);
+
         Vector2I start = GetRandomCentralCoord();
         Vector2I dir = HexDirs[(int)(GD.Randi() % (uint)HexDirs.Length)];
 
@@ -1727,8 +1858,9 @@ public partial class HexGridManager : Node3D
 
     private void ApplyOvergrownRuinsTheme()
     {
-        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Forest, 2, 0.8f);
-        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Grass, 2, 0.8f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Forest, 3, 0.9f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Forest, 2, 0.85f);
+        PaintTerrainPatch(GetRandomCoord(), TileTerrainType.Stone, 2, 0.75f);
 
         if (GD.Randf() < 0.5f)
             PaintElementPatch(GetRandomCentralCoord(), TileElementType.Arcane, 1, 0.8f, 0.7f);

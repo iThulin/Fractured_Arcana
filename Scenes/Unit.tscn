@@ -21,7 +21,7 @@ mesh = ExtResource("2_20lhf")
 [node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=489342476]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=1842148130]
-transform = Transform3D(1.1408834, 0, 0, 0, 1.3255237, 0, 0, 0, 1.7415875, 0, 0.6653817, 0)
+transform = Transform3D(1.35, 0, 0, 0, 1.35, 0, 0, 0, 1.35, 0, 0.6653817, 0)
 shape = SubResource("CapsuleShape3D_20lhf")
 
 [node name="HealthBarRoot" type="Node3D" parent="." unique_id=1349401647]
