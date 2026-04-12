@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://dgi6v10ltygfn"]
 
-[ext_resource type="Script" uid="uid://c7wh8e46s1af8" path="res://Scripts/Systems/GameManager.cs" id="1_ijhqi"]
 [ext_resource type="Script" uid="uid://cmv52oxovfl16" path="res://Scripts/Cards/CardData.cs" id="1_ya2tu"]
 [ext_resource type="Script" uid="uid://cmy15kdfht3q1" path="res://Scripts/Systems/DeckManager.cs" id="2_ijhqi"]
 [ext_resource type="PackedScene" uid="uid://iuge2orfh1hw" path="res://Scenes/CardUI.tscn" id="3_tpnw0"]
@@ -36,7 +35,6 @@ ssao_enabled = true
 ssil_enabled = true
 
 [node name="Main Scene" type="Node3D" unique_id=434588086]
-script = ExtResource("1_ijhqi")
 
 [node name="CardData" type="Node2D" parent="." unique_id=1389179332]
 position = Vector2(1, 844)

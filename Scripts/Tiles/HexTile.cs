@@ -85,7 +85,7 @@ public partial class HexTile : Node3D
         pos.Y = height * 0.5f; // scale factor (tune this)
         Position = pos;
 
-        GD.Print($"SetHeight on tile {Axial}: height={height}, new pos={Position}");
+        //GD.Print($"SetHeight on tile {Axial}: height={height}, new pos={Position}");
     }
 
     public void SetCoordinatesLabel(int q, int r)

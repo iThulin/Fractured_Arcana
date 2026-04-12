@@ -52,6 +52,8 @@ public partial class DeckUiManager : Node2D
 				cardUi.QueueFree();
 		}
 
+		GD.Print($"RefreshUI called. Hand count: {deckManager.Hand.Count}, Container: {handUIContainer?.Name}, Container visible: {handUIContainer?.Visible}");
+
 		// Rebuild UI from deck manager state
 		foreach (var card in deckManager.Hand)
 		{
@@ -59,11 +61,15 @@ public partial class DeckUiManager : Node2D
 			cardUi.SetCard(card);
 			cardUi.CardDropped += () => PositionHandCards();
 			handUIContainer.AddChild(cardUi);
+
+			GD.Print($"  Added card to UI: {card.CardName} | CardUi visible: {cardUi.Visible} | CardUi size: {cardUi.Size}");
 		}
 
 		await ToSignal(GetTree().CreateTimer(0.0f), "timeout");
 
 		PositionHandCards();
+
+		GD.Print($"PositionHandCards done. Child count in container: {handUIContainer.GetChildCount()}");
 	}
 
 	public void SafeRefreshUI()

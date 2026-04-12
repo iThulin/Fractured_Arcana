@@ -9,14 +9,11 @@ public partial class GameRunner : Node3D
     [Export] public PackedScene DummyUnitScene;
     [Export] public NodePath GridPath = "../HexGridManager";
     [Export] public NodePath CombatUIPath = "../CombatUI";
-    //res://Scripts/UI/CombatUI.cs
-
 
     // Core game state and references
 
     public GameState State;
     private Entity Me, Opp;
-    private List<Card> _compiled = new();
     private DeckManager deckManager;
     private CardDropHandler dropper;
     private HexGridManager grid;
@@ -58,57 +55,59 @@ public partial class GameRunner : Node3D
 
     public override void _Ready()
     {
-        // Ensure global card pool is loaded once (acts like autoload)
         if (CardDatabase.Blueprints.Count == 0)
-        CardDatabase.LoadFromCsv("res://Data/cards.csv");
+            CardDatabase.LoadFromCsv("res://Data/cards.csv");
 
         State = new GameState();
-        Me = State.PlayerA; 
+        Me = State.PlayerA;
         Opp = State.PlayerB;
 
         SpawnTestUnits();
 
-        // Existing demo library setup: compile first 10 blueprints and use them as the library
-        _compiled.Clear();
-        for (int i = 0; i < 10 && i < CardDatabase.Blueprints.Count; i++)
-            _compiled.Add(CardDatabase.Instantiate(CardDatabase.Blueprints[i]));
-        for (int i=0; i<10 && i<_compiled.Count; i++) State.LibraryA.Add(_compiled[i]);
-
-        // Draw opening hand
-        State.Draw(Me, 3);
-        DumpHand();
-
-        // Get references to other nodes
+        // Get node references first
         deckManager = GetNodeOrNull<DeckManager>("../Player/DeckManager");
         if (deckManager == null)
-            GD.PrintErr("DeckManager not found. Fix the node path in GameRunner.");
+        {
+            GD.PrintErr("DeckManager not found.");
+        }
+        else
+        {
+            // Build deck and draw opening hand through DeckManager only
+            var startingDeck = deckManager.GenerateStartingDeck(CardSchool.Generic, 4);
+            deckManager.InitializeDeck(startingDeck);
+            deckManager.DrawCards(3);
+
+            // Point State.HandA at the same list so casting rules see the same cards
+            State.HandA = deckManager.Hand;
+            GD.Print($"Deck initialized. Hand count: {deckManager.Hand.Count}");
+        }
 
         dropper = GetNodeOrNull<CardDropHandler>("../CardDropHandler");
         if (dropper == null)
-            GD.PrintErr("CardDropHandler not found. Fix the node path in GameRunner.");
+            GD.PrintErr("CardDropHandler not found.");
         else
             dropper.Connect(CardDropHandler.SignalName.CardDroppedOnTile,
                 new Callable(this, nameof(OnCardDroppedOnTile)));
+
         combatUI = GetNodeOrNull<CombatUI>(CombatUIPath);
         if (combatUI == null)
-            GD.PrintErr("CombatUI not found. Fix CombatUIPath.");
-        if (combatUI != null)
-            {
-                combatUI.ConfirmDeploymentPressed += OnConfirmDeploymentPressed;
-                combatUI.EndTurnPressed += OnEndTurnPressed;
-            }
-        
-        CallDeferred(nameof(RefreshPhaseUI));
-        CallDeferred(nameof(RefreshSelectedUnitUI));
+            GD.PrintErr("CombatUI not found.");
+        else
+        {
+            combatUI.ConfirmDeploymentPressed += OnConfirmDeploymentPressed;
+            combatUI.EndTurnPressed += OnEndTurnPressed;
+        }
 
-        // Listen to events
+        if (playerUnit != null)
+            State.Mana[Me] = playerUnit.Stats.Mana;
+
         State.Bus.OnEvent += OnGameEvent;
 
         if (!EnableDeploymentPhase)
             State.OpenPriorityWindow();
 
-        State.Mana[Me] = 3;
-        GD.Print("Keys: [T]=cast top of card 1 | [B]=bottom | [Y]=channel top | [SPACE]=pass | [R]=resolve top");
+        CallDeferred(nameof(RefreshPhaseUI));
+        CallDeferred(nameof(RefreshSelectedUnitUI));
 
         RefreshPhaseUI();
         RefreshSelectedUnitUI();
@@ -134,10 +133,15 @@ public partial class GameRunner : Node3D
 
         var ok = Rules.TryCastWithTargets(half, State, Me, targets, cardUi.CardInstance);
         GD.Print($"Cast result={ok} manaNow={State.Mana[Me]}");
-        if (ok && playerUnit != null)
+        if (ok)
         {
-            playerUnit.Stats.Mana = State.Mana[Me];
-            playerUnit.SyncManaToBar();
+            if (selectedUnit != null)
+            {
+                selectedUnit.Stats.HasActed = true;
+                selectedUnit.Stats.Mana = State.Mana[Me];
+                selectedUnit.SyncManaToBar();
+            }
+
             RefreshSelectedUnitUI();
         }
     }
@@ -173,9 +177,6 @@ public partial class GameRunner : Node3D
         if (e is InputEventKey k && k.Pressed)
         {
             if (k.Keycode == Key.R) ResolveTop();
-            if (k.Keycode == Key.T) CastTop(0);
-            if (k.Keycode == Key.B) CastBottom(0);
-            if (k.Keycode == Key.Y) CastTopChannel(0);
         }
     }
 
@@ -227,31 +228,6 @@ public partial class GameRunner : Node3D
 
         Unit unitToShow = isInDeploymentPhase ? selectedDeployUnit : selectedUnit;
         combatUI.ShowSelectedUnit(unitToShow, mana);
-    }
-    
-    void CastTop(int handIndex)
-    {
-        if (State.HandA.Count <= handIndex) { GD.Print("No card."); return; }
-        var c = State.HandA[handIndex];
-        var a = c.TopHalf;
-        if (a == null) { GD.Print("No top half."); return; }
-        if (Rules.TryCast(a, State, Me)) GD.Print($"→ Cast top: {a.Name}");
-    }
-
-    void CastTopChannel(int handIndex)
-    {
-        if (State.HandA.Count <= handIndex) return;
-        var a = State.HandA[handIndex].TopHalf?.ChannelVariant;
-        if (a==null){ GD.Print("No channel."); return; }
-        if (Rules.TryCast(a, State, Me)) GD.Print($"→ Cast channel: {a.Name}");
-    }
-
-    void CastBottom(int handIndex)
-    {
-        if (State.HandA.Count <= handIndex) return;
-        var a = State.HandA[handIndex].BottomHalf;
-        if (a == null) { GD.Print("No bottom half."); return; }
-        if (Rules.TryCast(a, State, Me)) GD.Print($"→ Cast bottom: {a.Name}");
     }
 
     void Pass()
@@ -666,6 +642,12 @@ public partial class GameRunner : Node3D
         foreach (var unit in playerUnits)
             unit.StartTurn();
 
+    if (playerUnit != null && State.Mana.ContainsKey(Me))
+    {
+        State.Mana[Me] = playerUnit.Stats.Mana;
+        playerUnit.SyncManaToBar();
+    }
+
         selectedUnit = null;
         ClearMoveTiles();
 
@@ -683,6 +665,7 @@ public partial class GameRunner : Node3D
         selectedUnit = null;
         ClearMoveTiles();
 
+        PruneDeadUnits();
         GD.Print("=== Player Turn End ===");
 
         RefreshPhaseUI();
@@ -730,6 +713,7 @@ public partial class GameRunner : Node3D
                 return;
         }
 
+        PruneDeadUnits();
         GD.Print("=== Enemy Turn End ===");
         enemyPhaseRunning = false;
     }
@@ -861,7 +845,7 @@ public partial class GameRunner : Node3D
 
     private void ShowMoveTiles(HashSet<Vector2I> coords)
     {
-        ClearMoveTiles();
+        ClearMoveTileHighlights();
 
         foreach (var coord in coords)
         {
@@ -870,14 +854,20 @@ public partial class GameRunner : Node3D
         }
     }
 
-    private void ClearMoveTiles()
+    private void ClearMoveTileHighlights()
     {
+        // Only removes visual highlights, does NOT touch currentMoveTiles
         foreach (var coord in currentMoveTiles)
         {
             var tile = grid.GetTileView(coord);
             tile?.SetMoveHighlight(false);
         }
+    }
 
+    private void ClearMoveTiles()
+    {
+        // Full clear: highlights + data
+        ClearMoveTileHighlights();
         currentMoveTiles.Clear();
     }
 
@@ -897,15 +887,18 @@ public partial class GameRunner : Node3D
 
         ClearMoveTiles();
 
-        var reachable = grid.GetReachableTiles(unit);
-        foreach (var coord in reachable)
-            currentMoveTiles.Add(coord);
+        if(unit.Stats.MovePoints > 0 && unit.CurrentTile != null)
+        {
+            var reachable = grid.GetReachableTiles(unit);
+            foreach (var coord in reachable)
+                currentMoveTiles.Add(coord);
 
-        ShowMoveTiles(currentMoveTiles);
+            ShowMoveTiles(currentMoveTiles);
+        }
 
         RefreshSelectedUnitUI();
-        GD.Print($"Selected unit: {unit.Name}, move points={unit.Stats.MovePoints}");
-        GD.Print($"Reachable tiles count: {reachable.Count}");
+
+        GD.Print($"=== Selected: {unit.Name} | MovePoints={unit.Stats.MovePoints} | BaseSpeed={unit.Stats.BaseSpeed} ===");
     }
 
     private void TryMoveSelectedUnit(HexTile tileView)
@@ -942,6 +935,13 @@ public partial class GameRunner : Node3D
 
     private void TryHandleMainPhaseClick()
     {
+        // Clear selection if selected unit is dead
+        if (selectedUnit != null && !selectedUnit.Stats.IsAlive)
+        {
+            selectedUnit = null;
+            ClearMoveTiles();
+        }
+
         GD.Print($"TryHandleMainPhaseClick phase={currentPhase}");
 
         if (currentPhase != CombatPhase.PlayerTurn)
@@ -1004,6 +1004,12 @@ public partial class GameRunner : Node3D
 
             current = current.GetParent();
         }
+    }
+
+    private void PruneDeadUnits()
+    {
+        playerUnits.RemoveAll(u => u == null || !u.Stats.IsAlive);
+        enemyUnits.RemoveAll(u => u == null || !u.Stats.IsAlive);
     }
 
     private void OnEndTurnPressed()

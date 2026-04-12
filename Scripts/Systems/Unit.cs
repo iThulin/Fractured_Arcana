@@ -70,6 +70,11 @@ public partial class Unit : Node3D
     public void StartTurn()
     {
         Stats.MovePoints = Stats.BaseSpeed;
+        Stats.HasMoved = false;
+        Stats.HasActed = false;
+
+        Stats.Mana = Stats.MaxMana;
+        _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
     }
 
 
@@ -106,20 +111,9 @@ public partial class Unit : Node3D
             return false;
 
         Stats.MovePoints -= dist;
+        Stats.HasMoved = true;
         PlaceOnTile(dest);
         return true;
-    }
-
-        public bool TryMoveTo(HexGridManager grid, HexTile destView)
-    {
-        if (grid == null || destView == null)
-            return false;
-
-        var destTile = grid.GetTile(destView.Axial);
-        if (destTile == null)
-            return false;
-
-        return TryMoveTo(grid, destTile);
     }
 
     public void ApplyDamage(int amount)
@@ -147,6 +141,23 @@ public partial class Unit : Node3D
         _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth);
         GD.Print($"{Name} HP now {Stats.Health}/{Stats.MaxHealth}");
 
+        if (!Stats.IsAlive)
+        {
+            GD.Print($"{Name} has died.");
+            Die();
+        }
+
+    }
+
+    public void Die()
+    {
+        // Free the tile so other units can enter it
+        CurrentTile?.ClearOccupant(this);
+        CurrentTile = null;
+
+        // Hide and remove from the scene
+        Visible = false;
+        QueueFree();
     }
 
     public void GainMana(int amount)
