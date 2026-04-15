@@ -23,11 +23,11 @@ roughness = 0.95
 [sub_resource type="PlaneMesh" id="PlaneMesh_d0vbo"]
 lightmap_size_hint = Vector2i(602, 602)
 material = SubResource("StandardMaterial3D_h4djk")
-size = Vector2(120, 120)
+size = Vector2(1200, 1200)
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_h4djk"]
-sky_top_color = Color(0.6358456, 0.8766528, 1.1731088, 1)
-sky_horizon_color = Color(1.1515225, 1.2414947, 1.3414514, 1)
+sky_top_color = Color(0.18, 0.37, 0.72, 1)
+sky_horizon_color = Color(0.69, 0.82, 0.95, 1)
 sky_curve = 0.09
 ground_bottom_color = Color(0.694361, 0.6342527, 0.5657284, 1)
 ground_horizon_color = Color(0.99115646, 0.9639762, 0.9063318, 1)
@@ -39,15 +39,15 @@ sky_material = SubResource("ProceduralSkyMaterial_h4djk")
 [sub_resource type="Environment" id="Environment_lhd6x"]
 background_mode = 2
 sky = SubResource("Sky_7jq7h")
-ambient_light_source = 3
-ambient_light_color = Color(1.2610514, 1.2414947, 1.2010896, 1)
-ambient_light_energy = 0.5
-tonemap_mode = 1
-tonemap_exposure = 1.1
+ambient_light_source = 2
+ambient_light_color = Color(0.85, 0.82, 0.76, 1)
+ambient_light_energy = 0.4
+tonemap_mode = 2
+tonemap_exposure = 0.9
 tonemap_white = 6.0
 ssao_enabled = true
 fog_enabled = true
-fog_light_color = Color(1.201778, 1.2414947, 1.2927707, 1)
+fog_light_color = Color(0.76, 0.82, 0.9, 1)
 fog_light_energy = 0.3
 fog_density = 0.008
 fog_sky_affect = 0.3
@@ -176,9 +176,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, 0)
 mesh = SubResource("PlaneMesh_d0vbo")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=170383794]
-transform = Transform3D(0.86602503, -0.35355324, 0.35355338, 0, 0.7071065, 0.70710677, -0.4999998, -0.61237216, 0.6123724, 0, 2.66986, 0)
-light_color = Color(1.353256, 1.323478, 1.2610514, 1)
-light_energy = 1.4
+transform = Transform3D(0.7071065, 0.49999976, -0.49999994, 0, 0.7071065, 0.7071067, 0.7071065, -0.49999976, 0.49999994, 0, 2.66986, 0)
+light_color = Color(1, 0.95, 0.88, 1)
+light_energy = 0.2
 shadow_enabled = true
 
 [node name="CameraController" type="Node3D" parent="." unique_id=974354941]
