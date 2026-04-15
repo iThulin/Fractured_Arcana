@@ -117,15 +117,21 @@ public partial class GameRunner : Node3D
     {
         if (deckManager == null) return;
 
+        // Build the deck using the school + size chosen on the class select screen
+        var startingDeck = deckManager.GenerateStartingDeck(
+            PlayerSession.SelectedSchool,
+            PlayerSession.DeckSize
+        );
+        deckManager.InitializeDeck(startingDeck);  // fills DrawPile and calls SafeRefreshUI
+
+        // Now sync the populated deck into GameState
         State.LibraryA.Clear();
         State.HandA.Clear();
 
         foreach (var card in deckManager.DrawPile)
             State.LibraryA.Add(card);
-        foreach (var card in deckManager.Hand)
-            State.HandA.Add(card);
 
-        GD.Print($"Synced DeckManager → State: {State.HandA.Count} in hand, {State.LibraryA.Count} in library");
+        GD.Print($"Deck built: {deckManager.DrawPile.Count} cards ({PlayerSession.SelectedSchool})");
         RefreshDeckCounts();
     }
 
@@ -436,6 +442,16 @@ public partial class GameRunner : Node3D
         selectedUnit       = null;
         inspectedEnemyUnit = null;
         ClearMoveTiles();
+
+            // Draw up to hand size at the start of each player turn
+        if (deckManager != null)
+        {
+            int cardsToDraw = deckManager.MaxHandSize - deckManager.Hand.Count;
+            if (cardsToDraw > 0)
+                deckManager.DrawCards(cardsToDraw);
+        }
+
+        GD.Print($"DeckManager state — Draw: {deckManager?.DrawPile.Count}, Hand: {deckManager?.Hand.Count}");
 
         GD.Print($"=== Round {roundNumber}: Player Turn ===");
         combatUI?.ClearActionLog();
