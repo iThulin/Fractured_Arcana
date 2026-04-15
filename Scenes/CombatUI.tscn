@@ -53,7 +53,9 @@ text = "HP:"
 horizontal_alignment = 1
 
 [node name="HealthBar" type="ProgressBar" parent="SelectedUnitPanel/MarginContainer/VBoxContainer/HealthRow" unique_id=1830614903]
+custom_minimum_size = Vector2(80, 12)
 layout_mode = 2
+size_flags_horizontal = 3
 step = 1.0
 value = 100.0
 
@@ -66,7 +68,9 @@ text = "Movement:"
 horizontal_alignment = 1
 
 [node name="MoveBar" type="ProgressBar" parent="SelectedUnitPanel/MarginContainer/VBoxContainer/MoveRow" unique_id=1070921436]
+custom_minimum_size = Vector2(80, 12)
 layout_mode = 2
+size_flags_horizontal = 3
 max_value = 2.0
 step = 1.0
 value = 2.0
@@ -80,7 +84,9 @@ text = "Mana:"
 horizontal_alignment = 1
 
 [node name="ManaBar" type="ProgressBar" parent="SelectedUnitPanel/MarginContainer/VBoxContainer/ManaRow" unique_id=1814619712]
+custom_minimum_size = Vector2(80, 12)
 layout_mode = 2
+size_flags_horizontal = 3
 max_value = 3.0
 step = 1.0
 value = 2.0
@@ -123,3 +129,74 @@ text = "Confirm Deployment"
 [node name="EndTurnButton" type="Button" parent="ActionPanel/HBoxContainer" unique_id=1003492729]
 layout_mode = 2
 text = "End Turn"
+
+[node name="EnemyRosterPanel" type="PanelContainer" parent="." unique_id=1396182887]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 40.0
+grow_horizontal = 0
+size_flags_horizontal = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="EnemyRosterPanel" unique_id=1992440836]
+layout_mode = 2
+
+[node name="PlayerUnitBar" type="PanelContainer" parent="." unique_id=1972696080]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -40.0
+offset_right = 40.0
+grow_vertical = 0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PlayerUnitBar" unique_id=712977925]
+layout_mode = 2
+
+[node name="ActionLogPanel" type="PanelContainer" parent="." unique_id=1051005544]
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -20.0
+offset_right = 40.0
+offset_bottom = 20.0
+grow_vertical = 2
+
+[node name="ActionLogLabel" type="Label" parent="ActionLogPanel" unique_id=445740340]
+layout_mode = 2
+text = "If you can see this there is a bug."
+
+[node name="DeckGravePanel" type="PanelContainer" parent="." unique_id=1548145140]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -59.0
+offset_top = 17.0
+offset_bottom = 57.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="DeckGravePanel" unique_id=472908093]
+layout_mode = 2
+
+[node name="DeckButton" type="Button" parent="DeckGravePanel/HBoxContainer" unique_id=390718523]
+layout_mode = 2
+text = "Deck"
+
+[node name="GraveButton" type="Button" parent="DeckGravePanel/HBoxContainer" unique_id=569087500]
+layout_mode = 2
+text = "Grave"
+
+[node name="DeckPopup" type="PopupPanel" parent="." unique_id=1611827716]
+
+[node name="ItemList" type="ItemList" parent="DeckPopup" unique_id=2138700702]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="GravePopup" type="PopupPanel" parent="." unique_id=1634270610]
+
+[node name="ItemList" type="ItemList" parent="GravePopup" unique_id=1054512760]
+offset_right = 40.0
+offset_bottom = 40.0
