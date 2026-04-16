@@ -47,6 +47,9 @@ public partial class GameRunner : Node3D
     private int         roundNumber     = 1;
     private bool        enemyPhaseRunning = false;
 
+    // ── Run summary data (for post-run screen) ───────────────────────────────
+    [Signal] public delegate void CombatCompletedEventHandler(bool playerWon);
+
     // ═══════════════════════════════════════════════════════════════════════
     // _Ready
     // ═══════════════════════════════════════════════════════════════════════
@@ -653,6 +656,7 @@ public partial class GameRunner : Node3D
             currentPhase = CombatPhase.Victory;
             RefreshPhaseUI();
             GD.Print("=== VICTORY ===");
+            EmitSignal(SignalName.CombatCompleted, true);   // ← ADD THIS
             return true;
         }
 
@@ -661,6 +665,7 @@ public partial class GameRunner : Node3D
             currentPhase = CombatPhase.Defeat;
             RefreshPhaseUI();
             GD.Print("=== DEFEAT ===");
+            EmitSignal(SignalName.CombatCompleted, false);  // ← ADD THIS
             return true;
         }
 
