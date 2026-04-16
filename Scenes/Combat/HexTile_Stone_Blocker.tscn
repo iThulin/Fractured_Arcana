@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cwuubbch02nc6" path="res://Scripts/Tiles/HexTile.cs" id="1_745ow"]
 [ext_resource type="Material" uid="uid://c0h6w3fbjyoco" path="res://Assets/Material/Mountain.tres" id="2_745ow"]
 [ext_resource type="CylinderMesh" uid="uid://c6txik1r44jjl" path="res://Assets/UI Asset/Hex_mesh.tres" id="2_m28w1"]
-[ext_resource type="Shape3D" uid="uid://b60tsccwqe5vl" path="res://Scenes/HexTile_collider.tres" id="3_1og4g"]
+[ext_resource type="Shape3D" uid="uid://b60tsccwqe5vl" path="res://Scenes/Combat/HexTile_collider.tres" id="3_1og4g"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_m28w1"]
 albedo_color = Color(0.522904, 0.55825, 0.306631, 1)

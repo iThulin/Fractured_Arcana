@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://chfd280du8r83"]
 
-[ext_resource type="Script" uid="uid://c2y54abonms36" path="res://Scripts/Systems/Unit.cs" id="1_owrha"]
+[ext_resource type="Script" uid="uid://c2y54abonms36" path="res://Scripts/Systems/Combat/Unit.cs" id="1_owrha"]
 [ext_resource type="Script" uid="uid://djuc7k1qe7t7n" path="res://Scripts/UI/HealthBarRoot.cs" id="3_h7n8s"]
 [ext_resource type="QuadMesh" uid="uid://deaap4obhhv1c" path="res://Assets/UI Asset/HealthBar_Back.tres" id="4_8af7j"]
 [ext_resource type="QuadMesh" uid="uid://yduorv4fompv" path="res://Assets/UI Asset/HealthBar_Fill.tres" id="5_bl78a"]

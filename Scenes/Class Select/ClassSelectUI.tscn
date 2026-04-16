@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cjyhfhpa1g8x2"]
 
-[ext_resource type="Script" uid="uid://ddvb5de7jnyix" path="res://Scenes/ClassSelectUi.cs" id="1_f4n2r"]
+[ext_resource type="Script" uid="uid://ddvb5de7jnyix" path="res://Scenes/Class Select/ClassSelectUi.cs" id="1_2igyu"]
 
 [node name="ClassSelectUI" type="Control" unique_id=438110445]
 layout_mode = 3
@@ -10,7 +10,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 4
-script = ExtResource("1_f4n2r")
+script = ExtResource("1_2igyu")
+BattlefieldScenePath = "res://Scenes/Combat/Battlefield.tscn"
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=1160114177]
 layout_mode = 1

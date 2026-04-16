@@ -1,0 +1,177 @@
+[gd_scene format=3 uid="uid://dgi6v10ltygfn"]
+
+[ext_resource type="Script" uid="uid://cmv52oxovfl16" path="res://Scripts/Cards/CardData.cs" id="1_7b6bt"]
+[ext_resource type="Script" uid="uid://cmy15kdfht3q1" path="res://Scripts/Cards/DeckManager.cs" id="2_tfvp6"]
+[ext_resource type="Script" uid="uid://c07b4kiher343" path="res://Scripts/UI/DeckUiManager.cs" id="3_pqsji"]
+[ext_resource type="PackedScene" uid="uid://iuge2orfh1hw" path="res://Scenes/Cards/CardUI.tscn" id="4_f341a"]
+[ext_resource type="PackedScene" uid="uid://csdmm1n6b4hoe" path="res://Scenes/DropSlot.tscn" id="5_tyao7"]
+[ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/Combat/HexGridManager.cs" id="6_duw5d"]
+[ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/Combat/HexTile.tscn" id="7_vjrxi"]
+[ext_resource type="PackedScene" uid="uid://dpnt6dp1jietn" path="res://Scenes/Combat/HexTile_Stone_Blocker.tscn" id="8_qd0yx"]
+[ext_resource type="PackedScene" uid="uid://csb2mcllkxlj6" path="res://Scenes/Combat/HexTile_Crystal_Blocker.tscn" id="9_uihwe"]
+[ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scripts/UI/CameraController.cs" id="10_cdchv"]
+[ext_resource type="Script" uid="uid://7xc312fm8dtm" path="res://Scripts/Cards/CardDropHandler.cs" id="11_mdga3"]
+[ext_resource type="Environment" uid="uid://dogyy6kgno8jm" path="res://Scenes/Combat/Combat_Environment.tres" id="11_tfvp6"]
+[ext_resource type="Script" uid="uid://cgjk3uj7xgowv" path="res://Scripts/Systems/Combat/GameRunner.cs" id="12_6yewk"]
+[ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Combat/Players/Unit.tscn" id="13_golrv"]
+[ext_resource type="PackedScene" uid="uid://chfd280du8r83" path="res://Scenes/Combat/Monsters/TargetDummy.tscn" id="14_jroeh"]
+[ext_resource type="PackedScene" uid="uid://p86b1f6aanue" path="res://Scenes/Combat/CombatUI.tscn" id="15_3dugr"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h4djk"]
+albedo_color = Color(0.357868, 0.30020714, 0.22991636, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_d0vbo"]
+lightmap_size_hint = Vector2i(602, 602)
+material = SubResource("StandardMaterial3D_h4djk")
+size = Vector2(1200, 1200)
+
+[node name="Main Scene" type="Node3D" unique_id=434588086]
+
+[node name="CardData" type="Node2D" parent="." unique_id=1389179332]
+position = Vector2(1, 844)
+script = ExtResource("1_7b6bt")
+
+[node name="Player" type="Node2D" parent="." unique_id=73472438]
+position = Vector2(1, 844)
+
+[node name="DeckManager" type="Node2D" parent="Player" unique_id=308415042]
+script = ExtResource("2_tfvp6")
+
+[node name="DeckUI" type="CanvasLayer" parent="." unique_id=1348508917]
+follow_viewport_enabled = true
+
+[node name="HandUI" type="Control" parent="DeckUI" unique_id=1890802103]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 1.0
+offset_top = 844.0
+offset_right = 11.0
+offset_bottom = 854.0
+size_flags_horizontal = 3
+size_flags_vertical = 2
+
+[node name="DeckLabel" type="Label" parent="DeckUI" unique_id=2107762318]
+offset_left = 277.0
+offset_top = 12.0
+offset_right = 320.0
+offset_bottom = 35.0
+text = "Deck:"
+
+[node name="DeckCountLabel" type="Label" parent="DeckUI" unique_id=688479240]
+offset_left = 320.0
+offset_top = 12.0
+offset_right = 360.0
+offset_bottom = 35.0
+text = "#"
+
+[node name="HandLabel" type="Label" parent="DeckUI" unique_id=174581602]
+offset_left = 277.0
+offset_top = 35.0
+offset_right = 323.0
+offset_bottom = 58.0
+text = "Hand:"
+
+[node name="HandCountLabel" type="Label" parent="DeckUI" unique_id=1991424751]
+offset_left = 323.0
+offset_top = 35.0
+offset_right = 363.0
+offset_bottom = 58.0
+text = "#"
+
+[node name="DiscardLabel" type="Label" parent="DeckUI" unique_id=1160018119]
+offset_left = 277.0
+offset_top = 58.0
+offset_right = 340.0
+offset_bottom = 81.0
+text = "Discard:"
+
+[node name="DiscardCountLabel" type="Label" parent="DeckUI" unique_id=1481814575]
+offset_left = 340.0
+offset_top = 58.0
+offset_right = 380.0
+offset_bottom = 81.0
+text = "#"
+
+[node name="DeckUIManager" type="Node2D" parent="DeckUI" unique_id=1949982600]
+position = Vector2(960, 1080)
+script = ExtResource("3_pqsji")
+CardUIPackedScene = ExtResource("4_f341a")
+DropSlotScene = ExtResource("5_tyao7")
+
+[node name="DrawButton" type="Button" parent="DeckUI" unique_id=563659168]
+offset_left = 1.0
+offset_top = 844.0
+offset_right = 51.0
+offset_bottom = 875.0
+text = "Draw"
+
+[node name="DiscardButton" type="Button" parent="DeckUI" unique_id=1931340658]
+offset_left = 1.0
+offset_top = 875.0
+offset_right = 68.0
+offset_bottom = 906.0
+text = "Discard"
+
+[node name="ReshuffleButton" type="Button" parent="DeckUI" unique_id=1927374555]
+offset_left = 1.0
+offset_top = 906.0
+offset_right = 82.0
+offset_bottom = 937.0
+text = "Reshuffle"
+
+[node name="RemoveButton" type="Button" parent="DeckUI" unique_id=376783027]
+offset_left = 1.0
+offset_top = 937.0
+offset_right = 82.0
+offset_bottom = 968.0
+text = "Remove"
+
+[node name="HexGridManager" type="Node3D" parent="." unique_id=1283187122]
+script = ExtResource("6_duw5d")
+GridWidth = 15
+GridHeight = 15
+HexRadius = 1.025
+LayoutType = 1
+TerrainDensity = 0.4
+TerrainRoughness = 0.4
+HeightVariation = 1.0
+HexTileScene3D = ExtResource("7_vjrxi")
+RockObstacleScene = ExtResource("8_qd0yx")
+CrystalObstacleScene = ExtResource("9_uihwe")
+
+[node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=1378590758]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+mesh = SubResource("PlaneMesh_d0vbo")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=170383794]
+transform = Transform3D(0.7071065, 0.49999976, -0.49999994, 0, 0.7071065, 0.7071067, 0.7071065, -0.49999976, 0.49999994, 0, 10, 0)
+light_color = Color(1, 0.95, 0.88, 1)
+light_energy = 0.34
+light_indirect_energy = 0.5
+light_volumetric_fog_energy = 0.5
+shadow_enabled = true
+
+[node name="CameraController" type="Node3D" parent="." unique_id=974354941]
+transform = Transform3D(1.00382, 0, 0, 0, 1.00382, 0, 0, 0, 1.00382, 0, 0, 0)
+script = ExtResource("10_cdchv")
+RotationSpeed = 0.5
+MaxPitch = 87.5
+
+[node name="CameraPivot" type="Node3D" parent="CameraController" unique_id=890489313]
+
+[node name="Camera3D" type="Camera3D" parent="CameraController/CameraPivot" unique_id=1378309163]
+environment = ExtResource("11_tfvp6")
+
+[node name="CardDropHandler" type="Node3D" parent="." unique_id=333756922]
+script = ExtResource("11_mdga3")
+
+[node name="GameRunner" type="Node3D" parent="." unique_id=1742499247]
+script = ExtResource("12_6yewk")
+PlayerUnitScene = ExtResource("13_golrv")
+DummyUnitScene = ExtResource("14_jroeh")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=2122826708]
+environment = ExtResource("11_tfvp6")
+
+[node name="CombatUI" parent="." unique_id=393889926 instance=ExtResource("15_3dugr")]
