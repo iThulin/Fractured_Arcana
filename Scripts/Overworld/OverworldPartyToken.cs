@@ -140,15 +140,39 @@ public partial class OverworldPartyToken : Node2D
             {
                 if (hex.Terrain == OverworldHex.TerrainType.Water) continue;
 
-                // Add a subtle highlight overlay
+                // Color the highlight based on cost
+                int cost = GetTerrainCostPreview(hex.Terrain);
+                Color tint = cost switch
+                {
+                    1 => new Color(0.6f, 1f, 0.6f, 0.3f),   // green — cheap
+                    2 => new Color(1f, 1f, 0.4f, 0.3f),      // yellow — moderate
+                    3 => new Color(1f, 0.5f, 0.3f, 0.3f),    // orange — expensive
+                    _ => new Color(1f, 1f, 0.6f, 0.3f),
+                };
+
                 var highlight = new Polygon2D
                 {
                     Polygon = OverworldHex.MakeHexPoints(OverworldHex.GetHexSize()),
-                    Color = _highlightTint,
+                    Color = tint,
                     ZIndex = 4,
                     Name = "MoveHighlight"
                 };
                 hex.AddChild(highlight);
+
+                // Cost label on the hex
+                var costLabel = new Label
+                {
+                    Text = cost.ToString(),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Position = new Vector2(-6, 8),
+                    ZIndex = 5,
+                    Name = "CostLabel"
+                };
+                costLabel.AddThemeFontSizeOverride("font_size", 14);
+                costLabel.AddThemeColorOverride("font_color", Colors.White);
+                hex.AddChild(costLabel);
+
                 _highlightedHexes.Add(hex);
             }
         }
@@ -158,10 +182,26 @@ public partial class OverworldPartyToken : Node2D
     {
         foreach (var hex in _highlightedHexes)
         {
-            var highlight = hex.GetNodeOrNull("MoveHighlight");
-            highlight?.QueueFree();
+            hex.GetNodeOrNull("MoveHighlight")?.QueueFree();
+            hex.GetNodeOrNull("CostLabel")?.QueueFree();
         }
         _highlightedHexes.Clear();
+    }
+
+    private int GetTerrainCostPreview(OverworldHex.TerrainType terrain)
+    {
+        return terrain switch
+        {
+            OverworldHex.TerrainType.Road         => 1,
+            OverworldHex.TerrainType.Grassland     => 1,
+            OverworldHex.TerrainType.ArcaneGround  => 1,
+            OverworldHex.TerrainType.Forest         => 2,
+            OverworldHex.TerrainType.Ruins          => 2,
+            OverworldHex.TerrainType.Swamp          => 2,
+            OverworldHex.TerrainType.Mountain       => 3,
+            OverworldHex.TerrainType.Volcanic       => 2,
+            _ => 1
+        };
     }
 
     private Vector2[] MakeCirclePoints(float radius, int segments)

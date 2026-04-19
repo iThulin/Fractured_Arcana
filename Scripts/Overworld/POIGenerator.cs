@@ -10,12 +10,12 @@ public static class POIGenerator
     /// <summary>
     /// Scatter POIs across the grid. Call after grid generation, before fog init.
     /// </summary>
-    public static void Generate(OverworldHexGrid grid, int combatCount = 7, int restCount = 3)
+    public static void Generate(OverworldHexGrid grid, int combatCount = 10, 
+                                int restCount = 4, int narrativeCount = 3)
     {
         var candidates = new List<Vector2I>();
         var placed = new List<Vector2I>();
 
-        // Collect eligible hexes (not entry, not objective, not water)
         foreach (var kvp in grid.Hexes)
         {
             var coord = kvp.Key;
@@ -24,15 +24,12 @@ public static class POIGenerator
             if (coord == grid.EntryCoord) continue;
             if (coord == grid.ObjectiveCoord) continue;
             if (hex.Terrain == OverworldHex.TerrainType.Water) continue;
-
-            // Keep POIs away from entry and objective (minimum 3 hexes)
             if (grid.Distance(coord, grid.EntryCoord) < 3) continue;
             if (grid.Distance(coord, grid.ObjectiveCoord) < 2) continue;
 
             candidates.Add(coord);
         }
 
-        // Shuffle candidates
         Shuffle(candidates);
 
         // Place combat POIs
@@ -47,7 +44,7 @@ public static class POIGenerator
             combatPlaced++;
         }
 
-        // Place rest POIs (from remaining candidates)
+        // Place rest POIs
         int restPlaced = 0;
         foreach (var coord in candidates)
         {
@@ -60,7 +57,38 @@ public static class POIGenerator
             restPlaced++;
         }
 
-        GD.Print($"POIs placed: {combatPlaced} combat, {restPlaced} rest");
+        // Place narrative POIs (prefer ruins and arcane ground)
+        int narrativePlaced = 0;
+        // First pass: try terrain-appropriate hexes
+        foreach (var coord in candidates)
+        {
+            if (narrativePlaced >= narrativeCount) break;
+            if (placed.Contains(coord)) continue;
+            if (!IsSpacedEnough(coord, placed, grid, 2)) continue;
+
+            var terrain = grid.Hexes[coord].Terrain;
+            if (terrain == OverworldHex.TerrainType.Ruins ||
+                terrain == OverworldHex.TerrainType.ArcaneGround ||
+                terrain == OverworldHex.TerrainType.Forest)
+            {
+                grid.Hexes[coord].POI = OverworldHex.POIType.Narrative;
+                placed.Add(coord);
+                narrativePlaced++;
+            }
+        }
+        // Second pass: fill remaining anywhere
+        foreach (var coord in candidates)
+        {
+            if (narrativePlaced >= narrativeCount) break;
+            if (placed.Contains(coord)) continue;
+            if (!IsSpacedEnough(coord, placed, grid, 2)) continue;
+
+            grid.Hexes[coord].POI = OverworldHex.POIType.Narrative;
+            placed.Add(coord);
+            narrativePlaced++;
+        }
+
+        GD.Print($"POIs placed: {combatPlaced} combat, {restPlaced} rest, {narrativePlaced} narrative");
     }
 
     private static bool IsSpacedEnough(Vector2I coord, List<Vector2I> existing, 

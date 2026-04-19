@@ -16,7 +16,7 @@ public partial class OverworldHex : Node2D
     public enum FogState { Hidden, Silhouette, Revealed }
     public FogState Fog { get; set; } = FogState.Hidden;
 
-    public enum POIType { None, Combat, Rest, Objective }
+    public enum POIType { None, Combat, Rest, Objective, Narrative }
     public POIType POI { get; set; } = POIType.None;
     public bool POIConsumed { get; set; } = false;
 
@@ -33,28 +33,42 @@ public partial class OverworldHex : Node2D
 
     public override void _Ready()
     {
-        // Build the hex polygon (flat-top orientation)
         var points = MakeHexPoints(HEX_SIZE);
 
         // Base terrain polygon
         _polygon = new Polygon2D { Polygon = points };
         AddChild(_polygon);
 
-        // Fog overlay (drawn on top, semi-transparent or opaque)
-        _fogOverlay = new Polygon2D { Polygon = points, ZIndex = 1 };
+        // Hex border outline — makes tiles visually distinct
+        var borderPoints = new Vector2[7];
+        for (int i = 0; i < 6; i++)
+            borderPoints[i] = points[i];
+        borderPoints[6] = points[0]; // close the loop
+        
+        var border = new Line2D
+        {
+            Points = borderPoints,
+            Width = 1.5f,
+            DefaultColor = new Color(0.2f, 0.2f, 0.25f, 0.6f),
+            ZIndex = 1
+        };
+        AddChild(border);
+
+        // Fog overlay (drawn on top)
+        _fogOverlay = new Polygon2D { Polygon = points, ZIndex = 2 };
         AddChild(_fogOverlay);
 
-        // POI marker (small diamond in the center)
+        // POI marker (bigger for visibility)
         _poiMarker = new Polygon2D
         {
-            Polygon = MakeHexPoints(HEX_SIZE * 0.25f),
-            ZIndex = 2,
+            Polygon = MakeHexPoints(HEX_SIZE * 0.3f),  // slightly larger than before
+            ZIndex = 3,
             Visible = false
         };
         AddChild(_poiMarker);
 
         // Clickable area
-        var area = new Area2D();
+        var area = new Area2D { ZIndex = 5 };
         var collider = new CollisionPolygon2D { Polygon = points };
         area.AddChild(collider);
         area.InputEvent += OnAreaInput;
@@ -66,8 +80,8 @@ public partial class OverworldHex : Node2D
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Position = new Vector2(-20, -10),
-            ZIndex = 3,
-            Visible = false // toggle for debug
+            ZIndex = 4,
+            Visible = false
         };
         AddChild(_debugLabel);
         _debugLabel.Text = $"{Axial.X},{Axial.Y}";
@@ -80,40 +94,41 @@ public partial class OverworldHex : Node2D
     /// </summary>
     public void RefreshVisuals()
     {
-        // Terrain color (programmer art — replace later)
+        // Brighter, more saturated terrain palette with clear visual identity
         _polygon.Color = Terrain switch
         {
-            TerrainType.Grassland    => new Color(0.45f, 0.68f, 0.35f),
-            TerrainType.Forest       => new Color(0.18f, 0.42f, 0.15f),
-            TerrainType.Road         => new Color(0.72f, 0.65f, 0.50f),
-            TerrainType.Ruins        => new Color(0.50f, 0.45f, 0.40f),
-            TerrainType.Mountain     => new Color(0.55f, 0.55f, 0.55f),
-            TerrainType.Swamp        => new Color(0.35f, 0.45f, 0.30f),
-            TerrainType.ArcaneGround => new Color(0.40f, 0.30f, 0.65f),
-            TerrainType.Volcanic     => new Color(0.60f, 0.25f, 0.15f),
-            TerrainType.Water        => new Color(0.20f, 0.45f, 0.72f),
+            TerrainType.Grassland    => new Color(0.42f, 0.72f, 0.32f),  // vivid green
+            TerrainType.Forest       => new Color(0.15f, 0.50f, 0.18f),  // deep forest green
+            TerrainType.Road         => new Color(0.82f, 0.75f, 0.58f),  // warm tan
+            TerrainType.Ruins        => new Color(0.58f, 0.50f, 0.42f),  // warm brown-grey
+            TerrainType.Mountain     => new Color(0.65f, 0.63f, 0.60f),  // light stone grey
+            TerrainType.Swamp        => new Color(0.38f, 0.50f, 0.28f),  // olive murk
+            TerrainType.ArcaneGround => new Color(0.55f, 0.38f, 0.78f),  // rich purple
+            TerrainType.Volcanic     => new Color(0.75f, 0.30f, 0.12f),  // deep orange-red
+            TerrainType.Water        => new Color(0.22f, 0.50f, 0.82f),  // bright blue
             _ => Colors.Gray
         };
 
-        // Fog overlay
+        // Fog overlay — less oppressive, more readable
         _fogOverlay.Color = Fog switch
         {
-            FogState.Hidden     => new Color(0.08f, 0.08f, 0.12f, 0.92f), // near-opaque dark
-            FogState.Silhouette => new Color(0.08f, 0.08f, 0.12f, 0.55f), // see terrain shape, muted
+            FogState.Hidden     => new Color(0.12f, 0.12f, 0.18f, 0.88f), // dark but not black
+            FogState.Silhouette => new Color(0.12f, 0.12f, 0.18f, 0.45f), // clearly see terrain color
             FogState.Revealed   => new Color(0, 0, 0, 0),                  // fully clear
             _ => Colors.Black
         };
 
-        // POI marker
+        // POI marker — larger for visibility
         bool showPOI = POI != POIType.None && !POIConsumed && Fog == FogState.Revealed;
         _poiMarker.Visible = showPOI;
         if (showPOI)
         {
             _poiMarker.Color = POI switch
             {
-                POIType.Combat    => new Color(0.85f, 0.25f, 0.25f), // red
-                POIType.Rest      => new Color(0.25f, 0.75f, 0.85f), // blue
-                POIType.Objective => new Color(1.0f, 0.85f, 0.15f),  // gold
+                POIType.Combat    => new Color(0.95f, 0.20f, 0.20f),  // bright red
+                POIType.Rest      => new Color(0.20f, 0.80f, 0.95f),  // cyan
+                POIType.Objective => new Color(1.0f, 0.90f, 0.15f),   // bright gold
+                POIType.Narrative => new Color(0.75f, 0.50f, 1.0f),   // purple
                 _ => Colors.White
             };
         }

@@ -7,7 +7,7 @@ using Godot;
 /// </summary>
 public partial class RunManager : Node2D
 {
-    [Export] public int StepBudget = 30;
+    [Export] public int StepBudget = 20;
     [Export] public int ExhaustionDamagePerStep = 10;
     [Export] public int MaxHP = 100;
 
@@ -45,7 +45,7 @@ public partial class RunManager : Node2D
         AddChild(_grid);
 
         // Place encounters
-        POIGenerator.Generate(_grid, combatCount: 7, restCount: 3);
+        POIGenerator.Generate(_grid, combatCount: 10, restCount: 4);
 
         // Fog manager (child of grid)
         _fog = new FogOfWarManager { Name = "FogOfWar" };
@@ -208,7 +208,7 @@ public partial class RunManager : Node2D
 
         var router = new EncounterRouter { Name = "EncounterRouter" };
         router.CombatScenePath = "res://Scenes/Combat/Battlefield.tscn";
-        router.OverworldScenePath = "res://Scenes/Overworld/OverworldScene.tscn";
+        router.OverworldScenePath = "res://Scenes/Overworld/CampusScene.tscn";
 
         // Defer the add since the tree is busy during _Ready()
         GetTree().Root.CallDeferred("add_child", router);
@@ -223,13 +223,37 @@ public partial class RunManager : Node2D
 
     private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
+        // Get terrain cost for the hex we just moved INTO
+        int stepCost = 1;
+        int hpDrain = 0;
+
+        if (_grid.Hexes.TryGetValue(newCoord, out var hex))
+        {
+            stepCost = GetTerrainStepCost(hex.Terrain);
+            hpDrain = GetTerrainHPDrain(hex.Terrain);
+        }
+
         if (StepsRemaining > 0)
         {
-            StepsRemaining--;
+            StepsRemaining = Mathf.Max(0, StepsRemaining - stepCost);
         }
         else
         {
+            // Exhaustion
             CurrentHP -= ExhaustionDamagePerStep;
+            if (CurrentHP <= 0)
+            {
+                CurrentHP = 0;
+                EndRun(false);
+                return;
+            }
+        }
+
+        // Terrain HP drain (swamp, volcanic)
+        if (hpDrain > 0)
+        {
+            CurrentHP -= hpDrain;
+            ShowInfo($"Hazardous terrain! Lost {hpDrain} HP.");
             if (CurrentHP <= 0)
             {
                 CurrentHP = 0;
@@ -277,7 +301,59 @@ public partial class RunManager : Node2D
                 GoldEarned += 100;
                 EndRun(true);
                 break;
+                        case OverworldHex.POIType.Narrative:
+                // Phase 1 stub — simple text event with a small reward
+                string[] events = {
+                    "You find ancient runes carved into a standing stone. (+20 gold)",
+                    "A wandering scholar shares a fragment of forgotten lore. (+15 gold)",
+                    "Remnants of a battlefield. Among the debris, something glints. (+25 gold)",
+                    "A shrine to a forgotten god. You feel a moment of peace. (+10 HP)",
+                    "Carved into the cave wall: a map fragment showing nearby terrain. (+30 gold)",
+                };
+                string chosen = events[(int)(GD.Randi() % (uint)events.Length)];
+                
+                if (chosen.Contains("+10 HP"))
+                {
+                    CurrentHP = Mathf.Min(CurrentHP + 10, MaxHP);
+                }
+                else
+                {
+                    int gold = 15 + (int)(GD.Randf() * 15);
+                    GoldEarned += gold;
+                }
+                
+                hex.POIConsumed = true;
+                hex.RefreshVisuals();
+                ShowInfo(chosen);
+                UpdateUI();
+                break;
         }
+    }
+
+    private int GetTerrainStepCost(OverworldHex.TerrainType terrain)
+    {
+        return terrain switch
+        {
+            OverworldHex.TerrainType.Road         => 1,
+            OverworldHex.TerrainType.Grassland     => 1,
+            OverworldHex.TerrainType.ArcaneGround  => 1,
+            OverworldHex.TerrainType.Forest         => 2,
+            OverworldHex.TerrainType.Ruins          => 2,
+            OverworldHex.TerrainType.Swamp          => 2,
+            OverworldHex.TerrainType.Mountain       => 3,
+            OverworldHex.TerrainType.Volcanic       => 2,
+            _ => 1
+        };
+    }
+
+    private int GetTerrainHPDrain(OverworldHex.TerrainType terrain)
+    {
+        return terrain switch
+        {
+            OverworldHex.TerrainType.Swamp    => 3,
+            OverworldHex.TerrainType.Volcanic  => GD.Randf() < 0.3f ? 5 : 0, // 30% chance
+            _ => 0
+        };
     }
 
     private Vector2I? _pendingCombatHex = null;
@@ -318,8 +394,12 @@ public partial class RunManager : Node2D
     private void EndRun(bool reachedObjective)
     {
         RunComplete = true;
+
+        // Store results for the campus screen
+        RunResultData.Set(reachedObjective, GoldEarned, EncountersWon, CurrentHP);
+
         string result = reachedObjective ? "SUCCESS" : "FAILED";
-        ShowInfo($"Run {result} — Gold: {GoldEarned}, Encounters won: {EncountersWon}. Press R to return.");
+        ShowInfo($"Run {result} — Gold: {GoldEarned}, Encounters: {EncountersWon}. Press R to return to campus.");
         EmitSignal(SignalName.RunEnded, reachedObjective);
     }
 
@@ -327,7 +407,8 @@ public partial class RunManager : Node2D
     {
         if (@event is InputEventKey key && key.Pressed && key.Keycode == Key.R && RunComplete)
         {
-            GetTree().ReloadCurrentScene();
+            // Return to campus instead of reloading the overworld
+            GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
         }
     }
 
@@ -347,6 +428,13 @@ public partial class RunManager : Node2D
 
         int dist = _grid.Distance(_party.CurrentCoord, _grid.ObjectiveCoord);
         _objectiveLabel.Text = $"Objective: ~{dist} hexes away";
+
+        // Show terrain info for current hex
+        if (_grid.Hexes.TryGetValue(_party.CurrentCoord, out var currentHex))
+        {
+            string terrainName = currentHex.Terrain.ToString();
+            _objectiveLabel.Text += $"  |  Terrain: {terrainName}";
+        }
     }
 
     private void ShowInfo(string message)

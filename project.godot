@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Fractured Arcana"
-run/main_scene="uid://cc7c2gp06c1vg"
+run/main_scene="uid://dlf17diyfxvc"
 config/features=PackedStringArray("4.6", "C#", "GL Compatibility")
 
 [display]
