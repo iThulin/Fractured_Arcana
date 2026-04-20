@@ -1,0 +1,38 @@
+{
+  "id": "arc_bolt",
+  "name": "Arc Bolt",
+  "school": "Engineer",
+  "rarity": "Common",
+  "top": {
+    "name": "Arc Bolt",
+    "mana": 2,
+    "speed": "Sorcery",
+    "rules_text": "Deal 3 damage.",
+    "targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
+    "effect": { "type": "damage", "amount": 3 },
+    "channel": {
+      "name": "Arc Bolt (Channel)",
+      "mana": 2,
+      "speed": "Reaction",
+      "rules_text": "Channel: Deal 3 damage to second target in range 1.",
+      "targeting": { "type": "aoe", "radius": 1, "enemies_only": true },
+      "effect": { "type": "damage", "amount": 3 }
+    }
+  },
+  "bottom": {
+    "name": "Boots of Striding",
+    "mana": 1,
+    "speed": "Instant",
+    "rules_text": "Move 2 tiles.",
+    "targeting": { "type": "self" },
+    "effect": { "type": "move", "tiles": 2 },
+    "channel": {
+      "name": "Boots of Striding (Channel)",
+      "mana": 1,
+      "speed": "Reaction",
+      "rules_text": "Channel: Move 2 tiles.",
+      "targeting": { "type": "self" },
+      "effect": { "type": "move", "tiles": 2 }
+    }
+  }
+}

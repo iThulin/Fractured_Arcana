@@ -1,0 +1,51 @@
+{
+  "id": "soul_rend",
+  "name": "Soul Rend",
+  "school": "Necromancer",
+  "rarity": "Uncommon",
+  "top": {
+    "name": "Soul Rend",
+    "mana": 2,
+    "speed": "Sorcery",
+    "rules_text": "Deal 7 damage. Heal for half damage dealt. If target is on shadow terrain deal 6 instead.",
+    "targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
+    "effect": {
+      "type": "sequence",
+      "steps": [
+        {
+          "type": "conditional",
+          "if": { "type": "target_on_tile", "tile": "shadow" },
+          "then": { "type": "damage", "amount": 6 },
+          "else": { "type": "damage", "amount": 7 }
+        },
+        { "type": "empty" }
+      ]
+    },
+    "channel": {
+      "name": "Soul Rend (Channel)",
+      "mana": 2,
+      "speed": "Reaction",
+      "rules_text": "Channel: If lethal create 2 corpses instead of 1.",
+      "targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
+      "effect": {
+        "type": "conditional",
+        "if": {
+          "type": "and",
+          "parts": [
+            { "type": "was_lethal" },
+            { "type": "is_channeled" }
+          ]
+        },
+        "then": { "type": "empty" }
+      }
+    }
+  },
+  "bottom": {
+    "name": "Necrotic Surge",
+    "mana": 1,
+    "speed": "Sorcery",
+    "rules_text": "All undead gain +3 damage until end of turn.",
+    "targeting": { "type": "none" },
+    "effect": { "type": "empty" }
+  }
+}

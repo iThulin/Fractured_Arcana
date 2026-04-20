@@ -1,14 +1,40 @@
 using System;
 
-public abstract class EffectBase : IEffect {
-	protected string[] _tags = Array.Empty<string>();
-	public string[] Tags => _tags;
-	public IEffect WithTag(string t)
-	{ 
-		_tags = new[]{t};
-		 return this;
+public abstract class EffectBase : IEffect
+{
+    protected string[] _tags = Array.Empty<string>();
+    public string[] Tags => _tags;
+
+    public IEffect WithTag(string t)
+    {
+        _tags = new[] { t };
+        return this;
+    }
+
+    // Default: leaf effect, no children.
+    public virtual IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    // Old entry point — kept for compatibility with your stack code.
+    public abstract void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap);
+
+    // New: effects can override this to produce a result. The default
+    // wraps the old Resolve so legacy effects keep working.
+	public override EffectResult ResolveWithResult(PredicateContext ctx)
+	{
+		int totalDamage = 0;
+		bool lethal = false;
+		foreach (var obj in ctx.Targets.Items)
+		{
+			if (obj is Unit u)
+			{
+				int hpBefore = u.Stats.Health;
+				u.ApplyDamage(Amount);
+				totalDamage += Amount;
+				if (hpBefore > 0 && u.Stats.Health <= 0) lethal = true;
+			}
+		}
+		return new EffectResult { DamageDealt = totalDamage, WasLethal = lethal };
 	}
-	public abstract void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap);
 }
 
 public sealed class DealDamageEffect : EffectBase {
@@ -73,6 +99,7 @@ public sealed class DealDamageEffect : EffectBase {
 
 		s.Log($"Resolve: Deal {Amount} damage to {hit} target(s).");
 	}
+
 	private TileData ResolveTileDataFromView(GameState s, HexTile tileView)
 	{
 		if (tileView == null)

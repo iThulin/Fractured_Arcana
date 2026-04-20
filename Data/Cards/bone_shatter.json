@@ -1,0 +1,42 @@
+{
+  "id": "bone_shatter",
+  "name": "Bone Shatter",
+  "school": "Necromancer",
+  "rarity": "Uncommon",
+  "top": {
+    "name": "Bone Shatter",
+    "mana": 2,
+    "speed": "Sorcery",
+    "rules_text": "Deal 5 damage. If lethal leave a corpse and summon a skeleton (6HP 5DMG) on it.",
+    "targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
+    "effect": {
+      "type": "sequence",
+      "steps": [
+        { "type": "damage", "amount": 5 },
+        {
+          "type": "conditional",
+          "if": { "type": "was_lethal" },
+          "then": {
+            "type": "summon",
+            "unit": "Skeleton",
+            "count": 1
+          }
+        }
+      ]
+    }
+  },
+  "bottom": {
+    "name": "Shadow Exchange",
+    "mana": 2,
+    "speed": "Sorcery",
+    "rules_text": "Swap positions with a friendly undead. That undead deals 4 damage to all adjacent enemies on arrival.",
+    "targeting": { "type": "unit", "range": 99, "los": false, "enemies_only": false },
+    "effect": {
+      "type": "sequence",
+      "steps": [
+        { "type": "empty" },
+        { "type": "empty" }
+      ]
+    }
+  }
+}
