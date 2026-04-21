@@ -25,7 +25,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.055, 0.055, 0.09, 1)
 
-; ── Margin wrapper ─────────────────────────────────────────────────────────
+; ── Margin wrapper (full rect, inset content) ──────────────────────────────
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -33,18 +33,22 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 16
+theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 16
+theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 12
 
+; ── Main vertical layout ──────────────────────────────────────────────────
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-; ── Top bar: back + title ──────────────────────────────────────────────────
+; ── Top bar: back button + title ──────────────────────────────────────────
 [node name="TopBar" type="HBoxContainer" parent="Margin/VBox"]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
 [node name="BackButton" type="Button" parent="Margin/VBox/TopBar"]
@@ -59,48 +63,75 @@ text = "Card Library"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 22
 
-; ── Filter bar ─────────────────────────────────────────────────────────────
+; ── Filter section ─────────────────────────────────────────────────────────
 [node name="FilterBar" type="VBoxContainer" parent="Margin/VBox"]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
+; School filter row
 [node name="SchoolTabs" type="HBoxContainer" parent="Margin/VBox/FilterBar"]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 3
 
+; Rarity filter row
 [node name="RarityTabs" type="HBoxContainer" parent="Margin/VBox/FilterBar"]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 3
 
+; Mana filter + search + count row
 [node name="ManaRow" type="HBoxContainer" parent="Margin/VBox/FilterBar"]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 8
+
+[node name="ManaLabel" type="Label" parent="Margin/VBox/FilterBar/ManaRow"]
+layout_mode = 2
+text = "Mana:"
+theme_override_font_sizes/font_size = 12
 
 [node name="ManaTabs" type="HBoxContainer" parent="Margin/VBox/FilterBar/ManaRow"]
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="SearchBox" type="LineEdit" parent="Margin/VBox/FilterBar/ManaRow"]
+[node name="Spacer" type="Control" parent="Margin/VBox/FilterBar/ManaRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(180, 30)
+
+[node name="SearchBox" type="LineEdit" parent="Margin/VBox/FilterBar/ManaRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 30)
 placeholder_text = "Search cards…"
 
 [node name="CountLabel" type="Label" parent="Margin/VBox/FilterBar/ManaRow"]
 layout_mode = 2
-custom_minimum_size = Vector2(80, 0)
+custom_minimum_size = Vector2(90, 0)
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 
-; ── Scrollable card grid ───────────────────────────────────────────────────
+; ── Separator ──────────────────────────────────────────────────────────────
+[node name="Sep" type="HSeparator" parent="Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+; ── Scrollable card area (expands to fill remaining space) ─────────────────
 [node name="Scroll" type="ScrollContainer" parent="Margin/VBox"]
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="CardGrid" type="GridContainer" parent="Margin/VBox/Scroll"]
+; HBox centers the grid horizontally within the scroll area
+[node name="GridCentering" type="HBoxContainer" parent="Margin/VBox/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
+alignment = 1
+
+; The actual card grid — columns set by script at runtime
+[node name="CardGrid" type="GridContainer" parent="Margin/VBox/Scroll/GridCentering"]
+layout_mode = 2
 columns = 5
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12

@@ -3,19 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-// ============================================================
-// Card Library — Hearthstone-style collection viewer.
-//
-// Works both at runtime AND in the editor ([Tool] attribute).
-// In-editor: loads JSON cards via CardLoaderV2 and spawns
-// read-only CardUi instances so you can preview the full
-// collection without running the game.
-//
-// Place at:  res://Scripts/UI/CardLibraryUi.cs
-// Scene:     res://Scenes/UI/CardLibrary.tscn
-// ============================================================
-
-[Tool]
 public partial class CardLibraryUi : Control
 {
     // ── Exports ──────────────────────────────────────────────────────────
@@ -23,35 +10,18 @@ public partial class CardLibraryUi : Control
     [Export] public string CardJsonDirectory = "res://Data/Cards";
     [Export] public string ReturnScenePath   = "res://Scenes/Campus/CampusScene.tscn";
 
-    [Export(PropertyHint.Range, "2,10")]
-    public int GridColumns = 5;
-
-    [Export(PropertyHint.Range, "0.4,1.5,0.05")]
+    [Export(PropertyHint.Range, "0.5,1.5,0.05")]
     public float CardScale = 0.75f;
 
-    // Toggle this in the inspector to force-reload JSON cards and
-    // rebuild the grid — useful when editing card JSON files.
-    private bool _editorRefresh = false;
-    [Export] public bool EditorRefresh
-    {
-        get => _editorRefresh;
-        set
-        {
-            _editorRefresh = value;
-            if (value && Engine.IsEditorHint())
-                CallDeferred(nameof(DoEditorRebuild));
-        }
-    }
-
-    // ── Node refs ────────────────────────────────────────────────────────
-    private HBoxContainer _schoolTabs;
-    private HBoxContainer _rarityTabs;
-    private HBoxContainer _manaTabs;
-    private LineEdit      _searchBox;
-    private ScrollContainer _scroll;
-    private GridContainer _cardGrid;
-    private Label         _countLabel;
-    private Button        _backButton;
+    // ── Node refs (wired from .tscn) ─────────────────────────────────────
+    private HBoxContainer   _schoolTabs;
+    private HBoxContainer   _rarityTabs;
+    private HBoxContainer   _manaTabs;
+    private LineEdit         _searchBox;
+    private ScrollContainer  _scroll;
+    private GridContainer    _cardGrid;
+    private Label            _countLabel;
+    private Button           _backButton;
 
     // ── Filter state ─────────────────────────────────────────────────────
     private CardSchool? _schoolFilter = null;
@@ -61,6 +31,13 @@ public partial class CardLibraryUi : Control
 
     // ── Data ─────────────────────────────────────────────────────────────
     private List<CardBlueprint> _pool = new();
+
+    // ── Layout constants ─────────────────────────────────────────────────
+    private const float NativeCardW = 200f;
+    private const float NativeCardH = 300f;
+    private const float GridSpacing = 12f;
+
+    private int _lastColumnCount = -1;
 
     // ═════════════════════════════════════════════════════════════════════
     //  Lifecycle
@@ -72,6 +49,9 @@ public partial class CardLibraryUi : Control
         EnsureCardsLoaded();
         _pool = CardDatabase.Blueprints;
 
+        GD.Print($"[CardLibrary] _Ready — Blueprints: {_pool.Count}, " +
+                 $"CardUIScene null? {CardUIScene == null}");
+
         BuildSchoolTabs();
         BuildRarityTabs();
         BuildManaTabs();
@@ -82,17 +62,26 @@ public partial class CardLibraryUi : Control
             _searchBox.TextChanged += OnSearchChanged;
         }
 
-        if (_backButton != null && !Engine.IsEditorHint())
+        if (_backButton != null)
             _backButton.Pressed += () => GetTree().ChangeSceneToFile(ReturnScenePath);
 
-        if (_cardGrid != null)
-            _cardGrid.Columns = GridColumns;
+        // Defer the first grid build so the scroll container has its
+        // final size and column calculation is correct.
+        CallDeferred(nameof(RebuildGrid));
+    }
 
-        RebuildGrid();
+    public override void _Notification(int what)
+    {
+        if (what == NotificationResized && _cardGrid != null)
+        {
+            int cols = CalculateColumns();
+            if (cols != _lastColumnCount)
+                RebuildGrid();
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════
-    //  Node wiring — uses short paths matching the .tscn below
+    //  Node wiring — paths match CardLibrary.tscn
     // ═════════════════════════════════════════════════════════════════════
 
     private void WireNodes()
@@ -103,29 +92,27 @@ public partial class CardLibraryUi : Control
         _searchBox  = GetNodeOrNull<LineEdit>     ("Margin/VBox/FilterBar/ManaRow/SearchBox");
         _countLabel = GetNodeOrNull<Label>        ("Margin/VBox/FilterBar/ManaRow/CountLabel");
         _scroll     = GetNodeOrNull<ScrollContainer>("Margin/VBox/Scroll");
-        _cardGrid   = GetNodeOrNull<GridContainer>("Margin/VBox/Scroll/CardGrid");
+        _cardGrid   = GetNodeOrNull<GridContainer>("Margin/VBox/Scroll/GridCentering/CardGrid");
         _backButton = GetNodeOrNull<Button>       ("Margin/VBox/TopBar/BackButton");
+
+        // Log any missing nodes so they're easy to fix
+        if (_schoolTabs == null) GD.PrintErr("[CardLibrary] SchoolTabs not found");
+        if (_rarityTabs == null) GD.PrintErr("[CardLibrary] RarityTabs not found");
+        if (_manaTabs   == null) GD.PrintErr("[CardLibrary] ManaTabs not found");
+        if (_searchBox  == null) GD.PrintErr("[CardLibrary] SearchBox not found");
+        if (_countLabel == null) GD.PrintErr("[CardLibrary] CountLabel not found");
+        if (_scroll     == null) GD.PrintErr("[CardLibrary] Scroll not found");
+        if (_cardGrid   == null) GD.PrintErr("[CardLibrary] CardGrid not found");
+        if (_backButton == null) GD.PrintErr("[CardLibrary] BackButton not found");
     }
 
     // ═════════════════════════════════════════════════════════════════════
-    //  Card loading — works in editor AND at runtime
+    //  Card loading
     // ═════════════════════════════════════════════════════════════════════
 
     private void EnsureCardsLoaded()
     {
-        // CardLoaderV2.LoadCardsFromJson is idempotent.
         CardLoaderV2.LoadCardsFromJson(CardJsonDirectory);
-    }
-
-    private void DoEditorRebuild()
-    {
-        GD.Print("[CardLibrary] Editor rebuild triggered.");
-        CardLoaderV2.Reload(CardJsonDirectory);
-        _pool = CardDatabase.Blueprints;
-        BuildSchoolTabs();   // counts may have changed
-        RebuildGrid();
-        _editorRefresh = false;
-        NotifyPropertyListChanged();
     }
 
     // ═════════════════════════════════════════════════════════════════════
@@ -140,7 +127,6 @@ public partial class CardLibraryUi : Control
         MakeTab(_schoolTabs, "All", _schoolFilter == null, () =>
         {
             _schoolFilter = null;
-            SyncRadio(_schoolTabs, 0);
             RebuildGrid();
         });
 
@@ -148,12 +134,9 @@ public partial class CardLibraryUi : Control
         {
             var s = school;
             int count = _pool.Count(b => b.School == s);
-            // Always show the tab even if count is 0 — the designer
-            // may be about to add cards for that school.
             MakeTab(_schoolTabs, $"{s} ({count})", false, () =>
             {
                 _schoolFilter = s;
-                // Let the radio helper figure out which index was pressed.
                 RebuildGrid();
             });
         }
@@ -217,7 +200,7 @@ public partial class CardLibraryUi : Control
             ToggleMode = true,
             ButtonPressed = active,
             FocusMode = FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(0, 28)
+            CustomMinimumSize = new Vector2(0, 28),
         };
 
         var normal  = FlatBox(new Color(0.12f, 0.12f, 0.18f));
@@ -231,7 +214,6 @@ public partial class CardLibraryUi : Control
 
         btn.Pressed += () =>
         {
-            // Radio behaviour
             foreach (var child in parent.GetChildren())
                 if (child is Button other && other != btn)
                     other.ButtonPressed = false;
@@ -248,17 +230,6 @@ public partial class CardLibraryUi : Control
         sb.SetCornerRadiusAll(5);
         sb.SetContentMarginAll(6);
         return sb;
-    }
-
-    private static void SyncRadio(HBoxContainer bar, int activeIndex)
-    {
-        int i = 0;
-        foreach (var child in bar.GetChildren())
-        {
-            if (child is Button btn)
-                btn.ButtonPressed = (i == activeIndex);
-            i++;
-        }
     }
 
     private static void ClearChildren(Node parent)
@@ -278,16 +249,39 @@ public partial class CardLibraryUi : Control
     }
 
     // ═════════════════════════════════════════════════════════════════════
+    //  Dynamic column count
+    // ═════════════════════════════════════════════════════════════════════
+
+    private int CalculateColumns()
+    {
+        float available = _scroll?.Size.X ?? GetViewportRect().Size.X;
+        float cellW = NativeCardW * CardScale + GridSpacing;
+        return Mathf.Max(1, Mathf.FloorToInt(available / cellW));
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
     //  Grid rebuild
     // ═════════════════════════════════════════════════════════════════════
 
     private void RebuildGrid()
     {
-        if (_cardGrid == null || CardUIScene == null) return;
+        if (_cardGrid == null || CardUIScene == null)
+        {
+            GD.PrintErr($"[CardLibrary] RebuildGrid aborted — " +
+                        $"CardGrid null? {_cardGrid == null}, " +
+                        $"CardUIScene null? {CardUIScene == null}");
+            return;
+        }
 
         ClearChildren(_cardGrid);
 
+        int cols = CalculateColumns();
+        _lastColumnCount = cols;
+        _cardGrid.Columns = cols;
+
         var filtered = _pool.Where(PassesFilter).ToList();
+        GD.Print($"[CardLibrary] RebuildGrid — pool: {_pool.Count}, " +
+                 $"filtered: {filtered.Count}, columns: {cols}");
 
         // Sort: school → rarity → top-half name
         filtered.Sort((a, b) =>
@@ -301,38 +295,66 @@ public partial class CardLibraryUi : Control
             return string.Compare(na, nb, StringComparison.OrdinalIgnoreCase);
         });
 
+        float s  = CardScale;
+        float cw = NativeCardW * s;
+        float ch = NativeCardH * s;
+
         foreach (var bp in filtered)
         {
             var card = CardDatabase.Instantiate(bp);
             if (card == null) continue;
 
+            // ── Wrapper ─────────────────────────────────────────────
+            // CardUI.tscn root has full-rect anchors + clip_contents,
+            // designed to fill its parent in the hand UI. Wrapping it
+            // in a fixed-size Control with the card scaled inside
+            // gives correct grid layout.
+            var wrapper = new Control
+            {
+                CustomMinimumSize = new Vector2(cw, ch),
+                ClipContents = true,
+            };
+            _cardGrid.AddChild(wrapper);
+
+            // ── Card instance ───────────────────────────────────────
             var cardUi = CardUIScene.Instantiate<CardUi>();
             cardUi.SetCard(card);
 
-            // ── Library-mode: disable all mouse interaction ──────────
+            // Reset anchors from full-rect to top-left, fixed size
+            cardUi.AnchorLeft   = 0;
+            cardUi.AnchorTop    = 0;
+            cardUi.AnchorRight  = 0;
+            cardUi.AnchorBottom = 0;
+            cardUi.OffsetLeft   = 0;
+            cardUi.OffsetTop    = 0;
+            cardUi.OffsetRight  = NativeCardW;
+            cardUi.OffsetBottom = NativeCardH;
+            cardUi.Scale        = new Vector2(s, s);
+            cardUi.PivotOffset  = Vector2.Zero;
+
+            wrapper.AddChild(cardUi);
+            // _Ready() fires here — sets Modulate = transparent,
+            // Position += 300 for the hand draw-in animation.
+
+            // Undo the animation setup immediately
+            cardUi.Modulate  = Colors.White;
+            cardUi.Position  = Vector2.Zero;
+            cardUi.Rotation  = 0f;
+
+            // Stop the breathe animation in _Process
+            cardUi.SetProcess(false);
+
+            // Prevent drag / hover / lift interactions
             DisableMouseRecursive(cardUi);
-
-            // Scale to fit the grid nicely
-            float s = CardScale;
-            cardUi.Scale = new Vector2(s, s);
-            cardUi.CustomMinimumSize = new Vector2(200 * s, 300 * s);
-
-            _cardGrid.AddChild(cardUi);
         }
 
         if (_countLabel != null)
             _countLabel.Text = $"{filtered.Count} / {_pool.Count}";
 
-        // Scroll back to top whenever filters change
         if (_scroll != null)
             _scroll.ScrollVertical = 0;
     }
 
-    /// <summary>
-    /// Recursively sets MouseFilter = Ignore on every Control
-    /// descendant so the card can't drag, lift, breathe, or
-    /// trigger hover effects while in library view.
-    /// </summary>
     private static void DisableMouseRecursive(Control root)
     {
         root.MouseFilter = MouseFilterEnum.Ignore;
@@ -365,9 +387,9 @@ public partial class CardLibraryUi : Control
             var top = bp.Prebuilt?.TopHalf;
             var bot = bp.Prebuilt?.BottomHalf;
             string haystack = string.Join(" ",
-                top?.Name           ?? "", top?.RulesText                   ?? "",
+                top?.Name ?? "", top?.RulesText ?? "",
                 top?.ChannelVariant?.RulesText ?? "",
-                bot?.Name           ?? "", bot?.RulesText                   ?? "",
+                bot?.Name ?? "", bot?.RulesText ?? "",
                 bot?.ChannelVariant?.RulesText ?? "",
                 bp.School.ToString(), bp.Rarity.ToString()
             ).ToLower();
