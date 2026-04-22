@@ -38,9 +38,16 @@ public sealed class CardHalf : Ability
     public bool ConsumesCardOnResolve = true;
     public Func<GameState, Entity, EffectSnapshot> MakeSnapshot = (s, c) => new EffectSnapshot();
     public CardHalf ChannelVariant; // optional
-	public string RulesText = "";
-	public CardSchool School;
-	public int ManaCost
+    public string RulesText = "";
+    public CardSchool School;
+
+    /// <summary>
+    /// Element tags for this spell half (e.g. "fire", "ice", "storm", "earth").
+    /// Used for element pip display and gameplay interactions.
+    /// </summary>
+    public string[] Tags = Array.Empty<string>();
+
+    public int ManaCost
     {
         get
         {

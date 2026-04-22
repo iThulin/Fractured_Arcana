@@ -35,6 +35,21 @@ public partial class CardUi : Control
     private Panel topPanel;
     private Panel bottomPanel;
 
+    // ── Full-card view (hover state) ─────────────────────────────────
+    private Control _fullCardView;
+    private Panel   _artPanel;
+    private Label   _schoolBadge;
+    private HBoxContainer _elementTagContainer;
+    private Panel   _fullDivider;
+    private Panel   _fullInfoPanel;
+    private Label   _fullManaLabel;
+    private Label   _fullNameLabel;
+    private Label   _fullSpeedLabel;
+    private RichTextLabel _fullRulesLabel;
+    private Panel   _fullChannelPanel;
+    private RichTextLabel _fullChannelLabel;
+    private string  _fullViewHalf = "none"; // "top" | "bottom" | "none"
+
     // Affordability tracking
     private static readonly Color TopActiveColor   = new Color(1.3f, 1.2f, 0.9f, 1f); // warm gold glow
     private static readonly Color BottomActiveColor= new Color(1.1f, 1.0f, 1.4f, 1f); // cool purple glow
@@ -71,6 +86,23 @@ public partial class CardUi : Control
         if (topPanel == null)    GD.PrintErr("CardUi: topPanel not found");
         if (bottomPanel == null) GD.PrintErr("CardUi: bottomPanel not found");
 
+        // ── Cache full-card view nodes ──────────────────────────────
+        _fullCardView        = GetNodeOrNull<Control>("CardVisual/FullCardView");
+        _artPanel            = GetNodeOrNull<Panel>("CardVisual/FullCardView/ArtPanel");
+        _schoolBadge         = GetNodeOrNull<Label>("CardVisual/FullCardView/ArtPanel/SchoolBadge");
+        _elementTagContainer = GetNodeOrNull<HBoxContainer>("CardVisual/FullCardView/ArtPanel/ElementTagContainer");
+        _fullDivider         = GetNodeOrNull<Panel>("CardVisual/FullCardView/FullDivider");
+        _fullInfoPanel       = GetNodeOrNull<Panel>("CardVisual/FullCardView/InfoPanel");
+        _fullManaLabel       = GetNodeOrNull<Label>("CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar/ManaPip/ManaLabel");
+        _fullNameLabel       = GetNodeOrNull<Label>("CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar/SpellName");
+        _fullSpeedLabel      = GetNodeOrNull<Label>("CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar/SpeedLabel");
+        _fullRulesLabel      = GetNodeOrNull<RichTextLabel>("CardVisual/FullCardView/InfoPanel/InfoContainer/RulesText");
+        _fullChannelPanel    = GetNodeOrNull<Panel>("CardVisual/FullCardView/InfoPanel/InfoContainer/ChannelStrip");
+        _fullChannelLabel    = GetNodeOrNull<RichTextLabel>("CardVisual/FullCardView/InfoPanel/InfoContainer/ChannelStrip/ChannelLabel");
+
+        if (_fullCardView == null)
+            GD.Print("CardUi: FullCardView not found — hover art disabled (add FullCardView to CardUI.tscn)");
+
         // Card-level: entering/leaving the whole card lifts or drops it
         topArea.MouseEntered    += OnCardEnter;
         bottomArea.MouseEntered += OnCardEnter;
@@ -87,7 +119,7 @@ public partial class CardUi : Control
 
     public override void _Process(double delta)
     {
-        if (_entryTweenComplete && !_isDragging) // ← add !_isDragging
+        if (_entryTweenComplete && !_isDragging)
         {
             float targetBreathe = Mathf.Sin(
                 (float)Time.GetTicksMsec() / 1000f * 1.2f + GetIndex() * 0.8f) * 2.5f;
@@ -146,15 +178,266 @@ public partial class CardUi : Control
         }
     }
 
+    // ═════════════════════════════════════════════════════════════════════
+    //  Full-card view (split-to-full hover animation)
+    // ═════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Populates and shows the full-card overlay for the given half.
+    /// Art on top, spell info on bottom. Completely covers the split layout.
+    /// </summary>
+    private void ShowFullCard(CardHalf half, bool isTop)
+    {
+        if (_fullCardView == null || half == null) return;
+
+        var school = half.School;
+        var borderColor = SchoolColors.GetBorderColor(school);
+        var darkColor   = SchoolColors.GetDarkColor(school);
+
+        // ── Art panel (placeholder color — swap for TextureRect when art is ready) ──
+        if (_artPanel != null)
+        {
+            var artStyle = new StyleBoxFlat();
+            // Dark version of school color as art placeholder
+            artStyle.BgColor = new Color(
+                borderColor.R * 0.35f,
+                borderColor.G * 0.35f,
+                borderColor.B * 0.35f,
+                1f);
+            artStyle.CornerRadiusTopLeft = 5;
+            artStyle.CornerRadiusTopRight = 5;
+            artStyle.BorderColor = borderColor;
+            artStyle.BorderWidthLeft = 3;
+            artStyle.BorderWidthTop = 3;
+            artStyle.BorderWidthRight = 3;
+            artStyle.BorderWidthBottom = 0;
+            _artPanel.AddThemeStyleboxOverride("panel", artStyle);
+        }
+
+        // ── School badge ──
+        if (_schoolBadge != null)
+        {
+            _schoolBadge.Text = SchoolColors.GetBadgeText(school);
+            _schoolBadge.AddThemeColorOverride("font_color", Colors.White);
+            _schoolBadge.AddThemeFontSizeOverride("font_size", 9);
+            _schoolBadge.HorizontalAlignment = HorizontalAlignment.Center;
+            _schoolBadge.VerticalAlignment = VerticalAlignment.Center;
+
+            var badgeStyle = new StyleBoxFlat();
+            badgeStyle.BgColor = borderColor;
+            badgeStyle.SetCornerRadiusAll(9);
+            _schoolBadge.AddThemeStyleboxOverride("normal", badgeStyle);
+        }
+
+        // ── Element tags ──
+        if (_elementTagContainer != null)
+        {
+            // Clear existing pips
+            foreach (Node c in _elementTagContainer.GetChildren())
+                c.QueueFree();
+
+            var tags = half.Tags ?? System.Array.Empty<string>();
+            foreach (var tag in tags)
+            {
+                var pip = new Label();
+                pip.Text = ElementColors.GetLabel(tag);
+                pip.CustomMinimumSize = new Vector2(14, 14);
+                pip.HorizontalAlignment = HorizontalAlignment.Center;
+                pip.VerticalAlignment = VerticalAlignment.Center;
+                pip.AddThemeFontSizeOverride("font_size", 8);
+                pip.AddThemeColorOverride("font_color", Colors.White);
+
+                var pipStyle = new StyleBoxFlat();
+                pipStyle.BgColor = ElementColors.Get(tag);
+                pipStyle.SetCornerRadiusAll(7);
+                pipStyle.SetContentMarginAll(0);
+                pip.AddThemeStyleboxOverride("normal", pipStyle);
+
+                _elementTagContainer.AddChild(pip);
+            }
+        }
+
+        // ── Divider color ──
+        if (_fullDivider != null)
+        {
+            var divStyle = new StyleBoxFlat { BgColor = borderColor };
+            _fullDivider.AddThemeStyleboxOverride("panel", divStyle);
+        }
+
+        // ── Info panel border ──
+        if (_fullInfoPanel != null)
+        {
+            var infoStyle = new StyleBoxFlat();
+            infoStyle.BgColor = Colors.White;
+            infoStyle.BorderColor = borderColor;
+            infoStyle.BorderWidthLeft = 3;
+            infoStyle.BorderWidthRight = 3;
+            infoStyle.BorderWidthBottom = 3;
+            infoStyle.BorderWidthTop = 0;
+            infoStyle.CornerRadiusBottomLeft = 5;
+            infoStyle.CornerRadiusBottomRight = 5;
+            _fullInfoPanel.AddThemeStyleboxOverride("panel", infoStyle);
+        }
+
+        // ── Mana pip styling ──
+        var manaPipPanel = _fullManaLabel?.GetParent() as Panel;
+        if (manaPipPanel != null)
+        {
+            var pipPanelStyle = new StyleBoxFlat();
+            pipPanelStyle.BgColor = darkColor;
+            pipPanelStyle.SetCornerRadiusAll(10);
+            manaPipPanel.AddThemeStyleboxOverride("panel", pipPanelStyle);
+        }
+
+        // ── Spell info ──
+        if (_fullManaLabel != null)
+        {
+            _fullManaLabel.Text = half.ManaCost.ToString();
+            _fullManaLabel.AddThemeColorOverride("font_color", Colors.White);
+        }
+        if (_fullNameLabel != null)
+        {
+            _fullNameLabel.Text = half.Name ?? "";
+            _fullNameLabel.AddThemeColorOverride("font_color", Colors.Black);
+        }
+        if (_fullSpeedLabel != null)
+        {
+            _fullSpeedLabel.Text = half.Speed.ToString();
+            _fullSpeedLabel.AddThemeColorOverride("font_color", new Color(0.4f, 0.4f, 0.4f));
+            _fullSpeedLabel.AddThemeFontSizeOverride("font_size", 10);
+        }
+        if (_fullRulesLabel != null)
+        {
+            _fullRulesLabel.Text = half.RulesText ?? "";
+        }
+
+        var chText = half.ChannelVariant?.RulesText ?? "";
+        if (_fullChannelPanel != null)
+        {
+            _fullChannelPanel.Visible = !string.IsNullOrWhiteSpace(chText);
+
+            // Tint channel strip with school color
+            var chStyle = new StyleBoxFlat();
+            chStyle.BgColor = new Color(borderColor.R, borderColor.G, borderColor.B, 0.12f);
+            chStyle.SetCornerRadiusAll(3);
+            _fullChannelPanel.AddThemeStyleboxOverride("panel", chStyle);
+        }
+        if (_fullChannelLabel != null)
+        {
+            _fullChannelLabel.Text = chText;
+            _fullChannelLabel.AddThemeColorOverride("default_color", darkColor);
+        }
+
+        // ── Show the full view, occluding the split layout ──
+        _fullCardView.Visible = true;
+        _fullViewHalf = isTop ? "top" : "bottom";
+    }
+
+    /// <summary>
+    /// Hides the full-card overlay, revealing the split layout underneath.
+    /// </summary>
+    private void HideFullCard()
+    {
+        if (_fullCardView != null)
+            _fullCardView.Visible = false;
+        _fullViewHalf = "none";
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  Card data
+    // ═════════════════════════════════════════════════════════════════════
+
     public void SetDeckUiManager(DeckUiManager manager)
     {
         _deckUiManager = manager;
     }
 
+    public void SetCard(Card card)
+    {
+        CardInstance = card;
+        SetCard(card.TopHalf, card.BottomHalf);
+    }
+
+    public void SetCard(CardHalf top, CardHalf bottom)
+    {
+        TopHalf = top;
+        BottomHalf = bottom;
+
+        // --- TOP ---
+        var nameLabelTop = GetNodeOrNull<Label>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/HBoxContainer/NameLabel");
+        var manaLabelTop = GetNodeOrNull<Label>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/HBoxContainer/ManaPanel/ManaLabel");
+        var descLabelTop = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/DescriptionLabel");
+        var channelPanelTop = GetNodeOrNull<Panel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/ChannelPanel");
+        var channelLabelTop = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/ChannelPanel/ChannelLabel");
+
+        if (nameLabelTop != null) nameLabelTop.Text = top?.Name ?? "";
+        if (manaLabelTop != null) manaLabelTop.Text = (top?.ManaCost ?? 0).ToString();
+        if (descLabelTop != null) descLabelTop.Text = top?.RulesText ?? "";
+
+        var topChannelText = top?.ChannelVariant?.RulesText ?? "";
+        if (channelPanelTop != null) channelPanelTop.Visible = !string.IsNullOrWhiteSpace(topChannelText);
+        if (channelLabelTop != null) channelLabelTop.Text = topChannelText;
+
+        // --- BOTTOM ---
+        var nameLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameHBoxContainer/NameLabel");
+        var manaLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameHBoxContainer/ManaPanel/ManaLabel");
+        var descLabelBot = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/DescriptionLabel");
+        var channelPanelBot = GetNodeOrNull<Panel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/ChannelPanel");
+        var channelLabelBot = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/ChannelPanel/ChannelLabel");
+
+        if (nameLabelBot != null) nameLabelBot.Text = bottom?.Name ?? "";
+        if (manaLabelBot != null) manaLabelBot.Text = (bottom?.ManaCost ?? 0).ToString();
+        if (descLabelBot != null) descLabelBot.Text = bottom?.RulesText ?? "";
+
+        var botChannelText = bottom?.ChannelVariant?.RulesText ?? "";
+        if (channelPanelBot != null) channelPanelBot.Visible = !string.IsNullOrWhiteSpace(botChannelText);
+        if (channelLabelBot != null) channelLabelBot.Text = botChannelText;
+
+        // ── Apply school-colored borders to split panels ────────────
+        var school = top?.School ?? bottom?.School ?? CardSchool.Generic;
+        var borderCol = SchoolColors.GetBorderColor(school);
+
+        if (topPanel != null)
+        {
+            var topStyle = new StyleBoxFlat();
+            topStyle.BgColor = Colors.White;
+            topStyle.BorderColor = borderCol;
+            topStyle.BorderWidthLeft = 5;
+            topStyle.BorderWidthTop = 5;
+            topStyle.BorderWidthRight = 5;
+            topStyle.BorderWidthBottom = 2;
+            topStyle.CornerRadiusTopLeft = 5;
+            topStyle.CornerRadiusTopRight = 5;
+            topStyle.CornerRadiusBottomLeft = 0;
+            topStyle.CornerRadiusBottomRight = 0;
+            topPanel.AddThemeStyleboxOverride("panel", topStyle);
+        }
+
+        if (bottomPanel != null)
+        {
+            var botStyle = new StyleBoxFlat();
+            botStyle.BgColor = Colors.White;
+            botStyle.BorderColor = borderCol;
+            botStyle.BorderWidthLeft = 5;
+            botStyle.BorderWidthTop = 2;
+            botStyle.BorderWidthRight = 5;
+            botStyle.BorderWidthBottom = 5;
+            botStyle.CornerRadiusTopLeft = 0;
+            botStyle.CornerRadiusTopRight = 0;
+            botStyle.CornerRadiusBottomLeft = 5;
+            botStyle.CornerRadiusBottomRight = 5;
+            bottomPanel.AddThemeStyleboxOverride("panel", botStyle);
+        }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  Hover / lift
+    // ═════════════════════════════════════════════════════════════════════
+
     private void OnCardEnter()
     {
         if (_cardIsLifted) return;
-        if (!_entryTweenComplete) return; // ← don't allow hover during draw animation
+        if (!_entryTweenComplete) return;
 
         _cardIsLifted = true;
         _notOnCardTimer = 0f;
@@ -171,8 +454,6 @@ public partial class CardUi : Control
 
     private void OnCardMaybeExit()
     {
-        // Only actually exit if the mouse isn't still over the other half.
-        // Use CallDeferred so Godot can process the new MouseEntered before we check.
         CallDeferred(nameof(CheckCardExit));
     }
 
@@ -196,10 +477,12 @@ public partial class CardUi : Control
         _pendingHalf  = "none";
         _halfTimer    = 0f;
 
+        // Hide the full-card overlay, revealing the split layout
+        HideFullCard();
+
         _cardTween?.Kill();
         _cardTween = CreateTween().SetParallel(true);
         _cardTween.SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
-        // Position is handled by _Process — only tween rotation and scale
         _cardTween.TweenProperty(this, "rotation", _restRotation, 0.12f);
         _cardTween.TweenProperty(this, "scale", Vector2.One, 0.12f);
         ZIndex = 0;
@@ -207,6 +490,10 @@ public partial class CardUi : Control
         _deckUiManager?.OnCardHoverChanged(this, false);
         RefreshAffordability(_lastKnownMana);
     }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  Half highlight + full-card toggle
+    // ═════════════════════════════════════════════════════════════════════
 
     private void ApplyHalfHighlight(string activeHalf)
     {
@@ -218,15 +505,17 @@ public partial class CardUi : Control
         {
             _halfTween.TweenProperty(topPanel,    "modulate", TopActiveColor,    0.1f);
             _halfTween.TweenProperty(bottomPanel, "modulate", DimColor,          0.1f);
+            ShowFullCard(TopHalf, true);
         }
         else if (activeHalf == "bottom")
         {
             _halfTween.TweenProperty(topPanel,    "modulate", DimColor,          0.1f);
             _halfTween.TweenProperty(bottomPanel, "modulate", BottomActiveColor, 0.1f);
+            ShowFullCard(BottomHalf, false);
         }
         else
         {
-            // Restore to affordability colors, not blindly to white
+            // Restore to affordability colors
             var topBase    = (TopHalf?.ManaCost    ?? 0) > _lastKnownMana
                 ? new Color(0.7f, 0.5f, 0.5f, 1f) : Colors.White;
             var bottomBase = (BottomHalf?.ManaCost ?? 0) > _lastKnownMana
@@ -234,6 +523,7 @@ public partial class CardUi : Control
 
             _halfTween.TweenProperty(topPanel,    "modulate", topBase,    0.1f);
             _halfTween.TweenProperty(bottomPanel, "modulate", bottomBase, 0.1f);
+            HideFullCard();
         }
     }
 
@@ -246,6 +536,10 @@ public partial class CardUi : Control
         bottomPanel.Modulate = (BottomHalf?.ManaCost ?? 0) > currentMana
             ? new Color(0.7f, 0.5f, 0.5f, 1f) : Colors.White;
     }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  Rest transform / draw-in animation
+    // ═════════════════════════════════════════════════════════════════════
 
     public void SetRestTransform(Vector2 position, float rotation)
     {
@@ -262,7 +556,6 @@ public partial class CardUi : Control
 
         if (isFirstPlacement)
         {
-            // Full draw-in animation for new cards
             Vector2 screenSize = GetViewport().GetVisibleRect().Size;
             Position  = new Vector2(position.X, screenSize.Y + 50f);
             Rotation  = rotation;
@@ -287,17 +580,13 @@ public partial class CardUi : Control
         }
         else
         {
-            // Already in hand — silently update rest position with no animation
-            // Just unlock _Process immediately
             _entryTweenComplete = true;
         }
     }
 
-    public void SetCard(Card card)
-    {
-        CardInstance = card;
-        SetCard(card.TopHalf, card.BottomHalf); // call theexisting SetCard(CardHalf, CardHalf)
-    }
+    // ═════════════════════════════════════════════════════════════════════
+    //  Drag handling
+    // ═════════════════════════════════════════════════════════════════════
 
     private void OnCardGuiInput(InputEvent @event, bool isTop)
     {
@@ -324,7 +613,6 @@ public partial class CardUi : Control
             {
                 _dragQueued = true;
                 PlayGrabAnimation();
-                // No SetDragPreview — card itself is the visual
                 GetViewport().SetInputAsHandled();
             }
         }
@@ -338,7 +626,9 @@ public partial class CardUi : Control
 
         _isDragging = true;
 
-        // Tilt slightly in drag direction, shrink a touch, brighten
+        // Hide full card view during drag
+        HideFullCard();
+
         float tiltDir = _dragTopCard ? -0.06f : 0.06f;
         _cardTween.TweenProperty(this, "rotation",
             _restRotation * 0.2f + tiltDir, 0.12f);
@@ -367,7 +657,7 @@ public partial class CardUi : Control
     {
         if (data.Obj is Godot.Collections.Dictionary dict)
         {
-            return dict.ContainsKey("card"); //&& dict["card"] is CardUi;
+            return dict.ContainsKey("card");
         }
         return false;
     }
@@ -380,7 +670,7 @@ public partial class CardUi : Control
             {
                 CardUi droppedCard = (CardUi)cardObj;
 
-                droppedCard._isDragging = false; // ← reset on the card that was dragged
+                droppedCard._isDragging = false;
                 droppedCard.Modulate = Colors.White;
 
                 var container = GetParent();
@@ -405,40 +695,4 @@ public partial class CardUi : Control
         DragPayloadManager.IsDragging = false;
         EmitSignal(SignalName.CardDropped);
     }
-
-    public void SetCard(CardHalf top, CardHalf bottom)
-{
-    TopHalf = top;
-    BottomHalf = bottom;
-
-    // --- TOP ---
-    var nameLabelTop = GetNodeOrNull<Label>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/HBoxContainer/NameLabel");
-    var manaLabelTop = GetNodeOrNull<Label>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/HBoxContainer/ManaPanel/ManaLabel");
-    var descLabelTop = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/DescriptionLabel");
-    var channelPanelTop = GetNodeOrNull<Panel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/ChannelPanel");
-    var channelLabelTop = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/TopCardPanel/TopCardControl/TopSpellContainer/ChannelPanel/ChannelLabel");
-
-    if (nameLabelTop != null) nameLabelTop.Text = top?.Name ?? "";
-    if (manaLabelTop != null) manaLabelTop.Text = (top?.ManaCost ?? 0).ToString();
-    if (descLabelTop != null) descLabelTop.Text = top?.RulesText ?? "";
-
-    var topChannelText = top?.ChannelVariant?.RulesText ?? "";
-    if (channelPanelTop != null) channelPanelTop.Visible = !string.IsNullOrWhiteSpace(topChannelText);
-    if (channelLabelTop != null) channelLabelTop.Text = topChannelText;
-
-    // --- BOTTOM ---
-    var nameLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameHBoxContainer/NameLabel");
-    var manaLabelBot = GetNodeOrNull<Label>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/NameHBoxContainer/ManaPanel/ManaLabel");
-    var descLabelBot = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/DescriptionLabel");
-    var channelPanelBot = GetNodeOrNull<Panel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/ChannelPanel");
-    var channelLabelBot = GetNodeOrNull<RichTextLabel>("CardVisual/VBoxContainer/BottomCardPanel/BottomCardControl/BottomSpellContainer/ChannelPanel/ChannelLabel");
-
-    if (nameLabelBot != null) nameLabelBot.Text = bottom?.Name ?? "";
-    if (manaLabelBot != null) manaLabelBot.Text = (bottom?.ManaCost ?? 0).ToString();
-    if (descLabelBot != null) descLabelBot.Text = bottom?.RulesText ?? "";
-
-    var botChannelText = bottom?.ChannelVariant?.RulesText ?? "";
-    if (channelPanelBot != null) channelPanelBot.Visible = !string.IsNullOrWhiteSpace(botChannelText);
-    if (channelLabelBot != null) channelLabelBot.Text = botChannelText;
-}
 }

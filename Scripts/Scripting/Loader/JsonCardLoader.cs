@@ -175,41 +175,31 @@ public static class JsonCardLoader
         if (dir == null)
         {
             GD.PrintErr($"[JsonCardLoader] Could not open directory: {directory}. " +
-                        $"DirAccess error: {DirAccess.GetOpenError()}");
+                         $"Error: {DirAccess.GetOpenError()}");
             return cards;
         }
 
         dir.ListDirBegin();
-        string fileName;
-        while (!string.IsNullOrEmpty(fileName = dir.GetNext()))
+        string file;
+        while ((file = dir.GetNext()) != "")
         {
-            if (dir.CurrentIsDir()) continue;
-
-            // Godot may also show '.import' metadata files — skip everything
-            // that isn't a .json. Check both extensions because Godot's
-            // file listing sometimes shows compiled resource names.
-            if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            // Combine directory + filename, preserving the res:// prefix.
-            var fullPath = directory.TrimEnd('/') + "/" + fileName;
-
-            try
+            if (file.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
             {
-                var text = ReadFileAsText(fullPath);
-                if (string.IsNullOrEmpty(text))
+                string path = $"{directory}/{file}";
+                string json = ReadGodotFile(path);
+                if (json == null) continue;
+
+                try
                 {
-                    GD.PrintErr($"[JsonCardLoader] Empty or unreadable: {fullPath}");
-                    continue;
+                    var root = JsonDocument.Parse(json).RootElement;
+                    var card = BuildCard(root);
+                    if (card != null)
+                        cards.Add(card);
                 }
-
-                var doc = JsonDocument.Parse(text);
-                cards.Add(BuildCard(doc.RootElement));
-                GD.Print($"[JsonCardLoader] Loaded {fullPath}");
-            }
-            catch (Exception e)
-            {
-                GD.PrintErr($"[JsonCardLoader] Failed to load {fullPath}: {e.Message}");
+                catch (Exception ex)
+                {
+                    GD.PrintErr($"[JsonCardLoader] Error parsing {file}: {ex.Message}");
+                }
             }
         }
         dir.ListDirEnd();
@@ -218,13 +208,13 @@ public static class JsonCardLoader
         return cards;
     }
 
-    private static string ReadFileAsText(string path)
+    private static string ReadGodotFile(string path)
     {
-        using var f = Godot.FileAccess.Open(path, Godot.FileAccess.ModeFlags.Read);
+        using var f = FileAccess.Open(path, FileAccess.ModeFlags.Read);
         if (f == null)
         {
-            GD.PrintErr($"[JsonCardLoader] FileAccess.Open failed: {path}. " +
-                        $"Error: {Godot.FileAccess.GetOpenError()}");
+            GD.PrintErr($"[JsonCardLoader] Cannot open file: {path}. " +
+                        $"Error: {FileAccess.GetOpenError()}");
             return null;
         }
         return f.GetAsText();
@@ -270,6 +260,20 @@ public static class JsonCardLoader
             Effects = new[] { halfNode.TryGetProperty("effect", out var e)
                 ? CardScriptRegistry.BuildEffect(e) : new EmptyEffect() }
         };
+
+        // ── Parse element tags ──────────────────────────────────────
+        if (halfNode.TryGetProperty("tags", out var tagsElement)
+            && tagsElement.ValueKind == JsonValueKind.Array)
+        {
+            var tagList = new List<string>();
+            foreach (var tagEl in tagsElement.EnumerateArray())
+            {
+                var tagStr = tagEl.GetString();
+                if (!string.IsNullOrEmpty(tagStr))
+                    tagList.Add(tagStr);
+            }
+            half.Tags = tagList.ToArray();
+        }
 
         if (halfNode.TryGetProperty("channel", out var chan))
             half.ChannelVariant = BuildHalf(chan, owner, root);
