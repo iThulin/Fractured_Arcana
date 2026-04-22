@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://iuge2orfh1hw"]
+[gd_scene format=3 uid="uid://clqkoruehpgq0"]
 
 [ext_resource type="Script" uid="uid://birxykmprpeas" path="res://Scripts/Cards/CardUi.cs" id="1_huidv"]
 
@@ -48,6 +48,48 @@ bg_color = Color(0.0588235, 0.733333, 0.733333, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6si4d"]
 bg_color = Color(0.666667, 0.509804, 0.886275, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_artpanel"]
+bg_color = Color(0.15, 0.15, 0.15, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_color = Color(0.5, 0.5, 0.5, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_badge"]
+bg_color = Color(0.5, 0.5, 0.5, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fulldiv"]
+bg_color = Color(0.5, 0.5, 0.5, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_infopanel"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.5, 0.5, 0.5, 1)
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_manapip"]
+bg_color = Color(0.3, 0.3, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_channelstrip"]
+bg_color = Color(0.5, 0.5, 0.5, 0.12)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 
 [node name="CardUi" type="Control" unique_id=1075145592]
 z_index = 100
@@ -268,5 +310,139 @@ theme_override_font_sizes/normal_font_size = 14
 text = "description
 
 "
+scroll_active = false
+vertical_alignment = 1
+
+[node name="FullCardView" type="Control" parent="CardVisual" unique_id=93418415]
+visible = false
+custom_minimum_size = Vector2(200, 300)
+anchors_preset = 0
+offset_right = 200.0
+offset_bottom = 300.0
+mouse_filter = 2
+
+[node name="ArtPanel" type="Panel" parent="CardVisual/FullCardView" unique_id=1481743502]
+custom_minimum_size = Vector2(200, 148)
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 148.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_artpanel")
+
+[node name="SchoolBadge" type="Label" parent="CardVisual/FullCardView/ArtPanel" unique_id=1776890445]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 0
+offset_left = 3.0
+offset_top = 3.0
+offset_right = 21.0
+offset_bottom = 21.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("StyleBoxFlat_badge")
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ElementTagContainer" type="HBoxContainer" parent="CardVisual/FullCardView/ArtPanel" unique_id=110191105]
+layout_mode = 0
+offset_left = 140.0
+offset_top = 3.0
+offset_right = 197.0
+offset_bottom = 20.0
+theme_override_constants/separation = 2
+alignment = 2
+
+[node name="FullDivider" type="Panel" parent="CardVisual/FullCardView" unique_id=368774121]
+custom_minimum_size = Vector2(200, 4)
+layout_mode = 0
+offset_top = 148.0
+offset_right = 200.0
+offset_bottom = 152.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_fulldiv")
+
+[node name="InfoPanel" type="Panel" parent="CardVisual/FullCardView" unique_id=1414390567]
+custom_minimum_size = Vector2(200, 148)
+layout_mode = 0
+offset_top = 152.0
+offset_right = 200.0
+offset_bottom = 300.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_infopanel")
+
+[node name="InfoContainer" type="VBoxContainer" parent="CardVisual/FullCardView/InfoPanel" unique_id=2116150549]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 3.0
+offset_right = 195.0
+offset_bottom = 145.0
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="NameBar" type="HBoxContainer" parent="CardVisual/FullCardView/InfoPanel/InfoContainer" unique_id=1789586465]
+custom_minimum_size = Vector2(190, 24)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ManaPip" type="Panel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar" unique_id=1477186325]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_manapip")
+
+[node name="ManaLabel" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar/ManaPip" unique_id=1906361446]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 0
+offset_right = 20.0
+offset_bottom = 20.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpellName" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar" unique_id=351369981]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 14
+text = "Spell Name"
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="SpeedLabel" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar" unique_id=99724396]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
+theme_override_font_sizes/font_size = 10
+text = "Sorcery"
+vertical_alignment = 1
+
+[node name="RulesText" type="RichTextLabel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer" unique_id=1558290093]
+custom_minimum_size = Vector2(185, 40)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_colors/default_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/normal_font_size = 12
+text = "Rules text"
+scroll_active = false
+vertical_alignment = 1
+
+[node name="ChannelStrip" type="Panel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer" unique_id=807023311]
+custom_minimum_size = Vector2(185, 28)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_channelstrip")
+
+[node name="ChannelLabel" type="RichTextLabel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/ChannelStrip" unique_id=1443332486]
+custom_minimum_size = Vector2(180, 24)
+layout_mode = 0
+offset_left = 3.0
+offset_top = 2.0
+offset_right = 183.0
+offset_bottom = 26.0
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.3, 0.3, 0.3, 1)
+theme_override_font_sizes/normal_font_size = 10
+text = "Channel text"
 scroll_active = false
 vertical_alignment = 1
