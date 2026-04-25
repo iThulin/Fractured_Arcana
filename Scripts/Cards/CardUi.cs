@@ -293,8 +293,9 @@ public partial class CardUi : Control
         ApplyPanelBorder(_bottomPanel, borderCol, false);
 
         if (_splitDivider != null)
+        {
             // Rarity color
-            var rarityCol = top?.Rarity switch
+            var rarityCol = CardInstance.Rarity switch
             {
                 CardRarity.Common => CommonColor,
                 CardRarity.Uncommon => UncommonColor,
@@ -303,6 +304,9 @@ public partial class CardUi : Control
                 _ => borderCol
             };
             //_splitDivider.Color = borderCol;
+            _splitDivider.Color = rarityCol;
+        }
+
 
         // Style mana pips with school dark color
         StyleManaPip($"{SplitTop}/NameBar/ManaPip", darkCol);
