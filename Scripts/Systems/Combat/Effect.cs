@@ -187,7 +187,7 @@ public sealed class DashEffect : EffectBase
 		var casterUnit = FindCasterUnit(s, caster);
 
 		if (targets == null || targets.Items.Count == 0 ||
-			(targets.Items.Count == 1 && targets.Items[0] is Entitiy))
+			(targets.Items.Count == 1 && targets.Items[0] is Entity))
 		{
 			// Self movement, grant additional movement points
 			if ( casterUnit != null)
@@ -422,15 +422,5 @@ public sealed class NoOpEffect : EffectBase
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		s.Log($"[NoOp] {Text}");
-	}
-}
-
-// ── Empty Effect (placeholder) ──────────────────────────────────
-public sealed class EmptyEffect : EffectBase
-{
-	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-	{
-		// Intentionally empty — used for card halves that have complex
-		// rules_text but no mechanical implementation yet.
 	}
 }

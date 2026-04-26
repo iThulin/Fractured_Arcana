@@ -94,18 +94,27 @@ public static class CardScriptRegistry
         // CORE LEAF EFFECTS (all functional)
         // ═══════════════════════════════════════════════════════════
 
+        // Armor: { "type": "Damage", "amount": n }
         RegisterEffect("damage", n =>
             new DealDamageEffect(n.GetProperty("amount").GetInt32()).WithTag("Damage"));
 
+        // Move: { "type": "move", "amount": n }
         RegisterEffect("move", n =>
             new DashEffect(n.GetProperty("tiles").GetInt32()).WithTag("Movement"));
 
+        // Draw: { "type": "draw", "amount": n }
         RegisterEffect("draw", n =>
             new DrawCardsEffect(n.GetProperty("count").GetInt32()).WithTag("CardDraw"));
 
+        // Shield: { "type": "shield", "amount": n }
         RegisterEffect("shield", n =>
             new GiveShieldEffect(n.GetProperty("amount").GetInt32()).WithTag("Defense"));
 
+        // Armor: { "type": "armor", "amount": n }
+        RegisterEffect("armor", n =>
+            new GiveArmorEffect(n.GetProperty("amount").GetInt32()).WithTag("Defense"));
+
+        // Summon: { "type": "summon", "kind": "skeleton", "count": n}
         RegisterEffect("summon", n =>
         {
             var kind = n.GetProperty("unit").GetString();
@@ -113,23 +122,19 @@ public static class CardScriptRegistry
             return new SummonEffect(kind, count).WithTag("Summon");
         });
 
-        // ═══════════════════════════════════════════════════════════
-        // NEW EFFECTS — Phase 2 (Elementalist playability)
-        // ═══════════════════════════════════════════════════════════
-
-        // Mana gain: { "type": "mana_gain", "amount": 2 }
+        // Mana gain: { "type": "mana_gain", "amount": n }
         RegisterEffect("mana_gain", n =>
             new ManaGainEffect(n.GetProperty("amount").GetInt32()).WithTag("Mana"));
 
-        // Self damage: { "type": "self_damage", "amount": 2 }
+        // Self damage: { "type": "self_damage", "amount": n }
         RegisterEffect("self_damage", n =>
             new SelfDamageEffect(n.GetProperty("amount").GetInt32()).WithTag("SelfDamage"));
 
-        // Heal: { "type": "heal", "amount": 5 }
+        // Heal: { "type": "heal", "amount": n }
         RegisterEffect("heal", n =>
             new HealEffect(n.GetProperty("amount").GetInt32()).WithTag("Heal"));
 
-        // Imbue tile with element: { "type": "imbue_tile", "element": "fire", "bonus_damage": 3 }
+        // Imbue tile with element: { "type": "imbue_tile", "element": "fire", "bonus_damage": n }
         RegisterEffect("imbue_tile", n =>
         {
             var element = n.GetProperty("element").GetString();
@@ -137,7 +142,7 @@ public static class CardScriptRegistry
             return new ImbueTileEffect(element, bonus).WithTag("Terrain");
         });
 
-        // Apply status: { "type": "apply_status", "status": "frozen", "duration": 1 }
+        // Apply status: { "type": "apply_status", "status": "frozen", "duration": n }
         RegisterEffect("apply_status", n =>
         {
             var status = n.GetProperty("status").GetString();
@@ -150,7 +155,7 @@ public static class CardScriptRegistry
         // ═══════════════════════════════════════════════════════════
 
         RegisterPredicate("always_true", _ => new AlwaysTrue());
-        RegisterPredicate("was_lethal", _ => new WasLethal());
+        RegisterPredicate("was_lethal", _ => new LastEffectWasLethal());
         RegisterPredicate("target_on_tile", n =>
         {
             var tile = n.GetProperty("tile").GetString();
