@@ -192,6 +192,13 @@ public partial class Unit : Node3D
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
     }
 
+        public void RefreshHealthBar()
+    {
+        _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth);
+        _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
+        // Future: also update armor/shield display when those UI elements exist
+    }
+
     // Selection visual methods
     private void CreateSelectionRing()
     {

@@ -389,6 +389,14 @@ public partial class CardUi : Control
         var school = half.School;
         var borderColor = SchoolColors.GetBorderColor(school);
         var darkColor = SchoolColors.GetDarkColor(school);
+        var rarityCol = CardInstance.Rarity switch
+        {
+            CardRarity.Common => CommonColor,
+            CardRarity.Uncommon => UncommonColor,
+            CardRarity.Rare => RareColor,
+            CardRarity.Legendary => LegendaryColor,
+            _ => borderColor
+        };
 
         // Art panel placeholder
         if (_artPanel != null)
@@ -442,7 +450,8 @@ public partial class CardUi : Control
         // Divider
         if (_fullDivider != null)
         {
-            var divStyle = new StyleBoxFlat { BgColor = borderColor };
+            //var divStyle = new StyleBoxFlat { BgColor = borderColor };
+            var divStyle = new StyleBoxFlat { BgColor = rarityCol };
             _fullDivider.AddThemeStyleboxOverride("panel", divStyle);
         }
 

@@ -4,12 +4,12 @@ using System.Collections.Generic;
 using System.Text.Json;
 
 // ============================================================
-// JSON Card Loader.
+// JSON Card Loader — PHASE 2 UPDATE
 //
-// Uses Godot's DirAccess + FileAccess so res:// paths work both
-// in-editor and in exported builds. Raw System.IO calls DO NOT
-// understand res:// and will fail in builds even if they work
-// in-editor on some platforms.
+// New effect types registered:
+//   mana_gain, self_damage, heal, imbue_tile, apply_status
+//
+// These make Elementalist cards functional for the test loop.
 // ============================================================
 
 public static class CardScriptRegistry
@@ -65,7 +65,10 @@ public static class CardScriptRegistry
 
     public static void RegisterBuiltins()
     {
-        // --- Composite effects ---
+        // ═══════════════════════════════════════════════════════════
+        // COMPOSITE EFFECTS
+        // ═══════════════════════════════════════════════════════════
+
         RegisterEffect("sequence", n =>
         {
             var steps = new List<IEffect>();
@@ -87,7 +90,10 @@ public static class CardScriptRegistry
 
         RegisterEffect("empty", _ => new EmptyEffect());
 
-        // --- Leaf effects ---
+        // ═══════════════════════════════════════════════════════════
+        // CORE LEAF EFFECTS (all functional)
+        // ═══════════════════════════════════════════════════════════
+
         RegisterEffect("damage", n =>
             new DealDamageEffect(n.GetProperty("amount").GetInt32()).WithTag("Damage"));
 
@@ -107,41 +113,63 @@ public static class CardScriptRegistry
             return new SummonEffect(kind, count).WithTag("Summon");
         });
 
-        // --- Predicates ---
-        RegisterPredicate("always", _ => new AlwaysTrue());
-        RegisterPredicate("and", n =>
-        {
-            var parts = new List<IPredicate>();
-            foreach (var p in n.GetProperty("parts").EnumerateArray())
-                parts.Add(BuildPredicate(p));
-            return new AndPredicate(parts.ToArray());
-        });
-        RegisterPredicate("or", n =>
-        {
-            var parts = new List<IPredicate>();
-            foreach (var p in n.GetProperty("parts").EnumerateArray())
-                parts.Add(BuildPredicate(p));
-            return new OrPredicate(parts.ToArray());
-        });
-        RegisterPredicate("not", n => new NotPredicate(BuildPredicate(n.GetProperty("inner"))));
-        RegisterPredicate("was_lethal", _ => new LastEffectWasLethal());
-        RegisterPredicate("target_adjacent_to_tile", n =>
-            new TargetAdjacentToTile(n.GetProperty("tile").GetString()));
-        RegisterPredicate("target_on_tile", n =>
-            new TargetOnTile(n.GetProperty("tile").GetString()));
-        RegisterPredicate("count_of_tile_at_least", n =>
-            new CountOfTileAtLeast(
-                n.GetProperty("tile").GetString(),
-                n.GetProperty("at_least").GetInt32()));
-        RegisterPredicate("is_channeled", _ => new IsChanneled());
+        // ═══════════════════════════════════════════════════════════
+        // NEW EFFECTS — Phase 2 (Elementalist playability)
+        // ═══════════════════════════════════════════════════════════
 
-        // --- Targeters ---
+        // Mana gain: { "type": "mana_gain", "amount": 2 }
+        RegisterEffect("mana_gain", n =>
+            new ManaGainEffect(n.GetProperty("amount").GetInt32()).WithTag("Mana"));
+
+        // Self damage: { "type": "self_damage", "amount": 2 }
+        RegisterEffect("self_damage", n =>
+            new SelfDamageEffect(n.GetProperty("amount").GetInt32()).WithTag("SelfDamage"));
+
+        // Heal: { "type": "heal", "amount": 5 }
+        RegisterEffect("heal", n =>
+            new HealEffect(n.GetProperty("amount").GetInt32()).WithTag("Heal"));
+
+        // Imbue tile with element: { "type": "imbue_tile", "element": "fire", "bonus_damage": 3 }
+        RegisterEffect("imbue_tile", n =>
+        {
+            var element = n.GetProperty("element").GetString();
+            var bonus = n.TryGetProperty("bonus_damage", out var bd) ? bd.GetInt32() : 0;
+            return new ImbueTileEffect(element, bonus).WithTag("Terrain");
+        });
+
+        // Apply status: { "type": "apply_status", "status": "frozen", "duration": 1 }
+        RegisterEffect("apply_status", n =>
+        {
+            var status = n.GetProperty("status").GetString();
+            var duration = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 1;
+            return new ApplyStatusEffect(status, duration).WithTag("Status");
+        });
+
+        // ═══════════════════════════════════════════════════════════
+        // PREDICATES
+        // ═══════════════════════════════════════════════════════════
+
+        RegisterPredicate("always_true", _ => new AlwaysTrue());
+        RegisterPredicate("was_lethal", _ => new WasLethal());
+        RegisterPredicate("target_on_tile", n =>
+        {
+            var tile = n.GetProperty("tile").GetString();
+            return new TargetOnTile(tile);
+        });
+
+        // ═══════════════════════════════════════════════════════════
+        // TARGETERS
+        // ═══════════════════════════════════════════════════════════
+
+        RegisterTargeter("self", _ => new SelectSelfTarget());
+        RegisterTargeter("none", _ => new SelectGlobalTarget());
+
         RegisterTargeter("unit", n =>
         {
+            bool enemyOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 6;
             bool los = n.TryGetProperty("los", out var l) && l.GetBoolean();
-            bool enemiesOnly = !n.TryGetProperty("enemies_only", out var e) || e.GetBoolean();
-            return new SelectUnitTarget(enemiesOnly, range, los, false);
+            return new SelectUnitTarget(enemyOnly, range, los);
         });
 
         RegisterTargeter("tile", n =>
@@ -150,19 +178,25 @@ public static class CardScriptRegistry
             return new SelectTileTarget(range);
         });
 
-        RegisterTargeter("self", _ => new SelectSelfTarget());
-
         RegisterTargeter("aoe", n =>
         {
             int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 1;
-            bool enemiesOnly = n.TryGetProperty("enemies_only", out var e) && e.GetBoolean();
-            bool tiles = n.TryGetProperty("tiles", out var t) && t.GetBoolean();
-            return new SelectAreaTarget(radius, enemiesOnly, tiles);
+            bool enemiesOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
+            return new SelectAreaTarget(radius, enemiesOnly, false);
         });
 
-        RegisterTargeter("none", _ => null);
+        RegisterTargeter("by_tag", n =>
+        {
+            var tag = n.GetProperty("tag").GetString();
+            bool enemyOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
+            return new SelectByTagTarget(tag, enemyOnly);
+        });
     }
 }
+
+// ============================================================
+// JsonCardLoader — unchanged structure, included for completeness
+// ============================================================
 
 public static class JsonCardLoader
 {
@@ -170,7 +204,6 @@ public static class JsonCardLoader
     {
         var cards = new List<Card>();
 
-        // Godot's DirAccess understands res:// — System.IO does not.
         using var dir = DirAccess.Open(directory);
         if (dir == null)
         {
