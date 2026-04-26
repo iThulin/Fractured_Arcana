@@ -8,6 +8,7 @@
     "mana": 2,
     "speed": "Instant",
     "rules_text": "Deal 7 damage. Target pushed 2 tiles away. Creates rubble (difficult terrain) on vacated tile.",
+    "tags": [ "stone" ],
     "targeting": {
       "type": "unit",
       "range": 6,
@@ -24,6 +25,10 @@
         {
           "type": "move",
           "tiles": 2
+        },
+        {
+          "type": "imbue_tile",
+          "element": "stone"
         }
       ]
     },
@@ -32,12 +37,30 @@
       "mana": 2,
       "speed": "Reaction",
       "rules_text": "Channel: Rubble blocks LOS as well",
+      "tags": [ "stone"],
       "targeting": {
-        "type": "tile",
-        "range": 4
+        "type": "unit",
+        "range": 6,
+        "los": true,
+        "enemies_only": true
       },
       "effect": {
-        "type": "empty"
+        "type": "sequence",
+        "steps": [
+        {
+        "type": "damage",
+        "amount": 7
+        },
+        {
+          "type": "move",
+          "amount": 2
+        },
+        {
+          "type": "summon",
+          "kind": "boulder",
+          "amount": 1
+        }
+      ]
       }
     }
   },
@@ -45,7 +68,8 @@
     "name": "Permafrost",
     "mana": 2,
     "speed": "Sorcery",
-    "rules_text": "Freeze target for 2 turns. Target's tile becomes Ice permanently. Adjacent enemies slowed 1 turn.",
+    "rules_text": "Imbue target tile with ice. Freeze any unit on target tile for 2 turn. Slow adjacent enemies for 1 turn.",
+    "tags": [ "ice" ],
     "targeting": {
       "type": "unit",
       "range": 6,
@@ -56,10 +80,18 @@
       "type": "sequence",
       "steps": [
         {
-          "type": "empty"
+          "type": "imbue_tile",
+          "element": "ice"
         },
         {
-          "type": "empty"
+          "type": "apply_status",
+          "status": "frozen",
+          "duration": 2
+        },
+        {
+          "type": "apply_status",
+          "status": "slowed",
+          "duration": 1
         }
       ]
     },
@@ -68,13 +100,30 @@
       "mana": 2,
       "speed": "Reaction",
       "rules_text": "Channel: Adjacent enemies also frozen for 1 turn",
+      "tags": [ "ice" ],
       "targeting": {
         "type": "aoe",
         "radius": 1,
         "enemies_only": true
       },
       "effect": {
-        "type": "empty"
+        "type": "sequence",
+        "steps": [
+          {
+            "type": "imbue_tile",
+            "element": "ice"
+          },
+          {
+            "type": "apply_status",
+            "status": "frozen",
+            "duration": 2
+          },
+          {
+            "type": "apply_status",
+            "status": "frozen",
+            "duration": 1
+          }
+        ]
       }
     }
   }

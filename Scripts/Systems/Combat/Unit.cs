@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 public sealed class Stats
 {
@@ -18,6 +19,9 @@ public sealed class Stats
     public int Shield;
 
     public bool IsAlive => Health > 0;
+
+    // Active status effects: name -> turns remaining
+    public Dictionary<string, int> StatusEffects = new();
 }
 
 public partial class Unit : Node3D
@@ -157,7 +161,6 @@ public partial class Unit : Node3D
             GD.Print($"{Name} has died.");
             Die();
         }
-
     }
 
     public void Die()
@@ -197,6 +200,54 @@ public partial class Unit : Node3D
         _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
         // Future: also update armor/shield display when those UI elements exist
+    }
+
+    // Status handling
+
+    public void ApplyStatus(string status, int duration)
+    {
+        // If already has this status, take the longer duration
+        if (Stats.StatusEffects.ContainsKey(status))
+            Stats.StatusEffects[status] = Math.Max(Stats.StatusEffects[status], duration);
+        else
+            Stats.StatusEffects[status] = duration;
+
+        // Apply immediate effect
+        if (status == "frozen")
+            Stats.MovePoints = 0;
+        else if (status == "slowed")
+            Stats.MovePoints = Math.Max(0, Stats.MovePoints / 2);
+
+        GD.Print($"{Name} gains {status} for {duration} turn(s).");
+    }
+
+    public bool HasStatus(string status)
+    {
+        return Stats.StatusEffects.ContainsKey(status) && Stats.StatusEffects[status] > 0;
+    }
+
+    public void TickStatuses()
+    {
+        // Call this at the START of each unit's turn
+        var expired = new List<string>();
+        foreach (var kvp in Stats.StatusEffects)
+        {
+            Stats.StatusEffects[kvp.Key] = kvp.Value - 1;
+            if (Stats.StatusEffects[kvp.Key] <= 0)
+                expired.Add(kvp.Key);
+        }
+
+        foreach (var key in expired)
+        {
+            Stats.StatusEffects.Remove(key);
+            GD.Print($"{Name}: {key} expired.");
+        }
+
+        // Re-apply ongoing effects for statuses that are still active
+        if (HasStatus("frozen"))
+            Stats.MovePoints = 0;
+        else if (HasStatus("slowed"))
+            Stats.MovePoints = Math.Max(0, Stats.MovePoints / 2);
     }
 
     // Selection visual methods

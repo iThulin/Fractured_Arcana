@@ -365,8 +365,7 @@ public sealed class ImbueTileEffect : EffectBase
 }
 
 // ── Apply Status Effect ─────────────────────────────────────────
-// Phase 2 stub: logs the status and optionally applies a stat
-// penalty for 1 turn (simplified version of freeze/slow/etc.).
+
 public sealed class ApplyStatusEffect : EffectBase
 {
 	public string StatusName; // "frozen", "slowed", "burning", etc.
@@ -384,17 +383,8 @@ public sealed class ApplyStatusEffect : EffectBase
 			var victim = ResolveTargetUnit(s, obj);
 			if (victim != null)
 			{
-				// Simplified: "frozen" and "slowed" reduce move points
-				if (StatusName == "frozen" || StatusName == "slowed")
-				{
-					int reduction = StatusName == "frozen" ? victim.Stats.MovePoints : victim.Stats.MovePoints / 2;
-					victim.Stats.MovePoints = Math.Max(0, victim.Stats.MovePoints - reduction);
-					s.Log($"[Status] {victim.Name} is {StatusName} for {Duration} turn(s). Move reduced.");
-				}
-				else
-				{
-					s.Log($"[Status] {victim.Name} gains {StatusName} for {Duration} turn(s).");
-				}
+				victim.ApplyStatus(StatusName, Duration);
+				s.Log($"[Status] {victim.Name} is {StatusName} for {Duration} turn(s).");
 			}
 		}
 	}

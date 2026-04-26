@@ -17,12 +17,50 @@ public sealed class SelectTileTarget : ITargetSelector {
 		targets = new TargetSet(); targets.Items.Add("Tile(0,0)"); return true;
 	}
 }
-public sealed class SelectAreaTarget : ITargetSelector {
-	public int radius; public bool enemiesOnly; public bool tiles;
-	public SelectAreaTarget(int r,bool enemiesOnly,bool tiles){ radius=r; this.enemiesOnly=enemiesOnly; this.tiles=tiles; }
-	public bool Select(GameState s, Entity caster, out TargetSet targets){
-		targets = new TargetSet(); targets.Items.Add("Area"); return true;
-	}
+public sealed class SelectAreaTarget : ITargetSelector
+{
+    public int Radius;
+    public bool EnemiesOnly;
+    public bool Tiles;
+
+    public SelectAreaTarget(int r, bool enemiesOnly, bool tiles)
+    {
+        Radius = r;
+        EnemiesOnly = enemiesOnly;
+        Tiles = tiles;
+    }
+
+    public bool Select(GameState s, Entity caster, out TargetSet targets)
+    {
+        targets = new TargetSet();
+
+        // Find the center — for card-drop targeting this gets
+        // overridden by TryCastWithTargets, but for auto-select
+        // we use the caster's position
+        Unit casterUnit = null;
+        if (caster == s.PlayerA) casterUnit = s.PlayerUnit;
+        else if (caster == s.PlayerB) casterUnit = s.EnemyUnit;
+
+        if (casterUnit?.CurrentTile == null) return false;
+
+        var center = casterUnit.CurrentTile.Axial;
+
+        foreach (var unit in s.UnitsInPlay)
+        {
+            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                continue;
+
+            // Skip allies if enemies_only
+            if (EnemiesOnly && unit.TeamId == casterUnit.TeamId)
+                continue;
+
+            int dist = s.Grid.Distance(center, unit.CurrentTile.Axial);
+            if (dist <= Radius)
+                targets.Items.Add(unit);
+        }
+
+        return true;
+    }
 }
 public sealed class SelectSelfTarget : ITargetSelector {
 	public bool Select(GameState s, Entity caster, out TargetSet targets){ targets=new TargetSet(); targets.Items.Add(caster); return true; }

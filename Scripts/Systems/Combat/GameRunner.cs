@@ -495,6 +495,7 @@ public partial class GameRunner : Node3D
             if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
                 continue;
             unit.StartTurn();
+            unit.TickStatuses();
         }
 
         selectedUnit       = null;
@@ -541,7 +542,13 @@ public partial class GameRunner : Node3D
         enemyPhaseRunning = true;
 
         foreach (var unit in enemyUnits)
-            unit.StartTurn();
+        {
+            if (unit != null && unit.Stats.IsAlive)
+            {
+                unit.StartTurn();
+                unit.TickStatuses();  // <-- add this line
+            }
+        }
 
         GD.Print("=== Enemy Turn Start ===");
         RefreshPhaseUI();

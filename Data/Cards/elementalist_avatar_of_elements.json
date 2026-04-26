@@ -4,10 +4,16 @@
   "school": "Elementalist",
   "rarity": "Legendary",
   "top": {
-    "name": "Avatar of Elements",
+    "name": "Avatar of Elements (WIP)",
     "mana": 4,
     "speed": "Instant",
     "rules_text": "Transform: gain 7 armor and for 3 turns all your spells imbue their target tile with a random element AND deal +3 damage. You leave elemental terrain on every tile you walk across.",
+    "tags": [
+      "fire",
+      "ice",
+      "storm",
+      "stone"
+    ],
     "targeting": {
       "type": "self"
     },
@@ -18,7 +24,7 @@
           "type": "empty"
         },
         {
-          "type": "shield",
+          "type": "armor",
           "amount": 7
         }
       ]
@@ -37,10 +43,16 @@
     }
   },
   "bottom": {
-    "name": "Maelstrom",
+    "name": "Maelstrom  (WIP)",
     "mana": 3,
     "speed": "Sorcery",
     "rules_text": "Create a 3-tile radius storm centered on target point. Every turn it rotates dealing 2 damage and pushing all enemies 1 tile clockwise. Imbues all tiles it touches with Storm. Lasts 3 turns.",
+    "tags": [
+      "fire",
+      "ice",
+      "storm",
+      "stone"
+    ],
     "targeting": {
       "type": "aoe",
       "radius": 3,

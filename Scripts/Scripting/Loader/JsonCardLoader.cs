@@ -162,6 +162,13 @@ public static class CardScriptRegistry
             return new TargetOnTile(tile);
         });
 
+        // Caster standing on terrain: { "type": "caster_on_terrain", "terrain": "stone" }
+        RegisterPredicate("caster_on_terrain", n =>
+        {
+            var terrain = n.GetProperty("terrain").GetString();
+            return new CasterOnTerrain(terrain);
+        });
+
         // ═══════════════════════════════════════════════════════════
         // TARGETERS
         // ═══════════════════════════════════════════════════════════

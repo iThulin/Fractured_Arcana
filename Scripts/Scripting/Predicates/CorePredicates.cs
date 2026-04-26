@@ -125,3 +125,55 @@ public sealed class IsChanneled : IPredicate
         return false;
     }
 }
+
+// "Is the caster standing on a specific terrain or element type?"
+// Checks both TerrainType and ElementType so it works for:
+//   "stone" -> TerrainType.Stone OR ElementType.Earth
+//   "fire"  -> ElementType.Fire
+//   "ice"   -> TerrainType.Ice OR ElementType.Frost
+public sealed class CasterOnTerrain : IPredicate
+{
+    public string TileType;
+    public CasterOnTerrain(string tileType) { TileType = tileType; }
+
+    public bool Evaluate(PredicateContext ctx)
+    {
+        // Find the caster's unit
+        Unit casterUnit = null;
+        if (ctx.Game != null)
+        {
+            if (ctx.Caster == ctx.Game.PlayerA) casterUnit = ctx.Game.PlayerUnit;
+            else if (ctx.Caster == ctx.Game.PlayerB) casterUnit = ctx.Game.EnemyUnit;
+            else
+            {
+                foreach (var u in ctx.Game.UnitsInPlay)
+                    if (u != null && u.Name == ctx.Caster?.Name) { casterUnit = u; break; }
+            }
+        }
+
+        if (casterUnit?.CurrentTile == null) return false;
+
+        var tile = casterUnit.CurrentTile;
+        string check = TileType.ToLowerInvariant();
+
+        // Check TerrainType
+        if (check == tile.TerrainType.ToString().ToLowerInvariant())
+            return true;
+
+        // Check ElementType (map design names to enum values)
+        string elementName = tile.ElementType.ToString().ToLowerInvariant();
+        if (check == elementName) return true;
+
+        // Handle common aliases: "stone" matches Earth, "ice" matches Frost
+        if (check == "stone" && tile.TerrainType == TileTerrainType.Stone) return true;
+        if (check == "stone" && tile.ElementType == TileElementType.Earth) return true;
+        if (check == "ice" && tile.TerrainType == TileTerrainType.Ice) return true;
+        if (check == "ice" && tile.ElementType == TileElementType.Frost) return true;
+        if (check == "fire" && tile.ElementType == TileElementType.Fire) return true;
+        if (check == "storm" && tile.ElementType == TileElementType.Lightning) return true;
+        if (check == "arcane" && tile.TerrainType == TileTerrainType.Arcane) return true;
+        if (check == "arcane" && tile.ElementType == TileElementType.Arcane) return true;
+
+        return false;
+    }
+}
