@@ -171,7 +171,7 @@ public partial class HexGridManager : Node3D
         new Vector2I(0, 1)
     };
 
-    private List<Vector2I> GetNeighbors(Vector2I coord)
+    public List<Vector2I> GetNeighbors(Vector2I coord)
     {
         var result = new List<Vector2I>();
 

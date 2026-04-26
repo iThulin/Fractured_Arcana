@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 public partial class GameRunner : Node3D
@@ -498,6 +499,9 @@ public partial class GameRunner : Node3D
             unit.TickStatuses();
         }
 
+        // Hazardous tile damage (fire, lava)
+        ApplyHazardDamage(playerUnits);
+
         // Sync mana back to GameState so card costs check the right value
         if (playerUnit != null)
         {
@@ -553,9 +557,12 @@ public partial class GameRunner : Node3D
             if (unit != null && unit.Stats.IsAlive)
             {
                 unit.StartTurn();
-                unit.TickStatuses();  // <-- add this line
+                unit.TickStatuses();
             }
         }
+
+        ApplyHazardDamage(enemyUnits);
+        PruneDeadUnits();
 
         GD.Print("=== Enemy Turn Start ===");
         RefreshPhaseUI();
@@ -653,6 +660,35 @@ public partial class GameRunner : Node3D
             RefreshEnemyRoster();
             RefreshPlayerUnitBar();
             await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+        }
+    }
+
+    private void ApplyHazardDamage(List<Unit> units)
+    {
+        foreach (var unit in units)
+        {
+            if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
+                continue;
+
+            if (unit.CurrentTile == null) continue;
+
+            if (unit.CurrentTile.IsHazardous)
+            {
+                // Base hazard damage — fire/lava tiles deal 3
+                int hazardDmg = 3;
+
+                // Scale by element strength if available
+                if (unit.CurrentTile.ElementStrength > 0)
+                    hazardDmg = (int)(hazardDmg * unit.CurrentTile.ElementStrength);
+
+                hazardDmg = Math.Max(1, hazardDmg);
+
+                unit.ApplyDamage(hazardDmg);
+
+                string msg = $"{unit.Name} takes {hazardDmg} damage from {unit.CurrentTile.ElementType} terrain!";
+                GD.Print(msg);
+                combatUI?.AppendActionLog(msg);
+            }
         }
     }
 
