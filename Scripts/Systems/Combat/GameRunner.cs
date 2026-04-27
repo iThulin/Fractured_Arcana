@@ -104,10 +104,10 @@ public partial class GameRunner : Node3D
             combatUI.EnemyButtonPressed += OnEnemyRosterButtonPressed;
         }
 
-        // Create teh attunement UI as a child of CombatUI
+        // Create the attunement UI as a child of CombatUI
         schoolAttunementUI = new SchoolAttunementUI();
         schoolAttunementUI.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-        schoolAttunementUI.Position = new Vector2(10, 220);
+        schoolAttunementUI.Position = new Vector2(0, 162);
         combatUI.AddChild(schoolAttunementUI);
 
         if (playerUnit != null)
@@ -451,6 +451,7 @@ public partial class GameRunner : Node3D
 
         RefreshSelectedUnitUI();
         RefreshPlayerUnitBar();
+        schoolAttunementUI?.ShowForUnit(selectedUnit);
         GD.Print($"Selected: {unit.Name}  move={unit.Stats.MovePoints}/{unit.Stats.BaseSpeed}  reachable={reachable.Count}");
     }
 
@@ -518,7 +519,16 @@ public partial class GameRunner : Node3D
             playerUnit.SyncManaToBar();
         }
 
-        selectedUnit       = null;
+        // Autoselect the first alive player unit at the start of the turn
+        selectedUnit = null;
+        foreach (var unit in playerUnits)
+        {
+            if (unit != null && IsInstanceValid(unit) && unit.Stats.IsAlive)
+            {
+                SelectUnit(unit);
+                break;
+            }
+        }
         inspectedEnemyUnit = null;
         ClearMoveTiles();
 
@@ -933,6 +943,14 @@ public partial class GameRunner : Node3D
         BuildPlayerDeploymentArea();
 
         playerUnit.School = PlayerSession.SelectedSchool;
+        playerUnit.InitializeAttunement();
+
+        // Do the same for Player_2 if they should also be an Elementalist:
+        foreach (var unit in playerUnits)
+        {
+            unit.School = PlayerSession.SelectedSchool;
+            unit.InitializeAttunement();
+        }
 
         if (EnableDeploymentPhase)
             StartDeploymentPhase();
@@ -1009,45 +1027,48 @@ public partial class GameRunner : Node3D
         var ok = Rules.TryCastWithTargets(half, State, Me, targets, cardUi.CardInstance);
         GD.Print($"Cast result={ok} manaNow={State.Mana[Me]}");
 
-        // --- Attunement integration ---
-        if (selectedUnit != null &&
-            selectedUnit.School == CardSchool.Elementalist &&
-            selectedUnit.Attunement is ElementalAttunement elemAtt &&
-            half.Tags != null && half.Tags.Length > 0)
+        
+
+        if (ok)
         {
-            // 1. Feed tags to tracker
-            var burstEffects = elemAtt.OnSpellCast(half.Tags);
-
-            // 2. Apply threshold bonuses
-            var bonusLog = AttunementResolver.ApplyThresholdEffects(
-                elemAtt, half.Tags, State, selectedUnit, targets);
-
-            foreach (var msg in bonusLog)
+            // --- Attunement integration ---
+            if (selectedUnit != null &&
+                selectedUnit.School == CardSchool.Elementalist &&
+                selectedUnit.Attunement is ElementalAttunement elemAtt &&
+                half.Tags != null && half.Tags.Length > 0)
             {
-                GD.Print(msg);
-                combatUI?.AppendActionLog(msg);
-            }
+                // 1. Feed tags to tracker
+                var burstEffects = elemAtt.OnSpellCast(half.Tags);
 
-            // 3. Resolve bursts
-            foreach (var burst in burstEffects)
-            {
-                var burstLog = AttunementResolver.ResolveBurst(
-                    burst.Element, State, selectedUnit);
+                // 2. Apply threshold bonuses
+                var bonusLog = AttunementResolver.ApplyThresholdEffects(
+                    elemAtt, half.Tags, State, selectedUnit, targets);
 
-                foreach (var msg in burstLog)
+                foreach (var msg in bonusLog)
                 {
                     GD.Print(msg);
                     combatUI?.AppendActionLog(msg);
                 }
+
+                // 3. Resolve bursts
+                foreach (var burst in burstEffects)
+                {
+                    var burstLog = AttunementResolver.ResolveBurst(
+                        burst.Element, State, selectedUnit);
+
+                    foreach (var msg in burstLog)
+                    {
+                        GD.Print(msg);
+                        combatUI?.AppendActionLog(msg);
+                    }
+                }
+
+                // 4. Refresh
+                schoolAttunementUI?.Refresh();
+                RefreshAllUI();
             }
 
-            // 4. Refresh
-            schoolAttunementUI?.Refresh();
-            RefreshAllUI();
-        }
-
-        if (ok)
-        {
+            // Resolve teh stack immediatly
             while (!State.Stack.IsEmpty)
                 State.Resolver.ResolveTop(State);
             

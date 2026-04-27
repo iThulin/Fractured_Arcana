@@ -94,7 +94,7 @@ public static class AttunementResolver
 				{
 					if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
 					if (unit.TeamId == castingUnit.TeamId) continue;
-					if (state.Grid.Distance(center, unit.CurrentTile.Axial) <= 2)
+					if (state.Grid.Distance(center, unit.CurrentTile.Axial) <= 99)
 					{
 						unit.ApplyDamage(6);
 						log.Add($"  Fire Nova hits {unit.Name} for 6 damage");

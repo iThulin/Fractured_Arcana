@@ -198,7 +198,7 @@ public class ElementalAttunement : ISchoolAttunement
 
 	private string GetBurstDescription(ElementTag element) => element switch
 	{
-		ElementTag.Fire  => "FIRE BURST: Nova — Deal 6 damage to all enemies within 2 tiles!",
+		ElementTag.Fire  => "FIRE BURST: Nova — Deal 6 damage to all enemies!",
 		ElementTag.Ice   => "ICE BURST: Freeze Wave — Freeze all enemies for 1 turn!",
 		ElementTag.Storm => "STORM BURST: Lightning Strike — Deal 8 damage to nearest enemy, chain to 1 adjacent!",
 		ElementTag.Earth => "EARTH BURST: Quake — All enemies lose 2 movement, caster gains 6 armor!",

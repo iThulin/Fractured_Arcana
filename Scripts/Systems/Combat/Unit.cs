@@ -78,7 +78,7 @@ public partial class Unit : Node3D
         _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
 
-        InitializeAttunement();
+        //InitializeAttunement();
 
         CreateSelectionRing();
         SetSelected(false);
@@ -360,7 +360,7 @@ public partial class Unit : Node3D
         mesh.SetSurfaceOverrideMaterial(0, mat);
     }
 
-    private void InitializeAttunement()
+    public void InitializeAttunement()
     {
         Attunement = School switch
         {

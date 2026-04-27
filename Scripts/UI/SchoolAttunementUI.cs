@@ -3,15 +3,11 @@ using System;
 using System.Collections.Generic;
 
 // ============================================================
-// SchoolAttunementUI — Swappable HUD for school class mechanics
+// SchoolAttunementUI — Matches CombatUI visual style
 //
-// Sits in CombatUI. When the player selects a different wizard,
-// call ShowForUnit(unit) and it rebuilds to show that wizard's
-// school mechanic (Elementalist attunement, Necromancer corpse
-// count, etc.) or hides if the unit has no mechanic.
-//
-// Currently implements: Elementalist (4-element charge bars)
-// Other schools: stub "Coming soon" until implemented
+// Uses same black StyleBoxFlat with 2px expand margins as
+// SelectedUnitPanel. Sits directly below it at top-left.
+// Uses ProgressBar for charge display (same as HP/mana bars).
 // ============================================================
 
 public partial class SchoolAttunementUI : PanelContainer
@@ -21,21 +17,21 @@ public partial class SchoolAttunementUI : PanelContainer
 	private ElementalAttunement _boundAttunement;
 	private CardSchool _currentSchool = CardSchool.Generic;
 
-	// ── UI refs (rebuilt on school switch) ───────────────────────────
+	// ── UI refs ─────────────────────────────────────────────────────
 	private VBoxContainer _container;
 	private Label _titleLabel;
-	private Label _stubLabel; // for unimplemented schools
+	private Label _stubLabel;
 
 	// Elementalist-specific
 	private readonly Dictionary<ElementTag, ElementBar> _elementBars = new();
 
-	// ── Colors ──────────────────────────────────────────────────────
-	private static readonly Dictionary<ElementTag, Color> ElementColors = new()
+	// ── Colors matching your card element pips ──────────────────────
+	private static readonly Dictionary<ElementTag, Color> BarFillColors = new()
 	{
-		{ ElementTag.Fire,  new Color(1.0f, 0.35f, 0.1f) },
-		{ ElementTag.Ice,   new Color(0.4f, 0.75f, 1.0f) },
-		{ ElementTag.Storm, new Color(0.95f, 0.9f, 0.2f) },
-		{ ElementTag.Earth, new Color(0.6f, 0.45f, 0.25f) }
+		{ ElementTag.Fire,  new Color(0.85f, 0.25f, 0.1f) },
+		{ ElementTag.Ice,   new Color(0.3f, 0.6f, 0.9f) },
+		{ ElementTag.Storm, new Color(0.8f, 0.75f, 0.15f) },
+		{ ElementTag.Earth, new Color(0.5f, 0.38f, 0.2f) }
 	};
 
 	private static readonly Dictionary<ElementTag, string> ElementNames = new()
@@ -46,55 +42,46 @@ public partial class SchoolAttunementUI : PanelContainer
 		{ ElementTag.Earth, "Earth" }
 	};
 
-	private static readonly string[] TierLabels = { "", "+1 dmg", "imbue", "enhanced", "BURST!" };
-
-	// Opposing pair labels for the UI
-	private static readonly Dictionary<ElementTag, ElementTag> OppositionDisplay = new()
-	{
-		{ ElementTag.Fire,  ElementTag.Ice },
-		{ ElementTag.Ice,   ElementTag.Fire },
-		{ ElementTag.Storm, ElementTag.Earth },
-		{ ElementTag.Earth, ElementTag.Storm }
-	};
+	private static readonly string[] TierLabels = { "", "+1", "imbue", "enhanced", "BURST!" };
 
 	public override void _Ready()
 	{
-		// Panel styling
+		// Match SelectedUnitPanel: solid black, 2px expand margins
 		var style = new StyleBoxFlat
 		{
-			BgColor = new Color(0.08f, 0.08f, 0.12f, 0.85f),
-			CornerRadiusTopLeft = 6,
-			CornerRadiusTopRight = 6,
-			CornerRadiusBottomLeft = 6,
-			CornerRadiusBottomRight = 6,
-			ContentMarginLeft = 8,
-			ContentMarginRight = 8,
-			ContentMarginTop = 6,
-			ContentMarginBottom = 6
+			BgColor = new Color(0, 0, 0, 1),
+			ExpandMarginLeft = 2,
+			ExpandMarginTop = 2,
+			ExpandMarginRight = 2,
+			ExpandMarginBottom = 2
 		};
 		AddThemeStyleboxOverride("panel", style);
-		CustomMinimumSize = new Vector2(210, 0);
+
+		// Same width as SelectedUnitPanel
+		CustomMinimumSize = new Vector2(252, 0);
 
 		_container = new VBoxContainer();
-		_container.AddThemeConstantOverride("separation", 3);
-		AddChild(_container);
+		_container.AddThemeConstantOverride("separation", 4);
 
-		// Start hidden
+		// Add a margin container to match SelectedUnitPanel's internal padding
+		var margin = new MarginContainer();
+		margin.AddThemeConstantOverride("margin_left", 8);
+		margin.AddThemeConstantOverride("margin_right", 8);
+		margin.AddThemeConstantOverride("margin_top", 4);
+		margin.AddThemeConstantOverride("margin_bottom", 4);
+		AddChild(margin);
+		margin.AddChild(_container);
+
 		Visible = false;
 	}
 
 	// ════════════════════════════════════════════════════════════════
-	// PUBLIC API — called by GameRunner on unit selection change
+	// PUBLIC API
 	// ════════════════════════════════════════════════════════════════
 
-	/// <summary>
-	/// Show the attunement UI for this unit. Pass null to hide.
-	/// </summary>
 	public void ShowForUnit(Unit unit)
 	{
-		// Unbind old attunement events
 		UnbindAttunement();
-
 		_currentUnit = unit;
 
 		if (unit == null || unit.Attunement == null)
@@ -104,26 +91,18 @@ public partial class SchoolAttunementUI : PanelContainer
 		}
 
 		var school = unit.School;
-
-		// Only rebuild if the school changed
 		if (school != _currentSchool)
 		{
 			_currentSchool = school;
 			RebuildForSchool(school);
 		}
 
-		// Bind to this unit's attunement
 		if (school == CardSchool.Elementalist && unit.Attunement is ElementalAttunement elemAtt)
-		{
 			BindElementalist(elemAtt);
-		}
 
 		Visible = true;
 	}
 
-	/// <summary>
-	/// Force refresh all bars (call after burst, cast, decay).
-	/// </summary>
 	public void Refresh()
 	{
 		if (_boundAttunement != null)
@@ -131,24 +110,21 @@ public partial class SchoolAttunementUI : PanelContainer
 	}
 
 	// ════════════════════════════════════════════════════════════════
-	// REBUILD — clears everything and creates layout for a school
+	// REBUILD
 	// ════════════════════════════════════════════════════════════════
 
 	private void RebuildForSchool(CardSchool school)
 	{
-		// Clear all children
 		foreach (Node child in _container.GetChildren())
 			child.QueueFree();
 		_elementBars.Clear();
 		_stubLabel = null;
 
-		// Title
+		// Title — matches UnitNameLabel style (centered, default font)
 		_titleLabel = new Label
 		{
 			HorizontalAlignment = HorizontalAlignment.Center
 		};
-		_titleLabel.AddThemeFontSizeOverride("font_size", 12);
-		_titleLabel.AddThemeColorOverride("font_color", new Color(0.75f, 0.75f, 0.85f));
 		_container.AddChild(_titleLabel);
 
 		switch (school)
@@ -157,119 +133,100 @@ public partial class SchoolAttunementUI : PanelContainer
 				_titleLabel.Text = "Elemental Attunement";
 				BuildElementalistUI();
 				break;
-
-			// ── Future schools ──────────────────────────────────────
 			case CardSchool.Necromancer:
 				_titleLabel.Text = "Necromantic Binding";
-				BuildStubUI("Corpse & soul mechanics coming soon.");
+				BuildStubUI("Coming soon.");
 				break;
-
 			case CardSchool.Arcanist:
 				_titleLabel.Text = "Arcane Focus";
-				BuildStubUI("Spell amplification coming soon.");
+				BuildStubUI("Coming soon.");
 				break;
-
 			case CardSchool.Enchanter:
 				_titleLabel.Text = "Enchantment Weave";
-				BuildStubUI("Buff/debuff stacking coming soon.");
+				BuildStubUI("Coming soon.");
 				break;
-
 			case CardSchool.Tinker:
 				_titleLabel.Text = "Contraption Assembly";
-				BuildStubUI("Trap & turret grid coming soon.");
+				BuildStubUI("Coming soon.");
 				break;
-
 			default:
-				_titleLabel.Text = "Class Mechanic";
-				BuildStubUI("No special mechanic for this school.");
-				break;
+				Visible = false;
+				return;
 		}
 	}
 
 	// ════════════════════════════════════════════════════════════════
-	// ELEMENTALIST — 4 charge bars with opposition indicators
+	// ELEMENTALIST — uses ProgressBar rows like HP/Mana/Move bars
 	// ════════════════════════════════════════════════════════════════
 
 	private void BuildElementalistUI()
 	{
-		// Pair labels
-		var pairLabel1 = new Label
-		{
-			Text = "Fire ←→ Ice",
-			HorizontalAlignment = HorizontalAlignment.Center
-		};
-		pairLabel1.AddThemeFontSizeOverride("font_size", 9);
-		pairLabel1.AddThemeColorOverride("font_color", new Color(0.5f, 0.5f, 0.55f));
-		_container.AddChild(pairLabel1);
+		// Fire / Ice pair
+		CreateElementRow(ElementTag.Fire);
+		CreateElementRow(ElementTag.Ice);
 
-		CreateElementBar(ElementTag.Fire);
-		CreateElementBar(ElementTag.Ice);
-
-		// Separator
+		// Small separator
 		var sep = new HSeparator();
-		sep.CustomMinimumSize = new Vector2(0, 4);
+		sep.AddThemeConstantOverride("separation", 2);
 		_container.AddChild(sep);
 
-		var pairLabel2 = new Label
-		{
-			Text = "Storm ←→ Earth",
-			HorizontalAlignment = HorizontalAlignment.Center
-		};
-		pairLabel2.AddThemeFontSizeOverride("font_size", 9);
-		pairLabel2.AddThemeColorOverride("font_color", new Color(0.5f, 0.5f, 0.55f));
-		_container.AddChild(pairLabel2);
-
-		CreateElementBar(ElementTag.Storm);
-		CreateElementBar(ElementTag.Earth);
+		// Storm / Earth pair
+		CreateElementRow(ElementTag.Storm);
+		CreateElementRow(ElementTag.Earth);
 	}
 
-	private void CreateElementBar(ElementTag element)
+	private void CreateElementRow(ElementTag element)
 	{
-		var bar = new ElementBar { Element = element, BaseColor = ElementColors[element] };
+		var bar = new ElementBar { Element = element };
 
+		// Row layout: Label | ProgressBar | TierLabel
+		// Matches HealthRow/MoveRow/ManaRow pattern
 		var row = new HBoxContainer();
 		row.AddThemeConstantOverride("separation", 4);
 		_container.AddChild(row);
 
-		// Element name
+		// Element name label (fixed width, like "HP:" / "Mana:")
 		bar.NameLabel = new Label
 		{
-			Text = ElementNames[element],
-			CustomMinimumSize = new Vector2(40, 0)
+			Text = $"{ElementNames[element]}:",
+			CustomMinimumSize = new Vector2(48, 0),
+			HorizontalAlignment = HorizontalAlignment.Left
 		};
-		bar.NameLabel.AddThemeFontSizeOverride("font_size", 11);
-		bar.NameLabel.AddThemeColorOverride("font_color", ElementColors[element]);
 		row.AddChild(bar.NameLabel);
 
-		// Pips
-		var pipBox = new HBoxContainer();
-		pipBox.AddThemeConstantOverride("separation", 2);
-		row.AddChild(pipBox);
-
-		bar.Pips = new ColorRect[4];
-		for (int i = 0; i < 4; i++)
+		// Progress bar — same style as HealthBar/ManaBar
+		bar.Bar = new ProgressBar
 		{
-			var pip = new ColorRect
-			{
-				CustomMinimumSize = new Vector2(18, 12),
-				Color = new Color(0.15f, 0.15f, 0.2f)
-			};
-			pipBox.AddChild(pip);
-			bar.Pips[i] = pip;
-		}
+			CustomMinimumSize = new Vector2(80, 12),
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			MaxValue = 4,
+			Value = 0,
+			Step = 1,
+			ShowPercentage = false
+		};
 
-		// Tier label
+		// Color the fill to match the element
+		var fillStyle = new StyleBoxFlat
+		{
+			BgColor = BarFillColors[element]
+		};
+		bar.Bar.AddThemeStyleboxOverride("fill", fillStyle);
+
+		row.AddChild(bar.Bar);
+
+		// Tier label (right-aligned, shows threshold effect)
 		bar.TierLabel = new Label
 		{
 			Text = "",
-			CustomMinimumSize = new Vector2(60, 0)
+			CustomMinimumSize = new Vector2(56, 0),
+			HorizontalAlignment = HorizontalAlignment.Right
 		};
-		bar.TierLabel.AddThemeFontSizeOverride("font_size", 10);
-		bar.TierLabel.AddThemeColorOverride("font_color", ElementColors[element]);
 		row.AddChild(bar.TierLabel);
 
 		_elementBars[element] = bar;
 	}
+
+	// ── Binding ─────────────────────────────────────────────────────
 
 	private void BindElementalist(ElementalAttunement att)
 	{
@@ -289,6 +246,8 @@ public partial class SchoolAttunementUI : PanelContainer
 		}
 	}
 
+	// ── Events ──────────────────────────────────────────────────────
+
 	private void OnElementChargeChanged(ElementTag element, int newValue)
 	{
 		if (_elementBars.TryGetValue(element, out var bar))
@@ -299,21 +258,24 @@ public partial class SchoolAttunementUI : PanelContainer
 	{
 		if (!_elementBars.TryGetValue(element, out var bar)) return;
 
-		// Flash white
-		for (int i = 0; i < 4; i++)
-			bar.Pips[i].Color = new Color(1, 1, 1);
+		// Flash the bar white briefly
+		var flashStyle = new StyleBoxFlat { BgColor = Colors.White };
+		bar.Bar.AddThemeStyleboxOverride("fill", flashStyle);
 		bar.TierLabel.Text = "BURST!";
-		bar.TierLabel.AddThemeColorOverride("font_color", new Color(1, 1, 1));
 
-		// Tween back
 		var tween = CreateTween();
 		tween.TweenInterval(0.5f);
 		tween.TweenCallback(Callable.From(() =>
 		{
+			// Restore normal color
+			var restoreStyle = new StyleBoxFlat { BgColor = BarFillColors[element] };
+			bar.Bar.AddThemeStyleboxOverride("fill", restoreStyle);
 			if (_boundAttunement != null)
 				UpdateElementBar(bar, _boundAttunement.Charges[element]);
 		}));
 	}
+
+	// ── Rendering ───────────────────────────────────────────────────
 
 	private void RefreshElementalistBars()
 	{
@@ -325,26 +287,14 @@ public partial class SchoolAttunementUI : PanelContainer
 	private void UpdateElementBar(ElementBar bar, int charges)
 	{
 		charges = Math.Clamp(charges, 0, 4);
-		Color empty = new Color(0.15f, 0.15f, 0.2f);
-
-		float brightness = charges >= 3 ? 1.3f : charges >= 2 ? 1.1f : 1.0f;
-		Color bright = new Color(
-			Math.Min(1f, bar.BaseColor.R * brightness),
-			Math.Min(1f, bar.BaseColor.G * brightness),
-			Math.Min(1f, bar.BaseColor.B * brightness)
-		);
-
-		for (int i = 0; i < 4; i++)
-			bar.Pips[i].Color = i < charges ? bright : empty;
+		bar.Bar.Value = charges;
 
 		int tierIdx = charges >= 4 ? 4 : charges >= 3 ? 3 : charges >= 2 ? 2 : charges >= 1 ? 1 : 0;
 		bar.TierLabel.Text = TierLabels[tierIdx];
-		bar.TierLabel.AddThemeColorOverride("font_color",
-			charges >= 3 ? new Color(1, 1, 1) : bar.BaseColor);
 	}
 
 	// ════════════════════════════════════════════════════════════════
-	// STUB — placeholder for unimplemented schools
+	// STUB — placeholder for future schools
 	// ════════════════════════════════════════════════════════════════
 
 	private void BuildStubUI(string message)
@@ -352,11 +302,8 @@ public partial class SchoolAttunementUI : PanelContainer
 		_stubLabel = new Label
 		{
 			Text = message,
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			HorizontalAlignment = HorizontalAlignment.Center
 		};
-		_stubLabel.AddThemeFontSizeOverride("font_size", 10);
-		_stubLabel.AddThemeColorOverride("font_color", new Color(0.5f, 0.5f, 0.55f));
 		_container.AddChild(_stubLabel);
 	}
 
@@ -367,9 +314,8 @@ public partial class SchoolAttunementUI : PanelContainer
 	private class ElementBar
 	{
 		public ElementTag Element;
-		public Color BaseColor;
 		public Label NameLabel;
-		public ColorRect[] Pips;
+		public ProgressBar Bar;
 		public Label TierLabel;
 	}
 }
