@@ -6,13 +6,16 @@ public partial class DeckManager : Node2D
 {
     [Export] public int MaxHandSize = 5;
 
-    public Control DropSlotInstance { get; private set; }
-    private Control handUIContainer;
     private DeckUiManager uiManager;
+    private Control handUIContainer;
 
-    public List<Card> DrawPile = new();
-    public List<Card> DiscardPile = new();
-    public List<Card> Hand = new();
+    // The currently displayed unit's deck
+    private UnitDeckData _activeDeck;
+
+    // ── Public accessors (so existing code doesn't break) ───────
+    public List<Card> DrawPile  => _activeDeck?.DrawPile  ?? new();
+    public List<Card> Hand      => _activeDeck?.Hand      ?? new();
+    public List<Card> DiscardPile => _activeDeck?.DiscardPile ?? new();
 
     public override void _Ready()
     {
@@ -23,85 +26,72 @@ public partial class DeckManager : Node2D
         GD.Print(handUIContainer == null ? "HandUI is NULL" : "HandUI found");
     }
 
+    // ── Switch which unit's deck is displayed ───────────────────
+    public void SetActiveDeck(UnitDeckData deck)
+    {
+        _activeDeck = deck;
+        uiManager?.SafeRefreshUI();
+    }
+
+    public UnitDeckData GetActiveDeck() => _activeDeck;
+
+    // ── Deck operations (delegate to active deck) ───────────────
     public void InitializeDeck(List<Card> startingDeck)
     {
-        DrawPile = new List<Card>(startingDeck);
-        ShuffleDrawPile();
-        uiManager.SafeRefreshUI();
+        if (_activeDeck == null) return;
+        _activeDeck.Initialize(startingDeck);
+        uiManager?.SafeRefreshUI();
     }
 
     public List<Card> GenerateStartingDeck(CardSchool school, int count = 5)
     {
-        // ✅ No CardLoader, returns fresh instances
         return CardDatabase.BuildRandomDeck(school, count);
     }
 
     public void ShuffleDrawPile()
     {
-        var rand = new Random();
-        for (int i = DrawPile.Count - 1; i > 0; i--)
-        {
-            int j = rand.Next(i + 1);
-            (DrawPile[i], DrawPile[j]) = (DrawPile[j], DrawPile[i]);
-        }
+        _activeDeck?.Shuffle();
+        uiManager?.SafeRefreshUI();
     }
 
     public void DrawCards(int count)
     {
-        for (int i = 0; i < count; i++)
-        {
-            if (DrawPile.Count == 0 && DiscardPile.Count == 0)
-            {
-                GD.Print("No cards left to draw!");
-                return;
-            }
+        if (_activeDeck == null) return;
 
-            if (Hand.Count >= MaxHandSize)
-            {
-                GD.Print("Hand is full!");
-                return;
-            }
+        var drawn = _activeDeck.Draw(count);
+        foreach (var card in drawn)
+            GD.Print($"Drew card: {card.TopHalf?.Name ?? card.CardName} / {card.BottomHalf?.Name ?? ""}");
 
-            if (DrawPile.Count == 0) Reshuffle();
+        if (_activeDeck.Hand.Count >= _activeDeck.MaxHandSize && count > drawn.Count)
+            GD.Print("Hand is full!");
 
-            if (DrawPile.Count > 0)
-            {
-                var card = DrawPile[0];
-                DrawPile.RemoveAt(0);
-                Hand.Add(card);
-
-                GD.Print($"Drew card: {card.TopHalf?.Name ?? card.CardName} / {card.BottomHalf?.Name ?? ""}");
-            }
-        }
-        uiManager.SafeRefreshUI();
+        uiManager?.SafeRefreshUI();
     }
 
     public void RemoveCardFromHand(Card card)
     {
-        if (Hand.Remove(card))
+        if (_activeDeck == null) return;
+        if (_activeDeck.Hand.Remove(card))
             GD.Print($"Removed card: {card.TopHalf?.Name ?? card.CardName}");
-
-        uiManager.SafeRefreshUI();
+        uiManager?.SafeRefreshUI();
     }
 
     public void Reshuffle()
     {
-        DrawPile.AddRange(DiscardPile);
-        DiscardPile.Clear();
-        ShuffleDrawPile();
-        uiManager.SafeRefreshUI();
+        _activeDeck?.Reshuffle();
+        uiManager?.SafeRefreshUI();
     }
 
     public void DiscardCard(Card card)
     {
-        if (Hand.Remove(card))
-            DiscardPile.Add(card);
-
-        uiManager.SafeRefreshUI();
+        if (_activeDeck == null) return;
+        _activeDeck.Discard(card);
+        uiManager?.SafeRefreshUI();
     }
 
     public void PrintDeckState()
     {
-        GD.Print($"Draw: {DrawPile.Count}, Hand: {Hand.Count}, Discard: {DiscardPile.Count}");
+        if (_activeDeck == null) { GD.Print("No active deck."); return; }
+        GD.Print($"DeckManager state — Draw: {_activeDeck.DrawPile.Count}, Hand: {_activeDeck.Hand.Count}, Discard: {_activeDeck.DiscardPile.Count}");
     }
 }

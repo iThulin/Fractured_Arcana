@@ -48,6 +48,7 @@ public partial class Unit : Node3D
 
     // Runtime stats
     public Stats Stats = new Stats();
+    public UnitDeckData DeckData { get; set; }
     public TileData CurrentTile { get; private set; }
     private HealthBarRoot _healthBar;
 

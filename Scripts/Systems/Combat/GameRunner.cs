@@ -80,7 +80,7 @@ public partial class GameRunner : Node3D
             GD.PrintErr("DeckManager not found. Fix the node path in GameRunner.");
 
         if (deckManager != null)
-            CallDeferred(nameof(SyncDeckManagerToState));
+            CallDeferred(nameof(InitializeUnitDecks));
 
         dropper = GetNodeOrNull<CardDropHandler>("../CardDropHandler");
         if (dropper == null)
@@ -164,26 +164,24 @@ public partial class GameRunner : Node3D
         }
     }
 
-    private void SyncDeckManagerToState()
+    private void InitializeUnitDecks()
     {
-        if (deckManager == null) return;
+        foreach (var unit in playerUnits)
+        {
+            if (unit == null) continue;
 
-        // Build the deck using the school + size chosen on the class select screen
-        var startingDeck = deckManager.GenerateStartingDeck(
-            PlayerSession.SelectedSchool,
-            PlayerSession.DeckSize
-        );
-        deckManager.InitializeDeck(startingDeck);  // fills DrawPile and calls SafeRefreshUI
+            // Create deck data for this unit
+            unit.DeckData = new UnitDeckData(unit.School, 5);
+            unit.DeckData.Initialize(PlayerSession.DeckSize);
 
-        // Now sync the populated deck into GameState
-        State.LibraryA.Clear();
-        State.HandA.Clear();
+            GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards ({unit.School})");
+        }
 
-        foreach (var card in deckManager.DrawPile)
-            State.LibraryA.Add(card);
-
-        GD.Print($"Deck built: {deckManager.DrawPile.Count} cards ({PlayerSession.SelectedSchool})");
-        RefreshDeckCounts();
+        // Set the first unit's deck as active
+        if (playerUnits.Count > 0 && playerUnits[0].DeckData != null)
+        {
+            deckManager.SetActiveDeck(playerUnits[0].DeckData);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -242,7 +240,9 @@ public partial class GameRunner : Node3D
     {
         if (combatUI == null) return;
 
-        int mana = State.Mana.ContainsKey(Me) ? State.Mana[Me] : 0;
+        int mana = selectedUnit?.Stats.Mana ?? 0;
+        if (State.Mana.ContainsKey(Me))
+            State.Mana[Me] = mana;
 
         // Priority: deployment selection → player selection → inspected enemy
         Unit unitToShow = isInDeploymentPhase
@@ -433,14 +433,13 @@ public partial class GameRunner : Node3D
         if (unit == null || !unit.IsPlayerControlled) return;
 
         if (selectedUnit != null) selectedUnit.SetSelected(false);
-        if (inspectedEnemyUnit != null)               
-        {                                             
-            inspectedEnemyUnit.SetSelected(false);    
-            inspectedEnemyUnit = null;                
-        } 
+        if (inspectedEnemyUnit != null)
+        {
+            inspectedEnemyUnit.SetSelected(false);
+            inspectedEnemyUnit = null;
+        }
 
-        selectedUnit       = unit;
-        inspectedEnemyUnit = null;    // clear any enemy inspection
+        selectedUnit = unit;
         selectedUnit.SetSelected(true);
 
         ClearMoveTiles();
@@ -449,9 +448,24 @@ public partial class GameRunner : Node3D
             currentMoveTiles.Add(coord);
         ShowMoveTiles(currentMoveTiles);
 
+        // ── Swap deck to this unit's deck ──
+        if (unit.DeckData != null && deckManager != null)
+        {
+            deckManager.SetActiveDeck(unit.DeckData);
+            deckManager.PrintDeckState();
+        }
+
+        // ── Swap attunement UI ──
+        schoolAttunementUI?.ShowForUnit(selectedUnit);
+
+        // ── Sync mana for this unit ──
+        if (State.Mana.ContainsKey(Me))
+            State.Mana[Me] = unit.Stats.Mana;
+
         RefreshSelectedUnitUI();
         RefreshPlayerUnitBar();
-        schoolAttunementUI?.ShowForUnit(selectedUnit);
+        RefreshDeckCounts();
+
         GD.Print($"Selected: {unit.Name}  move={unit.Stats.MovePoints}/{unit.Stats.BaseSpeed}  reachable={reachable.Count}");
     }
 
@@ -507,20 +521,24 @@ public partial class GameRunner : Node3D
             unit.StartTurn();
             unit.TickStatuses();
             unit.Attunement?.Decay();
+
+            // Draw cards for EVERY living wizard
+            if (unit.DeckData != null)
+            {
+                var drawn = unit.DeckData.DrawToFull();
+                foreach (var card in drawn)
+                    GD.Print($"[{unit.Name}] Drew: {card.TopHalf?.Name ?? card.CardName}");
+            }
         }
 
-        // Hazardous tile damage (fire, lava)
+        // Hazardous tile damage
         ApplyHazardDamage(playerUnits);
 
-        // Sync mana back to GameState so card costs check the right value
-        if (playerUnit != null)
-        {
-            State.Mana[Me] = playerUnit.Stats.Mana;
-            playerUnit.SyncManaToBar();
-        }
-
-        // Autoselect the first alive player unit at the start of the turn
+        // Auto-select first living unit (shows their hand + attunement)
         selectedUnit = null;
+        inspectedEnemyUnit = null;
+        ClearMoveTiles();
+
         foreach (var unit in playerUnits)
         {
             if (unit != null && IsInstanceValid(unit) && unit.Stats.IsAlive)
@@ -529,18 +547,6 @@ public partial class GameRunner : Node3D
                 break;
             }
         }
-        inspectedEnemyUnit = null;
-        ClearMoveTiles();
-
-            // Draw up to hand size at the start of each player turn
-        if (deckManager != null)
-        {
-            int cardsToDraw = deckManager.MaxHandSize - deckManager.Hand.Count;
-            if (cardsToDraw > 0)
-                deckManager.DrawCards(cardsToDraw);
-        }
-
-        GD.Print($"DeckManager state — Draw: {deckManager?.DrawPile.Count}, Hand: {deckManager?.Hand.Count}");
 
         GD.Print($"=== Round {roundNumber}: Player Turn ===");
         combatUI?.ClearActionLog();
@@ -1068,7 +1074,7 @@ public partial class GameRunner : Node3D
                 RefreshAllUI();
             }
 
-            // Resolve teh stack immediatly
+            // Resolve the stack immediatly
             while (!State.Stack.IsEmpty)
                 State.Resolver.ResolveTop(State);
             
@@ -1083,7 +1089,8 @@ public partial class GameRunner : Node3D
 
             if (playerUnit != null)
             {
-                playerUnit.Stats.Mana = State.Mana[Me];
+                if (selectedUnit != null)
+                    State.Mana[Me] = selectedUnit.Stats.Mana;
                 playerUnit.SyncManaToBar();
             }
             RefreshSelectedUnitUI();
