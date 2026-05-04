@@ -164,6 +164,8 @@ public partial class CardUi : Control
         bottomArea.MouseExited += OnCardMaybeExit;
         topArea.GuiInput += (e) => OnCardGuiInput(e, true);
         bottomArea.GuiInput += (e) => OnCardGuiInput(e, false);
+        bottomArea.MouseEntered += () => { _lastHoveredTop = false; OnCardEnter(); EmitSignal(SignalName.CardHalfHovered, this, _lastHoveredTop, true); };
+        topArea.MouseEntered += () => { _lastHoveredTop = true; OnCardEnter(); EmitSignal(SignalName.CardHalfHovered, this, _lastHoveredTop, true); };
 
         // Start off-screen for draw-in animation
         Position = _originalPosition + new Vector2(0, 300f);
@@ -737,9 +739,6 @@ public partial class CardUi : Control
                 GetViewport().SetInputAsHandled();
             }
         }
-
-        bottomArea.MouseEntered += () => { _lastHoveredTop = false; OnCardEnter(); EmitSignal(SignalName.CardHalfHovered, this, _lastHoveredTop, true); };
-        topArea.MouseEntered += () => { _lastHoveredTop = true; OnCardEnter(); EmitSignal(SignalName.CardHalfHovered, this, _lastHoveredTop, true); };
     }
 
     private void PlayGrabAnimation()

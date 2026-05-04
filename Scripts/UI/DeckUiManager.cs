@@ -85,6 +85,7 @@ public partial class DeckUiManager : Node2D
 					cardUi.SetCard(card);
 					cardUi.SetDeckUiManager(this);
 					cardUi.CardDropped += () => PositionHandCards();
+					cardUi.CardHalfHovered += OnCardHalfHovered;
 					handUIContainer.AddChild(cardUi);
 				}
 			}
@@ -129,6 +130,7 @@ public partial class DeckUiManager : Node2D
 					cardUi.SetCard(card);
 					cardUi.SetDeckUiManager(this);
 					cardUi.CardDropped += () => PositionHandCards();
+					cardUi.CardHalfHovered += OnCardHalfHovered;
 					handUIContainer.AddChild(cardUi);
 				}
 			}
