@@ -3,9 +3,11 @@ using System;
 
 public partial class HexTile : Node3D
 {
+    // Configurable properties
     [Export] public Color HoverColor = new Color(1.0f, 0.9f, 0.4f);
     [Export] public bool ShowDebugInfo = true;
 
+    // Cached nodes and materials
     private MeshInstance3D meshInstance;
     private StandardMaterial3D material;
     private Label3D coordLabel;
@@ -13,15 +15,19 @@ public partial class HexTile : Node3D
 
     public Vector2I Axial { get; set; }
 
+    // Highlighting states
+    private bool _isHighlighted = false;
+    private Color _preHighlightColor;
     private bool deploymentHighlighted = false;
     private Color deploymentColor = new Color(0.2f, 1.0f, 0.2f, 1f);
-
     private bool moveHighlighted = false;
     private Color moveHighlightColor = new Color(0.2f, 0.6f, 1.0f, 1f);
-
     private bool targetHighlighted = false;
-    private Color targetHighlightColor = new Color(1.0f, 0.4f, 0.4f, 1f); // red-orange for enemies
-    // or new Color(0.4f, 1.0f, 0.9f, 1f) for a teal neutral highlight
+    private Color targetHighlightColor = new Color(1.0f, 0.4f, 0.4f, 1f); 
+    private bool rangeHighlighted = false;
+    private bool rangeBorderHighlighted = false;
+    private Color rangeColor = new Color(1.0f, 0.7f, 0.3f, 1f);
+    private Color rangeBorderColor = new Color(1.0f, 0.5f, 0.1f, 1f);
 
     public override void _Ready()
     {
@@ -44,28 +50,29 @@ public partial class HexTile : Node3D
 
     private void OnMouseEntered()
     {
-        if (material == null)
-            return;
-
-        Color c = baseColor;
-
-        if (deploymentHighlighted)
-            c = c.Lerp(deploymentColor, 0.45f);
-
-        if (moveHighlighted)
-            c = c.Lerp(moveHighlightColor, 0.45f);
-
-        if (targetHighlighted) 
-            c = c.Lerp(targetHighlightColor, 0.5f);
-
+        if (material == null) return;
+        // Blend hover on top of current color (highlight override or base)
+        Color c = material.AlbedoColor;
         c = c.Lerp(HoverColor, 0.5f);
-
         material.AlbedoColor = c;
     }
 
     private void OnMouseExited()
     {
-        RefreshVisualState();
+        // Restore to either the highlight override or base visual state
+        if (_isHighlighted)
+        {
+            if (rangeBorderHighlighted)
+                material.AlbedoColor = rangeBorderColor;
+            else if (rangeHighlighted)
+                material.AlbedoColor = rangeColor;
+            else if (targetHighlighted)
+                material.AlbedoColor = targetHighlightColor;
+        }
+        else
+        {
+            RefreshVisualState();
+        }
     }
 
     public void SetMaterial(Material newMaterial)
@@ -149,25 +156,60 @@ public partial class HexTile : Node3D
     public void SetTargetHighlight(bool enabled)
     {
         targetHighlighted = enabled;
-        RefreshVisualState();
+
+        if (enabled && !_isHighlighted)
+        {
+            _preHighlightColor = material.AlbedoColor;
+            _isHighlighted = true;
+        }
+        else if (!enabled && _isHighlighted)
+        {
+            _isHighlighted = false;
+            material.AlbedoColor = _preHighlightColor;
+            return;
+        }
+
+        if (enabled)
+            material.AlbedoColor = targetHighlightColor;
+    }
+
+    public void SetRangeHighlight(bool interior, bool border)
+    {
+        rangeHighlighted = interior;
+        rangeBorderHighlighted = border;
+
+        if ((interior || border) && !_isHighlighted)
+        {
+            // Save current color before overriding
+            _preHighlightColor = material.AlbedoColor;
+            _isHighlighted = true;
+        }
+        else if (!interior && !border && _isHighlighted)
+        {
+            // Restore saved color
+            _isHighlighted = false;
+            material.AlbedoColor = _preHighlightColor;
+            return;
+        }
+
+        if (material == null) return;
+
+        if (border)
+            material.AlbedoColor = rangeBorderColor;
+        else if (interior)
+            material.AlbedoColor = rangeColor;
     }
 
     public void RefreshVisualState()
     {
-        if (material == null)
-            return;
+        if (material == null) return;
+
+        // If highlighted, don't lerp — the override color is already set directly
+        if (_isHighlighted) return;
 
         Color finalColor = baseColor;
-
-        if (deploymentHighlighted)
-            finalColor = finalColor.Lerp(deploymentColor, 0.45f);
-
-        if (moveHighlighted)
-            finalColor = finalColor.Lerp(moveHighlightColor, 0.45f);
-
-        if (targetHighlighted)
-            finalColor = finalColor.Lerp(targetHighlightColor, 0.5f);
-
+        if (deploymentHighlighted) finalColor = finalColor.Lerp(deploymentColor, 0.45f);
+        if (moveHighlighted) finalColor = finalColor.Lerp(moveHighlightColor, 0.45f);
         material.AlbedoColor = finalColor;
     }
 

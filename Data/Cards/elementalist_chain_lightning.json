@@ -27,38 +27,39 @@
 					}
 				}
 			]
-	},
-	"channel": {
-		"name": "Chain Lightning (Channel)",
-		"mana": 3,
-		"speed": "Reaction",
-		"rules_text": "Channel: Each strike also imbues the target's tile with Storm",
-		"tags": ["storm"],
-		"targeting": { "type": "tile", "range": 4, "los": true },
-		"effect": {
-			"type": "sequence",
-			"steps": [
-				{ "type": "damage", "amount": 5 },
-				{ "type": "imbue_tile", "element": "storm" },
-				{ "type": "retarget",
-					"targeting": {"type": "nearest_to_target", "range":2},
-					"do": { "type": "sequence",
-						"steps": [
-							{"type": "damage", "amount": 4},
-							{"type": "imbue_tile", "element": "storm"},
-							{"type": "retarget",
-								"targeting": {"type": "nearest_to_target", "range":2},
-								"do": { "type": "sequence",
-									"steps": [
-										{"type": "damage", "amount": 2},
-										{"type": "imbue_tile", "element": "storm"}
-									]
+		},
+		"channel": {
+			"name": "Chain Lightning (Channel)",
+			"mana": 3,
+			"speed": "Reaction",
+			"rules_text": "Channel: Each strike also imbues the target's tile with Storm",
+			"tags": ["storm"],
+			"targeting": { "type": "tile", "range": 4, "los": true },
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{ "type": "damage", "amount": 5 },
+					{ "type": "imbue_tile", "element": "storm" },
+					{ "type": "retarget",
+						"targeting": {"type": "nearest_to_target", "range":2},
+						"do": { "type": "sequence",
+							"steps": [
+								{"type": "damage", "amount": 4},
+								{"type": "imbue_tile", "element": "storm"},
+								{"type": "retarget",
+									"targeting": {"type": "nearest_to_target", "range":2},
+									"do": { "type": "sequence",
+										"steps": [
+											{"type": "damage", "amount": 2},
+											{"type": "imbue_tile", "element": "storm"}
+										]
+									}
 								}
-							}
-						]
+							]
+						}
 					}
-				}
-	  		]
+				]
+			}
 		}
 	},
 	"bottom": {
@@ -88,7 +89,6 @@
 					{ "type": "damage", "amount": 2 },
 					{ "type": "push_damage", "tiles": 2, "damage_per_tile": 2 }
 				]
-				}
 			}
 		}
 	}

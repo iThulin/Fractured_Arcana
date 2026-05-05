@@ -1274,11 +1274,13 @@ public partial class GameRunner : Node3D
 
     private void OnCardHalfHovered(CardUi cardUi, bool isTop, bool isEntering)
     {
+        GD.Print($"[Highlight] OnCardHalfHovered: phase={currentPhase} isEntering={isEntering} card={cardUi?.Name}");
         if (currentPhase != CombatPhase.PlayerTurn) return;
 
         if (isEntering)
         {
             var half = isTop ? cardUi.TopHalf : cardUi.BottomHalf;
+            GD.Print($"[Highlight] Showing highlight for half={half?.Name} targeting={half?.Targeting?.GetType().Name}");
             ShowTargetHighlight(half);
         }
         else
@@ -1453,9 +1455,10 @@ public partial class GameRunner : Node3D
         if (half == null || selectedUnit == null || grid == null) return;
 
         _lastHighlightedHalf = half;
-        var highlightCoords = GetValidTargetCoords(half);
+        var enemyCoords = GetValidTargetCoords(half); // now also sets range highlights internally
 
-        foreach (var coord in highlightCoords)
+        // Target highlights go on top of range highlights for enemy tiles
+        foreach (var coord in enemyCoords)
         {
             _targetHighlightTiles.Add(coord);
             grid.GetTileView(coord)?.SetTargetHighlight(true);
@@ -1465,7 +1468,11 @@ public partial class GameRunner : Node3D
     private void ClearTargetHighlight()
     {
         foreach (var coord in _targetHighlightTiles)
-            grid.GetTileView(coord)?.SetTargetHighlight(false);
+        {
+            var tileView = grid.GetTileView(coord);
+            tileView?.SetTargetHighlight(false);
+            tileView?.SetRangeHighlight(false, false); // clear both interior and border
+        }
         _targetHighlightTiles.Clear();
         _lastHighlightedHalf = null;
     }
@@ -1481,31 +1488,59 @@ public partial class GameRunner : Node3D
         // Determine range from targeter type and highlight accordingly
         if (targeter is SelectUnitTarget ut)
         {
-            // Highlight tiles with enemies in range
+            int spellRange = ut.range;
+
+            // Highlight interior tiles (within range)
+            foreach (var kvp in grid.Tiles)
+            {
+                int dist = grid.Distance(center, kvp.Key);
+                if (dist <= spellRange)
+                {
+                    _targetHighlightTiles.Add(kvp.Key);
+                    grid.GetTileView(kvp.Key)?.SetRangeHighlight(
+                        interior: dist < spellRange,   // subtle tint inside
+                        border: dist == spellRange      // strong ring at edge
+                    );
+                }
+            }
+
+            // Highlight valid enemy targets on top of range
             foreach (var unit in State.UnitsInPlay)
             {
                 if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
                 if (ut.enemyOnly && unit.TeamId == 0) continue;
-                if (grid.Distance(center, unit.CurrentTile.Axial) <= ut.range)
-                    coords.Add(unit.CurrentTile.Axial);
+                coords.Add(unit.CurrentTile.Axial);
             }
+
+            return coords; // return early — we handled tile highlighting directly
         }
         else if (targeter is SelectTileTarget tt)
         {
-            // Highlight all tiles in range
+            // Show all tiles in range
             foreach (var kvp in grid.Tiles)
             {
-                if (grid.Distance(center, kvp.Key) <= tt.range)
-                    coords.Add(kvp.Key);
+                int dist = grid.Distance(center, kvp.Key);
+                if (dist <= tt.range)
+                {
+                    _targetHighlightTiles.Add(kvp.Key);
+                    grid.GetTileView(kvp.Key)?.SetRangeHighlight(
+                        interior: dist < tt.range,
+                        border: dist == tt.range
+                    );
+                }
             }
         }
         else if (targeter is SelectAreaTarget at)
         {
-            // Highlight tiles in AoE radius
+            // Show AoE radius centered on caster
             foreach (var kvp in grid.Tiles)
             {
-                if (grid.Distance(center, kvp.Key) <= at.Radius)
-                    coords.Add(kvp.Key);
+                int dist = grid.Distance(center, kvp.Key);
+                if (dist <= at.Radius)
+                {
+                    _targetHighlightTiles.Add(kvp.Key);
+                    grid.GetTileView(kvp.Key)?.SetTargetHighlight(true); // full fill for AoE
+                }
             }
         }
         else if (targeter is SelectSelfTarget || targeter is SelectGlobalTarget)
@@ -1530,26 +1565,106 @@ public partial class GameRunner : Node3D
         }
         else if (targeter is SelectConeTarget ct)
         {
-            // Highlight cone in direction of nearest enemy as preview
-            Unit nearest = null;
-            int nearestDist = int.MaxValue;
+            var hexDirs = new Vector2I[]
+            {
+                new(1, 0), new(1, -1), new(0, -1),
+                new(-1, 0), new(-1, 1), new(0, 1)
+            };
+
+            foreach (var dir in hexDirs)
+            {
+                // Only highlight the spine (center column) of each cone direction
+                for (int step = 1; step <= ct.Range; step++)
+                {
+                    var coord = center + dir * step;
+                    var tileData = grid.GetTile(coord);
+                    if (tileData == null) continue;
+
+                    bool isTip = step == ct.Range;
+                    _targetHighlightTiles.Add(coord);
+                    grid.GetTileView(coord)?.SetRangeHighlight(
+                        interior: !isTip,
+                        border: isTip
+                    );
+                }
+            }
+
+            // Highlight valid targets on top
             foreach (var unit in State.UnitsInPlay)
             {
                 if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-                if (unit.TeamId == 0) continue;
-                int dist = grid.Distance(center, unit.CurrentTile.Axial);
-                if (dist < nearestDist) { nearestDist = dist; nearest = unit; }
+                if (ct.EnemiesOnly && unit.TeamId == 0) continue;
+                coords.Add(unit.CurrentTile.Axial);
             }
-            if (nearest != null)
+        }
+        else if (targeter is SelectLineTarget lt)
+        {
+            // Show all 6 possible line directions at this length
+            var hexDirs = new Vector2I[]
             {
-                // Let the targeter build the cone
-                State.RetargetOrigin = new TargetSet();
-                State.RetargetOrigin.Items.Add(nearest);
-                if (ct.Select(State, Me, out var ts))
-                    foreach (var obj in ts.Items)
-                        if (obj is Unit u && u.CurrentTile != null)
-                            coords.Add(u.CurrentTile.Axial);
-                State.RetargetOrigin = null;
+                new(1, 0), new(1, -1), new(0, -1),
+                new(-1, 0), new(-1, 1), new(0, 1)
+            };
+
+            foreach (var dir in hexDirs)
+            {
+                for (int step = 1; step <= lt.Length; step++)
+                {
+                    var coord = center + dir * step;
+                    var tileData = grid.GetTile(coord);
+                    if (tileData == null) continue; // off-grid
+
+                    bool isTip = step == lt.Length;
+                    _targetHighlightTiles.Add(coord);
+                    grid.GetTileView(coord)?.SetRangeHighlight(
+                        interior: !isTip,
+                        border: isTip
+                    );
+                }
+            }
+
+            // Highlight valid targets on top
+            foreach (var unit in State.UnitsInPlay)
+            {
+                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
+                if (lt.EnemiesOnly && unit.TeamId == 0) continue;
+                coords.Add(unit.CurrentTile.Axial);
+            }
+        }
+        else if (targeter is SelectRingTarget rt)
+        {
+            // Show the ring at the exact radius — this is what the spell targets
+            foreach (var kvp in grid.Tiles)
+            {
+                int dist = grid.Distance(center, kvp.Key);
+
+                if (dist == rt.Radius)
+                {
+                    _targetHighlightTiles.Add(kvp.Key);
+                    grid.GetTileView(kvp.Key)?.SetRangeHighlight(
+                        interior: false,
+                        border: true  // all ring tiles are the border
+                    );
+                }
+                else if (dist < rt.Radius)
+                {
+                    // Subtle interior tint so the player can see the ring's context
+                    _targetHighlightTiles.Add(kvp.Key);
+                    grid.GetTileView(kvp.Key)?.SetRangeHighlight(
+                        interior: true,
+                        border: false
+                    );
+                }
+            }
+
+            // Highlight any valid targets on the ring
+            foreach (var unit in State.UnitsInPlay)
+            {
+                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
+                if (rt.IncludeTiles) continue; // tile-only targeting, no unit highlights
+                int dist = grid.Distance(center, unit.CurrentTile.Axial);
+                if (dist == rt.Radius)
+                    coords.Add(unit.CurrentTile.Axial);
             }
         }
 
