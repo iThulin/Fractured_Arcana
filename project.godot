@@ -18,11 +18,15 @@ config/name="Fractured Arcana"
 run/main_scene="uid://dlf17diyfxvc"
 config/features=PackedStringArray("4.6", "C#", "GL Compatibility")
 
+[autoload]
+
+SettingsManager="*res://Scripts/Systems/SettingsManager.cs"
+
 [display]
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
-window/stretch/mode="viewport"
+window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
 [dotnet]
@@ -36,7 +40,7 @@ version_control/autoload_on_startup=true
 
 [global]
 
-autoload=false
+autoload=true
 
 [input]
 

@@ -1,0 +1,181 @@
+[gd_scene format=3 uid="uid://d1lci1kx7pcqm"]
+
+[ext_resource type="Script" uid="uid://gpi58f28rb45" path="res://Scripts/UI/SettingsMenu.cs" id="1_set"]
+
+[node name="SettingsMenu" type="Control" unique_id=2100535447]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_set")
+
+[node name="Background" type="ColorRect" parent="." unique_id=652550764]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.055, 0.055, 0.09, 1)
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=1501351906]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="Margin" unique_id=1286034846]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="TopBar" type="HBoxContainer" parent="Margin/VBox" unique_id=1068503692]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="BackButton" type="Button" parent="Margin/VBox/TopBar" unique_id=1716192861]
+custom_minimum_size = Vector2(100, 40)
+layout_mode = 2
+text = "← Back"
+
+[node name="Title" type="Label" parent="Margin/VBox/TopBar" unique_id=1431178919]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Margin/VBox/TopBar" unique_id=174990390]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+
+[node name="SettingsPanelWrapper" type="CenterContainer" parent="Margin/VBox" unique_id=6291601]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Settings" type="VBoxContainer" parent="Margin/VBox/SettingsPanelWrapper" unique_id=1964420548]
+custom_minimum_size = Vector2(640, 0)
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="DisplayHeader" type="Label" parent="Margin/VBox/SettingsPanelWrapper/Settings" unique_id=805812675]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Display"
+
+[node name="ResolutionRow" type="HBoxContainer" parent="Margin/VBox/SettingsPanelWrapper/Settings" unique_id=217521126]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ResolutionLabel" type="Label" parent="Margin/VBox/SettingsPanelWrapper/Settings/ResolutionRow" unique_id=1623334393]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+text = "Resolution"
+
+[node name="ResolutionDropdown" type="OptionButton" parent="Margin/VBox/SettingsPanelWrapper/Settings/ResolutionRow" unique_id=1757192839]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WindowModeRow" type="HBoxContainer" parent="Margin/VBox/SettingsPanelWrapper/Settings" unique_id=1132380840]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="WindowModeLabel" type="Label" parent="Margin/VBox/SettingsPanelWrapper/Settings/WindowModeRow" unique_id=1540661502]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+text = "Window Mode"
+
+[node name="WindowModeDropdown" type="OptionButton" parent="Margin/VBox/SettingsPanelWrapper/Settings/WindowModeRow" unique_id=1686329735]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VSyncRow" type="HBoxContainer" parent="Margin/VBox/SettingsPanelWrapper/Settings" unique_id=1801730410]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="VSyncLabel" type="Label" parent="Margin/VBox/SettingsPanelWrapper/Settings/VSyncRow" unique_id=1628715312]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+text = "VSync"
+
+[node name="VSyncCheck" type="CheckBox" parent="Margin/VBox/SettingsPanelWrapper/Settings/VSyncRow" unique_id=501290641]
+layout_mode = 2
+text = "Enabled"
+
+[node name="InterfaceSpacer" type="Control" parent="Margin/VBox/SettingsPanelWrapper/Settings" unique_id=299469357]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="InterfaceHeader" type="Label" parent="Margin/VBox/SettingsPanelWrapper/Settings" unique_id=92490733]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Interface"
+
+[node name="UIScaleRow" type="HBoxContainer" parent="Margin/VBox/SettingsPanelWrapper/Settings" unique_id=1567608445]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="UIScaleLabel" type="Label" parent="Margin/VBox/SettingsPanelWrapper/Settings/UIScaleRow" unique_id=738210821]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+text = "UI Scale"
+
+[node name="UIScaleSlider" type="HSlider" parent="Margin/VBox/SettingsPanelWrapper/Settings/UIScaleRow" unique_id=138456260]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.75
+max_value = 1.5
+step = 0.05
+value = 1.0
+
+[node name="UIScaleValue" type="Label" parent="Margin/VBox/SettingsPanelWrapper/Settings/UIScaleRow" unique_id=1552494854]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+
+[node name="AudioSpacer" type="Control" parent="Margin/VBox/SettingsPanelWrapper/Settings" unique_id=242821749]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="AudioHeader" type="Label" parent="Margin/VBox/SettingsPanelWrapper/Settings" unique_id=74544782]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Audio"
+
+[node name="VolumeRow" type="HBoxContainer" parent="Margin/VBox/SettingsPanelWrapper/Settings" unique_id=1371055402]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="VolumeLabel" type="Label" parent="Margin/VBox/SettingsPanelWrapper/Settings/VolumeRow" unique_id=854474832]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+text = "Master Volume"
+
+[node name="VolumeSlider" type="HSlider" parent="Margin/VBox/SettingsPanelWrapper/Settings/VolumeRow" unique_id=1149838336]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.05
+value = 1.0
+
+[node name="VolumeValue" type="Label" parent="Margin/VBox/SettingsPanelWrapper/Settings/VolumeRow" unique_id=1944267600]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
