@@ -154,7 +154,7 @@ public class AvatarAuraEffect : PersistentEffect
                 tile.ElementType = element;
                 tile.ElementStrength = 1.0f;
                 if (element == TileElementType.Fire) tile.IsHazardous = true;
-                s.Grid.ApplyVisualToTile(tile);
+                tile.TileView?.SetElement(element);
                 s.Log($"[Avatar] Imbued {tile.Axial} with {element}.");
             }
         }

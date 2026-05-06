@@ -306,7 +306,7 @@ public sealed class ImbuePathEffect : EffectBase
             leftTile.ElementStrength = 1.0f;
             if (Element.ToLowerInvariant() == "fire")
                 leftTile.IsHazardous = true;
-            s.Grid.ApplyVisualToTile(leftTile);
+            leftTile.TileView?.SetElement(elementType);
             tilesImbued++;
             s.Log($"[ImbuePath] {leftTile.Axial} imbued with {Element}.");
         };
@@ -322,7 +322,7 @@ public sealed class ImbuePathEffect : EffectBase
         {
             casterUnit.CurrentTile.ElementType = elementType;
             casterUnit.CurrentTile.ElementStrength = 1.0f;
-            s.Grid.ApplyVisualToTile(casterUnit.CurrentTile);
+            casterUnit.CurrentTile.TileView?.SetElement(elementType);
             tilesImbued++;
         }
 
@@ -379,7 +379,7 @@ public sealed class PrimordialSurgeEffect : EffectBase
             tile.ElementStrength = 1.0f;
             if (element == TileElementType.Fire)
                 tile.IsHazardous = true;
-            s.Grid.ApplyVisualToTile(tile);
+            tile.TileView?.SetElement(element);
             imbued++;
         }
 
@@ -447,7 +447,7 @@ public sealed class CataclysmEffect : EffectBase
             tile.ElementType = TileElementType.None;
             tile.ElementStrength = 0f;
             tile.IsHazardous = false;
-            s.Grid.ApplyVisualToTile(tile);
+            tile.TileView?.SetElement(TileElementType.None);
             destroyed++;
         }
 
@@ -520,7 +520,7 @@ public sealed class RagnarokEffect : EffectBase
             tile.ElementType = TileElementType.None;
             tile.ElementStrength = 0f;
             tile.IsHazardous = false;
-            s.Grid.ApplyVisualToTile(tile);
+            tile.TileView?.SetElement(TileElementType.None);
             purged++;
         }
         s.Log($"[Ragnarok] Purged {purged} imbued tiles.");
@@ -579,7 +579,7 @@ public sealed class ElementalConvergenceEffect : EffectBase
             tile.ElementStrength = 1.0f;
             if (element == TileElementType.Fire)
                 tile.IsHazardous = true;
-            s.Grid.ApplyVisualToTile(tile);
+            tile.TileView?.SetElement(element);
             imbued++;
         }
 
@@ -636,7 +636,7 @@ public sealed class ImbueAreaEffect : EffectBase
             tile.ElementStrength = 1.0f;
             if (elementType == TileElementType.Fire)
                 tile.IsHazardous = true;
-            s.Grid.ApplyVisualToTile(tile);
+            tile.TileView?.SetElement(elementType);
             imbued++;
         }
 
@@ -944,7 +944,7 @@ public sealed class ConsumeElementTileEffect : EffectBase
         targetTile.ElementType = TileElementType.None;
         targetTile.ElementStrength = 0f;
         targetTile.IsHazardous = false;
-        s.Grid.ApplyVisualToTile(targetTile);
+        targetTile.TileView?.SetElement(TileElementType.None);
         s.Log($"[ConsumeTile] Consumed {Element} tile at {center}.");
 
         // Deal damage to enemies within radius
@@ -1008,7 +1008,7 @@ public sealed class AvatarTransformEffect : EffectBase
             if (leftTile == null || s?.Grid == null) return;
             leftTile.ElementType = elements[rng.Next(elements.Length)];
             leftTile.ElementStrength = 1.0f;
-            s.Grid.ApplyVisualToTile(leftTile);
+            leftTile.TileView?.SetElement(leftTile.ElementType);
             s.Log($"[Avatar] Trail imbued {leftTile.Axial} with {leftTile.ElementType}.");
         };
 

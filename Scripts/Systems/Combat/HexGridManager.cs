@@ -622,21 +622,6 @@ public partial class HexGridManager : Node3D
                 break;
         }
 
-        switch (tile.ElementType)
-        {
-            case TileElementType.Fire:
-                color = color.Lerp(new Color(1f, 0.3f, 0.1f), 0.4f);
-                break;
-
-            case TileElementType.Arcane:
-                color = color.Lerp(new Color(0.7f, 0.2f, 1f), 0.4f);
-                break;
-
-            case TileElementType.Frost:
-                color = color.Lerp(new Color(0.8f, 0.95f, 1f), 0.4f);
-                break;
-        }
-
         if (terrainMaterial != null)
             tile.TileView.SetMaterial(terrainMaterial);
 
@@ -650,6 +635,7 @@ public partial class HexGridManager : Node3D
             color = color.Lerp(new Color(1.0f, 0.3f, 0.3f), 0.35f);
 
         tile.TileView.SetBaseColor(color);
+        tile.TileView.SetElement(tile.ElementType);
     }
 
     private void ApplyTileVisuals()

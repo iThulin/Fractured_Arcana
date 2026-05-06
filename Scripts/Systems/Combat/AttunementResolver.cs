@@ -57,7 +57,7 @@ public static class AttunementResolver
 						tile.ElementType = tileElement;
 						tile.ElementStrength = 1.0f;
 						if (element == ElementTag.Fire) tile.IsHazardous = true;
-						state.Grid?.ApplyVisualToTile(tile);
+						tile.TileView?.SetElement(tileElement);
 						log.Add($"[Attunement] Auto-imbued {tile.Axial} with {element}");
 					}
 				}

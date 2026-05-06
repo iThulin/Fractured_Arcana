@@ -2,11 +2,6 @@ using Godot;
 
 /// <summary>
 /// Pause menu overlay controller.
-/// 
-/// FIX vs previous version: MoveChild calls inside OnInlinePanelClosed are now
-/// deferred. TreeExited fires while Godot has the parent locked (mid-removal),
-/// so calling MoveChild synchronously throws "Parent node is busy". CallDeferred
-/// runs it on the next idle frame when the lock is released.
 /// </summary>
 public partial class PauseMenu : Control
 {
@@ -78,7 +73,8 @@ public partial class PauseMenu : Control
     {
         OpenInlineOverlay(SettingsScenePath, before: inst =>
         {
-            if (inst is SettingsMenu sm) sm.ReturnScenePath = "";
+            if (inst is SettingsMenu sm)
+                sm.ReturnScenePath = "";
         });
     }
 
@@ -86,9 +82,10 @@ public partial class PauseMenu : Control
     {
         OpenInlineOverlay(CardLibraryScenePath, before: inst =>
         {
-            var prop = inst.GetType().GetProperty("ReturnScenePath");
-            if (prop != null && prop.CanWrite)
-                prop.SetValue(inst, InlineSentinel);
+            // Cast directly — ReturnScenePath is a public field, not a property,
+            // so reflection via GetProperty() returns null and silently does nothing.
+            if (inst is CardLibraryUi lib)
+                lib.ReturnScenePath = InlineSentinel;
         });
     }
 
@@ -139,6 +136,7 @@ public partial class PauseMenu : Control
         var inst = packed.Instantiate();
         _currentInlinePanel = inst;
 
+        // Configure BEFORE adding to the tree so _Ready sees the right values.
         before?.Invoke(inst);
 
         if (inst is Control c)
@@ -147,10 +145,9 @@ public partial class PauseMenu : Control
             c.ProcessMode = ProcessModeEnum.Always;
         }
 
-        _overlayHost.AddChild(inst);
+        _overlayHost.AddChild(inst);   // _Ready fires here
 
         _menuContainer.Visible = false;
-        // Defer to be safe when AddChild may have queued layout work.
         CallDeferred(nameof(MoveOverlayHostToFront));
 
         inst.TreeExited += OnInlinePanelClosed;
@@ -159,13 +156,8 @@ public partial class PauseMenu : Control
     private void OnInlinePanelClosed()
     {
         _currentInlinePanel = null;
-
-        // The TreeExited signal fires while the tree is locked (mid-removal),
-        // so MoveChild and Visible writes must be deferred to the next frame.
         CallDeferred(nameof(RestoreMenuContainer));
     }
-
-    // ── Deferred helpers (safe to call MoveChild inside these) ──────────────
 
     private void MoveOverlayHostToFront()
     {

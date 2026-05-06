@@ -594,7 +594,7 @@ public sealed class ImbueTileEffect : EffectBase
 				tile.IsHazardous = true;
 
 			// Use the existing visual system to update the tile
-			s.Grid.ApplyVisualToTile(tile);
+			tile.TileView?.SetElement(elementType);
 
 			s.Log($"[ImbueTile] {tile.Axial} imbued with {Element} ({elementType}).");
 

@@ -7,11 +7,18 @@ public partial class HexTile : Node3D
     [Export] public Color HoverColor = new Color(1.0f, 0.9f, 0.4f);
     [Export] public bool ShowDebugInfo = true;
 
+    // Optional override; if not set, the default overlay scene is loaded by path.
+    [Export] public PackedScene ImbuementOverlayScene;
+
+    private const string DefaultOverlayScenePath = "res://Scenes/Combat/ImbuementOverlay.tscn";
+
     // Cached nodes and materials
     private MeshInstance3D meshInstance;
     private StandardMaterial3D material;
     private Label3D coordLabel;
     private Color baseColor;
+
+    private ImbuementOverlay imbuementOverlay;
 
     public Vector2I Axial { get; set; }
 
@@ -46,6 +53,28 @@ public partial class HexTile : Node3D
         var area = GetNode<StaticBody3D>("StaticBody3D");
         area.MouseEntered += OnMouseEntered;
         area.MouseExited += OnMouseExited;
+
+        EnsureImbuementOverlay();
+    }
+
+    private void EnsureImbuementOverlay()
+    {
+        // Already a child? Use it.
+        imbuementOverlay = GetNodeOrNull<ImbuementOverlay>("ImbuementOverlay");
+        if (imbuementOverlay != null)
+            return;
+
+        var scene = ImbuementOverlayScene
+                    ?? GD.Load<PackedScene>(DefaultOverlayScenePath);
+        if (scene == null)
+        {
+            GD.PushWarning($"HexTile {Axial}: ImbuementOverlay scene not found.");
+            return;
+        }
+
+        imbuementOverlay = scene.Instantiate<ImbuementOverlay>();
+        imbuementOverlay.Name = "ImbuementOverlay";
+        AddChild(imbuementOverlay);
     }
 
     private void OnMouseEntered()
@@ -113,6 +142,21 @@ public partial class HexTile : Node3D
         baseColor = color;
         RefreshVisualState();
     }
+
+    /// <summary>
+    /// Sets the imbuement element shown above this tile. Pass
+    /// <see cref="TileElementType.None"/> to hide the overlay.
+    /// </summary>
+    public void SetElement(TileElementType element)
+    {
+        if (imbuementOverlay == null)
+            EnsureImbuementOverlay();
+
+        imbuementOverlay?.SetElement(element);
+    }
+
+    public TileElementType CurrentElement =>
+        imbuementOverlay?.CurrentElement ?? TileElementType.None;
 
     public void RefreshLabel(TileData tileData)
     {
@@ -211,6 +255,9 @@ public partial class HexTile : Node3D
         if (deploymentHighlighted) finalColor = finalColor.Lerp(deploymentColor, 0.45f);
         if (moveHighlighted) finalColor = finalColor.Lerp(moveHighlightColor, 0.45f);
         material.AlbedoColor = finalColor;
+        // Note: element visuals are NOT applied here.
+        // They live on the ImbuementOverlay child node and update
+        // independently via SetElement().
     }
 
-} 
+}
