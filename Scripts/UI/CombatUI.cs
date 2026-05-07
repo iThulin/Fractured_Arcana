@@ -305,7 +305,7 @@ public partial class CombatUI : CanvasLayer
 			}
 
 			var vbox = new VBoxContainer();
-			vbox.AddThemeConstantOverride("separation", 2);
+			vbox.AddThemeConstantOverride("separation", 1);
 
 			// Unit name button
 			var btn = new Button();
@@ -315,27 +315,46 @@ public partial class CombatUI : CanvasLayer
 			btn.Pressed += () => EmitSignal(SignalName.UnitButtonPressed, capturedIndex);
 			vbox.AddChild(btn);
 
-			// Mini HP bar
-			var hpBar = new ProgressBar();
-			hpBar.MaxValue          = Mathf.Max(1, unit.Stats.MaxHealth);
-			hpBar.Value             = unit.Stats.Health;
-			hpBar.ShowPercentage    = false;
-			hpBar.CustomMinimumSize = new Vector2(80, 8);
-			hpBar.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-			var hpStyle = new StyleBoxFlat();
-			hpStyle.BgColor = new Color(0.2f, 0.75f, 0.2f);
-			hpBar.AddThemeStyleboxOverride("fill", hpStyle);
-			vbox.AddChild(hpBar);
+			// HP label + bar
+			AddStatRow(vbox, $"HP {unit.Stats.Health}/{unit.Stats.MaxHealth}",
+				unit.Stats.MaxHealth, unit.Stats.Health,
+				new Color(0.2f, 0.75f, 0.2f));
 
-			// HP text
-			var lbl = new Label();
-			lbl.Text = $"HP {unit.Stats.Health}/{unit.Stats.MaxHealth}  MP {unit.Stats.MovePoints}/{unit.Stats.BaseSpeed}";
-			lbl.HorizontalAlignment = HorizontalAlignment.Center;
-			vbox.AddChild(lbl);
+			// Movement label + bar
+			AddStatRow(vbox, $"MOVE {unit.Stats.MovePoints}/{unit.Stats.BaseSpeed}",
+				unit.Stats.BaseSpeed, unit.Stats.MovePoints,
+				new Color(0.85f, 0.75f, 0.2f));
+
+			// Mana label + bar (only for units that actually have mana)
+			if (unit.Stats.MaxMana > 0)
+			{
+				AddStatRow(vbox, $"MANA {unit.Stats.Mana}/{unit.Stats.MaxMana}",
+					unit.Stats.MaxMana, unit.Stats.Mana,
+					new Color(0.25f, 0.45f, 0.95f));
+			}
 
 			panel.AddChild(vbox);
 			_playerUnitBar.AddChild(panel);
 		}
+	}
+
+	private static void AddStatRow(VBoxContainer parent, string text, int max, int value, Color fillColor)
+	{
+		var lbl = new Label();
+		lbl.Text = text;
+		lbl.HorizontalAlignment = HorizontalAlignment.Center;
+		lbl.AddThemeFontSizeOverride("font_size", 10);
+		parent.AddChild(lbl);
+
+		var bar = new ProgressBar();
+		bar.MaxValue          = Mathf.Max(1, max);
+		bar.Value             = Mathf.Clamp(value, 0, max);
+		bar.ShowPercentage    = false;
+		bar.CustomMinimumSize = new Vector2(80, 8);
+		bar.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		var style = new StyleBoxFlat { BgColor = fillColor };
+		bar.AddThemeStyleboxOverride("fill", style);
+		parent.AddChild(bar);
 	}
 
 	// ── Action Log ───────────────────────────────────────────────────────────

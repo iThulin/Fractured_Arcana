@@ -7,9 +7,31 @@ public sealed class ManaCost : ICost
 {
     public int Amount;
     public ManaCost(int a) { Amount = a; }
-    public bool CanPay(GameState s, Entity caster) => s.Mana[caster] >= Amount;
-    public void Pay(GameState s, Entity caster) { s.Mana[caster] -= Amount; }
-    
+
+    public bool CanPay(GameState s, Entity caster)
+    {
+        // Active unit's mana is authoritative
+        if (s.ActiveCasterUnit != null)
+            return s.ActiveCasterUnit.Stats.Mana >= Amount;
+
+        // Fallback for AI / scripted casts that don't set ActiveCasterUnit
+        return s.Mana.TryGetValue(caster, out var m) && m >= Amount;
+    }
+
+    public void Pay(GameState s, Entity caster)
+    {
+        if (s.ActiveCasterUnit != null)
+        {
+            s.ActiveCasterUnit.TrySpendMana(Amount);
+            // keep the dict in sync for any legacy reads
+            if (s.Mana.ContainsKey(caster))
+                s.Mana[caster] = s.ActiveCasterUnit.Stats.Mana;
+        }
+        else if (s.Mana.ContainsKey(caster))
+        {
+            s.Mana[caster] -= Amount;
+        }
+    }
 }
 
 public interface ICondition { bool IsSatisfied(GameState s, Entity caster); }

@@ -92,9 +92,14 @@ public partial class GameRunner : Node3D
         // Assign DeckUiManager separately
         deckUiManager = GetNodeOrNull<DeckUiManager>("../DeckUI/DeckUIManager");
         if (deckUiManager != null)
+        {
             deckUiManager.CardHalfHovered += OnCardHalfHovered;
+            deckUiManager.SetManaProvider(() => selectedUnit?.Stats.Mana ?? 0);
+        }
         else
+        {
             GD.PrintErr("DeckUiManager not found. Target highlighting won't work.");
+        }
 
         dropper = GetNodeOrNull<CardDropHandler>("../CardDropHandler");
         if (dropper == null)
@@ -480,6 +485,7 @@ public partial class GameRunner : Node3D
         RefreshSelectedUnitUI();
         RefreshPlayerUnitBar();
         RefreshDeckCounts();
+        deckUiManager?.RefreshAffordability();
 
         GD.Print($"Selected: {unit.Name}  move={unit.Stats.MovePoints}/{unit.Stats.BaseSpeed}  reachable={reachable.Count}");
     }
@@ -1274,13 +1280,13 @@ public partial class GameRunner : Node3D
 
     private void OnCardHalfHovered(CardUi cardUi, bool isTop, bool isEntering)
     {
-        GD.Print($"[Highlight] OnCardHalfHovered: phase={currentPhase} isEntering={isEntering} card={cardUi?.Name}");
+        //GD.Print($"[Highlight] OnCardHalfHovered: phase={currentPhase} isEntering={isEntering} card={cardUi?.Name}");
         if (currentPhase != CombatPhase.PlayerTurn) return;
 
         if (isEntering)
         {
             var half = isTop ? cardUi.TopHalf : cardUi.BottomHalf;
-            GD.Print($"[Highlight] Showing highlight for half={half?.Name} targeting={half?.Targeting?.GetType().Name}");
+            //GD.Print($"[Highlight] Showing highlight for half={half?.Name} targeting={half?.Targeting?.GetType().Name}");
             ShowTargetHighlight(half);
         }
         else
@@ -1316,6 +1322,9 @@ public partial class GameRunner : Node3D
             combatUI?.AppendActionLog(failMsg);
             return;
         }
+
+        // Set the active caster unit for this cast (used to direct which unit's mana to consume)
+        State.ActiveCasterUnit = selectedUnit;
 
         // Try to cast the card half on the target tile
         var ok = Rules.TryCastWithTargets(half, State, Me, targets, cardUi.CardInstance);
@@ -1398,13 +1407,11 @@ public partial class GameRunner : Node3D
                 GD.Print($"Discarded: {cardUi.CardInstance.CardName}");
             }
 
-            if (playerUnit != null)
-            {
-                if (selectedUnit != null)
-                    State.Mana[Me] = selectedUnit.Stats.Mana;
-                playerUnit.SyncManaToBar();
-            }
+            State.ActiveCasterUnit = null;
+            selectedUnit?.SyncManaToBar();
             RefreshSelectedUnitUI();
+            RefreshPlayerUnitBar();
+            deckUiManager?.RefreshAffordability();
             RefreshDeckCounts();
         }
     }

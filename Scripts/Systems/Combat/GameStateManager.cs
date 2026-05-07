@@ -16,6 +16,7 @@ public sealed class GameState {
     public Unit EnemyUnit;
     public List<Unit> UnitsInPlay = new();
     public Func<string, TileData, int, Unit> OnSummonRequested;
+    public Unit ActiveCasterUnit;
 
     public Entity PlayerA = new(){ Name="A"};
     public Entity PlayerB = new(){ Name="B"};

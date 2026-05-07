@@ -1,8 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://b_imbue_overlay_001"]
+[gd_scene format=3 uid="uid://c1c5oye5107my"]
 
-[ext_resource type="Script" path="res://Scripts/Tiles/ImbuementOverlay.cs" id="1_imbue_script"]
+[ext_resource type="Script" uid="uid://dxqupxhqxkumf" path="res://Scripts/Tiles/ImbuementOverlay.cs" id="1_imbue_script"]
 [ext_resource type="CylinderMesh" uid="uid://c6txik1r44jjl" path="res://Assets/UI Asset/Hex_mesh.tres" id="2_hex_mesh"]
-[ext_resource type="Shader" path="res://Assets/Shaders/imbuement_shimmer.gdshader" id="3_shimmer_shader"]
+[ext_resource type="Shader" uid="uid://blgfiisxu3pii" path="res://Assets/Shaders/imbuement_shimmer.gdshader" id="3_shimmer_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_imbue"]
 render_priority = 1
@@ -15,14 +15,11 @@ shader_parameter/pulse_speed = 1.2
 shader_parameter/pulse_amount = 0.35
 shader_parameter/edge_falloff = 2.0
 
-[node name="ImbuementOverlay" type="Node3D"]
+[node name="ImbuementOverlay" type="Node3D" unique_id=720505059]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0, 0, 0, 1, 0, 0, 0)
 script = ExtResource("1_imbue_script")
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
-; HexTile.tscn has the hex mesh scaled Y=3 with offset Y=-0.25, so the top
-; surface sits at Y ~= 1.25. The overlay floats a hair above that.
-transform = Transform3D(0.866025, 0, 0.500000, 0, 0.05, 0, -0.500000, 0, 0.866025, 0, 1.30, 0)
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=462807418]
+transform = Transform3D(0.866025, 0, 0.5, 0, 0.05, 0, -0.5, 0, 0.866025, 0, 1.3, 0)
 mesh = ExtResource("2_hex_mesh")
 surface_material_override/0 = SubResource("ShaderMaterial_imbue")
-
-[editable path="."]

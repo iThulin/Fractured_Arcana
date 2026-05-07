@@ -115,7 +115,7 @@ public partial class Unit : Node3D
         var previousTile = CurrentTile;
         CurrentTile?.ClearOccupant(this);
         CurrentTile = tile;
-        //tile.SetOccupant(this);
+        tile.TrySetOccupant(this);
 
         if (tile.TileView != null)
             GlobalPosition = tile.TileView.GlobalPosition;
