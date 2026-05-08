@@ -1297,7 +1297,6 @@ public partial class GameRunner : Node3D
 
     private void OnCardDroppedOnTile(CardUi cardUi, bool isTop, HexTile tile)
     {
-        // --- Basic checks ---
         ClearTargetHighlight();
         if (isInDeploymentPhase) { GD.Print("Cannot cast during deployment."); return; }
 
@@ -1313,37 +1312,55 @@ public partial class GameRunner : Node3D
             return;
         }
 
-        // --- Determine targets based on card's targeting type ---
         var targets = new TargetSet();
         switch (half.Targeting)
         {
             case SelectUnitTarget:
-                // Find whatever unit is standing on the dropped tile
                 var unit = State.UnitsInPlay
-                    .FirstOrDefault(u => u?.CurrentTile?.Axial == tile.Axial 
-                                    && u.Stats.IsAlive);
+                    .FirstOrDefault(u => u?.CurrentTile?.Axial == tile.Axial && u.Stats.IsAlive);
                 if (unit == null)
                 {
                     combatUI?.AppendActionLog("No valid unit on that tile.");
                     return;
                 }
-                targets.Items.Add(unit);  // Unit, not HexTile
+                targets.Items.Add(unit);
                 break;
 
             case SelectTileTarget:
-            case SelectAreaTarget:
-            case SelectConeTarget:
-            case SelectRingTarget:
-                targets.Items.Add(tile);  // TileData or HexTile is correct here
+                var tileData = grid.GetTile(tile.Axial);
+                if (tileData == null) { State.Log("Invalid tile."); return; }
+                targets.Items.Add(tileData);
                 break;
 
             case SelectSelfTarget:
+                // Self-targeting: target is the caster's own unit/entity
+                targets.Items.Add(Me);
+                break;
+
+            case SelectAreaTarget:
             case SelectGlobalTarget:
-                // These ignore targets entirely, pass nothing
+                // AoE and global effects don't need a player-selected target;
+                // pass the caster as a stand-in so the TargetSet is non-empty.
+                targets.Items.Add(Me);
+                break;
+
+            case SelectElementTileTarget et:
+                // Player dropped on a specific tile — use it if it matches the element
+                var etData = grid.GetTile(tile.Axial);
+                if (etData == null) { State.Log("Invalid tile."); return; }
+                targets.Items.Add(etData);
+                break;
+
+            case SelectConeTarget:
+            case SelectLineTarget:
+            case SelectRingTarget:
+            case null:
+                // No targeting required — targets stays empty, TryCastWithTargets handles null targeting
                 break;
 
             default:
-                targets.Items.Add(tile);  // safe fallback
+                GD.PrintErr($"[GameRunner] Unhandled targeter type: {half.Targeting.GetType().Name}");
+                targets.Items.Add(Me); // fallback
                 break;
         }
 

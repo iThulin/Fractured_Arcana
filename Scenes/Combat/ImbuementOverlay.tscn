@@ -1,25 +1,55 @@
-[gd_scene format=3 uid="uid://c1c5oye5107my"]
+[gd_scene load_steps=8 format=3 uid="uid://b_imbue_overlay_002"]
 
-[ext_resource type="Script" uid="uid://dxqupxhqxkumf" path="res://Scripts/Tiles/ImbuementOverlay.cs" id="1_imbue_script"]
-[ext_resource type="CylinderMesh" uid="uid://c6txik1r44jjl" path="res://Assets/UI Asset/Hex_mesh.tres" id="2_hex_mesh"]
-[ext_resource type="Shader" uid="uid://blgfiisxu3pii" path="res://Assets/Shaders/imbuement_shimmer.gdshader" id="3_shimmer_shader"]
+[ext_resource type="Script" path="res://Scripts/Tiles/ImbuementOverlay.cs" id="1_overlay_script"]
+[ext_resource type="Shader" path="res://Assets/Shaders/imbuement_aura.gdshader" id="2_aura_shader"]
+[ext_resource type="Shader" path="res://Assets/Shaders/imbuement_glyph.gdshader" id="3_glyph_shader"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_imbue"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_aura"]
 render_priority = 1
-shader = ExtResource("3_shimmer_shader")
-shader_parameter/tint_color = Color(1, 0.4, 0.1, 1)
-shader_parameter/scroll_speed = 0.35
-shader_parameter/noise_scale = 2.5
-shader_parameter/intensity = 1.6
-shader_parameter/pulse_speed = 1.2
-shader_parameter/pulse_amount = 0.35
-shader_parameter/edge_falloff = 2.0
+shader = ExtResource("2_aura_shader")
+shader_parameter/element_id = 0
+shader_parameter/tint_color = Color(1, 0.45, 0.1, 1)
+shader_parameter/intensity = 1.4
 
-[node name="ImbuementOverlay" type="Node3D" unique_id=720505059]
-transform = Transform3D(1, 0, 0, 0, 0.5, 0, 0, 0, 1, 0, 0, 0)
-script = ExtResource("1_imbue_script")
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_glyph"]
+render_priority = 2
+shader = ExtResource("3_glyph_shader")
+shader_parameter/element_id = 0
+shader_parameter/tint_color = Color(1, 0.45, 0.1, 1)
+shader_parameter/intensity = 2.0
+shader_parameter/pulse_speed = 1.5
+shader_parameter/pulse_amount = 0.25
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=462807418]
-transform = Transform3D(0.866025, 0, 0.5, 0, 0.05, 0, -0.5, 0, 0.866025, 0, 1.3, 0)
-mesh = ExtResource("2_hex_mesh")
-surface_material_override/0 = SubResource("ShaderMaterial_imbue")
+; Aura: hex-shaped cylinder, radial_segments=6 to match the tile.
+; Authored height = 0.9 (the script rescales this to AuraHeight at runtime).
+; Tapered (top_radius < bottom_radius) so it has a "rising" silhouette.
+[sub_resource type="CylinderMesh" id="CylinderMesh_aura"]
+top_radius = 0.55
+bottom_radius = 0.85
+height = 0.9
+radial_segments = 6
+rings = 1
+
+; Glyph: a flat quad facing up.
+[sub_resource type="QuadMesh" id="QuadMesh_glyph"]
+size = Vector2(0.7, 0.7)
+
+[node name="ImbuementOverlay" type="Node3D"]
+script = ExtResource("1_overlay_script")
+
+; AURA COLUMN
+; The Y position here is a fallback; on _Ready, AutoFitToTile measures the
+; parent HexTile's actual mesh top and repositions this node correctly.
+; The default below assumes a tile top near Y=0.5 (typical chunky hex).
+[node name="Aura" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
+mesh = SubResource("CylinderMesh_aura")
+surface_material_override/0 = SubResource("ShaderMaterial_aura")
+
+; GLYPH PLANE
+; Rotated -90° on X so it lies flat (pattern visible from above).
+; Y position is bob-anchored by the script at runtime.
+[node name="Glyph" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 1.05, 0)
+mesh = SubResource("QuadMesh_glyph")
+surface_material_override/0 = SubResource("ShaderMaterial_glyph")
