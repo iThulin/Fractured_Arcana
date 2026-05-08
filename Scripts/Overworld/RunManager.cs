@@ -23,6 +23,7 @@ public partial class RunManager : Node2D
     private FogOfWarManager _fog;
     private OverworldPartyToken _party;
     private Camera2D _camera;
+    private RegionDefinition _region;
 
     // ── UI ───────────────────────────────────────────────────────────────
     private Label _stepLabel;
@@ -55,14 +56,31 @@ public partial class RunManager : Node2D
             GD.Print($"RunManager: New run with seed {seed}.");
         }
 
+        // ── Load the region for this run ───────────────────────────
+        string regionId = SaveManager.ActiveSave?.CurrentRegionId ?? "frontier_wilds";
+        _region = RegionLoader.LoadOrDefault(regionId);
+
+        if (_region != null)
+        {
+            // Sync step budget from region
+            StepBudget = _region.StepBudget;
+            GD.Print($"RunManager: Loaded region '{_region.DisplayName}' " +
+                     $"(StepBudget={StepBudget}, POIs: {_region.CombatPOICount}/" +
+                     $"{_region.RestPOICount}/{_region.NarrativePOICount})");
+        }
+
         // ── Build the grid with that seed ───────────────────────────────────
         _grid = new OverworldHexGrid { Name = "HexGrid", Seed = seed };
+        _grid.Region = _region;
         AddChild(_grid);
 
-        // POIs use the same seed so layout is deterministic
-        POIGenerator.Generate(_grid, combatCount: 10, restCount: 4, narrativeCount: 3, seed: seed);
+        // ── POIs use region counts (or defaults if no region) ───────────
+        int combatCount    = _region?.CombatPOICount    ?? 10;
+        int restCount      = _region?.RestPOICount      ?? 4;
+        int narrativeCount = _region?.NarrativePOICount ?? 3;
+        POIGenerator.Generate(_grid, combatCount, restCount, narrativeCount, seed);
 
-        // Stash the seed on the router so it survives the next combat
+        // Stash the seed on the router
         if (router != null)
         {
             router.SavedRunSeed = seed;

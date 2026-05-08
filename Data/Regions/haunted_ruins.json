@@ -1,0 +1,32 @@
+{
+    "id": "haunted_ruins",
+    "displayName": "Haunted Ruins",
+    "description": "The bones of an ancient city. The dead do not rest.",
+    "schoolAffinity": "Necromancer",
+    "atmosphere": "Hostile",
+    "gridWidth": 15,
+    "gridHeight": 15,
+    "stepBudget": 22,
+    "combatPOICount": 12,
+    "restPOICount": 2,
+    "narrativePOICount": 5,
+    "negotiationPOICount": 0,
+    "hasRiver": false,
+    "hasMountainRange": false,
+    "hasRoads": false,
+    "riverCrossingCount": 0,
+    "enemyDifficultyMult": 1.3,
+    "goldRewardMult": 1.2,
+    "biomes": [
+      {
+        "name": "Necrotic Core",
+        "centerQ": 7, "centerR": 7, "radius": 4,
+        "primaryTerrain": "Ruins", "secondaryTerrain": "ArcaneGround"
+      },
+      {
+        "name": "Outer Decay",
+        "centerQ": 3, "centerR": 4, "radius": 3,
+        "primaryTerrain": "Ruins", "secondaryTerrain": "Swamp"
+      }
+    ]
+  }

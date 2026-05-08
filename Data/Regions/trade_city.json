@@ -1,0 +1,21 @@
+{
+    "id": "trade_city",
+    "displayName": "Trade City Outskirts",
+    "description": "Where deals are struck and information flows.",
+    "schoolAffinity": "Enchanter",
+    "atmosphere": "Neutral",
+    "gridWidth": 15,
+    "gridHeight": 15,
+    "stepBudget": 20,
+    "combatPOICount": 5,
+    "restPOICount": 5,
+    "narrativePOICount": 3,
+    "negotiationPOICount": 4,
+    "hasRiver": true,
+    "hasMountainRange": false,
+    "hasRoads": true,
+    "riverCrossingCount": 3,
+    "enemyDifficultyMult": 0.8,
+    "goldRewardMult": 1.5,
+    "biomes": []
+  }

@@ -13,6 +13,8 @@ public partial class OverworldHexGrid : Node2D
     [Export] public int GridHeight = 15;
     [Export] public float HexSize = 36f;
 
+    public RegionDefinition Region { get; set; }
+
     // ── Runtime data ────────────────────────────────────────────────────
     private RandomNumberGenerator _rng;
     public Dictionary<Vector2I, OverworldHex> Hexes { get; private set; } = new();
@@ -38,7 +40,13 @@ public partial class OverworldHexGrid : Node2D
             Seed = (int)_rng.Randi();
         }
 
-        // Initialize hex spacing constants from HexSize
+        // Apply region dimensions if a region is set
+        if (Region != null)
+        {
+            GridWidth = Region.GridWidth;
+            GridHeight = Region.GridHeight;
+        }
+
         _hexSize = HexSize;
         _hexWidth = _hexSize * 1.5f;
         _hexHeight = _hexSize * Mathf.Sqrt(3f);
@@ -75,9 +83,15 @@ public partial class OverworldHexGrid : Node2D
 
         // ── Generate terrain with biomes ────────────────────────────────
         GenerateBiomes();
-        GenerateRiver();
-        GenerateRoads();
-        GenerateMountainRange();
+
+        if (Region == null || Region.HasRiver)
+            GenerateRiver();
+
+        if (Region == null || Region.HasRoads)
+            GenerateRoads();
+
+        if (Region != null && Region.HasMountainRange)
+            GenerateMountainRange();
 
         // ── Place entry and objective ───────────────────────────────────
         EntryCoord = new Vector2I(1, GridHeight / 2);
@@ -108,16 +122,42 @@ public partial class OverworldHexGrid : Node2D
         public int Radius;
     }
 
-    private void GenerateBiomes()
+        private void GenerateBiomes()
     {
         // Start everything as grassland
         foreach (var hex in Hexes.Values)
             hex.Terrain = OverworldHex.TerrainType.Grassland;
 
-        // Place biome seeds — these define distinct regions on the map
+        // Build biome list — from region if set, otherwise the hardcoded defaults
+        var biomes = (Region != null && Region.Biomes != null && Region.Biomes.Count > 0)
+            ? BuildBiomesFromRegion()
+            : BuildDefaultBiomes();
+
+        foreach (var biome in biomes)
+            PaintBiome(biome);
+    }
+
+    private List<BiomeSeed> BuildBiomesFromRegion()
+    {
+        var biomes = new List<BiomeSeed>();
+        foreach (var bd in Region.Biomes)
+        {
+            biomes.Add(new BiomeSeed
+            {
+                Center = new Vector2I(bd.CenterQ, bd.CenterR),
+                Primary = ParseTerrain(bd.PrimaryTerrain),
+                Secondary = ParseTerrain(bd.SecondaryTerrain),
+                Radius = bd.Radius
+            });
+        }
+        return biomes;
+    }
+
+    private List<BiomeSeed> BuildDefaultBiomes()
+    {
+        // The same hardcoded biomes you have now, just extracted into a method.
         var biomes = new List<BiomeSeed>();
 
-        // Dense forest in the upper-left quadrant
         biomes.Add(new BiomeSeed
         {
             Center = new Vector2I(3, 3),
@@ -125,8 +165,6 @@ public partial class OverworldHexGrid : Node2D
             Secondary = OverworldHex.TerrainType.Swamp,
             Radius = 4
         });
-
-        // Ruins complex in the center-north
         biomes.Add(new BiomeSeed
         {
             Center = new Vector2I(8, 2),
@@ -134,8 +172,6 @@ public partial class OverworldHexGrid : Node2D
             Secondary = OverworldHex.TerrainType.ArcaneGround,
             Radius = 3
         });
-
-        // Volcanic zone in the lower-right
         biomes.Add(new BiomeSeed
         {
             Center = new Vector2I(12, 11),
@@ -143,8 +179,6 @@ public partial class OverworldHexGrid : Node2D
             Secondary = OverworldHex.TerrainType.Mountain,
             Radius = 3
         });
-
-        // Swamp in the lower-left
         biomes.Add(new BiomeSeed
         {
             Center = new Vector2I(3, 11),
@@ -152,8 +186,6 @@ public partial class OverworldHexGrid : Node2D
             Secondary = OverworldHex.TerrainType.Forest,
             Radius = 3
         });
-
-        // Arcane nexus near the objective
         biomes.Add(new BiomeSeed
         {
             Center = new Vector2I(12, 5),
@@ -161,8 +193,6 @@ public partial class OverworldHexGrid : Node2D
             Secondary = OverworldHex.TerrainType.Ruins,
             Radius = 3
         });
-
-        // Mountain highlands in the upper-right
         biomes.Add(new BiomeSeed
         {
             Center = new Vector2I(11, 1),
@@ -171,11 +201,13 @@ public partial class OverworldHexGrid : Node2D
             Radius = 3
         });
 
-        // Paint each biome outward from its center with falloff
-        foreach (var biome in biomes)
-        {
-            PaintBiome(biome);
-        }
+        return biomes;
+    }
+
+    private OverworldHex.TerrainType ParseTerrain(string name)
+    {
+        return Enum.TryParse<OverworldHex.TerrainType>(name, out var result)
+            ? result : OverworldHex.TerrainType.Grassland;
     }
 
     private void PaintBiome(BiomeSeed biome)

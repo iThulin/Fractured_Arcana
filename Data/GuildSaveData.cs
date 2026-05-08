@@ -18,6 +18,9 @@ public class GuildSaveData
     // ── Wizard ──────────────────────────────────────────────────────────
     public string SelectedSchool = "Elementalist";
 
+    // ── Region ──────────────────────────────────────────────────────────
+    public string CurrentRegionId = "frontier_wilds"; 
+
     // ── Economy ─────────────────────────────────────────────────────────
     public int Gold = 0;
 
