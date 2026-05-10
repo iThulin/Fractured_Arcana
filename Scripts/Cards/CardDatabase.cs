@@ -78,6 +78,22 @@ public static class CardDatabase
         GD.Print($"CardDatabase now holds {Blueprints.Count} blueprints");
     }
 
+    /// <summary>
+    /// Find a blueprint by card name (case-insensitive).
+    /// Used for companion contributions and other content references.
+    /// </summary>
+    public static CardBlueprint GetByName(string cardName)
+    {
+        if (string.IsNullOrEmpty(cardName)) return null;
+        foreach (var bp in Blueprints)
+        {
+            if (string.Equals(bp.Prebuilt?.CardName, cardName,
+                StringComparison.OrdinalIgnoreCase))
+                return bp;
+        }
+        return null;
+    }
+
     // -------- Deck building --------
     //
     // While the JSON pool is small (4 cards during refactor), these allow

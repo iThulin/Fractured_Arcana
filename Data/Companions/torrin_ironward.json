@@ -1,0 +1,11 @@
+{
+    "id": "torrin_ironward",
+    "name": "Torrin Ironward",
+    "school": "Elementalist",
+    "personalityTrait": "Stoic",
+    "backstory": "A former temple guardian whose order was destroyed in the last war. He fights with the deliberate patience of someone who has nothing left to lose and nothing he wishes to gain.",
+    "isAvailable": true,
+    "recruitmentCost": 80,
+    "unlockCondition": "Available from the start.",
+    "contributedCardIds": ["Ember Bolt", "Tectonic Shatter", "Boulder Hurl"]
+  }

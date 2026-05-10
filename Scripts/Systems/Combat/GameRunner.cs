@@ -204,22 +204,58 @@ public partial class GameRunner : Node3D
 
     private void InitializeUnitDecks()
     {
+        // Get cards from active party companions (added to the wizard's deck)
+        var companionCards = BuildCompanionCardList();
+
+        bool injectedCompanionCards = false;
+
         foreach (var unit in playerUnits)
         {
             if (unit == null) continue;
 
-            // Create deck data for this unit
             unit.DeckData = new UnitDeckData(unit.School, 5);
-            unit.DeckData.Initialize(PlayerSession.DeckSize);
 
-            GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards ({unit.School})");
+            if (!injectedCompanionCards && companionCards.Count > 0)
+            {
+                // First unit gets a school deck PLUS companion cards
+                var schoolDeck = CardDatabase.BuildRandomDeck(unit.School, PlayerSession.DeckSize);
+                schoolDeck.AddRange(companionCards);
+                unit.DeckData.Initialize(schoolDeck);
+                injectedCompanionCards = true;
+                GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
+                         $"({unit.School}, {companionCards.Count} from companions)");
+            }
+            else
+            {
+                unit.DeckData.Initialize(PlayerSession.DeckSize);
+                GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards ({unit.School})");
+            }
         }
 
-        // Set the first unit's deck as active
         if (playerUnits.Count > 0 && playerUnits[0].DeckData != null)
-        {
             deckManager.SetActiveDeck(playerUnits[0].DeckData);
+    }
+
+     private List<Card> BuildCompanionCardList()
+    {
+        var result = new List<Card>();
+        var party = CompanionRoster.GetActiveParty();
+
+        foreach (var companion in party)
+        {
+            foreach (var cardName in companion.ContributedCardIds)
+            {
+                var bp = CardDatabase.GetByName(cardName);
+                if (bp == null)
+                {
+                    GD.PrintErr($"Companion '{companion.Name}' references missing card '{cardName}'");
+                    continue;
+                }
+                result.Add(CardDatabase.Instantiate(bp));
+            }
         }
+
+        return result;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

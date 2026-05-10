@@ -19,6 +19,7 @@ public partial class CampusScreen : Control
 
     private int _selectedSlot = -1;
     private VBoxContainer _slotContainer;
+    private VBoxContainer _companionContainer;
 
     private static readonly System.Collections.Generic.Dictionary<CardSchool, string> SchoolDescriptions = new()
     {
@@ -136,6 +137,21 @@ public partial class CampusScreen : Control
 
         UpdateSchoolDescription();
 
+        // ── Companions ──────────────────────────────────────────────────
+        _layout.AddChild(new Control { CustomMinimumSize = new Vector2(0, 10) });
+
+        var companionLabel = new Label
+        {
+            Text = "Companions",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        companionLabel.AddThemeFontSizeOverride("font_size", 20);
+        _layout.AddChild(companionLabel);
+
+        _companionContainer = new VBoxContainer();
+        _companionContainer.AddThemeConstantOverride("separation", 6);
+        _layout.AddChild(_companionContainer);
+
         // ── Debug checkbox ──────────────────────────────────────────────
         _debugCheckbox = new CheckBox
         {
@@ -189,6 +205,7 @@ public partial class CampusScreen : Control
         if (SaveManager.ActiveSave != null && SaveManager.ActiveSlot >= 0)
         {
             _selectedSlot = SaveManager.ActiveSlot;
+            CompanionRoster.EnsureRoster(SaveManager.ActiveSave);
 
             if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave.SelectedSchool, out var school))
             {
@@ -198,7 +215,9 @@ public partial class CampusScreen : Control
         }
 
         RefreshSlotButtons();
+        RefreshCompanionList();
         UpdateStartButton();
+        
     }
 
     private void OnSchoolChanged(long index)
@@ -297,11 +316,120 @@ public partial class CampusScreen : Control
         }
     }
 
+    private void RefreshCompanionList()
+    {
+        if (_companionContainer == null) return;
+
+        foreach (var child in _companionContainer.GetChildren())
+            child.QueueFree();
+
+        var save = SaveManager.ActiveSave;
+        if (save == null)
+        {
+            var stub = new Label
+            {
+                Text = "Select a save slot to see companions.",
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            stub.Modulate = new Color(0.7f, 0.7f, 0.7f);
+            _companionContainer.AddChild(stub);
+            return;
+        }
+
+        // Header — current party size
+        var partyLabel = new Label
+        {
+            Text = $"Active party: {save.ActivePartyCompanionIds.Count} / {save.MaxPartySize}",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        partyLabel.AddThemeFontSizeOverride("font_size", 14);
+        _companionContainer.AddChild(partyLabel);
+
+        bool anyShown = false;
+        foreach (var c in save.Companions)
+        {
+            if (!c.IsAvailable && !c.IsRecruited) continue;
+            if (c.IsPermadead) continue;
+            anyShown = true;
+
+            var hbox = new HBoxContainer();
+            hbox.AddThemeConstantOverride("separation", 8);
+            hbox.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+
+            string status;
+            if (c.IsRecruited)
+            {
+                bool inParty = save.ActivePartyCompanionIds.Contains(c.Id);
+                status = inParty ? "[PARTY]" : "[ROSTER]";
+            }
+            else
+            {
+                status = $"[{c.RecruitmentCost}g]";
+            }
+
+            var info = new Label
+            {
+                Text = $"{c.Name} ({c.School}) {status}",
+                CustomMinimumSize = new Vector2(280, 28),
+            };
+            hbox.AddChild(info);
+
+            string capturedId = c.Id;
+            var btn = new Button { CustomMinimumSize = new Vector2(110, 28) };
+
+            if (!c.IsRecruited)
+            {
+                btn.Text = "Recruit";
+                btn.Disabled = save.Gold < c.RecruitmentCost;
+                btn.Pressed += () =>
+                {
+                    if (CompanionRoster.TryRecruit(capturedId))
+                    {
+                        RefreshSlotButtons();   // gold changed
+                        RefreshCompanionList();
+                    }
+                };
+            }
+            else if (save.ActivePartyCompanionIds.Contains(c.Id))
+            {
+                btn.Text = "Remove";
+                btn.Pressed += () =>
+                {
+                    CompanionRoster.RemoveFromParty(capturedId);
+                    RefreshCompanionList();
+                };
+            }
+            else
+            {
+                btn.Text = "Add to Party";
+                btn.Disabled = save.ActivePartyCompanionIds.Count >= save.MaxPartySize;
+                btn.Pressed += () =>
+                {
+                    if (CompanionRoster.TryAddToParty(capturedId))
+                        RefreshCompanionList();
+                };
+            }
+            hbox.AddChild(btn);
+
+            _companionContainer.AddChild(hbox);
+        }
+
+        if (!anyShown)
+        {
+            var stub = new Label
+            {
+                Text = "No companions available yet.",
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            stub.Modulate = new Color(0.7f, 0.7f, 0.7f);
+            _companionContainer.AddChild(stub);
+        }
+    }
+
     private void OnSlotSelected(int slot, bool isEmpty)
     {
         if (isEmpty)
         {
-            // Create new save
             var school = (CardSchool)_schoolPicker.GetSelectedId();
             SaveManager.NewGame(slot, $"Guild of {school}");
             SaveManager.ActiveSave.SelectedSchool = school.ToString();
@@ -309,9 +437,7 @@ public partial class CampusScreen : Control
         }
         else
         {
-            // Load existing
             SaveManager.Load(slot);
-            // Update the school picker to match the loaded save
             if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave.SelectedSchool, out var school))
             {
                 _schoolPicker.Selected = (int)school;
@@ -320,7 +446,13 @@ public partial class CampusScreen : Control
         }
 
         _selectedSlot = slot;
+
+        // Make sure the loaded/new save has all current companion templates
+        if (SaveManager.ActiveSave != null)
+            CompanionRoster.EnsureRoster(SaveManager.ActiveSave);
+
         RefreshSlotButtons();
+        RefreshCompanionList();
         UpdateStartButton();
         GD.Print($"Selected slot {slot}");
     }
