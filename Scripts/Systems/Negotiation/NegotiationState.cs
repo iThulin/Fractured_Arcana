@@ -64,8 +64,8 @@ public class NegotiationState
         {
             >= 2  => -2,   // Allied
             >= 1  => -1,   // Friendly
+            <= -2 => 4,    // Hostile  ← must come before <= -1
             <= -1 => 2,    // Unfriendly
-            <= -2 => 4,    // Hostile
             _     => 0     // Neutral
         };
         Tension = Mathf.Clamp(Tension, TensionMin, TensionMax);

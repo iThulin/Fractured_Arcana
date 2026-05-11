@@ -81,7 +81,8 @@ public partial class RunManager : Node2D
         int combatCount    = _region?.CombatPOICount    ?? 10;
         int restCount      = _region?.RestPOICount      ?? 4;
         int narrativeCount = _region?.NarrativePOICount ?? 3;
-        POIGenerator.Generate(_grid, combatCount, restCount, narrativeCount, seed);
+        int negotiationCount = _region?.NegotiationPOICount ?? 2;
+        POIGenerator.Generate(_grid, combatCount, restCount, narrativeCount, negotiationCount, seed);
 
         // Stash the seed on the router
         if (router != null)
@@ -133,6 +134,10 @@ public partial class RunManager : Node2D
         EncountersWon = 0;
         RunComplete = false;
 
+        // Apply debug flags
+        if (PlayerSession.DebugMode && PlayerSession.StartWithGold)
+            GoldEarned += 500;
+
         // ── Restore from combat or place at entry ───────────────────────────
         if (router != null && router.HasPendingReturn)
         {
@@ -157,6 +162,10 @@ public partial class RunManager : Node2D
         _grid.HexClicked += OnHexClicked;
         _party.PartyMoved += OnPartyMoved;
         _party.PartyArrived += OnPartyArrived;
+
+        // Debug: reveal all fog
+        if (PlayerSession.DebugMode && PlayerSession.NoFog)
+            RevealAllFog();
 
         CenterCamera();
         UpdateUI();
@@ -200,49 +209,60 @@ public partial class RunManager : Node2D
         // Place party at saved position
         _party.Initialize(_grid, _fog, router.SavedPartyCoord);
 
-        // Apply combat results
-        var combatHex = router.SavedCombatHexCoord;
-        if (router.CombatWon)
+        // Apply results — negotiation or combat
+        var resultHex = router.SavedCombatHexCoord;
+
+        if (NegotiationContext.HasResult)
         {
-            GoldEarned += router.GoldReward;
-            EncountersWon++;
-
-            // Mark the combat POI as consumed
-            if (_grid.Hexes.TryGetValue(combatHex, out var hex))
-            {
-                hex.POIConsumed = true;
-                hex.RefreshVisuals();
-            }
-
-            ShowInfo($"Victory! Earned {router.GoldReward} gold.");
+            OnNegotiationReturned(resultHex);
         }
         else
         {
-            CurrentHP -= router.DamageTaken;
-
-            // Mark consumed even on defeat
-            if (_grid.Hexes.TryGetValue(combatHex, out var hex))
+            // Combat result
+            if (router.CombatWon)
             {
-                hex.POIConsumed = true;
-                hex.RefreshVisuals();
-            }
+                GoldEarned += router.GoldReward;
+                EncountersWon++;
 
-            if (CurrentHP <= 0)
-            {
-                CurrentHP = 0;
-                ShowInfo("Defeated! Run over.");
-                EndRun(false);
-                UpdateUI();
-                return;
+                if (_grid.Hexes.TryGetValue(resultHex, out var hex))
+                {
+                    hex.POIConsumed = true;
+                    hex.RefreshVisuals();
+                }
+
+                ShowInfo($"Victory! Earned {router.GoldReward} gold.");
             }
-            ShowInfo($"Defeated... Lost {router.DamageTaken} HP.");
+            else
+            {
+                CurrentHP -= router.DamageTaken;
+
+                // Debug: God mode prevents death
+                if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
+                    CurrentHP = Mathf.Max(1, CurrentHP);
+
+                if (_grid.Hexes.TryGetValue(resultHex, out var hex))
+                {
+                    hex.POIConsumed = true;
+                    hex.RefreshVisuals();
+                }
+
+                if (CurrentHP <= 0)
+                {
+                    CurrentHP = 0;
+                    ShowInfo("Defeated! Run over.");
+                    EndRun(false);
+                    UpdateUI();
+                    return;
+                }
+                ShowInfo($"Defeated... Lost {router.DamageTaken} HP.");
+            }
         }
 
-        // Clear the pending return flag
         router.HasPendingReturn = false;
 
         GD.Print($"RunManager: Restored. Party at {router.SavedPartyCoord}, " +
                  $"Steps: {StepsRemaining}, HP: {CurrentHP}, Gold: {GoldEarned}");
+        
     }
 
     /// <summary>
@@ -274,6 +294,38 @@ public partial class RunManager : Node2D
             hpDrain = GetTerrainHPDrain(hex.Terrain);
         }
 
+        // Debug: unlimited steps skips all step/exhaustion logic
+        if (!PlayerSession.DebugMode || !PlayerSession.UnlimitedSteps)
+        {
+            if (StepsRemaining > 0)
+            {
+                StepsRemaining = Mathf.Max(0, StepsRemaining - stepCost);
+            }
+            else
+            {
+                CurrentHP -= ExhaustionDamagePerStep;
+                if (CurrentHP <= 0)
+                {
+                    CurrentHP = 0;
+                    EndRun(false);
+                    return;
+                }
+            }
+
+            if (hpDrain > 0)
+            {
+                CurrentHP -= hpDrain;
+                ShowInfo($"Hazardous terrain! Lost {hpDrain} HP.");
+                if (CurrentHP <= 0)
+                {
+                    CurrentHP = 0;
+                    EndRun(false);
+                    return;
+                }
+            }
+        }
+
+        // Normal step and terrain HP drain logic
         if (StepsRemaining > 0)
         {
             StepsRemaining = Mathf.Max(0, StepsRemaining - stepCost);
@@ -326,7 +378,16 @@ public partial class RunManager : Node2D
             return;
         }
 
-        switch (hex.POI)
+                // Debug: force a specific encounter type
+        var poiType = hex.POI;
+        if (PlayerSession.DebugMode && PlayerSession.ForceNextEncounterType >= 0)
+        {
+            poiType = (OverworldHex.POIType)PlayerSession.ForceNextEncounterType;
+            PlayerSession.ForceNextEncounterType = -1; // consume — only forces once
+            GD.Print($"[Debug] Forcing encounter type: {poiType}");
+        }
+
+        switch (poiType)
         {
             case OverworldHex.POIType.Combat:
                 ShowInfo("Combat encounter! (Press SPACE to fight, ESC to skip)");
@@ -352,6 +413,10 @@ public partial class RunManager : Node2D
             case OverworldHex.POIType.Narrative:
                 TriggerNarrativeEncounter(hex, coord);
                 break;
+
+            case OverworldHex.POIType.Negotiation:
+            TriggerNegotiationEncounter(hex, coord);
+            break;
         }
     }
 
@@ -454,6 +519,11 @@ public partial class RunManager : Node2D
         if (choice.HPDelta != 0)
         {
             CurrentHP = Mathf.Clamp(CurrentHP + choice.HPDelta, 0, MaxHP);
+
+            // Debug: God mode prevents death
+            if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
+                CurrentHP = Mathf.Max(1, CurrentHP);
+
             if (CurrentHP <= 0)
             {
                 EndRun(false);
@@ -482,6 +552,84 @@ public partial class RunManager : Node2D
         }
 
         ShowInfo($"Encounter resolved.");
+        UpdateUI();
+    }
+
+    private void TriggerNegotiationEncounter(OverworldHex hex, Vector2I coord)
+    {
+        hex.POIConsumed = true;
+        hex.RefreshVisuals();
+
+        string regionId = _region?.Id ?? "frontier_wilds";
+        string terrain = hex.Terrain.ToString();
+
+        var encounter = NegotiationEncounterLoader.PickForTerrain(terrain, regionId);
+        if (encounter == null)
+        {
+            ShowInfo("A potential contact slips away before you can speak.");
+            UpdateUI();
+            return;
+        }
+
+        // Store context and save overworld state
+        NegotiationContext.Clear();
+        NegotiationContext.EncounterId = encounter.Id;
+        NegotiationContext.HexCoordKey = $"{coord.X},{coord.Y}";
+
+        // Save overworld state the same way combat does
+        var router = EncounterRouter.Instance;
+        if (router != null)
+        {
+            router.SavedStepsRemaining = StepsRemaining;
+            router.SavedCurrentHP = CurrentHP;
+            router.SavedGoldEarned = GoldEarned;
+            router.SavedEncountersWon = EncountersWon;
+            router.SavedPartyCoord = _party.CurrentCoord;
+            router.SavedCombatHexCoord = coord;     // reuse field for the triggering hex
+            router.HasPendingReturn = true;
+            router.HasSavedSeed = true;
+            router.SavedRunSeed = _grid.Seed;
+
+            foreach (var kvp in _grid.Hexes)
+            {
+                router.SavedFogStates[kvp.Key] = kvp.Value.Fog;
+                router.SavedPOIConsumed[kvp.Key] = kvp.Value.POIConsumed;
+            }
+        }
+
+        ShowInfo($"Negotiation: {encounter.Title}");
+        GetTree().ChangeSceneToFile("res://Scenes/Negotiation/NegotiationScene.tscn");
+    }
+
+    private void OnNegotiationReturned(Vector2I hexCoord)
+    {
+        if (NegotiationContext.DealAccepted)
+        {
+            GoldEarned += NegotiationContext.GoldDelta;
+            GoldEarned = Mathf.Max(0, GoldEarned);
+
+            // Apply steps delta from terms if any
+            // (Phase 3: iterate terms and apply each one)
+
+            // Apply reputation to save
+            if (SaveManager.ActiveSave != null && !string.IsNullOrEmpty(NegotiationContext.FactionId))
+            {
+                var rep = SaveManager.ActiveSave.FactionReputation;
+                string faction = NegotiationContext.FactionId;
+                rep[faction] = rep.TryGetValue(faction, out int current)
+                    ? current + NegotiationContext.ReputationDelta
+                    : NegotiationContext.ReputationDelta;
+            }
+
+            ShowInfo($"Deal struck. Gold: {(NegotiationContext.GoldDelta >= 0 ? "+" : "")}" +
+                     $"{NegotiationContext.GoldDelta}");
+        }
+        else
+        {
+            ShowInfo("No deal reached.");
+        }
+
+        NegotiationContext.Clear();
         UpdateUI();
     }
 
@@ -529,6 +677,16 @@ public partial class RunManager : Node2D
             // Return to campus instead of reloading the overworld
             GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
         }
+    }
+
+        private void RevealAllFog()
+    {
+        foreach (var hex in _grid.Hexes.Values)
+        {
+            hex.Fog = OverworldHex.FogState.Revealed;
+            hex.RefreshVisuals();
+        }
+        GD.Print("[Debug] All fog revealed.");
     }
 
     // ── UI helpers ──────────────────────────────────────────────────────

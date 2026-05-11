@@ -93,40 +93,41 @@ public static class ArchetypeBehavior
         return (archetype, token) switch
         {
             // Charm
-            (NpcArchetypeType.Idealist, LeverageToken.Charm)      => -2,
-            (NpcArchetypeType.Commander, LeverageToken.Charm)     => 0,   // unmoved
-            (_, LeverageToken.Charm)                               => -1,
+            (NpcArchetypeType.Idealist,  LeverageToken.Charm) => -2,
+            (NpcArchetypeType.Commander, LeverageToken.Charm) => 0,
+            (_,                          LeverageToken.Charm) => -1,
 
             // Intimidate
-            (NpcArchetypeType.Idealist, LeverageToken.Intimidate)  => 10,  // instant walk
-            (NpcArchetypeType.Commander, LeverageToken.Intimidate) => 1,   // respects force
-            (NpcArchetypeType.Scholar, LeverageToken.Intimidate)   => 3,
-            (_, LeverageToken.Intimidate)                          => 2,
+            (NpcArchetypeType.Idealist,  LeverageToken.Intimidate) => 10,
+            (NpcArchetypeType.Commander, LeverageToken.Intimidate) => 1,
+            (NpcArchetypeType.Scholar,   LeverageToken.Intimidate) => 3,
+            (_,                          LeverageToken.Intimidate) => 2,
 
             // Persuade
-            (NpcArchetypeType.Scholar, LeverageToken.Persuade)    => -2,
-            (NpcArchetypeType.Opportunist, LeverageToken.Persuade) => 0,  // doesn't care
-            (_, LeverageToken.Persuade)                            => -1,
+            (NpcArchetypeType.Scholar,    LeverageToken.Persuade) => -2,
+            (NpcArchetypeType.Opportunist,LeverageToken.Persuade) => 0,
+            (_,                           LeverageToken.Persuade) => -1,
 
             // Insight — no tension effect
-            (_, LeverageToken.Insight)                             => 0,
+            (_, LeverageToken.Insight)  => 0,
 
             // Connections
-            (_, LeverageToken.Connections)                         => -1,
+            (_, LeverageToken.Connections) => -1,
 
-            // Patience — holds tension
-            (_, LeverageToken.Patience)                            => 0,
+            // Patience — no tension effect
+            (_, LeverageToken.Patience) => 0,
 
             // Offering
-            (NpcArchetypeType.Merchant, LeverageToken.Offering)   => -2,  // loves it
-            (_, LeverageToken.Offering)                            => -1,
+            (NpcArchetypeType.Merchant, LeverageToken.Offering) => -2,
+            (_,                         LeverageToken.Offering) => -1,
 
             // Demonstration
-            (NpcArchetypeType.Commander, LeverageToken.Demonstration) => -1,
-            (NpcArchetypeType.Scholar, LeverageToken.Demonstration)   => -1,
-            (NpcArchetypeType.Idealist, LeverageToken.Demonstration)  => 1,  // frightened
-            (_, LeverageToken.Demonstration)                           => 0,
+            (NpcArchetypeType.Commander,  LeverageToken.Demonstration) => -1,
+            (NpcArchetypeType.Scholar,    LeverageToken.Demonstration) => -1,
+            (NpcArchetypeType.Idealist,   LeverageToken.Demonstration) =>  1,
+            (_,                           LeverageToken.Demonstration) =>  0,
 
+            // Fallback
             _ => 0
         };
     }

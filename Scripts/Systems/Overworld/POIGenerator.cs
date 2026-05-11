@@ -10,9 +10,9 @@ public static class POIGenerator
     /// <summary>
     /// Scatter POIs across the grid. Call after grid generation, before fog init.
     /// </summary>
-    public static void Generate(OverworldHexGrid grid, int combatCount = 10, 
-                                int restCount = 4, int narrativeCount = 3,
-                                int seed = 0)
+    public static void Generate(OverworldHexGrid grid, int combatCount,
+                                int restCount, int narrativeCount = 3,
+                                int negotiationCount = 0, int seed = 0)
     {
         var rng = new RandomNumberGenerator();
         if (seed != 0) rng.Seed = (ulong)seed;
@@ -81,16 +81,33 @@ public static class POIGenerator
                 narrativePlaced++;
             }
         }
-        // Second pass: fill remaining anywhere
+
+        // Place negotiation POIs — prefer road hexes
+        int negPlaced = 0;
         foreach (var coord in candidates)
         {
-            if (narrativePlaced >= narrativeCount) break;
+            if (negPlaced >= negotiationCount) break;
             if (placed.Contains(coord)) continue;
-            if (!IsSpacedEnough(coord, placed, grid, 2)) continue;
+            if (!IsSpacedEnough(coord, placed, grid, 3)) continue;
 
-            grid.Hexes[coord].POI = OverworldHex.POIType.Narrative;
+            var terrain = grid.Hexes[coord].Terrain;
+            if (terrain == OverworldHex.TerrainType.Road ||
+                terrain == OverworldHex.TerrainType.Grassland)
+            {
+                grid.Hexes[coord].POI = OverworldHex.POIType.Negotiation;
+                placed.Add(coord);
+                negPlaced++;
+            }
+        }
+        // Second pass anywhere
+        foreach (var coord in candidates)
+        {
+            if (negPlaced >= negotiationCount) break;
+            if (placed.Contains(coord)) continue;
+            if (!IsSpacedEnough(coord, placed, grid, 3)) continue;
+            grid.Hexes[coord].POI = OverworldHex.POIType.Negotiation;
             placed.Add(coord);
-            narrativePlaced++;
+            negPlaced++;
         }
 
         GD.Print($"POIs placed: {combatPlaced} combat, {restPlaced} rest, {narrativePlaced} narrative");

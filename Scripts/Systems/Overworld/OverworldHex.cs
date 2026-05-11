@@ -16,7 +16,7 @@ public partial class OverworldHex : Node2D
     public enum FogState { Hidden, Silhouette, Revealed }
     public FogState Fog { get; set; } = FogState.Hidden;
 
-    public enum POIType { None, Combat, Rest, Objective, Narrative }
+    public enum POIType { None, Combat, Rest, Objective, Narrative, Negotiation }
     public POIType POI { get; set; } = POIType.None;
     public bool POIConsumed { get; set; } = false;
 
@@ -129,6 +129,7 @@ public partial class OverworldHex : Node2D
                 POIType.Rest      => new Color(0.20f, 0.80f, 0.95f),  // cyan
                 POIType.Objective => new Color(1.0f, 0.90f, 0.15f),   // bright gold
                 POIType.Narrative => new Color(0.75f, 0.50f, 1.0f),   // purple
+                POIType.Negotiation => new Color(0.2f, 0.75f, 0.55f), // teal
                 _ => Colors.White
             };
         }

@@ -152,7 +152,7 @@ public partial class CampusScreen : Control
         _companionContainer.AddThemeConstantOverride("separation", 6);
         _layout.AddChild(_companionContainer);
 
-        // ── Debug checkbox ──────────────────────────────────────────────
+        // ── Debug section ───────────────────────────────────────────────
         _debugCheckbox = new CheckBox
         {
             Text = "Debug Mode",
@@ -160,6 +160,89 @@ public partial class CampusScreen : Control
             SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
         };
         _layout.AddChild(_debugCheckbox);
+
+        // Debug options panel (shown when debug mode is on)
+        var debugPanel = new PanelContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+            Visible = PlayerSession.DebugMode,
+        };
+        var debugStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.15f, 0.10f, 0.10f),
+            BorderColor = new Color(0.6f, 0.3f, 0.3f),
+            BorderWidthTop = 1, BorderWidthBottom = 1,
+            BorderWidthLeft = 1, BorderWidthRight = 1,
+            ContentMarginLeft = 12, ContentMarginRight = 12,
+            ContentMarginTop = 8, ContentMarginBottom = 8,
+        };
+        debugPanel.AddThemeStyleboxOverride("stylebox", debugStyle);
+        _layout.AddChild(debugPanel);
+
+        var debugGrid = new GridContainer { Columns = 2 };
+        debugGrid.AddThemeConstantOverride("h_separation", 20);
+        debugGrid.AddThemeConstantOverride("v_separation", 6);
+        debugPanel.AddChild(debugGrid);
+
+        // Helper to make a debug checkbox
+        CheckBox MakeDebugCheck(string label, bool current, Action<bool> onChange)
+        {
+            var cb = new CheckBox { Text = label, ButtonPressed = current };
+            cb.AddThemeFontSizeOverride("font_size", 13);
+            cb.Toggled += (on) => onChange(on);
+            return cb;
+        }
+
+        debugGrid.AddChild(MakeDebugCheck("No Fog of War",   PlayerSession.NoFog,
+            on => PlayerSession.NoFog = on));
+
+        debugGrid.AddChild(MakeDebugCheck("Unlimited Steps", PlayerSession.UnlimitedSteps,
+            on => PlayerSession.UnlimitedSteps = on));
+
+        debugGrid.AddChild(MakeDebugCheck("God Mode HP",     PlayerSession.GodModeHP,
+            on => PlayerSession.GodModeHP = on));
+
+        debugGrid.AddChild(MakeDebugCheck("Start With Gold", PlayerSession.StartWithGold,
+            on => PlayerSession.StartWithGold = on));
+
+        debugGrid.AddChild(MakeDebugCheck("Skip Deployment", PlayerSession.SkipDeployment,
+            on => PlayerSession.SkipDeployment = on));
+
+        // Force encounter type dropdown
+        var forceLabel = new Label { Text = "Force Next POI:" };
+        forceLabel.AddThemeFontSizeOverride("font_size", 13);
+        debugGrid.AddChild(forceLabel);
+
+        var forceDropdown = new OptionButton { CustomMinimumSize = new Vector2(140, 28) };
+        forceDropdown.AddThemeFontSizeOverride("font_size", 13);
+        forceDropdown.AddItem("None (normal)", -1);
+        forceDropdown.AddItem("Combat",        (int)OverworldHex.POIType.Combat);
+        forceDropdown.AddItem("Rest",          (int)OverworldHex.POIType.Rest);
+        forceDropdown.AddItem("Narrative",     (int)OverworldHex.POIType.Narrative);
+        forceDropdown.AddItem("Negotiation",   (int)OverworldHex.POIType.Negotiation);
+        forceDropdown.Selected = 0;
+        forceDropdown.ItemSelected += (idx) =>
+        {
+            PlayerSession.ForceNextEncounterType = forceDropdown.GetItemId((int)idx);
+        };
+        debugGrid.AddChild(forceDropdown);
+
+        // Toggle debug panel visibility when debug checkbox changes
+        _debugCheckbox.Toggled += (on) =>
+        {
+            PlayerSession.DebugMode = on;
+            debugPanel.Visible = on;
+            if (!on)
+            {
+                // Clear all debug flags when debug mode is turned off
+                PlayerSession.NoFog = false;
+                PlayerSession.UnlimitedSteps = false;
+                PlayerSession.GodModeHP = false;
+                PlayerSession.StartWithGold = false;
+                PlayerSession.SkipDeployment = false;
+                PlayerSession.ForceNextEncounterType = -1;
+            }
+        };
 
         // ── Spacer ──────────────────────────────────────────────────────
         _layout.AddChild(new Control { CustomMinimumSize = new Vector2(0, 10) });

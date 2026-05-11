@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://cjnntyjl7qluk"]
+
+[ext_resource type="Script" uid="uid://bn2gbxsyuilat" path="res://Scripts/Systems/Negotiation/NegotiationManager.cs" id="1_hula6"]
+
+[node name="Control" type="Control" unique_id=1153657819]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_hula6")

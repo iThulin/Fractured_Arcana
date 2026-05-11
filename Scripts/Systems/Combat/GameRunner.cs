@@ -1153,7 +1153,17 @@ public partial class GameRunner : Node3D
         }
 
         if (EnableDeploymentPhase)
-            StartDeploymentPhase();
+        {
+            if (PlayerSession.DebugMode && PlayerSession.SkipDeployment)
+            {
+                AutoPlaceUnits();
+                StartPlayerTurn();
+            }
+            else
+            {
+                StartDeploymentPhase();
+            }
+        }
     }
 
     private Unit SpawnUnitFromSide(
@@ -1194,6 +1204,18 @@ public partial class GameRunner : Node3D
 
         GD.Print($"Spawned {unit.Name} at {tile.Axial}");
         return unit;
+    }
+
+    private void AutoPlaceUnits()
+    {
+        GD.Print("[Debug] Auto-placing units, skipping deployment.");
+        // Player units stay on their spawn tiles — deployment is already done by SpawnUnits
+        // Just confirm placement
+        foreach (var unit in playerUnits)
+        {
+            if (unit?.CurrentTile != null)
+                GD.Print($"[Debug] {unit.Name} auto-placed at {unit.CurrentTile.Axial}");
+        }
     }
 
     private Unit FindNearestPlayerUnit(Unit enemy)
