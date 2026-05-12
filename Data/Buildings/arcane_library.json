@@ -1,0 +1,38 @@
+{
+  "id": "arcane_library",
+  "name": "Arcane Library",
+  "description": "A repository of magical knowledge. Unlocks the card library browser and grants Insight tokens for negotiations.",
+  "category": "Magic",
+  "schoolAffinity": "",
+  "maxTier": 3,
+  "tiers": [
+    {
+      "tier": 1,
+      "description": "A modest collection. Unlocks the Card Library browser.",
+      "goldCost": 100,
+      "requiredBuildings": [],
+      "unlocksCardLibrary": true,
+      "unlocksFeatures": ["card_library"]
+    },
+    {
+      "tier": 2,
+      "description": "Expanded stacks. Card Library unlocked and +1 Insight token per negotiation.",
+      "goldCost": 200,
+      "requiredBuildings": [],
+      "unlocksCardLibrary": true,
+      "unlocksFeatures": ["card_library"],
+      "bonusNegotiationTokens": 1,
+      "bonusTokenType": "Insight"
+    },
+    {
+      "tier": 3,
+      "description": "Forbidden Archives. +2 Insight tokens and +1 Persuade token per negotiation.",
+      "goldCost": 400,
+      "requiredBuildings": [],
+      "unlocksCardLibrary": true,
+      "unlocksFeatures": ["card_library", "forbidden_archives"],
+      "bonusNegotiationTokens": 2,
+      "bonusTokenType": "Insight"
+    }
+  ]
+}

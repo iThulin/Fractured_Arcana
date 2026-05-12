@@ -77,8 +77,8 @@ public partial class GameRunner : Node3D
         if (PlayerSession.DebugMode)
         {
             GD.Print("=== DEBUG MODE ENABLED ===");
-            EnableDeploymentPhase = false;  // skip straight to player turn
-            State.Mana[Me] = 99;            // unlimited mana
+            State.Mana[Me] = 99;  // unlimited mana in debug
+            // EnableDeploymentPhase is controlled by SkipDeployment specifically
         }
 
         SpawnTestUnits();

@@ -1,0 +1,35 @@
+{
+  "id": "training_grounds",
+  "name": "Training Grounds",
+  "description": "A place to hone combat skills before expeditions. Grants your party bonus HP at the start of each run.",
+  "category": "Core",
+  "schoolAffinity": "",
+  "maxTier": 3,
+  "tiers": [
+    {
+      "tier": 1,
+      "description": "Basic drills. Party starts each run with +15 HP.",
+      "goldCost": 80,
+      "requiredBuildings": [],
+      "bonusStartingHP": 15
+    },
+    {
+      "tier": 2,
+      "description": "Advanced training. Party starts with +30 HP and +2 steps.",
+      "goldCost": 160,
+      "requiredBuildings": [],
+      "bonusStartingHP": 30,
+      "bonusStartingSteps": 2
+    },
+    {
+      "tier": 3,
+      "description": "Elite conditioning. Party starts with +50 HP, +4 steps, and a free Demonstration token.",
+      "goldCost": 300,
+      "requiredBuildings": [],
+      "bonusStartingHP": 50,
+      "bonusStartingSteps": 4,
+      "bonusNegotiationTokens": 1,
+      "bonusTokenType": "Demonstration"
+    }
+  ]
+}

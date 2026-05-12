@@ -1,0 +1,35 @@
+{
+  "id": "courier_station",
+  "name": "Courier Station",
+  "description": "A network of scouts and informants. Pre-reveals hexes on the overworld at the start of each run.",
+  "category": "Reputation",
+  "schoolAffinity": "",
+  "maxTier": 3,
+  "tiers": [
+    {
+      "tier": 1,
+      "description": "Local contacts. Pre-reveals 3 hexes near the entry point.",
+      "goldCost": 120,
+      "requiredBuildings": [],
+      "preRevealHexCount": 3
+    },
+    {
+      "tier": 2,
+      "description": "Regional network. Pre-reveals 6 hexes and adds +1 Connections token.",
+      "goldCost": 240,
+      "requiredBuildings": [],
+      "preRevealHexCount": 6,
+      "bonusNegotiationTokens": 1,
+      "bonusTokenType": "Connections"
+    },
+    {
+      "tier": 3,
+      "description": "Spy Network. Pre-reveals 10 hexes including one near the objective.",
+      "goldCost": 450,
+      "requiredBuildings": [],
+      "preRevealHexCount": 10,
+      "bonusNegotiationTokens": 1,
+      "bonusTokenType": "Connections"
+    }
+  ]
+}

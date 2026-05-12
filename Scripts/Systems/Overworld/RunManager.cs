@@ -135,6 +135,14 @@ public partial class RunManager : Node2D
         EncountersWon = 0;
         RunComplete = false;
 
+        // ── Apply building bonuses ──────────────────────────────────────
+        var buildingBonuses = BuildingEffectApplier.CalculateRunBonuses(SaveManager.ActiveSave);
+        MaxHP += buildingBonuses.BonusHP;
+        CurrentHP = MaxHP;
+        StepBudget += buildingBonuses.BonusSteps;
+        StepsRemaining = StepBudget;
+        GoldEarned += buildingBonuses.BonusGold;
+
         // Apply debug flags
         if (PlayerSession.DebugMode && PlayerSession.StartWithGold)
             GoldEarned += 500;
@@ -148,6 +156,14 @@ public partial class RunManager : Node2D
         {
             _party.Initialize(_grid, _fog, _grid.EntryCoord);
             ShowInfo("Explore the map. Reach the golden objective marker.");
+
+            // Pre-reveal hexes from Courier Station
+            if (buildingBonuses.PreRevealHexCount > 0)
+                PreRevealHexes(buildingBonuses.PreRevealHexCount);
+
+            // Apply fog after pre-reveals
+            if (PlayerSession.DebugMode && PlayerSession.NoFog)
+                RevealAllFog();
         }
 
         // ── Narrative encounter panel ───────────────────────────────────
@@ -648,6 +664,46 @@ public partial class RunManager : Node2D
             GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
         }
     }
+
+    // ── Building helpers ─────────────────────────────────────────────────
+
+    private void PreRevealHexes(int count)
+    {
+        // Reveal random hexes near the entry point
+        var candidates = new System.Collections.Generic.List<Vector2I>();
+
+        foreach (var kvp in _grid.Hexes)
+        {
+            int dist = _grid.Distance(kvp.Key, _grid.EntryCoord);
+            if (dist >= 2 && dist <= 6 &&
+                kvp.Value.Fog == OverworldHex.FogState.Hidden)
+                candidates.Add(kvp.Key);
+        }
+
+        // Shuffle candidates
+        for (int i = candidates.Count - 1; i > 0; i--)
+        {
+            int j = (int)(GD.Randi() % (uint)(i + 1));
+            (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+        }
+
+        int revealed = 0;
+        foreach (var coord in candidates)
+        {
+            if (revealed >= count) break;
+            if (_grid.Hexes.TryGetValue(coord, out var hex))
+            {
+                hex.Fog = OverworldHex.FogState.Revealed;
+                hex.RefreshVisuals();
+                revealed++;
+            }
+        }
+
+        if (revealed > 0)
+            GD.Print($"[Buildings] Pre-revealed {revealed} hexes (Courier Station).");
+    }
+
+
 
         private void RevealAllFog()
     {

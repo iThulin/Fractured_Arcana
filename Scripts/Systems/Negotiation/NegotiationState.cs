@@ -142,6 +142,27 @@ public class NegotiationState
             }
         }
 
+        // Building contributions
+        var save = SaveManager.ActiveSave;
+        if (save != null)
+        {
+            foreach (var buildingSave in save.Buildings)
+            {
+                if (buildingSave.Tier <= 0) continue;
+                var tierData = BuildingDatabase.GetCurrentTierData(buildingSave.Id, save);
+                if (tierData == null) continue;
+                if (tierData.BonusNegotiationTokens <= 0) continue;
+
+                if (System.Enum.TryParse<LeverageToken>(
+                    tierData.BonusTokenType, out var tokenType))
+                {
+                    TokenPool[tokenType] += tierData.BonusNegotiationTokens;
+                    GD.Print($"[Buildings] +{tierData.BonusNegotiationTokens} " +
+                             $"{tokenType} from {buildingSave.Name}");
+                }
+            }
+        }
+
         // Everyone gets base Patience tokens
         TokenPool[LeverageToken.Patience] = Mathf.Max(
             TokenPool[LeverageToken.Patience], 2);
