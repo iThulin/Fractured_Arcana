@@ -4,11 +4,16 @@ using System.Collections.Generic;
 
 public partial class CampusScreen : Control
 {
-    // ── Core references ─────────────────────────────────────────────────
-    private TabContainer _tabs;
     private int _selectedSlot = -1;
+    private int _activeTab = 0;
 
-    // ── Guild tab ────────────────────────────────────────────────────────
+    // Tab buttons
+    private Button[] _tabButtons;
+
+    // Tab content panels (one per tab, shown/hidden)
+    private Control[] _tabPanels;
+
+    // Guild tab nodes
     private VBoxContainer _slotContainer;
     private Label _summaryLabel;
     private OptionButton _schoolPicker;
@@ -19,10 +24,10 @@ public partial class CampusScreen : Control
     private Button _startRunButton;
     private Button _cardLibraryButton;
 
-    // ── Companions tab ───────────────────────────────────────────────────
+    // Companions tab
     private VBoxContainer _companionContainer;
 
-    // ── Campus tab ───────────────────────────────────────────────────────
+    // Campus tab
     private VBoxContainer _buildingContainer;
 
     private static readonly Dictionary<CardSchool, string> SchoolDescriptions = new()
@@ -39,25 +44,18 @@ public partial class CampusScreen : Control
     {
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
 
-        // ── Full-screen background ───────────────────────────────────────
-        AnchorRight = 1f;
-        AnchorBottom = 1f;
+        // Fill the viewport
+        SetAnchorsPreset(LayoutPreset.FullRect);
 
-        var bg = new ColorRect
-        {
-            Color = new Color(0.09f, 0.08f, 0.13f),
-            AnchorRight = 1f, AnchorBottom = 1f,
-            GrowHorizontal = GrowDirection.Both,
-            GrowVertical = GrowDirection.Both,
-        };
+        // Background
+        var bg = new ColorRect { Color = new Color(0.09f, 0.08f, 0.13f) };
+        bg.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(bg);
 
-        // ── Title bar ────────────────────────────────────────────────────
-        var titleBar = new Panel
-        {
-            AnchorRight = 1f,
-            OffsetBottom = 60,
-        };
+        // Title bar — fixed 60px at top
+        var titleBar = new Panel();
+        titleBar.SetAnchorsPreset(LayoutPreset.TopWide);
+        titleBar.OffsetBottom = 60;
         var titleStyle = new StyleBoxFlat
         {
             BgColor = new Color(0.13f, 0.11f, 0.20f),
@@ -67,40 +65,64 @@ public partial class CampusScreen : Control
         titleBar.AddThemeStyleboxOverride("panel", titleStyle);
         AddChild(titleBar);
 
-        var titleLabel = new Label
+        var titleLbl = new Label
         {
             Text = "Guild Campus",
-            AnchorLeft = 0.5f, AnchorTop = 0.5f,
-            GrowHorizontal = GrowDirection.Both,
-            GrowVertical = GrowDirection.Both,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
         };
-        titleLabel.AddThemeFontSizeOverride("font_size", 30);
-        titleLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.85f, 0.6f));
-        titleBar.AddChild(titleLabel);
+        titleLbl.SetAnchorsPreset(LayoutPreset.FullRect);
+        titleLbl.AddThemeFontSizeOverride("font_size", 30);
+        titleLbl.AddThemeColorOverride("font_color", new Color(0.9f, 0.85f, 0.6f));
+        titleBar.AddChild(titleLbl);
 
-        // ── Tab container ────────────────────────────────────────────────
-        _tabs = new TabContainer
+        // Tab button bar — fixed 44px below title
+        var tabBar = new HBoxContainer();
+        tabBar.SetAnchorsPreset(LayoutPreset.TopWide);
+        tabBar.OffsetTop = 60;
+        tabBar.OffsetBottom = 104;
+        tabBar.AddThemeConstantOverride("separation", 0);
+        AddChild(tabBar);
+
+        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition" };
+        _tabButtons = new Button[tabNames.Length];
+        for (int i = 0; i < tabNames.Length; i++)
         {
-            AnchorLeft = 0f, AnchorTop = 0f,
-            AnchorRight = 1f, AnchorBottom = 1f,
-            OffsetTop = 64,
-            OffsetLeft = 0, OffsetRight = 0, OffsetBottom = 0,
-            GrowHorizontal = GrowDirection.Both,
-            GrowVertical = GrowDirection.Both,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        AddChild(_tabs);
+            var btn = new Button
+            {
+                Text = tabNames[i],
+                ToggleMode = true,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                CustomMinimumSize = new Vector2(0, 44),
+            };
+            btn.AddThemeFontSizeOverride("font_size", 16);
+            int captured = i;
+            btn.Pressed += () => SelectTab(captured);
+            _tabButtons[i] = btn;
+            tabBar.AddChild(btn);
+        }
 
-        // Build each tab
-        BuildGuildTab();
-        BuildCompanionsTab();
-        BuildCampusTab();
-        BuildExpeditionTab();
+        // Content area — fills from below tab bar to bottom
+        _tabPanels = new Control[tabNames.Length];
+        for (int i = 0; i < tabNames.Length; i++)
+        {
+            var panel = new ScrollContainer();
+            panel.SetAnchorsPreset(LayoutPreset.FullRect);
+            panel.OffsetTop = 104;
+            panel.Visible = false;
+            panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            panel.SizeFlagsVertical = SizeFlags.ExpandFill;
+            AddChild(panel);
+            _tabPanels[i] = panel;
+        }
 
-        // ── Debug check + auto-select ────────────────────────────────────
+        // Build tab content
+        BuildGuildTab((ScrollContainer)_tabPanels[0]);
+        BuildCompanionsTab((ScrollContainer)_tabPanels[1]);
+        BuildCampusTab((ScrollContainer)_tabPanels[2]);
+        BuildExpeditionTab((ScrollContainer)_tabPanels[3]);
+
+        // Auto-select active slot
         GD.Print($"CampusScreen: ActiveSave={SaveManager.ActiveSave?.GuildName ?? "NULL"}, " +
                  $"Gold={SaveManager.ActiveSave?.Gold ?? -1}, " +
                  $"Runs={SaveManager.ActiveSave?.TotalRuns ?? -1}");
@@ -109,7 +131,6 @@ public partial class CampusScreen : Control
         {
             _selectedSlot = SaveManager.ActiveSlot;
             EnsureRostersAndBuildings();
-
             if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave.SelectedSchool, out var school))
             {
                 _schoolPicker.Selected = (int)school;
@@ -119,43 +140,35 @@ public partial class CampusScreen : Control
 
         RefreshAll();
         UpdateStartButton();
+        SelectTab(0);
+    }
+
+    private void SelectTab(int index)
+    {
+        _activeTab = index;
+        for (int i = 0; i < _tabPanels.Length; i++)
+        {
+            _tabPanels[i].Visible = (i == index);
+            _tabButtons[i].ButtonPressed = (i == index);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Tab builders
+    // Tab content builders
     // ═══════════════════════════════════════════════════════════════════════
 
-    private void BuildGuildTab()
+    private void BuildGuildTab(ScrollContainer scroll)
     {
-        // Tab root — VBoxContainer fills the tab page
-        var tabRoot = new VBoxContainer { Name = "Guild" };
-        tabRoot.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        tabRoot.SizeFlagsVertical = SizeFlags.ExpandFill;
-        _tabs.AddChild(tabRoot);
-
-        // ScrollContainer fills the tab root
-        var scroll = new ScrollContainer();
-        scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
-        tabRoot.AddChild(scroll);
-
-        // Margins inside scroll
-        var margins = MakeMargins(24, 16);
+        var margins = MakeMargins(32, 20);
         scroll.AddChild(margins);
-
-        var layout = new VBoxContainer();
-        layout.AddThemeConstantOverride("separation", 14);
+        var layout = MakeVBox(14);
         margins.AddChild(layout);
 
-        // ── Save slots ──────────────────────────────────────────────────
         AddSectionHeader(layout, "Save Slots");
-        _slotContainer = new VBoxContainer();
-        _slotContainer.AddThemeConstantOverride("separation", 8);
+        _slotContainer = MakeVBox(8);
         layout.AddChild(_slotContainer);
-
         layout.AddChild(new HSeparator());
 
-        // ── Run summary ─────────────────────────────────────────────────
         _summaryLabel = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -167,10 +180,10 @@ public partial class CampusScreen : Control
         if (RunResultData.HasResults)
         {
             string outcome = RunResultData.ReachedObjective ? "✓ SUCCESS" : "✗ FAILED";
-            _summaryLabel.Text = $"Last Run: {outcome}\n" +
-                                 $"Gold earned: {RunResultData.GoldEarned}  |  " +
-                                 $"Encounters won: {RunResultData.EncountersWon}  |  " +
-                                 $"HP remaining: {RunResultData.HPRemaining}";
+            _summaryLabel.Text = $"Last Run: {outcome}  |  " +
+                                 $"Gold: {RunResultData.GoldEarned}  |  " +
+                                 $"Encounters: {RunResultData.EncountersWon}  |  " +
+                                 $"HP: {RunResultData.HPRemaining}";
             _summaryLabel.Modulate = RunResultData.ReachedObjective
                 ? new Color(0.5f, 1f, 0.5f) : new Color(1f, 0.5f, 0.5f);
             RunResultData.Clear();
@@ -182,8 +195,6 @@ public partial class CampusScreen : Control
         }
 
         layout.AddChild(new HSeparator());
-
-        // ── School picker ───────────────────────────────────────────────
         AddSectionHeader(layout, "Wizard School");
 
         _schoolPicker = new OptionButton
@@ -206,12 +217,10 @@ public partial class CampusScreen : Control
         _schoolDescription.AddThemeFontSizeOverride("font_size", 13);
         _schoolDescription.Modulate = new Color(0.8f, 0.8f, 0.85f);
         layout.AddChild(_schoolDescription);
-
         UpdateSchoolDescription();
 
         layout.AddChild(new HSeparator());
 
-        // ── Debug ───────────────────────────────────────────────────────
         _debugCheckbox = new CheckBox
         {
             Text = "Debug Mode",
@@ -241,132 +250,72 @@ public partial class CampusScreen : Control
 
         layout.AddChild(new HSeparator());
 
-        // ── Action buttons ──────────────────────────────────────────────
-        _startRunButton = new Button
-        {
-            Text = "Begin Expedition",
-            CustomMinimumSize = new Vector2(280, 52),
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-        };
-        _startRunButton.AddThemeFontSizeOverride("font_size", 20);
+        _startRunButton = MakeButton("Begin Expedition", 280, 52, 20);
         _startRunButton.Pressed += OnStartRun;
         layout.AddChild(_startRunButton);
 
-        _cardLibraryButton = new Button
-        {
-            Text = "Card Library",
-            CustomMinimumSize = new Vector2(280, 40),
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-        };
-        _cardLibraryButton.AddThemeFontSizeOverride("font_size", 16);
+        _cardLibraryButton = MakeButton("Card Library", 280, 40, 16);
         _cardLibraryButton.Pressed += () =>
             GetTree().ChangeSceneToFile("res://Scenes/UI/CardLibrary.tscn");
         layout.AddChild(_cardLibraryButton);
 
-        var quitBtn = new Button
-        {
-            Text = "Quit",
-            CustomMinimumSize = new Vector2(280, 36),
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-        };
+        var quitBtn = MakeButton("Quit", 280, 36, 15);
         quitBtn.Pressed += () => GetTree().Quit();
         layout.AddChild(quitBtn);
     }
 
-
-    private void BuildCompanionsTab()
+    private void BuildCompanionsTab(ScrollContainer scroll)
     {
-        var tabRoot = new VBoxContainer { Name = "Companions" };
-        tabRoot.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        tabRoot.SizeFlagsVertical = SizeFlags.ExpandFill;
-        _tabs.AddChild(tabRoot);
-
-        var scroll = new ScrollContainer();
-        scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
-        tabRoot.AddChild(scroll);
-
-        var margins = MakeMargins(24, 16);
+        var margins = MakeMargins(32, 20);
         scroll.AddChild(margins);
-
-        var layout = new VBoxContainer();
-        layout.AddThemeConstantOverride("separation", 10);
+        var layout = MakeVBox(10);
         margins.AddChild(layout);
 
         AddSectionHeader(layout, "Companion Roster");
 
-        var partyNote = new Label
+        var note = new Label
         {
             Text = "Recruit companions to bring on expeditions. Active party members " +
                    "contribute cards to your deck and tokens to negotiations.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        partyNote.AddThemeFontSizeOverride("font_size", 13);
-        partyNote.Modulate = new Color(0.7f, 0.7f, 0.75f);
-        layout.AddChild(partyNote);
-
+        note.AddThemeFontSizeOverride("font_size", 13);
+        note.Modulate = new Color(0.7f, 0.7f, 0.75f);
+        layout.AddChild(note);
         layout.AddChild(new HSeparator());
 
-        _companionContainer = new VBoxContainer();
-        _companionContainer.AddThemeConstantOverride("separation", 8);
+        _companionContainer = MakeVBox(8);
         layout.AddChild(_companionContainer);
     }
 
-    private void BuildCampusTab()
+    private void BuildCampusTab(ScrollContainer scroll)
     {
-        var tabRoot = new VBoxContainer { Name = "Campus" };
-        tabRoot.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        tabRoot.SizeFlagsVertical = SizeFlags.ExpandFill;
-        _tabs.AddChild(tabRoot);
-
-        var scroll = new ScrollContainer();
-        scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
-        tabRoot.AddChild(scroll);
-
-        var margins = MakeMargins(24, 16);
+        var margins = MakeMargins(32, 20);
         scroll.AddChild(margins);
-
-        var layout = new VBoxContainer();
-        layout.AddThemeConstantOverride("separation", 10);
+        var layout = MakeVBox(10);
         margins.AddChild(layout);
 
         AddSectionHeader(layout, "Campus Buildings");
 
-        var buildingNote = new Label
+        var note = new Label
         {
             Text = "Construct and upgrade buildings to gain permanent bonuses across all runs.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        buildingNote.AddThemeFontSizeOverride("font_size", 13);
-        buildingNote.Modulate = new Color(0.7f, 0.7f, 0.75f);
-        layout.AddChild(buildingNote);
-
+        note.AddThemeFontSizeOverride("font_size", 13);
+        note.Modulate = new Color(0.7f, 0.7f, 0.75f);
+        layout.AddChild(note);
         layout.AddChild(new HSeparator());
 
-        _buildingContainer = new VBoxContainer();
-        _buildingContainer.AddThemeConstantOverride("separation", 10);
+        _buildingContainer = MakeVBox(10);
         layout.AddChild(_buildingContainer);
-    
     }
 
-    private void BuildExpeditionTab()
+    private void BuildExpeditionTab(ScrollContainer scroll)
     {
-        var tabRoot = new VBoxContainer { Name = "Expedition" };
-        tabRoot.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        tabRoot.SizeFlagsVertical = SizeFlags.ExpandFill;
-        _tabs.AddChild(tabRoot);
-
-        var scroll = new ScrollContainer();
-        scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
-        tabRoot.AddChild(scroll);
-
-        var margins = MakeMargins(24, 16);
+        var margins = MakeMargins(32, 20);
         scroll.AddChild(margins);
-
-        var layout = new VBoxContainer();
-        layout.AddThemeConstantOverride("separation", 14);
+        var layout = MakeVBox(14);
         margins.AddChild(layout);
 
         AddSectionHeader(layout, "Choose Destination");
@@ -388,10 +337,7 @@ public partial class CampusScreen : Control
 
     private PanelContainer BuildDebugPanel()
     {
-        var panel = new PanelContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-        };
+        var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
         var style = new StyleBoxFlat
         {
             BgColor = new Color(0.15f, 0.10f, 0.10f),
@@ -431,16 +377,13 @@ public partial class CampusScreen : Control
         forceLabel.AddThemeFontSizeOverride("font_size", 13);
         grid.AddChild(forceLabel);
 
-        _forceEncounterDropdown = new OptionButton
-        {
-            CustomMinimumSize = new Vector2(140, 28)
-        };
+        _forceEncounterDropdown = new OptionButton { CustomMinimumSize = new Vector2(140, 28) };
         _forceEncounterDropdown.AddThemeFontSizeOverride("font_size", 13);
-        _forceEncounterDropdown.AddItem("None (normal)",  -1);
-        _forceEncounterDropdown.AddItem("Combat",         (int)OverworldHex.POIType.Combat);
-        _forceEncounterDropdown.AddItem("Rest",           (int)OverworldHex.POIType.Rest);
-        _forceEncounterDropdown.AddItem("Narrative",      (int)OverworldHex.POIType.Narrative);
-        _forceEncounterDropdown.AddItem("Negotiation",    (int)OverworldHex.POIType.Negotiation);
+        _forceEncounterDropdown.AddItem("None (normal)", -1);
+        _forceEncounterDropdown.AddItem("Combat",        (int)OverworldHex.POIType.Combat);
+        _forceEncounterDropdown.AddItem("Rest",          (int)OverworldHex.POIType.Rest);
+        _forceEncounterDropdown.AddItem("Narrative",     (int)OverworldHex.POIType.Narrative);
+        _forceEncounterDropdown.AddItem("Negotiation",   (int)OverworldHex.POIType.Negotiation);
         _forceEncounterDropdown.Selected = 0;
         _forceEncounterDropdown.ItemSelected += (idx) =>
             PlayerSession.ForceNextEncounterType =
@@ -451,7 +394,7 @@ public partial class CampusScreen : Control
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Refresh methods
+    // Refresh methods (unchanged from before)
     // ═══════════════════════════════════════════════════════════════════════
 
     private void RefreshAll()
@@ -464,8 +407,7 @@ public partial class CampusScreen : Control
     private void RefreshSlotButtons()
     {
         if (_slotContainer == null) return;
-        foreach (var child in _slotContainer.GetChildren())
-            child.QueueFree();
+        foreach (var child in _slotContainer.GetChildren()) child.QueueFree();
 
         var slots = SaveManager.GetAllSlotInfo();
         foreach (var slot in slots)
@@ -484,8 +426,6 @@ public partial class CampusScreen : Control
                 CustomMinimumSize = new Vector2(360, 36),
                 SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
             };
-
-            // Highlight the active slot
             if (slot.Slot == _selectedSlot)
                 loadBtn.Modulate = new Color(0.7f, 1f, 0.7f);
 
@@ -496,11 +436,7 @@ public partial class CampusScreen : Control
 
             if (!slot.IsEmpty)
             {
-                var delBtn = new Button
-                {
-                    Text = "✕",
-                    CustomMinimumSize = new Vector2(36, 36),
-                };
+                var delBtn = new Button { Text = "✕", CustomMinimumSize = new Vector2(36, 36) };
                 delBtn.Pressed += () =>
                 {
                     SaveManager.DeleteSlot(capturedSlot);
@@ -510,7 +446,6 @@ public partial class CampusScreen : Control
                 };
                 hbox.AddChild(delBtn);
             }
-
             _slotContainer.AddChild(hbox);
         }
     }
@@ -518,8 +453,7 @@ public partial class CampusScreen : Control
     private void RefreshCompanionList()
     {
         if (_companionContainer == null) return;
-        foreach (var child in _companionContainer.GetChildren())
-            child.QueueFree();
+        foreach (var child in _companionContainer.GetChildren()) child.QueueFree();
 
         var save = SaveManager.ActiveSave;
         if (save == null)
@@ -547,9 +481,7 @@ public partial class CampusScreen : Control
             var cardStyle = new StyleBoxFlat
             {
                 BgColor = new Color(0.12f, 0.11f, 0.18f),
-                BorderColor = c.IsRecruited
-                    ? new Color(0.4f, 0.7f, 0.4f)
-                    : new Color(0.35f, 0.35f, 0.45f),
+                BorderColor = c.IsRecruited ? new Color(0.4f, 0.7f, 0.4f) : new Color(0.35f, 0.35f, 0.45f),
                 BorderWidthTop = 1, BorderWidthBottom = 1,
                 BorderWidthLeft = 1, BorderWidthRight = 1,
                 CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
@@ -563,31 +495,21 @@ public partial class CampusScreen : Control
             row.AddThemeConstantOverride("separation", 12);
             card.AddChild(row);
 
-            // Info column
-            var info = new VBoxContainer();
+            var info = MakeVBox(2);
             info.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            info.AddThemeConstantOverride("separation", 2);
-
             bool inParty = save.ActivePartyCompanionIds.Contains(c.Id);
-            string badge = c.IsRecruited
-                ? (inParty ? "  [PARTY]" : "  [ROSTER]")
-                : $"  [{c.RecruitmentCost}g]";
+            string badge = c.IsRecruited ? (inParty ? "  [PARTY]" : "  [ROSTER]") : $"  [{c.RecruitmentCost}g]";
 
             var nameLabel = new Label { Text = $"{c.Name}{badge}" };
             nameLabel.AddThemeFontSizeOverride("font_size", 15);
             info.AddChild(nameLabel);
 
-            var subLabel = new Label
-            {
-                Text = $"{c.School}  ·  {c.PersonalityTrait}  ·  Loyalty: {c.Loyalty}",
-            };
+            var subLabel = new Label { Text = $"{c.School}  ·  {c.PersonalityTrait}  ·  Loyalty: {c.Loyalty}" };
             subLabel.AddThemeFontSizeOverride("font_size", 12);
             subLabel.Modulate = new Color(0.7f, 0.7f, 0.75f);
             info.AddChild(subLabel);
-
             row.AddChild(info);
 
-            // Action button
             string capturedId = c.Id;
             var btn = new Button { CustomMinimumSize = new Vector2(120, 32) };
             btn.AddThemeFontSizeOverride("font_size", 13);
@@ -596,31 +518,20 @@ public partial class CampusScreen : Control
             {
                 btn.Text = $"Recruit ({c.RecruitmentCost}g)";
                 btn.Disabled = save.Gold < c.RecruitmentCost;
-                btn.Pressed += () =>
-                {
-                    if (CompanionRoster.TryRecruit(capturedId)) RefreshAll();
-                };
+                btn.Pressed += () => { if (CompanionRoster.TryRecruit(capturedId)) RefreshAll(); };
             }
             else if (inParty)
             {
                 btn.Text = "Remove";
-                btn.Pressed += () =>
-                {
-                    CompanionRoster.RemoveFromParty(capturedId);
-                    RefreshCompanionList();
-                };
+                btn.Pressed += () => { CompanionRoster.RemoveFromParty(capturedId); RefreshCompanionList(); };
             }
             else
             {
                 btn.Text = "Add to Party";
                 btn.Disabled = save.ActivePartyCompanionIds.Count >= save.MaxPartySize;
-                btn.Pressed += () =>
-                {
-                    if (CompanionRoster.TryAddToParty(capturedId)) RefreshCompanionList();
-                };
+                btn.Pressed += () => { if (CompanionRoster.TryAddToParty(capturedId)) RefreshCompanionList(); };
             }
             row.AddChild(btn);
-
             _companionContainer.AddChild(card);
         }
 
@@ -631,8 +542,7 @@ public partial class CampusScreen : Control
     private void RefreshBuildingList()
     {
         if (_buildingContainer == null) return;
-        foreach (var child in _buildingContainer.GetChildren())
-            child.QueueFree();
+        foreach (var child in _buildingContainer.GetChildren()) child.QueueFree();
 
         var save = SaveManager.ActiveSave;
         if (save == null)
@@ -650,9 +560,7 @@ public partial class CampusScreen : Control
             var cardStyle = new StyleBoxFlat
             {
                 BgColor = new Color(0.11f, 0.10f, 0.17f),
-                BorderColor = buildingSave.Tier > 0
-                    ? new Color(0.55f, 0.45f, 0.75f)
-                    : new Color(0.30f, 0.30f, 0.40f),
+                BorderColor = buildingSave.Tier > 0 ? new Color(0.55f, 0.45f, 0.75f) : new Color(0.30f, 0.30f, 0.40f),
                 BorderWidthTop = 1, BorderWidthBottom = 1,
                 BorderWidthLeft = 1, BorderWidthRight = 1,
                 CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
@@ -662,58 +570,44 @@ public partial class CampusScreen : Control
             };
             card.AddThemeStyleboxOverride("stylebox", cardStyle);
 
-            var cardLayout = new VBoxContainer();
-            cardLayout.AddThemeConstantOverride("separation", 4);
+            var cardLayout = MakeVBox(4);
             card.AddChild(cardLayout);
 
-            // Header row
             var headerRow = new HBoxContainer();
             headerRow.AddThemeConstantOverride("separation", 12);
             cardLayout.AddChild(headerRow);
 
-            var nameCol = new VBoxContainer();
+            var nameCol = MakeVBox(2);
             nameCol.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            nameCol.AddThemeConstantOverride("separation", 2);
 
-            string tierText = buildingSave.Tier == 0
-                ? "Not Built"
-                : $"Tier {buildingSave.Tier} / {template.MaxTier}";
-
+            string tierText = buildingSave.Tier == 0 ? "Not Built" : $"Tier {buildingSave.Tier} / {template.MaxTier}";
             var nameLabel = new Label { Text = $"{buildingSave.Name}  [{tierText}]" };
             nameLabel.AddThemeFontSizeOverride("font_size", 16);
             nameCol.AddChild(nameLabel);
 
-            var catLabel = new Label { Text = $"{template.Category}" +
-                (string.IsNullOrEmpty(template.SchoolAffinity) ? "" : $"  ·  {template.SchoolAffinity}") };
+            var catLabel = new Label
+            {
+                Text = template.Category + (string.IsNullOrEmpty(template.SchoolAffinity) ? "" : $"  ·  {template.SchoolAffinity}")
+            };
             catLabel.AddThemeFontSizeOverride("font_size", 12);
             catLabel.Modulate = new Color(0.6f, 0.6f, 0.7f);
             nameCol.AddChild(catLabel);
-
             headerRow.AddChild(nameCol);
 
-            // Build/Upgrade button
             int nextTier = buildingSave.Tier + 1;
             if (nextTier <= template.MaxTier)
             {
                 var tierData = template.Tiers.Find(t => t.Tier == nextTier);
                 int cost = tierData?.GoldCost ?? 0;
-                bool canAfford = save.Gold >= cost;
-
                 var btn = new Button
                 {
-                    Text = buildingSave.Tier == 0
-                        ? $"Build\n{cost}g"
-                        : $"Upgrade\n{cost}g",
+                    Text = buildingSave.Tier == 0 ? $"Build\n{cost}g" : $"Upgrade\n{cost}g",
                     CustomMinimumSize = new Vector2(90, 44),
-                    Disabled = !canAfford,
+                    Disabled = save.Gold < cost,
                 };
                 btn.AddThemeFontSizeOverride("font_size", 13);
-
                 string capturedId = buildingSave.Id;
-                btn.Pressed += () =>
-                {
-                    if (TryBuildOrUpgrade(capturedId)) RefreshAll();
-                };
+                btn.Pressed += () => { if (TryBuildOrUpgrade(capturedId)) RefreshAll(); };
                 headerRow.AddChild(btn);
             }
             else
@@ -724,37 +618,27 @@ public partial class CampusScreen : Control
                 headerRow.AddChild(maxLabel);
             }
 
-            // Current effect description
             if (buildingSave.Tier > 0)
             {
-                var currentTierData = template.Tiers.Find(t => t.Tier == buildingSave.Tier);
-                if (currentTierData != null)
+                var cur = template.Tiers.Find(t => t.Tier == buildingSave.Tier);
+                if (cur != null)
                 {
-                    var effectLabel = new Label
-                    {
-                        Text = $"Active: {currentTierData.Description}",
-                        AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                    };
-                    effectLabel.AddThemeFontSizeOverride("font_size", 13);
-                    effectLabel.AddThemeColorOverride("font_color", new Color(0.6f, 0.9f, 0.6f));
-                    cardLayout.AddChild(effectLabel);
+                    var lbl = new Label { Text = $"Active: {cur.Description}", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+                    lbl.AddThemeFontSizeOverride("font_size", 13);
+                    lbl.AddThemeColorOverride("font_color", new Color(0.6f, 0.9f, 0.6f));
+                    cardLayout.AddChild(lbl);
                 }
             }
 
-            // Next tier preview
             if (nextTier <= template.MaxTier)
             {
-                var nextTierData = template.Tiers.Find(t => t.Tier == nextTier);
-                if (nextTierData != null)
+                var next = template.Tiers.Find(t => t.Tier == nextTier);
+                if (next != null)
                 {
-                    var nextLabel = new Label
-                    {
-                        Text = $"Next: {nextTierData.Description}",
-                        AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                    };
-                    nextLabel.AddThemeFontSizeOverride("font_size", 12);
-                    nextLabel.AddThemeColorOverride("font_color", new Color(0.65f, 0.65f, 0.75f));
-                    cardLayout.AddChild(nextLabel);
+                    var lbl = new Label { Text = $"Next: {next.Description}", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+                    lbl.AddThemeFontSizeOverride("font_size", 12);
+                    lbl.AddThemeColorOverride("font_color", new Color(0.65f, 0.65f, 0.75f));
+                    cardLayout.AddChild(lbl);
                 }
             }
 
@@ -784,7 +668,6 @@ public partial class CampusScreen : Control
                 UpdateSchoolDescription();
             }
         }
-
         _selectedSlot = slot;
         EnsureRostersAndBuildings();
         RefreshAll();
@@ -795,16 +678,13 @@ public partial class CampusScreen : Control
     private void OnStartRun()
     {
         if (_selectedSlot < 0) return;
-
         PlayerSession.SelectedSchool = (CardSchool)_schoolPicker.GetSelectedId();
         PlayerSession.DebugMode = _debugCheckbox.ButtonPressed;
-
         if (SaveManager.ActiveSave != null)
         {
             SaveManager.ActiveSave.SelectedSchool = PlayerSession.SelectedSchool.ToString();
             SaveManager.Save();
         }
-
         GD.Print($"Starting run: {PlayerSession.SelectedSchool}, Debug: {PlayerSession.DebugMode}");
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/OverworldScene.tscn");
     }
@@ -813,19 +693,16 @@ public partial class CampusScreen : Control
     {
         var save = SaveManager.ActiveSave;
         if (save == null) return false;
-
         var template = BuildingDatabase.GetTemplate(buildingId);
         if (template == null) return false;
 
         BuildingSaveData buildingSave = null;
         foreach (var b in save.Buildings)
             if (b.Id == buildingId) { buildingSave = b; break; }
-
         if (buildingSave == null) return false;
 
         int nextTier = buildingSave.Tier + 1;
         if (nextTier > template.MaxTier) return false;
-
         var tierData = template.Tiers.Find(t => t.Tier == nextTier);
         if (tierData == null || save.Gold < tierData.GoldCost) return false;
 
@@ -840,7 +717,6 @@ public partial class CampusScreen : Control
         save.Gold -= tierData.GoldCost;
         buildingSave.Tier = nextTier;
         SaveManager.Save();
-
         GD.Print($"Built {buildingSave.Name} tier {nextTier}. Gold: {save.Gold}");
         return true;
     }
@@ -886,6 +762,13 @@ public partial class CampusScreen : Control
         parent.AddChild(label);
     }
 
+    private VBoxContainer MakeVBox(int separation)
+    {
+        var v = new VBoxContainer();
+        v.AddThemeConstantOverride("separation", separation);
+        return v;
+    }
+
     private MarginContainer MakeMargins(int horizontal, int vertical)
     {
         var m = new MarginContainer();
@@ -896,6 +779,18 @@ public partial class CampusScreen : Control
         m.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         m.SizeFlagsVertical = SizeFlags.ShrinkBegin;
         return m;
+    }
+
+    private Button MakeButton(string text, float minWidth, float minHeight, int fontSize)
+    {
+        var btn = new Button
+        {
+            Text = text,
+            CustomMinimumSize = new Vector2(minWidth, minHeight),
+            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+        };
+        btn.AddThemeFontSizeOverride("font_size", fontSize);
+        return btn;
     }
 
     private Label MakeStubLabel(string text)
