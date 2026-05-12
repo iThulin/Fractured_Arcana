@@ -83,9 +83,14 @@ public partial class CampusScreen : Control
         // ── Tab container ────────────────────────────────────────────────
         _tabs = new TabContainer
         {
+            AnchorLeft = 0f, AnchorTop = 0f,
             AnchorRight = 1f, AnchorBottom = 1f,
             OffsetTop = 64,
             OffsetLeft = 0, OffsetRight = 0, OffsetBottom = 0,
+            GrowHorizontal = GrowDirection.Both,
+            GrowVertical = GrowDirection.Both,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
         };
         AddChild(_tabs);
 
@@ -122,26 +127,27 @@ public partial class CampusScreen : Control
 
     private void BuildGuildTab()
     {
-        var scroll = new ScrollContainer { Name = "Guild" };
+        // Tab root — VBoxContainer fills the tab page
+        var tabRoot = new VBoxContainer { Name = "Guild" };
+        tabRoot.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        tabRoot.SizeFlagsVertical = SizeFlags.ExpandFill;
+        _tabs.AddChild(tabRoot);
+
+        // ScrollContainer fills the tab root
+        var scroll = new ScrollContainer();
         scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
-        scroll.AnchorRight = 1f;
-        scroll.AnchorBottom = 1f;
-        _tabs.AddChild(scroll);
+        tabRoot.AddChild(scroll);
+
+        // Margins inside scroll
+        var margins = MakeMargins(24, 16);
+        scroll.AddChild(margins);
 
         var layout = new VBoxContainer();
         layout.AddThemeConstantOverride("separation", 14);
-        layout.OffsetLeft = 20;
-        var margins = new MarginContainer();
-        margins.AddThemeConstantOverride("margin_left", 24);
-        margins.AddThemeConstantOverride("margin_right", 24);
-        margins.AddThemeConstantOverride("margin_top", 16);
-        margins.AddThemeConstantOverride("margin_bottom", 16);
-        margins.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         margins.AddChild(layout);
-        scroll.AddChild(margins);
 
-        // Save slots
+        // ── Save slots ──────────────────────────────────────────────────
         AddSectionHeader(layout, "Save Slots");
         _slotContainer = new VBoxContainer();
         _slotContainer.AddThemeConstantOverride("separation", 8);
@@ -149,7 +155,7 @@ public partial class CampusScreen : Control
 
         layout.AddChild(new HSeparator());
 
-        // Run summary
+        // ── Run summary ─────────────────────────────────────────────────
         _summaryLabel = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -177,7 +183,7 @@ public partial class CampusScreen : Control
 
         layout.AddChild(new HSeparator());
 
-        // School picker
+        // ── School picker ───────────────────────────────────────────────
         AddSectionHeader(layout, "Wizard School");
 
         _schoolPicker = new OptionButton
@@ -205,7 +211,7 @@ public partial class CampusScreen : Control
 
         layout.AddChild(new HSeparator());
 
-        // Debug section
+        // ── Debug ───────────────────────────────────────────────────────
         _debugCheckbox = new CheckBox
         {
             Text = "Debug Mode",
@@ -235,7 +241,7 @@ public partial class CampusScreen : Control
 
         layout.AddChild(new HSeparator());
 
-        // Action buttons
+        // ── Action buttons ──────────────────────────────────────────────
         _startRunButton = new Button
         {
             Text = "Begin Expedition",
@@ -267,15 +273,18 @@ public partial class CampusScreen : Control
         layout.AddChild(quitBtn);
     }
 
+
     private void BuildCompanionsTab()
     {
-        var scroll = new ScrollContainer { Name = "Companions" };
+        var tabRoot = new VBoxContainer { Name = "Companions" };
+        tabRoot.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        tabRoot.SizeFlagsVertical = SizeFlags.ExpandFill;
+        _tabs.AddChild(tabRoot);
+
+        var scroll = new ScrollContainer();
         scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
-        scroll.AnchorRight = 1f;
-        scroll.AnchorBottom = 1f;
-
-        _tabs.AddChild(scroll);
+        tabRoot.AddChild(scroll);
 
         var margins = MakeMargins(24, 16);
         scroll.AddChild(margins);
@@ -288,7 +297,8 @@ public partial class CampusScreen : Control
 
         var partyNote = new Label
         {
-            Text = "Recruit companions to bring on expeditions. Active party members contribute cards to your deck and tokens to negotiations.",
+            Text = "Recruit companions to bring on expeditions. Active party members " +
+                   "contribute cards to your deck and tokens to negotiations.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         partyNote.AddThemeFontSizeOverride("font_size", 13);
@@ -304,12 +314,15 @@ public partial class CampusScreen : Control
 
     private void BuildCampusTab()
     {
-        var scroll = new ScrollContainer { Name = "Campus" };
+        var tabRoot = new VBoxContainer { Name = "Campus" };
+        tabRoot.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        tabRoot.SizeFlagsVertical = SizeFlags.ExpandFill;
+        _tabs.AddChild(tabRoot);
+
+        var scroll = new ScrollContainer();
         scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
-        scroll.AnchorRight = 1f;
-        scroll.AnchorBottom = 1f;
-        _tabs.AddChild(scroll);
+        tabRoot.AddChild(scroll);
 
         var margins = MakeMargins(24, 16);
         scroll.AddChild(margins);
@@ -334,16 +347,20 @@ public partial class CampusScreen : Control
         _buildingContainer = new VBoxContainer();
         _buildingContainer.AddThemeConstantOverride("separation", 10);
         layout.AddChild(_buildingContainer);
+    
     }
 
     private void BuildExpeditionTab()
     {
-        var scroll = new ScrollContainer { Name = "Expedition" };
+        var tabRoot = new VBoxContainer { Name = "Expedition" };
+        tabRoot.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        tabRoot.SizeFlagsVertical = SizeFlags.ExpandFill;
+        _tabs.AddChild(tabRoot);
+
+        var scroll = new ScrollContainer();
         scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
-        scroll.AnchorRight = 1f;
-        scroll.AnchorBottom = 1f;
-        _tabs.AddChild(scroll);
+        tabRoot.AddChild(scroll);
 
         var margins = MakeMargins(24, 16);
         scroll.AddChild(margins);
