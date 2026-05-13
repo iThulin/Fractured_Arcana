@@ -1,522 +1,451 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "card.schema.json",
-    "title": "Fractured Arcana Card",
-    "description": "Schema for card JSON files in Data/Cards/. Validates card structure, halves, targeting, and effects.",
-    "type": "object",
-    "required": [
-        "id",
-        "name",
-        "school",
-        "rarity"
-    ],
-    "additionalProperties": false,
-    "properties": {
-        "id": {
-            "type": "string",
-            "description": "Unique card identifier. Convention: schoolname_cardname in lowercase with underscores.",
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "examples": [
-                "elementalist_fireball",
-                "necromancer_bone_spike"
-            ]
-        },
-        "name": {
-            "type": "string",
-            "description": "Display name shown in the UI.",
-            "minLength": 1
-        },
-        "school": {
-            "type": "string",
-            "description": "Wizard school this card belongs to. Must match the CardSchool enum exactly.",
-            "enum": [
-                "Elementalist",
-                "Arcanist",
-                "Necromancer",
-                "Enchanter",
-                "Artificer",
-                "Chronomancer",
-                "Tinker",
-                "Generic"
-            ]
-        },
-        "rarity": {
-            "type": "string",
-            "description": "Card rarity tier.",
-            "enum": [
-                "Common",
-                "Uncommon",
-                "Rare",
-                "Legendary"
-            ]
-        },
-        "top": {
-            "$ref": "#/$defs/CardHalf"
-        },
-        "bottom": {
-            "$ref": "#/$defs/CardHalf"
-        }
-    },
-    "$defs": {
-        "CardHalf": {
-            "type": "object",
-            "description": "One playable half of a card (top or bottom).",
-            "required": [
-                "name",
-                "mana",
-                "speed",
-                "rules_text",
-                "targeting",
-                "effect"
-            ],
-            "additionalProperties": false,
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Display name for this half.",
-                    "minLength": 1
-                },
-                "mana": {
-                    "type": "integer",
-                    "description": "Mana cost to play this half.",
-                    "minimum": 0,
-                    "maximum": 10
-                },
-                "speed": {
-                    "type": "string",
-                    "description": "When this half can be played.",
-                    "enum": [
-                        "Sorcery",
-                        "Instant",
-                        "Reaction"
-                    ]
-                },
-                "rules_text": {
-                    "type": "string",
-                    "description": "Human-readable description of the effect shown on the card.",
-                    "minLength": 1
-                },
-                "tags": {
-                    "type": "array",
-                    "description": "Element tags that trigger attunement. Lowercase strings only.",
-                    "items": {
-                        "type": "string",
-                        "enum": [
-                            "fire",
-                            "ice",
-                            "storm",
-                            "stone",
-                            "earth"
-                        ]
-                    },
-                    "uniqueItems": false
-                },
-                "requires": {
-                    "type": "array",
-                    "description": "Pre-cast validation checks. Card cannot be played unless all conditions are met.",
-                    "items": {
-                        "type": "string",
-                        "enum": [
-                            "fire_tile",
-                            "ice_tile",
-                            "storm_tile",
-                            "stone_tile",
-                            "empty_tile",
-                            "ally_adjacent",
-                            "enemy_adjacent"
-                        ]
-                    }
-                },
-                "targeting": {
-                    "$ref": "#/$defs/Targeting"
-                },
-                "effect": {
-                    "$ref": "#/$defs/Effect"
-                },
-                "channel": {
-                    "$ref": "#/$defs/ChannelVariant",
-                    "description": "Optional channeled version of this half. Played as a Reaction in response to the base half."
-                }
-            }
-        },
-        "ChannelVariant": {
-            "type": "object",
-            "description": "The channeled variant of a card half. Same structure as CardHalf but nested and optional.",
-            "required": [
-                "name",
-                "mana",
-                "speed",
-                "rules_text",
-                "targeting",
-                "effect"
-            ],
-            "additionalProperties": false,
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "minLength": 1
-                },
-                "mana": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 10
-                },
-                "speed": {
-                    "type": "string",
-                    "enum": [
-                        "Sorcery",
-                        "Instant",
-                        "Reaction"
-                    ]
-                },
-                "rules_text": {
-                    "type": "string",
-                    "minLength": 1
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                        "enum": [
-                            "fire",
-                            "ice",
-                            "storm",
-                            "stone",
-                            "earth"
-                        ]
-                    }
-                },
-                "requires": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "targeting": {
-                    "$ref": "#/$defs/Targeting"
-                },
-                "effect": {
-                    "$ref": "#/$defs/Effect"
-                }
-            }
-        },
-        "Targeting": {
-            "type": "object",
-            "description": "Targeting strategy for this card half. The 'type' field determines which other properties are valid.",
-            "required": [
-                "type"
-            ],
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "description": "Targeting strategy identifier. Lowercase. Must be registered in CardScriptRegistry.",
-                    "enum": [
-                        "self",
-                        "range",
-                        "aoe",
-                        "line",
-                        "cone",
-                        "ring",
-                        "adjacent",
-                        "tile",
-                        "unit",
-                        "nearest_to_target",
-                        "adjacent_to_target",
-                        "element_tile",
-                        "imbued_tile"
-                    ]
-                },
-                "range": {
-                    "type": "integer",
-                    "description": "Maximum tile range. Used by: range, tile, unit, element_tile.",
-                    "minimum": 1
-                },
-                "radius": {
-                    "type": "integer",
-                    "description": "Radius in tiles. Used by: aoe, ring.",
-                    "minimum": 1
-                },
-                "length": {
-                    "type": "integer",
-                    "description": "Length in tiles. Used by: line, cone.",
-                    "minimum": 1
-                },
-                "enemies_only": {
-                    "type": "boolean",
-                    "description": "If true, only enemy units are valid targets or affected. Used by: aoe, line, cone, unit."
-                },
-                "allies_only": {
-                    "type": "boolean",
-                    "description": "If true, only allied units are valid targets. Used by: range, unit."
-                },
-                "los": {
-                    "type": "boolean",
-                    "description": "If true, requires line of sight to target. Used by: unit, range."
-                },
-                "include_tiles": {
-                    "type": "boolean",
-                    "description": "If true, affects tiles in the area rather than (or in addition to) units. Used by: ring, retarget."
-                },
-                "element": {
-                    "type": "string",
-                    "description": "Element filter. Used by: element_tile, imbued_tile.",
-                    "enum": [
-                        "fire",
-                        "ice",
-                        "storm",
-                        "stone",
-                        "earth",
-                        "lava"
-                    ]
-                }
-            },
-            "additionalProperties": false
-        },
-        "Effect": {
-            "type": "object",
-            "description": "An effect node. Can be a leaf effect (damage, heal, etc.) or a composite (sequence, conditional, retarget).",
-            "required": [
-                "type"
-            ],
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "description": "Effect type identifier. Lowercase. Must be registered in CardScriptRegistry.RegisterBuiltins().",
-                    "examples": [
-                        "damage",
-                        "heal",
-                        "armor",
-                        "shield",
-                        "self_damage",
-                        "mana_gain",
-                        "apply_status",
-                        "imbue_tile",
-                        "imbue_area",
-                        "push",
-                        "push_damage",
-                        "imbue_path",
-                        "remove_armor",
-                        "consume_element_tile",
-                        "terraform",
-                        "elemental_convergence",
-                        "primordial_surge",
-                        "cataclysm",
-                        "ragnarok",
-                        "avatar_transform",
-                        "create_maelstrom",
-                        "create_rubble",
-                        "summon",
-                        "sequence",
-                        "conditional",
-                        "retarget"
-                    ]
-                },
-                "amount": {
-                    "type": "integer",
-                    "description": "Generic numeric value. Used by: damage, heal, armor, shield, self_damage, mana_gain, remove_armor.",
-                    "minimum": 0
-                },
-                "radius": {
-                    "type": "integer",
-                    "description": "Area radius in tiles. Used by: aoe effects, terraform, elemental_convergence, create_maelstrom, primordial_surge, cataclysm.",
-                    "minimum": 1
-                },
-                "damage": {
-                    "type": "integer",
-                    "description": "Damage amount. Used by effects with their own named damage param (consume_element_tile, terraform, primordial_surge).",
-                    "minimum": 0
-                },
-                "damage_per_element": {
-                    "type": "integer",
-                    "description": "Damage multiplied by the number of unique elements on board. Used by: ragnarok.",
-                    "minimum": 0
-                },
-                "damage_per_tile": {
-                    "type": "integer",
-                    "description": "Damage per tile cleared or moved. Used by: push_damage, cataclysm.",
-                    "minimum": 0
-                },
-                "bonus_damage": {
-                    "type": "integer",
-                    "description": "Bonus damage on imbued tile ticks. Used by: imbue_tile.",
-                    "minimum": 0
-                },
-                "element": {
-                    "type": "string",
-                    "description": "Element to imbue. Used by: imbue_tile, imbue_area, imbue_path, consume_element_tile.",
-                    "enum": [
-                        "fire",
-                        "ice",
-                        "storm",
-                        "stone",
-                        "earth",
-                        "lava"
-                    ]
-                },
-                "tiles": {
-                    "type": "integer",
-                    "description": "Number of tiles to push. Used by: push, push_damage, imbue_path. NOTE: this field is 'tiles' not 'amount' — a common typo source.",
-                    "minimum": 1
-                },
-                "collision_damage": {
-                    "type": "integer",
-                    "description": "Damage dealt if the pushed unit collides with a wall or another unit. Used by: push.",
-                    "minimum": 0
-                },
-                "turns": {
-                    "type": "integer",
-                    "description": "Duration in turns. Used by: avatar_transform, create_maelstrom.",
-                    "minimum": 1
-                },
-                "bonus_damage_per_turn": {
-                    "type": "integer",
-                    "description": "Bonus spell damage per turn while transformed. Used by: avatar_transform.",
-                    "minimum": 0
-                },
-                "bonus_speed": {
-                    "type": "integer",
-                    "description": "Bonus movement speed while transformed. Used by: avatar_transform.",
-                    "minimum": 0
-                },
-                "armor": {
-                    "type": "integer",
-                    "description": "Armor granted by a transform. Used by: avatar_transform.",
-                    "minimum": 0
-                },
-                "freezes": {
-                    "type": "boolean",
-                    "description": "If true, the effect also applies the frozen status. Used by: create_maelstrom."
-                },
-                "half_to_allies": {
-                    "type": "boolean",
-                    "description": "If true, allied units take half damage from the effect. Used by: ragnarok."
-                },
-                "attunement_counters": {
-                    "type": "integer",
-                    "description": "Value to set all elemental attunement counters to. Used by: elemental_convergence.",
-                    "minimum": 0,
-                    "maximum": 4
-                },
-                "cards_per_tiles": {
-                    "type": "integer",
-                    "description": "Draw 1 card per this many tiles cleared. Used by: cataclysm.",
-                    "minimum": 1
-                },
-                "move": {
-                    "type": "integer",
-                    "description": "Number of tiles to move. Used by: imbue_path.",
-                    "minimum": 0
-                },
-                "armor_per_tile": {
-                    "type": "integer",
-                    "description": "Armor gained per tile moved. Used by: imbue_path.",
-                    "minimum": 0
-                },
-                "unit_id": {
-                    "type": "string",
-                    "description": "ID of the unit type to summon. Used by: summon."
-                },
-                "status": {
-                    "type": "string",
-                    "description": "Status effect to apply. Used by: apply_status.",
-                    "enum": [
-                        "burn",
-                        "frozen",
-                        "slowed",
-                        "stunned",
-                        "rooted",
-                        "poisoned",
-                        "weakened"
-                    ]
-                },
-                "duration": {
-                    "type": "integer",
-                    "description": "Duration of a status effect in turns. Used by: apply_status.",
-                    "minimum": 1
-                },
-                "steps": {
-                    "type": "array",
-                    "description": "Ordered list of child effects to execute. Used by: sequence.",
-                    "items": {
-                        "$ref": "#/$defs/Effect"
-                    },
-                    "minItems": 1
-                },
-                "if": {
-                    "$ref": "#/$defs/Predicate",
-                    "description": "Condition to evaluate. Used by: conditional."
-                },
-                "then": {
-                    "$ref": "#/$defs/Effect",
-                    "description": "Effect to execute if condition is true. Used by: conditional."
-                },
-                "else": {
-                    "$ref": "#/$defs/Effect",
-                    "description": "Effect to execute if condition is false. Used by: conditional. Optional."
-                },
-                "targeting": {
-                    "$ref": "#/$defs/Targeting",
-                    "description": "New targeting selector to switch to. Used by: retarget."
-                },
-                "do": {
-                    "$ref": "#/$defs/Effect",
-                    "description": "Effect to execute on the new targets. Used by: retarget."
-                }
-            },
-            "additionalProperties": false
-        },
-        "Predicate": {
-            "type": "object",
-            "description": "A boolean condition evaluated before branching in a conditional effect.",
-            "required": [
-                "type"
-            ],
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "description": "Predicate type. Must be registered in CardScriptRegistry.",
-                    "examples": [
-                        "tile_is_element",
-                        "target_has_status",
-                        "caster_attunement_gte",
-                        "always_true"
-                    ]
-                },
-                "element": {
-                    "type": "string",
-                    "description": "Element to check for. Used by: tile_is_element.",
-                    "enum": [
-                        "fire",
-                        "ice",
-                        "storm",
-                        "stone",
-                        "earth",
-                        "lava"
-                    ]
-                },
-                "status": {
-                    "type": "string",
-                    "description": "Status to check for on the target. Used by: target_has_status."
-                },
-                "element_tag": {
-                    "type": "string",
-                    "description": "Element whose attunement level to check. Used by: caster_attunement_gte.",
-                    "enum": [
-                        "fire",
-                        "ice",
-                        "storm",
-                        "stone",
-                        "earth"
-                    ]
-                },
-                "threshold": {
-                    "type": "integer",
-                    "description": "Minimum attunement level required. Used by: caster_attunement_gte.",
-                    "minimum": 1,
-                    "maximum": 4
-                }
-            },
-            "additionalProperties": false
-        }
-    }
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "card.schema.json",
+	"title": "Fractured Arcana Card",
+	"description": "Schema for card JSON files in Data/Cards/. Validates card structure, halves, targeting, and effects.",
+	"type": "object",
+	"required": [
+		"id",
+		"name",
+		"school",
+		"rarity",
+		"status"
+	],
+	"additionalProperties": false,
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "Unique card identifier. Convention: schoolname_cardname in lowercase with underscores.",
+			"pattern": "^[a-z][a-z0-9_]*$",
+			"examples": [
+				"elementalist_fireball",
+				"necromancer_bone_spike"
+			]
+		},
+		"name": {
+			"type": "string",
+			"description": "Display name shown in the UI.",
+			"minLength": 1
+		},
+		"school": {
+			"type": "string",
+			"description": "Wizard school this card belongs to. Must match the CardSchool enum exactly.",
+			"enum": [
+				"Elementalist",
+				"Arcanist",
+				"Necromancer",
+				"Enchanter",
+				"Artificer",
+				"Chronomancer",
+				"Tinker",
+				"Generic"
+			]
+		},
+		"rarity": {
+			"type": "string",
+			"description": "Card rarity tier.",
+			"enum": [
+				"Common",
+				"Uncommon",
+				"Rare",
+				"Legendary"
+			]
+		},
+		"status": {
+			"type": "string",
+			"description": "Controls whether this card is loaded into the game. Required on every card — no card may exist without a declared status.\n\n  'ready' — Fully built and integrated. Loads into CardDatabase normally. Appears in CardLibrary and is draftable.\n  'wip'   — Built but not yet balanced or fully tested. Loads only when DevMode is enabled in CardLoaderV2. Does not appear in CardLibrary.\n  'stub'  — Placeholder only. Never loaded regardless of build mode. Effect chains may be empty or missing.",
+			"enum": [
+				"ready",
+				"wip",
+				"stub"
+			]
+		},
+		"top": {
+			"$ref": "#/$defs/CardHalf"
+		},
+		"bottom": {
+			"$ref": "#/$defs/CardHalf"
+		}
+	},
+	"$defs": {
+		"CardHalf": {
+			"type": "object",
+			"description": "One playable half of a card (top or bottom).",
+			"required": [
+				"name",
+				"mana",
+				"speed",
+				"rules_text",
+				"tags",
+				"targeting",
+				"effect"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "Display name for this half.",
+					"minLength": 1
+				},
+				"mana": {
+					"type": "integer",
+					"description": "Mana cost to play this half.",
+					"minimum": 0,
+					"maximum": 10
+				},
+				"speed": {
+					"type": "string",
+					"description": "When this half can be played.",
+					"enum": [
+						"Sorcery",
+						"Instant",
+						"Reaction"
+					]
+				},
+				"rules_text": {
+					"type": "string",
+					"description": "Human-readable description of the effect shown on the card.",
+					"minLength": 1
+				},
+				"tags": {
+					"type": "array",
+					"description": "Element and school tags read at cast time by attunement, buff systems, and targeting selectors. Required on every half — use an empty array [] for halves with no elemental or school identity. Tag strings are open-ended; new schools and mechanics will introduce new values over time without requiring schema changes.",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					}
+				},
+				"requires": {
+					"type": "array",
+					"description": "Pre-cast validation checks. Card cannot be played unless all conditions are met.",
+					"items": {
+						"type": "string",
+						"enum": [
+							"fire_tile",
+							"ice_tile",
+							"storm_tile",
+							"stone_tile",
+							"empty_tile",
+							"ally_adjacent",
+							"enemy_adjacent"
+						]
+					}
+				},
+				"targeting": {
+					"$ref": "#/$defs/Targeting"
+				},
+				"effect": {
+					"$ref": "#/$defs/Effect"
+				},
+				"channel": {
+					"$ref": "#/$defs/ChannelVariant",
+					"description": "Optional channeled version of this half. Played as a Reaction in response to the base half."
+				}
+			}
+		},
+		"ChannelVariant": {
+			"type": "object",
+			"description": "The channeled variant of a card half. Same structure as CardHalf but nested and optional.",
+			"required": [
+				"name",
+				"mana",
+				"speed",
+				"rules_text",
+				"tags",
+				"targeting",
+				"effect"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"type": "string",
+					"minLength": 1
+				},
+				"mana": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 10
+				},
+				"speed": {
+					"type": "string",
+					"enum": [
+						"Sorcery",
+						"Instant",
+						"Reaction"
+					]
+				},
+				"rules_text": {
+					"type": "string",
+					"minLength": 1
+				},
+				"tags": {
+					"type": "array",
+					"description": "Element and school tags. Required — use [] if this channel variant has no elemental identity.",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					}
+				},
+				"requires": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"targeting": {
+					"$ref": "#/$defs/Targeting"
+				},
+				"effect": {
+					"$ref": "#/$defs/Effect"
+				}
+			}
+		},
+		"Targeting": {
+			"type": "object",
+			"description": "Targeting strategy for this card half.",
+			"required": [
+				"type"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"type": {
+					"type": "string",
+					"minLength": 1,
+					"enum": [
+						"self",
+						"range",
+						"aoe",
+						"line",
+						"cone",
+						"ring",
+						"adjacent",
+						"tile",
+						"unit",
+						"nearest_to_target",
+						"adjacent_to_target",
+						"element_tile",
+						"imbued_tile"
+					]
+				},
+				"range": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"radius": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"length": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"enemies_only": {
+					"type": "boolean"
+				},
+				"allies_only": {
+					"type": "boolean"
+				},
+				"los": {
+					"type": "boolean"
+				},
+				"include_tiles": {
+					"type": "boolean"
+				},
+				"element": {
+					"type": "string",
+					"minLength": 1
+				}
+			}
+		},
+		"Effect": {
+			"type": "object",
+			"description": "An effect node — leaf or composite. Must always have a non-empty 'type'. An effect object with no type or with type:'' is invalid and will be flagged here before it silently becomes an EmptyEffect at runtime. If an effect is not yet authored, mark the card status as 'stub' or 'wip' rather than leaving type blank.",
+			"required": [
+				"type"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"type": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Effect type key. Lowercase. Must be registered in CardScriptRegistry.RegisterBuiltins().",
+					"examples": [
+						"damage",
+						"heal",
+						"armor",
+						"shield",
+						"self_damage",
+						"mana_gain",
+						"apply_status",
+						"imbue_tile",
+						"imbue_area",
+						"push",
+						"push_damage",
+						"imbue_path",
+						"remove_armor",
+						"consume_element_tile",
+						"terraform",
+						"elemental_convergence",
+						"primordial_surge",
+						"cataclysm",
+						"ragnarok",
+						"avatar_transform",
+						"create_maelstrom",
+						"create_rubble",
+						"summon",
+						"sequence",
+						"conditional",
+						"retarget"
+					]
+				},
+				"amount": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"radius": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"damage": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"damage_per_element": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"damage_per_tile": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"bonus_damage": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"element": {
+					"type": "string",
+					"minLength": 1
+				},
+				"tiles": {
+					"type": "integer",
+					"minimum": 1,
+					"description": "Tiles to push. NOTE: this is 'tiles' not 'amount' — a common typo source."
+				},
+				"collision_damage": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"turns": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"bonus_speed": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"armor": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"freezes": {
+					"type": "boolean"
+				},
+				"half_to_allies": {
+					"type": "boolean"
+				},
+				"attunement_counters": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 4
+				},
+				"cards_per_tiles": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"move": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"armor_per_tile": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"unit_id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"status": {
+					"type": "string",
+					"description": "Status effect to apply. Used by: apply_status.",
+					"enum": [
+						"burn",
+						"frozen",
+						"slowed",
+						"stunned",
+						"rooted",
+						"poisoned",
+						"weakened"
+					]
+				},
+				"duration": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"steps": {
+					"type": "array",
+					"description": "Ordered child effects. Used by: sequence.",
+					"items": {
+						"$ref": "#/$defs/Effect"
+					},
+					"minItems": 1
+				},
+				"if": {
+					"$ref": "#/$defs/Predicate"
+				},
+				"then": {
+					"$ref": "#/$defs/Effect"
+				},
+				"else": {
+					"$ref": "#/$defs/Effect"
+				},
+				"targeting": {
+					"$ref": "#/$defs/Targeting"
+				},
+				"do": {
+					"$ref": "#/$defs/Effect"
+				}
+			}
+		},
+		"Predicate": {
+			"type": "object",
+			"description": "A boolean condition for use in conditional effects.",
+			"required": [
+				"type"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"type": {
+					"type": "string",
+					"minLength": 1
+				},
+				"element": {
+					"type": "string",
+					"minLength": 1
+				},
+				"status": {
+					"type": "string",
+					"minLength": 1
+				},
+				"element_tag": {
+					"type": "string",
+					"minLength": 1
+				},
+				"threshold": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 4
+				}
+			}
+		}
+	}
 }

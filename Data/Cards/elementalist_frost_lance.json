@@ -1,81 +1,148 @@
 {
-  	"id": "elementalist_frost_lance",
-  	"name": "Frost Lance",
-  	"school": "Elementalist",
-  	"rarity": "Common",
-  	"top": {
-    	"name": "Frost Lance",
-    	"mana": 2,
-    	"speed": "Sorcery",
-    	"rules_text": "Deal 7 damage. If on Ice terrain freeze for 1 turn.",
-    	"tags": ["ice"],
-    	"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-    	"effect": {
-      		"type": "conditional",
-      		"if": { "type": "target_on_tile", "tile": "ice" },
-      		"then": {
-        		"type": "sequence",
-        		"steps": [
-          		{ "type": "damage", "amount": 7 },
-          		{ "type": "apply_status", "status": "frozen", "duration": 1 }
-        		]
-      		},
-      		"else": { "type": "damage", "amount": 7 }
-    },
-    "channel": {
-      	"name": "Frost Lance (Channel)",
-      	"mana": 2,
-      	"speed": "Reaction",
-      	"rules_text": "Channel: Freeze lasts 2 turns",
-      	"tags": ["ice"],
-      	"targeting": { "type": "unit", "range": 6, "los": false, "enemies_only": true },
+	"id": "elementalist_frost_lance",
+	"status": "ready",
+	"name": "Frost Lance",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Frost Lance",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 7 damage. If on Ice terrain freeze for 1 turn.",
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
 		"effect": {
-        	"type": "sequence",
-        	"steps": [
-          	{ "type": "damage", "amount": 7 },
-          	{ "type": "apply_status", "status": "frozen", "duration": 2 }
-        	]
-      		}
+			"type": "conditional",
+			"if": {
+				"type": "target_on_tile",
+				"tile": "ice"
+			},
+			"then": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 7
+					},
+					{
+						"type": "apply_status",
+						"status": "frozen",
+						"duration": 1
+					}
+				]
+			},
+			"else": {
+				"type": "damage",
+				"amount": 7
+			}
+		},
+		"channel": {
+			"name": "Frost Lance (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Freeze lasts 2 turns",
+			"tags": [
+				"ice"
+			],
+			"targeting": {
+				"type": "unit",
+				"range": 6,
+				"los": false,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 7
+					},
+					{
+						"type": "apply_status",
+						"status": "frozen",
+						"duration": 2
+					}
+				]
+			}
 		}
-  	},
-  	"bottom": {
-    "name": "Stone Wall",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Create Stone pillar on target tile. Gain 4 armor.",
-    "tags": ["stone"],
-	"requires": ["stone_tile"],
-    "targeting": { "type": "tile", "range": 3 },
-    "effect": {
-        "type": "sequence",
-        "steps": [
-            { "type": "summon", "unit": "stone_pillar", "count": 1 },
-            {
-                "type": "retarget",
-                "targeting": { "type": "self" },
-                "do": { "type": "armor", "amount": 4 }
-            }
-        ]
-    },
-    "channel": {
-        "name": "Stone Wall (Channel)",
-        "mana": 1,
-        "speed": "Reaction",
-        "rules_text": "Channel: Pillar blocks LOS. Gain 6 armor.",
-        "tags": ["stone"],
-		"requires": ["stone_tile"],
-        "targeting": { "type": "tile", "range": 3 },
-        "effect": {
-            "type": "sequence",
-            "steps": [
-                { "type": "summon", "unit": "stone_pillar", "count": 1 },
-                {
-                    "type": "retarget",
-                    "targeting": { "type": "self" },
-                    "do": { "type": "armor", "amount": 6 }
-                }
-            ]
-        	}
-    	}
-  	}	
+	},
+	"bottom": {
+		"name": "Stone Wall",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Create Stone pillar on target tile. Gain 4 armor.",
+		"tags": [
+			"stone"
+		],
+		"requires": [
+			"stone_tile"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "summon",
+					"unit": "stone_pillar",
+					"count": 1
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "self"
+					},
+					"do": {
+						"type": "armor",
+						"amount": 4
+					}
+				}
+			]
+		},
+		"channel": {
+			"name": "Stone Wall (Channel)",
+			"mana": 1,
+			"speed": "Reaction",
+			"rules_text": "Channel: Pillar blocks LOS. Gain 6 armor.",
+			"tags": [
+				"stone"
+			],
+			"requires": [
+				"stone_tile"
+			],
+			"targeting": {
+				"type": "tile",
+				"range": 3
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "summon",
+						"unit": "stone_pillar",
+						"count": 1
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "self"
+						},
+						"do": {
+							"type": "armor",
+							"amount": 6
+						}
+					}
+				]
+			}
+		}
+	}
 }

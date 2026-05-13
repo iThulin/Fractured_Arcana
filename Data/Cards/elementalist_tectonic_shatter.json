@@ -1,46 +1,87 @@
 {
-  	"id": "elementalist_tectonic_shatter",
-  	"name": "Tectonic Shatter",
-  	"school": "Elementalist",
-  	"rarity": "Uncommon",
-  	"top": {
-    	"name": "Tectonic Shatter",
-    	"mana": 2,
-    	"speed": "Sorcery",
-    	"rules_text": "Destroy all Stone features within range 3 of target. Deal 5 damage to the nearest enemy per destroyed feature.",
-		"tags": ["stone"],
-    	"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-    	"effect": { "type": "tectonic_shatter", "radius": 3, "damage_per_tile": 5 },
-    	"channel": {
-      		"name": "Tectonic Shatter (Channel)",
-      		"mana": 2,
-      		"speed": "Reaction",
-      		"rules_text": "Channel: Deal 9 damage per destroyed instead",
-      		"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-      		"effect": { "type": "tectonic_shatter", "radius": 3, "damage_per_tile": 9 }
-    	}
-  	},
-  	"bottom": {
-    	"name": "Elemental Cycle",
-    	"mana": 1,
-    	"speed": "Sorcery",
-    	"rules_text": "Randomly imbue the tiles around the caster with with fire, ice, storm, or stone.",
-		"tags": ["fire", "ice", "storm", "stone"],
-    	"targeting": { "type": "self" },
-    	"effect": { "type": "primordial_surge", "radius": 2, "damage": 0 },
-    	"channel": {
-      		"name": "Elemental Cycle (Channel)",
-      		"mana": 1,
-      		"speed": "Reaction",
-      		"rules_text": "Channel: Also gain 4 shield",
-      		"targeting": { "type": "self" },
-      		"effect": {
+	"id": "elementalist_tectonic_shatter",
+	"status": "ready",
+	"name": "Tectonic Shatter",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Tectonic Shatter",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Destroy all Stone features within range 3 of target. Deal 5 damage to the nearest enemy per destroyed feature.",
+		"tags": [
+			"stone"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "tectonic_shatter",
+			"radius": 3,
+			"damage_per_tile": 5
+		},
+		"channel": {
+			"name": "Tectonic Shatter (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Deal 9 damage per destroyed instead",
+			"targeting": {
+				"type": "unit",
+				"range": 6,
+				"los": true,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "tectonic_shatter",
+				"radius": 3,
+				"damage_per_tile": 9
+			}
+		}
+	},
+	"bottom": {
+		"name": "Elemental Cycle",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Randomly imbue the tiles around the caster with with fire, ice, storm, or stone.",
+		"tags": [
+			"fire",
+			"ice",
+			"storm",
+			"stone"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "primordial_surge",
+			"radius": 2,
+			"damage": 0
+		},
+		"channel": {
+			"name": "Elemental Cycle (Channel)",
+			"mana": 1,
+			"speed": "Reaction",
+			"rules_text": "Channel: Also gain 4 shield",
+			"targeting": {
+				"type": "self"
+			},
+			"effect": {
 				"type": "sequence",
-					"steps": [
-						{ "type": "primordial_surge", "radius": 2, "damage": 0 },
-						{ "type": "shield", "amount": 4 }
-					]
-				}
-    	}
-  	}
+				"steps": [
+					{
+						"type": "primordial_surge",
+						"radius": 2,
+						"damage": 0
+					},
+					{
+						"type": "shield",
+						"amount": 4
+					}
+				]
+			}
+		}
+	}
 }

@@ -1,52 +1,97 @@
 {
-  	"id": "elementalist_frost_shard",
-  	"name": "Frost Shard",
-  	"school": "Elementalist",
-  	"rarity": "Common",
-  	"top": {
-    	"name": "Frost Shard",
-    	"mana": 1,
-    	"speed": "Instant",
-    	"rules_text": "Deal 4 damage. Slow target (half movement next turn).",
-    	"tags": ["ice"],
-    	"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-    	"effect": {
-      		"type": "sequence",
-      		"steps": [
-        		{ "type": "damage", "amount": 4 },
-        		{ "type": "apply_status", "status": "slowed", "duration": 1 }
-      		]
-    },
-    "channel": {
-      	"name": "Frost Shard (Channel)",
-      	"mana": 1,
-      	"speed": "Reaction",
-      	"rules_text": "Channel: Also imbue target tile with Ice",
-      	"tags": ["ice"],
-      	"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-      	"effect": {
-        "type": "sequence",
-        "steps": [
-          	{ "type": "damage", "amount": 4 },
-          	{ "type": "apply_status", "status": "slowed", "duration": 1 },
-          	{ "type": "imbue_tile", "element": "ice" }
-        	]
-      		}
-    	}
-  	},
-  	"bottom": {
-    	"name": "Gust",
-    	"mana": 1,
-    	"speed": "Instant",
-    	"rules_text": "Push target enemy 1 tile. Deal 4 damage.",
-    	"tags": ["storm"],
-    	"targeting": { "type": "unit", "range": 6, "los": false, "enemies_only": true },
-    	"effect": {
-      		"type": "sequence",
-      		"steps": [
-        		{ "type": "move", "tiles": 1 },
-        		{ "type": "damage", "amount": 4 }
+	"id": "elementalist_frost_shard",
+	"status": "ready",
+	"name": "Frost Shard",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Frost Shard",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Deal 4 damage. Slow target (half movement next turn).",
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 4
+				},
+				{
+					"type": "apply_status",
+					"status": "slowed",
+					"duration": 1
+				}
+			]
+		},
+		"channel": {
+			"name": "Frost Shard (Channel)",
+			"mana": 1,
+			"speed": "Reaction",
+			"rules_text": "Channel: Also imbue target tile with Ice",
+			"tags": [
+				"ice"
+			],
+			"targeting": {
+				"type": "unit",
+				"range": 6,
+				"los": true,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 4
+					},
+					{
+						"type": "apply_status",
+						"status": "slowed",
+						"duration": 1
+					},
+					{
+						"type": "imbue_tile",
+						"element": "ice"
+					}
+				]
+			}
+		}
+	},
+	"bottom": {
+		"name": "Gust",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Push target enemy 1 tile. Deal 4 damage.",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 1
+				},
+				{
+					"type": "damage",
+					"amount": 4
+				}
 			]
 		}
-  	}
+	}
 }

@@ -1,5 +1,6 @@
 {
   "id": "generic_counterspell",
+  "status": "stub",
   "name": "Counterspell",
   "school": "Generic",
   "rarity": "Uncommon",

@@ -1,66 +1,122 @@
 {
-  	"id": "elementalist_eruption",
-  	"name": "Eruption",
-  	"school": "Elementalist",
-  	"rarity": "Common",
-  	"top": {
-    	"name": "Eruption",
-    	"mana": 2,
-    	"speed": "Sorcery",
-    	"rules_text": "Deal 5 damage to target. Imbue target's tile with Fire.",
-    	"tags": ["fire"],
-    	"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-    	"effect": {
-      		"type": "sequence",
-      		"steps": [
-        		{ "type": "damage", "amount": 5 },
-        		{ "type": "imbue_tile", "element": "fire" }
-      		]
-    },
-    "channel": {
-      	"name": "Eruption (Channel)",
-      	"mana": 2,
-      	"speed": "Reaction",
-      	"rules_text": "Channel: Also imbue all tiles adjacent to target with Fire",
-      	"tags": ["fire"],
-      	"targeting": { "type": "aoe", "radius": 1, "enemies_only": true },
-      	"effect": {
-        	"type": "sequence",
-        	"steps": [
-          		{ "type": "damage", "amount": 5 },
-          		{ "type": "retarget",
-            		"targeting": { "type": "aoe", "radius": 1, "enemies_only": true },
-            		"do": { "type": "imbue_tile", "element": "fire" }
-          		}
-        	]
-      		}
-    	}
-  	},
-  	"bottom": {
-    	"name": "Gale Leap",
-    	"mana": 1,
-    	"speed": "Instant",
-    	"rules_text": "Move 3 tiles. Push adjacent enemies 1 tile away.",
-    	"tags": ["storm"],
-    	"targeting": { "type": "self" },
-    	"effect": {
-      		"type": "sequence",
-      		"steps": [
-        		{ "type": "move", "tiles": 3 },
-        		{ "type": "retarget",
-          			"targeting": { "type": "aoe", "radius": 1, "enemies_only": true },
-          			"do": { "type": "move", "tiles": 1 }
-        		}
-      		]
-    },
-    "channel": {
-      	"name": "Gale Leap (Channel)",
-      	"mana": 1,
-      	"speed": "Reaction",
-      	"rules_text": "Channel: Pushed enemies also take 2 damage",
-      	"tags": ["storm"],
-      	"targeting": { "type": "aoe", "radius": 1, "enemies_only": true },
-      	"effect": { "type": "push_damage", "tiles": 2, "damage_per_tile": 2 }
-    	}
-  	}
+	"id": "elementalist_eruption",
+	"status": "ready",
+	"name": "Eruption",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Eruption",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 5 damage to target. Imbue target's tile with Fire.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 5
+				},
+				{
+					"type": "imbue_tile",
+					"element": "fire"
+				}
+			]
+		},
+		"channel": {
+			"name": "Eruption (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Also imbue all tiles adjacent to target with Fire",
+			"tags": [
+				"fire"
+			],
+			"targeting": {
+				"type": "aoe",
+				"radius": 1,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 5
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "aoe",
+							"radius": 1,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "imbue_tile",
+							"element": "fire"
+						}
+					}
+				]
+			}
+		}
+	},
+	"bottom": {
+		"name": "Gale Leap",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Move 3 tiles. Push adjacent enemies 1 tile away.",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 3
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "aoe",
+						"radius": 1,
+						"enemies_only": true
+					},
+					"do": {
+						"type": "move",
+						"tiles": 1
+					}
+				}
+			]
+		},
+		"channel": {
+			"name": "Gale Leap (Channel)",
+			"mana": 1,
+			"speed": "Reaction",
+			"rules_text": "Channel: Pushed enemies also take 2 damage",
+			"tags": [
+				"storm"
+			],
+			"targeting": {
+				"type": "aoe",
+				"radius": 1,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "push_damage",
+				"tiles": 2,
+				"damage_per_tile": 2
+			}
+		}
+	}
 }

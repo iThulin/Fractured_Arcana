@@ -4,12 +4,17 @@ using System.Collections.Generic;
 using System.Text.Json;
 
 // ============================================================
-// JSON Card Loader — PHASE 2 UPDATE
+// JSON Card Loader — PHASE 3 UPDATE
 //
-// New effect types registered:
-//   mana_gain, self_damage, heal, imbue_tile, apply_status
+// Added: card status gate.
 //
-// These make Elementalist cards functional for the test loop.
+//   "status": "ready"  → always loads
+//   "status": "wip"    → loads only when DevMode = true
+//   "status": "stub"   → never loads
+//
+// Cards with a missing status field are treated as stubs and
+// skipped with a warning, so old stub files don't sneak in
+// during Phase 3 content authoring.
 // ============================================================
 
 public static class CardScriptRegistry
@@ -69,7 +74,7 @@ public static class CardScriptRegistry
         // COMPOSITE EFFECTS
         // ═══════════════════════════════════════════════════════════
 
-        // Sequence: 
+        // Sequence:
         // { "type": "sequence", "steps": [ { ...effect... }, { ...effect... }, ... ] }
         RegisterEffect("sequence", n =>
         {
@@ -79,7 +84,7 @@ public static class CardScriptRegistry
             return new SequenceEffect(steps.ToArray());
         });
 
-        // Conditional: 
+        // Conditional:
         // { "type": "conditional", "if": { ...predicate... }, "then": { ...effect... }, "else": { ...effect... } }
         RegisterEffect("conditional", n =>
         {
@@ -88,7 +93,6 @@ public static class CardScriptRegistry
             IEffect elseE = n.TryGetProperty("else", out var el) ? BuildEffect(el) : null;
             return new ConditionalEffect(pred, then, elseE);
         });
-
 
         // For each target in the current TargetSet, run the child effect with that single target
         // { "type": "for_each_target", "do": { ...effect... } }
@@ -107,18 +111,18 @@ public static class CardScriptRegistry
         });
 
         // ═══════════════════════════════════════════════════════════
-        // CORE LEAF EFFECTS (all functional)
+        // CORE LEAF EFFECTS
         // ═══════════════════════════════════════════════════════════
 
-        // Armor: { "type": "Damage", "amount": n }
+        // Damage: { "type": "damage", "amount": n }
         RegisterEffect("damage", n =>
             new DealDamageEffect(n.GetProperty("amount").GetInt32()).WithTag("Damage"));
 
-        // Move: { "type": "move", "amount": n }
+        // Move: { "type": "move", "tiles": n }
         RegisterEffect("move", n =>
             new DashEffect(n.GetProperty("tiles").GetInt32()).WithTag("Movement"));
 
-        // Draw: { "type": "draw", "amount": n }
+        // Draw: { "type": "draw", "count": n }
         RegisterEffect("draw", n =>
             new DrawCardsEffect(n.GetProperty("count").GetInt32()).WithTag("CardDraw"));
 
@@ -130,11 +134,11 @@ public static class CardScriptRegistry
         RegisterEffect("armor", n =>
             new GiveArmorEffect(n.GetProperty("amount").GetInt32()).WithTag("Defense"));
 
-        // Grant armor: { "type": "grant_armor", "amount": n }
+        // Grant armor to target: { "type": "grant_armor", "amount": n }
         RegisterEffect("grant_armor", n =>
-        new GiveTargetArmorEffect(n.GetProperty("amount").GetInt32()).WithTag("Defense"));
+            new GiveTargetArmorEffect(n.GetProperty("amount").GetInt32()).WithTag("Defense"));
 
-        // Summon: { "type": "summon", "kind": "skeleton", "count": n}
+        // Summon: { "type": "summon", "unit": "kind", "count": n }
         RegisterEffect("summon", n =>
         {
             var kind = n.GetProperty("unit").GetString();
@@ -164,7 +168,7 @@ public static class CardScriptRegistry
         RegisterEffect("heal", n =>
             new HealEffect(n.GetProperty("amount").GetInt32()).WithTag("Heal"));
 
-        // Imbue tile with element: { "type": "imbue_tile", "element": "fire", "bonus_damage": n }
+        // Imbue tile: { "type": "imbue_tile", "element": "fire", "bonus_damage": n }
         RegisterEffect("imbue_tile", n =>
         {
             var element = n.GetProperty("element").GetString();
@@ -172,8 +176,7 @@ public static class CardScriptRegistry
             return new ImbueTileEffect(element, bonus).WithTag("Terrain");
         });
 
-        // Imbue area selector:
-        // { "type": "imbue_area", "element": "fire", "radius
+        // Imbue area: { "type": "imbue_area", "element": "fire", "radius": n }
         RegisterEffect("imbue_area", n =>
         {
             var element = n.GetProperty("element").GetString();
@@ -220,7 +223,7 @@ public static class CardScriptRegistry
             int amount = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 0;
             return new RemoveArmorEffect(amount).WithTag("Debuff");
         });
-        
+
         // Consume element tile: { "type": "consume_element_tile", "element": "fire", "radius": n, "damage": m }
         RegisterEffect("consume_element_tile", n =>
         {
@@ -231,8 +234,8 @@ public static class CardScriptRegistry
         });
 
         // ═══════════════════════════════════════════════════════════
-        // Elementalist-specific effects:
-        // ═══════════════════════════════════════════════════════════        
+        // ELEMENTALIST-SPECIFIC EFFECTS
+        // ═══════════════════════════════════════════════════════════
 
         // Terraform: { "type": "terraform", "radius": n, "damage": m }
         RegisterEffect("terraform", n =>
@@ -274,7 +277,7 @@ public static class CardScriptRegistry
             return new PrimordialSurgeEffect(radius).WithTag("Terrain");
         });
 
-        // Tectonic Shatter: { "type": "tectonic_shatter", "radius": n, "damage": m }
+        // Tectonic Shatter: { "type": "tectonic_shatter", "radius": n, "damage_per_tile": m }
         RegisterEffect("tectonic_shatter", n =>
         {
             int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 3;
@@ -282,7 +285,7 @@ public static class CardScriptRegistry
             return new TectonicShatterEffect(radius, dmg).WithTag("Terrain");
         });
 
-                // Avatar Transform: { "type": "avatar_transform", "turns": n, "bonus_damage": m, "armor": a, "bonus_speed": s }
+        // Avatar Transform: { "type": "avatar_transform", "turns": n, "bonus_damage": m, "armor": a, "bonus_speed": s }
         RegisterEffect("avatar_transform", n =>
         {
             int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 3;
@@ -308,31 +311,29 @@ public static class CardScriptRegistry
 
         RegisterPredicate("always_true", _ => new AlwaysTrue());
         RegisterPredicate("was_lethal", _ => new LastEffectWasLethal());
+
+        // Target on tile: { "type": "target_on_tile", "tile": "ice" }
         RegisterPredicate("target_on_tile", n =>
         {
             var tile = n.GetProperty("tile").GetString();
             return new TargetOnTile(tile);
         });
 
-        // Caster standing on terrain: 
-        // { "type": "caster_on_terrain", "terrain": "stone" }
+        // Caster standing on terrain: { "type": "caster_on_terrain", "terrain": "stone" }
         RegisterPredicate("caster_on_terrain", n =>
         {
             var terrain = n.GetProperty("terrain").GetString();
             return new CasterOnTerrain(terrain);
         });
 
-        // Target adjacent to tile: 
-        // { "type": "target_adjacent_to_tile", "tile": "fire" }
+        // Target adjacent to tile: { "type": "target_adjacent_to_tile", "tile": "fire" }
         RegisterPredicate("target_adjacent_to_tile", n =>
         {
             var tile = n.GetProperty("tile").GetString();
             return new TargetAdjacentToTile(tile);
         });
 
-
-        // Caster has elements nearby:
-        // { "type": "has_elements_near_caster", "elements": [ "fire", "ice" ], "range": n }
+        // Caster has elements nearby: { "type": "has_elements_near_caster", "elements": ["fire","ice"], "range": n }
         RegisterPredicate("has_elements_near_caster", n =>
         {
             var elements = new List<string>();
@@ -350,8 +351,7 @@ public static class CardScriptRegistry
         RegisterTargeter("self", _ => new SelectSelfTarget());
         RegisterTargeter("none", _ => new SelectGlobalTarget());
 
-        // Unit selector: 
-        // { "type": "unit", "enemies_only": bool, "range": n, "los": bool }
+        // Unit selector: { "type": "unit", "enemies_only": bool, "range": n, "los": bool }
         RegisterTargeter("unit", n =>
         {
             bool enemyOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
@@ -360,16 +360,14 @@ public static class CardScriptRegistry
             return new SelectUnitTarget(enemyOnly, range, los);
         });
 
-        // Tile selector: 
-        // { "type": "tile", "range": n }    
+        // Tile selector: { "type": "tile", "range": n }
         RegisterTargeter("tile", n =>
         {
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 4;
             return new SelectTileTarget(range);
         });
 
-        // AoE selector:
-        // { "type": "aoe", "radius": n, "enemies_only": bool, "include_tiles": bool }
+        // AoE selector: { "type": "aoe", "radius": n, "enemies_only": bool, "include_tiles": bool }
         RegisterTargeter("aoe", n =>
         {
             int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 1;
@@ -378,8 +376,7 @@ public static class CardScriptRegistry
             return new SelectAreaTarget(radius, enemiesOnly, includeTiles);
         });
 
-        // Cone selector:
-        // { "type": "cone", "range": n, "enemies_only": bool }
+        // Cone selector: { "type": "cone", "range": n, "enemies_only": bool }
         RegisterTargeter("cone", n =>
         {
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 3;
@@ -387,8 +384,7 @@ public static class CardScriptRegistry
             return new SelectConeTarget(range, enemiesOnly);
         });
 
-        // Ring selector:
-        // { "type": "ring", "radius": n, "include_tiles": bool
+        // Ring selector: { "type": "ring", "radius": n, "include_tiles": bool }
         RegisterTargeter("ring", n =>
         {
             int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 2;
@@ -396,8 +392,7 @@ public static class CardScriptRegistry
             return new SelectRingTarget(radius, includeTiles);
         });
 
-        // Tag selector:
-        // { "type": "by_tag", "tag": "fire", "enemies_only": bool }
+        // By tag selector: { "type": "by_tag", "tag": "fire", "enemies_only": bool }
         RegisterTargeter("by_tag", n =>
         {
             var tag = n.GetProperty("tag").GetString();
@@ -405,16 +400,14 @@ public static class CardScriptRegistry
             return new SelectByTagTarget(tag, enemyOnly);
         });
 
-        // Nearest to target selector:
-        // { "type": "nearest_to_target", "range": n }
+        // Nearest to target selector: { "type": "nearest_to_target", "range": n }
         RegisterTargeter("nearest_to_target", n =>
         {
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 3;
             return new SelectNearestToTarget(range);
         });
 
-        // Line selector:
-        // { "type": "line", "length": n, "enemies_only": bool, "include_tiles": bool }
+        // Line selector: { "type": "line", "length": n, "enemies_only": bool, "include_tiles": bool }
         RegisterTargeter("line", n =>
         {
             int length = n.TryGetProperty("length", out var l) ? l.GetInt32() : 2;
@@ -423,41 +416,47 @@ public static class CardScriptRegistry
             return new SelectLineTarget(length, enemiesOnly, includeTiles);
         });
 
-        // Adjacent to target selector:
-        // { "type": "adjacent_to_target", "include_tiles": bool }
+        // Adjacent to target selector: { "type": "adjacent_to_target", "include_tiles": bool }
         RegisterTargeter("adjacent_to_target", n =>
         {
             bool includeTiles = n.TryGetProperty("include_tiles", out var it) && it.GetBoolean();
             return new SelectAdjacentToTarget(includeTiles);
         });
-    
-        // Element tile selector:
-        // { "type": "element_tile", "element": "fire", "range":
+
+        // Element tile selector: { "type": "element_tile", "element": "fire", "range": n }
         RegisterTargeter("element_tile", n =>
         {
             var element = n.GetProperty("element").GetString();
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 6;
             return new SelectElementTileTarget(element, range);
         });
-
     }
 }
 
 // ============================================================
-// JsonCardLoader — unchanged structure, included for completeness
+// JsonCardLoader
 // ============================================================
 
 public static class JsonCardLoader
 {
-    public static List<Card> LoadAll(string directory)
+    // ── Status constants ────────────────────────────────────────────
+    private const string STATUS_READY = "ready";
+    private const string STATUS_WIP = "wip";
+    private const string STATUS_STUB = "stub";
+
+    // ── LoadAll ─────────────────────────────────────────────────────
+    // devMode: if true, "wip" cards are loaded in addition to "ready".
+    public static List<Card> LoadAll(string directory, bool devMode = false)
     {
         var cards = new List<Card>();
+        int skipped = 0;
+        int stubs = 0;
 
         using var dir = DirAccess.Open(directory);
         if (dir == null)
         {
             GD.PrintErr($"[JsonCardLoader] Could not open directory: {directory}. " +
-                         $"Error: {DirAccess.GetOpenError()}");
+                        $"Error: {DirAccess.GetOpenError()}");
             return cards;
         }
 
@@ -465,31 +464,74 @@ public static class JsonCardLoader
         string file;
         while ((file = dir.GetNext()) != "")
         {
-            if (file.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-            {
-                string path = $"{directory}/{file}";
-                string json = ReadGodotFile(path);
-                if (json == null) continue;
+            if (!file.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                continue;
 
-                try
+            string path = $"{directory}/{file}";
+            string json = ReadGodotFile(path);
+            if (json == null) continue;
+
+            try
+            {
+                var root = JsonDocument.Parse(json).RootElement;
+                var status = GetStatus(root, file);
+
+                switch (status)
                 {
-                    var root = JsonDocument.Parse(json).RootElement;
-                    var card = BuildCard(root);
-                    if (card != null)
-                        cards.Add(card);
+                    case STATUS_STUB:
+                        stubs++;
+                        GD.Print($"[JsonCardLoader] Skipping stub: {file}");
+                        continue;
+
+                    case STATUS_WIP:
+                        if (!devMode)
+                        {
+                            skipped++;
+                            GD.Print($"[JsonCardLoader] Skipping wip (DevMode off): {file}");
+                            continue;
+                        }
+                        GD.Print($"[JsonCardLoader] Loading wip card (DevMode on): {file}");
+                        break;
+
+                    case STATUS_READY:
+                        break;
+
+                    default:
+                        stubs++;
+                        GD.PrintErr($"[JsonCardLoader] Unknown status '{status}' in {file}. " +
+                                    $"Treating as stub. Valid values: ready, wip, stub.");
+                        continue;
                 }
-                catch (Exception ex)
-                {
-                    GD.PrintErr($"[JsonCardLoader] Error parsing {file}: {ex.Message}");
-                }
+
+                var card = BuildCard(root);
+                if (card != null)
+                    cards.Add(card);
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr($"[JsonCardLoader] Error parsing {file}: {ex.Message}");
             }
         }
         dir.ListDirEnd();
 
-        GD.Print($"[JsonCardLoader] Loaded {cards.Count} cards from {directory}");
+        GD.Print($"[JsonCardLoader] Loaded {cards.Count} cards from {directory} " +
+                 $"({stubs} stubs skipped, {skipped} wip skipped)");
         return cards;
     }
 
+    // ── Status helper ───────────────────────────────────────────────
+    private static string GetStatus(JsonElement root, string filename)
+    {
+        if (root.TryGetProperty("status", out var s))
+            return s.GetString()?.ToLowerInvariant() ?? STATUS_STUB;
+
+        GD.PrintErr($"[JsonCardLoader] '{filename}' has no 'status' field. " +
+                    $"Treating as stub. Add \"status\": \"stub\" to silence this warning, " +
+                    $"or \"status\": \"ready\" when the card is complete.");
+        return STATUS_STUB;
+    }
+
+    // ── File reader ─────────────────────────────────────────────────
     private static string ReadGodotFile(string path)
     {
         using var f = FileAccess.Open(path, FileAccess.ModeFlags.Read);
@@ -502,6 +544,7 @@ public static class JsonCardLoader
         return f.GetAsText();
     }
 
+    // ── BuildCard ───────────────────────────────────────────────────
     private static Card BuildCard(JsonElement root)
     {
         var card = new Card
@@ -522,6 +565,7 @@ public static class JsonCardLoader
         return card;
     }
 
+    // ── BuildHalf ───────────────────────────────────────────────────
     private static CardHalf BuildHalf(JsonElement halfNode, Card owner, JsonElement root)
     {
         var school = CardSchool.Tinker;
@@ -538,12 +582,11 @@ public static class JsonCardLoader
             Speed = ParseSpeed(halfNode),
             Costs = new ICost[] { new ManaCost(halfNode.GetProperty("mana").GetInt32()) },
             Targeting = halfNode.TryGetProperty("targeting", out var t)
-                ? CardScriptRegistry.BuildTargeter(t) : null,
+                             ? CardScriptRegistry.BuildTargeter(t) : null,
             Effects = new[] { halfNode.TryGetProperty("effect", out var e)
-                ? CardScriptRegistry.BuildEffect(e) : new EmptyEffect() }
+                             ? CardScriptRegistry.BuildEffect(e) : new EmptyEffect() }
         };
 
-        // ── Parse element tags ──────────────────────────────────────
         if (halfNode.TryGetProperty("tags", out var tagsElement)
             && tagsElement.ValueKind == JsonValueKind.Array)
         {
@@ -561,9 +604,9 @@ public static class JsonCardLoader
             && reqElement.ValueKind == JsonValueKind.Array)
         {
             var reqList = new List<string>();
-            foreach (var r in reqElement.EnumerateArray())
+            foreach (var r2 in reqElement.EnumerateArray())
             {
-                var rs = r.GetString();
+                var rs = r2.GetString();
                 if (!string.IsNullOrEmpty(rs)) reqList.Add(rs);
             }
             half.Requirements = reqList.ToArray();
@@ -575,6 +618,7 @@ public static class JsonCardLoader
         return half;
     }
 
+    // ── ParseSpeed ──────────────────────────────────────────────────
     private static PlaySpeed ParseSpeed(JsonElement node)
     {
         if (node.TryGetProperty("speed", out var s)

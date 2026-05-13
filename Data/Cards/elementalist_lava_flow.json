@@ -1,77 +1,157 @@
 {
-  	"id": "elementalist_lava_flow",
-  	"name": "Lava Flow",
-  	"school": "Elementalist",
-  	"rarity": "Common",
-  	"top": {
-    	"name": "Lava Flow",
-    	"mana": 1,
-    	"speed": "Instant",
-    	"rules_text": "Imbue a line (2) of fire in target direction starting from a unit. Push enemies 2 tiles and deal 3 damage per tile.",
-		"tags": ["fire", "earth" ],
-    	"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-    	"effect": {
-        	"type": "retarget",
-        	"targeting": { "type": "line", "length": 2, "enemies_only": false, "include_tiles": true },
-        	"do": {
-            	"type": "sequence",
-            	"steps": [
-                	{ "type": "imbue_tile", "element": "fire" },
-                	{ "type": "push_damage", "tiles": 2, "damage_per_tile": 3 }
-            ]
-        }
-    },
-    "channel": {
-      	"name": "Lava Flow (Channel)",
-      	"mana": 1,
-      	"speed": "Reaction",
-      	"rules_text": "Channel: Line is 4 tiles long",
-      	"tags": ["fire", "earth" ],
-    	"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-    	"effect": {
-        	"type": "retarget",
-        	"targeting": { "type": "line", "length": 4, "enemies_only": false, "include_tiles": true },
-        	"do": {
-            	"type": "sequence",
-            	"steps": [
-                	{ "type": "imbue_tile", "element": "fire" },
-                	{ "type": "push_damage", "tiles": 2, "damage_per_tile": 3 }
-            	]
+	"id": "elementalist_lava_flow",
+	"status": "ready",
+	"name": "Lava Flow",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Lava Flow",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Imbue a line (2) of fire in target direction starting from a unit. Push enemies 2 tiles and deal 3 damage per tile.",
+		"tags": [
+			"fire",
+			"earth"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "retarget",
+			"targeting": {
+				"type": "line",
+				"length": 2,
+				"enemies_only": false,
+				"include_tiles": true
+			},
+			"do": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "imbue_tile",
+						"element": "fire"
+					},
+					{
+						"type": "push_damage",
+						"tiles": 2,
+						"damage_per_tile": 3
+					}
+				]
+			}
+		},
+		"channel": {
+			"name": "Lava Flow (Channel)",
+			"mana": 1,
+			"speed": "Reaction",
+			"rules_text": "Channel: Line is 4 tiles long",
+			"tags": [
+				"fire",
+				"earth"
+			],
+			"targeting": {
+				"type": "unit",
+				"range": 6,
+				"los": true,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "retarget",
+				"targeting": {
+					"type": "line",
+					"length": 4,
+					"enemies_only": false,
+					"include_tiles": true
+				},
+				"do": {
+					"type": "sequence",
+					"steps": [
+						{
+							"type": "imbue_tile",
+							"element": "fire"
+						},
+						{
+							"type": "push_damage",
+							"tiles": 2,
+							"damage_per_tile": 3
+						}
+					]
 				}
 			}
 		}
-  	},
-  	"bottom": {
-    	"name": "Earth Anchor",
-    	"mana": 1,
-    	"speed": "Instant",
-    	"rules_text": "Requires Stone tile. Root yourself, gain 7 armor, and gain empowered for 1 turn",
-    	"tags": ["stone"],
-		"requires": ["stone_tile"],
-		"targeting": { "type": "self" },
-    	"effect": {
-        	"type": "sequence",
-        	"steps": [
-            	{ "type": "armor", "amount": 7 },
-            	{ "type": "apply_status", "status": "rooted", "duration": 1 },
-            	{ "type": "apply_status", "status": "empowered", "duration": 1 }
-        	]
-    	}
 	},
-    "channel": {
-      	"name": "Earth Anchor (Channel)",
-      	"mana": 1,
-      	"speed": "Reaction",
-      	"rules_text": "Channel: Gain 7 shield as well",
-		"tags": ["stone"],
-		"requires": ["stone_tile"],
-      	"targeting": { "type": "self" },
-      	"effect": { "type": "sequence", "steps": [
-           	{ "type": "armor", "amount": 7 },
-           	{ "type": "shield", "amount": 7 },
-			{ "type": "apply_status", "status": "rooted", "duration": 1 },
-			{ "type": "apply_status", "status": "empowered", "duration": 1 }
-       	]
-	 	}
+	"bottom": {
+		"name": "Earth Anchor",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Requires Stone tile. Root yourself, gain 7 armor, and gain empowered for 1 turn",
+		"tags": [
+			"stone"
+		],
+		"requires": [
+			"stone_tile"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "armor",
+					"amount": 7
+				},
+				{
+					"type": "apply_status",
+					"status": "rooted",
+					"duration": 1
+				},
+				{
+					"type": "apply_status",
+					"status": "empowered",
+					"duration": 1
+				}
+			]
+		}
+	},
+	"channel": {
+		"name": "Earth Anchor (Channel)",
+		"mana": 1,
+		"speed": "Reaction",
+		"rules_text": "Channel: Gain 7 shield as well",
+		"tags": [
+			"stone"
+		],
+		"requires": [
+			"stone_tile"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "armor",
+					"amount": 7
+				},
+				{
+					"type": "shield",
+					"amount": 7
+				},
+				{
+					"type": "apply_status",
+					"status": "rooted",
+					"duration": 1
+				},
+				{
+					"type": "apply_status",
+					"status": "empowered",
+					"duration": 1
+				}
+			]
+		}
 	}
 }

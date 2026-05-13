@@ -1,35 +1,63 @@
 {
-  	"id": "elementalist_ember_bolt",
-  	"name": "Ember Bolt",
-  	"school": "Elementalist",
-  	"rarity": "Common",
-  	"top": {
-    	"name": "Ember Bolt",
-    	"mana": 1,
-    	"speed": "Sorcery",
-    	"rules_text": "Deal 4 damage. Imbue target tile with Fire.",
-    	"tags": [ "fire" 	],
-    	"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-    	"effect": {
-      		"type": "sequence",
-      		"steps": [
-        		{ "type": "damage", "amount": 4 },
-        		{ "type": "imbue_tile", "element": "fire", "bonus_damage": 2 }
-      		]
-    	}
-  	},
-  	"bottom": {
-    	"name": "Stone Skin",
-    	"mana": 1,
-    	"speed": "Instant",
-    	"rules_text": "Gain 5 shield. If standing on Stone terrain gain 5 armor instead.",
-    	"tags": ["stone"],
-    	"targeting": { "type": "self" },
-    	"effect": {
-      		"type": "conditional",
-      		"if": { "type": "caster_on_terrain", "terrain": "stone" },
-      		"then": { "type": "armor", "amount": 5 },
-      		"else": { "type": "shield", "amount": 5 }
+	"id": "elementalist_ember_bolt",
+	"status": "ready",
+	"name": "Ember Bolt",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Ember Bolt",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 4 damage. Imbue target tile with Fire.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 4
+				},
+				{
+					"type": "imbue_tile",
+					"element": "fire",
+					"bonus_damage": 2
+				}
+			]
 		}
-  	}
+	},
+	"bottom": {
+		"name": "Stone Skin",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 5 shield. If standing on Stone terrain gain 5 armor instead.",
+		"tags": [
+			"stone"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "caster_on_terrain",
+				"terrain": "stone"
+			},
+			"then": {
+				"type": "armor",
+				"amount": 5
+			},
+			"else": {
+				"type": "shield",
+				"amount": 5
+			}
+		}
+	}
 }

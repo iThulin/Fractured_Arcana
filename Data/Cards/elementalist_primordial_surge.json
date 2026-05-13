@@ -1,43 +1,89 @@
 {
-  	"id": "elementalist_primordial_surge",
-  	"name": "Primordial Surge",
-  	"school": "Elementalist",
-  	"rarity": "Rare",
-  	"top": {
-    	"name": "Primordial Surge",
-    	"mana": 4,
-    	"speed": "Sorcery",
-    	"rules_text": "Imbue ALL tiles in aoe 6 with a random element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
-		"tags": ["fire", "ice", "storm", "stone"],
-    	"targeting": { "type": "self" },
-    	"effect": { "type": "primordial_surge", "radius": 4, "damage": 4 },
-    	"channel": {
-      		"name": "Primordial Surge (Channel)",
-      		"mana": 4,
-      		"speed": "Reaction",
-      		"rules_text": "Channel: Increase radius to 6.",
-			"tags": ["fire", "ice", "storm", "stone"],
-      		"targeting": { "type": "self" },
-      		"effect": { "type": "primordial_surge", "radius": 6, "damage": 4 }
+	"id": "elementalist_primordial_surge",
+	"status": "ready",
+	"name": "Primordial Surge",
+	"school": "Elementalist",
+	"rarity": "Rare",
+	"top": {
+		"name": "Primordial Surge",
+		"mana": 4,
+		"speed": "Sorcery",
+		"rules_text": "Imbue ALL tiles in aoe 6 with a random element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
+		"tags": [
+			"fire",
+			"ice",
+			"storm",
+			"stone"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "primordial_surge",
+			"radius": 4,
+			"damage": 4
+		},
+		"channel": {
+			"name": "Primordial Surge (Channel)",
+			"mana": 4,
+			"speed": "Reaction",
+			"rules_text": "Channel: Increase radius to 6.",
+			"tags": [
+				"fire",
+				"ice",
+				"storm",
+				"stone"
+			],
+			"targeting": {
+				"type": "self"
+			},
+			"effect": {
+				"type": "primordial_surge",
+				"radius": 6,
+				"damage": 4
+			}
 		}
-  	},
-  	"bottom": {
-    	"name": "Cataclysm",
-    	"mana": 3,
-    	"speed": "Sorcery",
-    	"rules_text": "Remove imbuement from all tiles in aoe  4. Deal 2 damage per tile cleared. Draw 1 card per 3 tiles cleared.",
-		"tags": ["fire", "ice", "storm", "stone"],
-    	"targeting": { "type": "self" },
-    	"effect": {
-		  	"type": "cataclysm", "radius": 4, "damage_per_tile": 2, "cards_per_tiles": 1 },
-    	"channel": {
-      		"name": "Cataclysm (Channel)",
-      		"mana": 3,
-      		"speed": "Reaction",
-      		"rules_text": "Channel: Radius 6. Deal 4 damage per tile instead",
-      		"targeting": { "type": "self"},
-      		"tags": ["fire", "ice", "storm", "stone"],
-			"effect": { "type": "cataclysm", "radius": 6, "damage_per_tile": 4, "cards_per_tiles": 1 }
-    	}
-  	}
+	},
+	"bottom": {
+		"name": "Cataclysm",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Remove imbuement from all tiles in aoe  4. Deal 2 damage per tile cleared. Draw 1 card per 3 tiles cleared.",
+		"tags": [
+			"fire",
+			"ice",
+			"storm",
+			"stone"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "cataclysm",
+			"radius": 4,
+			"damage_per_tile": 2,
+			"cards_per_tiles": 1
+		},
+		"channel": {
+			"name": "Cataclysm (Channel)",
+			"mana": 3,
+			"speed": "Reaction",
+			"rules_text": "Channel: Radius 6. Deal 4 damage per tile instead",
+			"targeting": {
+				"type": "self"
+			},
+			"tags": [
+				"fire",
+				"ice",
+				"storm",
+				"stone"
+			],
+			"effect": {
+				"type": "cataclysm",
+				"radius": 6,
+				"damage_per_tile": 4,
+				"cards_per_tiles": 1
+			}
+		}
+	}
 }

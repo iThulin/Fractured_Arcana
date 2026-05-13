@@ -1,5 +1,6 @@
 {
   "id": "generic_move",
+  "status": "stub",
   "name": "Move",
   "school": "Generic",
   "rarity": "Common",

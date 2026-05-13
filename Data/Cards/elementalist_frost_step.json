@@ -1,57 +1,84 @@
 {
-  	"id": "elementalist_frost_step",
-  	"name": "Frost Step",
-  	"school": "Elementalist",
-  	"rarity": "Common",
-  	"top": {
-    	"name": "Frost Step",
-    	"mana": 1,
-    	"speed": "Instant",
-    	"rules_text": "Move 2. Imbue tiles with Ice. Gain 4 armor.",
-    	"tags": ["ice"],
-    	"targeting": { "type": "self" },
-    	"effect": { 
-			"type": "imbue_path", 
-			"element": "ice", 
-			"move": 2, 
-			"armor_per_tile": 2 
+	"id": "elementalist_frost_step",
+	"status": "ready",
+	"name": "Frost Step",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Frost Step",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Move 2. Imbue tiles with Ice. Gain 4 armor.",
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "self"
 		},
-    	"channel": {
-      		"name": "Frost Step (Channel)",
-      		"mana": 1,
-      		"speed": "Reaction",
-      		"rules_text": "Channel: Also gain 2 shield per Ice tile",
-      		"tags": ["ice"],
-      		"targeting": { "type": "self" },
-			"effect": { 
+		"effect": {
+			"type": "imbue_path",
+			"element": "ice",
+			"move": 2,
+			"armor_per_tile": 2
+		},
+		"channel": {
+			"name": "Frost Step (Channel)",
+			"mana": 1,
+			"speed": "Reaction",
+			"rules_text": "Channel: Also gain 2 shield per Ice tile",
+			"tags": [
+				"ice"
+			],
+			"targeting": {
+				"type": "self"
+			},
+			"effect": {
 				"type": "imbue_path",
 				"element": "ice",
 				"move": 2,
 				"armor_per_tile": 2,
-				"shield_per_tile": 2 } }
+				"shield_per_tile": 2
+			}
+		}
 	},
-  	"bottom": {
-    	"name": "Updraft",
-    	"mana": 1,
-    	"speed": "Instant",
-    	"rules_text": "Push target enemy 2 tiles. If they collide deal 5.",
-    	"tags": ["storm"],
-    	"targeting": { "type": "unit", "range": 6, "los": false, "enemies_only": true },
-    	"effect": {
+	"bottom": {
+		"name": "Updraft",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Push target enemy 2 tiles. If they collide deal 5.",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
 			"type": "push",
 			"tiles": 2,
-			"collision_damage": 5 }
-    	},
-    	"channel": {
-      		"name": "Updraft (Channel)",
-      		"mana": 1,
-      		"speed": "Reaction",
-      		"rules_text": "Channel: Push 3 tiles instead",
-      		"tags": ["storm"],
-      		"targeting": { "type": "unit", "range": 6, "los": false, "enemies_only": true },
-      		"effect": { 
-				"type": "push",
-				"tiles": 3,
-				"collision_damage": 5 }
-		  }
+			"collision_damage": 5
+		}
+	},
+	"channel": {
+		"name": "Updraft (Channel)",
+		"mana": 1,
+		"speed": "Reaction",
+		"rules_text": "Channel: Push 3 tiles instead",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "push",
+			"tiles": 3,
+			"collision_damage": 5
+		}
+	}
 }

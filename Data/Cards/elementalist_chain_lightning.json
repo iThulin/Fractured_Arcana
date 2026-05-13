@@ -1,27 +1,53 @@
 {
-  	"id": "elementalist_chain_lightning",
-  	"name": "Chain Lightning",
-  	"school": "Elementalist",
-  	"rarity": "Uncommon",
-  	"top": {
+	"id": "elementalist_chain_lightning",
+	"status": "ready",
+	"name": "Chain Lightning",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
 		"name": "Chain Lightning",
 		"mana": 3,
 		"speed": "Sorcery",
 		"rules_text": "Deal 5 damage to target. Chains to nearest enemy within 2 tiles for 4 then again for 2.",
-		"tags": ["storm"],
-		"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
 		"effect": {
 			"type": "sequence",
 			"steps": [
-				{ "type": "damage", "amount": 5},
-				{ "type": "retarget",
-					"targeting": {"type": "nearest_to_target", "range":2},
-					"do": { "type": "sequence",
+				{
+					"type": "damage",
+					"amount": 5
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "nearest_to_target",
+						"range": 2
+					},
+					"do": {
+						"type": "sequence",
 						"steps": [
-							{"type": "damage", "amount": 4},
-							{"type": "retarget",
-								"targeting": {"type": "nearest_to_target", "range":2},
-								"do": { "type": "damage", "amount": 2 }
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 2
+								},
+								"do": {
+									"type": "damage",
+									"amount": 2
+								}
 							}
 						]
 					}
@@ -33,25 +59,59 @@
 			"mana": 3,
 			"speed": "Reaction",
 			"rules_text": "Channel: Each strike also imbues the target's tile with Storm",
-			"tags": ["storm"],
-			"targeting": { "type": "tile", "range": 4, "los": true },
+			"tags": [
+				"storm"
+			],
+			"targeting": {
+				"type": "tile",
+				"range": 4,
+				"los": true
+			},
 			"effect": {
 				"type": "sequence",
 				"steps": [
-					{ "type": "damage", "amount": 5 },
-					{ "type": "imbue_tile", "element": "storm" },
-					{ "type": "retarget",
-						"targeting": {"type": "nearest_to_target", "range":2},
-						"do": { "type": "sequence",
+					{
+						"type": "damage",
+						"amount": 5
+					},
+					{
+						"type": "imbue_tile",
+						"element": "storm"
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "nearest_to_target",
+							"range": 2
+						},
+						"do": {
+							"type": "sequence",
 							"steps": [
-								{"type": "damage", "amount": 4},
-								{"type": "imbue_tile", "element": "storm"},
-								{"type": "retarget",
-									"targeting": {"type": "nearest_to_target", "range":2},
-									"do": { "type": "sequence",
+								{
+									"type": "damage",
+									"amount": 4
+								},
+								{
+									"type": "imbue_tile",
+									"element": "storm"
+								},
+								{
+									"type": "retarget",
+									"targeting": {
+										"type": "nearest_to_target",
+										"range": 2
+									},
+									"do": {
+										"type": "sequence",
 										"steps": [
-											{"type": "damage", "amount": 2},
-											{"type": "imbue_tile", "element": "storm"}
+											{
+												"type": "damage",
+												"amount": 2
+											},
+											{
+												"type": "imbue_tile",
+												"element": "storm"
+											}
 										]
 									}
 								}
@@ -67,13 +127,27 @@
 		"mana": 2,
 		"speed": "Instant",
 		"rules_text": "Target: Cone (4). Push all enemies 2 tiles backward. For each tile a unit is pushed do 2 damage.",
-		"tags": ["storm"],
-		"targeting": { "type": "cone", "range": 4, "los": true, "enemies_only": false },
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "cone",
+			"range": 4,
+			"los": true,
+			"enemies_only": false
+		},
 		"effect": {
 			"type": "sequence",
 			"steps": [
-				{ "type": "damage", "amount": 2 },
-				{ "type": "push_damage", "tiles": 2, "damage_per_tile": 2 }
+				{
+					"type": "damage",
+					"amount": 2
+				},
+				{
+					"type": "push_damage",
+					"tiles": 2,
+					"damage_per_tile": 2
+				}
 			]
 		},
 		"channel": {
@@ -81,13 +155,27 @@
 			"mana": 2,
 			"speed": "Reaction",
 			"rules_text": "Channel: Push 4 tiles",
-			"tags": ["storm"],
-			"targeting": { "type": "cone", "range": 4, "los": true, "enemies_only": false },
+			"tags": [
+				"storm"
+			],
+			"targeting": {
+				"type": "cone",
+				"range": 4,
+				"los": true,
+				"enemies_only": false
+			},
 			"effect": {
 				"type": "sequence",
 				"steps": [
-					{ "type": "damage", "amount": 2 },
-					{ "type": "push_damage", "tiles": 2, "damage_per_tile": 2 }
+					{
+						"type": "damage",
+						"amount": 2
+					},
+					{
+						"type": "push_damage",
+						"tiles": 2,
+						"damage_per_tile": 2
+					}
 				]
 			}
 		}

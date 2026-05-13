@@ -1,5 +1,6 @@
 {
   "id": "generic_damage",
+  "status": "stub",
   "name": "Damage",
   "school": "Generic",
   "rarity": "Common",

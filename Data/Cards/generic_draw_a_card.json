@@ -1,5 +1,6 @@
 {
   "id": "generic_draw_a_card",
+  "status": "stub",
   "name": "Draw a Card",
   "school": "Generic",
   "rarity": "Common",

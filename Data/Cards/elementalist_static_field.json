@@ -1,78 +1,151 @@
 {
-  	"id": "elementalist_static_field",
-  	"name": "Static Field",
-  	"school": "Elementalist",
-  	"rarity": "Uncommon",
-  	"top": {
-    	"name": "Static Field",
-    	"mana": 2,
-    	"speed": "Sorcery",
-    	"rules_text": "Imbue target tile and ring at range 2 with Storm. Enemies crossing Storm tiles take 2 damage per tile.",
-    	"tags": ["storm"],
-		"targeting": { "type": "tile", "range": 6 },
+	"id": "elementalist_static_field",
+	"status": "ready",
+	"name": "Static Field",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Static Field",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Imbue target tile and ring at range 2 with Storm. Enemies crossing Storm tiles take 2 damage per tile.",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 6
+		},
 		"effect": {
 			"type": "sequence",
+			"steps": [
+				{
+					"type": "imbue_tile",
+					"element": "storm",
+					"bonus_damage": 2
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "ring",
+						"radius": 2,
+						"include_tiles": true
+					},
+					"do": {
+						"type": "imbue_tile",
+						"element": "storm",
+						"bonus_damage": 2
+					}
+				}
+			]
+		},
+		"channel": {
+			"name": "Static Field (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Ring (3). Storm tiles deal 4 damage instead",
+			"tags": [
+				"storm"
+			],
+			"targeting": {
+				"type": "tile",
+				"range": 6
+			},
+			"effect": {
+				"type": "sequence",
 				"steps": [
-					{ "type": "imbue_tile", "element": "storm", "bonus_damage": 2 },
-					{ "type": "retarget",
-						"targeting": { "type": "ring", "radius": 2, "include_tiles": true },
-						"do": { "type": "imbue_tile", "element": "storm", "bonus_damage": 2 }
+					{
+						"type": "imbue_tile",
+						"element": "storm",
+						"bonus_damage": 4
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "ring",
+							"radius": 3,
+							"include_tiles": true
+						},
+						"do": {
+							"type": "imbue_tile",
+							"element": "storm",
+							"bonus_damage": 4
+						}
 					}
 				]
-		},
-    	"channel": {
-      		"name": "Static Field (Channel)",
-      		"mana": 2,
-      		"speed": "Reaction",
-      		"rules_text": "Channel: Ring (3). Storm tiles deal 4 damage instead",
-			"tags": ["storm"],
-			"targeting": { "type": "tile", "range": 6 },
-    		"effect": {
-      			"type": "sequence",
-					"steps": [
-						{ "type": "imbue_tile", "element": "storm", "bonus_damage": 4 },
-						{ "type": "retarget",
-							"targeting": { "type": "ring", "radius": 3, "include_tiles": true },
-							"do": { "type": "imbue_tile", "element": "storm", "bonus_damage": 4 }
-						}
-					]
 			}
 		}
-  	},
-  	"bottom": {
-    	"name": "Avalanche",
-    	"mana": 2,
-    	"speed": "Instant",
-    	"rules_text": "Deal 5 damage to all enemies in a line (4). Push each enemy 1 backward.",
-		"tags": ["ice"],
-		"targeting": { "type": "line", "length": 4, "enemies_only": true },
+	},
+	"bottom": {
+		"name": "Avalanche",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Deal 5 damage to all enemies in a line (4). Push each enemy 1 backward.",
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "line",
+			"length": 4,
+			"enemies_only": true
+		},
 		"effect": {
 			"type": "retarget",
-			"targeting": { "type": "line", "length": 4, "enemies_only": true },
-			"do": { "type": "sequence",
+			"targeting": {
+				"type": "line",
+				"length": 4,
+				"enemies_only": true
+			},
+			"do": {
+				"type": "sequence",
 				"steps": [
-					{ "type": "damage", "amount": 5 },
-					{ "type": "push", "tiles": 1, "collision_damage": 3 }
+					{
+						"type": "damage",
+						"amount": 5
+					},
+					{
+						"type": "push",
+						"tiles": 1,
+						"collision_damage": 3
+					}
 				]
 			}
 		},
-    	"channel": {
-      		"name": "Avalanche (Channel)",
-      		"mana": 2,
-      		"speed": "Reaction",
-      		"rules_text": "Channel: Line (6), push 2",
-			"tags": ["ice"],
-			"targeting": { "type": "line", "length": 6, "enemies_only": true },
+		"channel": {
+			"name": "Avalanche (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Line (6), push 2",
+			"tags": [
+				"ice"
+			],
+			"targeting": {
+				"type": "line",
+				"length": 6,
+				"enemies_only": true
+			},
 			"effect": {
 				"type": "retarget",
-				"targeting": { "type": "line", "length": 6, "enemies_only": true },
-				"do": { "type": "sequence",
+				"targeting": {
+					"type": "line",
+					"length": 6,
+					"enemies_only": true
+				},
+				"do": {
+					"type": "sequence",
 					"steps": [
-						{ "type": "damage", "amount": 5 },
-						{ "type": "push", "tiles": 2, "collision_damage": 3 }
+						{
+							"type": "damage",
+							"amount": 5
+						},
+						{
+							"type": "push",
+							"tiles": 2,
+							"collision_damage": 3
+						}
 					]
 				}
 			}
-  		}
+		}
 	}
 }

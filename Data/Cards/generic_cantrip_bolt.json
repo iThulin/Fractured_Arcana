@@ -1,5 +1,6 @@
 {
   "id": "generic_cantrip_bolt",
+  "status": "stub",
   "name": "Cantrip Bolt",
   "school": "Generic",
   "rarity": "Common",

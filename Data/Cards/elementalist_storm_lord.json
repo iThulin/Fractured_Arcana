@@ -1,23 +1,39 @@
 {
-  	"id": "elementalist_storm_lord",
-  	"name": "Storm Lord",
-  	"school": "Elementalist",
-  	"rarity": "Rare",
-  	"top": {
+	"id": "elementalist_storm_lord",
+	"status": "ready",
+	"name": "Storm Lord",
+	"school": "Elementalist",
+	"rarity": "Rare",
+	"top": {
 		"name": "Storm Lord",
 		"mana": 3,
 		"speed": "Sorcery",
 		"rules_text": "Imbue all tiles within 2 range with Storm. Deal 5 damage to each enemy in the area.",
-		"tags": ["storm"],
-		"targeting": { "type": "self" },
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "self"
+		},
 		"effect": {
 			"type": "sequence",
 			"steps": [
-				{ "type": "imbue_area", "element": "storm", "radius": 2 },
+				{
+					"type": "imbue_area",
+					"element": "storm",
+					"radius": 2
+				},
 				{
 					"type": "retarget",
-					"targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
-					"do": { "type": "damage", "amount": 5 }
+					"targeting": {
+						"type": "aoe",
+						"radius": 2,
+						"enemies_only": true
+					},
+					"do": {
+						"type": "damage",
+						"amount": 5
+					}
 				}
 			]
 		},
@@ -26,93 +42,177 @@
 			"mana": 3,
 			"speed": "Reaction",
 			"rules_text": "Channel: Also slow all enemies in the area",
-			"tags": ["storm"],
-			"targeting": { "type": "self" },
+			"tags": [
+				"storm"
+			],
+			"targeting": {
+				"type": "self"
+			},
 			"effect": {
 				"type": "sequence",
 				"steps": [
-					{ "type": "imbue_area", "element": "storm", "radius": 2 },
+					{
+						"type": "imbue_area",
+						"element": "storm",
+						"radius": 2
+					},
 					{
 						"type": "retarget",
-						"targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
+						"targeting": {
+							"type": "aoe",
+							"radius": 2,
+							"enemies_only": true
+						},
 						"do": {
 							"type": "sequence",
 							"steps": [
-								{ "type": "damage", "amount": 5 },
-								{ "type": "apply_status", "status": "slowed", "duration": 1 }
+								{
+									"type": "damage",
+									"amount": 5
+								},
+								{
+									"type": "apply_status",
+									"status": "slowed",
+									"duration": 1
+								}
 							]
 						}
 					}
 				]
 			}
-    	}
+		}
 	},
-  	"bottom": {
-    "name": "Caldera",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Target tile becomes Lava. Ring of Fire at range 1. Ring of rubble at range 2. Enemies inside take 4 damage.",
-    "tags": ["fire", "stone"],
-    "targeting": { "type": "tile", "range": 6 },
-    "effect": {
-        "type": "sequence",
-        "steps": [
-            { "type": "imbue_tile", "element": "lava" },
-            {
-                "type": "retarget",
-                "targeting": { "type": "ring", "radius": 1, "include_tiles": true },
-                "do": { "type": "imbue_tile", "element": "fire" }
-            },
-            {
-                "type": "retarget",
-                "targeting": { "type": "ring", "radius": 2, "include_tiles": true },
-                "do": { "type": "sequence", 
-							"steps": [
-								{ "type": "create_rubble" },
-								{ "type": "damage", "amount": 4 }
-							] 
-				}
-            },
-            {
-                "type": "retarget",
-                "targeting": { "type": "adjacent_to_target", "include_tiles": false },
-                "do": { "type": "damage", "amount": 4 }
-            }
-        ]
-    },
-    "channel": {
-        "name": "Caldera (Channel)",
-        "mana": 3,
-        "speed": "Reaction",
-        "rules_text": "Channel: Enemies inside take 6. Fire ring also deals 3 to occupants.",
-        "tags": ["fire", "stone"],
-        "targeting": { "type": "tile", "range": 6 },
-        "effect": {
-            "type": "sequence",
-            "steps": [
-                { "type": "imbue_tile", "element": "lava" },
-                {
-                    "type": "retarget",
-                    "targeting": { "type": "ring", "radius": 1, "include_tiles": true },
-                    "do": { "type": "imbue_tile", "element": "fire", "bonus_damage": 3 }
-                },
+	"bottom": {
+		"name": "Caldera",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Target tile becomes Lava. Ring of Fire at range 1. Ring of rubble at range 2. Enemies inside take 4 damage.",
+		"tags": [
+			"fire",
+			"stone"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 6
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "imbue_tile",
+					"element": "lava"
+				},
 				{
 					"type": "retarget",
-					"targeting": { "type": "ring", "radius": 2, "include_tiles": true },
-					"do": { "type": "sequence", 
-								"steps": [
-									{ "type": "create_rubble" },
-									{ "type": "damage", "amount": 6 }
-								] 
+					"targeting": {
+						"type": "ring",
+						"radius": 1,
+						"include_tiles": true
+					},
+					"do": {
+						"type": "imbue_tile",
+						"element": "fire"
 					}
 				},
-                {
-                    "type": "retarget",
-                    "targeting": { "type": "adjacent_to_target", "include_tiles": false },
-                    "do": { "type": "damage", "amount": 6 }
-                }
-            ]
-        }
-    }
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "ring",
+						"radius": 2,
+						"include_tiles": true
+					},
+					"do": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "create_rubble"
+							},
+							{
+								"type": "damage",
+								"amount": 4
+							}
+						]
+					}
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "adjacent_to_target",
+						"include_tiles": false
+					},
+					"do": {
+						"type": "damage",
+						"amount": 4
+					}
+				}
+			]
+		},
+		"channel": {
+			"name": "Caldera (Channel)",
+			"mana": 3,
+			"speed": "Reaction",
+			"rules_text": "Channel: Enemies inside take 6. Fire ring also deals 3 to occupants.",
+			"tags": [
+				"fire",
+				"stone"
+			],
+			"targeting": {
+				"type": "tile",
+				"range": 6
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "imbue_tile",
+						"element": "lava"
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "ring",
+							"radius": 1,
+							"include_tiles": true
+						},
+						"do": {
+							"type": "imbue_tile",
+							"element": "fire",
+							"bonus_damage": 3
+						}
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "ring",
+							"radius": 2,
+							"include_tiles": true
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "create_rubble"
+								},
+								{
+									"type": "damage",
+									"amount": 6
+								}
+							]
+						}
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "adjacent_to_target",
+							"include_tiles": false
+						},
+						"do": {
+							"type": "damage",
+							"amount": 6
+						}
+					}
+				]
+			}
+		}
 	}
 }

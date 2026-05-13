@@ -1,80 +1,141 @@
 {
-  	"id": "elementalist_tremor_step",
-  	"name": "Tremor Step",
-  	"school": "Elementalist",
-  	"rarity": "Common",
-  	"top": {
-    	"name": "Tremor Step",
-    	"mana": 1,
-    	"speed": "Instant",
-    	"rules_text": "Slow and deal 3 damage to all enemies in Aoe2, then gain 2 movement.",
-		"tags": ["stone"],
-    	"targeting": { "type": "self" },
-    	"effect": {
-      		"type": "sequence",
-      			"steps": [
-        			{ "type": "move", "tiles": 2 },
-					{ "type": "retarget",
-					  "targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
-					  "do": { "type": "sequence",
-					  		"steps": [
-								{ "type": "apply_status", "status": "slowed", "duration": 1 },
-								{ "type": "damage", "amount": 3 }
+	"id": "elementalist_tremor_step",
+	"status": "ready",
+	"name": "Tremor Step",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Tremor Step",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Slow and deal 3 damage to all enemies in Aoe2, then gain 2 movement.",
+		"tags": [
+			"stone"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 2
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "aoe",
+						"radius": 2,
+						"enemies_only": true
+					},
+					"do": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							},
+							{
+								"type": "damage",
+								"amount": 3
+							}
+						]
+					}
+				}
+			]
+		},
+		"channel": {
+			"name": "Tremor Step (Channel)",
+			"mana": 1,
+			"speed": "Reaction",
+			"rules_text": "Channel: Enemies take 3 damage instead",
+			"targeting": {
+				"type": "aoe",
+				"radius": 1,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "move",
+						"tiles": 2
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "aoe",
+							"radius": 2,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "apply_status",
+									"status": "slowed",
+									"duration": 1
+								},
+								{
+									"type": "damage",
+									"amount": 3
+								}
 							]
 						}
 					}
-      			]
-    	},
-    	"channel": {
-      		"name": "Tremor Step (Channel)",
-      		"mana": 1,
-      		"speed": "Reaction",
-      		"rules_text": "Channel: Enemies take 3 damage instead",
-      		"targeting": { "type": "aoe", "radius": 1, "enemies_only": true },
-			"effect": {
-      			"type": "sequence",
-      				"steps": [
-        				{ "type": "move", "tiles": 2 },
-						{ "type": "retarget",
-					  		"targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
-					  		"do": { "type": "sequence",
-					  			"steps": [
-									{ "type": "apply_status", "status": "slowed", "duration": 1 },
-									{ "type": "damage", "amount": 3 }
-								]
-							}
-						}
-      				]
+				]
 			}
-   		}
-  	},
-  	"bottom": {
-    	"name": "Spark Charge",
-    	"mana": 1,
-    	"speed": "Sorcery",
-    	"rules_text": "Imbue your tile with Storm. Your next spell chains to 1 additional target.",
-		"tags": ["storm"],
-    	"targeting": { "type": "self" },
-    	"effect": {
+		}
+	},
+	"bottom": {
+		"name": "Spark Charge",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Imbue your tile with Storm. Your next spell chains to 1 additional target.",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
 			"type": "sequence",
 			"steps": [
-				{ "type": "imbue_tile", "element": "storm" },
-				{ "type": "apply_status", "status": "chaining", "duration": 1 }
+				{
+					"type": "imbue_tile",
+					"element": "storm"
+				},
+				{
+					"type": "apply_status",
+					"status": "chaining",
+					"duration": 1
+				}
 			]
 		},
-    	"channel": {
+		"channel": {
 			"name": "Spark Charge (Channel)",
 			"mana": 1,
 			"speed": "Reaction",
 			"rules_text": "Channel: Chains to 2 additional targets",
-			"targeting": { "type": "self" },
+			"targeting": {
+				"type": "self"
+			},
 			"effect": {
 				"type": "sequence",
 				"steps": [
-					{ "type": "imbue_tile", "element": "storm" },
-					{ "type": "apply_status", "status": "chaining", "duration": 1 }
+					{
+						"type": "imbue_tile",
+						"element": "storm"
+					},
+					{
+						"type": "apply_status",
+						"status": "chaining",
+						"duration": 1
+					}
 				]
 			}
-  		}
+		}
 	}
 }

@@ -1,71 +1,143 @@
 {
-  	"id": "elementalist_boulder_hurl",
-  	"name": "Boulder Hurl",
-  	"school": "Elementalist",
-  	"rarity": "Uncommon",
-  	"top": {
-    	"name": "Boulder Hurl",
-    	"mana": 2,
-    	"speed": "Instant",
-    	"rules_text": "Deal 7 damage. Target pushed 2 tiles away. Creates rubble (difficult terrain) on vacated tile.",
-    	"tags": [ "stone" ],
-    	"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-    	"effect": {
-      		"type": "sequence",
-      		"steps": [
-        		{ "type": "damage", "amount": 7},
-        		{ "type": "move", "tiles": 2 },
-        		{ "type": "imbue_tile", "element": "stone"}
-      		]
-    },
-    "channel": {
-      	"name": "Boulder Hurl (Channel)",
-      	"mana": 2,
-      	"speed": "Reaction",
-      	"rules_text": "Channel: Rubble blocks LOS as well",
-      	"tags": [ "stone"],
-      	"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-      	"effect": {
-        	"type": "sequence",
-        	"steps": [
-        		{"type": "damage", "amount": 7 },
-        		{"type": "imbue_tile", "element": "stone"},
-        		{"type": "apply_status", "status": "los_blocked", "duration": 1},
-        		{ "type": "move", "tiles": 2},
-        		{"type": "summon", "unit": "stone_pillar", "amount": 1 }
-        	]
-      		}
+	"id": "elementalist_boulder_hurl",
+	"status": "ready",
+	"name": "Boulder Hurl",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Boulder Hurl",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Deal 7 damage. Target pushed 2 tiles away. Creates rubble (difficult terrain) on vacated tile.",
+		"tags": [
+			"stone"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 7
+				},
+				{
+					"type": "move",
+					"tiles": 2
+				},
+				{
+					"type": "imbue_tile",
+					"element": "stone"
+				}
+			]
+		},
+		"channel": {
+			"name": "Boulder Hurl (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Rubble blocks LOS as well",
+			"tags": [
+				"stone"
+			],
+			"targeting": {
+				"type": "unit",
+				"range": 6,
+				"los": true,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 7
+					},
+					{
+						"type": "imbue_tile",
+						"element": "stone"
+					},
+					{
+						"type": "apply_status",
+						"status": "los_blocked",
+						"duration": 1
+					},
+					{
+						"type": "move",
+						"tiles": 2
+					},
+					{
+						"type": "summon",
+						"unit": "stone_pillar",
+						"amount": 1
+					}
+				]
+			}
 		}
-  	},
-  	"bottom": {
-    	"name": "Permafrost",
-    	"mana": 2,
-    	"speed": "Sorcery",
-    	"rules_text": "Imbue target tile with ice. Freeze any unit on target tile for 2 turn. Slow adjacent enemies for 1 turn.",
-    	"tags": [ "ice" ],
-    	"targeting": { "type": "unit", "range": 6, "los": false, "enemies_only": true },
-    	"effect": {
-      		"type": "sequence",
-      		"steps": [
-        		{"type": "imbue_tile", "element": "ice"},
-        		{"type": "apply_status", "status": "frozen", "duration": 2},
-        		{"type": "apply_status", "status": "slowed", "duration": 1}
-      		]
-    },
-    "channel": {
-      	"name": "Permafrost (Channel)",
-      	"mana": 2,
-      	"speed": "Reaction",
-      	"rules_text": "Channel: Adjacent enemies also frozen for 1 turn",
-      	"tags": [ "ice" ],
-      	"targeting": { "type": "aoe", "radius": 1, "enemies_only": true},
-      	"effect": {
-        	"type": "sequence",
-        	"steps": [
-          		{ "type": "imbue_tile", "element": "ice"},
-          		{ "type": "apply_status", "status": "frozen", "duration": 1 }
-        	]
-      		}
-    	}
-  	}
+	},
+	"bottom": {
+		"name": "Permafrost",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Imbue target tile with ice. Freeze any unit on target tile for 2 turn. Slow adjacent enemies for 1 turn.",
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "imbue_tile",
+					"element": "ice"
+				},
+				{
+					"type": "apply_status",
+					"status": "frozen",
+					"duration": 2
+				},
+				{
+					"type": "apply_status",
+					"status": "slowed",
+					"duration": 1
+				}
+			]
+		},
+		"channel": {
+			"name": "Permafrost (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Adjacent enemies also frozen for 1 turn",
+			"tags": [
+				"ice"
+			],
+			"targeting": {
+				"type": "aoe",
+				"radius": 1,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "imbue_tile",
+						"element": "ice"
+					},
+					{
+						"type": "apply_status",
+						"status": "frozen",
+						"duration": 1
+					}
+				]
+			}
+		}
+	}
 }

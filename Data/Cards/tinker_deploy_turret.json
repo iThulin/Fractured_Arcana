@@ -1,5 +1,6 @@
 {
   "id": "tinker_deploy_turret",
+  "status": "stub",
   "name": "Deploy Turret",
   "school": "Tinker",
   "rarity": "Common",

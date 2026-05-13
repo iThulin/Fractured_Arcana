@@ -1,90 +1,172 @@
 {
-  	"id": "elementalist_magma_surge",
-  	"name": "Magma Surge",
-  	"school": "Elementalist",
-  	"rarity": "Uncommon",
-  	"top": {
-    	"name": "Magma Surge",
-    	"mana": 3,
-    	"speed": "Sorcery",
-    	"rules_text": "Deal 9 damage to target. Imbue target tile and all adjacent tiles with Fire.",
-    	"tags": ["fire"],
-		"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-    	"effect": {
-      		"type": "sequence",
-      			"steps": [
-        			{ "type": "damage", "amount": 9 },
-					{ "type": "imbue_tile", "element": "fire" },
-					{ "type": "retarget",
-                		"targeting": { "type": "adjacent_to_target", "include_tiles": true },
-                		"do": { "type": "imbue_tile", "element": "fire", "bonus_damage": 2 }
-            		}
-    
-      			]
-    },
-    "channel": {
-      	"name": "Magma Surge (Channel)",
-      	"mana": 3,
-      	"speed": "Reaction",
-      	"rules_text": "Channel: Strip 5 armor foam any target hit with this spell",
-      	"tags": ["fire"],
-		"targeting": { "type": "aoe", "radius": 1, "enemies_only": true },
-      	"effect": {
-      		"type": "sequence",
-      			"steps": [
-        			{ "type": "damage", "amount": 9 },
-					{ "type": "remove_armor", "amount": 5 },
-					{ "type": "imbue_tile", "element": "fire" },
-					{ "type": "retarget",
-                		"targeting": { "type": "adjacent_to_target", "include_tiles": true },
-                		"do": { "type": "sequence",
-							"steps": [ 
-								{ "type": "imbue_tile", "element": "fire", "bonus_damage": 2 },
-								{ "type": "remove_armor", "amount": 5 }
+	"id": "elementalist_magma_surge",
+	"status": "ready",
+	"name": "Magma Surge",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Magma Surge",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Deal 9 damage to target. Imbue target tile and all adjacent tiles with Fire.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 9
+				},
+				{
+					"type": "imbue_tile",
+					"element": "fire"
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "adjacent_to_target",
+						"include_tiles": true
+					},
+					"do": {
+						"type": "imbue_tile",
+						"element": "fire",
+						"bonus_damage": 2
+					}
+				}
+			]
+		},
+		"channel": {
+			"name": "Magma Surge (Channel)",
+			"mana": 3,
+			"speed": "Reaction",
+			"rules_text": "Channel: Strip 5 armor foam any target hit with this spell",
+			"tags": [
+				"fire"
+			],
+			"targeting": {
+				"type": "aoe",
+				"radius": 1,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 9
+					},
+					{
+						"type": "remove_armor",
+						"amount": 5
+					},
+					{
+						"type": "imbue_tile",
+						"element": "fire"
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "adjacent_to_target",
+							"include_tiles": true
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "imbue_tile",
+									"element": "fire",
+									"bonus_damage": 2
+								},
+								{
+									"type": "remove_armor",
+									"amount": 5
+								}
 							]
-            			}
+						}
 					}
 				]
-    		}
-    	}
-  	},
-  	"bottom": {
-    	"name": "Living Stone",
-    	"mana": 2,
-    	"speed": "Instant",
-    	"rules_text": "Summon Earth Elemental on target stone tile (16HP 5DMG 1SPD). Allies adjacent gain +4 armor.",
-		"tags": ["stone"],
-		"requires": ["stone_tile"],
-		"targeting": { "type": "aoe", "radius": 1, "enemies_only": true },
-    	"effect": {
-        	"type": "sequence",
-        	"steps": [
-            	{ "type": "summon", "unit": "earth_elemental", "count": 1 },
-            	{
-                	"type": "retarget",
-                	"targeting": { "type": "adjacent_to_target", "include_tiles": false },
-                	"do": { "type": "grant_armor", "amount": 4 }
-            	}
-        	]
-    },
-    "channel": {
-      	"name": "Living Stone (Channel)",
-      	"mana": 2,
-      	"speed": "Reaction",
-      	"rules_text": "Channel: Elemental enters with +3 armor and grants +3 armor to adjacent allies as well",
-		"tags": ["stone"],
-		"requires": ["stone_tile"],
-      	"targeting": { "type": "self" },
-      	"effect": {
-        	"type": "sequence",
-        	"steps": [
-            	{ "type": "summon", "unit": "earth_elemental_armored", "count": 1 },
-            	{
-                	"type": "retarget",
-                	"targeting": { "type": "adjacent_to_target", "include_tiles": false },
-                	"do": { "type": "grant_armor", "amount": 3 }
-            	}
-        	]
+			}
+		}
+	},
+	"bottom": {
+		"name": "Living Stone",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Summon Earth Elemental on target stone tile (16HP 5DMG 1SPD). Allies adjacent gain +4 armor.",
+		"tags": [
+			"stone"
+		],
+		"requires": [
+			"stone_tile"
+		],
+		"targeting": {
+			"type": "aoe",
+			"radius": 1,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "summon",
+					"unit": "earth_elemental",
+					"count": 1
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "adjacent_to_target",
+						"include_tiles": false
+					},
+					"do": {
+						"type": "grant_armor",
+						"amount": 4
+					}
+				}
+			]
+		},
+		"channel": {
+			"name": "Living Stone (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Elemental enters with +3 armor and grants +3 armor to adjacent allies as well",
+			"tags": [
+				"stone"
+			],
+			"requires": [
+				"stone_tile"
+			],
+			"targeting": {
+				"type": "self"
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "summon",
+						"unit": "earth_elemental_armored",
+						"count": 1
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "adjacent_to_target",
+							"include_tiles": false
+						},
+						"do": {
+							"type": "grant_armor",
+							"amount": 3
+						}
+					}
+				]
 			}
 		}
 	}

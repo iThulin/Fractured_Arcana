@@ -1,22 +1,41 @@
 {
-  	"id": "elementalist_firestorm",
-  	"name": "Firestorm",
-  	"school": "Elementalist",
-  	"rarity": "Rare",
-  	"top": {
+	"id": "elementalist_firestorm",
+	"status": "ready",
+	"name": "Firestorm",
+	"school": "Elementalist",
+	"rarity": "Rare",
+	"top": {
 		"name": "Firestorm",
 		"mana": 3,
 		"speed": "Sorcery",
 		"rules_text": "Deal 4 damage to all enemies in aoe 2. Imbue tiles with Fire (3 damage a turn).",
-		"tags": ["fire"],
-		"targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "aoe",
+			"radius": 2,
+			"enemies_only": true
+		},
 		"effect": {
 			"type": "retarget",
-			"targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
-			"do": { "type": "sequence",
+			"targeting": {
+				"type": "aoe",
+				"radius": 2,
+				"enemies_only": true
+			},
+			"do": {
+				"type": "sequence",
 				"steps": [
-					{ "type": "damage", "amount": 4 },
-					{ "type": "imbue_tile", "element": "fire", "bonus_damage": 3 }
+					{
+						"type": "damage",
+						"amount": 4
+					},
+					{
+						"type": "imbue_tile",
+						"element": "fire",
+						"bonus_damage": 3
+					}
 				]
 			}
 		},
@@ -25,35 +44,75 @@
 			"mana": 3,
 			"speed": "Reaction",
 			"rules_text": "Channel: Deal 7 damage instead",
-			"tags": ["fire"],
-			"targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
+			"tags": [
+				"fire"
+			],
+			"targeting": {
+				"type": "aoe",
+				"radius": 2,
+				"enemies_only": true
+			},
 			"effect": {
 				"type": "retarget",
-				"targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
-				"do": { "type": "sequence",
+				"targeting": {
+					"type": "aoe",
+					"radius": 2,
+					"enemies_only": true
+				},
+				"do": {
+					"type": "sequence",
 					"steps": [
-						{ "type": "damage", "amount": 7 },
-						{ "type": "imbue_tile", "element": "fire", "bonus_damage": 3 }
+						{
+							"type": "damage",
+							"amount": 7
+						},
+						{
+							"type": "imbue_tile",
+							"element": "fire",
+							"bonus_damage": 3
+						}
 					]
 				}
 			}
 		}
-  	},
-  	"bottom": {
+	},
+	"bottom": {
 		"name": "Blizzard",
 		"mana": 3,
 		"speed": "Sorcery",
 		"rules_text": "Freeze all enemies for 2 turns. Deal 4 damage. Imbue tiles with Ice.",
-		"tags": ["ice"],
-		"targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "aoe",
+			"radius": 2,
+			"enemies_only": true
+		},
 		"effect": {
 			"type": "retarget",
-			"targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
-			"do": { "type": "sequence",
+			"targeting": {
+				"type": "aoe",
+				"radius": 2,
+				"enemies_only": true
+			},
+			"do": {
+				"type": "sequence",
 				"steps": [
-					{ "type": "apply_status", "status": "frozen", "duration": 2 },
-					{ "type": "damage", "amount": 4 },
-					{ "type": "imbue_tile", "element": "ice", "bonus_damage": 0 }
+					{
+						"type": "apply_status",
+						"status": "frozen",
+						"duration": 2
+					},
+					{
+						"type": "damage",
+						"amount": 4
+					},
+					{
+						"type": "imbue_tile",
+						"element": "ice",
+						"bonus_damage": 0
+					}
 				]
 			}
 		},
@@ -62,16 +121,38 @@
 			"mana": 3,
 			"speed": "Reaction",
 			"rules_text": "Channel: Also create Ice on adjacent tiles",
-			"tags": ["ice"],
-			"targeting": { "type": "aoe", "radius": 3, "enemies_only": true },	
+			"tags": [
+				"ice"
+			],
+			"targeting": {
+				"type": "aoe",
+				"radius": 3,
+				"enemies_only": true
+			},
 			"effect": {
 				"type": "retarget",
-				"targeting": { "type": "aoe", "radius": 2, "enemies_only": true },
-				"do": { "type": "sequence",
+				"targeting": {
+					"type": "aoe",
+					"radius": 2,
+					"enemies_only": true
+				},
+				"do": {
+					"type": "sequence",
 					"steps": [
-						{ "type": "apply_status", "status": "frozen", "duration": 2 },
-						{ "type": "damage", "amount": 4 },
-						{ "type": "imbue_tile", "element": "ice", "bonus_damage": 0 }
+						{
+							"type": "apply_status",
+							"status": "frozen",
+							"duration": 2
+						},
+						{
+							"type": "damage",
+							"amount": 4
+						},
+						{
+							"type": "imbue_tile",
+							"element": "ice",
+							"bonus_damage": 0
+						}
 					]
 				}
 			}

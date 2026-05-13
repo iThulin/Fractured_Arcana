@@ -1,83 +1,163 @@
 {
-    "id": "elementalist_worldshaper",
-    "name": "Worldshaper",
-    "school": "Elementalist",
-    "rarity": "Rare",
-    "top": {
-        "name": "Worldshaper",
-        "mana": 2,
-        "speed": "Sorcery",
-        "rules_text": "Raise all tiles in a 3-tile cone by 1. Imbue with Stone. Create rubble. Crush enemies on raised tiles.",
-        "tags": ["stone"],
-        "targeting": { "type": "cone", "range": 3, "enemies_only": false },
-        "effect": {
-            "type": "retarget",
-            "targeting": { "type": "cone", "range": 3, "enemies_only": false },
-            "do": { "type": "raise_terrain", "height": 1 }
-        },
-        "channel": {
-            "name": "Worldshaper (Channel)",
-            "mana": 2,
-            "speed": "Reaction",
-            "rules_text": "Channel: Raise tiles by 2 instead",
-            "tags": ["stone"],
-            "targeting": { "type": "cone", "range": 3, "enemies_only": false },
-            "effect": {
-                "type": "retarget",
-                "targeting": { "type": "cone", "range": 3, "enemies_only": false },
-                "do": { "type": "raise_terrain", "height": 2 }
-            }
-        }
-    },
-    "bottom": {
-        "name": "Confluence",
-        "mana": 2,
-        "speed": "Sorcery",
-        "rules_text": "If Fire, Ice, and Storm are within 2 tiles: deal 14 damage and draw 2. Otherwise deal 5.",
-        "tags": ["fire", "ice", "storm"],
-        "targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-        "effect": {
-            "type": "conditional",
-            "if": {
-                "type": "has_elements_near_caster",
-                "elements": ["fire", "ice", "storm"],
-                "range": 2
-            },
-            "then": {
-                "type": "sequence",
-                "steps": [
-                    { "type": "damage", "amount": 14 },
-                    { "type": "draw", "count": 2 }
-                ]
-            },
-            "else": { "type": "damage", "amount": 5 }
-        },
-        "channel": {
-            "name": "Confluence (Channel)",
-            "mana": 2,
-            "speed": "Reaction",
-            "rules_text": "Channel: Also imbue target with all 3 elements",
-            "tags": ["fire", "ice", "storm"],
-            "targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
-            "effect": {
-                "type": "conditional",
-                "if": {
-                    "type": "has_elements_near_caster",
-                    "elements": ["fire", "ice", "storm"],
-                    "range": 2
-                },
-                "then": {
-                    "type": "sequence",
-                    "steps": [
-                        { "type": "damage", "amount": 14 },
-                        { "type": "draw", "count": 2 },
-                        { "type": "imbue_tile", "element": "fire" },
-                        { "type": "imbue_tile", "element": "ice" },
-                        { "type": "imbue_tile", "element": "storm" }
-                    ]
-                },
-                "else": { "type": "damage", "amount": 5 }
-            }
-        }
-    }
+	"id": "elementalist_worldshaper",
+	"status": "ready",
+	"name": "Worldshaper",
+	"school": "Elementalist",
+	"rarity": "Rare",
+	"top": {
+		"name": "Worldshaper",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Raise all tiles in a 3-tile cone by 1. Imbue with Stone. Create rubble. Crush enemies on raised tiles.",
+		"tags": [
+			"stone"
+		],
+		"targeting": {
+			"type": "cone",
+			"range": 3,
+			"enemies_only": false
+		},
+		"effect": {
+			"type": "retarget",
+			"targeting": {
+				"type": "cone",
+				"range": 3,
+				"enemies_only": false
+			},
+			"do": {
+				"type": "raise_terrain",
+				"height": 1
+			}
+		},
+		"channel": {
+			"name": "Worldshaper (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Raise tiles by 2 instead",
+			"tags": [
+				"stone"
+			],
+			"targeting": {
+				"type": "cone",
+				"range": 3,
+				"enemies_only": false
+			},
+			"effect": {
+				"type": "retarget",
+				"targeting": {
+					"type": "cone",
+					"range": 3,
+					"enemies_only": false
+				},
+				"do": {
+					"type": "raise_terrain",
+					"height": 2
+				}
+			}
+		}
+	},
+	"bottom": {
+		"name": "Confluence",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "If Fire, Ice, and Storm are within 2 tiles: deal 14 damage and draw 2. Otherwise deal 5.",
+		"tags": [
+			"fire",
+			"ice",
+			"storm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "has_elements_near_caster",
+				"elements": [
+					"fire",
+					"ice",
+					"storm"
+				],
+				"range": 2
+			},
+			"then": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 14
+					},
+					{
+						"type": "draw",
+						"count": 2
+					}
+				]
+			},
+			"else": {
+				"type": "damage",
+				"amount": 5
+			}
+		},
+		"channel": {
+			"name": "Confluence (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Also imbue target with all 3 elements",
+			"tags": [
+				"fire",
+				"ice",
+				"storm"
+			],
+			"targeting": {
+				"type": "unit",
+				"range": 6,
+				"los": true,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "conditional",
+				"if": {
+					"type": "has_elements_near_caster",
+					"elements": [
+						"fire",
+						"ice",
+						"storm"
+					],
+					"range": 2
+				},
+				"then": {
+					"type": "sequence",
+					"steps": [
+						{
+							"type": "damage",
+							"amount": 14
+						},
+						{
+							"type": "draw",
+							"count": 2
+						},
+						{
+							"type": "imbue_tile",
+							"element": "fire"
+						},
+						{
+							"type": "imbue_tile",
+							"element": "ice"
+						},
+						{
+							"type": "imbue_tile",
+							"element": "storm"
+						}
+					]
+				},
+				"else": {
+					"type": "damage",
+					"amount": 5
+				}
+			}
+		}
+	}
 }
