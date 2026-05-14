@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://p86b1f6aanue"]
+[gd_scene format=3 uid=""]
 
 [ext_resource type="Script" uid="uid://bpk5ndfmasfh0" path="res://Scripts/UI/CombatUI.cs" id="1_3aeni"]
 

@@ -202,69 +202,69 @@ public sealed class PushDamageEffect : EffectBase
 // ============================================================
 public sealed class RetargetEffect : EffectBase
 {
-	public ITargetSelector Targeter;
-	public IEffect Child;
+    public ITargetSelector Targeter;
+    public IEffect Child;
 
-	public RetargetEffect(ITargetSelector targeter, IEffect child)
-	{
-		Targeter = targeter;
-		Child = child;
-	}
+    public RetargetEffect(ITargetSelector targeter, IEffect child)
+    {
+        Targeter = targeter;
+        Child = child;
+    }
 
-	public override IEnumerable<IEffect> Children
-	{
-		get { yield return Child; }
-	}
+    public override IEnumerable<IEffect> Children
+    {
+        get { yield return Child; }
+    }
 
-	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-	{
-		var ctx = new PredicateContext
-		{
-			Game = s,
-			Caster = caster,
-			Targets = targets,
-			Snapshot = snap
-		};
-		ResolveWithResult(ctx);
-	}
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        var ctx = new PredicateContext
+        {
+            Game = s,
+            Caster = caster,
+            Targets = targets,
+            Snapshot = snap
+        };
+        ResolveWithResult(ctx);
+    }
 
-	public override EffectResult ResolveWithResult(PredicateContext ctx)
-	{
-		var originalTargets = ctx.Targets;
+    public override EffectResult ResolveWithResult(PredicateContext ctx)
+    {
+        var originalTargets = ctx.Targets;
 
-		// Store previous targets so chain targeters can use them
-		// as the origin point ("nearest to whoever was just hit")
-		ctx.Game.RetargetOrigin = originalTargets;
+        // Store previous targets so chain targeters can use them
+        // as the origin point ("nearest to whoever was just hit")
+        ctx.Game.RetargetOrigin = originalTargets;
 
-		TargetSet newTargets;
-		if (Targeter != null && Targeter.Select(ctx.Game, ctx.Caster, out newTargets))
-		{
-			ctx.Game?.Log($"[Retarget] Switched to {newTargets.Items.Count} new target(s).");
-			ctx.Targets = newTargets;
-		}
-		else
-		{
-			ctx.Game?.Log("[Retarget] No valid targets found. Skipping.");
-			ctx.Game.RetargetOrigin = null;
-			return new EffectResult();
-		}
+        TargetSet newTargets;
+        if (Targeter != null && Targeter.Select(ctx.Game, ctx.Caster, out newTargets))
+        {
+            ctx.Game?.Log($"[Retarget] Switched to {newTargets.Items.Count} new target(s).");
+            ctx.Targets = newTargets;
+        }
+        else
+        {
+            ctx.Game?.Log("[Retarget] No valid targets found. Skipping.");
+            ctx.Game.RetargetOrigin = null;
+            return new EffectResult();
+        }
 
-		// Execute child effect with new targets
-		EffectResult result;
-		if (Child is EffectBase eb)
-			result = eb.ResolveWithResult(ctx);
-		else
-		{
-			Child.Resolve(ctx.Game, ctx.Caster, ctx.Targets, ctx.Snapshot);
-			result = new EffectResult();
-		}
+        // Execute child effect with new targets
+        EffectResult result;
+        if (Child is EffectBase eb)
+            result = eb.ResolveWithResult(ctx);
+        else
+        {
+            Child.Resolve(ctx.Game, ctx.Caster, ctx.Targets, ctx.Snapshot);
+            result = new EffectResult();
+        }
 
-		// Restore
-		ctx.Targets = originalTargets;
-		ctx.Game.RetargetOrigin = null;
+        // Restore
+        ctx.Targets = originalTargets;
+        ctx.Game.RetargetOrigin = null;
 
-		return result;
-	}
+        return result;
+    }
 }
 
 public sealed class ImbuePathEffect : EffectBase
@@ -287,12 +287,12 @@ public sealed class ImbuePathEffect : EffectBase
 
         TileElementType elementType = Element.ToLowerInvariant() switch
         {
-            "fire"  => TileElementType.Fire,
-            "ice"   => TileElementType.Frost,
+            "fire" => TileElementType.Fire,
+            "ice" => TileElementType.Frost,
             "frost" => TileElementType.Frost,
             "storm" => TileElementType.Lightning,
             "stone" => TileElementType.Earth,
-            _       => TileElementType.None
+            _ => TileElementType.None
         };
 
         int tilesImbued = 0;
@@ -349,9 +349,9 @@ public sealed class PrimordialSurgeEffect : EffectBase
 {
     public int Radius;
     public int Damage;
-    private static readonly TileElementType[] Elements = 
+    private static readonly TileElementType[] Elements =
     {
-        TileElementType.Fire, TileElementType.Frost, 
+        TileElementType.Fire, TileElementType.Frost,
         TileElementType.Lightning, TileElementType.Earth
     };
     private Random _rng = new();
@@ -470,7 +470,13 @@ public sealed class CataclysmEffect : EffectBase
         int cardsToDraw = destroyed / TilesPerDraw;
         if (cardsToDraw > 0)
         {
-            s.Draw(caster, cardsToDraw);
+            var drawUnit = FindCasterUnit(s, caster);
+            if (drawUnit?.DeckData != null)
+            {
+                drawUnit.DeckData.Draw(cardsToDraw);
+                s.OnDrawCards?.Invoke(drawUnit);
+                s.Log($"[Cataclysm] Draw {cardsToDraw} card(s).");
+            }
             s.Log($"[Cataclysm] Draw {cardsToDraw} card(s).");
         }
     }
@@ -618,8 +624,8 @@ public sealed class ImbueAreaEffect : EffectBase
 
         TileElementType elementType = Element.ToLowerInvariant() switch
         {
-            "fire"  => TileElementType.Fire,
-            "ice"   => TileElementType.Frost,
+            "fire" => TileElementType.Fire,
+            "ice" => TileElementType.Frost,
             "storm" => TileElementType.Lightning,
             "stone" => TileElementType.Earth,
             _ => TileElementType.None
@@ -685,8 +691,8 @@ public sealed class TectonicShatterEffect : EffectBase
 
             bool isStone = tile.TerrainType == TileTerrainType.Stone ||
                            tile.ElementType == TileElementType.Earth ||
-                            (tile.IsBlocked && 
-                            (tile.ObstacleKind == "rock" || 
+                            (tile.IsBlocked &&
+                            (tile.ObstacleKind == "rock" ||
                             tile.ObstacleKind == "stone" ||
                             tile.ObstacleKind == "boulder" ||
                             tile.ObstacleKind == "stone_pillar"));
@@ -797,8 +803,8 @@ public sealed class TerraformEffect : EffectBase
 
         TileTerrainType newTerrain = element switch
         {
-            ElementTag.Fire  => TileTerrainType.Lava,
-            ElementTag.Ice   => TileTerrainType.Ice,
+            ElementTag.Fire => TileTerrainType.Lava,
+            ElementTag.Ice => TileTerrainType.Ice,
             ElementTag.Storm => TileTerrainType.Stone,
             ElementTag.Earth => TileTerrainType.Stone,
             _ => TileTerrainType.Stone
@@ -806,8 +812,8 @@ public sealed class TerraformEffect : EffectBase
 
         TileElementType newElement = element switch
         {
-            ElementTag.Fire  => TileElementType.Fire,
-            ElementTag.Ice   => TileElementType.Frost,
+            ElementTag.Fire => TileElementType.Fire,
+            ElementTag.Ice => TileElementType.Frost,
             ElementTag.Storm => TileElementType.Lightning,
             ElementTag.Earth => TileElementType.Earth,
             _ => TileElementType.Earth
@@ -911,8 +917,8 @@ public sealed class ConsumeElementTileEffect : EffectBase
 
         TileElementType needed = Element.ToLowerInvariant() switch
         {
-            "fire"  => TileElementType.Fire,
-            "ice"   => TileElementType.Frost,
+            "fire" => TileElementType.Fire,
+            "ice" => TileElementType.Frost,
             "storm" => TileElementType.Lightning,
             "stone" => TileElementType.Earth,
             _ => TileElementType.None

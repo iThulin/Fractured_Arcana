@@ -75,6 +75,12 @@ public partial class CardUi : Control
     private static readonly Color BottomActiveColor = new Color(1.1f, 1.0f, 1.4f, 1f);
     private static readonly Color DimColor = new Color(0.55f, 0.55f, 0.55f, 1f);
 
+    // Discard pressure tracking
+    private bool _isDiscardFlagged = false;
+    private Tween _amberPulseTween;
+    private static readonly Color AmberColor = new Color(1.0f, 0.65f, 0.1f, 1f);
+    private static readonly Color AmberDimColor = new Color(0.7f, 0.45f, 0.07f, 1f);
+
     //Rarity color (currently unused, but keeping here for easy re-enable if we want to add it back)
     private static readonly Color CommonColor = new Color(0.8f, 0.8f, 0.8f);
     private static readonly Color UncommonColor = new Color(0.4f, 0.8f, 0.4f);
@@ -659,10 +665,38 @@ public partial class CardUi : Control
     public void RefreshAffordability(int currentMana)
     {
         _lastKnownMana = currentMana;
+
+        // Don't override panel colors if discard flagged — amber pulse takes visual priority
+        if (_isDiscardFlagged) return;
+
         _topPanel.Modulate = (TopHalf?.ManaCost ?? 0) > currentMana
             ? new Color(0.7f, 0.5f, 0.5f, 1f) : Colors.White;
         _bottomPanel.Modulate = (BottomHalf?.ManaCost ?? 0) > currentMana
             ? new Color(0.7f, 0.5f, 0.5f, 1f) : Colors.White;
+    }
+
+    public void SetDiscardFlagged(bool flagged)
+    {
+        if (_isDiscardFlagged == flagged) return;
+        _isDiscardFlagged = flagged;
+
+        _amberPulseTween?.Kill();
+
+        if (flagged)
+        {
+            // Start pulsing amber on the whole card visual
+            _amberPulseTween = CreateTween().SetLoops();
+            _amberPulseTween.SetEase(Tween.EaseType.InOut)
+                            .SetTrans(Tween.TransitionType.Sine);
+            _amberPulseTween.TweenProperty(_visualNode, "modulate", AmberColor, 0.5f);
+            _amberPulseTween.TweenProperty(_visualNode, "modulate", AmberDimColor, 0.5f);
+        }
+        else
+        {
+            // Restore normal modulate — affordability will handle panel colors
+            _visualNode.Modulate = Colors.White;
+            RefreshAffordability(_lastKnownMana);
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════
@@ -758,7 +792,7 @@ public partial class CardUi : Control
         // Notify GameRunner to show range highlight for the dragged half
         var half = _dragTopCard ? TopHalf : BottomHalf;
         EmitSignal(SignalName.CardHalfHovered, this, _dragTopCard, true);
-        }
+    }
 
     public override Variant _GetDragData(Vector2 atPosition)
     {

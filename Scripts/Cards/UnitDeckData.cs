@@ -64,9 +64,6 @@ public class UnitDeckData
 			if (DrawPile.Count == 0 && DiscardPile.Count == 0)
 				break;
 
-			if (Hand.Count >= MaxHandSize)
-				break;
-
 			if (DrawPile.Count == 0)
 				Reshuffle();
 

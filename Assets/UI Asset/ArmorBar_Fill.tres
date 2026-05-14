@@ -1,0 +1,9 @@
+[gd_resource type="QuadMesh" format=3 uid="uid://b2goaciq5wub"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_armor"]
+shading_mode = 0
+albedo_color = Color(0.6, 0.6, 0.6, 1)
+
+[resource]
+material = SubResource("StandardMaterial3D_armor")
+size = Vector2(1.6, 0.18)

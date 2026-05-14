@@ -84,7 +84,7 @@ public partial class Unit : Node3D
         Stats.Mana = Mathf.Clamp(StartMana, 0, StartMaxMana);
 
         _healthBar = GetNodeOrNull<HealthBarRoot>("HealthBarRoot");
-        _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth);
+        _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
 
         //InitializeAttunement();
@@ -93,7 +93,10 @@ public partial class Unit : Node3D
         SetSelected(false);
 
         CreateHoverRing();
-        CreateNameLabel();
+
+        _nameLabel = GetNodeOrNull<Label3D>("NameLabel");
+        if (_nameLabel != null)
+            _nameLabel.Text = DisplayName.Length > 0 ? DisplayName : Name;
     }
 
     public void StartTurn()
@@ -179,8 +182,8 @@ public partial class Unit : Node3D
         if (remaining > 0)
             Stats.Health = Math.Max(0, Stats.Health - remaining);
 
-        _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth);
-        GD.Print($"{Name} HP now {Stats.Health}/{Stats.MaxHealth}");
+        RefreshHealthBar();
+        GD.Print($"{Name} HP:{Stats.Health}/{Stats.MaxHealth} Shield:{Stats.Shield} Armor:{Stats.Armor}");
 
         if (!Stats.IsAlive && !IsDeathQueued)
         {
@@ -229,9 +232,11 @@ public partial class Unit : Node3D
 
     public void RefreshHealthBar()
     {
-        _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth);
+        _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
-        // Future: also update armor/shield display when those UI elements exist
+        _healthBar?.SetArmor(Stats.Armor, Stats.MaxHealth);
+        _healthBar?.SetShield(Stats.Shield, Stats.MaxHealth);
+        _healthBar?.SetSpeed(Stats.MovePoints);
     }
 
     // Status handling
@@ -378,21 +383,6 @@ public partial class Unit : Node3D
         _isHovered = hovered;
         if (_hoverRing != null)
             _hoverRing.Visible = hovered && !_isSelected;
-    }
-
-    private void CreateNameLabel()
-    {
-        _nameLabel = new Label3D
-        {
-            Text = DisplayName.Length > 0 ? DisplayName : Name,
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 18,
-            Modulate = new Color(1f, 0.85f, 0.85f, 1f),
-            Position = new Vector3(0f, 2.4f, 0f),
-            OutlineSize = 6,
-            OutlineModulate = Colors.Black
-        };
-        AddChild(_nameLabel);
     }
 
     public void RefreshNameLabel()

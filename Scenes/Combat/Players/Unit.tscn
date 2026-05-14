@@ -7,6 +7,8 @@
 [ext_resource type="QuadMesh" uid="uid://yduorv4fompv" path="res://Assets/UI Asset/HealthBar_Fill.tres" id="6_20lhf"]
 [ext_resource type="QuadMesh" uid="uid://7h2ukydtg00s" path="res://Assets/UI Asset/ManaBar_Back.tres" id="7_uqujc"]
 [ext_resource type="QuadMesh" uid="uid://cfl3ic5yketdw" path="res://Assets/UI Asset/ManaBar_Fill.tres" id="8_e33bx"]
+[ext_resource type="QuadMesh" uid="uid://b2goaciq5wub" path="res://Assets/UI Asset/ArmorBar_Fill.tres" id="9_armor"]
+[ext_resource type="QuadMesh" uid="uid://qkca1sopgex6" path="res://Assets/UI Asset/ShieldBar_Fill.tres" id="10_shield"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_20lhf"]
 height = 1.055
@@ -24,6 +26,14 @@ mesh = ExtResource("2_20lhf")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=1842148130]
 transform = Transform3D(1.35, 0, 0, 0, 1.35, 0, 0, 0, 1.35, 0, 0.6653817, 0)
 shape = SubResource("CapsuleShape3D_20lhf")
+
+[node name="NameLabel" type="Label3D" parent="." unique_id=111111010]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5924194, 0)
+billboard = 1
+modulate = Color(1, 0.85, 0.85, 1)
+text = "Unit"
+font_size = 32
+outline_size = 6
 
 [node name="HealthBarRoot" type="Node3D" parent="." unique_id=1349401647]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
@@ -45,6 +55,20 @@ cast_shadow = 0
 gi_mode = 0
 mesh = ExtResource("6_20lhf")
 
+[node name="ArmorFill" type="MeshInstance3D" parent="HealthBarRoot" unique_id=1691829200]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3800001, 0.002)
+visible = false
+cast_shadow = 0
+gi_mode = 0
+mesh = ExtResource("9_armor")
+
+[node name="ShieldFill" type="MeshInstance3D" parent="HealthBarRoot" unique_id=1691829201]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3800001, 0.003)
+visible = false
+cast_shadow = 0
+gi_mode = 0
+mesh = ExtResource("10_shield")
+
 [node name="HealthText" type="Label3D" parent="HealthBarRoot" unique_id=316892024]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0.01)
 text = "If you see this there is a bug."
@@ -54,7 +78,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 cast_shadow = 0
 gi_mode = 0
 mesh = ExtResource("7_uqujc")
-skeleton = NodePath("")
 
 [node name="ManaFill" type="MeshInstance3D" parent="HealthBarRoot" unique_id=309022806]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0.001)
@@ -66,3 +89,9 @@ mesh = ExtResource("8_e33bx")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22, 0.002)
 offset = Vector2(0, 0.18)
 text = "If you see this there is a bug."
+
+[node name="SpeedText" type="Label3D" parent="HealthBarRoot" unique_id=111111003]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.01)
+billboard = 1
+text = "Speed:"
+font_size = 24

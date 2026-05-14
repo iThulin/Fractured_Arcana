@@ -235,6 +235,12 @@ public partial class CombatManager : Node3D
 
         if (playerUnits.Count > 0 && playerUnits[0].DeckData != null)
             deckManager.SetActiveDeck(playerUnits[0].DeckData);
+
+        State.OnDrawCards = (unit) =>
+        {
+            if (deckManager != null && deckManager.GetActiveDeck() == unit.DeckData)
+                deckManager.DrawCards(0); // count 0 = just refresh UI, don't draw more cards
+        };
     }
 
     private List<Card> BuildCompanionCardList()
@@ -342,7 +348,9 @@ public partial class CombatManager : Node3D
 
     private void RefreshDeckCounts()
     {
-        combatUI?.RefreshDeckCounts(State.LibraryA, State.Graveyard);
+        var deck = deckManager?.GetActiveDeck();
+        if (deck == null) return;
+        combatUI?.RefreshDeckCounts(deck.DrawPile, deck.DiscardPile);
     }
 
     private void OnUnitBarButtonPressed(int index)
@@ -656,6 +664,15 @@ public partial class CombatManager : Node3D
 
     private void EndPlayerTurn()
     {
+        foreach (var unit in playerUnits)
+            DiscardOverflowCards(unit);
+
+        foreach (var unit in playerUnits)
+        {
+            unit.Stats.Shield = 0;
+            unit.RefreshHealthBar();
+        }
+
         if (currentPhase != CombatPhase.PlayerTurn) return;
         selectedUnit = null;
         inspectedEnemyUnit = null;
@@ -669,6 +686,26 @@ public partial class CombatManager : Node3D
     {
         if (currentPhase != CombatPhase.PlayerTurn) return;
         EndPlayerTurn();
+    }
+
+    private void DiscardOverflowCards(Unit unit)
+    {
+        if (unit?.DeckData == null) return;
+
+        int overflow = unit.DeckData.Hand.Count - unit.DeckData.MaxHandSize;
+        if (overflow <= 0) return;
+
+        for (int i = 0; i < overflow; i++)
+        {
+            // Always discard index 0 — the oldest card
+            var dropped = unit.DeckData.Hand[0];
+            unit.DeckData.Hand.RemoveAt(0);
+            unit.DeckData.DiscardPile.Add(dropped);
+            GD.Print($"[Hand] {dropped.TopHalf?.Name ?? dropped.CardName} discarded — hand over limit.");
+        }
+
+        // Refresh UI and clear all discard flags
+        deckManager?.DrawCards(0);
     }
 
     private async void StartEnemyTurn()
@@ -1683,11 +1720,13 @@ public partial class CombatManager : Node3D
 
     void DumpHand()
     {
+        var unit = playerUnits.Count > 0 ? playerUnits[0] : null;
+        if (unit?.DeckData == null) { GD.Print("No active deck."); return; }
         GD.Print("Hand:");
-        for (int i = 0; i < State.HandA.Count; i++)
+        for (int i = 0; i < unit.DeckData.Hand.Count; i++)
         {
-            var c = State.HandA[i];
-            GD.Print($"[{i}] {c.CardName}  (Top:{c.TopHalf?.Name ?? "-"} | Bottom:{c.BottomHalf?.Name ?? "-"})");
+            var c = unit.DeckData.Hand[i];
+            GD.Print($"[{i}] {c.CardName} (Top:{c.TopHalf?.Name ?? "-"} | Bottom:{c.BottomHalf?.Name ?? "-"})");
         }
     }
 

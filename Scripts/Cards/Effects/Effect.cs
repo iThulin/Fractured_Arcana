@@ -360,7 +360,8 @@ public sealed class DamageByHandSizeEffect : EffectBase
 	{
 		if (targets == null) return;
 
-		var hand = caster == s.PlayerA ? s.HandA : s.HandB;
+		var casterUnit = FindCasterUnit(s, caster);
+		var hand = casterUnit?.DeckData?.Hand ?? new System.Collections.Generic.List<Card>();
 		int damage = hand.Count * Multiplier;
 
 		if (damage <= 0)
@@ -672,10 +673,27 @@ public sealed class DrawCardsEffect : EffectBase
 {
 	public int Count;
 	public DrawCardsEffect(int n) { Count = n; }
+
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		s.Draw(caster, Count);
-		s.Log($"[Draw]: {caster.Name} Draws {Count} cards.");
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit == null)
+		{
+			s.Log($"[Draw] No caster unit found.");
+			return;
+		}
+
+		var deckData = casterUnit.DeckData;
+		if (deckData == null)
+		{
+			s.Log($"[Draw] {casterUnit.Name} has no DeckData.");
+			return;
+		}
+
+		var drawn = deckData.Draw(Count);
+		s.Log($"[Draw] {casterUnit.Name} draws {drawn.Count} card(s). Hand now: {deckData.Hand.Count}");
+
+		s.OnDrawCards?.Invoke(casterUnit);
 	}
 }
 

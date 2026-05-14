@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://cmy15kdfht3q1" path="res://Scripts/Cards/DeckManager.cs" id="2_tfvp6"]
 [ext_resource type="Script" uid="uid://c07b4kiher343" path="res://Scripts/UI/DeckUiManager.cs" id="3_pqsji"]
 [ext_resource type="PackedScene" uid="uid://iuge2orfh1hw" path="res://Scenes/Cards/CardUI.tscn" id="4_f341a"]
-[ext_resource type="PackedScene" uid="uid://csdmm1n6b4hoe" path="res://Scenes/Cards/DropSlot.tscn" id="5_fcnvh"]
+[ext_resource type="PackedScene" uid="" path="res://Scenes/Cards/DropSlot.tscn" id="5_fcnvh"]
 [ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/Combat/HexGridManager.cs" id="6_duw5d"]
 [ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/Combat/HexTile.tscn" id="7_vjrxi"]
 [ext_resource type="PackedScene" uid="uid://dpnt6dp1jietn" path="res://Scenes/Combat/Summons/HexTile_Stone_Blocker.tscn" id="8_qd0yx"]
@@ -15,7 +15,7 @@
 [ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Combat/Players/Unit.tscn" id="13_golrv"]
 [ext_resource type="Environment" uid="uid://bbtn025ticmfd" path="res://Assets/Combat_Environment.tres" id="13_tfvp6"]
 [ext_resource type="PackedScene" uid="uid://chfd280du8r83" path="res://Scenes/Combat/Monsters/TargetDummy.tscn" id="14_jroeh"]
-[ext_resource type="PackedScene" uid="uid://p86b1f6aanue" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
+[ext_resource type="PackedScene" uid="" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h4djk"]
 albedo_color = Color(0.357868, 0.30020714, 0.22991636, 1)
