@@ -1,0 +1,35 @@
+{
+	"id": "generic_ward",
+	"status": "wip",
+	"name": "Ward",
+	"school": "Generic",
+	"rarity": "Common",
+	"top": {
+		"name": "Ward",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 3 shield.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "shield",
+			"amount": 3
+		}
+	},
+	"bottom": {
+		"name": "Fortify",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 2 armor.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "armor",
+			"amount": 2
+		}
+	}
+}

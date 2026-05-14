@@ -18,7 +18,11 @@ public static class CardLoaderV2
     // ── Dev mode ────────────────────────────────────────────────────
     // Set to true locally while testing unfinished cards.
     // Should be false in any build you hand to a playtester.
-    public static bool DevMode = false;
+#if DEBUG
+    public static bool DevMode = true;
+#else
+            public static bool DevMode = false;
+#endif
 
     public static void LoadCardsFromJson(string directoryPath)
     {

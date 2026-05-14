@@ -1,0 +1,35 @@
+{
+	"id": "generic_mana_tap",
+	"status": "wip",
+	"name": "Mana Tap",
+	"school": "Generic",
+	"rarity": "Common",
+	"top": {
+		"name": "Mana Tap",
+		"mana": 0,
+		"speed": "Sorcery",
+		"rules_text": "Gain 2 mana.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "mana_gain",
+			"amount": 2
+		}
+	},
+	"bottom": {
+		"name": "Study",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Draw 1 card.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "draw",
+			"count": 1
+		}
+	}
+}

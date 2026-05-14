@@ -96,6 +96,29 @@ public sealed class TargetOnTile : IPredicate
     }
 }
 
+// "Is the primary target adjacent to the caster?"
+public sealed class TargetAdjacentToCaster : IPredicate
+{
+    public bool Evaluate(PredicateContext ctx)
+    {
+        if (ctx.Game?.Grid == null || ctx.Targets == null || ctx.Targets.Items.Count == 0)
+            return false;
+
+        var casterUnit = ctx.Game.ActiveCasterUnit;
+        if (casterUnit?.CurrentTile == null) return false;
+
+        var firstTarget = ctx.Targets.Items[0];
+        TileData targetTile = null;
+
+        if (firstTarget is Unit u) targetTile = u.CurrentTile;
+        else if (firstTarget is TileData td) targetTile = td;
+
+        if (targetTile == null) return false;
+
+        return ctx.Game.Grid.Distance(casterUnit.CurrentTile.Axial, targetTile.Axial) <= 1;
+    }
+}
+
 // "How many tiles of this type exist on the board, compared to N?"
 // Used by Marrow Shield ("Gain armor equal to corpses on the board").
 public sealed class CountOfTileAtLeast : IPredicate
@@ -213,8 +236,8 @@ public sealed class HasElementsNearCaster : IPredicate
         {
             TileElementType needed = req.ToLowerInvariant() switch
             {
-                "fire"  => TileElementType.Fire,
-                "ice"   => TileElementType.Frost,
+                "fire" => TileElementType.Fire,
+                "ice" => TileElementType.Frost,
                 "frost" => TileElementType.Frost,
                 "storm" => TileElementType.Lightning,
                 "stone" => TileElementType.Earth,

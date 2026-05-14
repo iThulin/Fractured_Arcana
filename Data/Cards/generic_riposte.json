@@ -1,78 +1,61 @@
 {
-  "id": "generic_riposte",
-  "status": "stub",
-  "name": "Riposte",
-  "school": "Generic",
-  "rarity": "Rare",
-  "top": {
-    "name": "Riposte",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Reaction: When you take damage this turn deal 5 damage back to the attacker. If you have armor you deal 5 instead.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": false,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "damage",
-      "amount": 5
-    },
-    "channel": {
-      "name": "Riposte (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Riposte persists for 2 hits",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 9
-      }
-    }
-  },
-  "bottom": {
-    "name": "Mana Burn",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 4 damage to target. Drain 1 mana from them. If they have 0 mana deal 7 damage instead.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 4
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Mana Burn (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Drain 2 mana",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "generic_riposte",
+	"status": "wip",
+	"name": "Riposte",
+	"school": "Generic",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Riposte",
+		"mana": 2,
+		"speed": "Reaction",
+		"rules_text": "Gain 3 shield. If hit this turn deal 4 damage to attacker.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "shield",
+					"amount": 3
+				},
+				{
+					"type": "empty"
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Counter",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 3 damage. Gain 2 armor.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 3,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 3
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "self"
+					},
+					"do": {
+						"type": "armor",
+						"amount": 2
+					}
+				}
+			]
+		}
+	}
 }

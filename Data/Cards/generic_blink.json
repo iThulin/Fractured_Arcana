@@ -1,0 +1,44 @@
+{
+	"id": "generic_blink",
+	"status": "wip",
+	"name": "Blink",
+	"school": "Generic",
+	"rarity": "Common",
+	"top": {
+		"name": "Blink",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Teleport to any empty tile within 3.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "teleport"
+		}
+	},
+	"bottom": {
+		"name": "Fade",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Teleport to any empty tile within 2. Gain 2 shield.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "teleport"
+				},
+				{
+					"type": "shield",
+					"amount": 2
+				}
+			]
+		}
+	}
+}

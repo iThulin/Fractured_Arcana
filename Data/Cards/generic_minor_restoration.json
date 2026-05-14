@@ -1,0 +1,40 @@
+{
+	"id": "generic_minor_restoration",
+	"status": "wip",
+	"name": "Minor Restoration",
+	"school": "Generic",
+	"rarity": "Common",
+	"top": {
+		"name": "Minor Restoration",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Heal target self or ally for 4 HP.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 3,
+			"los": true,
+			"enemies_only": false
+		},
+		"effect": {
+			"type": "heal",
+			"amount": 4
+		}
+	},
+	"bottom": {
+		"name": "Cleanse",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Remove all negative status effects from self or target ally.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 3,
+			"los": true,
+			"enemies_only": false
+		},
+		"effect": {
+			"type": "remove_status"
+		}
+	}
+}

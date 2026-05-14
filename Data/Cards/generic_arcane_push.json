@@ -1,0 +1,43 @@
+{
+	"id": "generic_force_push",
+	"status": "wip",
+	"name": "Force Push",
+	"school": "Generic",
+	"rarity": "Common",
+	"top": {
+		"name": "Force Push",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Push target enemy 2 tiles.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 4,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "push",
+			"tiles": 2,
+			"collision_damage": 2
+		}
+	},
+	"bottom": {
+		"name": "Repulse",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Push all adjacent enemies 1 tile.",
+		"tags": [],
+		"targeting": {
+			"type": "aoe",
+			"range": 1,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "push",
+			"tiles": 1,
+			"collision_damage": 1
+		}
+	}
+}

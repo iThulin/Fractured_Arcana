@@ -1,54 +1,36 @@
 {
-  "id": "generic_counterspell",
-  "status": "stub",
-  "name": "Counterspell",
-  "school": "Generic",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Counterspell",
-    "mana": 2,
-    "speed": "Reaction",
-    "rules_text": "Reaction: Negate a spell on the stack targeting you or an adjacent ally. (Cannot negate Legendary spells.)",
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Counterspell (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also draw 1 card",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "draw",
-        "count": 1
-      }
-    }
-  },
-  "bottom": {
-    "name": "Sprint",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Move 3 tiles. Cannot cast again this turn.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "move",
-      "tiles": 3
-    },
-    "channel": {
-      "name": "Sprint (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: May cast 1 more spell",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "generic_counterspell",
+	"status": "wip",
+	"name": "Counterspell",
+	"school": "Generic",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Counterspell",
+		"mana": 2,
+		"speed": "Reaction",
+		"rules_text": "Cancel the next card played by target enemy this turn.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "empty"
+		}
+	},
+	"bottom": {
+		"name": "Spell Drain",
+		"mana": 1,
+		"speed": "Reaction",
+		"rules_text": "If a card was cancelled this turn, gain 2 mana.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "empty"
+		}
+	}
 }

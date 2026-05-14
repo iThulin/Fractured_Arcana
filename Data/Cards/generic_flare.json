@@ -1,70 +1,49 @@
 {
-  "id": "generic_flare",
-  "status": "stub",
-  "name": "Flare",
-  "school": "Generic",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Flare",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 2 damage to all enemies within 2 tiles. Reveals hidden/invisible units in the area.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 2
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Flare (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also removes 1 buff from each enemy hit",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Reposition",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Swap positions with any ally within range 3.",
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Reposition (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Both units gain 2 shield after swapping",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": false
-      },
-      "effect": {
-        "type": "shield",
-        "amount": 2
-      }
-    }
-  }
+	"id": "generic_flare",
+	"status": "wip",
+	"name": "Flare",
+	"school": "Generic",
+	"rarity": "Common",
+	"top": {
+		"name": "Flare",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 2 damage. Apply Blinded for 1 turn.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 5,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 2
+				},
+				{
+					"type": "apply_status",
+					"status": "blinded",
+					"duration": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Illuminate",
+		"mana": 0,
+		"speed": "Instant",
+		"rules_text": "Reveal all enemies within 4 tiles.",
+		"tags": [],
+		"targeting": {
+			"type": "aoe",
+			"radius": 4,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "empty"
+		}
+	}
 }

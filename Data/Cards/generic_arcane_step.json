@@ -1,0 +1,44 @@
+{
+	"id": "generic_arcane_step",
+	"status": "wip",
+	"name": "Arcane Step",
+	"school": "Generic",
+	"rarity": "Common",
+	"top": {
+		"name": "Arcane Step",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Move 2 tiles. Gain 1 shield.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 2
+				},
+				{
+					"type": "shield",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Sidestep",
+		"mana": 0,
+		"speed": "Instant",
+		"rules_text": "Move 1 tile.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "move",
+			"tiles": 1
+		}
+	}
+}

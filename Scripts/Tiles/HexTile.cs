@@ -16,6 +16,7 @@ public partial class HexTile : Node3D
     private MeshInstance3D meshInstance;
     private StandardMaterial3D material;
     private Label3D coordLabel;
+    private Label3D _glyphLabel;
     private Color baseColor;
 
     private ImbuementOverlay imbuementOverlay;
@@ -30,7 +31,7 @@ public partial class HexTile : Node3D
     private bool moveHighlighted = false;
     private Color moveHighlightColor = new Color(0.2f, 0.6f, 1.0f, 1f);
     private bool targetHighlighted = false;
-    private Color targetHighlightColor = new Color(1.0f, 0.4f, 0.4f, 1f); 
+    private Color targetHighlightColor = new Color(1.0f, 0.4f, 0.4f, 1f);
     private bool rangeHighlighted = false;
     private bool rangeBorderHighlighted = false;
     private Color rangeColor = new Color(1.0f, 0.7f, 0.3f, 1f);
@@ -156,6 +157,31 @@ public partial class HexTile : Node3D
         imbuementOverlay?.SetElement(element);
     }
 
+    public void ShowGlyph()
+    {
+        if (_glyphLabel == null)
+        {
+            _glyphLabel = new Label3D();
+            _glyphLabel.Text = "✦";
+            _glyphLabel.FontSize = 64;
+            _glyphLabel.Modulate = new Color(0.6f, 0.2f, 1.0f); // purple
+            _glyphLabel.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
+            _glyphLabel.Position = new Vector3(0, 0.6f, 0);
+            _glyphLabel.Name = "GlyphIndicator";
+            CallDeferred("add_child", _glyphLabel);
+        }
+        else
+        {
+            _glyphLabel.Visible = true;
+        }
+    }
+
+    public void ClearGlyph()
+    {
+        if (_glyphLabel != null)
+            _glyphLabel.Visible = false;
+    }
+
     public TileElementType CurrentElement =>
         imbuementOverlay?.CurrentElement ?? TileElementType.None;
 
@@ -169,7 +195,7 @@ public partial class HexTile : Node3D
             coordLabel.Text = "";
             return;
         }
-        
+
         string terrain = tileData.TerrainType.ToString();
         string element = tileData.ElementType.ToString();
 

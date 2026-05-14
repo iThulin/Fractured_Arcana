@@ -1,0 +1,50 @@
+{
+	"id": "generic_archmages_gambit",
+	"status": "wip",
+	"name": "Archmage's Gambit",
+	"school": "Generic",
+	"rarity": "Rare",
+	"top": {
+		"name": "Archmage's Gambit",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Draw 3 cards. Gain 3 mana. Take 5 damage.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "draw",
+					"count": 3
+				},
+				{
+					"type": "mana_gain",
+					"amount": 3
+				},
+				{
+					"type": "self_damage",
+					"amount": 5
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Desperate Measure",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal damage equal to cards in hand x2.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage_by_hand_size"
+		}
+	}
+}

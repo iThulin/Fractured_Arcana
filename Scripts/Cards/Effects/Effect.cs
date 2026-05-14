@@ -108,17 +108,21 @@ public sealed class DealDamageEffect : EffectBase
 
 		foreach (var obj in targets.Items)
 		{
+			Unit victim = null;
+
 			if (obj is Unit u)
 			{
 				u.ApplyDamage(Amount + bonus);
 				s.Log($"HIT unit {u.Name}");
 				hit++;
+				victim = u;
 			}
 			else if (obj is TileData td && td.Occupant != null)
 			{
 				td.Occupant.ApplyDamage(Amount + bonus);
 				s.Log($"HIT tile occupant {td.Occupant.Name} on {td.Axial}");
 				hit++;
+				victim = td.Occupant;
 			}
 			else if (obj is HexTile tileView)
 			{
@@ -128,7 +132,17 @@ public sealed class DealDamageEffect : EffectBase
 					tileData.Occupant.ApplyDamage(Amount + bonus);
 					s.Log($"HIT tile occupant {tileData.Occupant.Name} on {tileData.Axial}");
 					hit++;
+					victim = tileData.Occupant;
 				}
+			}
+
+			// Consume arcane mark for bonus damage
+			if (victim != null && victim.HasStatus("arcane_mark"))
+			{
+				victim.RemoveStatus("arcane_mark");
+				int markBonus = 3;
+				victim.ApplyDamage(markBonus);
+				s.Log($"[ArcaneMark] {victim.Name} takes {markBonus} bonus damage. Mark consumed.");
 			}
 		}
 
@@ -258,153 +272,289 @@ public sealed class DealDamageEffect : EffectBase
 	}
 }
 
+public sealed class DistanceDamageEffect : EffectBase
+{
+	public int MinDamage;
+	public int MaxDamage;
+	public int BonusPerTile; // damage multiplier per tile, default 1
+
+	public DistanceDamageEffect(int minDamage = 1, int maxDamage = 99, int bonusPerTile = 1)
+	{
+		MinDamage = minDamage;
+		MaxDamage = maxDamage;
+		BonusPerTile = bonusPerTile;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets == null || s?.Grid == null) return;
+
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit?.CurrentTile == null)
+		{
+			s.Log("[DistanceDamage] No caster tile found.");
+			return;
+		}
+
+		foreach (var obj in targets.Items)
+		{
+			var victim = ResolveTargetUnit(s, obj);
+			if (victim?.CurrentTile == null) continue;
+
+			int dist = s.Grid.Distance(casterUnit.CurrentTile.Axial, victim.CurrentTile.Axial);
+			int damage = Math.Clamp(dist * BonusPerTile, MinDamage, MaxDamage);
+
+			victim.ApplyDamage(damage);
+			s.Log($"[DistanceDamage] {victim.Name} takes {damage} damage (dist={dist}).");
+		}
+	}
+}
+
+// ── AoE All Effect ──────────────────────────────────────────────
+// Deals damage to ALL units within radius, including allies and
+// the caster. Used for high-risk board-wipe effects like Cataclysm.
+public sealed class AoeAllEffect : EffectBase
+{
+	public int Radius;
+	public int Damage;
+
+	public AoeAllEffect(int radius, int damage)
+	{
+		Radius = radius;
+		Damage = damage;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Grid == null) return;
+
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit?.CurrentTile == null) return;
+
+		var center = casterUnit.CurrentTile.Axial;
+		int hit = 0;
+
+		foreach (var unit in s.UnitsInPlay)
+		{
+			if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
+			if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius) continue;
+
+			unit.ApplyDamage(Damage);
+			s.Log($"[AoeAll] {unit.Name} takes {Damage} damage.");
+			hit++;
+		}
+
+		s.Log($"[AoeAll] Cataclysm hit {hit} unit(s).");
+	}
+}
+
+// ── Damage By Hand Size ─────────────────────────────────────────
+// Deals damage equal to the caster's current hand size multiplied
+// by a scalar. Default scalar is 2.
+public sealed class DamageByHandSizeEffect : EffectBase
+{
+	public int Multiplier;
+	public DamageByHandSizeEffect(int multiplier = 2) { Multiplier = multiplier; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets == null) return;
+
+		var hand = caster == s.PlayerA ? s.HandA : s.HandB;
+		int damage = hand.Count * Multiplier;
+
+		if (damage <= 0)
+		{
+			s.Log($"[HandSizeDamage] Hand is empty, no damage dealt.");
+			return;
+		}
+
+		foreach (var obj in targets.Items)
+		{
+			var victim = ResolveTargetUnit(s, obj);
+			if (victim == null) continue;
+			victim.ApplyDamage(damage);
+			s.Log($"[HandSizeDamage] {victim.Name} takes {damage} damage ({hand.Count} cards x {Multiplier}).");
+		}
+	}
+}
+
 public sealed class DashEffect : EffectBase
 {
-    public int Tiles;
-    public DashEffect(int t) { Tiles = t; }
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = FindCasterUnit(s, caster);
+	public int Tiles;
+	public DashEffect(int t) { Tiles = t; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
 
-        if (targets == null || targets.Items.Count == 0 ||
-            (targets.Items.Count == 1 && targets.Items[0] is Entity))
-        {
-            // Self-movement — grant move points
-            if (casterUnit != null)
-            {
-                casterUnit.Stats.MovePoints += Tiles;
-                s.Log($"[Dash] {casterUnit.Name} gains {Tiles} move points (now {casterUnit.Stats.MovePoints}).");
-            }
-        }
-        else
-        {
-            // Push — find the victim and try to move them away from caster
-            foreach (var obj in targets.Items)
-            {
-                var victim = ResolveTargetUnit(s, obj);
-                if (victim == null || victim.CurrentTile == null) continue;
-                if (casterUnit == null || casterUnit.CurrentTile == null) continue;
+		if (targets == null || targets.Items.Count == 0 ||
+			(targets.Items.Count == 1 && targets.Items[0] is Entity))
+		{
+			// Self-movement — grant move points
+			if (casterUnit != null)
+			{
+				casterUnit.Stats.MovePoints += Tiles;
+				s.Log($"[Dash] {casterUnit.Name} gains {Tiles} move points (now {casterUnit.Stats.MovePoints}).");
+			}
+		}
+		else
+		{
+			// Push — find the victim and try to move them away from caster
+			foreach (var obj in targets.Items)
+			{
+				var victim = ResolveTargetUnit(s, obj);
+				if (victim == null || victim.CurrentTile == null) continue;
+				if (casterUnit == null || casterUnit.CurrentTile == null) continue;
 
-                // Calculate push direction: away from caster
-                var grid = s.Grid;
-                if (grid == null) { s.Log("[Push] No grid."); continue; }
+				// Calculate push direction: away from caster
+				var grid = s.Grid;
+				if (grid == null) { s.Log("[Push] No grid."); continue; }
 
-                var from = victim.CurrentTile.Axial;
-                var casterPos = casterUnit.CurrentTile.Axial;
+				var from = victim.CurrentTile.Axial;
+				var casterPos = casterUnit.CurrentTile.Axial;
 
-                // Push tile by tile away from caster
-                int pushed = 0;
-                for (int i = 0; i < Tiles; i++)
-                {
-                    var current = victim.CurrentTile.Axial;
-                    var dir = current - casterPos;
+				// Push tile by tile away from caster
+				int pushed = 0;
+				for (int i = 0; i < Tiles; i++)
+				{
+					var current = victim.CurrentTile.Axial;
+					var dir = current - casterPos;
 
-                    // Normalize to one hex step — pick the neighbor furthest from caster
-                    TileData bestTile = null;
-                    int bestDist = -1;
+					// Normalize to one hex step — pick the neighbor furthest from caster
+					TileData bestTile = null;
+					int bestDist = -1;
 
-                    foreach (var neighbor in grid.GetNeighborCoords(current))
-                    {
-                        var td = grid.GetTile(neighbor);
-                        if (td == null || !td.CanEnter(victim)) continue;
+					foreach (var neighbor in grid.GetNeighborCoords(current))
+					{
+						var td = grid.GetTile(neighbor);
+						if (td == null || !td.CanEnter(victim)) continue;
 
-                        int distFromCaster = grid.Distance(casterPos, neighbor);
-                        if (distFromCaster > bestDist)
-                        {
-                            bestDist = distFromCaster;
-                            bestTile = td;
-                        }
-                    }
+						int distFromCaster = grid.Distance(casterPos, neighbor);
+						if (distFromCaster > bestDist)
+						{
+							bestDist = distFromCaster;
+							bestTile = td;
+						}
+					}
 
-                    if (bestTile != null)
-                    {
-                        victim.CurrentTile.ClearOccupant(victim);
-                        victim.PlaceOnTile(bestTile);
-                        pushed++;
-                    }
-                    else
-                    {
-                        // Hit a wall or edge — could add collision damage here
-                        s.Log($"[Push] {victim.Name} hit an obstacle after {pushed} tile(s).");
-                        break;
-                    }
-                }
-                s.Log($"[Push] {victim.Name} pushed {pushed} tile(s) away.");
-            }
-        }
-    }
+					if (bestTile != null)
+					{
+						victim.CurrentTile.ClearOccupant(victim);
+						victim.PlaceOnTile(bestTile);
+						pushed++;
+					}
+					else
+					{
+						// Hit a wall or edge — could add collision damage here
+						s.Log($"[Push] {victim.Name} hit an obstacle after {pushed} tile(s).");
+						break;
+					}
+				}
+				s.Log($"[Push] {victim.Name} pushed {pushed} tile(s) away.");
+			}
+		}
+	}
+}
+
+// ── Teleport Effect ─────────────────────────────────────────────
+// Instantly moves the caster to a target tile, ignoring movement costs and pathing.
+public sealed class TeleportEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets == null || s?.Grid == null) return;
+
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit?.CurrentTile == null) return;
+
+		foreach (var obj in targets.Items)
+		{
+			TileData destTile = null;
+
+			if (obj is TileData td) destTile = td;
+			else if (obj is HexTile tv) destTile = s.Grid.GetTile(tv.Axial);
+			else if (obj is Unit u && u.CurrentTile != null) destTile = u.CurrentTile;
+
+			if (destTile == null || destTile.Occupant != null) continue;
+
+			casterUnit.CurrentTile.ClearOccupant(casterUnit);
+			casterUnit.PlaceOnTile(destTile);
+			s.Log($"[Teleport] {casterUnit.Name} teleported to {destTile.Axial}.");
+			break;
+		}
+	}
 }
 
 // ── Push Effect ───────────────────────────────────────────
 public sealed class PushEffect : EffectBase
 {
-    public int Tiles;
-    public int CollisionDamage;
+	public int Tiles;
+	public int CollisionDamage;
 
-    public PushEffect(int tiles, int collisionDamage = 0)
-    {
-        Tiles = tiles;
-        CollisionDamage = collisionDamage;
-    }
+	public PushEffect(int tiles, int collisionDamage = 0)
+	{
+		Tiles = tiles;
+		CollisionDamage = collisionDamage;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null) return;
 
-        var casterPos = casterUnit.CurrentTile.Axial;
+		var casterPos = casterUnit.CurrentTile.Axial;
 
-        foreach (var obj in targets.Items)
-        {
-            var victim = ResolveTargetUnit(s, obj);
-            if (victim == null || victim.CurrentTile == null) continue;
+		foreach (var obj in targets.Items)
+		{
+			var victim = ResolveTargetUnit(s, obj);
+			if (victim == null || victim.CurrentTile == null) continue;
 
-            int pushed = 0;
-            bool collided = false;
+			int pushed = 0;
+			bool collided = false;
 
-            for (int i = 0; i < Tiles; i++)
-            {
-                var current = victim.CurrentTile.Axial;
-                TileData bestTile = null;
-                int bestDist = -1;
+			for (int i = 0; i < Tiles; i++)
+			{
+				var current = victim.CurrentTile.Axial;
+				TileData bestTile = null;
+				int bestDist = -1;
 
-                foreach (var neighbor in s.Grid.GetNeighbors(current))
-                {
-                    var td = s.Grid.GetTile(neighbor);
-                    if (td == null || !td.CanEnter(victim)) continue;
+				foreach (var neighbor in s.Grid.GetNeighbors(current))
+				{
+					var td = s.Grid.GetTile(neighbor);
+					if (td == null || !td.CanEnter(victim)) continue;
 
-                    int distFromCaster = s.Grid.Distance(casterPos, neighbor);
-                    if (distFromCaster > bestDist)
-                    {
-                        bestDist = distFromCaster;
-                        bestTile = td;
-                    }
-                }
+					int distFromCaster = s.Grid.Distance(casterPos, neighbor);
+					if (distFromCaster > bestDist)
+					{
+						bestDist = distFromCaster;
+						bestTile = td;
+					}
+				}
 
-                if (bestTile != null)
-                {
-                    victim.CurrentTile.ClearOccupant(victim);
-                    victim.PlaceOnTile(bestTile);
-                    pushed++;
-                }
-                else
-                {
-                    collided = true;
-                    break;
-                }
-            }
+				if (bestTile != null)
+				{
+					victim.CurrentTile.ClearOccupant(victim);
+					victim.PlaceOnTile(bestTile);
+					pushed++;
+				}
+				else
+				{
+					collided = true;
+					break;
+				}
+			}
 
-            if (collided && CollisionDamage > 0)
-            {
-                victim.ApplyDamage(CollisionDamage);
-                s.Log($"[Push] {victim.Name} pushed {pushed} tile(s), collided for {CollisionDamage} damage!");
-            }
-            else
-            {
-                s.Log($"[Push] {victim.Name} pushed {pushed} tile(s).");
-            }
-        }
-    }
+			if (collided && CollisionDamage > 0)
+			{
+				victim.ApplyDamage(CollisionDamage);
+				s.Log($"[Push] {victim.Name} pushed {pushed} tile(s), collided for {CollisionDamage} damage!");
+			}
+			else
+			{
+				s.Log($"[Push] {victim.Name} pushed {pushed} tile(s).");
+			}
+		}
+	}
 }
 
 // ── Shield / Armor Effect ───────────────────────────────────────
@@ -453,27 +603,67 @@ public sealed class GiveArmorEffect : EffectBase
 
 public sealed class GiveTargetArmorEffect : EffectBase
 {
-    public int Amount;
-    public GiveTargetArmorEffect(int a) { Amount = a; }
+	public int Amount;
+	public GiveTargetArmorEffect(int a) { Amount = a; }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (targets == null) return;
-        var casterUnit = FindCasterUnit(s, caster);
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets == null) return;
+		var casterUnit = FindCasterUnit(s, caster);
 
-        foreach (var obj in targets.Items)
-        {
-            var unit = ResolveTargetUnit(s, obj);
-            if (unit == null) continue;
+		foreach (var obj in targets.Items)
+		{
+			var unit = ResolveTargetUnit(s, obj);
+			if (unit == null) continue;
 
-            // Only buff allies
-            if (casterUnit != null && unit.TeamId != casterUnit.TeamId) continue;
+			// Only buff allies
+			if (casterUnit != null && unit.TeamId != casterUnit.TeamId) continue;
 
-            unit.Stats.Armor += Amount;
-            unit.RefreshHealthBar();
-            s.Log($"[GiveTargetArmor] {unit.Name} gains {Amount} armor (now {unit.Stats.Armor}).");
-        }
-    }
+			unit.Stats.Armor += Amount;
+			unit.RefreshHealthBar();
+			s.Log($"[GiveTargetArmor] {unit.Name} gains {Amount} armor (now {unit.Stats.Armor}).");
+		}
+	}
+}
+
+// ── Remove Status Effect ────────────────────────────────────────
+// Removes all negative status effects from the target.
+// Pass specific = true and StatusName to remove only one named status.
+public sealed class RemoveStatusEffect : EffectBase
+{
+	public string StatusName; // null = remove all negative statuses
+	private static readonly HashSet<string> NegativeStatuses = new()
+	{
+		"burn", "frozen", "slowed", "stunned", "rooted", "poisoned", "weakened", "blinded"
+	};
+
+	public RemoveStatusEffect(string statusName = null)
+	{
+		StatusName = statusName;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets == null) return;
+
+		foreach (var obj in targets.Items)
+		{
+			var unit = ResolveTargetUnit(s, obj);
+			if (unit == null) continue;
+
+			if (StatusName != null)
+			{
+				unit.RemoveStatus(StatusName);
+				s.Log($"[RemoveStatus] Removed {StatusName} from {unit.Name}.");
+			}
+			else
+			{
+				foreach (var status in NegativeStatuses)
+					unit.RemoveStatus(status);
+				s.Log($"[RemoveStatus] Cleared all negative statuses from {unit.Name}.");
+			}
+		}
+	}
 }
 
 // ── Draw Cards Effect ───────────────────────────────────────────
@@ -553,26 +743,26 @@ public sealed class HealEffect : EffectBase
 // ── Imbue Tile Effect ─────────────────────────────────────────
 public sealed class ImbueTileEffect : EffectBase
 {
-    public string Element;
-    public int BonusDamage;
-    public ImbueTileEffect(string element, int bonusDamage = 0)
-    {
-        Element = element;
-        BonusDamage = bonusDamage;
-    }
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	public string Element;
+	public int BonusDamage;
+	public ImbueTileEffect(string element, int bonusDamage = 0)
+	{
+		Element = element;
+		BonusDamage = bonusDamage;
+	}
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		if (s?.Grid == null) { s?.Log("[ImbueTile] No grid."); return; }
 
 		TileElementType elementType = Element.ToLowerInvariant() switch
 		{
-			"fire"  => TileElementType.Fire,
-			"ice"   => TileElementType.Frost,
+			"fire" => TileElementType.Fire,
+			"ice" => TileElementType.Frost,
 			"frost" => TileElementType.Frost,
 			"storm" => TileElementType.Lightning,
 			"stone" => TileElementType.Earth,
 			"earth" => TileElementType.Earth,
-			_       => TileElementType.None
+			_ => TileElementType.None
 		};
 
 		if (targets == null) return;
@@ -607,6 +797,67 @@ public sealed class ImbueTileEffect : EffectBase
 	}
 }
 
+// ── Place Glyph Effect ──────────────────────────────────────────
+// Places a triggered glyph on the target tile.
+// The glyph fires when an enemy enters the tile, then is consumed.
+public sealed class PlaceGlyphEffect : EffectBase
+{
+	public int Damage;
+	public string Status;
+	public int StatusDuration;
+
+	public PlaceGlyphEffect(int damage, string status = null, int statusDuration = 1)
+	{
+		Damage = damage;
+		Status = status;
+		StatusDuration = statusDuration;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets == null || s?.Grid == null) return;
+
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit == null) return;
+
+		foreach (var obj in targets.Items)
+		{
+			TileData tile = null;
+			if (obj is TileData td) tile = td;
+			else if (obj is HexTile tv) tile = s.Grid.GetTile(tv.Axial);
+
+			if (tile == null || tile.IsBlocked) continue;
+			if (tile.Glyph != null) continue; // tile already has a glyph
+
+			int dmg = Damage;
+			string status = Status;
+			int dur = StatusDuration;
+
+			tile.Glyph = new GlyphData
+			{
+				OwnerId = casterUnit.Name,
+				OwnerTeam = casterUnit.TeamId,
+				GameState = s,
+				OnTrigger = (victim, state) =>
+				{
+					victim.ApplyDamage(dmg);
+					state.Log($"[Glyph] {victim.Name} triggered glyph, takes {dmg} damage.");
+
+					if (!string.IsNullOrEmpty(status))
+					{
+						victim.ApplyStatus(status, dur);
+						state.Log($"[Glyph] {victim.Name} is {status} for {dur} turn(s).");
+					}
+				}
+			};
+
+			tile.TileView?.ShowGlyph();
+			s.Log($"[Glyph] Placed glyph at {tile.Axial}.");
+			break; // one glyph per cast
+		}
+	}
+}
+
 // ── Apply Status Effect ─────────────────────────────────────────
 
 public sealed class ApplyStatusEffect : EffectBase
@@ -636,187 +887,187 @@ public sealed class ApplyStatusEffect : EffectBase
 // ── Summon Effect ───────────────────────────────────────────────
 public sealed class SummonEffect : EffectBase
 {
-    public string UnitKind;
-    public int Count;
-    public SummonEffect(string kind, int count) { UnitKind = kind; Count = count; }
+	public string UnitKind;
+	public int Count;
+	public SummonEffect(string kind, int count) { UnitKind = kind; Count = count; }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s.OnSummonRequested == null)
-        {
-            s.Log($"[Summon] No summon handler registered. Cannot spawn {Count}x {UnitKind}.");
-            return;
-        }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s.OnSummonRequested == null)
+		{
+			s.Log($"[Summon] No summon handler registered. Cannot spawn {Count}x {UnitKind}.");
+			return;
+		}
 
-        var casterUnit = FindCasterUnit(s, caster);
-        int casterTeam = casterUnit?.TeamId ?? 0;
+		var casterUnit = FindCasterUnit(s, caster);
+		int casterTeam = casterUnit?.TeamId ?? 0;
 
-        // Find the target tile to spawn on
-        TileData spawnTile = null;
-        if (targets != null)
-        {
-            foreach (var obj in targets.Items)
-            {
-                if (obj is TileData td && td.Occupant == null) { spawnTile = td; break; }
-                if (obj is HexTile tv)
-                {
-                    var tileData = s.Grid?.GetTile(tv.Axial);
-                    if (tileData != null && tileData.Occupant == null) { spawnTile = tileData; break; }
-                }
-            }
-        }
+		// Find the target tile to spawn on
+		TileData spawnTile = null;
+		if (targets != null)
+		{
+			foreach (var obj in targets.Items)
+			{
+				if (obj is TileData td && td.Occupant == null) { spawnTile = td; break; }
+				if (obj is HexTile tv)
+				{
+					var tileData = s.Grid?.GetTile(tv.Axial);
+					if (tileData != null && tileData.Occupant == null) { spawnTile = tileData; break; }
+				}
+			}
+		}
 
-        // Fallback: find empty adjacent tile to caster
-        if (spawnTile == null && casterUnit?.CurrentTile != null && s.Grid != null)
-        {
-            foreach (var neighbor in s.Grid.GetNeighbors(casterUnit.CurrentTile.Axial))
-            {
-                var td = s.Grid.GetTile(neighbor);
-                if (td != null && td.Occupant == null)
-                {
-                    spawnTile = td;
-                    break;
-                }
-            }
-        }
+		// Fallback: find empty adjacent tile to caster
+		if (spawnTile == null && casterUnit?.CurrentTile != null && s.Grid != null)
+		{
+			foreach (var neighbor in s.Grid.GetNeighbors(casterUnit.CurrentTile.Axial))
+			{
+				var td = s.Grid.GetTile(neighbor);
+				if (td != null && td.Occupant == null)
+				{
+					spawnTile = td;
+					break;
+				}
+			}
+		}
 
-        if (spawnTile == null)
-        {
-            s.Log($"[Summon] No valid tile to spawn {UnitKind}.");
-            return;
-        }
+		if (spawnTile == null)
+		{
+			s.Log($"[Summon] No valid tile to spawn {UnitKind}.");
+			return;
+		}
 
-        for (int i = 0; i < Count; i++)
-        {
-            var spawned = s.OnSummonRequested(UnitKind, spawnTile, casterTeam);
-            if (spawned != null)
-            {
-                s.UnitsInPlay.Add(spawned);
-                s.Log($"[Summon] Spawned {UnitKind} at {spawnTile.Axial}.");
-            }
-            else
-            {
-                s.Log($"[Summon] Failed to spawn {UnitKind}.");
-            }
+		for (int i = 0; i < Count; i++)
+		{
+			var spawned = s.OnSummonRequested(UnitKind, spawnTile, casterTeam);
+			if (spawned != null)
+			{
+				s.UnitsInPlay.Add(spawned);
+				s.Log($"[Summon] Spawned {UnitKind} at {spawnTile.Axial}.");
+			}
+			else
+			{
+				s.Log($"[Summon] Failed to spawn {UnitKind}.");
+			}
 
-            // For multiple summons, find next empty tile
-            if (i < Count - 1 && casterUnit?.CurrentTile != null)
-            {
-                spawnTile = null;
-                foreach (var neighbor in s.Grid.GetNeighbors(casterUnit.CurrentTile.Axial))
-                {
-                    var td = s.Grid.GetTile(neighbor);
-                    if (td != null && td.Occupant == null) { spawnTile = td; break; }
-                }
-                if (spawnTile == null) break;
-            }
-        }
-    }
+			// For multiple summons, find next empty tile
+			if (i < Count - 1 && casterUnit?.CurrentTile != null)
+			{
+				spawnTile = null;
+				foreach (var neighbor in s.Grid.GetNeighbors(casterUnit.CurrentTile.Axial))
+				{
+					var td = s.Grid.GetTile(neighbor);
+					if (td != null && td.Occupant == null) { spawnTile = td; break; }
+				}
+				if (spawnTile == null) break;
+			}
+		}
+	}
 }
 
 public sealed class RemoveArmorEffect : EffectBase
 {
-    public int Amount; // 0 = remove all armor
+	public int Amount; // 0 = remove all armor
 
-    public RemoveArmorEffect(int amount = 0)
-    {
-        Amount = amount;
-    }
+	public RemoveArmorEffect(int amount = 0)
+	{
+		Amount = amount;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (targets == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets == null) return;
 
-        foreach (var obj in targets.Items)
-        {
-            var victim = ResolveTargetUnit(s, obj);
-            if (victim == null) continue;
+		foreach (var obj in targets.Items)
+		{
+			var victim = ResolveTargetUnit(s, obj);
+			if (victim == null) continue;
 
-            int removed;
-            if (Amount <= 0)
-            {
-                removed = victim.Stats.Armor;
-                victim.Stats.Armor = 0;
-            }
-            else
-            {
-                removed = Math.Min(victim.Stats.Armor, Amount);
-                victim.Stats.Armor -= removed;
-            }
+			int removed;
+			if (Amount <= 0)
+			{
+				removed = victim.Stats.Armor;
+				victim.Stats.Armor = 0;
+			}
+			else
+			{
+				removed = Math.Min(victim.Stats.Armor, Amount);
+				victim.Stats.Armor -= removed;
+			}
 
-            if (removed > 0)
-            {
-                victim.RefreshHealthBar();
-                s.Log($"[RemoveArmor] {victim.Name} loses {removed} armor (now {victim.Stats.Armor}).");
-            }
-        }
-    }
+			if (removed > 0)
+			{
+				victim.RefreshHealthBar();
+				s.Log($"[RemoveArmor] {victim.Name} loses {removed} armor (now {victim.Stats.Armor}).");
+			}
+		}
+	}
 }
 
 public sealed class CreateRubbleEffect : EffectBase
 {
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (targets == null || s?.Grid == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets == null || s?.Grid == null) return;
 
-        foreach (var obj in targets.Items)
-        {
-            TileData tile = null;
-            if (obj is TileData td) tile = td;
-            else if (obj is HexTile tv) tile = s.Grid.GetTile(tv.Axial);
-            else if (obj is Unit u && u.CurrentTile != null) tile = u.CurrentTile;
+		foreach (var obj in targets.Items)
+		{
+			TileData tile = null;
+			if (obj is TileData td) tile = td;
+			else if (obj is HexTile tv) tile = s.Grid.GetTile(tv.Axial);
+			else if (obj is Unit u && u.CurrentTile != null) tile = u.CurrentTile;
 
-            if (tile == null || tile.IsBlocked) continue;
+			if (tile == null || tile.IsBlocked) continue;
 
-            tile.ApplyTerrainModifier("rubble");
-            s.Grid.ApplyVisualToTile(tile);
-            s.Log($"[Rubble] {tile.Axial} is now difficult terrain.");
-        }
-    }
+			tile.ApplyTerrainModifier("rubble");
+			s.Grid.ApplyVisualToTile(tile);
+			s.Log($"[Rubble] {tile.Axial} is now difficult terrain.");
+		}
+	}
 }
 
 public sealed class RaiseTerrainEffect : EffectBase
 {
-    public int HeightIncrease;
+	public int HeightIncrease;
 
-    public RaiseTerrainEffect(int heightIncrease = 1)
-    {
-        HeightIncrease = heightIncrease;
-    }
+	public RaiseTerrainEffect(int heightIncrease = 1)
+	{
+		HeightIncrease = heightIncrease;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (targets == null || s?.Grid == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets == null || s?.Grid == null) return;
 
-        foreach (var obj in targets.Items)
-        {
-            TileData tile = null;
-            if (obj is TileData td) tile = td;
-            else if (obj is HexTile tv) tile = s.Grid.GetTile(tv.Axial);
-            else if (obj is Unit u && u.CurrentTile != null) tile = u.CurrentTile;
+		foreach (var obj in targets.Items)
+		{
+			TileData tile = null;
+			if (obj is TileData td) tile = td;
+			else if (obj is HexTile tv) tile = s.Grid.GetTile(tv.Axial);
+			else if (obj is Unit u && u.CurrentTile != null) tile = u.CurrentTile;
 
-            if (tile == null) continue;
+			if (tile == null) continue;
 
-            // Raise height
-            tile.Height += HeightIncrease;
-            tile.TileView?.SetHeight(tile.Height);
+			// Raise height
+			tile.Height += HeightIncrease;
+			tile.TileView?.SetHeight(tile.Height);
 
-            // Imbue with earth and create rubble
-            tile.ElementType = TileElementType.Earth;
-            tile.ElementStrength = 1.0f;
-            tile.ApplyTerrainModifier("rubble");
-            s.Grid.ApplyVisualToTile(tile);
+			// Imbue with earth and create rubble
+			tile.ElementType = TileElementType.Earth;
+			tile.ElementStrength = 1.0f;
+			tile.ApplyTerrainModifier("rubble");
+			s.Grid.ApplyVisualToTile(tile);
 
-            // Push any unit on the tile (ground rising under them)
-            if (tile.Occupant != null)
-            {
-                tile.Occupant.ApplyDamage(HeightIncrease * 2);
-                s.Log($"[RaiseTerrain] {tile.Occupant.Name} crushed by rising ground for {HeightIncrease * 2} damage.");
-            }
+			// Push any unit on the tile (ground rising under them)
+			if (tile.Occupant != null)
+			{
+				tile.Occupant.ApplyDamage(HeightIncrease * 2);
+				s.Log($"[RaiseTerrain] {tile.Occupant.Name} crushed by rising ground for {HeightIncrease * 2} damage.");
+			}
 
-            s.Log($"[RaiseTerrain] {tile.Axial} raised by {HeightIncrease} (now height {tile.Height}), imbued with earth, rubble created.");
-        }
-    }
+			s.Log($"[RaiseTerrain] {tile.Axial} raised by {HeightIncrease} (now height {tile.Height}), imbued with earth, rubble created.");
+		}
+	}
 }
 
 // ── No-Op Effect ────────────────────────────────────────────────

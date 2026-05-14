@@ -1288,6 +1288,20 @@ public partial class CombatManager : Node3D
                     armor = 8; // pre-charged with more armor
                     break;
 
+                case "shield_wall":
+                    scene = DummyUnitScene;
+                    hp = 20;
+                    speed = 0;
+                    armor = 8;
+                    break;
+
+                case "shield_wall_heavy": // channel version
+                    scene = DummyUnitScene;
+                    hp = 20;
+                    speed = 0;
+                    armor = 12; // pre-charged with more armor
+                    break;
+
                 default:
                     GD.PrintErr($"[Summon] Unknown unit kind: {unitKind}");
                     return null;

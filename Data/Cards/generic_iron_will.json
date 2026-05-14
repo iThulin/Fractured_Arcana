@@ -1,80 +1,53 @@
 {
-  "id": "generic_iron_will",
-  "status": "stub",
-  "name": "Iron Will",
-  "school": "Generic",
-  "rarity": "Rare",
-  "top": {
-    "name": "Iron Will",
-    "mana": 2,
-    "speed": "Instant",
-    "rules_text": "Gain 7 armor and 2 shield. While both armor and shield are above 0 you cannot be pushed or immobilized.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "shield",
-          "amount": 7
-        },
-        {
-          "type": "shield",
-          "amount": 4
-        }
-      ]
-    },
-    "channel": {
-      "name": "Iron Will (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also reflect 1 damage to attackers while both hold",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Arcane Burst",
-    "mana": 2,
-    "speed": "Instant",
-    "rules_text": "Deal 5 damage to all enemies within 1 tile of you. Push each 1 tile away.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 1,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 5
-        },
-        {
-          "type": "move",
-          "tiles": 1
-        }
-      ]
-    },
-    "channel": {
-      "name": "Arcane Burst (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Deal 9 damage and push 2 tiles",
-      "targeting": {
-        "type": "aoe",
-        "radius": 1,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 9
-      }
-    }
-  }
+	"id": "generic_iron_will",
+	"status": "wip",
+	"name": "Iron Will",
+	"school": "Generic",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Iron Will",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Gain 5 armor. Cannot move this turn.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "armor",
+					"amount": 5
+				},
+				{
+					"type": "apply_status",
+					"status": "rooted",
+					"duration": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Shrug Off",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Remove all negative status effects. Gain 2 shield.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "remove_status"
+				},
+				{
+					"type": "shield",
+					"amount": 2
+				}
+			]
+		}
+	}
 }

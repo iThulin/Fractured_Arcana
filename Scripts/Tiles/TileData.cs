@@ -4,54 +4,55 @@ using System.Runtime.CompilerServices;
 
 public enum TileTerrainType
 {
-	Grass,
-	Water,
-	Lava,
-	Forest,
-	Stone,
-	Arcane,
-	Ice
+    Grass,
+    Water,
+    Lava,
+    Forest,
+    Stone,
+    Arcane,
+    Ice
 }
 
 public enum TileElementType
 {
-	None,
-	Fire,
-	Water,
-	Earth,
-	Air,
-	Arcane,
-	Frost,
-	Shadow,
-	Lightning
+    None,
+    Fire,
+    Water,
+    Earth,
+    Air,
+    Arcane,
+    Frost,
+    Shadow,
+    Lightning
 }
 
 public class TileData
 {
-	public Vector2I Axial;
-	public HexTile TileView = null;
+    public Vector2I Axial;
+    public HexTile TileView = null;
 
-	// Tile properties
+    // Tile properties
     public bool IsWalkable = true;
     public bool IsBlocked = false;
-	public bool BlocksMovementByHeight = false;
-	public bool BlocksLineOfSight = false;
-	public bool IsHazardous = false;
-	public string TerrainModifier = ""; // "rubble", "scorched", "frozen", etc.
+    public bool BlocksMovementByHeight = false;
+    public bool BlocksLineOfSight = false;
+    public bool IsHazardous = false;
+    public string TerrainModifier = ""; // "rubble", "scorched", "frozen", etc.
+    public GlyphData Glyph;
 
-	// Layout and pathfinding
-	public int MoveCost = 1;
-	public int BaseMoveCost = 1; // original cost before modification
-	public int Height = 0;
+    // Layout and pathfinding
+    public int MoveCost = 1;
+    public int BaseMoveCost = 1; // original cost before modification
+    public int Height = 0;
 
-	// Gameplay properties
-	public TileTerrainType TerrainType = TileTerrainType.Grass;
-	public TileElementType ElementType = TileElementType.None;
-	public float ElementStrength = 0f;
+    // Gameplay properties
+    public TileTerrainType TerrainType = TileTerrainType.Grass;
+    public TileElementType ElementType = TileElementType.None;
+    public float ElementStrength = 0f;
 
-	// Occupancy
-	public string ObstacleKind = "";
-	public Unit Occupant = null;
+    // Occupancy
+    public string ObstacleKind = "";
+    public Unit Occupant = null;
     public bool IsOccupied => Occupant != null;
 
     public bool CanEnter(Unit unit)
@@ -75,30 +76,30 @@ public class TileData
             Occupant = null;
     }
 
-	public void ApplyTerrainModifier(string modifier)
-{
-    TerrainModifier = modifier;
-    BaseMoveCost = MoveCost; // save original
-
-    switch (modifier)
+    public void ApplyTerrainModifier(string modifier)
     {
-        case "rubble":
-            MoveCost = 2;
-            TerrainType = TileTerrainType.Stone;
-            break;
-        case "scorched":
-            MoveCost = 2;
-            IsHazardous = true;
-            break;
-        case "frozen":
-            MoveCost = 1;
-            TerrainType = TileTerrainType.Ice;
-            break;
-        case "none":
-            MoveCost = BaseMoveCost;
-            IsHazardous = false;
-            TerrainModifier = "";
-            break;
+        TerrainModifier = modifier;
+        BaseMoveCost = MoveCost; // save original
+
+        switch (modifier)
+        {
+            case "rubble":
+                MoveCost = 2;
+                TerrainType = TileTerrainType.Stone;
+                break;
+            case "scorched":
+                MoveCost = 2;
+                IsHazardous = true;
+                break;
+            case "frozen":
+                MoveCost = 1;
+                TerrainType = TileTerrainType.Ice;
+                break;
+            case "none":
+                MoveCost = BaseMoveCost;
+                IsHazardous = false;
+                TerrainModifier = "";
+                break;
+        }
     }
-}
 }

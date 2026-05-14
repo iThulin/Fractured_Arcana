@@ -1,0 +1,40 @@
+{
+	"id": "generic_magic_missile",
+	"status": "wip",
+	"name": "Magic Missile",
+	"school": "Generic",
+	"rarity": "Common",
+	"top": {
+		"name": "Magic Missile",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 3 damage.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 5,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage",
+			"amount": 3
+		}
+	},
+	"bottom": {
+		"name": "Arcane Surge",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 2 damage to all enemies within 2 tiles.",
+		"tags": [],
+		"targeting": {
+			"type": "aoe",
+			"radius": 2,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage",
+			"amount": 2
+		}
+	}
+}

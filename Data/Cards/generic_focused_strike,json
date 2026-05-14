@@ -1,0 +1,38 @@
+{
+	"id": "generic_focused_strike",
+	"status": "wip",
+	"name": "Focused Strike",
+	"school": "Generic",
+	"rarity": "Common",
+	"top": {
+		"name": "Focused Strike",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 6 damage (range 3).",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 3,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage",
+			"amount": 6
+		}
+	},
+	"bottom": {
+		"name": "Brace",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 2 armor.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "armor",
+			"amount": 2
+		}
+	}
+}

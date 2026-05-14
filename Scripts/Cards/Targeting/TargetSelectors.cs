@@ -92,6 +92,32 @@ public sealed class SelectTileTarget : ITargetSelector
     }
 }
 
+// Selects an empty (unoccupied) tile within range
+public sealed class SelectEmptyTileTarget : ITargetSelector
+{
+    public int Range;
+    public SelectEmptyTileTarget(int range) { Range = range; }
+
+    public bool Select(GameState s, Entity caster, out TargetSet result)
+    {
+        result = new TargetSet();
+        var casterUnit = s.ActiveCasterUnit;
+        if (casterUnit?.CurrentTile == null) return false;
+
+        foreach (var kvp in s.Grid.Tiles)
+        {
+            if (s.Grid.Distance(casterUnit.CurrentTile.Axial, kvp.Key) <= Range
+                && kvp.Value.Occupant == null
+                && !kvp.Value.IsBlocked)
+            {
+                result.Items.Add(kvp.Value);
+            }
+        }
+
+        return result.Items.Count > 0;
+    }
+}
+
 public sealed class SelectSelfTarget : ITargetSelector
 {
     public bool Select(GameState s, Entity caster, out TargetSet targets)
@@ -471,11 +497,11 @@ public sealed class SelectElementTileTarget : ITargetSelector
 
         TileElementType needed = Element.ToLowerInvariant() switch
         {
-            "fire"  => TileElementType.Fire,
-            "ice"   => TileElementType.Frost,
+            "fire" => TileElementType.Fire,
+            "ice" => TileElementType.Frost,
             "storm" => TileElementType.Lightning,
             "stone" => TileElementType.Earth,
-            _       => TileElementType.None
+            _ => TileElementType.None
         };
 
         // Prefer the player's clicked tile if it matches the required element

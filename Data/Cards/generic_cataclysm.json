@@ -1,67 +1,35 @@
 {
-  "id": "generic_cataclysm",
-  "status": "stub",
-  "name": "Cataclysm",
-  "school": "Generic",
-  "rarity": "Legendary",
-  "top": {
-    "name": "Cataclysm",
-    "mana": 4,
-    "speed": "Sorcery",
-    "rules_text": "Deal 7 damage to every unit on the board including yourself and allies. Destroy all terrain objects and imbued tiles. The board is reset to base terrain.",
-    "targeting": {
-      "type": "none"
-    },
-    "effect": {
-      "type": "damage",
-      "amount": 7
-    },
-    "channel": {
-      "name": "Cataclysm (Channel)",
-      "mana": 4,
-      "speed": "Reaction",
-      "rules_text": "Channel: Your units take half damage",
-      "targeting": {
-        "type": "none"
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 4
-      }
-    }
-  },
-  "bottom": {
-    "name": "Rebirth",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "After damage: fully heal your wizard. Draw up to max hand size. Gain 3 mana. All your cooldowns reset.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "draw",
-          "count": 5
-        }
-      ]
-    },
-    "channel": {
-      "name": "Rebirth (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also gain 7 armor",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "shield",
-        "amount": 7
-      }
-    }
-  }
+	"id": "generic_cataclysm",
+	"status": "wip",
+	"name": "Cataclysm",
+	"school": "Generic",
+	"rarity": "Rare",
+	"top": {
+		"name": "Cataclysm",
+		"mana": 4,
+		"speed": "Sorcery",
+		"rules_text": "Deal 4 damage to ALL units within 3 tiles including allies.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "aoe_all",
+			"radius": 3,
+			"damage": 4
+		}
+	},
+	"bottom": {
+		"name": "Aftershock",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Gain 1 mana for each enemy killed this turn.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "empty"
+		}
+	}
 }

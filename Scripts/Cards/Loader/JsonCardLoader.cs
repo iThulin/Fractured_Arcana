@@ -118,9 +118,29 @@ public static class CardScriptRegistry
         RegisterEffect("damage", n =>
             new DealDamageEffect(n.GetProperty("amount").GetInt32()).WithTag("Damage"));
 
+        // Distance damage: { "type": "damage_by_distance", "min": n, "max": n, "per_tile": n }
+        RegisterEffect("damage_by_distance", n =>
+        {
+            int min = n.TryGetProperty("min", out var mn) ? mn.GetInt32() : 1;
+            int max = n.TryGetProperty("max", out var mx) ? mx.GetInt32() : 99;
+            int perTile = n.TryGetProperty("per_tile", out var pt) ? pt.GetInt32() : 1;
+            return new DistanceDamageEffect(min, max, perTile).WithTag("Damage");
+        });
+
+        // AoE all: { "type": "aoe_all", "radius": n, "damage": n }
+        RegisterEffect("aoe_all", n =>
+        {
+            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 3;
+            int damage = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 4;
+            return new AoeAllEffect(radius, damage).WithTag("Damage");
+        });
+
         // Move: { "type": "move", "tiles": n }
         RegisterEffect("move", n =>
             new DashEffect(n.GetProperty("tiles").GetInt32()).WithTag("Movement"));
+
+        // Teleport: { "type": "teleport" }
+        RegisterEffect("teleport", _ => new TeleportEffect().WithTag("Movement"));
 
         // Draw: { "type": "draw", "count": n }
         RegisterEffect("draw", n =>
@@ -184,6 +204,15 @@ public static class CardScriptRegistry
             return new ImbueAreaEffect(element, radius).WithTag("Terrain");
         });
 
+        // Place glyph: { "type": "place_glyph", "damage": n, "status": "slowed", "duration": n }
+        RegisterEffect("place_glyph", n =>
+        {
+            int damage = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 3;
+            string status = n.TryGetProperty("status", out var sv) ? sv.GetString() : null;
+            int duration = n.TryGetProperty("duration", out var dur) ? dur.GetInt32() : 1;
+            return new PlaceGlyphEffect(damage, status, duration).WithTag("Terrain");
+        });
+
         // Apply status: { "type": "apply_status", "status": "frozen", "duration": n }
         RegisterEffect("apply_status", n =>
         {
@@ -224,6 +253,13 @@ public static class CardScriptRegistry
             return new RemoveArmorEffect(amount).WithTag("Debuff");
         });
 
+        // Remove status: { "type": "remove_status" } or { "type": "remove_status", "status": "frozen" }
+        RegisterEffect("remove_status", n =>
+        {
+            string status = n.TryGetProperty("status", out var sv) ? sv.GetString() : null;
+            return new RemoveStatusEffect(status).WithTag("Utility");
+        });
+
         // Consume element tile: { "type": "consume_element_tile", "element": "fire", "radius": n, "damage": m }
         RegisterEffect("consume_element_tile", n =>
         {
@@ -231,6 +267,13 @@ public static class CardScriptRegistry
             int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 2;
             int damage = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 7;
             return new ConsumeElementTileEffect(element, radius, damage).WithTag("Terrain");
+        });
+
+        // Damage by hand size: { "type": "damage_by_hand_size", "multiplier": n }
+        RegisterEffect("damage_by_hand_size", n =>
+        {
+            int mult = n.TryGetProperty("multiplier", out var m) ? m.GetInt32() : 2;
+            return new DamageByHandSizeEffect(mult).WithTag("Damage");
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -319,18 +362,21 @@ public static class CardScriptRegistry
             return new TargetOnTile(tile);
         });
 
-        // Caster standing on terrain: { "type": "caster_on_terrain", "terrain": "stone" }
-        RegisterPredicate("caster_on_terrain", n =>
-        {
-            var terrain = n.GetProperty("terrain").GetString();
-            return new CasterOnTerrain(terrain);
-        });
-
         // Target adjacent to tile: { "type": "target_adjacent_to_tile", "tile": "fire" }
         RegisterPredicate("target_adjacent_to_tile", n =>
         {
             var tile = n.GetProperty("tile").GetString();
             return new TargetAdjacentToTile(tile);
+        });
+
+        // Target adjacent to caster: { "type": "target_adjacent_to_caster" }
+        RegisterPredicate("target_adjacent_to_caster", _ => new TargetAdjacentToCaster());
+
+        // Caster standing on terrain: { "type": "caster_on_terrain", "terrain": "stone" }
+        RegisterPredicate("caster_on_terrain", n =>
+        {
+            var terrain = n.GetProperty("terrain").GetString();
+            return new CasterOnTerrain(terrain);
         });
 
         // Caster has elements nearby: { "type": "has_elements_near_caster", "elements": ["fire","ice"], "range": n }
@@ -429,6 +475,13 @@ public static class CardScriptRegistry
             var element = n.GetProperty("element").GetString();
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 6;
             return new SelectElementTileTarget(element, range);
+        });
+
+        // Empty tile in range: { "type": "empty_tile", "range": n }
+        RegisterTargeter("empty_tile", n =>
+        {
+            int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 3;
+            return new SelectEmptyTileTarget(range);
         });
     }
 }

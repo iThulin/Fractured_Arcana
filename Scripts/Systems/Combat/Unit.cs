@@ -101,8 +101,8 @@ public partial class Unit : Node3D
         if (!IsInstanceValid(this)) return;
 
         Stats.MovePoints = Stats.BaseSpeed;
-        Stats.HasMoved   = false;
-        Stats.HasActed   = false;
+        Stats.HasMoved = false;
+        Stats.HasActed = false;
 
         Stats.Mana = Stats.MaxMana;
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
@@ -125,6 +125,16 @@ public partial class Unit : Node3D
         // Fire the callback so effects can react to movement
         if (previousTile != null && previousTile != tile)
             OnTileLeft?.Invoke(previousTile);
+
+        // Check for glyph
+        if (tile?.Glyph != null && !tile.Glyph.Consumed && tile.Glyph.OwnerTeam != this.TeamId)
+        {
+            var glyph = tile.Glyph;
+            glyph.Consumed = true;
+            tile.Glyph = null;
+            tile.TileView?.ClearGlyph();
+            glyph.OnTrigger?.Invoke(this, glyph.GameState);
+        }
     }
 
     public bool TryMoveTo(HexGridManager grid, TileData dest)
@@ -174,8 +184,8 @@ public partial class Unit : Node3D
 
         if (!Stats.IsAlive && !IsDeathQueued)
         {
-            OnDied?.Invoke(this);  
-            Die();                  
+            OnDied?.Invoke(this);
+            Die();
         }
     }
 
@@ -217,7 +227,7 @@ public partial class Unit : Node3D
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
     }
 
-        public void RefreshHealthBar()
+    public void RefreshHealthBar()
     {
         _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
@@ -244,12 +254,18 @@ public partial class Unit : Node3D
         else if (status == "chaining")
             // no immediate effect, but checked at cast time by DealDamageEffect
 
-        GD.Print($"{Name} gains {status} for {duration} turn(s).");
+            GD.Print($"{Name} gains {status} for {duration} turn(s).");
     }
 
     public bool HasStatus(string status)
     {
         return Stats.StatusEffects.ContainsKey(status) && Stats.StatusEffects[status] > 0;
+    }
+
+    public void RemoveStatus(string statusName)
+    {
+        Stats.StatusEffects?.Remove(statusName);
+        RefreshHealthBar();
     }
 
     public void TickStatuses()
@@ -336,9 +352,9 @@ public partial class Unit : Node3D
         var ring = new MeshInstance3D();
         var mesh = new CylinderMesh
         {
-            TopRadius    = 0.75f,
+            TopRadius = 0.75f,
             BottomRadius = 0.75f,
-            Height       = 0.05f,
+            Height = 0.05f,
             RadialSegments = 24
         };
         ring.Mesh = mesh;
@@ -346,10 +362,10 @@ public partial class Unit : Node3D
 
         _hoverMat = new StandardMaterial3D
         {
-            AlbedoColor  = new Color(1.0f, 0.8f, 0.1f, 0.7f), // gold
+            AlbedoColor = new Color(1.0f, 0.8f, 0.1f, 0.7f), // gold
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            ShadingMode  = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            NoDepthTest  = true
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            NoDepthTest = true
         };
         ring.SetSurfaceOverrideMaterial(0, _hoverMat);
         ring.Visible = false;
@@ -368,11 +384,11 @@ public partial class Unit : Node3D
     {
         _nameLabel = new Label3D
         {
-            Text       = DisplayName.Length > 0 ? DisplayName : Name,
-            Billboard  = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize   = 18,
-            Modulate   = new Color(1f, 0.85f, 0.85f, 1f),
-            Position   = new Vector3(0f, 2.4f, 0f),
+            Text = DisplayName.Length > 0 ? DisplayName : Name,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            FontSize = 18,
+            Modulate = new Color(1f, 0.85f, 0.85f, 1f),
+            Position = new Vector3(0f, 2.4f, 0f),
             OutlineSize = 6,
             OutlineModulate = Colors.Black
         };

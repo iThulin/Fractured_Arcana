@@ -384,7 +384,9 @@
 						"stunned",
 						"rooted",
 						"poisoned",
-						"weakened"
+						"weakened",
+						"blinded",
+						"arcane_mark"
 					]
 				},
 				"duration": {

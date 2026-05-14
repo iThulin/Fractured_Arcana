@@ -1,79 +1,150 @@
 {
-  "id": "generic_bulwark",
-  "status": "stub",
-  "name": "Bulwark",
-  "school": "Generic",
-  "rarity": "Rare",
-  "top": {
-    "name": "Bulwark",
-    "mana": 2,
-    "speed": "Instant",
-    "rules_text": "Create a Shield Wall on target tile within 2 (12HP). Blocks LOS and movement. Allies adjacent gain +2 armor.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Bulwark (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Shield Wall has 20HP and grants +4 armor",
-      "targeting": {
-        "type": "aoe",
-        "radius": 2,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Siphon",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 5 damage. Heal for damage dealt. If target has more HP than you deal 5 instead.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 5
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Siphon (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also gain 1 mana if heal triggered",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "generic_bulwark",
+	"status": "wip",
+	"name": "Bulwark",
+	"school": "Generic",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Bulwark",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Create a Shield Wall on target empty tile within 2 (12HP). Allies adjacent gain +2 armor.",
+		"tags": [],
+		"requires": [
+			"empty_tile"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "summon",
+					"unit": "Shield_Wall",
+					"count": 1
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "adjacent_to_target",
+						"include_tiles": false
+					},
+					"do": {
+						"type": "grant_armor",
+						"amount": 2
+					}
+				}
+			]
+		},
+		"channel": {
+			"name": "Bulwark (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Shield Wall has 20HP and grants +4 armor to adjacent allies.",
+			"tags": [],
+			"requires": [
+				"empty_tile"
+			],
+			"targeting": {
+				"type": "tile",
+				"range": 2
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "summon",
+						"unit": "Shield_Wall_Heavy",
+						"count": 1
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "adjacent_to_target",
+							"include_tiles": false
+						},
+						"do": {
+							"type": "grant_armor",
+							"amount": 4
+						}
+					}
+				]
+			}
+		}
+	},
+	"bottom": {
+		"name": "Siphon",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 5 damage. Heal 5.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 5
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "self"
+					},
+					"do": {
+						"type": "heal",
+						"amount": 5
+					}
+				}
+			]
+		},
+		"channel": {
+			"name": "Siphon (Channel)",
+			"mana": 2,
+			"speed": "Reaction",
+			"rules_text": "Channel: Deal 5 damage, heal 5, gain 1 mana.",
+			"tags": [],
+			"targeting": {
+				"type": "unit",
+				"range": 6,
+				"los": true,
+				"enemies_only": true
+			},
+			"effect": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 5
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "self"
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "heal",
+									"amount": 5
+								},
+								{
+									"type": "mana_gain",
+									"amount": 1
+								}
+							]
+						}
+					}
+				]
+			}
+		}
+	}
 }

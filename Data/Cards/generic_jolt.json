@@ -1,81 +1,48 @@
 {
-  "id": "generic_jolt",
-  "status": "stub",
-  "name": "Jolt",
-  "school": "Generic",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Jolt",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Deal 4 damage. Push target 1 tile away from you.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 4
-        },
-        {
-          "type": "move",
-          "tiles": 1
-        }
-      ]
-    },
-    "channel": {
-      "name": "Jolt (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Push 2 tiles",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "move",
-        "tiles": 2
-      }
-    }
-  },
-  "bottom": {
-    "name": "Hunker",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Gain 5 armor. Immobilize self for 1 turn. While immobilized your spells deal +2 damage.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "shield",
-          "amount": 5
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Hunker (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: +3 damage instead",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "generic_jolt",
+	"status": "wip",
+	"name": "Jolt",
+	"school": "Generic",
+	"rarity": "Common",
+	"top": {
+		"name": "Jolt",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 2 damage. Push target 1 tile.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 4,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 2
+				},
+				{
+					"type": "push",
+					"tiles": 1,
+					"collision_damage": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Spark",
+		"mana": 0,
+		"speed": "Sorcery",
+		"rules_text": "Gain 1 mana.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "mana_gain",
+			"amount": 1
+		}
+	}
 }
