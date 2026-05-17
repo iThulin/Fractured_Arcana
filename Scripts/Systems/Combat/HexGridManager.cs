@@ -16,7 +16,7 @@ public partial class HexGridManager : Node3D
     [ExportGroup("Spawn Settings")]
     [Export] public int SpawnZonePadding = 1;
     [Export] public int ReservedSpawnRadius = 1;
-    [Export] public int PlayerSpawnCount = 2;
+    [Export] public int PlayerSpawnCount = 3;
     [Export] public int EnemySpawnCount = 3;
 
     [ExportGroup("Gameplay Settings")]
@@ -2043,6 +2043,51 @@ public partial class HexGridManager : Node3D
 
                 if (neighbor != start)
                     result.Add(neighbor);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns a dictionary of reachable tile coords → movement cost to reach them.
+    /// Used to drive cost-coloured highlighting.
+    /// </summary>
+    public Dictionary<Vector2I, int> GetReachableTilesWithCost(Unit unit)
+    {
+        var result = new Dictionary<Vector2I, int>();
+        if (unit?.CurrentTile == null) return result;
+
+        var start = unit.CurrentTile.Axial;
+        int maxMove = unit.Stats.MovePoints;
+
+        var frontier = new Queue<(Vector2I coord, int costUsed)>();
+        var bestCost = new Dictionary<Vector2I, int>();
+
+        frontier.Enqueue((start, 0));
+        bestCost[start] = 0;
+
+        while (frontier.Count > 0)
+        {
+            var (current, costUsed) = frontier.Dequeue();
+
+            foreach (var neighbor in GetNeighbors(current))
+            {
+                if (!Tiles.TryGetValue(neighbor, out var tile)) continue;
+                if (!tile.IsWalkable || tile.IsBlocked) continue;
+                if (tile.IsOccupied && neighbor != start) continue;
+
+                int stepCost = Mathf.Max(1, tile.MoveCost);
+                int newCost = costUsed + stepCost;
+                if (newCost > maxMove) continue;
+
+                if (bestCost.TryGetValue(neighbor, out int old) && old <= newCost) continue;
+
+                bestCost[neighbor] = newCost;
+                frontier.Enqueue((neighbor, newCost));
+
+                if (neighbor != start)
+                    result[neighbor] = newCost;
             }
         }
 

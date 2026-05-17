@@ -40,16 +40,12 @@ public class Companion
     // ── Martial progression (saved per companion) ────────────────────────
     // Which stances this companion has been trained in at the campus.
     // Populated by the Training tab — not from JSON templates.
+    [System.Text.Json.Serialization.JsonPropertyName("availableStanceIds")]
     public List<string> TrainedStanceIds = new();
 
     // AP pool — set by Training Grounds tier at run start
     // Stored here so the UI can show it between runs
     public int BaseActionPoints = 3; // levy default
-
-    // ── Stance progression ───────────────────────────────────────────────
-    // Which stances this companion has access to (unlocked by Training Grounds tier)
-    // Index = stance slot (0 = first unlocked at Tier 1, 1 = Tier 2, 2 = Tier 3)
-    public List<string> AvailableStanceIds = new();
 
     // ── Runtime state (not in JSON — set during combat) ──────────────────
     // These are not serialized; they're rebuilt each combat from save data.

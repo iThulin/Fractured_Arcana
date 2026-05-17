@@ -17,32 +17,60 @@ public static class CompanionRoster
     public static void EnsureRoster(GuildSaveData save)
     {
         if (save == null) return;
+        CompanionLoader.ClearCache();
         var templates = CompanionLoader.LoadAll();
 
         foreach (var template in templates)
         {
-            if (save.Companions.Any(c => c.Id == template.Id)) continue;
+            var existing = save.Companions.Find(c => c.Id == template.Id);
 
-            // Clone template into save with default state
-            var entry = new Companion
+            if (existing == null)
             {
-                Id = template.Id,
-                Name = template.Name,
-                School = template.School,
-                PersonalityTrait = template.PersonalityTrait,
-                Backstory = template.Backstory,
-                ContributedCardIds = new List<string>(template.ContributedCardIds),
-                RecruitmentCost = template.RecruitmentCost,
-                UnlockCondition = template.UnlockCondition,
-
-                // Default starting state
-                IsRecruited = false,
-                IsAvailable = template.IsAvailable, // some companions start available
-                IsPermadead = false,
-                Loyalty = 50,
-                ArcStage = 0,
-            };
-            save.Companions.Add(entry);
+                // New companion — add with all fields from template
+                save.Companions.Add(new Companion
+                {
+                    Id = template.Id,
+                    Name = template.Name,
+                    School = template.School,
+                    PersonalityTrait = template.PersonalityTrait,
+                    Backstory = template.Backstory,
+                    ContributedCardIds = new List<string>(template.ContributedCardIds),
+                    RecruitmentCost = template.RecruitmentCost,
+                    UnlockCondition = template.UnlockCondition,
+                    IsRecruited = false,
+                    IsAvailable = template.IsAvailable,
+                    IsPermadead = false,
+                    Loyalty = 50,
+                    ArcStage = 0,
+                    // ── New fields ──────────────────────────
+                    UnitClass = template.UnitClass,
+                    BaseHP = template.BaseHP,
+                    BaseSpeed = template.BaseSpeed,
+                    BaseArmor = template.BaseArmor,
+                    BaseAttackDamage = template.BaseAttackDamage,
+                    BaseAttackRange = template.BaseAttackRange,
+                    BaseMana = template.BaseMana,
+                });
+            }
+            else
+            {
+                // Existing companion — migrate any missing fields from template
+                // This handles saves created before new fields were added
+                if (string.IsNullOrEmpty(existing.UnitClass) || existing.UnitClass == "None")
+                    existing.UnitClass = template.UnitClass;
+                if (existing.BaseHP <= 0)
+                    existing.BaseHP = template.BaseHP;
+                if (existing.BaseSpeed <= 0)
+                    existing.BaseSpeed = template.BaseSpeed;
+                if (existing.BaseAttackDamage <= 0)
+                    existing.BaseAttackDamage = template.BaseAttackDamage;
+                if (existing.BaseAttackRange <= 0)
+                    existing.BaseAttackRange = template.BaseAttackRange;
+                if (existing.BaseMana == 0 && template.BaseMana > 0)
+                    existing.BaseMana = template.BaseMana;
+                if (existing.BaseArmor == 0 && template.BaseArmor > 0)
+                    existing.BaseArmor = template.BaseArmor;
+            }
         }
     }
 

@@ -212,10 +212,14 @@ public partial class HexTile : Node3D
         RefreshVisualState();
     }
 
-    public void SetMoveHighlight(bool enabled)
+    public void SetMoveHighlightColored(Color color)
     {
-        moveHighlighted = enabled;
-        RefreshVisualState();
+        // Apply the color directly to whatever mesh/material drives move highlight
+        // Use AlbedoColor override — same pattern as existing tile highlighting
+        if (_moveMesh != null)
+            _moveMesh.GetSurfaceOverrideMaterial(0)?.Set("albedo_color", color);
+
+        SetMoveHighlight(true); // keep the existing visibility logic
     }
 
     public void SetTargetHighlight(bool enabled)

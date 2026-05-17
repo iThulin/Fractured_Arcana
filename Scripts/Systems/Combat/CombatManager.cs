@@ -555,25 +555,23 @@ public partial class CombatManager : Node3D
         ClearTargetHighlight();
 
         ClearMoveTiles();
-        var reachable = grid.GetReachableTiles(unit);
-        foreach (var coord in reachable)
-            currentMoveTiles.Add(coord);
-        ShowMoveTiles(currentMoveTiles);
+        ShowMoveTilesWithCost(unit);
 
         // ── Swap deck / hide hand for martial units ──
         if (!unit.IsMartial && unit.DeckData != null && deckManager != null)
         {
             deckManager.SetActiveDeck(unit.DeckData);
             deckManager.PrintDeckState();
+            // Show hand UI for arcane units
+            if (deckManager.HandContainer != null)
+                deckManager.HandContainer.Visible = true;
         }
         else if (unit.IsMartial)
         {
-            // Hide the hand UI — martial units use StanceUI instead
-            deckUiManager?.SetVisible(false);
+            // Hide hand UI entirely — martial units use StanceUI instead
+            if (deckManager?.HandContainer != null)
+                deckManager.HandContainer.Visible = false;
         }
-
-        if (!unit.IsMartial)
-            deckUiManager?.SetVisible(true);
 
         // ── Swap attunement UI ──
         schoolAttunementUI?.ShowForUnit(selectedUnit);
@@ -588,6 +586,39 @@ public partial class CombatManager : Node3D
         deckUiManager?.RefreshAffordability();
 
         GD.Print($"Selected: {unit.Name}  move={unit.Stats.MovePoints}/{unit.Stats.BaseSpeed}  reachable={reachable.Count}");
+    }
+
+    private void ShowMoveTilesWithCost(Unit unit)
+    {
+        int budget = unit.IsMartial
+            ? unit.CurrentActionPoints / MartialAPCosts.MoveNormal
+            : unit.Stats.MovePoints;
+
+        // Temporarily set MovePoints so Dijkstra uses the right budget
+        int saved = unit.Stats.MovePoints;
+        unit.Stats.MovePoints = budget;
+
+        var tilesWithCost = grid.GetReachableTilesWithCost(unit);
+
+        unit.Stats.MovePoints = saved;
+
+        foreach (var kvp in tilesWithCost)
+        {
+            currentMoveTiles.Add(kvp.Key);
+            var tileView = grid.GetTileView(kvp.Key);
+            if (tileView == null) continue;
+
+            // Colour by cost fraction of total budget
+            float fraction = budget > 0 ? (float)kvp.Value / budget : 1f;
+
+            // Green (cheap) → Yellow (moderate) → Orange (expensive)
+            if (fraction <= 0.4f)
+                tileView.SetMoveHighlightColored(UITheme.MoveHighlightCheap);
+            else if (fraction <= 0.75f)
+                tileView.SetMoveHighlightColored(UITheme.MoveHighlightModerate);
+            else
+                tileView.SetMoveHighlightColored(UITheme.MoveHighlightExpensive);
+        }
     }
 
     private void TryMoveSelectedUnit(HexTile tileView)
@@ -627,12 +658,7 @@ public partial class CombatManager : Node3D
         {
             GD.Print($"{selectedUnit.Name} moved to {tileData.Axial}");
             ClearMoveTiles();
-
-            // Recalculate reachable tiles based on remaining AP for martials
-            var reachable = ComputeReachableTiles(selectedUnit);
-            foreach (var coord in reachable) currentMoveTiles.Add(coord);
-            ShowMoveTiles(currentMoveTiles);
-
+            ShowMoveTilesWithCost(selectedUnit);
             RefreshSelectedUnitUI();
             RefreshPlayerUnitBar();
         }
@@ -672,24 +698,14 @@ public partial class CombatManager : Node3D
         if (!unit.IsMartial)
             return grid.GetReachableTiles(unit);
 
-        // Martials can reach any tile within AP / MoveNormal tiles distance
-        // Difficult terrain tiles cost more AP so they reduce effective range
-        int apRemaining = unit.CurrentActionPoints;
-        // Reserve AP for attack if they haven't attacked yet
-        // Don't reserve — let the player decide how to spend AP
-        int maxTiles = apRemaining / MartialAPCosts.MoveNormal;
+        // Martials use AP instead of MovePoints — temporarily substitute
+        // so the existing Dijkstra pathfinder works correctly with terrain costs
+        int savedMovePoints = unit.Stats.MovePoints;
+        unit.Stats.MovePoints = unit.CurrentActionPoints / MartialAPCosts.MoveNormal;
 
-        var result = new HashSet<Vector2I>();
-        if (unit.CurrentTile == null) return result;
+        var result = grid.GetReachableTiles(unit);
 
-        foreach (var kvp in grid.Tiles)
-        {
-            if (!kvp.Value.IsWalkable || kvp.Value.IsBlocked || kvp.Value.IsOccupied)
-                continue;
-            int dist = grid.Distance(unit.CurrentTile.Axial, kvp.Key);
-            if (dist <= maxTiles)
-                result.Add(kvp.Key);
-        }
+        unit.Stats.MovePoints = savedMovePoints;
         return result;
     }
 
@@ -2043,6 +2059,8 @@ public partial class CombatManager : Node3D
             }
 
             playerUnits.Add(unit);
+            GD.Print($"[Spawn] {companion.Name} IsMartial={unit.IsMartial} UnitClass={companion.UnitClass}");
+            GD.Print($"[Spawn] {companion.Name} MaxMana={unit.Stats.MaxMana} Mana={unit.Stats.Mana} School={unit.School}");
         }
 
         // Fallback: if no save / no party, spawn a second dummy wizard for testing
@@ -2340,6 +2358,8 @@ public partial class CombatManager : Node3D
 
         var unit = scene.Instantiate<Unit>();
 
+        // ── Set ALL exported properties BEFORE AddChild ───────────────────
+        // _Ready() fires during AddChild in Godot 4, so exports must be set first
         unit.IsPlayerControlled = isPlayerControlled;
         unit.TeamId = teamId;
         unit.StartMaxHealth = maxHealth;
@@ -2350,7 +2370,9 @@ public partial class CombatManager : Node3D
         unit.StartArmor = armor;
         unit.StartShield = shield;
 
+        // ── Now add to scene — _Ready() fires here ────────────────────────
         AddChild(unit);
+
         unit.OnDied += HandleUnitDeath;
         unit.PlaceOnTile(tile);
 
