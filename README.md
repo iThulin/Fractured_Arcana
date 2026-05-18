@@ -630,7 +630,7 @@ The project has two card-related type files. `CardData.cs` contains legacy `Card
 
 ## 8. Godot 4.6 Compatibility Rules
 
-These rules exist for Godot 4.6.1 Mac + Windows cross-platform compatibility. Violating them causes crashes on one platform that don't appear on the other.
+These rules exist for Godot 4.6.2 Mac + Windows cross-platform compatibility. Violating them causes crashes on one platform that don't appear on the other.
 
 | Rule | Do this | Not this |
 |------|---------|----------|
