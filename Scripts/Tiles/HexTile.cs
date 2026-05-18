@@ -56,6 +56,7 @@ public partial class HexTile : Node3D
     private Color _preHighlightColor;
     private bool deploymentHighlighted = false;
     private bool moveHighlighted = false;
+    private Color _moveHighlightColor = UITheme.TileMoveHighlight; // default
     private bool targetHighlighted = false;
     private bool rangeHighlighted = false;
     private bool rangeBorderHighlighted = false;
@@ -250,15 +251,22 @@ public partial class HexTile : Node3D
         RefreshVisualState();
     }
 
+    /// <summary>Toggles the movement highlight. When enabled, the movement highlight colour is blended on top of the base/deployment colour. Use <see cref="SetMoveHighlightColored"/> to set a custom colour for this highlight (e.g. to distinguish player vs ally vs dash reachability).</summary>
+    public void SetMoveHighlight(bool enabled)
+    {
+        if (!enabled)
+            _moveHighlightColor = UITheme.TileMoveHighlight; // reset to default on clear
+        moveHighlighted = enabled;
+        RefreshVisualState();
+    }
+
     /// <summary>Sets a custom colour for the movement highlight overlay, then enables it. Used to distinguish player vs ally vs reachable-via-dash highlights at the gameplay level.</summary>
     public void SetMoveHighlightColored(Color color)
     {
-        // Apply the color directly to whatever mesh/material drives move highlight
-        // Use AlbedoColor override — same pattern as existing tile highlighting
-        if (_moveMesh != null)
-            _moveMesh.GetSurfaceOverrideMaterial(0)?.Set("albedo_color", color);
-
-        SetMoveHighlight(true); // keep the existing visibility logic
+        if (material == null) return;
+        _moveHighlightColor = color;
+        moveHighlighted = true;
+        RefreshVisualState();
     }
 
     /// <summary>Toggles the targeting highlight (used when a card is being aimed at this tile). Saves and restores the prior colour so the highlight is non-destructive.</summary>
@@ -326,7 +334,7 @@ public partial class HexTile : Node3D
 
         Color finalColor = baseColor;
         if (deploymentHighlighted) finalColor = finalColor.Lerp(UITheme.TileDeployHighlight, 0.45f);
-        if (moveHighlighted) finalColor = finalColor.Lerp(UITheme.TileMoveHighlight, 0.45f);
+        if (moveHighlighted) finalColor = finalColor.Lerp(_moveHighlightColor, 0.45f);
         material.AlbedoColor = finalColor;
     }
 

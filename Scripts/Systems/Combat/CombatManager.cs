@@ -605,7 +605,7 @@ public partial class CombatManager : Node3D
         RefreshDeckCounts();
         deckUiManager?.RefreshAffordability();
 
-        GD.Print($"Selected: {unit.Name}  move={unit.Stats.MovePoints}/{unit.Stats.BaseSpeed}  reachable={reachable.Count}");
+        GD.Print($"Selected: {unit.Name}  move={unit.Stats.MovePoints}/{unit.Stats.BaseSpeed}");
     }
 
     private void ShowMoveTilesWithCost(Unit unit)
