@@ -21,7 +21,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Top-level save model. One instance per guild slot.
-/// Serialised to JSON by <see cref="SaveManager"/>.
+/// Serialized to JSON by <see cref="SaveManager"/>.
 /// Bump <see cref="SaveVersion"/> and add a migration in
 /// <c>SaveManager.MigrateIfNeeded</c> whenever the schema changes.
 /// </summary>

@@ -6,14 +6,14 @@ using Godot;
 // Purpose:        Autoload that runs once at game startup to
 //                 prime any process-wide registries (currently:
 //                 the card database). Cheap to add new
-//                 initialisation steps here — keeps that wiring
+//                 initialization steps here — keeps that wiring
 //                 out of individual scenes.
 // Layer:          System
 // Collaborators:  CardLoaderV2.cs (LoadCardsFromJson)
 // See:            README §3 — startup sequence
 // ============================================================
 
-/// <summary>Singleton-style autoload that primes process-wide registries at game startup. Currently only loads the card database; add additional initialisation steps here as the project grows.</summary>
+/// <summary>Singleton-style autoload that primes process-wide registries at game startup. Currently only loads the card database; add additional initialization steps here as the project grows.</summary>
 public partial class GameBootstrap : Node
 {
     public override void _Ready()

@@ -63,7 +63,7 @@ public partial class DeckManager : Node2D
     /// <summary>Currently displayed deck. May be null before <see cref="SetActiveDeck"/> is called.</summary>
     public UnitDeckData GetActiveDeck() => _activeDeck;
 
-    // ── Deck initialisation ──────────────────────────────────────────────
+    // ── Deck initialization ──────────────────────────────────────────────
 
     /// <summary>Replaces the active deck's contents with the given card list and refreshes the UI.</summary>
     public void InitializeDeck(List<Card> startingDeck)
@@ -76,7 +76,7 @@ public partial class DeckManager : Node2D
     /// <summary>
     /// Primary run-start entry point. Reads the player's persistent deck
     /// from <paramref name="save"/> via <see cref="PlayerDeckService"/>,
-    /// initialises the active <see cref="UnitDeckData"/>, and refreshes the UI.
+    /// initializes the active <see cref="UnitDeckData"/>, and refreshes the UI.
     /// Falls back to a random deck if the save has no valid persistent deck yet
     /// (e.g. first boot before <see cref="StarterDeckLoader.SeedStarterDeck"/>
     /// has been called).

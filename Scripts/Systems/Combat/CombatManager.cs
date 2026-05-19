@@ -1477,7 +1477,7 @@ public partial class CombatManager : Node3D
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Enemy AI — archetype-driven behaviours
+    // Enemy AI — archetype-driven behaviors
     // ═══════════════════════════════════════════════════════════════════════
 
     private async System.Threading.Tasks.Task ActEnemyUnit(Unit enemy, Unit target)
@@ -2258,7 +2258,7 @@ public partial class CombatManager : Node3D
             }
         }
 
-        // Prioritise tiles whose terrain type isn't already represented
+        // Prioritize tiles whose terrain type isn't already represented
         var existingTypes = new HashSet<TileTerrainType>(
             playerDeployCoords.Select(c => grid.GetTile(c)?.TerrainType ?? TileTerrainType.Grass));
 
@@ -2521,7 +2521,7 @@ public partial class CombatManager : Node3D
         pendingEnemySpawns.Clear();
 
         // Default mix: one Soldier, one Ranger, one Wizard.
-        // Gives immediate variety and exercises all three AI behaviours.
+        // Gives immediate variety and exercises all three AI behaviors.
         // Swap these out per encounter type once EncounterDefinition exists.
         var composition = new EnemyArchetype[]
         {
@@ -3304,7 +3304,7 @@ public partial class CombatManager : Node3D
                 }
             }
 
-            // Resolve the stack immediatly
+            // Resolve the stack immediately
             while (!State.Stack.IsEmpty)
                 State.Resolver.ResolveTop(State);
 

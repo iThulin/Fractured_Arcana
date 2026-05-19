@@ -13,5 +13,6 @@
   },
   "[csharp]": {
     "editor.defaultFormatter": "ms-dotnettools.csharp"
-  }
+  },
+  "cSpell.words": ["Unslot"]
 }

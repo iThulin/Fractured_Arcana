@@ -7,7 +7,7 @@ using System.Collections.Generic;
 // Purpose:        Startup glue between JsonCardLoader (which
 //                 parses card JSON) and CardDatabase (which
 //                 holds the runtime registry). Ensures the
-//                 script registry is initialised exactly once
+//                 script registry is initialized exactly once
 //                 and gates "wip" cards behind a DevMode flag.
 // Layer:          Loader
 // Collaborators:  JsonCardLoader.cs (the actual JSON parser),

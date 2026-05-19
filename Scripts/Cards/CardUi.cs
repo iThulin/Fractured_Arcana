@@ -261,7 +261,7 @@ public partial class CardUi : Control
 
     // ── Card data — populate split halves and prepare full card view ───────
 
-    /// <summary>Wire the parent <see cref="DeckUiManager"/> so this card can notify it on hover (used to slide neighbour cards aside).</summary>
+    /// <summary>Wire the parent <see cref="DeckUiManager"/> so this card can notify it on hover (used to slide neighbor cards aside).</summary>
     public void SetDeckUiManager(DeckUiManager manager) => _deckUiManager = manager;
 
     /// <summary>

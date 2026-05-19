@@ -96,7 +96,7 @@ public static class StarterDeckLoader
     {
         if (save == null) return;
 
-        // Initialise PlayerDeck if it hasn't been set yet.
+        // Initialize PlayerDeck if it hasn't been set yet.
         save.PlayerDeck ??= new PlayerDeckSave();
 
         if (save.PlayerDeck.Cards != null && save.PlayerDeck.Cards.Count > 0)
