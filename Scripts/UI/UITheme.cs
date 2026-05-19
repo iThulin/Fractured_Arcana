@@ -136,6 +136,8 @@ public static class UITheme
     public static readonly Color ArmorGrey = new Color(0.55f, 0.55f, 0.62f, 1f);
     public static readonly Color ShieldPurple = new Color(0.50f, 0.25f, 0.85f, 0.80f);
     public const float HealthBarWidth = 1.6f;
+    public static readonly Color APPipFull = new Color(0.9f, 0.8f, 0.2f);
+	public static readonly Color APPipEmpty = new Color(0.25f, 0.25f, 0.25f);
 
     // ════════════════════════════════════════════════════════════
     // TILE HIGHLIGHTS

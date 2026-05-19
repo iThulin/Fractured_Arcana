@@ -60,6 +60,7 @@ public partial class Unit : Node3D
     [Export] public int StartArmor = 0;
     [Export] public int StartShield = 0;
     [Export] public int StartBaseSpeed = 2;
+    [Export] public int MoveRange = 3;
     [Export] public int StartMaxMana = 3;
     [Export] public int StartMana = 3;
     public bool IsDeathQueued { get; private set; }
@@ -158,17 +159,8 @@ public partial class Unit : Node3D
     {
         if (!IsInstanceValid(this)) return;
 
-        Stats.MovePoints = Stats.BaseSpeed;
-        Stats.HasMoved = false;
+        CurrentActionPoints = MaxActionPoints;
         Stats.HasActed = false;
-        Stats.HasPlayedCardThisTurn = false;
-
-        // Martial AP reset
-        if (IsMartial)
-        {
-            CurrentActionPoints = MaxActionPoints;
-            HasSwitchedStanceThisTurn = false;
-        }
 
         Stats.Mana = Stats.MaxMana;
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
@@ -205,22 +197,16 @@ public partial class Unit : Node3D
 
     public bool TryMoveTo(HexGridManager grid, TileData dest)
     {
-        if (grid == null || dest == null || CurrentTile == null)
-            return false;
+        if (grid == null || dest == null || CurrentTile == null) return false;
+        if (!dest.CanEnter(this)) return false;
+        if (dest.Axial == CurrentTile.Axial) return false;
+        if (!CanSpendAP(1)) return false;
 
-        if (!dest.CanEnter(this))
-            return false;
-
-        if (dest.Axial == CurrentTile.Axial)
-            return false;
-
-        // Compute actual path cost via BFS (same logic as GetReachableTiles)
         int pathCost = grid.GetMoveCostTo(this, dest);
-        if (pathCost < 0 || pathCost > Stats.MovePoints)
-            return false;
+        if (pathCost < 0 || pathCost > MoveRange) return false;
 
-        Stats.MovePoints -= pathCost;
-        Stats.HasMoved = true;
+
+        TrySpendAP(1);
         PlaceOnTile(dest);
         return true;
     }
@@ -314,13 +300,11 @@ public partial class Unit : Node3D
         else
             Stats.StatusEffects[status] = duration;
 
-        // Apply immediate effect
-        if (status == "frozen")
-            Stats.MovePoints = 0;
+        // Apply status immediately
+        if (status == "frozen" || status == "rooted")
+            CurrentActionPoints = 0;
         else if (status == "slowed")
-            Stats.MovePoints = Math.Max(0, Stats.MovePoints / 2);
-        else if (status == "rooted")
-            Stats.MovePoints = 0;
+            CurrentActionPoints = Math.Max(0, CurrentActionPoints / 2);
         else if (status == "chaining")
             // no immediate effect, but checked at cast time by DealDamageEffect
 
@@ -369,12 +353,7 @@ public partial class Unit : Node3D
         return true;
     }
 
-    public bool CanMove()
-    {
-        // Frozen OR rooted = can't move
-        if (HasStatus("frozen") || HasStatus("rooted")) return false;
-        return true;
-    }
+    public bool CanMove() => CurrentActionPoints >= 1 && Stats.IsAlive;
 
     // Selection visual methods
     private void CreateSelectionRing()

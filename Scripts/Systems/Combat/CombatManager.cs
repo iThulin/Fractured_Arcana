@@ -90,6 +90,12 @@ public partial class CombatManager : Node3D
     // ── Movement zone renderer ──────────────────────────────────────────────
     private MovementZoneRenderer _zoneRenderer;
 
+    // ── Drag state ──────────────────────────────────────────────────────────
+    private bool _isDraggingUnit = false;
+    private Unit _draggedUnit = null;
+    private Vector2 _dragStartScreenPos;
+    private const float DragThresholdPixels = 8f; // must move this far to count as drag
+
     // ── Phase ───────────────────────────────────────────────────────────────
     public enum CombatPhase { Deployment, PlayerTurn, EnemyTurn, Victory, Defeat }
     private CombatPhase currentPhase = CombatPhase.Deployment;
@@ -262,6 +268,19 @@ public partial class CombatManager : Node3D
             }
         }
 
+        // Drag handling
+        if (_draggedUnit != null)
+        {
+            float dragDist = GetViewport().GetMousePosition()
+                .DistanceTo(_dragStartScreenPos);
+            
+            if (dragDist > DragThresholdPixels && !_isDraggingUnit)
+            {
+                _isDraggingUnit = true;
+                // Could show a ghost unit or change cursor here
+            }
+        }
+
         // ── Cost label on hovered tile ──
         if (selectedUnit != null && _zoneRenderer != null
             && currentPhase == CombatPhase.PlayerTurn)
@@ -273,10 +292,7 @@ public partial class CombatManager : Node3D
                 _zoneRenderer.ShowCostLabelForTile(
                     tileHit.Value,
                     grid,
-                    selectedUnit.IsMartial,
-                    selectedUnit.IsMartial
-                        ? selectedUnit.CurrentActionPoints
-                        : selectedUnit.Stats.MovePoints);
+                    selectedUnit.Stats.BaseSpeed);
             }
             else
             {
@@ -477,6 +493,19 @@ public partial class CombatManager : Node3D
         GD.Print($"Inspecting enemy: {enemy.Name}");
     }
 
+    private void RefreshMoveHighlight()
+    {
+        ClearMoveTiles();
+        if (selectedUnit == null || !selectedUnit.CanMove()) return;
+
+        var reachable = grid.GetReachableTiles(selectedUnit);
+        foreach (var coord in reachable)
+        {
+            currentMoveTiles.Add(coord);
+            grid.GetTileView(coord)?.SetMoveHighlight(true);
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // Input handling
     // ═══════════════════════════════════════════════════════════════════════
@@ -489,17 +518,50 @@ public partial class CombatManager : Node3D
             return;
         }
 
-        if (e is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+        if (e is InputEventMouseButton mb)
         {
-            TryHandleMainPhaseClick();
-            return;
+            if (mb.ButtonIndex == MouseButton.Left)
+            {
+                if (mb.Pressed)
+                    OnLeftMousePressed(mb.Position);
+                else
+                    OnLeftMouseReleased(mb.Position);
+                return;
+            }
         }
 
         if (e.IsActionPressed("ui_select")) { Pass(); } // space by default
         if (e.IsActionPressed("ui_accept")) { ResolveTop(); } // enter
-        if (e is InputEventKey k && k.Pressed)
+        if (e is InputEventKey k && k.Pressed && !k.Echo)
         {
+            // Existing bindings
             if (k.Keycode == Key.R) ResolveTop();
+
+            // ── Unit selection ────────────────────────────────────────────
+            if (currentPhase == CombatPhase.PlayerTurn)
+            {
+                // Enemy inspection — check shift first
+                if (k.ShiftPressed)
+                {
+                    if (k.Keycode == Key.Key1) { TryInspectEnemyByIndex(0); return; }
+                    if (k.Keycode == Key.Key2) { TryInspectEnemyByIndex(1); return; }
+                    if (k.Keycode == Key.Key3) { TryInspectEnemyByIndex(2); return; }
+                    if (k.Keycode == Key.Key4) { TryInspectEnemyByIndex(3); return; }
+                }
+
+                // Unit selection
+                if (k.Keycode == Key.Key1) TrySelectUnitByIndex(0);
+                if (k.Keycode == Key.Key2) TrySelectUnitByIndex(1);
+                if (k.Keycode == Key.Key3) TrySelectUnitByIndex(2);
+                if (k.Keycode == Key.Key4) TrySelectUnitByIndex(3);
+
+                // Tab cycles units
+                if (k.Keycode == Key.Tab)
+                {
+                    if (k.ShiftPressed) CycleSelectedUnit(-1);
+                    else                CycleSelectedUnit(1);
+                }
+            }
         }
     }
 
@@ -563,6 +625,97 @@ public partial class CombatManager : Node3D
         }
     }
 
+    private void OnLeftMousePressed(Vector2 screenPos)
+    {
+        if (isInDeploymentPhase) { TryHandleDeploymentClick(); return; }
+        if (currentPhase != CombatPhase.PlayerTurn) return;
+
+        _dragStartScreenPos = screenPos;
+        _isDraggingUnit = false;
+        _draggedUnit = null;
+
+        // Check if pressing on a player unit — potential drag start
+        var hitUnit = GetUnitUnderMouse();
+        if (hitUnit != null && hitUnit.IsPlayerControlled && hitUnit.Stats.IsAlive)
+        {
+            _draggedUnit = hitUnit;
+            // Select it immediately so move tiles show
+            if (hitUnit != selectedUnit)
+                SelectUnit(hitUnit);
+        }
+    }
+
+    private void OnLeftMouseReleased(Vector2 screenPos)
+    {
+        if (isInDeploymentPhase) return;
+        if (currentPhase != CombatPhase.PlayerTurn) return;
+
+        float dragDist = screenPos.DistanceTo(_dragStartScreenPos);
+        bool wasDrag = dragDist > DragThresholdPixels;
+
+        if (wasDrag && _draggedUnit != null)
+        {
+            // Released after drag — try to move to tile under mouse
+            var tileView = GetTileViewUnderMouse();
+            if (tileView != null)
+                TryMoveSelectedUnit(tileView);
+        }
+        else
+        {
+            // Short press — treat as normal click
+            TryHandleMainPhaseClick();
+        }
+
+        _isDraggingUnit = false;
+        _draggedUnit = null;
+    }
+
+    private Unit GetUnitUnderMouse()
+    {
+        var camera = GetViewport().GetCamera3D();
+        if (camera == null) return null;
+
+        Vector2 mousePos = GetViewport().GetMousePosition();
+        Vector3 from = camera.ProjectRayOrigin(mousePos);
+        Vector3 to = from + camera.ProjectRayNormal(mousePos) * 1000f;
+
+        var result = GetWorld3D().DirectSpaceState
+            .IntersectRay(PhysicsRayQueryParameters3D.Create(from, to));
+        if (result.Count == 0) return null;
+        if (!result.TryGetValue("collider", out var cv)) return null;
+
+        Node current = cv.AsGodotObject() as Node;
+        while (current != null)
+        {
+            if (current is Unit u) return u;
+            current = current.GetParent();
+        }
+        return null;
+    }
+
+    private HexTile GetTileViewUnderMouse()
+    {
+        var camera = GetViewport().GetCamera3D();
+        if (camera == null) return null;
+
+        Vector2 mousePos = GetViewport().GetMousePosition();
+        Vector3 from = camera.ProjectRayOrigin(mousePos);
+        Vector3 to = from + camera.ProjectRayNormal(mousePos) * 1000f;
+
+        var result = GetWorld3D().DirectSpaceState
+            .IntersectRay(PhysicsRayQueryParameters3D.Create(from, to));
+        if (result.Count == 0) return null;
+        if (!result.TryGetValue("collider", out var cv)) return null;
+
+        Node current = cv.AsGodotObject() as Node;
+        while (current != null)
+        {
+            if (current is HexTile tile) return tile;
+            current = current.GetParent();
+        }
+        return null;
+    }
+
     private void InspectEnemy(Unit enemy)
     {
         if (enemy == null || !enemy.Stats.IsAlive) return;
@@ -587,11 +740,16 @@ public partial class CombatManager : Node3D
     {
         if (_zoneRenderer == null || enemy?.CurrentTile == null) return;
 
-        // Temporarily give enemy full movement for display
-        int saved = enemy.Stats.MovePoints;
-        enemy.Stats.MovePoints = enemy.Stats.BaseSpeed;
+        // Temporarily give enemy enough AP to show their threat range
+        int savedAP = enemy.CurrentActionPoints;
+        int savedMax = enemy.MaxActionPoints;
+        enemy.MaxActionPoints = enemy.Stats.BaseSpeed;
+        enemy.CurrentActionPoints = enemy.Stats.BaseSpeed;
+
         var reachable = grid.GetReachableTiles(enemy);
-        enemy.Stats.MovePoints = saved;
+
+        enemy.CurrentActionPoints = savedAP;
+        enemy.MaxActionPoints = savedMax;
 
         _zoneRenderer.ShowEnemyZone(reachable, grid);
     }
@@ -696,23 +854,43 @@ public partial class CombatManager : Node3D
         RefreshDeckCounts();
         deckUiManager?.RefreshAffordability();
 
-        GD.Print($"Selected: {unit.Name}  move={unit.Stats.MovePoints}/{unit.Stats.BaseSpeed}");
+        GD.Print($"Selected: {unit.Name}  AP={unit.CurrentActionPoints}/{unit.MaxActionPoints}");
+    }
+
+    private void TrySelectUnitByIndex(int index)
+    {
+        var alive = playerUnits.Where(u => u != null && u.Stats.IsAlive).ToList();
+        if (index < 0 || index >= alive.Count) return;
+        SelectUnit(alive[index]);
+    }
+
+    private void TryInspectEnemyByIndex(int index)
+    {
+        var alive = enemyUnits
+            .Where(u => u != null && u.Stats.IsAlive)
+            .ToList();
+
+        if (index < 0 || index >= alive.Count) return;
+        InspectEnemy(alive[index]);
+    }
+
+    private void CycleSelectedUnit(int direction)
+    {
+        var alive = playerUnits.Where(u => u != null && u.Stats.IsAlive).ToList();
+        if (alive.Count == 0) return;
+
+        int currentIndex = selectedUnit != null ? alive.IndexOf(selectedUnit) : -1;
+        int nextIndex = (currentIndex + direction + alive.Count) % alive.Count;
+        SelectUnit(alive[nextIndex]);
     }
 
     private void ShowMoveTilesWithCost(Unit unit)
     {
         if (_zoneRenderer == null) return;
+        if (!unit.CanMove()) return;
 
-        int budget = unit.IsMartial
-            ? unit.CurrentActionPoints / MartialAPCosts.MoveNormal
-            : unit.Stats.MovePoints;
-
-        int saved = unit.Stats.MovePoints;
-        unit.Stats.MovePoints = budget;
         var costMap = grid.GetReachableTilesWithCost(unit);
-        unit.Stats.MovePoints = saved;
 
-        // Track reachable coords for click validation
         currentMoveTiles.Clear();
         foreach (var k in costMap.Keys)
             currentMoveTiles.Add(k);
@@ -738,20 +916,8 @@ public partial class CombatManager : Node3D
             return;
         }
 
-        // ── AP cost for martial units ─────────────────────────────────────
-        if (selectedUnit.IsMartial)
-        {
-            // Count tiles in path and sum AP costs
-            int apCost = ComputeMovementAPCost(selectedUnit, tileView.Axial);
-            if (!selectedUnit.CanSpendAP(apCost))
-            {
-                combatUI?.AppendActionLog(
-                    $"{selectedUnit.Name} needs {apCost} AP to move there " +
-                    $"(has {selectedUnit.CurrentActionPoints}).");
-                return;
-            }
-            selectedUnit.TrySpendAP(apCost);
-        }
+        var debugTile = grid.GetTile(tileView.Axial);
+        GD.Print($"[MoveDebug] Target {tileView.Axial} — Walkable={debugTile?.IsWalkable} Blocked={debugTile?.IsBlocked} Occupied={debugTile?.IsOccupied} Obstacle={debugTile?.ObstacleKind}");
 
         if (selectedUnit.TryMoveTo(grid, tileData))
         {
@@ -761,51 +927,6 @@ public partial class CombatManager : Node3D
             RefreshSelectedUnitUI();
             RefreshPlayerUnitBar();
         }
-    }
-
-    /// <summary>
-    /// Compute AP cost to move to a destination.
-    /// Uses straight-line distance for now — path cost for rubble tiles.
-    /// </summary>
-    private int ComputeMovementAPCost(Unit unit, Vector2I destination)
-    {
-        if (unit.CurrentTile == null) return 999;
-        var destTile = grid.GetTile(destination);
-        if (destTile == null) return 999;
-
-        int dist = grid.Distance(unit.CurrentTile.Axial, destination);
-
-        // Base cost: each tile costs MoveNormal AP
-        // Difficult terrain (MoveCost > 1) costs MoveDifficult AP for that tile
-        // This is approximate — assumes destination terrain represents the path
-        // TODO: walk actual A* path for precise per-tile cost
-        int cost = dist * MartialAPCosts.MoveNormal;
-
-        // Surcharge if destination is difficult terrain
-        if (destTile.MoveCost > 1)
-            cost += MartialAPCosts.MoveDifficult - MartialAPCosts.MoveNormal;
-
-        return cost;
-    }
-
-    /// <summary>
-    /// For martial units: compute reachable tiles based on AP remaining.
-    /// For wizard units: use existing grid pathfinding.
-    /// </summary>
-    private HashSet<Vector2I> ComputeReachableTiles(Unit unit)
-    {
-        if (!unit.IsMartial)
-            return grid.GetReachableTiles(unit);
-
-        // Martials use AP instead of MovePoints — temporarily substitute
-        // so the existing Dijkstra pathfinder works correctly with terrain costs
-        int savedMovePoints = unit.Stats.MovePoints;
-        unit.Stats.MovePoints = unit.CurrentActionPoints / MartialAPCosts.MoveNormal;
-
-        var result = grid.GetReachableTiles(unit);
-
-        unit.Stats.MovePoints = savedMovePoints;
-        return result;
     }
 
     private void ClearMoveTiles()
@@ -839,6 +960,16 @@ public partial class CombatManager : Node3D
             return;
         }
 
+        // After the range check, before AP cost:
+        if (effectiveRange > 1)  // only ranged attacks need LOS
+        {
+            if (!grid.HasLineOfSight(attacker.CurrentTile.Axial, target.CurrentTile.Axial))
+            {
+                combatUI?.AppendActionLog($"{attacker.Name} has no line of sight!");
+                return;
+            }
+        }
+
         // ── AP cost ───────────────────────────────────────────────────────
         bool isRanged = effectiveRange > 1;
         int apCost = isRanged ? MartialAPCosts.AttackRanged : MartialAPCosts.AttackMelee;
@@ -866,8 +997,6 @@ public partial class CombatManager : Node3D
 
         // Refresh move tiles — AP changed so reachable range may shrink
         ClearMoveTiles();
-        var reachable = ComputeReachableTiles(attacker);
-        foreach (var coord in reachable) currentMoveTiles.Add(coord);
         ShowMoveTilesWithCost(selectedUnit);
     }
 
@@ -1413,7 +1542,7 @@ public partial class CombatManager : Node3D
             await PerformAttack(enemy, target);
     }
 
-    // ── Defender: hold position, only advance if player within 2 tiles ──
+    // ── Defender: holds position near the most number of allies to give them buffs ──
 
     private async System.Threading.Tasks.Task ActDefender(Unit enemy, Unit target)
     {
@@ -1428,21 +1557,90 @@ public partial class CombatManager : Node3D
             return;
         }
 
-        // Only move if the player is close — otherwise hold ground
-        if (dist <= 2)
+        // ── Find nearest living ally ──────────────────────────────────────
+        Unit nearestAlly = null;
+        int nearestAllyDist = int.MaxValue;
+        foreach (var u in enemyUnits)
         {
-            await MoveToward(enemy, target);
+            if (u == null || u == enemy || !u.Stats.IsAlive || u.CurrentTile == null) continue;
+            int d = grid.Distance(enemy.CurrentTile, u.CurrentTile);
+            if (d < nearestAllyDist) { nearestAllyDist = d; nearestAlly = u; }
+        }
 
+        var moveOptions = grid.GetReachableTiles(enemy);
+        Vector2I bestMove = enemy.CurrentTile.Axial;
+        int bestAllyCount = CountAdjacentAllies(enemy, enemy.CurrentTile.Axial);
+        int bestDistToEnemy = dist;
+
+        foreach (var coord in moveOptions)
+        {
+            int allyCount = CountAdjacentAllies(enemy, coord);
+            int distToEnemy = grid.Distance(coord, target.CurrentTile.Axial);
+
+            if (allyCount > bestAllyCount ||
+            (allyCount == bestAllyCount && distToEnemy < bestDistToEnemy))
+            {
+                bestAllyCount = allyCount;
+                bestDistToEnemy = distToEnemy;
+                bestMove = coord;
+            }
+        }
+
+        // ── If no adjacent allies anywhere reachable, chase nearest ally ──
+        if (bestAllyCount == 0 && nearestAlly != null)
+        {
+            var nextStep = grid.GetFirstStepToward(enemy, nearestAlly.CurrentTile.Axial);
+            if (nextStep != null && enemy.TryMoveTo(grid, nextStep))
+            {
+                string msg = $"{enemy.Name} moves to rejoin allies.";
+                GD.Print(msg);
+                combatUI?.AppendActionLog(msg);
+                await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+            }
+
+            // Still attack if adjacent to player after repositioning
             if (!IsValidActor(enemy) || !IsValidActor(target)) return;
             if (grid.Distance(enemy.CurrentTile, target.CurrentTile) <= 1)
                 await PerformAttack(enemy, target);
+            return;
+        }
+
+        // ── Move to best ally-adjacent position ───────────────────────────
+        if (bestMove != enemy.CurrentTile.Axial)
+        {
+            var tile = grid.GetTile(bestMove);
+            if (tile != null && enemy.TryMoveTo(grid, tile))
+            {
+                string msg = $"{enemy.Name} moves to protect allies.";
+                GD.Print(msg);
+                combatUI?.AppendActionLog(msg);
+                await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+            }
         }
         else
         {
-            string holdMsg = $"{enemy.Name} holds position.";
+            string holdMsg = $"{enemy.Name} holds the line.";
             GD.Print(holdMsg);
             combatUI?.AppendActionLog(holdMsg);
         }
+
+        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (grid.Distance(enemy.CurrentTile, target.CurrentTile) <= 1)
+            await PerformAttack(enemy, target);
+    }
+
+    private int CountAdjacentAllies(Unit unit, Vector2I fromCoord)
+    {
+        int count = 0;
+        foreach (var neighbor in grid.GetNeighbors(fromCoord))
+        {
+            var tile = grid.GetTile(neighbor);
+            if (tile?.Occupant == null) continue;
+            if (tile.Occupant == unit) continue;
+            if (tile.Occupant.TeamId == unit.TeamId && tile.Occupant.Stats.IsAlive)
+                count++;
+        }
+        return count;
     }
 
     // ── Ranger: maintain preferred distance, shoot without closing ───────
@@ -1486,40 +1684,58 @@ public partial class CombatManager : Node3D
     {
         if (!IsValidActor(enemy) || !IsValidActor(target)) return;
 
-        // Stay at max range — never close
         int dist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
-        if (dist < enemy.AttackRange)
-            await MoveAwayFrom(enemy, target, enemy.AttackRange);
+        int preferredRange = enemy.AttackRange;
+        int maxEngageRange = preferredRange + 2; // will close to within this distance
+
+        // Too close — back away to preferred range
+        if (dist < preferredRange)
+        {
+            await MoveAwayFrom(enemy, target, preferredRange);
+        }
+        // Too far to ever shoot — advance until within max engage range
+        else if (dist > maxEngageRange)
+        {
+            await MoveToDistance(enemy, target, preferredRange);
+        }
+        // In preferred zone — hold position
+        // (no movement needed)
 
         if (!IsValidActor(enemy) || !IsValidActor(target)) return;
 
-        // Charge mechanic: WizardCharging tracks the odd/even turn.
-        // True = was charging last turn → fire now. False = charging this turn.
+        // Charge mechanic
         bool wasCharging = enemy.HasStatus("wizard_charging");
 
         if (wasCharging)
         {
-            // Fire charged shot
-            string chargeMsg = $"{enemy.Name} releases a charged blast!";
-            GD.Print(chargeMsg);
-            combatUI?.AppendActionLog(chargeMsg);
-            await PerformRangedAttack(enemy, target, bonusDamage: 0); // damage already in AttackDamage
-
-            // Apply slow debuff to target
-            if (IsValidActor(target))
+            // Only fire if actually in range now
+            int currentDist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
+            if (currentDist <= enemy.AttackRange)
             {
-                target.ApplyStatus("slowed", 1);
-                string debuffMsg = $"{target.Name} is slowed by arcane energy!";
-                GD.Print(debuffMsg);
-                combatUI?.AppendActionLog(debuffMsg);
+                string chargeMsg = $"{enemy.Name} releases a charged blast!";
+                GD.Print(chargeMsg);
+                combatUI?.AppendActionLog(chargeMsg);
+                await PerformRangedAttack(enemy, target);
+
+                if (IsValidActor(target))
+                {
+                    target.ApplyStatus("slowed", 1);
+                    string debuffMsg = $"{target.Name} is slowed by arcane energy!";
+                    GD.Print(debuffMsg);
+                    combatUI?.AppendActionLog(debuffMsg);
+                }
             }
-            // Clear charging status (it was consumed)
-            // No need to remove — it will expire naturally on next TickStatuses
+            else
+            {
+                // Still out of range — skip the shot, reset charge
+                string missMsg = $"{enemy.Name} — target out of range, charge wasted.";
+                GD.Print(missMsg);
+                combatUI?.AppendActionLog(missMsg);
+            }
         }
         else
         {
-            // Begin charging
-            enemy.ApplyStatus("wizard_charging", 2); // duration 2 so it persists into next turn
+            enemy.ApplyStatus("wizard_charging", 2);
             string chargeMsg = $"{enemy.Name} begins channelling...";
             GD.Print(chargeMsg);
             combatUI?.AppendActionLog(chargeMsg);
@@ -1531,85 +1747,83 @@ public partial class CombatManager : Node3D
     /// Move one step toward target (existing behaviour, extracted).
     private async System.Threading.Tasks.Task MoveToward(Unit enemy, Unit target)
     {
-        var moveOptions = grid.GetReachableTiles(enemy);
-        Vector2I bestMove = enemy.CurrentTile.Axial;
-        int bestDist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
+        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
 
-        foreach (var coord in moveOptions)
+        // Find the actual next step along a navigable path, not just the
+        // closest reachable tile — avoids getting stuck on obstacle walls
+        var nextStep = grid.GetFirstStepToward(enemy, target.CurrentTile.Axial);
+
+        if (nextStep == null)
         {
-            var tile = grid.GetTile(coord);
-            if (tile == null) continue;
-            int d = grid.Distance(tile, target.CurrentTile);
-            if (d < bestDist) { bestDist = d; bestMove = coord; }
+            // No path to target — try to get as close as possible
+            // using the old greedy approach as fallback
+            var moveOptions = grid.GetReachableTiles(enemy);
+            Vector2I bestMove = enemy.CurrentTile.Axial;
+            int bestDist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
+
+            foreach (var coord in moveOptions)
+            {
+                var tile = grid.GetTile(coord);
+                if (tile == null) continue;
+                int d = grid.Distance(tile, target.CurrentTile);
+                if (d < bestDist) { bestDist = d; bestMove = coord; }
+            }
+
+            if (bestMove == enemy.CurrentTile.Axial) return; // truly stuck
+
+            nextStep = grid.GetTile(bestMove);
         }
 
-        if (bestMove != enemy.CurrentTile.Axial)
+        if (nextStep == null) return;
+
+        // Only move there if it's within this turn's movement range
+        int pathCost = grid.GetMoveCostTo(enemy, nextStep);
+        if (pathCost < 0 || pathCost > enemy.MoveRange)
         {
-            var tile = grid.GetTile(bestMove);
-            if (tile != null && enemy.TryMoveTo(grid, tile))
-            {
-                string msg = $"{enemy.Name} moves toward {target.Name}.";
-                GD.Print(msg);
-                combatUI?.AppendActionLog(msg);
-                await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
-            }
+            // First step is too far for one AP spend — shouldn't happen
+            // since BFS neighbors are always adjacent, but guard anyway
+            return;
+        }
+
+        if (enemy.TryMoveTo(grid, nextStep))
+        {
+            string msg = $"{enemy.Name} moves toward {target.Name}.";
+            GD.Print(msg);
+            combatUI?.AppendActionLog(msg);
+            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
         }
     }
 
     /// Move to a specific distance from target (Ranger kiting).
     private async System.Threading.Tasks.Task MoveToDistance(Unit enemy, Unit target, int desiredDist)
     {
-        var moveOptions = grid.GetReachableTiles(enemy);
-        Vector2I bestMove = enemy.CurrentTile.Axial;
-        int currentDelta = Math.Abs(grid.Distance(enemy.CurrentTile, target.CurrentTile) - desiredDist);
-        int bestDelta = currentDelta;
+        var nextStep = grid.GetFirstStepToDistance(enemy, target.CurrentTile.Axial, desiredDist);
+        if (nextStep == null) return;
 
-        foreach (var coord in moveOptions)
+        if (enemy.TryMoveTo(grid, nextStep))
         {
-            var tile = grid.GetTile(coord);
-            if (tile == null) continue;
-            int delta = Math.Abs(grid.Distance(tile, target.CurrentTile) - desiredDist);
-            if (delta < bestDelta) { bestDelta = delta; bestMove = coord; }
-        }
-
-        if (bestMove != enemy.CurrentTile.Axial)
-        {
-            var tile = grid.GetTile(bestMove);
-            if (tile != null && enemy.TryMoveTo(grid, tile))
-            {
-                string msg = $"{enemy.Name} repositions.";
-                GD.Print(msg);
-                combatUI?.AppendActionLog(msg);
-                await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
-            }
+            string msg = $"{enemy.Name} repositions.";
+            GD.Print(msg);
+            combatUI?.AppendActionLog(msg);
+            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
         }
     }
 
     /// Move away from target until at least minDist away (Ranger/Wizard retreat).
     private async System.Threading.Tasks.Task MoveAwayFrom(Unit enemy, Unit target, int minDist)
     {
-        var moveOptions = grid.GetReachableTiles(enemy);
-        Vector2I bestMove = enemy.CurrentTile.Axial;
-        int bestDist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
+        // Already far enough — no need to move
+        if (grid.Distance(enemy.CurrentTile, target.CurrentTile) >= minDist) return;
 
-        foreach (var coord in moveOptions)
-        {
-            var tile = grid.GetTile(coord);
-            if (tile == null) continue;
-            int d = grid.Distance(tile, target.CurrentTile);
-            if (d > bestDist) { bestDist = d; bestMove = coord; }
-        }
+        var nextStep = grid.GetFirstStepAwayFrom(enemy, target.CurrentTile.Axial);
+        if (nextStep == null) return;
 
-        if (bestMove != enemy.CurrentTile.Axial)
+        if (enemy.TryMoveTo(grid, nextStep))
         {
-            var tile = grid.GetTile(bestMove);
-            if (tile != null && enemy.TryMoveTo(grid, tile))
-            {
-                string msg = $"{enemy.Name} falls back.";
-                GD.Print(msg);
-                combatUI?.AppendActionLog(msg);
-                await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
-            }
+            string msg = $"{enemy.Name} falls back.";
+            GD.Print(msg);
+            combatUI?.AppendActionLog(msg);
+            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
         }
     }
 
@@ -1643,6 +1857,14 @@ public partial class CombatManager : Node3D
         if (dist > enemy.AttackRange)
         {
             GD.Print($"{enemy.Name} — target out of range for ranged attack.");
+            return;
+        }
+
+        // ── Line of sight check ───────────────────────────────────────────
+        if (!grid.HasLineOfSight(enemy.CurrentTile.Axial, target.CurrentTile.Axial))
+        {
+            GD.Print($"{enemy.Name} — no line of sight to {target.Name}.");
+            combatUI?.AppendActionLog($"{enemy.Name} has no line of sight!");
             return;
         }
 
@@ -2078,6 +2300,9 @@ public partial class CombatManager : Node3D
         {
             wizard.IsMartial = false;
             wizard.CompanionId = "wizard";
+            wizard.MoveRange = 3;
+            wizard.MaxActionPoints = wizard.Stats.BaseSpeed;      // ← add this
+            wizard.CurrentActionPoints = wizard.MaxActionPoints;  // ← add this
             playerUnits.Add(wizard);
         }
 
@@ -2109,6 +2334,7 @@ public partial class CombatManager : Node3D
             {
                 unit.AttackDamage = companion.BaseAttackDamage;
                 unit.AttackRange = companion.BaseAttackRange;
+                unit.MoveRange = isMartial ? 4 : 3;
 
                 unit.MartialClass = companion.UnitClass switch
                 {
@@ -2154,6 +2380,8 @@ public partial class CombatManager : Node3D
                 // Arcane companion — school deck gets added in InitializeUnitDecks
                 unit.School = System.Enum.TryParse<CardSchool>(companion.School,
                     out var cs) ? cs : CardSchool.Generic;
+                unit.MaxActionPoints = unit.Stats.BaseSpeed;      // ← add this
+                unit.CurrentActionPoints = unit.MaxActionPoints;  // ← add this
             }
 
             playerUnits.Add(unit);
@@ -2167,7 +2395,12 @@ public partial class CombatManager : Node3D
             var dummy = SpawnUnitFromSide(HexGridManager.SpawnSide.Player, PlayerUnitScene,
                 teamId: 0, isPlayerControlled: true, namePrefix: "Player",
                 maxHealth: 20, health: 20, baseSpeed: 3, maxMana: 3, mana: 3, armor: 0, shield: 0);
-            if (dummy != null) playerUnits.Add(dummy);
+            if (dummy != null)
+            {
+                dummy.MaxActionPoints = dummy.Stats.BaseSpeed;      // ← add this
+                dummy.CurrentActionPoints = dummy.MaxActionPoints;  // ← add this
+                playerUnits.Add(dummy);
+            }
         }
 
         // Apply equipment loadouts to player units
@@ -2407,8 +2640,12 @@ public partial class CombatManager : Node3D
             unit.EnemyArchetype = p.Archetype;      // ← store so AI can read it
             unit.AttackRange = p.AttackRange;    // ← store attack range
             unit.AttackDamage = p.AttackDamage;   // ← store attack damage
+            unit.MaxActionPoints = p.BaseSpeed;
+            unit.CurrentActionPoints = unit.MaxActionPoints;
             unit.SetBodyColor(p.BodyColor);
             unit.RefreshNameLabel();
+
+            
 
             enemyUnits.Add(unit);
         }
@@ -2602,6 +2839,8 @@ public partial class CombatManager : Node3D
 
             AddChild(unit);
             unit.PlaceOnTile(tile);
+            unit.MaxActionPoints = unit.Stats.BaseSpeed;
+            unit.CurrentActionPoints = unit.MaxActionPoints;
 
             // Name it
             string suffix = unitKind.Replace("_", " ");
@@ -2858,6 +3097,13 @@ public partial class CombatManager : Node3D
                         GD.Print($"[Cast] Out of range: dist={dist} range={ut.range}");
                         return;
                     }
+                }
+
+                // ── LOS check for targeted spells ─────────────────────────────
+                if (!grid.HasLineOfSight(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial))
+                {
+                    combatUI?.AppendActionLog("No line of sight to target!");
+                    return;
                 }
 
                 // Enemies only check

@@ -43,6 +43,7 @@ public partial class CombatUI : CanvasLayer
 	private Label _movementLabel;
 	private Label _manaLabel;
 	private Label _hintLabel;
+	private Label _stanceLabel;
 
 	private ProgressBar _healthBar;
 	private ProgressBar _moveBar;
@@ -137,6 +138,17 @@ public partial class CombatUI : CanvasLayer
 		if (_healthBar != null) _healthBar.ShowPercentage = false;
 		if (_moveBar != null) _moveBar.ShowPercentage = false;
 		if (_manaBar != null) _manaBar.ShowPercentage = false;
+
+		// Build stance label once if it doesn't exist
+		if (_stanceLabel == null && _unitNameLabel != null)
+		{
+			_stanceLabel = new Label();
+			_stanceLabel.AddThemeFontSizeOverride("font_size", 10);
+			_stanceLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			_stanceLabel.CustomMinimumSize = new Vector2(120, 0);
+			// Insert after the mana bar's parent container
+			_unitNameLabel.GetParent()?.AddChild(_stanceLabel);
+		}
 	}
 
 	private void WireButtons()
@@ -208,11 +220,10 @@ public partial class CombatUI : CanvasLayer
 			_unitNameLabel.Text = "No Unit Selected";
 			if (_healthLabel != null) _healthLabel.Text = "";
 			if (_movementLabel != null) _movementLabel.Text = "";
-			if (_manaLabel != null) _manaLabel.Text = mana >= 0 ? $"Mana: {mana}" : "";
-
+			if (_manaLabel != null) { _manaLabel.Text = ""; _manaLabel.Visible = false; }
+			if (_manaBar != null) _manaBar.Visible = false;
 			SetBar(_healthBar, 1, 0);
 			SetBar(_moveBar, 1, 0);
-			if (mana >= 0) SetBar(_manaBar, Mathf.Max(1, mana), mana);
 			return;
 		}
 
@@ -223,15 +234,46 @@ public partial class CombatUI : CanvasLayer
 		if (_healthLabel != null) _healthLabel.Text = $"HP:   {unit.Stats.Health} / {unit.Stats.MaxHealth}";
 		if (_movementLabel != null) _movementLabel.Text = isEnemy
 			? $"Speed: {unit.Stats.BaseSpeed}"
-			: $"Move: {unit.Stats.MovePoints} / {unit.Stats.BaseSpeed}";
+			: $"AP: {unit.CurrentActionPoints} / {unit.MaxActionPoints}";
 
-		bool showMana = !isEnemy || unit.Stats.MaxMana > 0;
+		bool showMana = unit.Stats.MaxMana > 0;
+
 		if (_manaLabel != null)
+		{
 			_manaLabel.Text = showMana ? $"Mana: {mana}" : "";
+			_manaLabel.Visible = showMana;
+		}
+
+		if (_manaBar != null)
+			_manaBar.Visible = showMana;
 
 		SetBar(_healthBar, unit.Stats.MaxHealth, unit.Stats.Health);
-		SetBar(_moveBar, unit.Stats.BaseSpeed, isEnemy ? unit.Stats.BaseSpeed : unit.Stats.MovePoints);
-		if (showMana) SetBar(_manaBar, Mathf.Max(1, unit.Stats.MaxMana), mana);
+		SetBar(_moveBar,
+			isEnemy ? 1 : unit.MaxActionPoints,
+			isEnemy ? 1 : unit.CurrentActionPoints);
+
+		if (showMana)
+			SetBar(_manaBar, Mathf.Max(1, unit.Stats.MaxMana), mana);
+		// ── Stance display ────────────────────────────────────────────────────
+		if (_stanceLabel != null)
+		{
+			if (!isEnemy && unit.IsMartial && unit.ActiveStance != null)
+			{
+				_stanceLabel.Text = $"[{unit.ActiveStance.DisplayName}]\n{unit.ActiveStance.Description}";
+				_stanceLabel.Modulate = new Color(0.9f, 0.85f, 0.5f); // warm gold
+				_stanceLabel.Visible = true;
+			}
+			else if (!isEnemy && unit.IsMartial && unit.ActiveStance == null)
+			{
+				_stanceLabel.Text = "No stance active";
+				_stanceLabel.Modulate = new Color(0.6f, 0.6f, 0.6f);
+				_stanceLabel.Visible = true;
+			}
+			else
+			{
+				_stanceLabel.Visible = false; // wizards and enemies show nothing
+			}
+		}
 	}
 
 	// ── Deployment mode ──────────────────────────────────────────────────────
@@ -397,8 +439,24 @@ public partial class CombatUI : CanvasLayer
 			AddStatRow(vbox, $"HP {unit.Stats.Health}/{unit.Stats.MaxHealth}",
 				unit.Stats.MaxHealth, unit.Stats.Health, UITheme.StatBarHealth);
 
-			AddStatRow(vbox, $"MOVE {unit.Stats.MovePoints}/{unit.Stats.BaseSpeed}",
-				unit.Stats.BaseSpeed, unit.Stats.MovePoints, UITheme.StatBarMove);
+			// Replace the movement row with AP pips:
+			var pipRow = new HBoxContainer();
+			pipRow.AddThemeConstantOverride("separation", 3);
+			for (int p = 0; p < unit.MaxActionPoints; p++)
+			{
+				var pip = new ColorRect();
+				pip.CustomMinimumSize = new Vector2(12, 12);
+				pip.Color = p < unit.CurrentActionPoints
+					? UITheme.APPipFull    // bright, e.g. new Color(0.9f, 0.8f, 0.2f)
+					: UITheme.APPipEmpty;  // dim, e.g. new Color(0.25f, 0.25f, 0.25f)
+				pipRow.AddChild(pip);
+			}
+			// AP Label
+			var apLabel = new Label { Text = "AP" };
+			apLabel.HorizontalAlignment = HorizontalAlignment.Center;
+			apLabel.AddThemeFontSizeOverride("font_size", 10);
+			vbox.AddChild(apLabel);
+			vbox.AddChild(pipRow);
 
 			if (unit.Stats.MaxMana > 0)
 			{

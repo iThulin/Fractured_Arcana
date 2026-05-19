@@ -61,7 +61,7 @@ public static class EnemyArchetypeData
     public static int GetAttackRange(EnemyArchetype a) => a switch
     {
         EnemyArchetype.Ranger => 3,
-        EnemyArchetype.Wizard => 4,
+        EnemyArchetype.Wizard => 5,
         _ => 1,
     };
 

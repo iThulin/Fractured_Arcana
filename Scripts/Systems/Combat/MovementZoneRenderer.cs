@@ -17,11 +17,11 @@ public partial class MovementZoneRenderer : Node3D
 {
     // ── Exports ───────────────────────────────────────────────────────────
     [Export] public float HexRadius = 1.0f;   // match HexGridManager.HexRadius
-    [Export] public float LineWidth = 0.04f;  // world-space width of border line
-    [Export] public float LineHeight = 0.08f;  // Y offset above tile surface
+    [Export] public float LineWidth = 0.08f;  // world-space width of border line
+    [Export] public float LineHeight = 0.12f;  // Y offset above tile surface
     [Export] public float AnimSpeed = .35f;   // dash animation speed
     [Export] public float DashLength = 0.65f;  // fraction of each edge that is solid
-    [Export] public Color PlayerColor = new Color(0.30f, 0.65f, 1.00f, 1.0f); // blue
+    [Export] public Color PlayerColor = new Color(0.20f, 0.70f, 1.00f, 1.0f); // blue
     [Export] public Color EnemyColor = new Color(0.90f, 0.25f, 0.25f, 0.75f); // red
 
     // ── References ───────────────────────────────────────────────────────
@@ -140,27 +140,16 @@ public partial class MovementZoneRenderer : Node3D
     /// Show or update the cost label for a hovered tile.
     /// Pass null tile to hide it.
     /// </summary>
-    public void ShowCostLabelForTile(Vector2I axial, HexGridManager grid,
-        bool isMartial, int budget)
+    public void ShowCostLabelForTile(Vector2I axial, HexGridManager grid, int baseSpeed)
     {
-        if (!_reachableSet.Contains(axial))
-        {
-            HideCostLabel();
-            return;
-        }
-
+        if (!_reachableSet.Contains(axial)) { HideCostLabel(); return; }
         if (axial == _lastHoveredTile) return;
         _lastHoveredTile = axial;
 
-        int cost = _costMap.TryGetValue(axial, out var c) ? c : -1;
-
-        string label;
-        if (cost < 0)
-            label = "?";
-        else if (isMartial)
-            label = $"{cost * MartialAPCosts.MoveNormal} AP";
-        else
-            label = $"{cost} MP";
+        int stepCost = _costMap.TryGetValue(axial, out var c) ? c : -1;
+        string label = stepCost < 0
+            ? "1 AP"
+            : $"1 AP  ({stepCost}/{baseSpeed} steps)";
 
         var tileData = grid.GetTile(axial);
         float tileY = tileData != null ? tileData.Height * 0.5f + 0.8f : 0.8f;
@@ -186,22 +175,55 @@ public partial class MovementZoneRenderer : Node3D
         _immediateMesh.ClearSurfaces();
         if (_reachableSet.Count == 0) return;
 
-        _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
+        // ── Pass 1: tile fill ─────────────────────────────────────────────
+        var fillColor = _isPlayerZone
+            ? new Color(PlayerColor.R, PlayerColor.G, PlayerColor.B, 0.18f)
+            : new Color(EnemyColor.R, EnemyColor.G, EnemyColor.B, 0.15f);
 
+        _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
+        foreach (var coord in _reachableSet)
+            DrawFilledHex(coord, fillColor);
+        _immediateMesh.SurfaceEnd();
+
+        // ── Pass 2: border outline ────────────────────────────────────────
+        _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
         foreach (var coord in _reachableSet)
         {
             for (int d = 0; d < 6; d++)
             {
                 var neighbor = coord + HexDirs[d];
-
-                // Only draw this edge if the neighbor is NOT in the reachable set
                 if (_reachableSet.Contains(neighbor)) continue;
-
                 DrawEdge(coord, d);
             }
         }
-
         _immediateMesh.SurfaceEnd();
+    }
+
+    private void DrawFilledHex(Vector2I coord, Color color)
+    {
+        float tileY = LineHeight * 0.5f; // just above tile surface, below border
+        if (_grid != null)
+        {
+            var tileData = _grid.GetTile(coord);
+            if (tileData != null)
+                tileY = tileData.Height * 0.5f + 0.02f;
+        }
+
+        var center2D = AxialToWorld2D(coord);
+        var center3D = new Vector3(center2D.X, tileY, center2D.Y);
+
+        for (int i = 0; i < 6; i++)
+        {
+            var cA = center2D + HexCorner(i);
+            var cB = center2D + HexCorner((i + 1) % 6);
+
+            var vA = new Vector3(cA.X, tileY, cA.Y);
+            var vB = new Vector3(cB.X, tileY, cB.Y);
+
+            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(center3D);
+            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(vA);
+            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(vB);
+        }
     }
 
     private void DrawEdge(Vector2I coord, int neighborDir)

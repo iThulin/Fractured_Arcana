@@ -30,6 +30,7 @@ public partial class CampusScreen : Control
     private Control[] _tabPanels;
 
     // Guild tab
+    private Label _goldLabel;
     private VBoxContainer _slotContainer;
     private Label _summaryLabel;
     private OptionButton _schoolPicker;
@@ -99,6 +100,17 @@ public partial class CampusScreen : Control
         titleLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTitleFontSize);
         titleLbl.AddThemeColorOverride("font_color", UITheme.CampusTitleColor);
         titleBar.AddChild(titleLbl);
+
+        // Gold label
+        _goldLabel = new Label();
+        _goldLabel.Name = "GoldLabel";
+        _goldLabel.HorizontalAlignment = HorizontalAlignment.Right;
+        _goldLabel.VerticalAlignment = VerticalAlignment.Center;
+        _goldLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        _goldLabel.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.3f)); // gold color
+        _goldLabel.SetAnchorsPreset(LayoutPreset.FullRect);
+        _goldLabel.OffsetRight = -16; // right margin
+        titleBar.AddChild(_goldLabel);
 
         // Tab bar
         var tabBar = new HBoxContainer();
@@ -180,6 +192,13 @@ public partial class CampusScreen : Control
             _tabPanels[i].Visible = (i == index);
             _tabButtons[i].ButtonPressed = (i == index);
             ApplyTabStyle(_tabButtons[i], i == index);
+        }
+
+        // Refresh the newly visible tab so it always shows current data
+        switch (index)
+        {
+            case 4: RefreshArmoryTab(); break;
+            case 5: RefreshTrainingTab(); break;
         }
     }
 
@@ -403,6 +422,7 @@ public partial class CampusScreen : Control
             return;
         }
 
+        RefreshGoldLabel();
         ItemDatabase.LoadAll();
 
         // ── Unit selector ────────────────────────────────────────────────
@@ -761,6 +781,8 @@ public partial class CampusScreen : Control
             _trainingContainer.AddChild(MakeStubLabel("No save loaded."));
             return;
         }
+
+        RefreshGoldLabel();
 
         int tgTier = save.TrainingGroundsTier;
         if (tgTier == 0)
@@ -1164,6 +1186,9 @@ public partial class CampusScreen : Control
         RefreshSlotButtons();
         RefreshCompanionList();
         RefreshBuildingList();
+        RefreshTrainingTab();
+        RefreshArmoryTab();
+        RefreshGoldLabel();
     }
 
     private void RefreshSlotButtons()
@@ -1425,6 +1450,13 @@ public partial class CampusScreen : Control
         }
     }
 
+    private void RefreshGoldLabel()
+    {
+        if (_goldLabel == null) return;
+        var save = SaveManager.ActiveSave;
+        _goldLabel.Text = save != null ? $"Gold: {save.Gold}" : "";
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // Actions
     // ═══════════════════════════════════════════════════════════════════════
@@ -1451,6 +1483,7 @@ public partial class CampusScreen : Control
         EnsureRostersAndBuildings();
         EnsureStarterItems();
         RefreshAll();
+        RefreshGoldLabel();
         RefreshArmoryTab();
         RefreshTrainingTab();
         UpdateStartButton();
@@ -1498,7 +1531,9 @@ public partial class CampusScreen : Control
 
         save.Gold -= tierData.GoldCost;
         buildingSave.Tier = nextTier;
+
         SaveManager.Save();
+        RefreshGoldLabel();
         GD.Print($"Built {buildingSave.Name} tier {nextTier}. Gold: {save.Gold}");
         return true;
     }
