@@ -56,13 +56,9 @@ public static class CardLoaderV2
 
         GD.Print($"[CardLoaderV2] Registered {added} cards (DevMode={DevMode}). " +
                  $"Total blueprints: {CardDatabase.Blueprints.Count}");
-    }
 
-    /// <summary>Clears the database and re-runs the load. Intended for dev-tool hot-reload only; do not call from gameplay code.</summary>
-    public static void Reload(string directoryPath)
-    {
-        CardDatabase.Blueprints.Clear();
-        _registered = false;
-        LoadCardsFromJson(directoryPath);
+        // TEMP — delete after one run
+        foreach (var bp in CardDatabase.Blueprints)
+            GD.Print($"[BlueprintId] school={bp.School} id=\"{bp.Id}\"");
     }
 }

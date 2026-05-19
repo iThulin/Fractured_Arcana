@@ -1,0 +1,29 @@
+{
+    "school": "Elementalist",
+    "cards": [
+        {
+            "id": "Elementalist:Ember Bolt|Stone Skin",
+            "count": 2
+        },
+        {
+            "id": "Elementalist:Frost Lance|Stone Wall",
+            "count": 2
+        },
+        {
+            "id": "Elementalist:Chain Lightning|Wind Shear",
+            "count": 2
+        },
+        {
+            "id": "Elementalist:Lava Flow|Earth Anchor",
+            "count": 2
+        },
+        {
+            "id": "Elementalist:Frost Step|Updraft",
+            "count": 1
+        },
+        {
+            "id": "Elementalist:Tremor Step|Spark Charge",
+            "count": 1
+        }
+    ]
+}

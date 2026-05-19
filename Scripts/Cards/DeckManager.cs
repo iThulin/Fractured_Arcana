@@ -14,11 +14,17 @@ using System.Collections.Generic;
 // Collaborators:  UnitDeckData.cs (the active deck),
 //                 DeckUiManager.cs (UI refresh),
 //                 CardUi.cs (per-card UI), CardDatabase.cs
-//                 (deck generation)
+//                 (deck generation), PlayerDeckService.cs
+//                 (persistent deck hydration)
 // See:            README §6 — Per-Unit Deck Management
 // ============================================================
 
-/// <summary>Combat-side scene-graph orchestrator for one unit's deck at a time. Wires the active <see cref="UnitDeckData"/> to the on-screen DeckUI/HandUI nodes, delegates deck ops, and recomputes hand-overflow discard flags after every change.</summary>
+/// <summary>
+/// Combat-side scene-graph orchestrator for one unit's deck at a time.
+/// Wires the active <see cref="UnitDeckData"/> to the on-screen
+/// DeckUI/HandUI nodes, delegates deck ops, and recomputes
+/// hand-overflow discard flags after every change.
+/// </summary>
 public partial class DeckManager : Node2D
 {
     /// <summary>Maximum hand size for the active deck. Hand entries beyond this index get the discard-flag overlay.</summary>
@@ -28,12 +34,11 @@ public partial class DeckManager : Node2D
     private Control handUIContainer;
     public Control HandContainer => handUIContainer;
 
-    // The currently displayed unit's deck
     private UnitDeckData _activeDeck;
 
-    // ── Public accessors (so existing code doesn't break) ───────
-    public List<Card> DrawPile => _activeDeck?.DrawPile ?? new();
-    public List<Card> Hand => _activeDeck?.Hand ?? new();
+    // ── Public accessors ────────────────────────────────────────────────
+    public List<Card> DrawPile  => _activeDeck?.DrawPile  ?? new();
+    public List<Card> Hand      => _activeDeck?.Hand      ?? new();
     public List<Card> DiscardPile => _activeDeck?.DiscardPile ?? new();
 
     public override void _Ready()
@@ -45,7 +50,7 @@ public partial class DeckManager : Node2D
         GD.Print(handUIContainer == null ? "HandUI is NULL" : "HandUI found");
     }
 
-    // ── Active deck switching ───────────────────────────────────────────
+    // ── Active deck switching ────────────────────────────────────────────
 
     /// <summary>Sets the deck currently being displayed and refreshes the UI. Call when the selected player unit changes.</summary>
     public void SetActiveDeck(UnitDeckData deck)
@@ -58,7 +63,7 @@ public partial class DeckManager : Node2D
     /// <summary>Currently displayed deck. May be null before <see cref="SetActiveDeck"/> is called.</summary>
     public UnitDeckData GetActiveDeck() => _activeDeck;
 
-    // ── Deck operations (delegated to active deck) ──────────────────────
+    // ── Deck initialisation ──────────────────────────────────────────────
 
     /// <summary>Replaces the active deck's contents with the given card list and refreshes the UI.</summary>
     public void InitializeDeck(List<Card> startingDeck)
@@ -68,11 +73,58 @@ public partial class DeckManager : Node2D
         uiManager?.SafeRefreshUI();
     }
 
-    /// <summary>Convenience pass-through to <see cref="CardDatabase.BuildRandomDeck"/> for the given school.</summary>
-    public List<Card> GenerateStartingDeck(CardSchool school, int count = 5)
+    /// <summary>
+    /// Primary run-start entry point. Reads the player's persistent deck
+    /// from <paramref name="save"/> via <see cref="PlayerDeckService"/>,
+    /// initialises the active <see cref="UnitDeckData"/>, and refreshes the UI.
+    /// Falls back to a random deck if the save has no valid persistent deck yet
+    /// (e.g. first boot before <see cref="StarterDeckLoader.SeedStarterDeck"/>
+    /// has been called).
+    /// </summary>
+    public void InitializeFromSave(GuildSaveData save, UnitDeckData deckData)
+    {
+        _activeDeck = deckData;
+
+        List<Card> cards;
+
+        if (PlayerDeckService.IsActiveDeckValid(save))
+        {
+            cards = PlayerDeckService.HydrateActiveDeck(save);
+        }
+        else
+        {
+            // No persistent deck yet — seed it from the starter JSON,
+            // then hydrate. This covers the very first run on a new save.
+            var school = Enum.TryParse<CardSchool>(save?.SelectedSchool, true, out var s)
+                ? s : CardSchool.Elementalist;
+
+            GD.Print("[DeckManager] No valid persistent deck found — seeding starter deck.");
+            StarterDeckLoader.SeedStarterDeck(save, school);
+            SaveManager.Save();
+
+            cards = PlayerDeckService.IsActiveDeckValid(save)
+                ? PlayerDeckService.HydrateActiveDeck(save)
+                : StarterDeckLoader.BuildStarterCards(school);
+        }
+
+        _activeDeck.Initialize(cards);
+        uiManager?.SafeRefreshUI();
+        CallDeferred(nameof(DeferredRefreshDiscardFlags));
+
+        GD.Print($"[DeckManager] InitializeFromSave: {cards.Count} cards loaded.");
+    }
+
+    /// <summary>
+    /// Legacy helper: builds a random deck for the given school.
+    /// Prefer <see cref="InitializeFromSave"/> for all normal run starts.
+    /// Kept for dev tools and unit tests.
+    /// </summary>
+    public List<Card> GenerateStartingDeck(CardSchool school, int count = 10)
     {
         return CardDatabase.BuildRandomDeck(school, count);
     }
+
+    // ── Deck operations (delegated to active deck) ───────────────────────
 
     /// <summary>Shuffles the active deck's draw pile and refreshes the UI.</summary>
     public void ShuffleDrawPile()
@@ -81,7 +133,7 @@ public partial class DeckManager : Node2D
         uiManager?.SafeRefreshUI();
     }
 
-    /// <summary>Draws <paramref name="count"/> cards into the active hand and refreshes the UI. Logs every drawn card to the console.</summary>
+    /// <summary>Draws <paramref name="count"/> cards into the active hand and refreshes the UI.</summary>
     public void DrawCards(int count)
     {
         if (_activeDeck == null) return;
@@ -99,7 +151,7 @@ public partial class DeckManager : Node2D
         RefreshDiscardFlags();
     }
 
-    /// <summary>Removes a specific card from the active hand without sending it to discard (used when a card is exiled or consumed mid-cast).</summary>
+    /// <summary>Removes a specific card from the active hand without sending it to discard.</summary>
     public void RemoveCardFromHand(Card card)
     {
         if (_activeDeck == null) return;
@@ -109,7 +161,7 @@ public partial class DeckManager : Node2D
         CallDeferred(nameof(DeferredRefreshDiscardFlags));
     }
 
-    /// <summary>Shuffles the discard pile back into the draw pile (mostly invoked automatically when the draw pile runs dry).</summary>
+    /// <summary>Shuffles the discard pile back into the draw pile.</summary>
     public void Reshuffle()
     {
         _activeDeck?.Reshuffle();
@@ -129,10 +181,16 @@ public partial class DeckManager : Node2D
     public void PrintDeckState()
     {
         if (_activeDeck == null) { GD.Print("No active deck."); return; }
-        GD.Print($"DeckManager state — Draw: {_activeDeck.DrawPile.Count}, Hand: {_activeDeck.Hand.Count}, Discard: {_activeDeck.DiscardPile.Count}");
+        GD.Print($"DeckManager state — Draw: {_activeDeck.DrawPile.Count}, " +
+                 $"Hand: {_activeDeck.Hand.Count}, " +
+                 $"Discard: {_activeDeck.DiscardPile.Count}");
     }
 
-    /// <summary>Updates the visual "this card will be discarded at end of turn" flag on each CardUi in the hand container. Cards beyond <see cref="MaxHandSize"/> get the flag.</summary>
+    /// <summary>
+    /// Updates the visual "this card will be discarded at end of turn" flag
+    /// on each CardUi in the hand container. Cards beyond
+    /// <see cref="MaxHandSize"/> get the flag.
+    /// </summary>
     public void RefreshDiscardFlags()
     {
         if (_activeDeck == null || handUIContainer == null) return;
@@ -141,9 +199,7 @@ public partial class DeckManager : Node2D
 
         var cardUis = new List<CardUi>();
         foreach (Node child in handUIContainer.GetChildren())
-        {
             if (child is CardUi cui) cardUis.Add(cui);
-        }
 
         for (int i = 0; i < cardUis.Count; i++)
         {

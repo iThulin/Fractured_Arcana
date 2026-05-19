@@ -310,34 +310,50 @@ public partial class CombatManager : Node3D
 
     private void InitializeUnitDecks()
     {
-        // Get cards from active party companions (added to the wizard's deck)
         var companionCards = BuildCompanionCardList();
-
         bool injectedCompanionCards = false;
 
         foreach (var unit in playerUnits)
         {
             if (unit == null) continue;
-
-            // Martial units have no deck — skip
             if (unit.IsMartial) continue;
 
             unit.DeckData = new UnitDeckData(unit.School, 5);
 
-            if (!injectedCompanionCards && companionCards.Count > 0)
+            if (!injectedCompanionCards)
             {
-                // First unit gets a school deck PLUS companion cards
-                var schoolDeck = CardDatabase.BuildRandomDeck(unit.School, PlayerSession.DeckSize);
-                schoolDeck.AddRange(companionCards);
-                unit.DeckData.Initialize(schoolDeck);
+                // First wizard gets the persistent deck + companion cards on top.
+                var cards = PlayerDeckService.HydrateActiveDeck(SaveManager.ActiveSave);
+
+                if (cards.Count == 0)
+                {
+                    // Fallback: save has no valid persistent deck yet (edge case on
+                    // migrated saves that haven't been through NewGame). Seed it now.
+                    GD.PrintErr("[InitializeUnitDecks] Persistent deck empty — seeding starter deck.");
+                    if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave?.SelectedSchool,
+                            ignoreCase: true, out var school))
+                        StarterDeckLoader.SeedStarterDeck(SaveManager.ActiveSave, school);
+                    SaveManager.Save();
+                    cards = PlayerDeckService.HydrateActiveDeck(SaveManager.ActiveSave);
+                }
+
+                if (companionCards.Count > 0)
+                    cards.AddRange(companionCards);
+
+                unit.DeckData.Initialize(cards);
                 injectedCompanionCards = true;
+
                 GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
-                         $"({unit.School}, {companionCards.Count} from companions)");
+                         $"({unit.School}, {companionCards.Count} companion, " +
+                         $"{cards.Count - companionCards.Count} from save)");
             }
             else
             {
+                // Additional wizards (future multi-wizard party) still get a random deck
+                // until per-unit persistent decks are designed.
                 unit.DeckData.Initialize(PlayerSession.DeckSize);
-                GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards ({unit.School})");
+                GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
+                         $"({unit.School}) [secondary unit, random]");
             }
         }
 
@@ -347,7 +363,7 @@ public partial class CombatManager : Node3D
         State.OnDrawCards = (unit) =>
         {
             if (deckManager != null && deckManager.GetActiveDeck() == unit.DeckData)
-                deckManager.DrawCards(0); // count 0 = just refresh UI, don't draw more cards
+                deckManager.DrawCards(0);
         };
     }
 
@@ -372,6 +388,7 @@ public partial class CombatManager : Node3D
 
         return result;
     }
+
 
     // ═══════════════════════════════════════════════════════════════════════
     // Central UI refresh – call this whenever state changes

@@ -14,6 +14,7 @@ using System.Text.Json.Serialization;
 //                 slot-selection UI.
 // Layer:          System
 // Collaborators:  GuildSaveData.cs (the schema),
+//                 StarterDeckLoader.cs (seeds PlayerDeck on NewGame),
 //                 CompanionRoster.cs, CampusScreen.cs (callers of
 //                 Load / Save / NewGame)
 // See:            README §6 — Save System,
@@ -25,7 +26,7 @@ public static class SaveManager
 {
     private const string SAVE_DIR = "user://saves/";
     private const int MAX_SLOTS = 3;
-    private const int CURRENT_VERSION = 1;
+    private const int CURRENT_VERSION = 2;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -126,7 +127,6 @@ public static class SaveManager
 
             if (data == null) return null;
 
-            // Run migrations if needed
             data = MigrateIfNeeded(data);
             return data;
         }
@@ -143,22 +143,35 @@ public static class SaveManager
 
     /// <summary>
     /// Create a fresh save in the given slot and make it active.
+    /// <paramref name="school"/> is required so the starter deck can be
+    /// seeded immediately — the player should have already chosen their
+    /// school before calling this.
     /// </summary>
-    public static GuildSaveData NewGame(int slot, string guildName = "New Guild")
+    public static GuildSaveData NewGame(int slot, string guildName = "New Guild",
+                                        string school = "Elementalist")
     {
         var data = new GuildSaveData
         {
-            SaveVersion = CURRENT_VERSION,
-            GuildName = guildName,
-            CreatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-            LastPlayedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            SaveVersion    = CURRENT_VERSION,
+            GuildName      = guildName,
+            SelectedSchool = school,
+            CreatedAt      = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            LastPlayedAt   = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
         };
+
+        // Seed the persistent deck now so the first run has a real deck
+        // rather than hitting the lazy-seed fallback in DeckManager.
+        // CardDatabase must be loaded before NewGame is called.
+        if (Enum.TryParse<CardSchool>(school, ignoreCase: true, out var cardSchool))
+            StarterDeckLoader.SeedStarterDeck(data, cardSchool);
+        else
+            GD.PrintErr($"SaveManager: Unknown school '{school}' — PlayerDeck not seeded.");
 
         ActiveSave = data;
         ActiveSlot = slot;
         SaveToSlot(slot, data);
 
-        GD.Print($"SaveManager: New game in slot {slot}");
+        GD.Print($"SaveManager: New game in slot {slot} (school: {school})");
         return data;
     }
 
@@ -180,10 +193,10 @@ public static class SaveManager
             var data = LoadFromSlot(i);
             if (data != null)
             {
-                info.IsEmpty = false;
+                info.IsEmpty   = false;
                 info.GuildName = data.GuildName;
-                info.School = data.SelectedSchool;
-                info.Gold = data.Gold;
+                info.School    = data.SelectedSchool;
+                info.Gold      = data.Gold;
                 info.TotalRuns = data.TotalRuns;
                 info.LastPlayed = data.LastPlayedAt;
             }
@@ -228,17 +241,19 @@ public static class SaveManager
 
         GD.Print($"SaveManager: Migrating save from v{data.SaveVersion} to v{CURRENT_VERSION}");
 
-        // Example for future use:
-        // if (data.SaveVersion < 2)
-        // {
-        //     // v1 → v2: added CharterAlignment field
-        //     data.CharterAlignment = "";
-        //     data.SaveVersion = 2;
-        // }
-        //
+        if (data.SaveVersion < 2)
+        {
+            // v1 → v2: added PlayerDeck, ArcaneDust, UnlockedCardBlueprintIds.
+            // Existing saves get an empty PlayerDeck; DeckManager.InitializeFromSave
+            // detects this and seeds the starter deck on the player's next run.
+            data.PlayerDeck ??= new PlayerDeckSave();
+            data.UnlockedCardBlueprintIds ??= new List<string>();
+            data.ArcaneDust = 0;
+            data.SaveVersion = 2;
+        }
+
         // if (data.SaveVersion < 3)
         // {
-        //     // v2 → v3: renamed field, added new list
         //     data.SaveVersion = 3;
         // }
 
@@ -268,8 +283,8 @@ public class SlotInfo
 {
     public int Slot;
     public bool IsEmpty;
-    public string GuildName = "";
-    public string School = "";
+    public string GuildName  = "";
+    public string School     = "";
     public int Gold;
     public int TotalRuns;
     public string LastPlayed = "";
