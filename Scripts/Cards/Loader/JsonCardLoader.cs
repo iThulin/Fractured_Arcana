@@ -737,4 +737,7 @@ public static class JsonCardLoader
             return sp;
         return PlaySpeed.Sorcery;
     }
+
+    /// <summary>Public entry point for CardUpgradeApplier to recompile patched JSON.</summary>
+    public static Card BuildCardPublic(JsonElement root) => BuildCard(root);
 }

@@ -33,9 +33,9 @@ public partial class CardRewardScreen : Control
 
     private VBoxContainer _layout;
     private HBoxContainer _cardRow;
-    private Label         _titleLabel;
-    private Label         _subLabel;
-    private Button        _skipButton;
+    private Label _titleLabel;
+    private Label _subLabel;
+    private Button _skipButton;
 
     // The three blueprints shown this draft
     private List<CardBlueprint> _offered = new();
@@ -52,6 +52,7 @@ public partial class CardRewardScreen : Control
 
     private void BuildUI()
     {
+        GD.Print("[UpgradeScreen] BuildUI started");
         // Background overlay — semi-opaque dark panel over combat remnants
         var bg = new ColorRect { Color = new Color(0.04f, 0.04f, 0.08f, 0.96f) };
         bg.SetAnchorsPreset(LayoutPreset.FullRect);
@@ -64,9 +65,9 @@ public partial class CardRewardScreen : Control
         // Margin so content isn't flush against edges
         var margin = new MarginContainer();
         margin.SetAnchorsPreset(LayoutPreset.FullRect);
-        margin.AddThemeConstantOverride("margin_left",   80);
-        margin.AddThemeConstantOverride("margin_right",  80);
-        margin.AddThemeConstantOverride("margin_top",    60);
+        margin.AddThemeConstantOverride("margin_left", 80);
+        margin.AddThemeConstantOverride("margin_right", 80);
+        margin.AddThemeConstantOverride("margin_top", 60);
         margin.AddThemeConstantOverride("margin_bottom", 60);
         AddChild(margin);
         margin.AddChild(center);
@@ -74,7 +75,7 @@ public partial class CardRewardScreen : Control
         // Title
         _titleLabel = new Label
         {
-            Text                = "VICTORY",
+            Text = "VICTORY",
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         _titleLabel.AddThemeFontSizeOverride("font_size", UITheme.FontSizeTitle);
@@ -84,9 +85,9 @@ public partial class CardRewardScreen : Control
         // Sub-title
         _subLabel = new Label
         {
-            Text                = "Choose a card to add to your collection, or skip.",
+            Text = "Choose a card to add to your collection, or skip.",
             HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode        = TextServer.AutowrapMode.WordSmart,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         _subLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         _subLabel.AddThemeColorOverride("font_color", UITheme.TextSecondary);
@@ -98,7 +99,7 @@ public partial class CardRewardScreen : Control
         {
             var splinterLbl = new Label
             {
-                Text                = $"+{router.SplinterReward} Arcane Splinters earned",
+                Text = $"+{router.SplinterReward} Arcane Splinters earned",
                 HorizontalAlignment = HorizontalAlignment.Center,
             };
             splinterLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -110,7 +111,7 @@ public partial class CardRewardScreen : Control
         _cardRow = new HBoxContainer();
         _cardRow.AddThemeConstantOverride("separation", 32);
         _cardRow.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-        _cardRow.SizeFlagsVertical   = SizeFlags.ExpandFill;
+        _cardRow.SizeFlagsVertical = SizeFlags.ExpandFill;
         center.AddChild(_cardRow);
 
         // Generate offers
@@ -120,7 +121,7 @@ public partial class CardRewardScreen : Control
         // Skip button
         _skipButton = new Button
         {
-            Text              = "Skip — Take Nothing",
+            Text = "Skip — Take Nothing",
             CustomMinimumSize = new Vector2(260, 48),
             SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
         };
@@ -138,7 +139,7 @@ public partial class CardRewardScreen : Control
     {
         _offered.Clear();
 
-        var save   = SaveManager.ActiveSave;
+        var save = SaveManager.ActiveSave;
         var school = Enum.TryParse<CardSchool>(save?.SelectedSchool, ignoreCase: true, out var s)
                      ? s : CardSchool.Elementalist;
 
@@ -146,8 +147,8 @@ public partial class CardRewardScreen : Control
 
         // Build a weighted pool: 70% school, 30% generic.
         // Each slot is independently rolled so you can get 0-3 generic cards.
-        var schoolPool   = BuildWeightedPool(school);
-        var genericPool  = BuildWeightedPool(CardSchool.Generic);
+        var schoolPool = BuildWeightedPool(school);
+        var genericPool = BuildWeightedPool(CardSchool.Generic);
 
         var usedIds = new HashSet<string>();
 
@@ -185,9 +186,9 @@ public partial class CardRewardScreen : Control
         {
             int w = bp.Rarity switch
             {
-                CardRarity.Common    => 4,
-                CardRarity.Uncommon  => 3,
-                CardRarity.Rare      => 2,
+                CardRarity.Common => 4,
+                CardRarity.Uncommon => 3,
+                CardRarity.Rare => 2,
                 CardRarity.Legendary => 1,
                 _ => 4,
             };
@@ -220,9 +221,9 @@ public partial class CardRewardScreen : Control
 
     private Control BuildCardSlot(CardBlueprint bp)
     {
-        float scale  = 0.90f;
-        float cardW  = UITheme.LibraryCardWidth  * scale;
-        float cardH  = UITheme.LibraryCardHeight * scale;
+        float scale = 0.90f;
+        float cardW = UITheme.LibraryCardWidth * scale;
+        float cardH = UITheme.LibraryCardHeight * scale;
 
         // Outer VBox: card + pick button below
         var col = new VBoxContainer();
@@ -233,7 +234,7 @@ public partial class CardRewardScreen : Control
         var wrapper = new Control
         {
             CustomMinimumSize = new Vector2(cardW, cardH),
-            ClipContents      = false,
+            ClipContents = false,
         };
         col.AddChild(wrapper);
 
@@ -250,10 +251,10 @@ public partial class CardRewardScreen : Control
             {
                 if (!IsInstanceValid(cardUi)) return;
                 cardUi.SetProcess(false);
-                cardUi.Modulate  = Colors.White;
-                cardUi.Rotation  = 0f;
-                cardUi.Position  = Vector2.Zero;
-                cardUi.Scale     = new Vector2(scale, scale);
+                cardUi.Modulate = Colors.White;
+                cardUi.Rotation = 0f;
+                cardUi.Position = Vector2.Zero;
+                cardUi.Scale = new Vector2(scale, scale);
             };
         }
         else
@@ -267,7 +268,7 @@ public partial class CardRewardScreen : Control
         // Rarity label
         var rarityLbl = new Label
         {
-            Text                = bp.Rarity.ToString().ToUpper(),
+            Text = bp.Rarity.ToString().ToUpper(),
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         rarityLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
@@ -277,7 +278,7 @@ public partial class CardRewardScreen : Control
         // Pick button
         var pickBtn = new Button
         {
-            Text              = "Add to Collection",
+            Text = "Add to Collection",
             CustomMinimumSize = new Vector2(cardW, 40),
         };
         pickBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -293,14 +294,14 @@ public partial class CardRewardScreen : Control
     {
         if (!IsInstanceValid(cardUi)) return;
         cardUi.SetProcess(false);
-        cardUi.Modulate  = Colors.White;
-        cardUi.Rotation  = 0f;
-        cardUi.Scale     = new Vector2(scale, scale);
-        cardUi.Position  = Vector2.Zero;
+        cardUi.Modulate = Colors.White;
+        cardUi.Rotation = 0f;
+        cardUi.Scale = new Vector2(scale, scale);
+        cardUi.Position = Vector2.Zero;
 
         // Cancel any in-flight tweens the entry animation may have started
-        foreach (var tween in cardUi.GetChildren().OfType<Tween>())
-            tween.Kill();
+        //foreach (var tween in cardUi.GetChildren().OfType<Tween>())
+        //tween.Kill();
     }
 
     /// <summary>Text-only fallback card panel used when CardUIScene is null.</summary>
@@ -309,16 +310,20 @@ public partial class CardRewardScreen : Control
         var panel = new PanelContainer();
         var style = new StyleBoxFlat
         {
-            BgColor      = UITheme.SurfaceLight,
-            BorderColor  = SchoolColors.GetBorderColor(bp.School),
-            BorderWidthTop = 2, BorderWidthBottom = 2,
-            BorderWidthLeft = 2, BorderWidthRight = 2,
-            CornerRadiusTopLeft    = UITheme.CornerRadius,
-            CornerRadiusTopRight   = UITheme.CornerRadius,
+            BgColor = UITheme.SurfaceLight,
+            BorderColor = SchoolColors.GetBorderColor(bp.School),
+            BorderWidthTop = 2,
+            BorderWidthBottom = 2,
+            BorderWidthLeft = 2,
+            BorderWidthRight = 2,
+            CornerRadiusTopLeft = UITheme.CornerRadius,
+            CornerRadiusTopRight = UITheme.CornerRadius,
             CornerRadiusBottomLeft = UITheme.CornerRadius,
             CornerRadiusBottomRight = UITheme.CornerRadius,
-            ContentMarginLeft = 12, ContentMarginRight  = 12,
-            ContentMarginTop  = 12, ContentMarginBottom = 12,
+            ContentMarginLeft = 12,
+            ContentMarginRight = 12,
+            ContentMarginTop = 12,
+            ContentMarginBottom = 12,
         };
         panel.AddThemeStyleboxOverride("panel", style);
 
@@ -333,7 +338,7 @@ public partial class CardRewardScreen : Control
 
         var topRules = new Label
         {
-            Text         = bp.Prebuilt?.TopHalf?.RulesText ?? "",
+            Text = bp.Prebuilt?.TopHalf?.RulesText ?? "",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         topRules.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
@@ -349,7 +354,7 @@ public partial class CardRewardScreen : Control
 
         var botRules = new Label
         {
-            Text         = bp.Prebuilt?.BottomHalf?.RulesText ?? "",
+            Text = bp.Prebuilt?.BottomHalf?.RulesText ?? "",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         botRules.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);

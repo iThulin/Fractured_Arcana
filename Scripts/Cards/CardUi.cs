@@ -741,6 +741,26 @@ public partial class CardUi : Control
         }
     }
 
+    /// <summary>
+    /// Forces the card into a static visible state immediately,
+    /// bypassing the draw-in animation. Use for preview/library display.
+    /// </summary>
+    public void SetStaticDisplay(float scale = 1f)
+    {
+        GD.Print($"[CardUi] SetStaticDisplay called id={GetInstanceId()} scale={scale}");
+        _entryTweenComplete = true;
+        HasBeenPlaced = true;
+        SetProcess(false);
+
+        // Cancel any in-flight tweens
+        _cardTween?.Kill();
+
+        Modulate = Colors.White;
+        Rotation = 0f;
+        Position = Vector2.Zero;
+        Scale = new Vector2(scale, scale);
+    }
+
     // ═════════════════════════════════════════════════════════════════════
     //  Drag handling
     // ═════════════════════════════════════════════════════════════════════

@@ -314,6 +314,11 @@ public partial class CampusScreen : Control
             GetTree().ChangeSceneToFile("res://Scenes/UI/DeckEditor.tscn");
         layout.AddChild(deckEditorButton);
 
+        var upgradeBtn = MakeButton("Upgrade Cards", 280, 40, 16);
+        upgradeBtn.Pressed += () =>
+            GetTree().ChangeSceneToFile("res://Scenes/UI/CardUpgradeScreen.tscn");
+        layout.AddChild(upgradeBtn);
+
         var quitBtn = MakeButton("Quit", 280, 36, 15);
         quitBtn.Pressed += () => GetTree().Quit();
         layout.AddChild(quitBtn);

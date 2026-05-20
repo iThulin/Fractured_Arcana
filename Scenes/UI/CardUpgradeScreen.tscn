@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://c5fc4by644q3a"]
+
+[ext_resource type="Script" uid="uid://8syxf7ucdxua" path="res://Scripts/Cards/CardUpgradeScreen.cs" id="1_kox84"]
+[ext_resource type="PackedScene" uid="uid://iuge2orfh1hw" path="res://Scenes/Cards/CardUI.tscn" id="2_juofd"]
+
+[node name="CardUpgradeScreen" type="Control" unique_id=370313559]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_kox84")
+CardUIScene = ExtResource("2_juofd")

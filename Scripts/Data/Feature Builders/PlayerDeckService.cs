@@ -104,11 +104,11 @@ public static class PlayerDeckService
 
         var owned = new OwnedCard
         {
-            BlueprintId  = blueprintId,
-            InstanceId   = Guid.NewGuid().ToString("N"),
-            UpgradeTier  = 0,
-            Grafts       = new List<string>(),
-            IsStarter    = false,
+            BlueprintId = blueprintId,
+            InstanceId = Guid.NewGuid().ToString("N"),
+            UpgradeTier = 0,
+            Grafts = new List<string>(),
+            IsStarter = false,
         };
 
         save.PlayerDeck.Cards.Add(owned);
@@ -222,7 +222,7 @@ public static class PlayerDeckService
             return null;
         }
 
-        var card = CardDatabase.Instantiate(bp);
+        var card = CardUpgradeApplier.Apply(owned.BlueprintId, owned.UpgradeTier);
 
         // TODO: apply UpgradeTier via CardUpgradeApplier once that system exists.
         // TODO: apply Grafts via CardGraftApplier once that system exists.
