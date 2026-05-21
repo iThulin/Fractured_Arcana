@@ -27,15 +27,16 @@ public partial class CardUpgradeScreen : Control
     [Export] public PackedScene CardUIScene;
     [Export] public string ReturnScenePath = "res://Scenes/Campus/CampusScene.tscn";
 
-    // Max upgrade tier — matches three-tier design (1/2/3)
-    private const int MAX_TIER = 3;
+    // Max upgrade tier
+    private const int MAX_TIER = 4;
 
     // Upgrade costs per tier (tunable in JSON eventually)
     // Tier 1: ~5 battles, Tier 2: ~10, Tier 3: ~20
-    private static readonly int[] TierCosts = { 0, 25, 50, 100 };
+    private static readonly int[] TierCosts = { 0, 25, 60, 120, 250 };
 
     // Tier labels
-    private static readonly string[] TierLabels = { "Base", "Improved", "Refined", "Mastered" };
+    private static readonly string[] TierLabels = 
+        { "Base", "Refined", "Specialized", "Mastered", "Transcendent" };
 
     // ── Layout ────────────────────────────────────────────────────────
     private VBoxContainer _cardList;
@@ -391,7 +392,7 @@ public partial class CardUpgradeScreen : Control
             var bp = CardDatabase.Blueprints.Find(b =>
                 string.Equals(b.Id, display.BlueprintId, StringComparison.OrdinalIgnoreCase));
 
-            string topName = bp?.Prebuilt?.TopHalf?.Name ?? display.BlueprintId;
+            string displayName = CardDatabase.GetDisplayName(bp);
             int curTier = display.UpgradeTier;
             bool maxed = curTier >= MAX_TIER;
 
@@ -435,7 +436,7 @@ public partial class CardUpgradeScreen : Control
             info.MouseFilter = MouseFilterEnum.Ignore;
             hbox.AddChild(info);
 
-            var nameLbl = new Label { Text = topName };
+            var nameLbl = new Label { Text = displayName };
             nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
             nameLbl.AddThemeColorOverride("font_color",
                 UITheme.RarityColor(bp?.Rarity.ToString() ?? "Common"));
@@ -502,21 +503,29 @@ public partial class CardUpgradeScreen : Control
             string.Equals(b.Id, _selectedOwned.BlueprintId,
                 StringComparison.OrdinalIgnoreCase));
 
-        string topName = bp?.Prebuilt?.TopHalf?.Name ?? _selectedOwned.BlueprintId;
+        string displayName = CardDatabase.GetDisplayName(bp);
         int curTier = _selectedOwned.UpgradeTier;
         int nextTier = curTier + 1;
         bool maxed = curTier >= MAX_TIER;
 
         if (_selectedCardLabel != null)
-            _selectedCardLabel.Text = topName;
+            _selectedCardLabel.Text = displayName;
 
-        // Training Grounds gate
-        int tgTier = save?.TrainingGroundsTier ?? 0;
-        bool gated = tgTier == 0;
+        // Scriptorum gate
+        int maxUpgradeStage = 0;
+        if (PlayerSession.HasFeature("card_upgrade_stage_3")) maxUpgradeStage = 3;
+        else if (PlayerSession.HasFeature("card_upgrade_stage_2")) maxUpgradeStage = 2;
+        else if (PlayerSession.HasFeature("card_upgrade_stage_1")) maxUpgradeStage = 1;
+
+        bool gated = maxUpgradeStage == 0;
+        bool stageLocked = !maxed && nextTier > maxUpgradeStage;
+
         if (_gateLabel != null)
         {
-            _gateLabel.Visible = gated;
-            _gateLabel.Text = "Requires Training Grounds (Tier 1) to upgrade cards.";
+            _gateLabel.Visible = gated || stageLocked;
+            _gateLabel.Text = gated
+                ? "Requires a Scriptorum to refine your spells."
+                : $"Requires Scriptorum (Tier {nextTier}) to unlock {TierLabels[nextTier]} refinements.";
         }
 
         if (maxed)
@@ -527,6 +536,11 @@ public partial class CardUpgradeScreen : Control
             ShowPreview(_selectedOwned.BlueprintId, curTier, -1);
             return;
         }
+
+        bool castUnlocked = CardMasteryThresholds.IsStageUnlocked(
+            _selectedOwned.CastCount, nextTier);
+        int castsNeeded = CardMasteryThresholds.CastsToNextStage(
+            _selectedOwned.CastCount, curTier);
 
         int cost = TierCosts[nextTier];
         int splinters = save?.ArcaneSplinters ?? 0;
@@ -540,16 +554,24 @@ public partial class CardUpgradeScreen : Control
                 ? $"Upgrade to {TierLabels[nextTier]}"
                 : desc;
 
+        // Update cost label to show both requirements
         if (_upgradeCostLabel != null)
-            _upgradeCostLabel.Text = $"Cost: {cost} ✦ Splinters  " +
-                                     $"(You have: {splinters})";
-        _upgradeCostLabel?.AddThemeColorOverride("font_color",
-            canAfford ? new Color(0.6f, 0.85f, 1f) : UITheme.Danger);
+        {
+            string castStatus = castUnlocked
+                ? $"✓ {_selectedOwned.CastCount} casts"
+                : $"{castsNeeded} more casts needed";
+                
+            _upgradeCostLabel.Text = castUnlocked
+                ? $"Cost: {cost} ✦  ({castStatus})"
+                : castStatus;
+        }
 
+        _upgradeCostLabel?.AddThemeColorOverride("font_color",
+            castUnlocked && canAfford ? new Color(0.6f, 0.85f, 1f) : UITheme.Danger);
         if (_upgradeButton != null)
         {
             _upgradeButton.Text = $"Upgrade → {TierLabels[nextTier]}";
-            _upgradeButton.Disabled = !canAfford || gated;
+            _upgradeButton.Disabled = !canAfford || gated || stageLocked || !castUnlocked;
         }
 
         ShowPreview(_selectedOwned.BlueprintId, curTier, nextTier);
@@ -562,7 +584,6 @@ public partial class CardUpgradeScreen : Control
     private void ShowPreview(string blueprintId, int currentTier, int nextTier)
     {
         GD.Print($"[UpgradeScreen] ShowPreview bp={blueprintId} cur={currentTier} next={nextTier} CardUIScene null={CardUIScene == null}");
-        ShowCardInZone(_beforeZone, ref _beforeCard, blueprintId, currentTier);
         ShowCardInZone(_beforeZone, ref _beforeCard, blueprintId, currentTier);
         if (nextTier >= 0)
             ShowCardInZone(_afterZone, ref _afterCard, blueprintId, nextTier);

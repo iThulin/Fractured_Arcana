@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 // ============================================================
 // PlayerSession.cs
 //
@@ -29,4 +31,17 @@ public static class PlayerSession
 
     // Force a specific POI type for the next encounter (-1 = no override)
     public static int ForceNextEncounterType = -1; // maps to OverworldHex.POIType int value
+
+    public static HashSet<string> UnlockedFeatures { get; private set; } = new();
+
+    /// <summary>
+    /// Called by OverworldRunManager at run start after BuildingEffectApplier runs.
+    /// Also called on campus load so the upgrade screen can read flags without starting a run.
+    /// </summary>
+    public static void ApplyUnlockedFeatures(HashSet<string> features)
+    {
+        UnlockedFeatures = features ?? new HashSet<string>();
+    }
+
+    public static bool HasFeature(string flag) => UnlockedFeatures.Contains(flag);
 }

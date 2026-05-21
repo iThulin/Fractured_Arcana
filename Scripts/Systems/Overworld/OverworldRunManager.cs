@@ -157,6 +157,7 @@ public partial class OverworldRunManager : Node2D
 
         // ── Apply building bonuses ──────────────────────────────────────
         var buildingBonuses = BuildingEffectApplier.CalculateRunBonuses(SaveManager.ActiveSave);
+        PlayerSession.ApplyUnlockedFeatures(buildingBonuses.UnlockedFeatures);
         MaxHP += buildingBonuses.BonusHP;
         CurrentHP = MaxHP;
         StepBudget += buildingBonuses.BonusSteps;

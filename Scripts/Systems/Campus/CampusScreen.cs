@@ -1185,6 +1185,9 @@ public partial class CampusScreen : Control
 
     private void RefreshAll()
     {
+        var bonuses = BuildingEffectApplier.CalculateRunBonuses(SaveManager.ActiveSave);
+        PlayerSession.ApplyUnlockedFeatures(bonuses.UnlockedFeatures);
+
         RefreshSlotButtons();
         RefreshCompanionList();
         RefreshBuildingList();

@@ -28,7 +28,7 @@ using System.Collections.Generic;
 public class GuildSaveData
 {
     // ── Meta ────────────────────────────────────────────────────────────
-    public int SaveVersion = 2;
+    public int SaveVersion = 3;
     public string GuildName = "New Guild";
     public string CreatedAt = "";
     public string LastPlayedAt = "";
@@ -194,6 +194,15 @@ public class OwnedCard
     /// Starter cards cannot be removed from the collection (only upgraded).
     /// </summary>
     public bool IsStarter = false;
+
+    /// <summary>
+    /// Tracks the number of times a card has been cast in the campaign
+    /// Used as a resource for card mastery.
+    public int CastCount = 0;
+
+    /// <summary>
+    ///Tracks the path of branches chosen for an individual upgrade
+    public string ChosenBranch = null; // null = no branch chosen yet
 }
 
 // ────────────────────────────────────────────────────────────────────────────

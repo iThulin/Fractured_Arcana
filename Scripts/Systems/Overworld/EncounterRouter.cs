@@ -119,6 +119,9 @@ public partial class EncounterRouter : Node
         GD.Print($"EncounterRouter: Combat finished. Won: {playerWon}. " +
                 $"Gold: {GoldReward}, Splinters: {SplinterReward}.");
 
+        // Flush any mid-run state changes (cast counts, etc.) to disk
+        SaveManager.SaveIfDirty();
+
         if (playerWon)
         {
             // Show card reward screen — it routes to overworld when done

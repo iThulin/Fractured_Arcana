@@ -3224,6 +3224,10 @@ public partial class CombatManager : Node3D
 
         if (ok)
         {
+            // Record cast for mastery tracking
+            if (cardUi.CardInstance?.BlueprintId != null)
+                CastMasteryTracker.RecordCast(cardUi.CardInstance.BlueprintId);
+
             // Mark first card played (for FirstCardCostReduction passive)
             if (selectedUnit != null)
                 selectedUnit.Stats.HasPlayedCardThisTurn = true;

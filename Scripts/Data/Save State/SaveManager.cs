@@ -26,15 +26,15 @@ public static class SaveManager
 {
     private const string SAVE_DIR = "user://saves/";
     private const int MAX_SLOTS = 3;
-    private const int CURRENT_VERSION = 2;
+    private const int CURRENT_VERSION = 3;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        IncludeFields = true,
-    };
+        IncludeFields = true,    };
+
 
     // ── The active save (loaded into memory) ────────────────────────────
     public static GuildSaveData ActiveSave { get; private set; }
@@ -43,6 +43,9 @@ public static class SaveManager
     // ═══════════════════════════════════════════════════════════════════════
     // Save
     // ═══════════════════════════════════════════════════════════════════════
+    private static bool _isDirty = false;
+
+    public static void MarkDirty() => _isDirty = true;
 
     /// <summary>
     /// Save the active data to the active slot.
@@ -55,9 +58,15 @@ public static class SaveManager
             GD.PrintErr("SaveManager: No active save to write.");
             return false;
         }
+        _isDirty = false;
 
         ActiveSave.LastPlayedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         return SaveToSlot(ActiveSlot, ActiveSave);
+    }
+
+    public static void SaveIfDirty()
+    {
+        if (_isDirty) Save();
     }
 
     public static bool SaveToSlot(int slot, GuildSaveData data)
@@ -241,21 +250,20 @@ public static class SaveManager
 
         GD.Print($"SaveManager: Migrating save from v{data.SaveVersion} to v{CURRENT_VERSION}");
 
-        if (data.SaveVersion < 2)
+        switch (data.SaveVersion)
         {
-            // v1 → v2: added PlayerDeck, ArcaneSplinters, UnlockedCardBlueprintIds.
-            // Existing saves get an empty PlayerDeck; DeckManager.InitializeFromSave
-            // detects this and seeds the starter deck on the player's next run.
-            data.PlayerDeck ??= new PlayerDeckSave();
-            data.UnlockedCardBlueprintIds ??= new List<string>();
-            data.ArcaneSplinters = 0;
-            data.SaveVersion = 2;
-        }
+            case 1:
+                data.PlayerDeck ??= new PlayerDeckSave();
+                data.UnlockedCardBlueprintIds ??= new List<string>();
+                data.ArcaneSplinters = 0;
+                data.SaveVersion = 2;
+                break;
 
-        // if (data.SaveVersion < 3)
-        // {
-        //     data.SaveVersion = 3;
-        // }
+            case 2:
+                GD.Print("[SaveMigration] v2 → v3: Added OwnedCard.CastCount and ChosenBranch (defaults safe).");
+                data.SaveVersion = 3;
+                break;
+        }
 
         data.SaveVersion = CURRENT_VERSION;
         return data;

@@ -44,21 +44,28 @@ public static class CardDatabase
     public static readonly List<CardBlueprint> Blueprints = new();
 
     /// <summary>Adds a compiled card to the database. Called by the JSON loader once per card. Null cards are logged and skipped.</summary>
-    public static void RegisterPrebuiltCard(Card card)
+    public static void RegisterPrebuiltCard(Card card, string jsonId = null)
     {
         if (card == null) { GD.PrintErr("RegisterPrebuiltCard: null card"); return; }
 
         var school = card.TopHalf?.School ?? card.BottomHalf?.School ?? CardSchool.Tinker;
         var topName = card.TopHalf?.Name ?? "";
         var botName = card.BottomHalf?.Name ?? "";
+        string displayKey = $"{school}:{topName}|{botName}";
+
+        // Use jsonId if provided, fall back to composite key
+        string blueprintId = jsonId ?? displayKey;
+        card.BlueprintId = blueprintId;
 
         Blueprints.Add(new CardBlueprint
         {
-            Id = $"{school}:{topName}|{botName}",
+            Id = blueprintId,
             School = school,
             Rarity = card.Rarity,
             Prebuilt = card
         });
+
+        GD.Print($"[BlueprintId] school={school} id=\"{displayKey}\"");
     }
 
     /// <summary>Returns a fresh <see cref="Card"/> instance (unique <see cref="Card.InstanceId"/>) cloned from the blueprint. The CardHalf objects are reused as read-only recipes; if combat ever mutates a half in place, this needs to become a deep clone.</summary>
@@ -80,6 +87,7 @@ public static class CardDatabase
         return new Card
         {
             CardName = src.CardName,
+            BlueprintId = src.BlueprintId,
             Rarity = src.Rarity,
             TopHalf = src.TopHalf,
             BottomHalf = src.BottomHalf
@@ -112,6 +120,23 @@ public static class CardDatabase
                 return bp;
         }
         return null;
+    }
+
+    /// <summary>
+    /// Returns a display name combining school and both half names.
+    /// Format: "[School] TopName / BottomName"
+    /// </summary>
+    public static string GetDisplayName(CardBlueprint bp)
+    {
+        if (bp == null) return "Unknown";
+        string top = bp.Prebuilt?.TopHalf?.Name ?? "";
+        string bot = bp.Prebuilt?.BottomHalf?.Name ?? "";
+        string school = bp.School.ToString();
+        if (!string.IsNullOrEmpty(top) && !string.IsNullOrEmpty(bot))
+            return $"[{school}] {top} / {bot}";
+        if (!string.IsNullOrEmpty(top))
+            return $"[{school}] {top}";
+        return bp.Id;
     }
 
     // ── Deck building ───────────────────────────────────────────────────
