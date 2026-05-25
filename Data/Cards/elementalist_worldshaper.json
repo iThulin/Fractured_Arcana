@@ -8,7 +8,7 @@
 		"name": "Worldshaper",
 		"mana": 2,
 		"speed": "Sorcery",
-		"rules_text": "Raise all tiles in a 3-tile cone by 1. Imbue with Stone. Create rubble. Crush enemies on raised tiles.",
+		"rules_text": "Raise all tiles in a 3-tile cone by 1. Imbue with Stone.",
 		"tags": [
 			"stone"
 		],
@@ -27,32 +27,6 @@
 			"do": {
 				"type": "raise_terrain",
 				"height": 1
-			}
-		},
-		"channel": {
-			"name": "Worldshaper (Channel)",
-			"mana": 2,
-			"speed": "Reaction",
-			"rules_text": "Channel: Raise tiles by 2 instead",
-			"tags": [
-				"stone"
-			],
-			"targeting": {
-				"type": "cone",
-				"range": 3,
-				"enemies_only": false
-			},
-			"effect": {
-				"type": "retarget",
-				"targeting": {
-					"type": "cone",
-					"range": 3,
-					"enemies_only": false
-				},
-				"do": {
-					"type": "raise_terrain",
-					"height": 2
-				}
 			}
 		}
 	},
@@ -100,64 +74,332 @@
 				"type": "damage",
 				"amount": 5
 			}
-		},
-		"channel": {
-			"name": "Confluence (Channel)",
-			"mana": 2,
-			"speed": "Reaction",
-			"rules_text": "Channel: Also imbue target with all 3 elements",
-			"tags": [
-				"fire",
-				"ice",
-				"storm"
-			],
-			"targeting": {
-				"type": "unit",
-				"range": 6,
-				"los": true,
-				"enemies_only": true
-			},
-			"effect": {
-				"type": "conditional",
-				"if": {
-					"type": "has_elements_near_caster",
-					"elements": [
-						"fire",
-						"ice",
-						"storm"
-					],
-					"range": 2
-				},
-				"then": {
-					"type": "sequence",
-					"steps": [
-						{
-							"type": "damage",
-							"amount": 14
-						},
-						{
-							"type": "draw",
-							"count": 2
-						},
-						{
-							"type": "imbue_tile",
-							"element": "fire"
-						},
-						{
-							"type": "imbue_tile",
-							"element": "ice"
-						},
-						{
-							"type": "imbue_tile",
-							"element": "storm"
-						}
-					]
-				},
-				"else": {
-					"type": "damage",
-					"amount": 5
-				}
-			}
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"branch": null,
+			"description": "Worldshaper raises a wider cone. Confluence hits harder when the condition is met.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.targeting.range",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise all tiles in a 4-tile cone by 1. Imbue with Stone."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.then.steps[0].amount",
+					"value": 17
+				},
+				{
+					"half": "bottom",
+					"field": "effect.else.amount",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "If Fire, Ice, Storm within 2 tiles: deal 17 damage and draw 2. Otherwise deal 7."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Architect",
+			"description": "Architect: Worldshaper also imbues raised tiles with Stone element, making them valid targets for stone-requiring cards.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "cone",
+							"range": 4,
+							"enemies_only": false
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "raise_terrain",
+									"height": 1
+								},
+								{
+									"type": "imbue_tile",
+									"element": "stone"
+								},
+								{
+									"type": "damage",
+									"amount": 3
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise tiles in cone (4). Imbue with Stone. Deal 3 damage to enemies on raised tiles."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Oracle",
+			"description": "Oracle: Confluence's condition range extends to 3 tiles. Easier to satisfy, more rewarding to maintain.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "has_elements_near_caster",
+							"elements": [
+								"fire",
+								"ice",
+								"storm"
+							],
+							"range": 3
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 18
+								},
+								{
+									"type": "draw",
+									"count": 3
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 7
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "If Fire, Ice, Storm within 3 tiles: deal 18 damage and draw 3. Otherwise deal 7."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Architect",
+			"description": "Terrain Mastery: Worldshaper can now raise in any direction from the caster — the cone becomes choosable each cast.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "cone",
+							"range": 4,
+							"enemies_only": false
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "raise_terrain",
+									"height": 2
+								},
+								{
+									"type": "imbue_tile",
+									"element": "stone"
+								},
+								{
+									"type": "damage",
+									"amount": 5
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise tiles in cone (4) by 2. Imbue with Stone. Deal 5 damage to enemies on raised tiles."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Oracle",
+			"description": "Elemental Sight: Confluence adds stone to its condition check. All four elements in range triggers a devastatingly powerful version.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "has_elements_near_caster",
+							"elements": [
+								"fire",
+								"ice",
+								"storm"
+							],
+							"range": 3
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 20
+								},
+								{
+									"type": "draw",
+									"count": 3
+								},
+								{
+									"type": "mana_gain",
+									"amount": 2
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 8
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "If Fire, Ice, Storm within 3: deal 20 damage, draw 3, gain 2 mana. Otherwise deal 8."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Architect",
+			"description": "World's Edge: Worldshaper reshapes the full board — raise the entire battlefield ahead of you into a fortress.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "cone",
+							"range": 5,
+							"enemies_only": false
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "raise_terrain",
+									"height": 2
+								},
+								{
+									"type": "imbue_tile",
+									"element": "stone"
+								},
+								{
+									"type": "damage",
+									"amount": 7
+								},
+								{
+									"type": "push",
+									"tiles": 2,
+									"collision_damage": 5
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise tiles in cone (5) by 2. Imbue with Stone. Deal 7 damage. Push enemies 2 tiles."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Oracle",
+			"description": "Grand Confluence: When all four elements are within range, Confluence hits ALL enemies on the board, not just the target.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "has_elements_near_caster",
+							"elements": [
+								"fire",
+								"ice",
+								"storm"
+							],
+							"range": 4
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 22
+								},
+								{
+									"type": "draw",
+									"count": 3
+								},
+								{
+									"type": "mana_gain",
+									"amount": 3
+								},
+								{
+									"type": "retarget",
+									"targeting": {
+										"type": "aoe",
+										"radius": 6,
+										"enemies_only": true
+									},
+									"do": {
+										"type": "damage",
+										"amount": 8
+									}
+								}
+							]
+						},
+						"else": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 10
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Fire+Ice+Storm within 4: deal 22 to target, 8 to ALL enemies, draw 3, gain 3 mana. Otherwise deal 10, draw 1."
+				}
+			]
+		}
+	]
 }

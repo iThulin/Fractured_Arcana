@@ -8,7 +8,7 @@
 		"name": "Primordial Surge",
 		"mana": 4,
 		"speed": "Sorcery",
-		"rules_text": "Imbue ALL tiles in aoe 6 with a random element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
+		"rules_text": "Imbue ALL tiles in AoE 6 with a random element. Deal 4 damage per unique element adjacent to each enemy.",
 		"tags": [
 			"fire",
 			"ice",
@@ -22,33 +22,13 @@
 			"type": "primordial_surge",
 			"radius": 4,
 			"damage": 4
-		},
-		"channel": {
-			"name": "Primordial Surge (Channel)",
-			"mana": 4,
-			"speed": "Reaction",
-			"rules_text": "Channel: Increase radius to 6.",
-			"tags": [
-				"fire",
-				"ice",
-				"storm",
-				"stone"
-			],
-			"targeting": {
-				"type": "self"
-			},
-			"effect": {
-				"type": "primordial_surge",
-				"radius": 6,
-				"damage": 4
-			}
 		}
 	},
 	"bottom": {
 		"name": "Cataclysm",
 		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Remove imbuement from all tiles in aoe  4. Deal 2 damage per tile cleared. Draw 1 card per 3 tiles cleared.",
+		"rules_text": "Remove imbuement from all tiles in AoE 4. Deal 2 damage per tile cleared. Draw 1 card per 3 tiles cleared.",
 		"tags": [
 			"fire",
 			"ice",
@@ -63,27 +43,187 @@
 			"radius": 4,
 			"damage_per_tile": 2,
 			"cards_per_tiles": 1
-		},
-		"channel": {
-			"name": "Cataclysm (Channel)",
-			"mana": 3,
-			"speed": "Reaction",
-			"rules_text": "Channel: Radius 6. Deal 4 damage per tile instead",
-			"targeting": {
-				"type": "self"
-			},
-			"tags": [
-				"fire",
-				"ice",
-				"storm",
-				"stone"
-			],
-			"effect": {
-				"type": "cataclysm",
-				"radius": 6,
-				"damage_per_tile": 4,
-				"cards_per_tiles": 1
-			}
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"branch": null,
+			"description": "Primordial Surge imbues a larger area. Cataclysm deals more damage per tile.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue ALL tiles in AoE 6 with a random element. Deal 5 damage per unique adjacent element."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Remove imbuement from AoE 4. Deal 3 damage per tile. Draw 1 per 3 tiles."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Chaos",
+			"description": "Chaos: Primordial Surge now deals immediate damage as well as the adjacency damage — the surge itself is a weapon.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue ALL tiles in AoE 5 with random elements. Deal 6 damage per unique adjacent element."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Reset",
+			"description": "Reset: Cataclysm now also sets all attunement counters to 2 after clearing tiles. Scorched earth into fresh start.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.tiles_per_draw",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Remove imbuement from AoE 4. Deal 3 damage per tile. Draw 1 per 2 tiles."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Chaos",
+			"description": "Elemental Madness: The random imbuing now heavily weights toward your dominant attunement element. Controlled chaos.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 7
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue ALL tiles in AoE 5 with random elements. Deal 7 damage per unique adjacent element."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Remove imbuement from AoE 5. Deal 4 damage per tile. Draw 1 per 2 tiles."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Reset",
+			"description": "Cleansing Fire: Cataclysm now also heals you for 2 HP per tile cleared. Destruction becomes sustain.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.tiles_per_draw",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Remove imbuement from AoE 4. Deal 4 damage per tile. Draw 1 per 2 tiles. Heal 2 per tile."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Chaos",
+			"description": "Primordial Catastrophe: The two halves fuse — Primordial Surge immediately followed by Cataclysm in the same cast.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 8
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue ALL tiles in AoE 6 with random elements. Deal 8 damage per unique adjacent element."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Reset",
+			"description": "Eternal Cycle: After Cataclysm clears, immediately re-imbue cleared tiles with your dominant attunement element.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "effect.tiles_per_draw",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Remove imbuement from AoE 6. Deal 5 damage per tile. Draw 1 per 2 tiles. Gain 2 mana."
+				}
+			]
+		}
+	]
 }

@@ -8,7 +8,7 @@
 		"name": "Ragnarok",
 		"mana": 5,
 		"speed": "Sorcery",
-		"rules_text": "Deal 7 damage to ALL units for each unique element currently imbued on the board (max 28). Purge all imbued tiles.",
+		"rules_text": "Deal 7 damage to ALL units per unique element imbued on board (max 28). Purge all tiles.",
 		"tags": [
 			"fire",
 			"ice",
@@ -22,20 +22,6 @@
 			"type": "ragnarok",
 			"damage_per_element": 7,
 			"half_to_allies": false
-		},
-		"channel": {
-			"name": "Ragnarok (Channel)",
-			"mana": 5,
-			"speed": "Reaction",
-			"rules_text": "Channel: Your units take half damage from this effect",
-			"targeting": {
-				"type": "self"
-			},
-			"effect": {
-				"type": "ragnarok",
-				"damage_per_element": 7,
-				"half_to_allies": true
-			}
 		}
 	},
 	"bottom": {
@@ -55,27 +41,198 @@
 		"effect": {
 			"type": "elemental_convergence",
 			"radius": 3,
-			"attunement_counters": 3
-		},
-		"channel": {
-			"name": "Elemental Convergence (Channel)",
-			"mana": 3,
-			"speed": "Reaction",
-			"rules_text": "Channel: Set all elemental attunements to 4",
-			"tags": [
-				"fire",
-				"ice",
-				"storm",
-				"stone"
-			],
-			"targeting": {
-				"type": "self"
-			},
-			"effect": {
-				"type": "elemental_convergence",
-				"radius": 3,
-				"attunement_counters": 4
-			}
+			"attunement_set_to": 3
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"branch": null,
+			"description": "Ragnarok's base damage per element increases. Elemental Convergence covers a wider area.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_element",
+					"value": 8
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 8 damage to ALL units per unique element imbued on board (max 32). Purge all tiles."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue all tiles within range 4 with random elements. Set all attunement counters to 3."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Apocalypse",
+			"description": "Apocalypse: Ragnarok counts attunement counters as bonus elements. More attunement means more damage even with fewer board tiles.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_element",
+					"value": 8
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 8 damage per unique element on board. Your attunement charges each count as half an element. Purge all."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Controlled Burn",
+			"description": "Controlled Burn: After Ragnarok purges tiles, re-imbue 4 random tiles with your highest attunement element. The fire never fully dies.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_element",
+					"value": 8
+				},
+				{
+					"half": "top",
+					"field": "effect.half_to_allies",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 8 damage per element (max 32). Allies take half. Purge all tiles, then re-imbue 4 with your highest element."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Apocalypse",
+			"description": "Total War: Ragnarok's ally damage reduction becomes permanent — your units always take half damage from Ragnarok.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_element",
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "effect.half_to_allies",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 9 damage per element (max 36). Allies always take half. Purge all tiles."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.attunement_set_to",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue all tiles within range 5 with random elements. Set all attunement counters to 4."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Controlled Burn",
+			"description": "Phoenix Protocol: After Ragnarok resolves, draw 1 card per unique element that had 2+ tiles before purging.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_element",
+					"value": 8
+				},
+				{
+					"half": "top",
+					"field": "effect.half_to_allies",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 8 damage per element. Allies take half. Purge all. Draw 1 per element with 2+ tiles. Re-imbue 4 tiles."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.attunement_set_to",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue tiles within range 5. Set all attunement to 4."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Apocalypse",
+			"description": "The End: Ragnarok costs 4 mana instead of 5. The spell has transcended its own limitations.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_per_element",
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "effect.half_to_allies",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Cost reduced to 4. Deal 9 damage per element (max 36). Allies take half. Purge all tiles."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Controlled Burn",
+			"description": "Eternal Flame: Ragnarok no longer purges fire tiles. The conflagration persists even after the apocalypse.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_element",
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "effect.half_to_allies",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 9 damage per element. Allies take half. Purge all non-fire tiles. Draw 1 per 2 elements. Gain 2 mana."
+				}
+			]
+		}
+	]
 }

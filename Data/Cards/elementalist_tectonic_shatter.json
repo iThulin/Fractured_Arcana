@@ -8,7 +8,7 @@
 		"name": "Tectonic Shatter",
 		"mana": 2,
 		"speed": "Sorcery",
-		"rules_text": "Destroy all Stone features within range 3 of target. Deal 5 damage to the nearest enemy per destroyed feature.",
+		"rules_text": "Destroy all Stone features within range 3 of target. Deal 5 damage per destroyed feature.",
 		"tags": [
 			"stone"
 		],
@@ -22,30 +22,13 @@
 			"type": "tectonic_shatter",
 			"radius": 3,
 			"damage_per_tile": 5
-		},
-		"channel": {
-			"name": "Tectonic Shatter (Channel)",
-			"mana": 2,
-			"speed": "Reaction",
-			"rules_text": "Channel: Deal 9 damage per destroyed instead",
-			"targeting": {
-				"type": "unit",
-				"range": 6,
-				"los": true,
-				"enemies_only": true
-			},
-			"effect": {
-				"type": "tectonic_shatter",
-				"radius": 3,
-				"damage_per_tile": 9
-			}
 		}
 	},
 	"bottom": {
 		"name": "Elemental Cycle",
 		"mana": 1,
 		"speed": "Sorcery",
-		"rules_text": "Randomly imbue the tiles around the caster with with fire, ice, storm, or stone.",
+		"rules_text": "Randomly imbue tiles around the caster with fire, ice, storm, or stone.",
 		"tags": [
 			"fire",
 			"ice",
@@ -59,29 +42,241 @@
 			"type": "primordial_surge",
 			"radius": 2,
 			"damage": 0
-		},
-		"channel": {
-			"name": "Elemental Cycle (Channel)",
-			"mana": 1,
-			"speed": "Reaction",
-			"rules_text": "Channel: Also gain 4 shield",
-			"targeting": {
-				"type": "self"
-			},
-			"effect": {
-				"type": "sequence",
-				"steps": [
-					{
-						"type": "primordial_surge",
-						"radius": 2,
-						"damage": 0
-					},
-					{
-						"type": "shield",
-						"amount": 4
-					}
-				]
-			}
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"branch": null,
+			"description": "Tectonic Shatter deals more damage per feature. Elemental Cycle imbues a larger radius.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_tile",
+					"value": 7
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Destroy all Stone features within range 3. Deal 7 damage per destroyed feature."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Randomly imbue tiles within 3 around the caster."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Rubblemaster",
+			"description": "Rubblemaster: Shattered stone features leave rubble behind, creating difficult terrain that persists.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_tile",
+					"value": 7
+				},
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Destroy all Stone features within range 4. Deal 7 damage per feature. Rubble left behind."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Convergence",
+			"description": "Convergence: Elemental Cycle now deals damage to enemies adjacent to the newly imbued tiles.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "primordial_surge",
+								"radius": 3,
+								"damage": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Randomly imbue tiles within 3 with random elements. Deal 3 damage to adjacent enemies per tile imbued."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Rubblemaster",
+			"description": "Shockwave: Tectonic Shatter's shockwave also damages enemies within the radius, not just the target.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_tile",
+					"value": 8
+				},
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Destroy Stone features within range 4. Deal 8 damage per feature to ALL enemies in range."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "primordial_surge",
+								"radius": 3,
+								"damage": 3
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "armor",
+									"amount": 4
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Randomly imbue tiles within 3. Deal 3 damage per tile. Gain 4 armor."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Convergence",
+			"description": "Elemental Mastery: Elemental Cycle imbues with the element you have the highest attunement in, not randomly.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "primordial_surge",
+								"radius": 3,
+								"damage": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Randomly imbue tiles within 3. Deal 4 damage per tile to adjacent enemies. Draw 1."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Rubblemaster",
+			"description": "Geological Disaster: Tectonic Shatter hits the entire board. Every stone feature shatters simultaneously.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_tile",
+					"value": 10
+				},
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Destroy ALL Stone features on the board. Deal 10 damage per feature to nearest enemy."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Convergence",
+			"description": "Elemental Singularity: The two halves of the card fuse. Shattering stone triggers an Elemental Cycle at each destroyed location.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_tile",
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Destroy Stone features within range 5. Deal 9 damage per feature. Each destruction randomly imbues adjacent tiles."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "primordial_surge",
+								"radius": 4,
+								"damage": 5
+							},
+							{
+								"type": "draw",
+								"count": 1
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "mana_gain",
+									"amount": 1
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Randomly imbue tiles within 4. Deal 5 damage per tile. Draw 1. Gain 1 mana."
+				}
+			]
+		}
+	]
 }

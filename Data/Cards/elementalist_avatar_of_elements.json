@@ -24,28 +24,6 @@
 			"bonus_damage": 3,
 			"armor": 7,
 			"bonus_speed": 0
-		},
-		"channel": {
-			"name": "Avatar of Elements (Channel)",
-			"mana": 4,
-			"speed": "Reaction",
-			"rules_text": "Channel: 5 turns and +2 speed",
-			"tags": [
-				"fire",
-				"ice",
-				"storm",
-				"stone"
-			],
-			"targeting": {
-				"type": "self"
-			},
-			"effect": {
-				"type": "avatar_transform",
-				"turns": 5,
-				"bonus_damage": 3,
-				"armor": 7,
-				"bonus_speed": 2
-			}
 		}
 	},
 	"bottom": {
@@ -68,28 +46,217 @@
 			"damage": 5,
 			"turns": 3,
 			"freezes": false
-		},
-		"channel": {
-			"name": "Maelstrom (Channel)",
-			"mana": 3,
-			"speed": "Reaction",
-			"rules_text": "Channel: Radius 4, also freezes enemies hit",
-			"tags": [
-				"storm"
-			],
-			"targeting": {
-				"type": "unit",
-				"range": 6,
-				"los": false,
-				"enemies_only": true
-			},
-			"effect": {
-				"type": "create_maelstrom",
-				"radius": 4,
-				"damage": 5,
-				"turns": 3,
-				"freezes": true
-			}
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"branch": null,
+			"description": "Avatar lasts longer and grants more armor. Maelstrom hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.armor",
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "effect.bonus_damage",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Transform for 3 turns: gain 9 armor, spells deal +4 damage and imbue target with random element."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create storm zone (radius 3). Each turn deals 7 damage, pushes clockwise, imbues with Storm. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Elemental Sovereign",
+			"description": "Elemental Sovereign: While Avatar is active, your attunement counters don't decay. The transformation sustains your elemental mastery.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.armor",
+					"value": 10
+				},
+				{
+					"half": "top",
+					"field": "effect.bonus_damage",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Transform for 4 turns: gain 10 armor, spells deal +4 damage and imbue target. Attunement doesn't decay."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Living Terrain",
+			"description": "Living Terrain: Maelstrom now also imbues adjacent tiles with storm each turn. The storm spreads beyond its origin.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create storm zone (radius 4). Each turn deals 7 damage, pushes clockwise, imbues tiles with Storm. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Elemental Sovereign",
+			"description": "Transcendence: Avatar now also boosts your spell range by 2. Elemental sovereignty extends your reach.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.armor",
+					"value": 11
+				},
+				{
+					"half": "top",
+					"field": "effect.bonus_damage",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.bonus_speed",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Transform for 4 turns: gain 11 armor, +5 spell damage, +1 speed. Imbue each target with random element."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Living Terrain",
+			"description": "Storm Core: Maelstrom now also freezes enemies at the end of each turn tick. The maelstrom locks enemies in place.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 8
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.freezes",
+					"value": true
+				},
+				{
+					"half": "bottom",
+					"field": "effect.turns",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create storm zone (radius 4). Each turn deals 8 damage, pushes, freezes, imbues Storm. Lasts 4 turns."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Elemental Sovereign",
+			"description": "God of Elements: Avatar transformation now triggers a burst of all four elements when it expires — a final eruption.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.armor",
+					"value": 12
+				},
+				{
+					"half": "top",
+					"field": "effect.bonus_damage",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "effect.bonus_speed",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Transform for 5 turns: gain 12 armor, +6 spell damage, +2 speed. On expiry, burst all 4 attunement elements."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Living Terrain",
+			"description": "World Storm: Two Maelstroms can now exist simultaneously. Place one and the other persists from before.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 9
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.freezes",
+					"value": true
+				},
+				{
+					"half": "bottom",
+					"field": "effect.turns",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create storm zone (radius 5). Each turn deals 9 damage, pushes, freezes, imbues Storm. Lasts 5 turns."
+				}
+			]
+		}
+	]
 }

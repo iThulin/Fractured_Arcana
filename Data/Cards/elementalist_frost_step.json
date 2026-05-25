@@ -20,25 +20,6 @@
 			"element": "ice",
 			"move": 2,
 			"armor_per_tile": 2
-		},
-		"channel": {
-			"name": "Frost Step (Channel)",
-			"mana": 1,
-			"speed": "Reaction",
-			"rules_text": "Channel: Also gain 2 shield per Ice tile",
-			"tags": [
-				"ice"
-			],
-			"targeting": {
-				"type": "self"
-			},
-			"effect": {
-				"type": "imbue_path",
-				"element": "ice",
-				"move": 2,
-				"armor_per_tile": 2,
-				"shield_per_tile": 2
-			}
 		}
 	},
 	"bottom": {
@@ -61,24 +42,360 @@
 			"collision_damage": 5
 		}
 	},
-	"channel": {
-		"name": "Updraft (Channel)",
-		"mana": 1,
-		"speed": "Reaction",
-		"rules_text": "Channel: Push 3 tiles instead",
-		"tags": [
-			"storm"
-		],
-		"targeting": {
-			"type": "unit",
-			"range": 6,
-			"los": false,
-			"enemies_only": true
+	"upgrades": [
+		{
+			"tier": 1,
+			"branch": null,
+			"description": "Frost Step moves further. Updraft pushes further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.move",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.armor_per_tile",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 3. Imbue tiles with Ice. Gain 6 armor."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.tiles",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.collision_damage",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target enemy 3 tiles. If they collide deal 6."
+				}
+			]
 		},
-		"effect": {
-			"type": "push",
-			"tiles": 3,
-			"collision_damage": 5
+		{
+			"tier": 2,
+			"branch": "Glacier",
+			"description": "Glacier: Frost Step leaves ice behind but also slows enemies who move through your ice trail this turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.move",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.armor_per_tile",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 3. Imbue tiles with Ice (slows enemies who cross). Gain 6 armor."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"branch": "Windwalker",
+			"description": "Windwalker: Updraft now pushes all adjacent enemies, not just one. You become a storm in the center.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "aoe",
+							"radius": 2,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "push",
+							"tiles": 2,
+							"collision_damage": 4
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push all enemies within 2 tiles, 2 tiles away. Collision: 4 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Glacier",
+			"description": "Arctic Trail: The ice trail grows wider — Frost Step imbues the tile moved through AND its neighbors.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.move",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.armor_per_tile",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 4. Imbue path and adjacent tiles with Ice. Gain 8 armor."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "push",
+								"tiles": 3,
+								"collision_damage": 6
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "target_on_tile",
+									"tile": "ice"
+								},
+								"then": {
+									"type": "apply_status",
+									"status": "frozen",
+									"duration": 1
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 3 tiles. If pushed onto Ice, freeze for 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"branch": "Windwalker",
+			"description": "Eye of the Storm: Frost Step now imbues storm tiles instead. Entering combat means entering the tempest.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "imbue_path",
+						"element": "storm",
+						"move": 4,
+						"armor_per_tile": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "tags",
+					"value": [
+						"storm"
+					]
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 4. Imbue tiles with Storm. Gain 2 armor per tile."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "push",
+									"tiles": 2,
+									"collision_damage": 4
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 1,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "apply_status",
+									"status": "slowed",
+									"duration": 1
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push all enemies within 2 tiles, 2 tiles away. Slow adjacent enemies."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Glacier",
+			"description": "Permafrost March: Every tile you've imbued with ice this combat becomes a frozen hazard. Frost Step draws the map.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.move",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.armor_per_tile",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 5. Imbue path with Ice. Gain 4 armor per tile. Ice tiles slow enemies who enter."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "push",
+								"tiles": 3,
+								"collision_damage": 7
+							},
+							{
+								"type": "apply_status",
+								"status": "frozen",
+								"duration": 1
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "draw",
+									"count": 1
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 3 tiles (collision: 7). Freeze 1 turn. Draw 1."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"branch": "Windwalker",
+			"description": "Tempest Walk: Frost Step and Updraft become one — move through enemies rather than around them.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_path",
+								"element": "storm",
+								"move": 5,
+								"armor_per_tile": 2
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 1,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "push",
+									"tiles": 2,
+									"collision_damage": 4
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "tags",
+					"value": [
+						"storm",
+						"ice"
+					]
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 5. Imbue path with Storm. Push adjacent enemies 2 tiles on arrival."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "push",
+									"tiles": 3,
+									"collision_damage": 5
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "apply_status",
+									"status": "stunned",
+									"duration": 1
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push all enemies within 3 tiles, 3 tiles away. Stun enemies within 2."
+				}
+			]
 		}
-	}
+	]
 }
