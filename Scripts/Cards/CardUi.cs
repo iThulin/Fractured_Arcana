@@ -307,13 +307,11 @@ public partial class CardUi : Control
 
         // ── Populate top split half ─────────────────────────────────
         PopulateSplitHalf(top,
-            _topManaLabel, _topNameLabel, _topSpeedLabel,
-            _topRulesLabel, _topChannelPanel, _topChannelLabel);
+            _topManaLabel, _topNameLabel, _topSpeedLabel, _topRulesLabel);
 
         // ── Populate bottom split half ──────────────────────────────
         PopulateSplitHalf(bottom,
-            _botManaLabel, _botNameLabel, _botSpeedLabel,
-            _botRulesLabel, _botChannelPanel, _botChannelLabel);
+            _botManaLabel, _botNameLabel, _botSpeedLabel, _botRulesLabel);
 
         // ── Apply school-colored borders ────────────────────────────
         var school = top?.School ?? bottom?.School ?? CardSchool.Generic;
@@ -336,23 +334,18 @@ public partial class CardUi : Control
         StyleManaPip($"{SplitTop}/NameBar/ManaPip", darkCol);
         StyleManaPip($"{SplitBot}/NameBar/ManaPip", darkCol);
 
-        // Style channel strips with school color
-        StyleChannelStrip(_topChannelPanel, borderCol, darkCol);
-        StyleChannelStrip(_botChannelPanel, borderCol, darkCol);
+        // Channel badges — small indicator on the name bar
+        SetChannelBadge($"{SplitTop}/NameBar", top?.CanChannel ?? false);
+        SetChannelBadge($"{SplitBot}/NameBar", bottom?.CanChannel ?? false);
     }
 
     private void PopulateSplitHalf(CardHalf half,
-        Label mana, Label name, Label speed,
-        RichTextLabel rules, Panel channelPanel, RichTextLabel channelLabel)
+        Label mana, Label name, Label speed, RichTextLabel rules)
     {
         if (mana != null) mana.Text = (half?.ManaCost ?? 0).ToString();
         if (name != null) name.Text = half?.Name ?? "";
         if (speed != null) speed.Text = half?.Speed.ToString() ?? "Sorcery";
         if (rules != null) rules.Text = half?.RulesText ?? "";
-
-        var chText = half?.ChannelVariant?.RulesText ?? "";
-        if (channelPanel != null) channelPanel.Visible = !string.IsNullOrWhiteSpace(chText);
-        if (channelLabel != null) channelLabel.Text = chText;
     }
 
     private void ApplyPanelBorder(Panel panel, Color borderCol, bool isTop)
@@ -389,17 +382,27 @@ public partial class CardUi : Control
         pip.AddThemeStyleboxOverride("panel", s);
     }
 
-    private void StyleChannelStrip(Panel panel, Color borderCol, Color darkCol)
+    private void SetChannelBadge(string nameBarPath, bool canChannel)
     {
-        if (panel == null) return;
-        var s = new StyleBoxFlat();
-        s.BgColor = new Color(borderCol.R, borderCol.G, borderCol.B, 0.12f);
-        s.SetCornerRadiusAll(UITheme.CornerRadius);
-        panel.AddThemeStyleboxOverride("panel", s);
+        var nameBar = GetNodeOrNull<Control>(nameBarPath);
+        if (nameBar == null) return;
 
-        var label = panel.GetNodeOrNull<RichTextLabel>("ChannelLabel");
-        if (label != null)
-            label.AddThemeColorOverride("default_color", darkCol);
+        // Remove existing badge if present
+        var existing = nameBar.GetNodeOrNull<Label>("ChannelBadge");
+        existing?.QueueFree();
+
+        if (!canChannel) return;
+
+        var badge = new Label
+        {
+            Name = "ChannelBadge",
+            Text = "⟳",
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        badge.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        badge.AddThemeColorOverride("font_color", new Color(0.7f, 0.85f, 1f, 0.8f));
+        nameBar.AddChild(badge);
     }
 
     // ── Full-card view (hover state — art on top, info on bottom) ──────────
@@ -500,20 +503,23 @@ public partial class CardUi : Control
         if (_fullRulesLabel != null) _fullRulesLabel.Text = half.RulesText ?? "";
 
         // Channel strip
-        var chText = half.ChannelVariant?.RulesText ?? "";
+        bool canChannel = half?.CanChannel ?? false;
+        string chText = canChannel ? $"[Shift+Drop] Channel: cast as Stage {(/* tier */ 0) + 1} (+1 mana)" : "";
+
+        // Channel hint — single line at bottom of rules text
+        if (_fullRulesLabel != null && (half?.CanChannel ?? false))
+        {
+            _fullRulesLabel.Text = (half?.RulesText ?? "") +
+                "\n[color=#aaccff][i]Hold Shift to channel (+1 mana)[/i][/color]";
+        }
+        else if (_fullRulesLabel != null)
+        {
+            _fullRulesLabel.Text = half?.RulesText ?? "";
+        }
+
+        // Hide channel panel entirely — no longer used
         if (_fullChannelPanel != null)
-        {
-            _fullChannelPanel.Visible = !string.IsNullOrWhiteSpace(chText);
-            var chStyle = new StyleBoxFlat();
-            chStyle.BgColor = new Color(borderColor.R, borderColor.G, borderColor.B, 0.12f);
-            chStyle.SetCornerRadiusAll(UITheme.CornerRadius);
-            _fullChannelPanel.AddThemeStyleboxOverride("panel", chStyle);
-        }
-        if (_fullChannelLabel != null)
-        {
-            _fullChannelLabel.Text = chText;
-            _fullChannelLabel.AddThemeColorOverride("default_color", darkColor);
-        }
+            _fullChannelPanel.Visible = false;
 
         _fullCardView.Visible = true;
         _fullCardView.Modulate = new Color(1, 1, 1, 0);

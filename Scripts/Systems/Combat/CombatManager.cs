@@ -3228,18 +3228,10 @@ public partial class CombatManager : Node3D
 
         if (ok)
         {
-<<<<<<< HEAD
             // Record mastery cast against the original half's blueprint
             if (!string.IsNullOrEmpty(cardUi.CardInstance?.BlueprintId))
                 CastMasteryTracker.RecordCast(cardUi.CardInstance.BlueprintId);
 
-=======
-            // Record cast for mastery tracking
-            if (cardUi.CardInstance?.BlueprintId != null)
-                CastMasteryTracker.RecordCast(cardUi.CardInstance.BlueprintId);
-
-            // Mark first card played (for FirstCardCostReduction passive)
->>>>>>> 6d55cd5162d7cc965a7fe16393dcf5980db6a9ad
             if (selectedUnit != null)
                 selectedUnit.Stats.HasPlayedCardThisTurn = true;
 
@@ -3320,6 +3312,10 @@ public partial class CombatManager : Node3D
         var half = isTop ? cardUi.TopHalf : cardUi.BottomHalf;
         _draggedHalf = half;
         ShowTargetHighlight(half);
+
+        // Show channel hint if available
+        if (half?.CanChannel ?? false)
+            combatUI?.SetHintText("Drop to cast · Hold Shift to channel (+1 mana)");
     }
 
     private void OnCardDragEnded()
@@ -3327,6 +3323,7 @@ public partial class CombatManager : Node3D
         _isCardBeingDragged = false;
         _draggedHalf = null;
         ClearTargetHighlight();
+        combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
     }
 
     private void OnGameEvent(GameEvent ge)

@@ -379,9 +379,7 @@ public partial class CardLibraryUi : Control
             var bot = bp.Prebuilt?.BottomHalf;
             string haystack = string.Join(" ",
                 top?.Name ?? "", top?.RulesText ?? "",
-                top?.ChannelVariant?.RulesText ?? "",
                 bot?.Name ?? "", bot?.RulesText ?? "",
-                bot?.ChannelVariant?.RulesText ?? "",
                 bp.School.ToString(), bp.Rarity.ToString()
             ).ToLower();
 

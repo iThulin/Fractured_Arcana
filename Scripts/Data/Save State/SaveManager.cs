@@ -26,14 +26,15 @@ public static class SaveManager
 {
     private const string SAVE_DIR = "user://saves/";
     private const int MAX_SLOTS = 3;
-    private const int CURRENT_VERSION = 3;
+    private const int CURRENT_VERSION = 4;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        IncludeFields = true,    };
+        IncludeFields = true,
+    };
 
 
     // ── The active save (loaded into memory) ────────────────────────────
@@ -161,11 +162,11 @@ public static class SaveManager
     {
         var data = new GuildSaveData
         {
-            SaveVersion    = CURRENT_VERSION,
-            GuildName      = guildName,
+            SaveVersion = CURRENT_VERSION,
+            GuildName = guildName,
             SelectedSchool = school,
-            CreatedAt      = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-            LastPlayedAt   = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            CreatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            LastPlayedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
         };
 
         // Seed the persistent deck now so the first run has a real deck
@@ -202,10 +203,10 @@ public static class SaveManager
             var data = LoadFromSlot(i);
             if (data != null)
             {
-                info.IsEmpty   = false;
+                info.IsEmpty = false;
                 info.GuildName = data.GuildName;
-                info.School    = data.SelectedSchool;
-                info.Gold      = data.Gold;
+                info.School = data.SelectedSchool;
+                info.Gold = data.Gold;
                 info.TotalRuns = data.TotalRuns;
                 info.LastPlayed = data.LastPlayedAt;
             }
@@ -263,10 +264,46 @@ public static class SaveManager
                 GD.Print("[SaveMigration] v2 → v3: Added OwnedCard.CastCount and ChosenBranch (defaults safe).");
                 data.SaveVersion = 3;
                 break;
+            case 3:
+                GD.Print("[SaveMigration] v3 → v4: Rewriting OwnedCard BlueprintIds to JSON id format.");
+                if (data.PlayerDeck?.Cards != null)
+                {
+                    foreach (var owned in data.PlayerDeck.Cards)
+                        owned.BlueprintId = RewriteBlueprintId(owned.BlueprintId);
+                }
+                data.SaveVersion = 4;
+                break;
         }
 
         data.SaveVersion = CURRENT_VERSION;
         return data;
+    }
+
+    private static string RewriteBlueprintId(string oldId)
+    {
+        // Already in new format (lowercase, underscores, no colon)
+        if (!oldId.Contains(':')) return oldId;
+
+        // Match against the composite key that RegisterPrebuiltCard would have built
+        foreach (var bp in CardDatabase.Blueprints)
+        {
+            var prebuilt = bp.Prebuilt;
+            if (prebuilt == null) continue;
+
+            var school = prebuilt.TopHalf?.School ?? prebuilt.BottomHalf?.School ?? CardSchool.Tinker;
+            var topName = prebuilt.TopHalf?.Name ?? "";
+            var botName = prebuilt.BottomHalf?.Name ?? "";
+            string composite = $"{school}:{topName}|{botName}";
+
+            if (string.Equals(composite, oldId, StringComparison.OrdinalIgnoreCase))
+            {
+                GD.Print($"[SaveMigration] {oldId} → {bp.Id}");
+                return bp.Id;
+            }
+        }
+
+        GD.PrintErr($"[SaveMigration] Could not remap BlueprintId: '{oldId}'. Card may be lost.");
+        return oldId;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -291,8 +328,8 @@ public class SlotInfo
 {
     public int Slot;
     public bool IsEmpty;
-    public string GuildName  = "";
-    public string School     = "";
+    public string GuildName = "";
+    public string School = "";
     public int Gold;
     public int TotalRuns;
     public string LastPlayed = "";

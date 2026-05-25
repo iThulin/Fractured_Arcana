@@ -2,8 +2,6 @@
 
 [ext_resource type="Script" uid="uid://birxykmprpeas" path="res://Scripts/Cards/CardUi.cs" id="1_huidv"]
 
-; ── Split half styles (defaults — overridden by school color in code) ──────
-
 [sub_resource type="StyleBoxFlat" id="SBF_topPanel"]
 bg_color = Color(1, 1, 1, 1)
 border_width_left = 3
@@ -13,6 +11,13 @@ border_width_bottom = 2
 border_color = Color(0.5, 0.5, 0.5, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
+
+[sub_resource type="StyleBoxFlat" id="SBF_manaPip"]
+bg_color = Color(0.3, 0.3, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="SBF_botPanel"]
 bg_color = Color(1, 1, 1, 1)
@@ -24,22 +29,6 @@ border_color = Color(0.5, 0.5, 0.5, 1)
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
-[sub_resource type="StyleBoxFlat" id="SBF_manaPip"]
-bg_color = Color(0.3, 0.3, 0.3, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="SBF_channelStrip"]
-bg_color = Color(0.5, 0.5, 0.5, 0.12)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-
-; ── FullCardView styles ────────────────────────────────────────────────────
-
 [sub_resource type="StyleBoxFlat" id="SBF_artPanel"]
 bg_color = Color(0.15, 0.15, 0.15, 1)
 border_width_left = 3
@@ -48,6 +37,13 @@ border_width_right = 3
 border_color = Color(0.5, 0.5, 0.5, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
+
+[sub_resource type="StyleBoxFlat" id="SBF_badge"]
+bg_color = Color(0.5, 0.5, 0.5, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
 
 [sub_resource type="StyleBoxFlat" id="SBF_fullDiv"]
 bg_color = Color(0.5, 0.5, 0.5, 1)
@@ -68,23 +64,7 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxFlat" id="SBF_badge"]
-bg_color = Color(0.5, 0.5, 0.5, 1)
-corner_radius_top_left = 9
-corner_radius_top_right = 9
-corner_radius_bottom_right = 9
-corner_radius_bottom_left = 9
-
-[sub_resource type="StyleBoxFlat" id="SBF_fullChannel"]
-bg_color = Color(0.5, 0.5, 0.5, 0.12)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-
-; ── Root ───────────────────────────────────────────────────────────────────
-
-[node name="CardUi" type="Control"]
+[node name="CardUi" type="Control" unique_id=654080223]
 z_index = 100
 clip_contents = true
 custom_minimum_size = Vector2(200, 300)
@@ -104,28 +84,21 @@ focus_mode = 2
 mouse_default_cursor_shape = 5
 script = ExtResource("1_huidv")
 
-[node name="CardVisual" type="Control" parent="."]
+[node name="CardVisual" type="Control" parent="." unique_id=1437255791]
 custom_minimum_size = Vector2(200, 300)
-layout_mode = 0
+anchors_preset = 0
 offset_right = 200.0
 offset_bottom = 300.0
 mouse_filter = 2
 
-; ══════════════════════════════════════════════════════════════════════════
-; SPLIT LAYOUT — new style (mana pip + name + speed | rules | channel)
-; No art in split view. School borders set from code.
-; ══════════════════════════════════════════════════════════════════════════
-
-[node name="SplitView" type="Control" parent="CardVisual"]
+[node name="SplitView" type="Control" parent="CardVisual" unique_id=1379405886]
 custom_minimum_size = Vector2(200, 300)
-layout_mode = 0
+anchors_preset = 0
 offset_right = 200.0
 offset_bottom = 300.0
 mouse_filter = 2
 
-; ── Top half (0..148) ──────────────────────────────────────────────────────
-
-[node name="TopPanel" type="Panel" parent="CardVisual/SplitView"]
+[node name="TopPanel" type="Panel" parent="CardVisual/SplitView" unique_id=1645353895]
 custom_minimum_size = Vector2(200, 148)
 layout_mode = 0
 offset_right = 200.0
@@ -133,15 +106,15 @@ offset_bottom = 148.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("SBF_topPanel")
 
-[node name="TopControl" type="Control" parent="CardVisual/SplitView/TopPanel"]
+[node name="TopControl" type="Control" parent="CardVisual/SplitView/TopPanel" unique_id=1874406416]
 custom_minimum_size = Vector2(200, 148)
-layout_mode = 0
+anchors_preset = 0
 offset_right = 200.0
 offset_bottom = 148.0
 mouse_filter = 1
 mouse_default_cursor_shape = 2
 
-[node name="TopContainer" type="VBoxContainer" parent="CardVisual/SplitView/TopPanel/TopControl"]
+[node name="TopContainer" type="VBoxContainer" parent="CardVisual/SplitView/TopPanel/TopControl" unique_id=300156241]
 layout_mode = 0
 offset_left = 5.0
 offset_top = 5.0
@@ -150,17 +123,17 @@ offset_bottom = 143.0
 mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="NameBar" type="HBoxContainer" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer"]
+[node name="NameBar" type="HBoxContainer" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer" unique_id=2073519728]
 custom_minimum_size = Vector2(190, 22)
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="ManaPip" type="Panel" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar"]
+[node name="ManaPip" type="Panel" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar" unique_id=1903319486]
 custom_minimum_size = Vector2(20, 20)
 layout_mode = 2
 theme_override_styles/panel = SubResource("SBF_manaPip")
 
-[node name="ManaLabel" type="Label" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar/ManaPip"]
+[node name="ManaLabel" type="Label" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar/ManaPip" unique_id=1255029625]
 custom_minimum_size = Vector2(20, 20)
 layout_mode = 0
 offset_right = 20.0
@@ -171,7 +144,7 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SpellName" type="Label" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar"]
+[node name="SpellName" type="Label" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar" unique_id=338910836]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0, 0, 0, 1)
@@ -180,7 +153,7 @@ text = "Spell Name"
 vertical_alignment = 1
 text_overrun_behavior = 3
 
-[node name="SpeedLabel" type="Label" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar"]
+[node name="SpeedLabel" type="Label" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar" unique_id=1447378050]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
@@ -188,7 +161,7 @@ theme_override_font_sizes/font_size = 9
 text = "Sorcery"
 vertical_alignment = 1
 
-[node name="RulesText" type="RichTextLabel" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer"]
+[node name="RulesText" type="RichTextLabel" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer" unique_id=1142975533]
 custom_minimum_size = Vector2(185, 30)
 layout_mode = 2
 size_flags_vertical = 3
@@ -199,37 +172,15 @@ text = "Rules text"
 scroll_active = false
 vertical_alignment = 1
 
-[node name="ChannelStrip" type="Panel" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer"]
-custom_minimum_size = Vector2(185, 24)
-layout_mode = 2
-theme_override_styles/panel = SubResource("SBF_channelStrip")
-
-[node name="ChannelLabel" type="RichTextLabel" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/ChannelStrip"]
-layout_mode = 0
-offset_left = 3.0
-offset_top = 2.0
-offset_right = 182.0
-offset_bottom = 22.0
-mouse_filter = 2
-theme_override_colors/default_color = Color(0.3, 0.3, 0.3, 1)
-theme_override_font_sizes/normal_font_size = 9
-text = "Channel text"
-scroll_active = false
-vertical_alignment = 1
-
-; ── Divider (148..152) ─────────────────────────────────────────────────────
-
-[node name="SplitDivider" type="ColorRect" parent="CardVisual/SplitView"]
+[node name="SplitDivider" type="ColorRect" parent="CardVisual/SplitView" unique_id=1317860190]
 layout_mode = 0
 offset_top = 148.0
 offset_right = 200.0
 offset_bottom = 152.0
-color = Color(0.5, 0.5, 0.5, 1)
 mouse_filter = 2
+color = Color(0.5, 0.5, 0.5, 1)
 
-; ── Bottom half (152..300) ─────────────────────────────────────────────────
-
-[node name="BottomPanel" type="Panel" parent="CardVisual/SplitView"]
+[node name="BottomPanel" type="Panel" parent="CardVisual/SplitView" unique_id=831678946]
 custom_minimum_size = Vector2(200, 148)
 layout_mode = 0
 offset_top = 152.0
@@ -238,15 +189,15 @@ offset_bottom = 300.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("SBF_botPanel")
 
-[node name="BottomControl" type="Control" parent="CardVisual/SplitView/BottomPanel"]
+[node name="BottomControl" type="Control" parent="CardVisual/SplitView/BottomPanel" unique_id=1250646824]
 custom_minimum_size = Vector2(200, 148)
-layout_mode = 0
+anchors_preset = 0
 offset_right = 200.0
 offset_bottom = 148.0
 mouse_filter = 1
 mouse_default_cursor_shape = 2
 
-[node name="BottomContainer" type="VBoxContainer" parent="CardVisual/SplitView/BottomPanel/BottomControl"]
+[node name="BottomContainer" type="VBoxContainer" parent="CardVisual/SplitView/BottomPanel/BottomControl" unique_id=28139188]
 layout_mode = 0
 offset_left = 5.0
 offset_top = 3.0
@@ -255,17 +206,17 @@ offset_bottom = 143.0
 mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="NameBar" type="HBoxContainer" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer"]
+[node name="NameBar" type="HBoxContainer" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer" unique_id=28056738]
 custom_minimum_size = Vector2(190, 22)
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="ManaPip" type="Panel" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar"]
+[node name="ManaPip" type="Panel" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar" unique_id=825942253]
 custom_minimum_size = Vector2(20, 20)
 layout_mode = 2
 theme_override_styles/panel = SubResource("SBF_manaPip")
 
-[node name="ManaLabel" type="Label" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar/ManaPip"]
+[node name="ManaLabel" type="Label" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar/ManaPip" unique_id=1150369552]
 custom_minimum_size = Vector2(20, 20)
 layout_mode = 0
 offset_right = 20.0
@@ -276,7 +227,7 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SpellName" type="Label" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar"]
+[node name="SpellName" type="Label" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar" unique_id=306571735]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0, 0, 0, 1)
@@ -285,7 +236,7 @@ text = "Spell Name"
 vertical_alignment = 1
 text_overrun_behavior = 3
 
-[node name="SpeedLabel" type="Label" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar"]
+[node name="SpeedLabel" type="Label" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar" unique_id=996661075]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
@@ -293,7 +244,7 @@ theme_override_font_sizes/font_size = 9
 text = "Sorcery"
 vertical_alignment = 1
 
-[node name="RulesText" type="RichTextLabel" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer"]
+[node name="RulesText" type="RichTextLabel" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer" unique_id=1283560589]
 custom_minimum_size = Vector2(185, 30)
 layout_mode = 2
 size_flags_vertical = 3
@@ -304,38 +255,15 @@ text = "Rules text"
 scroll_active = false
 vertical_alignment = 1
 
-[node name="ChannelStrip" type="Panel" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer"]
-custom_minimum_size = Vector2(185, 24)
-layout_mode = 2
-theme_override_styles/panel = SubResource("SBF_channelStrip")
-
-[node name="ChannelLabel" type="RichTextLabel" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/ChannelStrip"]
-layout_mode = 0
-offset_left = 3.0
-offset_top = 2.0
-offset_right = 182.0
-offset_bottom = 22.0
-mouse_filter = 2
-theme_override_colors/default_color = Color(0.3, 0.3, 0.3, 1)
-theme_override_font_sizes/normal_font_size = 9
-text = "Channel text"
-scroll_active = false
-vertical_alignment = 1
-
-; ══════════════════════════════════════════════════════════════════════════
-; FULL CARD VIEW — shown on hover (art on top, info on bottom)
-; Starts hidden. Covers the split layout when visible.
-; ══════════════════════════════════════════════════════════════════════════
-
-[node name="FullCardView" type="Control" parent="CardVisual"]
+[node name="FullCardView" type="Control" parent="CardVisual" unique_id=60360563]
 visible = false
 custom_minimum_size = Vector2(200, 300)
-layout_mode = 0
+anchors_preset = 0
 offset_right = 200.0
 offset_bottom = 300.0
 mouse_filter = 2
 
-[node name="ArtPanel" type="Panel" parent="CardVisual/FullCardView"]
+[node name="ArtPanel" type="Panel" parent="CardVisual/FullCardView" unique_id=88837464]
 custom_minimum_size = Vector2(200, 148)
 layout_mode = 0
 offset_right = 200.0
@@ -343,7 +271,7 @@ offset_bottom = 148.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("SBF_artPanel")
 
-[node name="SchoolBadge" type="Label" parent="CardVisual/FullCardView/ArtPanel"]
+[node name="SchoolBadge" type="Label" parent="CardVisual/FullCardView/ArtPanel" unique_id=40886857]
 custom_minimum_size = Vector2(18, 18)
 layout_mode = 0
 offset_left = 3.0
@@ -357,16 +285,16 @@ text = "?"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ElementTagContainer" type="HBoxContainer" parent="CardVisual/FullCardView/ArtPanel"]
+[node name="ElementTagContainer" type="HBoxContainer" parent="CardVisual/FullCardView/ArtPanel" unique_id=1612581389]
 layout_mode = 0
 offset_left = 140.0
 offset_top = 3.0
 offset_right = 197.0
 offset_bottom = 20.0
-alignment = 2
 theme_override_constants/separation = 2
+alignment = 2
 
-[node name="FullDivider" type="Panel" parent="CardVisual/FullCardView"]
+[node name="FullDivider" type="Panel" parent="CardVisual/FullCardView" unique_id=546744784]
 custom_minimum_size = Vector2(200, 4)
 layout_mode = 0
 offset_top = 148.0
@@ -375,7 +303,7 @@ offset_bottom = 152.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("SBF_fullDiv")
 
-[node name="InfoPanel" type="Panel" parent="CardVisual/FullCardView"]
+[node name="InfoPanel" type="Panel" parent="CardVisual/FullCardView" unique_id=2087842946]
 custom_minimum_size = Vector2(200, 148)
 layout_mode = 0
 offset_top = 152.0
@@ -384,7 +312,7 @@ offset_bottom = 300.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("SBF_fullInfo")
 
-[node name="InfoContainer" type="VBoxContainer" parent="CardVisual/FullCardView/InfoPanel"]
+[node name="InfoContainer" type="VBoxContainer" parent="CardVisual/FullCardView/InfoPanel" unique_id=1043649855]
 layout_mode = 0
 offset_left = 5.0
 offset_top = 3.0
@@ -393,17 +321,17 @@ offset_bottom = 145.0
 mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="NameBar" type="HBoxContainer" parent="CardVisual/FullCardView/InfoPanel/InfoContainer"]
+[node name="NameBar" type="HBoxContainer" parent="CardVisual/FullCardView/InfoPanel/InfoContainer" unique_id=1594461939]
 custom_minimum_size = Vector2(190, 24)
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="ManaPip" type="Panel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar"]
+[node name="ManaPip" type="Panel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar" unique_id=669849027]
 custom_minimum_size = Vector2(20, 20)
 layout_mode = 2
 theme_override_styles/panel = SubResource("SBF_fullManaPip")
 
-[node name="ManaLabel" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar/ManaPip"]
+[node name="ManaLabel" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar/ManaPip" unique_id=1733622910]
 custom_minimum_size = Vector2(20, 20)
 layout_mode = 0
 offset_right = 20.0
@@ -414,7 +342,7 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SpellName" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar"]
+[node name="SpellName" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar" unique_id=1173587953]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0, 0, 0, 1)
@@ -423,7 +351,7 @@ text = "Spell Name"
 vertical_alignment = 1
 text_overrun_behavior = 3
 
-[node name="SpeedLabel" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar"]
+[node name="SpeedLabel" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar" unique_id=2025575743]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
@@ -431,7 +359,7 @@ theme_override_font_sizes/font_size = 10
 text = "Sorcery"
 vertical_alignment = 1
 
-[node name="RulesText" type="RichTextLabel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer"]
+[node name="RulesText" type="RichTextLabel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer" unique_id=167060255]
 custom_minimum_size = Vector2(185, 40)
 layout_mode = 2
 size_flags_vertical = 3
@@ -439,24 +367,5 @@ mouse_filter = 2
 theme_override_colors/default_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/normal_font_size = 12
 text = "Rules text"
-scroll_active = false
-vertical_alignment = 1
-
-[node name="ChannelStrip" type="Panel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer"]
-custom_minimum_size = Vector2(185, 28)
-layout_mode = 2
-theme_override_styles/panel = SubResource("SBF_fullChannel")
-
-[node name="ChannelLabel" type="RichTextLabel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/ChannelStrip"]
-custom_minimum_size = Vector2(180, 24)
-layout_mode = 0
-offset_left = 3.0
-offset_top = 2.0
-offset_right = 183.0
-offset_bottom = 26.0
-mouse_filter = 2
-theme_override_colors/default_color = Color(0.3, 0.3, 0.3, 1)
-theme_override_font_sizes/normal_font_size = 10
-text = "Channel text"
 scroll_active = false
 vertical_alignment = 1
