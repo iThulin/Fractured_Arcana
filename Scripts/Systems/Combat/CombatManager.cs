@@ -274,7 +274,7 @@ public partial class CombatManager : Node3D
         {
             float dragDist = GetViewport().GetMousePosition()
                 .DistanceTo(_dragStartScreenPos);
-            
+
             if (dragDist > DragThresholdPixels && !_isDraggingUnit)
             {
                 _isDraggingUnit = true;
@@ -577,7 +577,7 @@ public partial class CombatManager : Node3D
                 if (k.Keycode == Key.Tab)
                 {
                     if (k.ShiftPressed) CycleSelectedUnit(-1);
-                    else                CycleSelectedUnit(1);
+                    else CycleSelectedUnit(1);
                 }
             }
         }
@@ -2663,7 +2663,7 @@ public partial class CombatManager : Node3D
             unit.SetBodyColor(p.BodyColor);
             unit.RefreshNameLabel();
 
-            
+
 
             enemyUnits.Add(unit);
         }
@@ -3084,8 +3084,6 @@ public partial class CombatManager : Node3D
         var half = isTop ? cardUi.TopHalf : cardUi.BottomHalf;
         if (half == null) { State.Log("Dropped half was null."); return; }
 
-        GD.Print($"Attempt cast {half.Name} cost? {(half.Costs.Length > 0 ? half.Costs[0].GetType().Name : "none")} mana={State.Mana[Me]}");
-
         if (selectedUnit != null && !selectedUnit.CanAct())
         {
             GD.Print($"{selectedUnit.Name} is frozen and cannot act!");
@@ -3093,8 +3091,35 @@ public partial class CombatManager : Node3D
             return;
         }
 
+        // ── Channel resolution ────────────────────────────────────────────
+        bool isChanneling = Input.IsKeyPressed(Key.Shift);
+        CardHalf resolvedHalf = half;
+
+        if (isChanneling && half.CanChannel)
+        {
+            var channelHalf = ChannelResolver.ResolveChannel(half, cardUi.CardInstance);
+            if (channelHalf != null)
+            {
+                int totalCost = half.ManaCost + ChannelResolver.ChannelManaCost;
+                if ((selectedUnit?.Stats.Mana ?? 0) < totalCost)
+                {
+                    combatUI?.AppendActionLog("Not enough mana to channel.");
+                    return;
+                }
+                resolvedHalf = channelHalf;
+                selectedUnit.Stats.Mana -= ChannelResolver.ChannelManaCost;
+                combatUI?.AppendActionLog($"[Channel] {half.Name} → {channelHalf.Name}");
+            }
+        }
+
+        GD.Print($"Attempt cast {resolvedHalf.Name} cost? " +
+                 $"{(resolvedHalf.Costs.Length > 0 ? resolvedHalf.Costs[0].GetType().Name : "none")} " +
+                 $"mana={State.Mana[Me]}");
+
+        // ── Target building ───────────────────────────────────────────────
+        // Use resolvedHalf.Targeting so channeled half's targeter is respected
         var targets = new TargetSet();
-        switch (half.Targeting)
+        switch (resolvedHalf.Targeting)
         {
             case SelectUnitTarget ut:
                 var unit = State.UnitsInPlay
@@ -3104,8 +3129,6 @@ public partial class CombatManager : Node3D
                     combatUI?.AppendActionLog("No valid unit on that tile.");
                     return;
                 }
-
-                // Range check
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial);
@@ -3116,29 +3139,22 @@ public partial class CombatManager : Node3D
                         return;
                     }
                 }
-
-                // ── LOS check for targeted spells ─────────────────────────────
                 if (!grid.HasLineOfSight(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial))
                 {
                     combatUI?.AppendActionLog("No line of sight to target!");
                     return;
                 }
-
-                // Enemies only check
                 if (ut.enemyOnly && unit.TeamId == selectedUnit?.TeamId)
                 {
                     combatUI?.AppendActionLog("Invalid target.");
                     return;
                 }
-
                 targets.Items.Add(unit);
                 break;
 
             case SelectTileTarget tt:
                 var tileData = grid.GetTile(tile.Axial);
                 if (tileData == null) { State.Log("Invalid tile."); return; }
-
-                // Range check
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, tile.Axial);
@@ -3148,24 +3164,19 @@ public partial class CombatManager : Node3D
                         return;
                     }
                 }
-
                 targets.Items.Add(tileData);
                 break;
 
             case SelectSelfTarget:
-                // Self-targeting: target is the caster's own unit/entity
                 targets.Items.Add(Me);
                 break;
 
             case SelectAreaTarget:
             case SelectGlobalTarget:
-                // AoE and global effects don't need a player-selected target;
-                // pass the caster as a stand-in so the TargetSet is non-empty.
                 targets.Items.Add(Me);
                 break;
 
-            case SelectElementTileTarget et:
-                // Player dropped on a specific tile — use it if it matches the element
+            case SelectElementTileTarget:
                 var etData = grid.GetTile(tile.Axial);
                 if (etData == null) { State.Log("Invalid tile."); return; }
                 targets.Items.Add(etData);
@@ -3175,14 +3186,11 @@ public partial class CombatManager : Node3D
             case SelectLineTarget:
             case SelectRingTarget:
             case null:
-                // No targeting required — targets stays empty, TryCastWithTargets handles null targeting
                 break;
 
             case SelectEmptyTileTarget et:
                 var emptyTile = grid.GetTile(tile.Axial);
                 if (emptyTile == null) { State.Log("Invalid tile."); return; }
-
-                // Range check
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, tile.Axial);
@@ -3192,94 +3200,69 @@ public partial class CombatManager : Node3D
                         return;
                     }
                 }
-
-                // Must be empty
                 if (emptyTile.Occupant != null)
                 {
                     combatUI?.AppendActionLog("Target tile is occupied!");
                     return;
                 }
-
                 targets.Items.Add(emptyTile);
                 break;
+
             default:
-                GD.PrintErr($"[GameRunner] Unhandled targeter type: {half.Targeting.GetType().Name}");
-                targets.Items.Add(Me); // fallback
+                GD.PrintErr($"[GameRunner] Unhandled targeter type: {resolvedHalf.Targeting.GetType().Name}");
+                targets.Items.Add(Me);
                 break;
         }
 
-        if (!CheckCastRequirements(half, targets, out var failMsg))
+        if (!CheckCastRequirements(resolvedHalf, targets, out var failMsg))
         {
             GD.Print($"Cast blocked: {failMsg}");
             combatUI?.AppendActionLog(failMsg);
             return;
         }
 
-        // Set the active caster unit for this cast (used to direct which unit's mana to consume)
         State.ActiveCasterUnit = selectedUnit;
 
-        // Try to cast the card half on the target tile
-        var ok = Rules.TryCastWithTargets(half, State, Me, targets, cardUi.CardInstance);
+        var ok = Rules.TryCastWithTargets(resolvedHalf, State, Me, targets, cardUi.CardInstance);
         GD.Print($"Cast result={ok} manaNow={State.Mana[Me]}");
 
         if (ok)
         {
-            // Mark first card played (for FirstCardCostReduction passive)
+            // Record mastery cast against the original half's blueprint
+            if (!string.IsNullOrEmpty(cardUi.CardInstance?.BlueprintId))
+                CastMasteryTracker.RecordCast(cardUi.CardInstance.BlueprintId);
+
             if (selectedUnit != null)
                 selectedUnit.Stats.HasPlayedCardThisTurn = true;
 
-            // --- Avatar aura: notify on cast, apply bonus damage ---
             if (State.ActiveEffects != null && selectedUnit != null)
             {
                 foreach (var effect in State.ActiveEffects)
                 {
                     if (effect is AvatarAuraEffect aura && effect.Owner == Me && !effect.IsExpired)
-                    {
                         aura.OnSpellCast(State, selectedUnit, targets);
-                    }
                 }
             }
 
-            // ── Equipment passive: fire spell bonus damage ───────────────
-            if (half.Tags != null && selectedUnit != null)
-            {
-                foreach (var (tag, value) in selectedUnit.EquipmentPassives)
-                {
-                    if (tag == ItemPassiveTag.FireSpellBonusDamage &&
-                        half.Tags.Any(t => t.ToLowerInvariant() == "fire"))
-                    {
-                        // Bonus damage was already applied via BonusSpellDamage
-                        // OR apply it here as a post-cast damage tick.
-                        // Simplest: fold into BonusSpellDamage when a fire tag is active.
-                        // TODO: implement element-specific spell damage bonus properly.
-                    }
-                }
-            }
-            // --- Attunement integration ---
+            // Use resolvedHalf tags for attunement so channeled element tags are read correctly
             if (selectedUnit != null &&
                 selectedUnit.School == CardSchool.Elementalist &&
                 selectedUnit.Attunement is ElementalAttunement elemAtt &&
-                half.Tags != null && half.Tags.Length > 0)
+                resolvedHalf.Tags != null && resolvedHalf.Tags.Length > 0)
             {
-                // 1. Feed tags to tracker
-                var burstEffects = elemAtt.OnSpellCast(half.Tags);
+                var burstEffects = elemAtt.OnSpellCast(resolvedHalf.Tags);
 
-                // 2. Apply threshold bonuses
                 var bonusLog = AttunementResolver.ApplyThresholdEffects(
-                    elemAtt, half.Tags, State, selectedUnit, targets);
-
+                    elemAtt, resolvedHalf.Tags, State, selectedUnit, targets);
                 foreach (var msg in bonusLog)
                 {
                     GD.Print(msg);
                     combatUI?.AppendActionLog(msg);
                 }
 
-                // 3. Resolve bursts
                 foreach (var burst in burstEffects)
                 {
-                    var burstLog = AttunementResolver.ResolveBurst(
-                        burst.Element, State, selectedUnit);
-
+                    var burstLog = AttunementResolver.ResolveBurst(burst.Element, State, selectedUnit);
                     foreach (var msg in burstLog)
                     {
                         GD.Print(msg);
@@ -3287,31 +3270,27 @@ public partial class CombatManager : Node3D
                     }
                 }
 
-                // 4. Refresh
                 schoolAttunementUI?.Refresh();
                 RefreshAllUI();
             }
 
-            // Set last cast element for potential synergies
-            if (half.Tags != null)
+            if (resolvedHalf.Tags != null)
             {
-                foreach (var tag in half.Tags)
+                foreach (var tag in resolvedHalf.Tags)
                 {
                     if (ElementalAttunement.TryParseTag(tag, out var elem))
                     {
                         selectedUnit.LastCastElement = elem;
-                        break; // take the first element tag
+                        break;
                     }
                 }
             }
 
-            // Resolve the stack immediately
             while (!State.Stack.IsEmpty)
                 State.Resolver.ResolveTop(State);
 
             RefreshEnemyRoster();
 
-            // Discard the card immediately on successful cast
             if (deckManager != null && cardUi.CardInstance != null)
             {
                 deckManager.DiscardCard(cardUi.CardInstance);

@@ -4,6 +4,72 @@
 	"name": "Ember Bolt",
 	"school": "Elementalist",
 	"rarity": "Common",
+	"upgrades": [
+		{
+			"tier": 1,
+			"label": "Ember Bolt+",
+			"description": "Damage increased to 5.",
+			"cost": 20,
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage. Imbue target tile with Fire."
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 5
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"label": "Ember Bolt++",
+			"description": "Damage increased to 6. Mana cost reduced to 0.",
+			"cost": 40,
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Imbue target tile with Fire."
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"label": "Ember Bolt+++",
+			"description": "Damage increased to 8. Imbue bonus damage increased to 3.",
+			"cost": 80,
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 8 damage. Imbue target tile with Fire for 3 bonus damage."
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 8
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[1].bonus_damage",
+					"value": 3
+				}
+			]
+		}
+	],
 	"top": {
 		"name": "Ember Bolt",
 		"mana": 1,

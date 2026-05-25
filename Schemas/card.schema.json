@@ -143,62 +143,10 @@
 				}
 			}
 		},
-		"ChannelVariant": {
-			"type": "object",
-			"description": "The channeled variant of a card half. Same structure as CardHalf but nested and optional.",
-			"required": [
-				"name",
-				"mana",
-				"speed",
-				"rules_text",
-				"tags",
-				"targeting",
-				"effect"
-			],
-			"additionalProperties": false,
-			"properties": {
-				"name": {
-					"type": "string",
-					"minLength": 1
-				},
-				"mana": {
-					"type": "integer",
-					"minimum": 0,
-					"maximum": 10
-				},
-				"speed": {
-					"type": "string",
-					"enum": [
-						"Sorcery",
-						"Instant",
-						"Reaction"
-					]
-				},
-				"rules_text": {
-					"type": "string",
-					"minLength": 1
-				},
-				"tags": {
-					"type": "array",
-					"description": "Element and school tags. Required — use [] if this channel variant has no elemental identity.",
-					"items": {
-						"type": "string",
-						"minLength": 1
-					}
-				},
-				"requires": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					}
-				},
-				"targeting": {
-					"$ref": "#/$defs/Targeting"
-				},
-				"effect": {
-					"$ref": "#/$defs/Effect"
-				}
-			}
+		"can_channel": {
+			"type": "boolean",
+			"description": "Whether this half can be channeled. When true, the player may spend 1 extra mana to cast the next upgrade stage of this half instead of the base version.",
+			"default": true
 		},
 		"Targeting": {
 			"type": "object",

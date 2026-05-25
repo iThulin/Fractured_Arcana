@@ -723,8 +723,8 @@ public static class JsonCardLoader
             half.Requirements = reqList.ToArray();
         }
 
-        if (halfNode.TryGetProperty("channel", out var chan))
-            half.ChannelVariant = BuildHalf(chan, owner, root);
+        if (halfNode.TryGetProperty("can_channel", out var cc))
+            half.CanChannel = cc.GetBoolean();
 
         return half;
     }

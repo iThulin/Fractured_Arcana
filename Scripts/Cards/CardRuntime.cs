@@ -116,12 +116,10 @@ public sealed class CardHalf : Ability
     public Func<GameState, Entity, EffectSnapshot> MakeSnapshot = (s, c) => new EffectSnapshot();
 
     /// <summary>
-    /// Optional channeled variant of this half. When present, the player may pay this
-    /// half's cost a second time at <see cref="PlaySpeed.Reaction"/> speed to swap in
-    /// the channel variant's effect — usually a stronger or differently-shaped version
-    /// of the base effect.
+    /// When true, this half can be channeled — the player spends 1 extra mana
+    /// to cast the next upgrade stage of this half instead of the base version.
     /// </summary>
-    public CardHalf ChannelVariant;
+    public bool CanChannel = true;
 
     /// <summary>Human-readable rules text shown on the card face. Authoritative source is the JSON's `rules_text` field.</summary>
     public string RulesText = "";
