@@ -440,7 +440,7 @@ public partial class DeckEditorUi : Control
         var bp = CardDatabase.Blueprints.Find(b =>
             string.Equals(b.Id, copies[0].BlueprintId, StringComparison.OrdinalIgnoreCase));
 
-        string topName = bp?.Prebuilt?.TopHalf?.Name  ?? copies[0].BlueprintId;
+        string displayName = CardDatabase.GetDisplayName(bp);
         string botName = bp?.Prebuilt?.BottomHalf?.Name ?? "";
         int    topMana = bp?.Prebuilt?.TopHalf?.ManaCost  ?? 0;
         int    botMana = bp?.Prebuilt?.BottomHalf?.ManaCost ?? 0;
@@ -454,7 +454,7 @@ public partial class DeckEditorUi : Control
             BlueprintId    = copies[0].BlueprintId,
             Copies         = copies,
             IsActive       = isActive,
-            DisplayTopName = topName,
+            DisplayTopName = displayName,
         };
         row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         row.CustomMinimumSize   = new Vector2(0, 46);
@@ -510,7 +510,7 @@ public partial class DeckEditorUi : Control
         names.MouseFilter         = MouseFilterEnum.Ignore;
         hbox.AddChild(names);
 
-        var topLbl = new Label { Text = topName };
+        var topLbl = new Label { Text = displayName };
         topLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         topLbl.AddThemeColorOverride("font_color", UITheme.RarityColor(rarity.ToString()));
         topLbl.MouseFilter = MouseFilterEnum.Ignore;
@@ -572,7 +572,7 @@ public partial class DeckEditorUi : Control
         // ── Hover → preview ───────────────────────────────────────────────
         row.MouseEntered += () =>
         {
-            GD.Print($"[DeckEditor] Row MouseEntered — {topName}");
+            GD.Print($"[DeckEditor] Row MouseEntered — {displayName}");
             ShowPreview(bp);
         };
         row.MouseExited  += () =>
@@ -586,7 +586,7 @@ public partial class DeckEditorUi : Control
             if (e is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
             {
                 if (mb.Pressed)
-                    BeginDrag(row, isActive, topName);
+                    BeginDrag(row, isActive, displayName);
                 else if (_isDragging)
                     FinishDrag(save);
             }

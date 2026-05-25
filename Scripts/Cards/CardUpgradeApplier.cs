@@ -35,6 +35,10 @@ public static class CardUpgradeApplier
 {
     private const string CARD_DIR = "res://Data/Cards/";
 
+    // Cache handling for card lookup
+    private static readonly Dictionary<string, string> _jsonCache = new();
+    public static void ClearCache() => _jsonCache.Clear();
+
     // ── Public API ──────────────────────────────────────────────────
 
     /// <summary>
@@ -154,8 +158,15 @@ public static class CardUpgradeApplier
 
     private static string FindAndReadCardJson(CardBlueprint bp)
     {
+        // Return cached result if available
+        if (_jsonCache.TryGetValue(bp.Id, out var cached)) return cached;
+
         using var dir = DirAccess.Open(CARD_DIR);
-        if (dir == null) return null;
+        if (dir == null)
+        {
+            GD.PrintErr($"[CardUpgradeApplier] Could not open {CARD_DIR}");
+            return null;
+        }
 
         dir.ListDirBegin();
         string file;
@@ -171,28 +182,21 @@ public static class CardUpgradeApplier
             try
             {
                 var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                if (!root.TryGetProperty("school", out var schoolEl)) continue;
-                if (!root.TryGetProperty("top", out var topEl)) continue;
-                if (!Enum.TryParse<CardSchool>(schoolEl.GetString(), true, out var school)) continue;
-
-                string topName = topEl.TryGetProperty("name", out var tn) ? tn.GetString() : "";
-                string botName = "";
-                if (root.TryGetProperty("bottom", out var botEl) &&
-                    botEl.TryGetProperty("name", out var bn))
-                    botName = bn.GetString();
-
-                string candidateId = $"{school}:{topName}|{botName}";
-                if (string.Equals(candidateId, bp.Id, StringComparison.OrdinalIgnoreCase))
+                if (!doc.RootElement.TryGetProperty("id", out var cardId)) continue;
+                
+                if (string.Equals(cardId.GetString(), bp.Id, StringComparison.OrdinalIgnoreCase))
                 {
                     dir.ListDirEnd();
+                    _jsonCache[bp.Id] = json;
                     return json;
                 }
             }
             catch { continue; }
         }
+
         dir.ListDirEnd();
+        GD.PrintErr($"[CardUpgradeApplier] No JSON found for blueprint '{bp.Id}'");
+        _jsonCache[bp.Id] = null; // cache the miss too so we don't retry on every click
         return null;
     }
 

@@ -50,7 +50,8 @@ public static class CardLoaderV2
         int added = 0;
         foreach (var c in cards)
         {
-            CardDatabase.RegisterPrebuiltCard(c);
+            // BlueprintId was set by JsonCardLoader during parse
+            CardDatabase.RegisterPrebuiltCard(c, c.BlueprintId);
             added++;
         }
 
@@ -60,5 +61,13 @@ public static class CardLoaderV2
         // TEMP — delete after one run
         foreach (var bp in CardDatabase.Blueprints)
             GD.Print($"[BlueprintId] school={bp.School} id=\"{bp.Id}\"");
+    }
+
+    public static void Reload(string directoryPath)
+    {
+        CardDatabase.Blueprints.Clear();
+        CardUpgradeApplier.ClearCache();
+        _registered = false;
+        LoadCardsFromJson(directoryPath);
     }
 }

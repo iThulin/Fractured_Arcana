@@ -41,15 +41,15 @@ public static class CardScriptRegistry
     private static readonly Dictionary<string, Func<JsonElement, IPredicate>> _predicates = new();
     private static readonly Dictionary<string, Func<JsonElement, ITargetSelector>> _targeters = new();
 
-    /// <summary>Registers a factory that builds an <see cref="IEffect"/> from a JSON node. Keys are normalised to lowercase so JSON casing does not matter.</summary>
+    /// <summary>Registers a factory that builds an <see cref="IEffect"/> from a JSON node. Keys are normalized to lowercase so JSON casing does not matter.</summary>
     public static void RegisterEffect(string key, Func<JsonElement, IEffect> factory)
         => _effects[key.ToLowerInvariant()] = factory;
 
-    /// <summary>Registers a factory that builds an <see cref="IPredicate"/> from a JSON node. Keys are normalised to lowercase.</summary>
+    /// <summary>Registers a factory that builds an <see cref="IPredicate"/> from a JSON node. Keys are normalized to lowercase.</summary>
     public static void RegisterPredicate(string key, Func<JsonElement, IPredicate> factory)
         => _predicates[key.ToLowerInvariant()] = factory;
 
-    /// <summary>Registers a factory that builds an <see cref="ITargetSelector"/> from a JSON node. Keys are normalised to lowercase.</summary>
+    /// <summary>Registers a factory that builds an <see cref="ITargetSelector"/> from a JSON node. Keys are normalized to lowercase.</summary>
     public static void RegisterTargeter(string key, Func<JsonElement, ITargetSelector> factory)
         => _targeters[key.ToLowerInvariant()] = factory;
 
@@ -660,7 +660,10 @@ public static class JsonCardLoader
     {
         var card = new Card
         {
-            CardName = root.GetProperty("name").GetString() ?? "Unnamed"
+            CardName = root.GetProperty("name").GetString() ?? "Unnamed",
+            BlueprintId = root.TryGetProperty("id", out var idEl) 
+                ? idEl.GetString() ?? "" 
+                : ""  // fallback to empty — RegisterPrebuiltCard will warn
         };
 
         if (root.TryGetProperty("rarity", out var r)

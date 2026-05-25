@@ -40,13 +40,19 @@ public sealed class Card
     /// </summary>
     public Guid InstanceId = Guid.NewGuid();
 
+    /// <summary>
+    /// The JSON id field this card was built from (e.g. "elementalist_static_field").
+    /// Set by CardDatabase.Instantiate. Used by CastMasteryTracker.
+    /// </summary>
+    public string BlueprintId = "";
+
     /// <summary>Top half of the card. Always present.</summary>
     public CardHalf TopHalf;
 
     /// <summary>Bottom half of the card. Always present for split cards; may be null for single-effect designs.</summary>
     public CardHalf BottomHalf;
 
-    /// <summary>Rarity tier — drives draft odds and UI border colour.</summary>
+    /// <summary>Rarity tier — drives draft odds and UI border color.</summary>
     public CardRarity Rarity;
 }
 

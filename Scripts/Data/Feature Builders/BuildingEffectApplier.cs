@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 
 // ============================================================
 // BuildingEffectApplier.cs
@@ -26,21 +27,30 @@ public static class BuildingEffectApplier
         public int PreRevealHexCount;
         public int NegotiationTokenCount;
         public string NegotiationTokenType;
+        public HashSet<string> UnlockedFeatures;
     }
 
     /// <summary>
     /// Calculate all run bonuses from built buildings.
     /// </summary>
     public static RunBonuses CalculateRunBonuses(GuildSaveData save)
+{
+    var bonuses = new RunBonuses();
+    bonuses.UnlockedFeatures = new HashSet<string>(); // NEW
+    if (save == null) return bonuses;
+
+    foreach (var buildingSave in save.Buildings)
     {
-        var bonuses = new RunBonuses();
-        if (save == null) return bonuses;
+        if (buildingSave.Tier <= 0) continue;
 
-        foreach (var buildingSave in save.Buildings)
+        // Aggregate ALL built tiers, not just current —
+        // a Tier 2 building should carry Tier 1 flags too.
+        var template = BuildingDatabase.GetTemplate(buildingSave.Id);
+        if (template == null) continue;
+
+        for (int t = 1; t <= buildingSave.Tier; t++)
         {
-            if (buildingSave.Tier <= 0) continue;
-
-            var tierData = BuildingDatabase.GetCurrentTierData(buildingSave.Id, save);
+            var tierData = template.Tiers.Find(td => td.Tier == t);
             if (tierData == null) continue;
 
             bonuses.BonusHP += tierData.BonusStartingHP;
@@ -55,21 +65,14 @@ public static class BuildingEffectApplier
                 bonuses.NegotiationTokenType = tierData.BonusTokenType;
             }
 
+            // NEW — aggregate feature flags
             if (tierData.UnlocksFeatures != null)
-            {
                 foreach (var feature in tierData.UnlocksFeatures)
-                    GD.Print($"[Building] Feature unlocked: {feature}");
-            }
+                    bonuses.UnlockedFeatures.Add(feature);
         }
-
-        if (bonuses.BonusHP > 0 || bonuses.BonusSteps > 0 || bonuses.BonusGold > 0)
-        {
-            GD.Print($"[Buildings] Run bonuses: " +
-                     $"+{bonuses.BonusHP}HP, +{bonuses.BonusSteps}Steps, " +
-                     $"+{bonuses.BonusGold}Gold, " +
-                     $"{bonuses.PreRevealHexCount} pre-reveals");
-        }
-
-        return bonuses;
     }
+
+    GD.Print($"[Buildings] Unlocked features: {string.Join(", ", bonuses.UnlockedFeatures)}");
+    return bonuses;
+}
 }
