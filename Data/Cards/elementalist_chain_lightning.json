@@ -6,9 +6,9 @@
 	"rarity": "Uncommon",
 	"top": {
 		"name": "Chain Lightning",
-		"mana": 3,
+		"mana": 2,
 		"speed": "Sorcery",
-		"rules_text": "Deal 5 damage to target. Chains to nearest enemy within 2 for 4 then again for 2.",
+		"rules_text": "Deal 6 damage to target. Chains to 2 nearest enemies (3 damage each).",
 		"tags": [
 			"storm"
 		],
@@ -23,63 +23,68 @@
 			"steps": [
 				{
 					"type": "damage",
-					"amount": 5
+					"amount": 6
 				},
 				{
 					"type": "retarget",
 					"targeting": {
 						"type": "nearest_to_target",
-						"range": 2
+						"range": 3
 					},
 					"do": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 4
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "nearest_to_target",
-									"range": 2
-								},
-								"do": {
-									"type": "damage",
-									"amount": 2
-								}
-							}
-						]
+						"type": "damage",
+						"amount": 3
+					}
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "nearest_to_target",
+						"range": 3
+					},
+					"do": {
+						"type": "damage",
+						"amount": 3
 					}
 				}
 			]
 		}
 	},
 	"bottom": {
-		"name": "Wind Shear",
+		"name": "Lightning Rod",
 		"mana": 2,
 		"speed": "Instant",
-		"rules_text": "Cone (4). Push all enemies 2 tiles backward. Deal 2 damage per tile pushed.",
+		"rules_text": "Imbue your tile and ring at 2 with Storm. Gain 2 shield per Storm tile imbued.",
 		"tags": [
 			"storm"
 		],
 		"targeting": {
-			"type": "cone",
-			"range": 4,
-			"los": true,
-			"enemies_only": false
+			"type": "self"
 		},
 		"effect": {
 			"type": "sequence",
 			"steps": [
 				{
-					"type": "damage",
-					"amount": 2
+					"type": "imbue_tile",
+					"element": "storm",
+					"bonus_damage": 2
 				},
 				{
-					"type": "push_damage",
-					"tiles": 2,
-					"damage_per_tile": 2
+					"type": "retarget",
+					"targeting": {
+						"type": "ring",
+						"radius": 2,
+						"include_tiles": true
+					},
+					"do": {
+						"type": "imbue_tile",
+						"element": "storm",
+						"bonus_damage": 2
+					}
+				},
+				{
+					"type": "shield",
+					"amount": 10
 				}
 			]
 		}
@@ -87,47 +92,48 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Chain Lightning hits harder on each bounce. Wind Shear deals more damage per tile.",
+			"half": "both",
+			"top_name": "Chain Lightning+",
+			"bottom_name": "Lightning Rod+",
+			"description": "Chain Lightning hits harder on primary and chain. Lightning Rod grants more shield.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect.steps[0].amount",
-					"value": 6
+					"value": 7
 				},
 				{
 					"half": "top",
-					"field": "effect.steps[1].do.steps[0].amount",
-					"value": 5
+					"field": "effect.steps[1].do.amount",
+					"value": 4
 				},
 				{
 					"half": "top",
-					"field": "effect.steps[1].do.steps[1].do.amount",
-					"value": 3
+					"field": "effect.steps[2].do.amount",
+					"value": 4
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Chains for 5 then 3."
+					"value": "Deal 7 damage to target. Chains to 2 nearest enemies (4 damage each)."
 				},
 				{
 					"half": "bottom",
-					"field": "effect.steps[1].damage_per_tile",
-					"value": 3
+					"field": "effect.steps[2].amount",
+					"value": 14
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Cone (4). Push all enemies 2 tiles. Deal 3 damage per tile pushed."
+					"value": "Imbue your tile and ring at 2 with Storm. Gain 14 shield."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Conductor",
+			"half": "top",
 			"top_name": "Conductor",
-			"bottom_name": "Wind Shear",
-			"description": "Conductor: Chain Lightning now chains 4 times instead of 2. Each chain has diminishing damage but the reach is devastating.",
+			"description": "Conductor: Chain Lightning now chains to 3 targets instead of 2.",
 			"changes": [
 				{
 					"half": "top",
@@ -137,49 +143,39 @@
 						"steps": [
 							{
 								"type": "damage",
-								"amount": 6
+								"amount": 7
 							},
 							{
 								"type": "retarget",
 								"targeting": {
 									"type": "nearest_to_target",
-									"range": 2
+									"range": 3
 								},
 								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "damage",
-											"amount": 5
-										},
-										{
-											"type": "retarget",
-											"targeting": {
-												"type": "nearest_to_target",
-												"range": 2
-											},
-											"do": {
-												"type": "sequence",
-												"steps": [
-													{
-														"type": "damage",
-														"amount": 3
-													},
-													{
-														"type": "retarget",
-														"targeting": {
-															"type": "nearest_to_target",
-															"range": 2
-														},
-														"do": {
-															"type": "damage",
-															"amount": 2
-														}
-													}
-												]
-											}
-										}
-									]
+									"type": "damage",
+									"amount": 4
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage",
+									"amount": 4
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage",
+									"amount": 4
 								}
 							}
 						]
@@ -188,16 +184,72 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Chains: 5, 3, 2."
+					"value": "Deal 7 damage to target. Chains to 3 nearest enemies (4 damage each)."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Stormweaver",
-			"top_name": "Stormweaver",
-			"bottom_name": "Wind Shear",
-			"description": "Stormweaver: Each chain imbues the target's tile with Storm. Chain Lightning becomes a terrain tool.",
+			"half": "bottom",
+			"bottom_name": "Storm-weaver",
+			"description": "Storm-weaver: Lightning Rod now imbues a ring at 3 as well.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "storm",
+								"bonus_damage": 2
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 2,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "storm",
+									"bonus_damage": 2
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 3,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "storm",
+									"bonus_damage": 2
+								}
+							},
+							{
+								"type": "shield",
+								"amount": 14
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue your tile and rings at 2 and 3 with Storm. Gain 14 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Overload",
+			"description": "Overload: Primary strike deals bonus damage per storm tile between you and target.",
 			"changes": [
 				{
 					"half": "top",
@@ -207,7 +259,7 @@
 						"steps": [
 							{
 								"type": "damage",
-								"amount": 6
+								"amount": 9
 							},
 							{
 								"type": "imbue_tile",
@@ -218,215 +270,12 @@
 								"type": "retarget",
 								"targeting": {
 									"type": "nearest_to_target",
-									"range": 2
+									"range": 3
 								},
 								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "damage",
-											"amount": 5
-										},
-										{
-											"type": "imbue_tile",
-											"element": "storm",
-											"bonus_damage": 2
-										},
-										{
-											"type": "retarget",
-											"targeting": {
-												"type": "nearest_to_target",
-												"range": 2
-											},
-											"do": {
-												"type": "sequence",
-												"steps": [
-													{
-														"type": "damage",
-														"amount": 3
-													},
-													{
-														"type": "imbue_tile",
-														"element": "storm",
-														"bonus_damage": 2
-													}
-												]
-											}
-										}
-									]
+									"type": "damage",
+									"amount": 5
 								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 6 damage. Chains: 5, 3. Each hit imbues the tile with Storm."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"branch": "Conductor",
-			"top_name": "Overload",
-			"bottom_name": "Wind Shear",
-			"description": "Overload: Each chain applies a 1-turn slow. The lightning paralyzes as it bounces.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 7
-							},
-							{
-								"type": "apply_status",
-								"status": "slowed",
-								"duration": 1
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "nearest_to_target",
-									"range": 2
-								},
-								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "damage",
-											"amount": 5
-										},
-										{
-											"type": "apply_status",
-											"status": "slowed",
-											"duration": 1
-										},
-										{
-											"type": "retarget",
-											"targeting": {
-												"type": "nearest_to_target",
-												"range": 2
-											},
-											"do": {
-												"type": "sequence",
-												"steps": [
-													{
-														"type": "damage",
-														"amount": 3
-													},
-													{
-														"type": "apply_status",
-														"status": "slowed",
-														"duration": 1
-													},
-													{
-														"type": "retarget",
-														"targeting": {
-															"type": "nearest_to_target",
-															"range": 2
-														},
-														"do": {
-															"type": "sequence",
-															"steps": [
-																{
-																	"type": "damage",
-																	"amount": 2
-																},
-																{
-																	"type": "apply_status",
-																	"status": "slowed",
-																	"duration": 1
-																}
-															]
-														}
-													}
-												]
-											}
-										}
-									]
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 7 damage. Chains: 5, 3, 2. Each hit slows for 1 turn."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"branch": "Stormweaver",
-			"top_name": "Stormweaver",
-			"bottom_name": "Grid Lock",
-			"description": "Grid Lock: Enemies standing on storm tiles when Chain Lightning bounces to them take bonus damage.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 3
-							},
-							{
-								"type": "push_damage",
-								"tiles": 3,
-								"damage_per_tile": 3
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "cone",
-									"range": 4,
-									"enemies_only": true
-								},
-								"do": {
-									"type": "imbue_tile",
-									"element": "storm",
-									"bonus_damage": 2
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Cone (4). Push 3 tiles, deal 3 per tile. Imbue each target's tile with Storm."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"branch": "Conductor",
-			"top_name": "Ball Lightning",
-			"bottom_name": "Wind Shear",
-			"description": "Ball Lightning: Chain Lightning becomes a persistent effect — it bounces automatically at the start of each turn for 2 turns.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 8
-							},
-							{
-								"type": "apply_status",
-								"status": "slowed",
-								"duration": 1
 							},
 							{
 								"type": "retarget",
@@ -435,60 +284,19 @@
 									"range": 3
 								},
 								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "damage",
-											"amount": 6
-										},
-										{
-											"type": "apply_status",
-											"status": "slowed",
-											"duration": 1
-										},
-										{
-											"type": "retarget",
-											"targeting": {
-												"type": "nearest_to_target",
-												"range": 3
-											},
-											"do": {
-												"type": "sequence",
-												"steps": [
-													{
-														"type": "damage",
-														"amount": 4
-													},
-													{
-														"type": "apply_status",
-														"status": "slowed",
-														"duration": 1
-													},
-													{
-														"type": "retarget",
-														"targeting": {
-															"type": "nearest_to_target",
-															"range": 3
-														},
-														"do": {
-															"type": "sequence",
-															"steps": [
-																{
-																	"type": "damage",
-																	"amount": 2
-																},
-																{
-																	"type": "apply_status",
-																	"status": "stunned",
-																	"duration": 1
-																}
-															]
-														}
-													}
-												]
-											}
-										}
-									]
+									"type": "damage",
+									"amount": 5
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage",
+									"amount": 5
 								}
 							}
 						]
@@ -497,16 +305,92 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 8 damage. Chains to 3 more enemies (6, 4, 2). Slow each. Final target stunned."
+					"value": "Deal 9 damage. Imbue target tile with Storm. Chain to 3 enemies (5 each)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Grid Lock",
+			"description": "Grid Lock: Enemies moving through storm tiles you imbue this turn are stunned.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "storm",
+								"bonus_damage": 3
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 2,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "storm",
+									"bonus_damage": 3
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 3,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "storm",
+									"bonus_damage": 3
+								}
+							},
+							{
+								"type": "shield",
+								"amount": 16
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "conditional",
+									"if": {
+										"type": "target_on_tile",
+										"tile": "storm"
+									},
+									"then": {
+										"type": "apply_status",
+										"status": "stunned",
+										"duration": 1
+									}
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue tile and rings at 2-3 with Storm. Gain 16 shield. Enemies on Storm tiles stunned for 1 turn."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Stormweaver",
-			"top_name": "Supercell",
-			"bottom_name": "Wind Shear",
-			"description": "Supercell: Chain Lightning detonates every storm tile it touches instead of just imbuing them.",
+			"half": "top",
+			"top_name": "Ball Lightning",
+			"description": "Ball Lightning: Chain Lightning becomes a persistent ball that chains every turn for 2 turns.",
 			"changes": [
 				{
 					"half": "top",
@@ -516,7 +400,7 @@
 						"steps": [
 							{
 								"type": "damage",
-								"amount": 7
+								"amount": 10
 							},
 							{
 								"type": "imbue_tile",
@@ -530,40 +414,36 @@
 									"range": 3
 								},
 								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "damage",
-											"amount": 5
-										},
-										{
-											"type": "imbue_tile",
-											"element": "storm",
-											"bonus_damage": 3
-										},
-										{
-											"type": "retarget",
-											"targeting": {
-												"type": "nearest_to_target",
-												"range": 3
-											},
-											"do": {
-												"type": "sequence",
-												"steps": [
-													{
-														"type": "damage",
-														"amount": 3
-													},
-													{
-														"type": "imbue_tile",
-														"element": "storm",
-														"bonus_damage": 3
-													}
-												]
-											}
-										}
-									]
+									"type": "damage",
+									"amount": 6
 								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage",
+									"amount": 6
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage",
+									"amount": 6
+								}
+							},
+							{
+								"type": "apply_status",
+								"status": "ball_lightning",
+								"duration": 2
 							}
 						]
 					}
@@ -571,8 +451,16 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Chains: 5, 3. Each hit imbues tile with Storm (3 bonus damage)."
-				},
+					"value": "Deal 10 damage. Chain to 3 enemies (6 each). Leave ball lightning on target (chains again next 2 turns)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Supercell",
+			"description": "Supercell: Lightning Rod creates a massive storm zone that damages enemies each turn.",
+			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect",
@@ -582,7 +470,11 @@
 							{
 								"type": "imbue_area",
 								"element": "storm",
-								"radius": 2
+								"radius": 3
+							},
+							{
+								"type": "shield",
+								"amount": 18
 							},
 							{
 								"type": "retarget",
@@ -592,9 +484,9 @@
 									"enemies_only": true
 								},
 								"do": {
-									"type": "push_damage",
-									"tiles": 2,
-									"damage_per_tile": 3
+									"type": "apply_status",
+									"status": "stunned",
+									"duration": 1
 								}
 							}
 						]
@@ -603,7 +495,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue tiles within 2 with Storm. Push all enemies within 3, deal 3 per tile."
+					"value": "Imbue all tiles within 3 with Storm. Gain 18 shield. Stun all enemies within 3 for 1 turn."
 				}
 			]
 		}

@@ -8,7 +8,7 @@
 		"name": "Tremor Step",
 		"mana": 1,
 		"speed": "Instant",
-		"rules_text": "Move 2. Slow and deal 3 damage to all enemies in AoE 2.",
+		"rules_text": "Move 2. Imbue tiles with Stone. Gain 3 armor per tile moved.",
 		"tags": [
 			"stone"
 		],
@@ -16,42 +16,17 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "sequence",
-			"steps": [
-				{
-					"type": "move",
-					"tiles": 2
-				},
-				{
-					"type": "retarget",
-					"targeting": {
-						"type": "aoe",
-						"radius": 2,
-						"enemies_only": true
-					},
-					"do": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "apply_status",
-								"status": "slowed",
-								"duration": 1
-							},
-							{
-								"type": "damage",
-								"amount": 3
-							}
-						]
-					}
-				}
-			]
+			"type": "imbue_path",
+			"element": "stone",
+			"move": 2,
+			"armor_per_tile": 3
 		}
 	},
 	"bottom": {
-		"name": "Spark Charge",
+		"name": "Static Burst",
 		"mana": 1,
-		"speed": "Sorcery",
-		"rules_text": "Imbue your tile with Storm. Your next spell chains to 1 additional target.",
+		"speed": "Instant",
+		"rules_text": "Deal 3 damage to all adjacent enemies. Imbue their tiles with Storm.",
 		"tags": [
 			"storm"
 		],
@@ -59,214 +34,63 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "sequence",
-			"steps": [
-				{
-					"type": "imbue_tile",
-					"element": "storm"
-				},
-				{
-					"type": "apply_status",
-					"status": "chaining",
-					"duration": 1
-				}
-			]
+			"type": "retarget",
+			"targeting": {
+				"type": "aoe",
+				"radius": 1,
+				"enemies_only": true
+			},
+			"do": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 3
+					},
+					{
+						"type": "imbue_tile",
+						"element": "storm",
+						"bonus_damage": 2
+					}
+				]
+			}
 		}
 	},
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Tremor Step hits harder on landing. Spark Charge also draws a card.",
+			"half": "both",
+			"top_name": "Tremor Step+",
+			"bottom_name": "Static Burst+",
+			"description": "Tremor Step grants more armor per tile. Static Burst deals more damage.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.steps[1].do.steps[1].amount",
+					"field": "effect.armor_per_tile",
 					"value": 4
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Move 2. Slow and deal 4 damage to all enemies in AoE 2."
+					"value": "Move 2. Imbue tiles with Stone. Gain 4 armor per tile moved."
 				},
 				{
 					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "imbue_tile",
-								"element": "storm"
-							},
-							{
-								"type": "apply_status",
-								"status": "chaining",
-								"duration": 1
-							},
-							{
-								"type": "mana_gain",
-								"amount": 1
-							}
-						]
-					}
+					"field": "effect.do.steps[0].amount",
+					"value": 4
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue your tile with Storm. Next spell chains +1. Gain 1 mana."
+					"value": "Deal 4 damage to all adjacent enemies. Imbue their tiles with Storm."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Seismic",
-			"description": "Seismic: Landing Tremor Step on a stone tile also creates rubble in the AoE, making the battlefield harder to navigate.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "move",
-								"tiles": 3
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 2,
-									"enemies_only": false
-								},
-								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "apply_status",
-											"status": "slowed",
-											"duration": 1
-										},
-										{
-											"type": "damage",
-											"amount": 4
-										}
-									]
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Move 3. Slow and deal 4 damage to all enemies in AoE 2."
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"branch": "Stormbreaker",
-			"description": "Stormbreaker: Spark Charge imbues a ring of storm tiles instead of just your tile. You become the eye of the storm.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "imbue_tile",
-								"element": "storm"
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 1,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "imbue_tile",
-									"element": "storm",
-									"bonus_damage": 2
-								}
-							},
-							{
-								"type": "apply_status",
-								"status": "chaining",
-								"duration": 1
-							},
-							{
-								"type": "mana_gain",
-								"amount": 1
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Imbue your tile and ring with Storm. Next spell chains +1. Gain 1 mana."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"branch": "Seismic",
-			"description": "Shockwave: Tremor Step now roots instead of slows. Enemies can't flee the landing zone.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "move",
-								"tiles": 3
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 2,
-									"enemies_only": true
-								},
-								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "apply_status",
-											"status": "rooted",
-											"duration": 1
-										},
-										{
-											"type": "damage",
-											"amount": 5
-										}
-									]
-								}
-							},
-							{
-								"type": "imbue_tile",
-								"element": "stone"
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Move 3. Root and deal 5 damage to enemies in AoE 2. Imbue landing tile with Stone."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"branch": "Stormbreaker",
-			"description": "Thunder Step: Tremor Step now imbues storm tiles on the path as well — earth and storm merge.",
+			"half": "top",
+			"top_name": "Seismic",
+			"description": "Seismic: Tremor Step shakes the ground — enemies adjacent to stone tiles you imbue take 3 damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -276,9 +100,88 @@
 						"steps": [
 							{
 								"type": "imbue_path",
-								"element": "storm",
+								"element": "stone",
 								"move": 3,
-								"armor_per_tile": 0
+								"armor_per_tile": 4
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 1,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage",
+									"amount": 3
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 3. Imbue path with Stone (4 armor/tile). Deal 3 damage to adjacent enemies on arrival."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Storm-breaker",
+			"description": "Storm-breaker: Static Burst now affects enemies within 2 tiles.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "aoe",
+							"radius": 2,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 4
+								},
+								{
+									"type": "imbue_tile",
+									"element": "storm",
+									"bonus_damage": 2
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 4 damage to all enemies within 2. Imbue their tiles with Storm."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Shockwave",
+			"description": "Shockwave: The stone path knocks enemies back from you as you pass.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_path",
+								"element": "stone",
+								"move": 3,
+								"armor_per_tile": 4
 							},
 							{
 								"type": "retarget",
@@ -291,13 +194,13 @@
 									"type": "sequence",
 									"steps": [
 										{
-											"type": "apply_status",
-											"status": "slowed",
-											"duration": 1
+											"type": "push",
+											"tiles": 2,
+											"collision_damage": 3
 										},
 										{
 											"type": "damage",
-											"amount": 4
+											"amount": 3
 										}
 									]
 								}
@@ -307,23 +210,60 @@
 				},
 				{
 					"half": "top",
-					"field": "tags",
-					"value": [
-						"stone",
-						"storm"
-					]
+					"field": "rules_text",
+					"value": "Move 3. Imbue path with Stone. On arrival, push enemies within 2 outward (collision 3) and deal 3 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Thunder Step",
+			"description": "Thunder Step: Static Burst stuns adjacent enemies for 1 turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "aoe",
+							"radius": 2,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 5
+								},
+								{
+									"type": "imbue_tile",
+									"element": "storm",
+									"bonus_damage": 3
+								},
+								{
+									"type": "apply_status",
+									"status": "stunned",
+									"duration": 1
+								}
+							]
+						}
+					}
 				},
 				{
-					"half": "top",
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move 3, imbuing path with Storm. Slow and deal 4 damage to enemies in AoE 2."
+					"value": "Deal 5 damage to all enemies within 2. Imbue tiles with Storm. Stun for 1 turn."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Seismic",
-			"description": "Earthquake: Tremor Step becomes a seismic event. Stun all enemies on landing. Imbue tiles with Stone.",
+			"half": "top",
+			"top_name": "Earthquake",
+			"description": "Earthquake: The ground buckles — all enemies on stone tiles take 8 damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -332,8 +272,10 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "move",
-								"tiles": 4
+								"type": "imbue_path",
+								"element": "stone",
+								"move": 4,
+								"armor_per_tile": 5
 							},
 							{
 								"type": "retarget",
@@ -343,24 +285,20 @@
 									"enemies_only": true
 								},
 								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "apply_status",
-											"status": "stunned",
-											"duration": 1
-										},
-										{
-											"type": "damage",
-											"amount": 6
-										}
-									]
+									"type": "conditional",
+									"if": {
+										"type": "target_on_tile",
+										"tile": "stone"
+									},
+									"then": {
+										"type": "damage",
+										"amount": 8
+									},
+									"else": {
+										"type": "damage",
+										"amount": 4
+									}
 								}
-							},
-							{
-								"type": "imbue_area",
-								"element": "stone",
-								"radius": 2
 							}
 						]
 					}
@@ -368,27 +306,22 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Move 4. Stun and deal 6 damage to enemies in AoE 3. Imbue tiles within 2 with Stone."
+					"value": "Move 4. Imbue path with Stone (5 armor/tile). Enemies on Stone within 3 take 8 damage, others take 4."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Stormbreaker",
-			"description": "Storm Stride: The card fully unifies. Moving through storm tiles grants extra movement. The storm feeds itself.",
+			"half": "bottom",
+			"bottom_name": "Tempest Stride",
+			"description": "Tempest Stride: Both halves fuse — move through enemies, dealing storm damage to all in range.",
 			"changes": [
 				{
-					"half": "top",
+					"half": "bottom",
 					"field": "effect",
 					"value": {
 						"type": "sequence",
 						"steps": [
-							{
-								"type": "imbue_path",
-								"element": "storm",
-								"move": 4,
-								"armor_per_tile": 0
-							},
 							{
 								"type": "retarget",
 								"targeting": {
@@ -400,52 +333,39 @@
 									"type": "sequence",
 									"steps": [
 										{
-											"type": "apply_status",
-											"status": "slowed",
-											"duration": 2
+											"type": "damage",
+											"amount": 6
 										},
 										{
-											"type": "damage",
-											"amount": 5
+											"type": "imbue_tile",
+											"element": "storm",
+											"bonus_damage": 3
+										},
+										{
+											"type": "apply_status",
+											"status": "stunned",
+											"duration": 1
 										}
 									]
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "armor",
+									"amount": 8
 								}
 							}
 						]
 					}
 				},
 				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Move 4, imbuing path with Storm. Slow (2) and deal 5 damage to enemies in AoE 2."
-				},
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "imbue_area",
-								"element": "storm",
-								"radius": 2
-							},
-							{
-								"type": "apply_status",
-								"status": "chaining",
-								"duration": 2
-							},
-							{
-								"type": "mana_gain",
-								"amount": 2
-							}
-						]
-					}
-				},
-				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue tiles within 2 with Storm. Next 2 spells chain +1. Gain 2 mana."
+					"value": "Deal 6 damage to enemies within 2. Imbue tiles with Storm. Stun for 1. Gain 8 armor."
 				}
 			]
 		}

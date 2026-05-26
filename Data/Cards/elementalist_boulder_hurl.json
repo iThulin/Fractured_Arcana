@@ -7,42 +7,13 @@
 	"top": {
 		"name": "Boulder Hurl",
 		"mana": 2,
-		"speed": "Instant",
-		"rules_text": "Deal 7 damage. Push target 2 tiles away. Creates rubble on vacated tile.",
+		"speed": "Sorcery",
+		"rules_text": "Requires Stone tile. Hurl a boulder at target. Deal 8 damage and push 2 tiles.",
 		"tags": [
 			"stone"
 		],
-		"targeting": {
-			"type": "unit",
-			"range": 6,
-			"los": true,
-			"enemies_only": true
-		},
-		"effect": {
-			"type": "sequence",
-			"steps": [
-				{
-					"type": "damage",
-					"amount": 7
-				},
-				{
-					"type": "move",
-					"tiles": 2
-				},
-				{
-					"type": "imbue_tile",
-					"element": "stone"
-				}
-			]
-		}
-	},
-	"bottom": {
-		"name": "Permafrost",
-		"mana": 2,
-		"speed": "Sorcery",
-		"rules_text": "Imbue target tile with Ice. Freeze any unit on target tile for 2 turns. Slow adjacent enemies for 1 turn.",
-		"tags": [
-			"ice"
+		"requires": [
+			"stone_tile"
 		],
 		"targeting": {
 			"type": "unit",
@@ -54,18 +25,39 @@
 			"type": "sequence",
 			"steps": [
 				{
-					"type": "imbue_tile",
-					"element": "ice"
+					"type": "damage",
+					"amount": 8
 				},
 				{
-					"type": "apply_status",
-					"status": "frozen",
-					"duration": 2
+					"type": "push",
+					"tiles": 2,
+					"collision_damage": 5
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Stone Barrier",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Summon 2 Stone pillars adjacent to you. Gain 6 armor.",
+		"tags": [
+			"stone"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "summon",
+					"unit": "stone_pillar",
+					"count": 2
 				},
 				{
-					"type": "apply_status",
-					"status": "slowed",
-					"duration": 1
+					"type": "armor",
+					"amount": 6
 				}
 			]
 		}
@@ -73,37 +65,79 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Boulder Hurl hits harder. Permafrost extends its freeze.",
+			"half": "both",
+			"top_name": "Boulder Hurl+",
+			"bottom_name": "Stone Barrier+",
+			"description": "Boulder Hurl hits harder. Stone Barrier grants more armor.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect.steps[0].amount",
-					"value": 9
+					"value": 10
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[1].collision_damage",
+					"value": 6
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 9 damage. Push target 2 tiles away. Creates rubble on vacated tile."
+					"value": "Requires Stone tile. Deal 10 damage and push 2 tiles."
 				},
 				{
 					"half": "bottom",
-					"field": "effect.steps[1].duration",
-					"value": 3
+					"field": "effect.steps[1].amount",
+					"value": 8
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue target tile with Ice. Freeze for 3 turns. Slow adjacent enemies."
+					"value": "Summon 2 Stone pillars adjacent to you. Gain 8 armor."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Avalanche",
+			"half": "top",
 			"top_name": "Rockslide",
-			"bottom_name": "Permafrost",
-			"description": "Rockslide: The rubble pile spreads — boulder creates rubble on the vacated tile and the tile it lands on.",
+			"description": "Rockslide: Boulder Hurl no longer requires a stone tile. You tear the earth itself.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "requires",
+					"value": []
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 10 damage and push 2 tiles. No stone required."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Siege",
+			"description": "Siege: Stone Barrier summons 3 pillars instead of 2.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].count",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Summon 3 Stone pillars adjacent to you. Gain 8 armor."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Avalanche",
+			"description": "Avalanche: On impact, the boulder shatters and deals damage in a ring around the target.",
 			"changes": [
 				{
 					"half": "top",
@@ -113,16 +147,24 @@
 						"steps": [
 							{
 								"type": "damage",
-								"amount": 9
-							},
-							{
-								"type": "imbue_tile",
-								"element": "stone"
+								"amount": 10
 							},
 							{
 								"type": "push",
-								"tiles": 3,
-								"collision_damage": 5
+								"tiles": 2,
+								"collision_damage": 6
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 1,
+									"include_tiles": false
+								},
+								"do": {
+									"type": "damage",
+									"amount": 5
+								}
 							}
 						]
 					}
@@ -130,16 +172,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 9 damage. Imbue vacated tile with Stone. Push 3 tiles (collision: 5)."
+					"value": "Deal 10 damage, push 2. On impact, deal 5 to all enemies adjacent to target."
 				}
 			]
 		},
 		{
-			"tier": 2,
-			"branch": "Siege",
-			"top_name": "Boulder Hurl",
-			"bottom_name": "Siege",
-			"description": "Siege: Permafrost no longer needs a target — it imbues a target tile directly, trapping approach paths.",
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Fortification",
+			"description": "Fortification: Stone Barrier pillars grant armor to adjacent allies too.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -148,26 +189,20 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "imbue_tile",
-								"element": "ice"
+								"type": "summon",
+								"unit": "stone_pillar",
+								"count": 3
+							},
+							{
+								"type": "armor",
+								"amount": 10
 							},
 							{
 								"type": "retarget",
 								"targeting": {
-									"type": "ring",
-									"radius": 1,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "apply_status",
-									"status": "slowed",
-									"duration": 2
-								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "self"
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": false
 								},
 								"do": {
 									"type": "armor",
@@ -180,60 +215,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue target tile with Ice. Slow all enemies in ring for 2 turns. Gain 4 armor."
+					"value": "Summon 3 Stone pillars. Gain 10 armor. Allies within 2 gain 4 armor."
 				}
 			]
 		},
 		{
-			"tier": 3,
-			"branch": "Avalanche",
-			"top_name": "Avalanche",
-			"bottom_name": "Permafrost",
-			"description": "Avalanche: Boulder Hurl fires three boulders in a cone, each creating rubble.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "cone",
-							"range": 4,
-							"enemies_only": false
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "damage",
-									"amount": 7
-								},
-								{
-									"type": "push",
-									"tiles": 2,
-									"collision_damage": 5
-								},
-								{
-									"type": "imbue_tile",
-									"element": "stone"
-								}
-							]
-						}
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 7 damage to all in cone (4). Push 2 tiles. Imbue each vacated tile with Stone."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"branch": "Siege",
-			"top_name": "Boulder Hurl",
-			"bottom_name": "Fortification",
-			"description": "Fortification: Stone Wall from the bottom and Boulder Hurl work together — killing a frozen target creates a stone pillar on its tile.",
+			"tier": 4,
+			"half": "top",
+			"top_name": "Mountain Fall",
+			"description": "Mountain Fall: The boulder falls from a great height — stuns the target.",
 			"changes": [
 				{
 					"half": "top",
@@ -243,59 +233,27 @@
 						"steps": [
 							{
 								"type": "damage",
-								"amount": 10
+								"amount": 13
 							},
 							{
 								"type": "push",
-								"tiles": 2,
-								"collision_damage": 6
-							},
-							{
-								"type": "imbue_tile",
-								"element": "stone"
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "was_lethal"
-								},
-								"then": {
-									"type": "summon",
-									"unit": "stone_pillar",
-									"count": 1
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 10 damage. Push 2 tiles (collision: 6). Imbue vacated tile. On kill, summon Stone pillar."
-				},
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "imbue_area",
-								"element": "ice",
-								"radius": 1
+								"tiles": 3,
+								"collision_damage": 7
 							},
 							{
 								"type": "apply_status",
-								"status": "frozen",
-								"duration": 2
+								"status": "stunned",
+								"duration": 1
 							},
 							{
 								"type": "retarget",
 								"targeting": {
-									"type": "self"
+									"type": "ring",
+									"radius": 1,
+									"include_tiles": false
 								},
 								"do": {
-									"type": "armor",
+									"type": "damage",
 									"amount": 5
 								}
 							}
@@ -303,145 +261,36 @@
 					}
 				},
 				{
-					"half": "bottom",
+					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue target tile and ring with Ice. Freeze target 2 turns. Gain 5 armor."
+					"value": "Deal 13 damage, push 3, stun 1 turn. Adjacent enemies take 5 splash damage."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Avalanche",
-			"top_name": "Mountain Fall",
-			"bottom_name": "Permafrost",
-			"description": "Mountain Fall: Boulder Hurl becomes a seismic event — massive damage, massive push, the whole area becomes rubble.",
+			"half": "bottom",
+			"bottom_name": "Stone Bastion",
+			"description": "Stone Bastion: The barrier becomes a fortress. Immense armor and a full wall of pillars.",
 			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 12
-							},
-							{
-								"type": "push",
-								"tiles": 4,
-								"collision_damage": 8
-							},
-							{
-								"type": "imbue_area",
-								"element": "stone",
-								"radius": 1
-							},
-							{
-								"type": "apply_status",
-								"status": "stunned",
-								"duration": 1
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 12 damage. Push 4 tiles (collision: 8). Stun target. Imbue area with Stone."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"branch": "Siege",
-			"top_name": "Boulder Hurl",
-			"bottom_name": "Iron Citadel",
-			"description": "Iron Citadel: The card fuses — Boulder Hurl into frozen enemies triggers an immediate Permafrost. Attack and fortify simultaneously.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 10
-							},
-							{
-								"type": "push",
-								"tiles": 2,
-								"collision_damage": 6
-							},
-							{
-								"type": "imbue_tile",
-								"element": "stone"
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "target_on_tile",
-									"tile": "ice"
-								},
-								"then": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "apply_status",
-											"status": "stunned",
-											"duration": 1
-										},
-										{
-											"type": "retarget",
-											"targeting": {
-												"type": "self"
-											},
-											"do": {
-												"type": "armor",
-												"amount": 6
-											}
-										}
-									]
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 10 damage. Push 2 tiles. On ice: stun and gain 6 armor."
-				},
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
 						"type": "sequence",
 						"steps": [
-							{
-								"type": "imbue_area",
-								"element": "ice",
-								"radius": 1
-							},
-							{
-								"type": "apply_status",
-								"status": "frozen",
-								"duration": 2
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "self"
-								},
-								"do": {
-									"type": "armor",
-									"amount": 6
-								}
-							},
 							{
 								"type": "summon",
 								"unit": "stone_pillar",
-								"count": 1
+								"count": 4
+							},
+							{
+								"type": "armor",
+								"amount": 14
+							},
+							{
+								"type": "shield",
+								"amount": 6
 							}
 						]
 					}
@@ -449,7 +298,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue target and ring with Ice. Freeze 2 turns. Gain 6 armor. Summon Stone pillar."
+					"value": "Summon 4 Stone pillars adjacent to you. Gain 14 armor and 6 shield."
 				}
 			]
 		}

@@ -8,9 +8,10 @@
 		"name": "Magma Surge",
 		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Deal 9 damage to target. Imbue target tile and all adjacent tiles with Fire.",
+		"rules_text": "Deal 6 damage. Imbue target tile and adjacent ring with Fire. Enemies on fire tiles take 3 extra damage.",
 		"tags": [
-			"fire"
+			"fire",
+			"stone"
 		],
 		"targeting": {
 			"type": "unit",
@@ -23,59 +24,61 @@
 			"steps": [
 				{
 					"type": "damage",
-					"amount": 9
+					"amount": 6
 				},
 				{
 					"type": "imbue_tile",
-					"element": "fire"
+					"element": "fire",
+					"bonus_damage": 3
 				},
 				{
 					"type": "retarget",
 					"targeting": {
-						"type": "adjacent_to_target",
+						"type": "ring",
+						"radius": 1,
 						"include_tiles": true
 					},
 					"do": {
 						"type": "imbue_tile",
 						"element": "fire",
-						"bonus_damage": 2
+						"bonus_damage": 3
 					}
 				}
 			]
 		}
 	},
 	"bottom": {
-		"name": "Living Stone",
+		"name": "Forge Strike",
 		"mana": 2,
 		"speed": "Instant",
-		"rules_text": "Summon Earth Elemental on target stone tile (16HP 5DMG 1SPD). Adjacent allies gain +4 armor.",
+		"rules_text": "Requires Fire tile. Gain 6 armor. Deal 5 damage to adjacent enemies.",
 		"tags": [
+			"fire",
 			"stone"
 		],
 		"requires": [
-			"stone_tile"
+			"fire_tile"
 		],
 		"targeting": {
-			"type": "tile",
-			"range": 4
+			"type": "self"
 		},
 		"effect": {
 			"type": "sequence",
 			"steps": [
 				{
-					"type": "summon",
-					"unit": "earth_elemental",
-					"count": 1
+					"type": "armor",
+					"amount": 6
 				},
 				{
 					"type": "retarget",
 					"targeting": {
 						"type": "aoe",
-						"radius": 1
+						"radius": 1,
+						"enemies_only": true
 					},
 					"do": {
-						"type": "grant_armor",
-						"amount": 4
+						"type": "damage",
+						"amount": 5
 					}
 				}
 			]
@@ -84,18 +87,25 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Magma Surge hits harder. Living Stone grants more armor.",
+			"half": "both",
+			"top_name": "Magma Surge+",
+			"bottom_name": "Forge Strike+",
+			"description": "Magma Surge hits harder. Forge Strike grants more armor.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect.steps[0].amount",
-					"value": 11
+					"value": 8
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 11 damage. Imbue target and adjacent tiles with Fire."
+					"value": "Deal 8 damage. Imbue target tile and ring with Fire (3 bonus damage)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 8
 				},
 				{
 					"half": "bottom",
@@ -105,14 +115,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon Earth Elemental on stone tile. Adjacent allies gain +6 armor."
+					"value": "Requires Fire tile. Gain 8 armor. Deal 6 damage to adjacent enemies."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Molten",
-			"description": "Molten: Magma Surge now applies burn to all enemies caught in the fire spread.",
+			"half": "top",
+			"top_name": "Molten Core",
+			"description": "Molten Core: Magma Surge applies Burn to the primary target.",
 			"changes": [
 				{
 					"half": "top",
@@ -122,7 +133,7 @@
 						"steps": [
 							{
 								"type": "damage",
-								"amount": 11
+								"amount": 8
 							},
 							{
 								"type": "apply_status",
@@ -137,7 +148,8 @@
 							{
 								"type": "retarget",
 								"targeting": {
-									"type": "adjacent_to_target",
+									"type": "ring",
+									"radius": 1,
 									"include_tiles": true
 								},
 								"do": {
@@ -152,14 +164,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 11 damage. Apply Burn (2). Imbue target and adjacent tiles with Fire (3 bonus damage)."
+					"value": "Deal 8 damage. Apply Burn (2). Imbue tile and ring with Fire."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Smelter",
-			"description": "Smelter: Living Stone no longer requires a stone tile — the elemental erupts from the magma itself.",
+			"half": "bottom",
+			"bottom_name": "Smelter",
+			"description": "Smelter: Forge Strike no longer requires a fire tile.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -168,40 +181,16 @@
 				},
 				{
 					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "summon",
-								"unit": "earth_elemental_armored",
-								"count": 1
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 1
-								},
-								"do": {
-									"type": "grant_armor",
-									"amount": 6
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon armored Earth Elemental (no stone required). Adjacent allies gain +6 armor."
+					"value": "Gain 8 armor. Deal 6 damage to adjacent enemies. No fire required."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Molten",
-			"description": "Lava Field: The fire spread extends — Magma Surge imbues a ring-2 area. Enemies cannot avoid the fire.",
+			"half": "top",
+			"top_name": "Lava Field",
+			"description": "Lava Field: Magma Surge imbues tiles in a larger area around the target.",
 			"changes": [
 				{
 					"half": "top",
@@ -211,7 +200,7 @@
 						"steps": [
 							{
 								"type": "damage",
-								"amount": 11
+								"amount": 9
 							},
 							{
 								"type": "apply_status",
@@ -229,14 +218,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 11 damage. Apply Burn (2). Imbue all tiles within 2 with Fire."
+					"value": "Deal 9 damage. Apply Burn (2). Imbue all tiles within 2 of target with Fire."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Smelter",
-			"description": "Forge Master: When you summon the Earth Elemental, Magma Surge also imbues its tile with fire. The elemental fights from a fire position.",
+			"half": "bottom",
+			"bottom_name": "Forge Master",
+			"description": "Forge Master: Forge Strike imbues your tile with Fire and grants shield.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -245,9 +235,12 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "summon",
-								"unit": "earth_elemental_armored",
-								"count": 1
+								"type": "armor",
+								"amount": 10
+							},
+							{
+								"type": "shield",
+								"amount": 5
 							},
 							{
 								"type": "imbue_tile",
@@ -258,11 +251,22 @@
 								"type": "retarget",
 								"targeting": {
 									"type": "aoe",
-									"radius": 1
+									"radius": 1,
+									"enemies_only": true
 								},
 								"do": {
-									"type": "grant_armor",
-									"amount": 6
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 7
+										},
+										{
+											"type": "apply_status",
+											"status": "burn",
+											"duration": 1
+										}
+									]
 								}
 							}
 						]
@@ -271,24 +275,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon armored Earth Elemental. Imbue its tile with Fire. Allies gain +6 armor."
-				},
-				{
-					"half": "top",
-					"field": "effect.steps[0].amount",
-					"value": 12
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 12 damage. Imbue target and adjacent tiles with Fire."
+					"value": "Gain 10 armor and 5 shield. Imbue your tile with Fire. Deal 7 damage + burn to adjacent enemies."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Molten",
-			"description": "Supervolcano: Magma Surge becomes a global event. Every fire tile on the board detonates simultaneously.",
+			"half": "top",
+			"top_name": "Super-volcano",
+			"description": "Super-volcano: Magma Surge erupts across the entire battlefield.",
 			"changes": [
 				{
 					"half": "top",
@@ -298,7 +293,7 @@
 						"steps": [
 							{
 								"type": "damage",
-								"amount": 13
+								"amount": 11
 							},
 							{
 								"type": "apply_status",
@@ -314,12 +309,19 @@
 								"type": "retarget",
 								"targeting": {
 									"type": "aoe",
-									"radius": 4,
+									"radius": 3,
 									"enemies_only": true
 								},
 								"do": {
-									"type": "remove_armor",
-									"amount": 5
+									"type": "conditional",
+									"if": {
+										"type": "target_on_tile",
+										"tile": "fire"
+									},
+									"then": {
+										"type": "damage",
+										"amount": 4
+									}
 								}
 							}
 						]
@@ -328,14 +330,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 13 damage. Apply Burn (3). Imbue tiles within 3 with Fire. Strip 5 armor from all enemies within 4."
+					"value": "Deal 11 damage. Burn (3). Imbue tiles within 3 with Fire. Enemies on fire tiles take 4 extra."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Smelter",
-			"description": "Elemental Army: Living Stone now summons two elementals. The earth rises in force.",
+			"half": "bottom",
+			"bottom_name": "Iron Crucible",
+			"description": "Iron Crucible: Forge Strike becomes a transformation — massive armor and a storm of fire.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -344,32 +347,38 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "summon",
-								"unit": "earth_elemental_armored",
-								"count": 1
+								"type": "armor",
+								"amount": 14
 							},
 							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 1,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "summon",
-									"unit": "earth_elemental",
-									"count": 1
-								}
+								"type": "shield",
+								"amount": 7
+							},
+							{
+								"type": "imbue_area",
+								"element": "fire",
+								"radius": 1
 							},
 							{
 								"type": "retarget",
 								"targeting": {
 									"type": "aoe",
-									"radius": 2
+									"radius": 2,
+									"enemies_only": true
 								},
 								"do": {
-									"type": "grant_armor",
-									"amount": 5
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 8
+										},
+										{
+											"type": "apply_status",
+											"status": "burn",
+											"duration": 2
+										}
+									]
 								}
 							}
 						]
@@ -378,7 +387,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon 2 Earth Elementals. All allies within 2 gain +5 armor."
+					"value": "Gain 14 armor and 7 shield. Imbue adjacent tiles with Fire. Enemies within 2 take 8 damage and Burn (2)."
 				}
 			]
 		}

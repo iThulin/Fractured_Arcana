@@ -8,7 +8,48 @@
 		"name": "Storm Lord",
 		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Imbue all tiles within 2 with Storm. Deal 5 damage to each enemy in the area.",
+		"rules_text": "Deal 5 damage to all enemies in a cone. Imbue all tiles in cone with Storm. Push hit enemies 2 tiles.",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "cone",
+			"range": 4,
+			"enemies_only": false
+		},
+		"effect": {
+			"type": "retarget",
+			"targeting": {
+				"type": "cone",
+				"range": 4,
+				"enemies_only": false
+			},
+			"do": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 5
+					},
+					{
+						"type": "push",
+						"tiles": 2,
+						"collision_damage": 3
+					},
+					{
+						"type": "imbue_tile",
+						"element": "storm",
+						"bonus_damage": 2
+					}
+				]
+			}
+		}
+	},
+	"bottom": {
+		"name": "Eye of the Storm",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Gain 8 shield. All adjacent enemies are pushed 3 tiles outward.",
 		"tags": [
 			"storm"
 		],
@@ -19,86 +60,20 @@
 			"type": "sequence",
 			"steps": [
 				{
-					"type": "imbue_area",
-					"element": "storm",
-					"radius": 2
+					"type": "shield",
+					"amount": 8
 				},
 				{
 					"type": "retarget",
 					"targeting": {
 						"type": "aoe",
-						"radius": 2,
+						"radius": 1,
 						"enemies_only": true
 					},
 					"do": {
-						"type": "damage",
-						"amount": 5
-					}
-				}
-			]
-		}
-	},
-	"bottom": {
-		"name": "Caldera",
-		"mana": 3,
-		"speed": "Sorcery",
-		"rules_text": "Target tile becomes Lava. Ring of Fire at range 1. Ring of rubble at range 2. Enemies inside take 4 damage.",
-		"tags": [
-			"fire",
-			"stone"
-		],
-		"targeting": {
-			"type": "tile",
-			"range": 6
-		},
-		"effect": {
-			"type": "sequence",
-			"steps": [
-				{
-					"type": "imbue_tile",
-					"element": "fire"
-				},
-				{
-					"type": "retarget",
-					"targeting": {
-						"type": "ring",
-						"radius": 1,
-						"include_tiles": true
-					},
-					"do": {
-						"type": "imbue_tile",
-						"element": "fire"
-					}
-				},
-				{
-					"type": "retarget",
-					"targeting": {
-						"type": "ring",
-						"radius": 2,
-						"include_tiles": true
-					},
-					"do": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "create_rubble"
-							},
-							{
-								"type": "damage",
-								"amount": 4
-							}
-						]
-					}
-				},
-				{
-					"type": "retarget",
-					"targeting": {
-						"type": "adjacent_to_target",
-						"include_tiles": false
-					},
-					"do": {
-						"type": "damage",
-						"amount": 4
+						"type": "push",
+						"tiles": 3,
+						"collision_damage": 4
 					}
 				}
 			]
@@ -107,172 +82,102 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Storm Lord imbues a larger area. Caldera's inner damage increases.",
+			"half": "both",
+			"top_name": "Storm Lord+",
+			"bottom_name": "Eye of the Storm+",
+			"description": "Storm Lord hits harder. Eye of the Storm pushes further.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.steps[0].radius",
-					"value": 3
-				},
-				{
-					"half": "top",
-					"field": "effect.steps[1].targeting.radius",
-					"value": 3
-				},
-				{
-					"half": "top",
-					"field": "effect.steps[1].do.amount",
+					"field": "effect.do.steps[0].amount",
 					"value": 6
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue all tiles within 3 with Storm. Deal 6 damage to each enemy."
+					"value": "Deal 6 damage in cone. Imbue tiles with Storm. Push 2 tiles."
 				},
 				{
 					"half": "bottom",
-					"field": "effect.steps[2].do.steps[1].amount",
-					"value": 6
+					"field": "effect.steps[0].amount",
+					"value": 10
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].do.tiles",
+					"value": 4
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Target tile becomes Lava. Fire ring at 1. Rubble ring at 2. Enemies inside take 6 damage."
+					"value": "Gain 10 shield. Push all adjacent enemies 4 tiles outward."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Tempest",
-			"description": "Tempest: Storm Lord now also slows all enemies in the storm area. The storm is a battlefield controller.",
+			"half": "top",
+			"top_name": "Tempest",
+			"description": "Tempest: Storm Lord also stuns enemies pushed into obstacles.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "imbue_area",
-								"element": "storm",
-								"radius": 3
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 3,
-									"enemies_only": true
+						"type": "retarget",
+						"targeting": {
+							"type": "cone",
+							"range": 4,
+							"enemies_only": false
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 6
 								},
-								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "damage",
-											"amount": 6
-										},
-										{
-											"type": "apply_status",
-											"status": "slowed",
-											"duration": 2
-										}
-									]
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Imbue tiles within 3 with Storm. Deal 6 damage. Slow all enemies for 2 turns."
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"branch": "Eye of the Storm",
-			"description": "Eye of the Storm: Caldera now triggers attunement for fire and storm simultaneously when cast.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "tags",
-					"value": [
-						"fire",
-						"stone",
-						"storm"
-					]
-				},
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "imbue_tile",
-								"element": "fire",
-								"bonus_damage": 3
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 1,
-									"include_tiles": true
+								{
+									"type": "push",
+									"tiles": 2,
+									"collision_damage": 5
 								},
-								"do": {
+								{
+									"type": "apply_status",
+									"status": "slowed",
+									"duration": 1
+								},
+								{
 									"type": "imbue_tile",
 									"element": "storm",
-									"bonus_damage": 2
+									"bonus_damage": 3
 								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 2,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "create_rubble"
-										},
-										{
-											"type": "damage",
-											"amount": 5
-										}
-									]
-								}
-							}
-						]
+							]
+						}
 					}
 				},
 				{
-					"half": "bottom",
+					"half": "top",
 					"field": "rules_text",
-					"value": "Lava center. Storm ring at 1. Rubble ring at 2. Enemies take 5 damage. Tags: fire + storm + stone."
+					"value": "Deal 6 damage in cone. Push 2 (collision 5). Slow. Imbue tiles with Storm."
 				}
 			]
 		},
 		{
-			"tier": 3,
-			"branch": "Tempest",
-			"description": "Hurricane Force: The storm pushes enemies outward. Standing in the storm zone becomes impossible.",
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Vortex",
+			"description": "Vortex: Eye of the Storm pulls then repels — enemies are first pulled in then blasted out.",
 			"changes": [
 				{
-					"half": "top",
+					"half": "bottom",
 					"field": "effect",
 					"value": {
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "imbue_area",
-								"element": "storm",
-								"radius": 3
+								"type": "shield",
+								"amount": 10
 							},
 							{
 								"type": "retarget",
@@ -282,77 +187,202 @@
 									"enemies_only": true
 								},
 								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "damage",
-											"amount": 7
-										},
-										{
-											"type": "push",
-											"tiles": 2,
-											"collision_damage": 4
-										},
-										{
-											"type": "apply_status",
-											"status": "slowed",
-											"duration": 2
-										}
-									]
+									"type": "pull",
+									"tiles": 2
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 1,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "push",
+									"tiles": 4,
+									"collision_damage": 5
 								}
 							}
 						]
 					}
 				},
 				{
-					"half": "top",
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue tiles within 3 with Storm. Deal 7 damage. Push 2. Slow 2 turns."
+					"value": "Gain 10 shield. Pull enemies within 3 by 2, then push adjacent enemies 4 tiles."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Eye of the Storm",
-			"description": "Vortex: Storm Lord and Caldera combine — Storm Lord now pulls enemies toward the center rather than leaving them where they stand.",
+			"half": "top",
+			"top_name": "Hurricane Force",
+			"description": "Hurricane Force: The cone widens and deals bonus damage to airborne or pushed enemies.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.steps[0].radius",
-					"value": 4
-				},
-				{
-					"half": "top",
-					"field": "effect.steps[1].targeting.radius",
-					"value": 4
-				},
-				{
-					"half": "top",
-					"field": "effect.steps[1].do.amount",
-					"value": 7
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "cone",
+							"range": 5,
+							"enemies_only": false
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 7
+								},
+								{
+									"type": "push",
+									"tiles": 3,
+									"collision_damage": 5
+								},
+								{
+									"type": "apply_status",
+									"status": "slowed",
+									"duration": 1
+								},
+								{
+									"type": "imbue_tile",
+									"element": "storm",
+									"bonus_damage": 3
+								}
+							]
+						}
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue tiles within 4 with Storm. Deal 7 damage to all enemies in area."
+					"value": "Deal 7 damage in wide cone. Push 3 (collision 5). Slow. Imbue tiles with Storm."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Storm Caldera",
+			"description": "Storm Caldera: Eye of the Storm creates a persistent storm aura that pushes enemies each turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 12
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "pull",
+									"tiles": 2
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "push",
+									"tiles": 4,
+									"collision_damage": 5
+								}
+							},
+							{
+								"type": "imbue_area",
+								"element": "storm",
+								"radius": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 12 shield. Pull within 3 by 2. Push adjacent enemies 4 tiles. Imbue tiles within 2 with Storm."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Tempest",
-			"description": "Perfect Storm: Storm Lord becomes a persistent effect — the storm zone lasts 2 turns, damaging enemies each turn.",
+			"half": "top",
+			"top_name": "Perfect Storm",
+			"description": "Perfect Storm: The cone deals maximum damage and stuns all enemies hit.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect",
 					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "cone",
+							"range": 6,
+							"enemies_only": false
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 9
+								},
+								{
+									"type": "push",
+									"tiles": 3,
+									"collision_damage": 6
+								},
+								{
+									"type": "apply_status",
+									"status": "stunned",
+									"duration": 1
+								},
+								{
+									"type": "imbue_tile",
+									"element": "storm",
+									"bonus_damage": 4
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 9 damage in wide cone. Push 3 (collision 6). Stun 1 turn. Imbue tiles with Storm."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Storm Caldera",
+			"description": "Storm Caldera: Eye becomes a hurricane. Massive push, storm imbue, and shield.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "imbue_area",
-								"element": "storm",
-								"radius": 4
+								"type": "shield",
+								"amount": 16
 							},
 							{
 								"type": "retarget",
@@ -362,16 +392,24 @@
 									"enemies_only": true
 								},
 								"do": {
+									"type": "pull",
+									"tiles": 3
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
 									"type": "sequence",
 									"steps": [
 										{
-											"type": "damage",
-											"amount": 8
-										},
-										{
 											"type": "push",
-											"tiles": 3,
-											"collision_damage": 5
+											"tiles": 5,
+											"collision_damage": 6
 										},
 										{
 											"type": "apply_status",
@@ -380,96 +418,19 @@
 										}
 									]
 								}
+							},
+							{
+								"type": "imbue_area",
+								"element": "storm",
+								"radius": 3
 							}
 						]
 					}
 				},
 				{
-					"half": "top",
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue tiles within 4 with Storm. Deal 8 damage. Push 3. Stun all enemies."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"branch": "Eye of the Storm",
-			"description": "Storm Caldera: The two halves fully merge. Casting Storm Lord creates a Caldera at the center of the storm.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "imbue_tile",
-								"element": "fire",
-								"bonus_damage": 4
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 1,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "imbue_tile",
-									"element": "storm",
-									"bonus_damage": 3
-								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 2,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "imbue_tile",
-									"element": "storm",
-									"bonus_damage": 3
-								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 3,
-									"enemies_only": true
-								},
-								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "damage",
-											"amount": 8
-										},
-										{
-											"type": "apply_status",
-											"status": "slowed",
-											"duration": 2
-										}
-									]
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "tags",
-					"value": [
-						"storm",
-						"fire"
-					]
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Lava center. Storm rings at 1 and 2. Deal 8 damage to all in AoE 3. Slow 2 turns."
+					"value": "Gain 16 shield. Pull within 4 by 3. Push and stun adjacent enemies 5 tiles. Imbue tiles within 3 with Storm."
 				}
 			]
 		}

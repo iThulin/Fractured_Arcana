@@ -502,7 +502,7 @@
 			"description": "A single upgrade stage for one branch path.",
 			"required": [
 				"tier",
-				"branch",
+				"half",
 				"description",
 				"changes"
 			],
@@ -514,12 +514,14 @@
 					"minimum": 1,
 					"maximum": 4
 				},
-				"branch": {
-					"type": [
-						"string",
-						"null"
+				"half": {
+					"type": "string",
+					"enum": [
+						"top",
+						"bottom",
+						"both"
 					],
-					"description": "Branch name this node belongs to. Null for tier 1 (pre-branch)."
+					"description": "Card half this will be applied to."
 				},
 				"top_name": {
 					"type": "string",

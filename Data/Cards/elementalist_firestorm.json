@@ -8,73 +8,65 @@
 		"name": "Firestorm",
 		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Deal 4 damage to all enemies in AoE 2. Imbue tiles with Fire (3 damage per turn).",
+		"rules_text": "Deal 5 damage to all enemies within 3. Imbue all tiles within 3 with Fire.",
 		"tags": [
 			"fire"
 		],
 		"targeting": {
-			"type": "aoe",
-			"radius": 2,
-			"enemies_only": true
+			"type": "self"
 		},
 		"effect": {
-			"type": "retarget",
-			"targeting": {
-				"type": "aoe",
-				"radius": 2,
-				"enemies_only": true
-			},
-			"do": {
-				"type": "sequence",
-				"steps": [
-					{
-						"type": "damage",
-						"amount": 4
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
 					},
-					{
-						"type": "imbue_tile",
-						"element": "fire",
-						"bonus_damage": 3
+					"do": {
+						"type": "damage",
+						"amount": 5
 					}
-				]
-			}
+				},
+				{
+					"type": "imbue_area",
+					"element": "fire",
+					"radius": 3
+				}
+			]
 		}
 	},
 	"bottom": {
-		"name": "Blizzard",
+		"name": "Flash Freeze",
 		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Freeze all enemies for 2 turns. Deal 4 damage. Imbue tiles with Ice.",
+		"rules_text": "Deal 4 damage to all enemies within 3. Freeze all enemies within 3 for 1 turn.",
 		"tags": [
 			"ice"
 		],
 		"targeting": {
-			"type": "aoe",
-			"radius": 2,
-			"enemies_only": true
+			"type": "self"
 		},
 		"effect": {
 			"type": "retarget",
 			"targeting": {
 				"type": "aoe",
-				"radius": 2,
+				"radius": 3,
 				"enemies_only": true
 			},
 			"do": {
 				"type": "sequence",
 				"steps": [
 					{
-						"type": "apply_status",
-						"status": "frozen",
-						"duration": 2
-					},
-					{
 						"type": "damage",
 						"amount": 4
 					},
 					{
-						"type": "imbue_tile",
-						"element": "ice"
+						"type": "apply_status",
+						"status": "frozen",
+						"duration": 1
 					}
 				]
 			}
@@ -83,402 +75,345 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Firestorm hits harder. Blizzard freezes longer.",
+			"half": "both",
+			"top_name": "Firestorm+",
+			"bottom_name": "Flash Freeze+",
+			"description": "Firestorm hits harder. Flash Freeze freezes longer.",
 			"changes": [
 				{
 					"half": "top",
+					"field": "effect.steps[0].do.amount",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 6 damage to all enemies within 3. Imbue all tiles within 3 with Fire."
+				},
+				{
+					"half": "bottom",
 					"field": "effect.do.steps[0].amount",
 					"value": 5
 				},
 				{
-					"half": "top",
-					"field": "effect.do.steps[1].bonus_damage",
-					"value": 4
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 5 damage to all enemies in AoE 2. Imbue tiles with Fire (4 damage per turn)."
-				},
-				{
 					"half": "bottom",
-					"field": "effect.do.steps[0].duration",
-					"value": 3
+					"field": "effect.do.steps[1].duration",
+					"value": 2
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Freeze all enemies for 3 turns. Deal 4 damage. Imbue tiles with Ice."
+					"value": "Deal 5 damage to all enemies within 3. Freeze for 2 turns."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Conflagration",
-			"description": "Conflagration: Firestorm's radius grows to 3. The entire zone is engulfed.",
+			"half": "top",
+			"top_name": "Conflagration",
+			"description": "Conflagration: Firestorm burns all enemies hit.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 3,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "damage",
-									"amount": 5
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
 								},
-								{
-									"type": "apply_status",
-									"status": "burn",
-									"duration": 2
-								},
-								{
-									"type": "imbue_tile",
-									"element": "fire",
-									"bonus_damage": 4
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 6
+										},
+										{
+											"type": "apply_status",
+											"status": "burn",
+											"duration": 2
+										}
+									]
 								}
-							]
-						}
+							},
+							{
+								"type": "imbue_area",
+								"element": "fire",
+								"radius": 3
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage to all enemies in AoE 3. Apply Burn (2). Imbue tiles with Fire."
+					"value": "Deal 6 damage to all within 3. Apply Burn (2). Imbue all tiles within 3 with Fire."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Flashfreeze",
-			"description": "Flashfreeze: Cast Firestorm and Blizzard simultaneously on the same area. Fire and ice in the same zone creates a shattering explosion.",
+			"half": "bottom",
+			"bottom_name": "Flash-freeze",
+			"description": "Flash-freeze: Flash Freeze also imbues all tiles within 3 with Ice.",
 			"changes": [
 				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 2,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "damage",
-									"amount": 6
-								},
-								{
-									"type": "imbue_tile",
-									"element": "fire",
-									"bonus_damage": 4
-								}
-							]
-						}
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 6 damage to all enemies in AoE 2. Imbue tiles with Fire (4 damage)."
-				},
-				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 2,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "apply_status",
-									"status": "frozen",
-									"duration": 2
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
 								},
-								{
-									"type": "damage",
-									"amount": 6
-								},
-								{
-									"type": "imbue_tile",
-									"element": "ice"
-								},
-								{
-									"type": "conditional",
-									"if": {
-										"type": "target_on_tile",
-										"tile": "fire"
-									},
-									"then": {
-										"type": "damage",
-										"amount": 4
-									}
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 5
+										},
+										{
+											"type": "apply_status",
+											"status": "frozen",
+											"duration": 2
+										}
+									]
 								}
-							]
-						}
+							},
+							{
+								"type": "imbue_area",
+								"element": "ice",
+								"radius": 3
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Freeze 2 turns. Deal 6 damage. Imbue with Ice. On fire tiles: deal 4 bonus damage."
+					"value": "Deal 5 damage to all within 3. Freeze 2 turns. Imbue all tiles within 3 with Ice."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Conflagration",
-			"description": "Pyroclastic Flow: Firestorm now also pushes enemies outward from the center — fire and force together.",
+			"half": "top",
+			"top_name": "Pyroclastic Flow",
+			"description": "Pyroclastic Flow: Firestorm radius grows to 4.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 3,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "damage",
-									"amount": 6
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 4,
+									"enemies_only": true
 								},
-								{
-									"type": "apply_status",
-									"status": "burn",
-									"duration": 2
-								},
-								{
-									"type": "push",
-									"tiles": 2,
-									"collision_damage": 4
-								},
-								{
-									"type": "imbue_tile",
-									"element": "fire",
-									"bonus_damage": 4
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 7
+										},
+										{
+											"type": "apply_status",
+											"status": "burn",
+											"duration": 2
+										}
+									]
 								}
-							]
-						}
+							},
+							{
+								"type": "imbue_area",
+								"element": "fire",
+								"radius": 4
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 6 damage in AoE 3. Burn (2). Push 2 tiles outward. Imbue tiles with Fire."
+					"value": "Deal 7 damage to all within 4. Burn (2). Imbue all tiles within 4 with Fire."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Flashfreeze",
-			"description": "Supercooled: Blizzard now also applies burn. Fire and ice simultaneously — enemies take damage from both elements.",
+			"half": "bottom",
+			"bottom_name": "Supercooled",
+			"description": "Supercooled: Flash Freeze shatters frozen enemies — dealing bonus damage if already frozen.",
 			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 3,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "apply_status",
-									"status": "frozen",
-									"duration": 2
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
 								},
-								{
-									"type": "apply_status",
-									"status": "burn",
-									"duration": 2
-								},
-								{
-									"type": "damage",
-									"amount": 7
-								},
-								{
-									"type": "imbue_tile",
-									"element": "ice"
-								}
-							]
-						}
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "AoE 3. Freeze (2) and Burn (2). Deal 7 damage. Imbue tiles with Ice."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"branch": "Conflagration",
-			"description": "Solar Flare: Firestorm becomes a global event. Every enemy on the board takes fire damage.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 4,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "damage",
-									"amount": 8
-								},
-								{
-									"type": "apply_status",
-									"status": "burn",
-									"duration": 3
-								},
-								{
-									"type": "push",
-									"tiles": 2,
-									"collision_damage": 5
-								},
-								{
-									"type": "imbue_tile",
-									"element": "fire",
-									"bonus_damage": 5
-								}
-							]
-						}
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 8 damage to all in AoE 4. Burn (3). Push 2. Imbue tiles with Fire (5 damage)."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"branch": "Flashfreeze",
-			"description": "Absolute Devastation: Playing Firestorm then Blizzard in the same turn detonates all imbued tiles on the board.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 3,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "damage",
-									"amount": 8
-								},
-								{
-									"type": "apply_status",
-									"status": "burn",
-									"duration": 2
-								},
-								{
-									"type": "imbue_tile",
-									"element": "fire",
-									"bonus_damage": 5
-								}
-							]
-						}
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 8 damage in AoE 3. Burn (2). Imbue tiles with Fire (5 damage)."
-				},
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 3,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "apply_status",
-									"status": "frozen",
-									"duration": 3
-								},
-								{
-									"type": "damage",
-									"amount": 8
-								},
-								{
-									"type": "imbue_tile",
-									"element": "ice"
-								},
-								{
-									"type": "conditional",
-									"if": {
-										"type": "target_on_tile",
-										"tile": "fire"
-									},
-									"then": {
-										"type": "sequence",
-										"steps": [
-											{
-												"type": "damage",
-												"amount": 6
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "conditional",
+											"if": {
+												"type": "target_has_status",
+												"status": "frozen"
 											},
-											{
-												"type": "apply_status",
-												"status": "stunned",
-												"duration": 1
+											"then": {
+												"type": "damage",
+												"amount": 12
+											},
+											"else": {
+												"type": "damage",
+												"amount": 5
 											}
-										]
-									}
+										},
+										{
+											"type": "apply_status",
+											"status": "frozen",
+											"duration": 2
+										}
+									]
 								}
-							]
-						}
+							},
+							{
+								"type": "imbue_area",
+								"element": "ice",
+								"radius": 3
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "AoE 3. Freeze (3). Deal 8 damage. Imbue with Ice. On fire tiles: deal 6 more and stun."
+					"value": "Deal 5 damage (12 if already frozen) to all within 3. Freeze 2 turns. Imbue tiles with Ice."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Solar Flare",
+			"description": "Solar Flare: The firestorm erupts across the entire board.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 6,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 8
+										},
+										{
+											"type": "apply_status",
+											"status": "burn",
+											"duration": 3
+										}
+									]
+								}
+							},
+							{
+								"type": "imbue_area",
+								"element": "fire",
+								"radius": 6
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 8 damage to ALL enemies. Burn (3). Imbue every tile within 6 with Fire."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Absolute Devastation",
+			"description": "Absolute Devastation: Fire and ice combine — the battlefield is scorched and frozen simultaneously.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 4,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 8
+										},
+										{
+											"type": "apply_status",
+											"status": "frozen",
+											"duration": 2
+										},
+										{
+											"type": "apply_status",
+											"status": "burn",
+											"duration": 2
+										}
+									]
+								}
+							},
+							{
+								"type": "imbue_area",
+								"element": "ice",
+								"radius": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 8 damage to all within 4. Freeze (2) and Burn (2). Imbue all tiles within 4 with Ice."
 				}
 			]
 		}

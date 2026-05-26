@@ -49,8 +49,9 @@
 			"ice"
 		],
 		"targeting": {
-			"type": "line",
-			"length": 4,
+			"type": "unit",
+			"range": 6,
+			"los": true,
 			"enemies_only": true
 		},
 		"effect": {
@@ -79,8 +80,10 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Storm tiles deal more damage. Avalanche hits harder.",
+			"half": "both",
+			"top_name": "Static Field+",
+			"bottom_name": "Avalanche+",
+			"description": "Static Field imbues with more bonus damage. Avalanche hits harder.",
 			"changes": [
 				{
 					"half": "top",
@@ -95,7 +98,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue target tile and ring (2) with Storm. Enemies crossing take 3 damage per tile."
+					"value": "Imbue target tile and ring at 2 with Storm (3 bonus damage)."
 				},
 				{
 					"half": "bottom",
@@ -104,73 +107,78 @@
 				},
 				{
 					"half": "bottom",
+					"field": "effect.do.steps[1].collision_damage",
+					"value": 4
+				},
+				{
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage to all enemies in a line (4). Push 1 backward."
+					"value": "Deal 6 damage to all enemies in a line (4). Push each 1 tile backward."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Gridlock",
-			"description": "Gridlock: Static Field now immediately damages enemies already standing on storm tiles when it resolves.",
+			"half": "top",
+			"top_name": "Gridlock",
+			"description": "Gridlock: Enemies entering Storm tiles this turn are slowed.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "imbue_tile",
-								"element": "storm",
-								"bonus_damage": 3
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 2,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "imbue_tile",
-									"element": "storm",
-									"bonus_damage": 3
-								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 3,
-									"enemies_only": true
-								},
-								"do": {
-									"type": "conditional",
-									"if": {
-										"type": "target_on_tile",
-										"tile": "storm"
-									},
-									"then": {
-										"type": "damage",
-										"amount": 4
-									}
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue tile and ring (2) with Storm. Enemies already on storm tiles take 4 immediate damage."
+					"value": "Imbue target tile and ring at 2 with Storm (3 bonus damage, slows on entry)."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Overcharge",
-			"description": "Overcharge: Static Field's storm ring expands to radius 3. The field covers more of the battlefield.",
+			"half": "bottom",
+			"bottom_name": "Overcharge",
+			"description": "Overcharge: Avalanche imbues each tile in the line with Ice after damage.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "line",
+							"length": 4,
+							"enemies_only": false,
+							"include_tiles": true
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 6
+								},
+								{
+									"type": "push",
+									"tiles": 1,
+									"collision_damage": 4
+								},
+								{
+									"type": "imbue_tile",
+									"element": "ice"
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage to enemies in line (4). Push 1. Imbue each tile in line with Ice."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Shock Grid",
+			"description": "Shock Grid: Static Field now imbues rings at 2 and 3 — a wider storm grid.",
 			"changes": [
 				{
 					"half": "top",
@@ -215,82 +223,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue tile and two rings (2, 3) with Storm. Inner ring: 4 damage. Outer ring: 3 damage."
+					"value": "Imbue target tile and rings at 2 and 3 with Storm (4 and 3 bonus damage). Slows on entry."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Gridlock",
-			"description": "Electrified Zone: Enemies who enter or start on storm tiles are also slowed.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "imbue_tile",
-								"element": "storm",
-								"bonus_damage": 4
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 2,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "imbue_tile",
-									"element": "storm",
-									"bonus_damage": 4
-								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 3,
-									"enemies_only": true
-								},
-								"do": {
-									"type": "conditional",
-									"if": {
-										"type": "target_on_tile",
-										"tile": "storm"
-									},
-									"then": {
-										"type": "sequence",
-										"steps": [
-											{
-												"type": "damage",
-												"amount": 5
-											},
-											{
-												"type": "apply_status",
-												"status": "slowed",
-												"duration": 1
-											}
-										]
-									}
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Imbue tile and ring (2) with Storm (4 damage). Enemies on storm tiles take 5 damage and are slowed."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"branch": "Overcharge",
-			"description": "Discharge: Avalanche now imbues the line with storm tiles as it passes through.",
+			"half": "bottom",
+			"bottom_name": "Discharge",
+			"description": "Discharge: Avalanche pushes further and freezes enemies on ice tiles.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -308,7 +249,7 @@
 							"steps": [
 								{
 									"type": "damage",
-									"amount": 6
+									"amount": 7
 								},
 								{
 									"type": "push",
@@ -317,8 +258,19 @@
 								},
 								{
 									"type": "imbue_tile",
-									"element": "storm",
-									"bonus_damage": 3
+									"element": "ice"
+								},
+								{
+									"type": "conditional",
+									"if": {
+										"type": "target_on_tile",
+										"tile": "ice"
+									},
+									"then": {
+										"type": "apply_status",
+										"status": "frozen",
+										"duration": 1
+									}
 								}
 							]
 						}
@@ -327,14 +279,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage in line (5). Push 2 tiles. Imbue each tile with Storm."
+					"value": "Deal 7 damage in line (5). Push 2. Imbue ice. Enemies on ice tiles frozen 1 turn."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Gridlock",
-			"description": "Static Prison: The storm field stuns enemies who don't move out of it. The battlefield becomes a trap.",
+			"half": "top",
+			"top_name": "Static Prison",
+			"description": "Static Prison: Enemies already on storm tiles are stunned when Static Field resolves.",
 			"changes": [
 				{
 					"half": "top",
@@ -345,94 +298,13 @@
 							{
 								"type": "imbue_tile",
 								"element": "storm",
-								"bonus_damage": 5
+								"bonus_damage": 4
 							},
 							{
 								"type": "retarget",
 								"targeting": {
 									"type": "ring",
 									"radius": 2,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "imbue_tile",
-									"element": "storm",
-									"bonus_damage": 5
-								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 3,
-									"enemies_only": true
-								},
-								"do": {
-									"type": "conditional",
-									"if": {
-										"type": "target_on_tile",
-										"tile": "storm"
-									},
-									"then": {
-										"type": "sequence",
-										"steps": [
-											{
-												"type": "damage",
-												"amount": 6
-											},
-											{
-												"type": "apply_status",
-												"status": "stunned",
-												"duration": 1
-											}
-										]
-									}
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Imbue tile and ring (2) with Storm (5 damage). Enemies on storm tiles take 6 damage and are stunned."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"branch": "Overcharge",
-			"description": "Superstorm: Static Field and Avalanche fuse — the storm ring now also pushes enemies at the outer edge outward.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "imbue_tile",
-								"element": "storm",
-								"bonus_damage": 5
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 2,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "imbue_tile",
-									"element": "storm",
-									"bonus_damage": 5
-								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 3,
 									"include_tiles": true
 								},
 								"do": {
@@ -444,13 +316,34 @@
 							{
 								"type": "retarget",
 								"targeting": {
+									"type": "ring",
+									"radius": 3,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "storm",
+									"bonus_damage": 3
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
 									"type": "aoe",
 									"radius": 4,
 									"enemies_only": true
 								},
 								"do": {
-									"type": "damage",
-									"amount": 4
+									"type": "conditional",
+									"if": {
+										"type": "target_on_tile",
+										"tile": "storm"
+									},
+									"then": {
+										"type": "apply_status",
+										"status": "stunned",
+										"duration": 1
+									}
 								}
 							}
 						]
@@ -459,7 +352,61 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue 3 rings with Storm (5/5/4 damage). Deal 4 immediate damage to all enemies within 4."
+					"value": "Imbue tile and rings at 2-3 with Storm. Enemies already on Storm tiles are stunned."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Superstorm",
+			"description": "Superstorm: Avalanche becomes a wave of ice and storm — freezes and stuns.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "line",
+							"length": 6,
+							"enemies_only": false,
+							"include_tiles": true
+						},
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 8
+								},
+								{
+									"type": "push",
+									"tiles": 3,
+									"collision_damage": 5
+								},
+								{
+									"type": "imbue_tile",
+									"element": "ice"
+								},
+								{
+									"type": "apply_status",
+									"status": "frozen",
+									"duration": 1
+								},
+								{
+									"type": "apply_status",
+									"status": "stunned",
+									"duration": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 8 damage in line (6). Push 3. Imbue ice. Freeze and stun for 1 turn."
 				}
 			]
 		}

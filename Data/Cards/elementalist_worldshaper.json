@@ -6,398 +6,253 @@
 	"rarity": "Rare",
 	"top": {
 		"name": "Worldshaper",
-		"mana": 2,
+		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Raise all tiles in a 3-tile cone by 1. Imbue with Stone.",
-		"tags": [
-			"stone"
-		],
-		"targeting": {
-			"type": "cone",
-			"range": 3,
-			"enemies_only": false
-		},
-		"effect": {
-			"type": "retarget",
-			"targeting": {
-				"type": "cone",
-				"range": 3,
-				"enemies_only": false
-			},
-			"do": {
-				"type": "raise_terrain",
-				"height": 1
-			}
-		}
-	},
-	"bottom": {
-		"name": "Confluence",
-		"mana": 2,
-		"speed": "Sorcery",
-		"rules_text": "If Fire, Ice, and Storm are within 2 tiles: deal 14 damage and draw 2. Otherwise deal 5.",
+		"rules_text": "Imbue all tiles within 3 with your highest attunement element. Deal 3 damage per tile imbued.",
 		"tags": [
 			"fire",
 			"ice",
-			"storm"
+			"storm",
+			"stone"
 		],
 		"targeting": {
-			"type": "unit",
-			"range": 6,
-			"los": true,
-			"enemies_only": true
+			"type": "self"
 		},
 		"effect": {
-			"type": "conditional",
-			"if": {
-				"type": "has_elements_near_caster",
-				"elements": [
-					"fire",
-					"ice",
-					"storm"
-				],
-				"range": 2
-			},
-			"then": {
-				"type": "sequence",
-				"steps": [
-					{
-						"type": "damage",
-						"amount": 14
-					},
-					{
-						"type": "draw",
-						"count": 2
-					}
-				]
-			},
-			"else": {
-				"type": "damage",
-				"amount": 5
-			}
+			"type": "worldshaper",
+			"radius": 3,
+			"damage_per_tile": 3
+		}
+	},
+	"bottom": {
+		"name": "Elemental Read",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Draw 1 card. Gain 1 mana for each unique element imbued on tiles within 3.",
+		"tags": [
+			"fire",
+			"ice",
+			"storm",
+			"stone"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "draw",
+					"count": 1
+				},
+				{
+					"type": "mana_per_nearby_element",
+					"radius": 3
+				}
+			]
 		}
 	},
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Worldshaper raises a wider cone. Confluence hits harder when the condition is met.",
+			"half": "both",
+			"top_name": "Worldshaper+",
+			"bottom_name": "Elemental Read+",
+			"description": "Worldshaper deals more damage per tile. Elemental Read draws 2.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.targeting.range",
+					"field": "effect.damage_per_tile",
 					"value": 4
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Raise all tiles in a 4-tile cone by 1. Imbue with Stone."
+					"value": "Imbue all tiles within 3 with your highest element. Deal 4 damage per tile."
 				},
 				{
 					"half": "bottom",
-					"field": "effect.then.steps[0].amount",
-					"value": 17
-				},
-				{
-					"half": "bottom",
-					"field": "effect.else.amount",
-					"value": 7
+					"field": "effect.steps[0].count",
+					"value": 2
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "If Fire, Ice, Storm within 2 tiles: deal 17 damage and draw 2. Otherwise deal 7."
+					"value": "Draw 2 cards. Gain 1 mana per unique element on nearby tiles."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Architect",
-			"description": "Architect: Worldshaper also imbues raised tiles with Stone element, making them valid targets for stone-requiring cards.",
+			"half": "top",
+			"top_name": "Architect",
+			"description": "Architect: Worldshaper imbues with the top two attunement elements.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "cone",
-							"range": 4,
-							"enemies_only": false
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "raise_terrain",
-									"height": 1
-								},
-								{
-									"type": "imbue_tile",
-									"element": "stone"
-								},
-								{
-									"type": "damage",
-									"amount": 3
-								}
-							]
-						}
-					}
+					"field": "effect.elements",
+					"value": 2
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Raise tiles in cone (4). Imbue with Stone. Deal 3 damage to enemies on raised tiles."
+					"value": "Imbue all tiles within 3 with your top 2 attunement elements. Deal 4 damage per tile."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Oracle",
-			"description": "Oracle: Confluence's condition range extends to 3 tiles. Easier to satisfy, more rewarding to maintain.",
+			"half": "bottom",
+			"bottom_name": "Oracle",
+			"description": "Oracle: Elemental Read also scries — look at top 2 cards of deck and reorder.",
 			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "conditional",
-						"if": {
-							"type": "has_elements_near_caster",
-							"elements": [
-								"fire",
-								"ice",
-								"storm"
-							],
-							"range": 3
-						},
-						"then": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "damage",
-									"amount": 18
-								},
-								{
-									"type": "draw",
-									"count": 3
-								}
-							]
-						},
-						"else": {
-							"type": "damage",
-							"amount": 7
-						}
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 2
+							},
+							{
+								"type": "mana_per_nearby_element",
+								"radius": 3
+							},
+							{
+								"type": "scry",
+								"count": 2
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "If Fire, Ice, Storm within 3 tiles: deal 18 damage and draw 3. Otherwise deal 7."
+					"value": "Draw 2. Gain mana per nearby element. Scry top 2 cards."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Architect",
-			"description": "Terrain Mastery: Worldshaper can now raise in any direction from the caster — the cone becomes choosable each cast.",
+			"half": "top",
+			"top_name": "Grand Design",
+			"description": "Grand Design: The radius grows to 4 and enemies on imbued tiles are slowed.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "cone",
-							"range": 4,
-							"enemies_only": false
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "raise_terrain",
-									"height": 2
-								},
-								{
-									"type": "imbue_tile",
-									"element": "stone"
-								},
-								{
-									"type": "damage",
-									"amount": 5
-								}
-							]
-						}
-					}
+					"field": "effect.radius",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.slow_enemies",
+					"value": true
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Raise tiles in cone (4) by 2. Imbue with Stone. Deal 5 damage to enemies on raised tiles."
+					"value": "Imbue all tiles within 4 with top 2 elements. Deal 4 damage per tile. Enemies on imbued tiles slowed."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Oracle",
-			"description": "Elemental Sight: Confluence adds stone to its condition check. All four elements in range triggers a devastatingly powerful version.",
+			"half": "bottom",
+			"bottom_name": "Elemental Sight",
+			"description": "Elemental Sight: Gain bonus attunement stacks per unique element present in the area.",
 			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "conditional",
-						"if": {
-							"type": "has_elements_near_caster",
-							"elements": [
-								"fire",
-								"ice",
-								"storm"
-							],
-							"range": 3
-						},
-						"then": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "damage",
-									"amount": 20
-								},
-								{
-									"type": "draw",
-									"count": 3
-								},
-								{
-									"type": "mana_gain",
-									"amount": 2
-								}
-							]
-						},
-						"else": {
-							"type": "damage",
-							"amount": 8
-						}
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 2
+							},
+							{
+								"type": "mana_per_nearby_element",
+								"radius": 3
+							},
+							{
+								"type": "attunement_per_nearby_element",
+								"radius": 3
+							},
+							{
+								"type": "scry",
+								"count": 2
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "If Fire, Ice, Storm within 3: deal 20 damage, draw 3, gain 2 mana. Otherwise deal 8."
+					"value": "Draw 2. Gain mana per nearby element. Gain attunement per unique nearby element. Scry 2."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Architect",
-			"description": "World's Edge: Worldshaper reshapes the full board — raise the entire battlefield ahead of you into a fortress.",
+			"half": "top",
+			"top_name": "World's Edge",
+			"description": "World's Edge: The worldshaping becomes total — imbue with all four elements simultaneously.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "cone",
-							"range": 5,
-							"enemies_only": false
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "raise_terrain",
-									"height": 2
-								},
-								{
-									"type": "imbue_tile",
-									"element": "stone"
-								},
-								{
-									"type": "damage",
-									"amount": 7
-								},
-								{
-									"type": "push",
-									"tiles": 2,
-									"collision_damage": 5
-								}
-							]
-						}
-					}
+					"field": "effect.radius",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.elements",
+					"value": 4
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Raise tiles in cone (5) by 2. Imbue with Stone. Deal 7 damage. Push enemies 2 tiles."
+					"value": "Imbue all tiles within 5 with all 4 elements. Deal 5 damage per tile. Enemies on imbued tiles slowed."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Oracle",
-			"description": "Grand Confluence: When all four elements are within range, Confluence hits ALL enemies on the board, not just the target.",
+			"half": "bottom",
+			"bottom_name": "Grand Confluence",
+			"description": "Grand Confluence: The read becomes mastery — massive card advantage and attunement boost.",
 			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "conditional",
-						"if": {
-							"type": "has_elements_near_caster",
-							"elements": [
-								"fire",
-								"ice",
-								"storm"
-							],
-							"range": 4
-						},
-						"then": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "damage",
-									"amount": 22
-								},
-								{
-									"type": "draw",
-									"count": 3
-								},
-								{
-									"type": "mana_gain",
-									"amount": 3
-								},
-								{
-									"type": "retarget",
-									"targeting": {
-										"type": "aoe",
-										"radius": 6,
-										"enemies_only": true
-									},
-									"do": {
-										"type": "damage",
-										"amount": 8
-									}
-								}
-							]
-						},
-						"else": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "damage",
-									"amount": 10
-								},
-								{
-									"type": "draw",
-									"count": 1
-								}
-							]
-						}
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 3
+							},
+							{
+								"type": "mana_per_nearby_element",
+								"radius": 4
+							},
+							{
+								"type": "attunement_per_nearby_element",
+								"radius": 4
+							},
+							{
+								"type": "scry",
+								"count": 3
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Fire+Ice+Storm within 4: deal 22 to target, 8 to ALL enemies, draw 3, gain 3 mana. Otherwise deal 10, draw 1."
+					"value": "Draw 3. Gain mana per nearby element (radius 4). Gain attunement per element. Scry 3."
 				}
 			]
 		}

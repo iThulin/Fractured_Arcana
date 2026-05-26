@@ -31,7 +31,7 @@
 		"name": "Elemental Colossus",
 		"mana": 4,
 		"speed": "Instant",
-		"rules_text": "Summon the Colossus (30HP 5ARM 1SPD) on target tile. Caster gains 4 armor.",
+		"rules_text": "Summon the Colossus (30HP 5ARM 1SPD) on target tile. Gain 4 armor.",
 		"tags": [
 			"stone"
 		],
@@ -63,8 +63,10 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Terraform deals more damage. Colossus grants more armor on summon.",
+			"half": "both",
+			"top_name": "Terraform+",
+			"bottom_name": "Elemental Colossus+",
+			"description": "Terraform deals more damage. Colossus arrives with more HP.",
 			"changes": [
 				{
 					"half": "top",
@@ -74,7 +76,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Reshape 3-tile radius to highest element. Push enemies to edge, deal 8 damage. Imbue all tiles."
+					"value": "Reshape 3-tile radius. Push enemies to edge, deal 8 damage. Imbue all tiles."
 				},
 				{
 					"half": "bottom",
@@ -84,36 +86,33 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon the Colossus (30HP 5ARM 1SPD). Caster gains 6 armor."
+					"value": "Summon the Colossus (30HP 5ARM 1SPD). Gain 6 armor."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "World Remaker",
-			"description": "World Remaker: Terraform's radius grows to 4. More of the battlefield bends to your will.",
+			"half": "top",
+			"top_name": "World Remaker",
+			"description": "World Remaker: Terraform imbues with top two attunement elements simultaneously.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.radius",
-					"value": 4
-				},
-				{
-					"half": "top",
-					"field": "effect.damage",
-					"value": 8
+					"field": "effect.elements",
+					"value": 2
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Reshape 4-tile radius to highest element. Push enemies to edge, deal 8 damage. Imbue all tiles."
+					"value": "Reshape 3-tile radius with top 2 elements. Push enemies to edge, deal 8 damage. Imbue all tiles."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Titan",
-			"description": "Titan: The Colossus summons with empowered stats and the caster also gains shield in addition to armor.",
+			"half": "bottom",
+			"bottom_name": "Titan",
+			"description": "Titan: The Colossus is empowered — arrives with extra HP and armor.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -135,16 +134,6 @@
 									"type": "armor",
 									"amount": 6
 								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "self"
-								},
-								"do": {
-									"type": "shield",
-									"amount": 6
-								}
 							}
 						]
 					}
@@ -152,14 +141,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon empowered Colossus. Caster gains 6 armor and 6 shield."
+					"value": "Summon the Empowered Colossus (45HP 8ARM 1SPD). Gain 6 armor."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "World Remaker",
-			"description": "Continental Drift: After Terraform, all imbued tiles within the zone deal double bonus damage for 2 turns.",
+			"half": "top",
+			"top_name": "Continental Drift",
+			"description": "Continental Drift: Terraform radius grows to 4 and applies a second wave of damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -169,19 +159,25 @@
 				{
 					"half": "top",
 					"field": "effect.damage",
-					"value": 10
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "effect.elements",
+					"value": 2
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Reshape 4-tile radius. Push to edge, deal 10 damage. Imbue all tiles. Imbued tiles deal double damage for 2 turns."
+					"value": "Reshape 4-tile radius with top 2 elements. Push enemies, deal 9 damage. Imbue all tiles."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Titan",
-			"description": "Iron Giant: Adjacent allies gain armor equal to the Colossus's current armor when it's summoned.",
+			"half": "bottom",
+			"bottom_name": "Iron Colossus",
+			"description": "Iron Colossus: The Colossus becomes iron-clad — taunts adjacent enemies.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -191,7 +187,7 @@
 						"steps": [
 							{
 								"type": "summon",
-								"unit": "colossus_empowered",
+								"unit": "colossus_iron",
 								"count": 1
 							},
 							{
@@ -213,17 +209,6 @@
 									"type": "shield",
 									"amount": 6
 								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 2
-								},
-								"do": {
-									"type": "grant_armor",
-									"amount": 5
-								}
 							}
 						]
 					}
@@ -231,36 +216,43 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon empowered Colossus. Caster gains 8 armor, 6 shield. Allies within 2 gain 5 armor."
+					"value": "Summon Iron Colossus (50HP 12ARM, taunts adjacent enemies). Gain 8 armor and 6 shield."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "World Remaker",
-			"description": "Planetary Forge: Terraform reshapes to radius 5 and can now choose which element to use, not just the highest.",
+			"half": "top",
+			"top_name": "Planetary Forge",
+			"description": "Planetary Forge: The terraforming reshapes the entire board.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect.radius",
-					"value": 5
+					"value": 6
 				},
 				{
 					"half": "top",
 					"field": "effect.damage",
-					"value": 12
+					"value": 10
+				},
+				{
+					"half": "top",
+					"field": "effect.elements",
+					"value": 4
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Reshape 5-tile radius to chosen element. Push to edge, deal 12 damage. Imbue all tiles with that element."
+					"value": "Reshape the entire board with all 4 elements. Push all enemies, deal 10 damage each. Imbue all tiles."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Titan",
-			"description": "Living Fortress: The Colossus now grants a persistent aura — allies adjacent to it gain armor at the start of each player turn.",
+			"half": "bottom",
+			"bottom_name": "Living Fortress",
+			"description": "Living Fortress: The Colossus is a living fortress — massive, mobile, and devastating.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -270,7 +262,7 @@
 						"steps": [
 							{
 								"type": "summon",
-								"unit": "colossus_empowered",
+								"unit": "colossus_fortress",
 								"count": 1
 							},
 							{
@@ -294,15 +286,9 @@
 								}
 							},
 							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 2
-								},
-								"do": {
-									"type": "grant_armor",
-									"amount": 6
-								}
+								"type": "imbue_area",
+								"element": "stone",
+								"radius": 2
 							}
 						]
 					}
@@ -310,7 +296,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon empowered Colossus. Caster gains 10 armor, 8 shield. Allies within 2 gain 6 armor."
+					"value": "Summon Living Fortress Colossus (60HP 15ARM, gains armor from stone tiles). Gain 10 armor and 8 shield. Imbue tiles within 2 with Stone."
 				}
 			]
 		}

@@ -6,98 +6,138 @@
 	"rarity": "Uncommon",
 	"top": {
 		"name": "Tectonic Shatter",
-		"mana": 2,
+		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Destroy all Stone features within range 3 of target. Deal 5 damage per destroyed feature.",
+		"rules_text": "Requires Stone tile. Shatter target's tile — deal 8 damage, create rubble, push adjacent enemies 2 tiles.",
 		"tags": [
 			"stone"
+		],
+		"requires": [
+			"stone_tile"
 		],
 		"targeting": {
 			"type": "unit",
 			"range": 6,
-			"los": true,
+			"los": false,
 			"enemies_only": true
 		},
 		"effect": {
-			"type": "tectonic_shatter",
-			"radius": 3,
-			"damage_per_tile": 5
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 8
+				},
+				{
+					"type": "create_rubble"
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "ring",
+						"radius": 1,
+						"include_tiles": false
+					},
+					"do": {
+						"type": "push",
+						"tiles": 2,
+						"collision_damage": 3
+					}
+				}
+			]
 		}
 	},
 	"bottom": {
-		"name": "Elemental Cycle",
-		"mana": 1,
-		"speed": "Sorcery",
-		"rules_text": "Randomly imbue tiles around the caster with fire, ice, storm, or stone.",
+		"name": "Convergence",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Pull all enemies within 3 tiles toward you by 2. Gain 2 armor per enemy pulled.",
 		"tags": [
-			"fire",
-			"ice",
-			"storm",
 			"stone"
 		],
 		"targeting": {
 			"type": "self"
 		},
 		"effect": {
-			"type": "primordial_surge",
-			"radius": 2,
-			"damage": 0
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
+					},
+					"do": {
+						"type": "pull",
+						"tiles": 2
+					}
+				},
+				{
+					"type": "armor_per_target",
+					"amount": 2
+				}
+			]
 		}
 	},
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Tectonic Shatter deals more damage per feature. Elemental Cycle imbues a larger radius.",
+			"half": "both",
+			"top_name": "Tectonic Shatter+",
+			"bottom_name": "Convergence+",
+			"description": "Tectonic Shatter deals more damage. Convergence pulls further.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.damage_per_tile",
-					"value": 7
+					"field": "effect.steps[0].amount",
+					"value": 10
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Destroy all Stone features within range 3. Deal 7 damage per destroyed feature."
+					"value": "Requires Stone tile. Deal 10 damage, create rubble, push adjacent enemies 2 tiles."
 				},
 				{
 					"half": "bottom",
-					"field": "effect.radius",
+					"field": "effect.steps[0].do.tiles",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
 					"value": 3
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Randomly imbue tiles within 3 around the caster."
+					"value": "Pull all enemies within 3 toward you by 3. Gain 3 armor per enemy pulled."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Rubblemaster",
-			"description": "Rubblemaster: Shattered stone features leave rubble behind, creating difficult terrain that persists.",
+			"half": "top",
+			"top_name": "Rubble",
+			"description": "Rubble: Tectonic Shatter no longer requires a stone tile.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.damage_per_tile",
-					"value": 7
-				},
-				{
-					"half": "top",
-					"field": "effect.radius",
-					"value": 4
+					"field": "requires",
+					"value": []
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Destroy all Stone features within range 4. Deal 7 damage per feature. Rubble left behind."
+					"value": "Deal 10 damage, create rubble, push adjacent enemies 2 tiles. No stone required."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Convergence",
-			"description": "Convergence: Elemental Cycle now deals damage to enemies adjacent to the newly imbued tiles.",
+			"half": "bottom",
+			"bottom_name": "Convergence",
+			"description": "Grand Confluence: Convergence now pulls and deals damage.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -106,9 +146,29 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "primordial_surge",
-								"radius": 3,
-								"damage": 3
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "pull",
+											"tiles": 3
+										},
+										{
+											"type": "damage",
+											"amount": 4
+										}
+									]
+								}
+							},
+							{
+								"type": "armor_per_target",
+								"amount": 3
 							}
 						]
 					}
@@ -116,30 +176,67 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Randomly imbue tiles within 3 with random elements. Deal 3 damage to adjacent enemies per tile imbued."
+					"value": "Pull enemies within 3 toward you by 3 and deal 4 damage each. Gain 3 armor per enemy."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Rubblemaster",
-			"description": "Shockwave: Tectonic Shatter's shockwave also damages enemies within the radius, not just the target.",
+			"half": "top",
+			"top_name": "Shockwave",
+			"description": "Shockwave: Tectonic Shatter now creates rubble in a radius and pushes all nearby enemies.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.damage_per_tile",
-					"value": 8
-				},
-				{
-					"half": "top",
-					"field": "effect.radius",
-					"value": 4
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 10
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"include_tiles": true,
+									"enemies_only": false
+								},
+								"do": {
+									"type": "create_rubble"
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "push",
+									"tiles": 2,
+									"collision_damage": 4
+								}
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Destroy Stone features within range 4. Deal 8 damage per feature to ALL enemies in range."
-				},
+					"value": "Deal 10 damage. Create rubble within 2. Push enemies within 3 outward (collision 4)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Grand Confluence",
+			"description": "Grand Confluence: The pull radius grows and enemies pulled adjacent to each other take collision damage.",
+			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect",
@@ -147,19 +244,41 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "primordial_surge",
-								"radius": 3,
-								"damage": 3
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 4,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "pull",
+											"tiles": 3
+										},
+										{
+											"type": "damage",
+											"amount": 5
+										}
+									]
+								}
 							},
 							{
 								"type": "retarget",
 								"targeting": {
-									"type": "self"
+									"type": "aoe",
+									"radius": 1,
+									"enemies_only": true
 								},
 								"do": {
-									"type": "armor",
+									"type": "damage",
 									"amount": 4
 								}
+							},
+							{
+								"type": "armor_per_target",
+								"amount": 4
 							}
 						]
 					}
@@ -167,114 +286,132 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Randomly imbue tiles within 3. Deal 3 damage per tile. Gain 4 armor."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"branch": "Convergence",
-			"description": "Elemental Mastery: Elemental Cycle imbues with the element you have the highest attunement in, not randomly.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "primordial_surge",
-								"radius": 3,
-								"damage": 4
-							},
-							{
-								"type": "draw",
-								"count": 1
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Randomly imbue tiles within 3. Deal 4 damage per tile to adjacent enemies. Draw 1."
+					"value": "Pull enemies within 4 toward you by 3 (deal 5 each). Adjacent enemies take 4 collision. Gain 4 armor per enemy."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Rubblemaster",
-			"description": "Geological Disaster: Tectonic Shatter hits the entire board. Every stone feature shatters simultaneously.",
+			"half": "top",
+			"top_name": "Geological Disaster",
+			"description": "Geological Disaster: The shatter becomes cataclysmic — rubble and damage in a massive area.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.damage_per_tile",
-					"value": 10
-				},
-				{
-					"half": "top",
-					"field": "effect.radius",
-					"value": 6
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Destroy ALL Stone features on the board. Deal 10 damage per feature to nearest enemy."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"branch": "Convergence",
-			"description": "Elemental Singularity: The two halves of the card fuse. Shattering stone triggers an Elemental Cycle at each destroyed location.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.damage_per_tile",
-					"value": 9
-				},
-				{
-					"half": "top",
-					"field": "effect.radius",
-					"value": 5
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Destroy Stone features within range 5. Deal 9 damage per feature. Each destruction randomly imbues adjacent tiles."
-				},
-				{
-					"half": "bottom",
 					"field": "effect",
 					"value": {
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "primordial_surge",
-								"radius": 4,
-								"damage": 5
+								"type": "damage",
+								"amount": 12
 							},
 							{
-								"type": "draw",
-								"count": 1
+								"type": "apply_status",
+								"status": "stunned",
+								"duration": 1
 							},
 							{
 								"type": "retarget",
 								"targeting": {
-									"type": "self"
+									"type": "aoe",
+									"radius": 3,
+									"include_tiles": true,
+									"enemies_only": false
 								},
 								"do": {
-									"type": "mana_gain",
-									"amount": 1
+									"type": "create_rubble"
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 4,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "push",
+									"tiles": 3,
+									"collision_damage": 5
 								}
 							}
 						]
 					}
 				},
 				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 12 damage, stun 1 turn. Create rubble within 3. Push all enemies within 4 outward (collision 5)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Singularity",
+			"description": "Singularity: Everything collapses inward — a perfect storm of impact.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 5,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "pull",
+											"tiles": 4
+										},
+										{
+											"type": "damage",
+											"amount": 6
+										}
+									]
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 1,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 8
+										},
+										{
+											"type": "apply_status",
+											"status": "stunned",
+											"duration": 1
+										}
+									]
+								}
+							},
+							{
+								"type": "armor_per_target",
+								"amount": 5
+							}
+						]
+					}
+				},
+				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Randomly imbue tiles within 4. Deal 5 damage per tile. Draw 1. Gain 1 mana."
+					"value": "Pull all enemies within 5 toward you by 4 (deal 6 each). Adjacent enemies take 8 damage and are stunned. Gain 5 armor per enemy."
 				}
 			]
 		}

@@ -79,7 +79,9 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
+			"half": "both",
+			"top_name": "Thermal Vent+",
+			"bottom_name": "Glacial Rift+",
 			"description": "Thermal Vent detonates harder. Glacial Rift freezes longer.",
 			"changes": [
 				{
@@ -106,8 +108,9 @@
 		},
 		{
 			"tier": 2,
-			"branch": "Detonator",
-			"description": "Detonator: Thermal Vent now also imbues the detonated tile's neighbors with fire before consuming. More tiles to consume means bigger explosions.",
+			"half": "top",
+			"top_name": "Detonator",
+			"description": "Detonator: Thermal Vent imbues adjacent tiles with fire before consuming — building the explosion.",
 			"changes": [
 				{
 					"half": "top",
@@ -156,8 +159,9 @@
 		},
 		{
 			"tier": 2,
-			"branch": "Vent Master",
-			"description": "Vent Master: Thermal Vent gains mana based on tiles consumed, not a flat 1. Build more tiles, gain more mana.",
+			"half": "bottom",
+			"bottom_name": "Conduit",
+			"description": "Conduit: Thermal Vent gains more mana and extends its detonation radius.",
 			"changes": [
 				{
 					"half": "top",
@@ -193,67 +197,9 @@
 		},
 		{
 			"tier": 3,
-			"branch": "Detonator",
-			"description": "Chain Reaction: Thermal Vent can detonate twice in sequence — consuming a tile creates another, which can be consumed next turn.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.steps[1].radius",
-					"value": 3
-				},
-				{
-					"half": "top",
-					"field": "effect.steps[1].damage",
-					"value": 9
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Imbue adjacent tiles with Fire, then destroy a Fire tile (radius 3). Deal 9 damage. Gain 1 mana."
-				},
-				{
-					"half": "bottom",
-					"field": "effect.do.steps[1].duration",
-					"value": 2
-				},
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "line",
-							"length": 4,
-							"enemies_only": false,
-							"include_tiles": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "imbue_tile",
-									"element": "ice"
-								},
-								{
-									"type": "apply_status",
-									"status": "frozen",
-									"duration": 2
-								}
-							]
-						}
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Imbue a line of 4 tiles with Ice. Enemies frozen for 2 turns."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"branch": "Vent Master",
-			"description": "Elemental Exchange: Thermal Vent can now consume any element tile, not just fire, converting the mana gain to match the element consumed.",
+			"half": "top",
+			"top_name": "Chain Reaction",
+			"description": "Chain Reaction: Explosion radius grows and deals more damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -262,10 +208,23 @@
 						"type": "sequence",
 						"steps": [
 							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 1,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "fire",
+									"bonus_damage": 3
+								}
+							},
+							{
 								"type": "consume_element_tile",
 								"element": "fire",
 								"radius": 3,
-								"damage": 8
+								"damage": 9
 							},
 							{
 								"type": "retarget",
@@ -274,7 +233,7 @@
 								},
 								"do": {
 									"type": "mana_gain",
-									"amount": 3
+									"amount": 1
 								}
 							}
 						]
@@ -283,14 +242,70 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Destroy a Fire tile (radius 3). Deal 8 damage. Gain 3 mana."
+					"value": "Imbue adjacent tiles with Fire, destroy tile (radius 3). Deal 9 damage. Gain 1 mana."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Elemental Tap",
+			"description": "Elemental Tap: Glacial Rift extends further and draws a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "line",
+									"length": 4,
+									"enemies_only": false,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "imbue_tile",
+											"element": "ice"
+										},
+										{
+											"type": "apply_status",
+											"status": "frozen",
+											"duration": 2
+										}
+									]
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "draw",
+									"count": 1
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a line of 4 tiles with Ice. Enemies frozen for 2 turns. Draw 1."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Detonator",
-			"description": "Critical Mass: The explosion radius expands. Thermal Vent becomes a board-clearing weapon.",
+			"half": "top",
+			"top_name": "Critical Mass",
+			"description": "Critical Mass: The explosion becomes board-wide. Everything burns.",
 			"changes": [
 				{
 					"half": "top",
@@ -346,26 +361,44 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue adjacent tiles with Fire, destroy tile (radius 4). Deal 10 damage. Burn all within 3. Gain 2 mana."
+					"value": "Imbue adjacent tiles, destroy tile (radius 4). Deal 10 damage. Burn all within 3. Gain 2 mana."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Vent Master",
-			"description": "Mana Surge: Thermal Vent becomes free when you have 3+ fire attunement. The tiles fuel the wizard.",
+			"half": "bottom",
+			"bottom_name": "Mana Surge",
+			"description": "Mana Surge: Glacial Rift feeds the wizard — each tile cleared grants mana.",
 			"changes": [
 				{
-					"half": "top",
+					"half": "bottom",
 					"field": "effect",
 					"value": {
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "consume_element_tile",
-								"element": "fire",
-								"radius": 4,
-								"damage": 9
+								"type": "retarget",
+								"targeting": {
+									"type": "line",
+									"length": 5,
+									"enemies_only": false,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "imbue_tile",
+											"element": "ice"
+										},
+										{
+											"type": "apply_status",
+											"status": "frozen",
+											"duration": 2
+										}
+									]
+								}
 							},
 							{
 								"type": "retarget",
@@ -374,20 +407,26 @@
 								},
 								"do": {
 									"type": "mana_gain",
-									"amount": 3
+									"amount": 2
 								}
 							},
 							{
-								"type": "draw",
-								"count": 1
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "draw",
+									"count": 1
+								}
 							}
 						]
 					}
 				},
 				{
-					"half": "top",
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Destroy a Fire tile (radius 4). Deal 9 damage. Gain 3 mana. Draw 1."
+					"value": "Imbue line (5) with Ice. Freeze 2 turns. Gain 2 mana. Draw 1."
 				}
 			]
 		}

@@ -75,8 +75,10 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Lava Flow's line extends. Earth Anchor grants more armor.",
+			"half": "both",
+			"top_name": "Lava Flow+",
+			"bottom_name": "Earth Anchor+",
+			"description": "Lava Flow deals more damage per tile. Earth Anchor grants more armor.",
 			"changes": [
 				{
 					"half": "top",
@@ -102,8 +104,9 @@
 		},
 		{
 			"tier": 2,
-			"branch": "Pyroclasm",
-			"description": "Pyroclasm: The fire line extends to 3 tiles and the bonus damage on fire tiles increases.",
+			"half": "top",
+			"top_name": "Pyroclasm",
+			"description": "Pyroclasm: The fire line extends to 3 tiles and deals more bonus damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -142,8 +145,9 @@
 		},
 		{
 			"tier": 2,
-			"branch": "Earthshaker",
-			"description": "Earthshaker: Earth Anchor no longer requires a stone tile. You carry the earth with you.",
+			"half": "bottom",
+			"bottom_name": "Earthshaker",
+			"description": "Earthshaker: Earth Anchor no longer requires a stone tile.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -175,14 +179,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root yourself. Gain 9 armor. Imbue your tile with Stone."
+					"value": "Root yourself. Gain 9 armor. Imbue your tile with Stone. No stone required."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Pyroclasm",
-			"description": "Magma River: The lava line persists — enemies who enter the imbued line tiles this turn take immediate damage.",
+			"half": "top",
+			"top_name": "Magma River",
+			"description": "Magma River: The lava line extends to 4 tiles and pushes further.",
 			"changes": [
 				{
 					"half": "top",
@@ -221,8 +226,9 @@
 		},
 		{
 			"tier": 3,
-			"branch": "Earthshaker",
-			"description": "Stone Fortress: While rooted from Earth Anchor, you gain bonus armor for each stone tile adjacent to you.",
+			"half": "bottom",
+			"bottom_name": "Bedrock",
+			"description": "Bedrock: While rooted, gain shield and imbue adjacent tiles with Stone.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -254,46 +260,14 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Root yourself. Gain 10 armor and 5 shield. Imbue your tile with Stone."
-				},
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "line",
-							"length": 3,
-							"enemies_only": false,
-							"include_tiles": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "imbue_tile",
-									"element": "fire",
-									"bonus_damage": 4
-								},
-								{
-									"type": "push_damage",
-									"tiles": 2,
-									"damage_per_tile": 5
-								}
-							]
-						}
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Imbue a line (3) of fire (4 bonus damage). Push 2 tiles, deal 5 per tile."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Pyroclasm",
-			"description": "Volcanic Eruption: Lava Flow becomes a full-board fire event. The line explodes outward at each point.",
+			"half": "top",
+			"top_name": "Pyroclastic Wave",
+			"description": "Pyroclastic Wave: Lava Flow becomes a board event — burns all nearby enemies.",
 			"changes": [
 				{
 					"half": "top",
@@ -344,14 +318,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue line (4) with Fire. Push 3, deal 5 per tile. Burn all nearby enemies (2)."
+					"value": "Imbue line (4) with Fire. Push 3, deal 5 per tile. Burn nearby enemies (2)."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Earthshaker",
-			"description": "Living Mountain: Earth Anchor now also imbues adjacent tiles with Stone, making your fortress permanent.",
+			"half": "bottom",
+			"bottom_name": "Living Mountain",
+			"description": "Living Mountain: Earth Anchor imbues adjacent tiles with Stone and grants draw.",
 			"changes": [
 				{
 					"half": "bottom",

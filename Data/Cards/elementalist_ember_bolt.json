@@ -4,72 +4,6 @@
 	"name": "Ember Bolt",
 	"school": "Elementalist",
 	"rarity": "Common",
-	"upgrades": [
-		{
-			"tier": 1,
-			"label": "Ember Bolt+",
-			"description": "Damage increased to 5.",
-			"cost": 20,
-			"changes": [
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 5 damage. Imbue target tile with Fire."
-				},
-				{
-					"half": "top",
-					"field": "effect.steps[0].amount",
-					"value": 5
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"label": "Ember Bolt++",
-			"description": "Damage increased to 6. Mana cost reduced to 0.",
-			"cost": 40,
-			"changes": [
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 6 damage. Imbue target tile with Fire."
-				},
-				{
-					"half": "top",
-					"field": "effect.steps[0].amount",
-					"value": 6
-				},
-				{
-					"half": "top",
-					"field": "mana",
-					"value": 0
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"label": "Ember Bolt+++",
-			"description": "Damage increased to 8. Imbue bonus damage increased to 3.",
-			"cost": 80,
-			"changes": [
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 8 damage. Imbue target tile with Fire for 3 bonus damage."
-				},
-				{
-					"half": "top",
-					"field": "effect.steps[0].amount",
-					"value": 8
-				},
-				{
-					"half": "top",
-					"field": "effect.steps[1].bonus_damage",
-					"value": 3
-				}
-			]
-		}
-	],
 	"top": {
 		"name": "Ember Bolt",
 		"mana": 1,
@@ -125,5 +59,305 @@
 				"amount": 5
 			}
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Ember Bolt+",
+			"bottom_name": "Stone Skin+",
+			"description": "Ember Bolt hits harder and imbues more. Stone Skin scales up.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[1].bonus_damage",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage. Imbue target tile with Fire (3 bonus damage)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.then.amount",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "effect.else.amount",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 7 shield. If standing on Stone terrain gain 7 armor instead."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Pyroclast",
+			"description": "Pyroclast: Ember Bolt now imbues the target tile and adjacent ring with Fire.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "imbue_tile",
+								"element": "fire",
+								"bonus_damage": 3
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 1,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "fire",
+									"bonus_damage": 2
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Imbue target tile and adjacent ring with Fire."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Ironflame",
+			"description": "Ironflame: Stone Skin now also ignites the ground beneath you, imbuing your tile with Fire.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "conditional",
+								"if": {
+									"type": "caster_on_terrain",
+									"terrain": "stone"
+								},
+								"then": {
+									"type": "armor",
+									"amount": 8
+								},
+								"else": {
+									"type": "shield",
+									"amount": 8
+								}
+							},
+							{
+								"type": "imbue_tile",
+								"element": "fire",
+								"bonus_damage": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 8 shield (or armor on Stone). Imbue your tile with Fire."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Magma Core",
+			"description": "Magma Core: Each fire tile imbued deals more bonus damage. The field burns hotter.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "imbue_tile",
+								"element": "fire",
+								"bonus_damage": 4
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 1,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "fire",
+									"bonus_damage": 3
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Imbue target tile (4 bonus) and ring (3 bonus) with Fire."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Pyre Ward",
+			"description": "Pyre Ward: Fire tiles you stand on amplify your armor. Standing in fire is an advantage.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "conditional",
+								"if": {
+									"type": "caster_on_terrain",
+									"terrain": "stone"
+								},
+								"then": {
+									"type": "armor",
+									"amount": 10
+								},
+								"else": {
+									"type": "shield",
+									"amount": 10
+								}
+							},
+							{
+								"type": "imbue_tile",
+								"element": "fire",
+								"bonus_damage": 3
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "caster_on_terrain",
+									"terrain": "fire"
+								},
+								"then": {
+									"type": "armor",
+									"amount": 3
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 10 shield (or armor on Stone). Imbue your tile with Fire. On Fire tile: gain 3 more armor."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Living Volcano",
+			"description": "Living Volcano: Ember Bolt erupts outward. Enemies near the imbued tile take burn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 8
+							},
+							{
+								"type": "apply_status",
+								"status": "burn",
+								"duration": 2
+							},
+							{
+								"type": "imbue_area",
+								"element": "fire",
+								"radius": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 8 damage. Apply Burn (2). Imbue tiles within 2 with Fire."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Iron Citadel",
+			"description": "Iron Citadel: Stone Skin becomes a fortress. You gain massive armor and summon a stone pillar adjacent.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 12
+							},
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "imbue_tile",
+								"element": "fire",
+								"bonus_damage": 3
+							},
+							{
+								"type": "summon",
+								"unit": "stone_pillar",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 12 armor and 6 shield. Imbue your tile with Fire. Summon a Stone pillar."
+				}
+			]
+		}
+	]
 }

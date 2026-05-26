@@ -8,7 +8,7 @@
 		"name": "Ragnarok",
 		"mana": 5,
 		"speed": "Sorcery",
-		"rules_text": "Deal 7 damage to ALL units per unique element imbued on board (max 28). Purge all tiles.",
+		"rules_text": "Deal 12 damage to all enemies. Imbue all tiles on the board with a random element.",
 		"tags": [
 			"fire",
 			"ice",
@@ -19,218 +19,389 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "ragnarok",
-			"damage_per_element": 7,
-			"half_to_allies": false
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "aoe",
+						"radius": 99,
+						"enemies_only": true
+					},
+					"do": {
+						"type": "damage",
+						"amount": 12
+					}
+				},
+				{
+					"type": "imbue_all_tiles_random"
+				}
+			]
 		}
 	},
 	"bottom": {
-		"name": "Elemental Convergence",
-		"mana": 3,
-		"speed": "Sorcery",
-		"rules_text": "Imbue all tiles within range 3 with random elements. Set all elemental attunement counters to 3.",
+		"name": "Phoenix Protocol",
+		"mana": 4,
+		"speed": "Instant",
+		"rules_text": "Gain 15 armor and 10 shield. Remove all debuffs. Imbue your tile with Fire.",
 		"tags": [
-			"fire",
-			"ice",
-			"storm",
-			"stone"
+			"fire"
 		],
 		"targeting": {
 			"type": "self"
 		},
 		"effect": {
-			"type": "elemental_convergence",
-			"radius": 3,
-			"attunement_set_to": 3
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "armor",
+					"amount": 15
+				},
+				{
+					"type": "shield",
+					"amount": 10
+				},
+				{
+					"type": "cleanse_debuffs"
+				},
+				{
+					"type": "imbue_tile",
+					"element": "fire",
+					"bonus_damage": 4
+				}
+			]
 		}
 	},
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Ragnarok's base damage per element increases. Elemental Convergence covers a wider area.",
+			"half": "both",
+			"top_name": "Ragnarok+",
+			"bottom_name": "Phoenix Protocol+",
+			"description": "Ragnarok hits harder. Phoenix Protocol grants more armor and shield.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.damage_per_element",
-					"value": 8
+					"field": "effect.steps[0].do.amount",
+					"value": 14
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 8 damage to ALL units per unique element imbued on board (max 32). Purge all tiles."
+					"value": "Deal 14 damage to all enemies. Imbue all tiles randomly."
 				},
 				{
 					"half": "bottom",
-					"field": "effect.radius",
-					"value": 4
+					"field": "effect.steps[0].amount",
+					"value": 18
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 12
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue all tiles within range 4 with random elements. Set all attunement counters to 3."
+					"value": "Gain 18 armor and 12 shield. Remove all debuffs. Imbue your tile with Fire."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Apocalypse",
-			"description": "Apocalypse: Ragnarok counts attunement counters as bonus elements. More attunement means more damage even with fewer board tiles.",
+			"half": "top",
+			"top_name": "Total War",
+			"description": "Total War: Enemies hit by Ragnarok are also burned.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.damage_per_element",
-					"value": 8
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 99,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 14
+										},
+										{
+											"type": "apply_status",
+											"status": "burn",
+											"duration": 2
+										}
+									]
+								}
+							},
+							{
+								"type": "imbue_all_tiles_random"
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 8 damage per unique element on board. Your attunement charges each count as half an element. Purge all."
+					"value": "Deal 14 damage to all enemies. Apply Burn (2). Imbue all tiles randomly."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Controlled Burn",
-			"description": "Controlled Burn: After Ragnarok purges tiles, re-imbue 4 random tiles with your highest attunement element. The fire never fully dies.",
+			"half": "bottom",
+			"bottom_name": "Eternal Flame",
+			"description": "Eternal Flame: Phoenix Protocol imbues all adjacent tiles with fire too.",
 			"changes": [
 				{
-					"half": "top",
-					"field": "effect.damage_per_element",
-					"value": 8
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 18
+							},
+							{
+								"type": "shield",
+								"amount": 12
+							},
+							{
+								"type": "cleanse_debuffs"
+							},
+							{
+								"type": "imbue_area",
+								"element": "fire",
+								"radius": 1
+							}
+						]
+					}
 				},
 				{
-					"half": "top",
-					"field": "effect.half_to_allies",
-					"value": true
-				},
-				{
-					"half": "top",
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 8 damage per element (max 32). Allies take half. Purge all tiles, then re-imbue 4 with your highest element."
+					"value": "Gain 18 armor and 12 shield. Remove debuffs. Imbue your tile and adjacent tiles with Fire."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Apocalypse",
-			"description": "Total War: Ragnarok's ally damage reduction becomes permanent — your units always take half damage from Ragnarok.",
+			"half": "top",
+			"top_name": "The End",
+			"description": "The End: Ragnarok deals damage based on attunement level.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.damage_per_element",
-					"value": 9
-				},
-				{
-					"half": "top",
-					"field": "effect.half_to_allies",
-					"value": true
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 99,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 16
+										},
+										{
+											"type": "apply_status",
+											"status": "burn",
+											"duration": 2
+										},
+										{
+											"type": "apply_status",
+											"status": "stunned",
+											"duration": 1
+										}
+									]
+								}
+							},
+							{
+								"type": "imbue_all_tiles_random"
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 9 damage per element (max 36). Allies always take half. Purge all tiles."
-				},
-				{
-					"half": "bottom",
-					"field": "effect.radius",
-					"value": 5
-				},
-				{
-					"half": "bottom",
-					"field": "effect.attunement_set_to",
-					"value": 4
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Imbue all tiles within range 5 with random elements. Set all attunement counters to 4."
+					"value": "Deal 16 damage to all enemies. Burn (2). Stun (1). Imbue all tiles randomly."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Controlled Burn",
-			"description": "Phoenix Protocol: After Ragnarok resolves, draw 1 card per unique element that had 2+ tiles before purging.",
+			"half": "bottom",
+			"bottom_name": "Eternal Flame",
+			"description": "Eternal Flame: After the shield, deal retribution damage equal to armor gained.",
 			"changes": [
 				{
-					"half": "top",
-					"field": "effect.damage_per_element",
-					"value": 8
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 20
+							},
+							{
+								"type": "shield",
+								"amount": 14
+							},
+							{
+								"type": "cleanse_debuffs"
+							},
+							{
+								"type": "imbue_area",
+								"element": "fire",
+								"radius": 2
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage",
+									"amount": 10
+								}
+							}
+						]
+					}
 				},
 				{
-					"half": "top",
-					"field": "effect.half_to_allies",
-					"value": true
-				},
-				{
-					"half": "top",
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 8 damage per element. Allies take half. Purge all. Draw 1 per element with 2+ tiles. Re-imbue 4 tiles."
-				},
-				{
-					"half": "bottom",
-					"field": "effect.attunement_set_to",
-					"value": 4
-				},
-				{
-					"half": "bottom",
-					"field": "effect.radius",
-					"value": 5
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Imbue tiles within range 5. Set all attunement to 4."
+					"value": "Gain 20 armor and 14 shield. Remove debuffs. Imbue tiles within 2 with Fire. Deal 10 to nearby enemies."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Apocalypse",
-			"description": "The End: Ragnarok costs 4 mana instead of 5. The spell has transcended its own limitations.",
+			"half": "top",
+			"top_name": "The End",
+			"description": "The End: The apocalypse is absolute. Enemies are stunned and burned, tiles permanently altered.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "mana",
-					"value": 4
-				},
-				{
-					"half": "top",
-					"field": "effect.damage_per_element",
-					"value": 9
-				},
-				{
-					"half": "top",
-					"field": "effect.half_to_allies",
-					"value": true
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 99,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 18
+										},
+										{
+											"type": "apply_status",
+											"status": "burn",
+											"duration": 3
+										},
+										{
+											"type": "apply_status",
+											"status": "stunned",
+											"duration": 2
+										}
+									]
+								}
+							},
+							{
+								"type": "imbue_all_tiles_random"
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Cost reduced to 4. Deal 9 damage per element (max 36). Allies take half. Purge all tiles."
+					"value": "Deal 18 damage to all enemies. Burn (3). Stun (2). Imbue all tiles randomly. Draw 2."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Controlled Burn",
-			"description": "Eternal Flame: Ragnarok no longer purges fire tiles. The conflagration persists even after the apocalypse.",
+			"half": "bottom",
+			"bottom_name": "Eternal Flame",
+			"description": "Eternal Flame: Immortal rebirth — if you would die this turn, survive with 1 hp instead.",
 			"changes": [
 				{
-					"half": "top",
-					"field": "effect.damage_per_element",
-					"value": 9
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 22
+							},
+							{
+								"type": "shield",
+								"amount": 16
+							},
+							{
+								"type": "cleanse_debuffs"
+							},
+							{
+								"type": "imbue_area",
+								"element": "fire",
+								"radius": 3
+							},
+							{
+								"type": "apply_status",
+								"status": "immortal",
+								"duration": 1
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage",
+									"amount": 12
+								}
+							}
+						]
+					}
 				},
 				{
-					"half": "top",
-					"field": "effect.half_to_allies",
-					"value": true
-				},
-				{
-					"half": "top",
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 9 damage per element. Allies take half. Purge all non-fire tiles. Draw 1 per 2 elements. Gain 2 mana."
+					"value": "Gain 22 armor, 16 shield. Remove debuffs. Imbue tiles within 3 with Fire. If you would die this turn, survive with 1 HP. Deal 12 to nearby enemies."
 				}
 			]
 		}

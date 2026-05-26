@@ -58,8 +58,9 @@
 						"enemies_only": true
 					},
 					"do": {
-						"type": "move",
-						"tiles": 1
+						"type": "push",
+						"tiles": 1,
+						"collision_damage": 2
 					}
 				}
 			]
@@ -68,8 +69,10 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Eruption hits harder. Gale Leap moves further and pushes further.",
+			"half": "both",
+			"top_name": "Eruption+",
+			"bottom_name": "Gale Leap+",
+			"description": "Eruption hits harder. Gale Leap moves further and pushes harder.",
 			"changes": [
 				{
 					"half": "top",
@@ -93,6 +96,11 @@
 				},
 				{
 					"half": "bottom",
+					"field": "effect.steps[1].do.collision_damage",
+					"value": 3
+				},
+				{
+					"half": "bottom",
 					"field": "rules_text",
 					"value": "Move 4 tiles. Push adjacent enemies 2 tiles away."
 				}
@@ -100,8 +108,9 @@
 		},
 		{
 			"tier": 2,
-			"branch": "Inferno",
-			"description": "Inferno: Eruption spreads. Fire tiles adjacent to the target are also ignited, building a ring of fire around your target.",
+			"half": "top",
+			"top_name": "Inferno",
+			"description": "Inferno: Eruption spreads fire outward — imbues target tile and adjacent ring.",
 			"changes": [
 				{
 					"half": "top",
@@ -143,8 +152,9 @@
 		},
 		{
 			"tier": 2,
-			"branch": "Gale Force",
-			"description": "Gale Force: The leap becomes a strike. On arrival, deal damage to all adjacent enemies equal to tiles moved.",
+			"half": "bottom",
+			"bottom_name": "Gale Force",
+			"description": "Gale Force: On arrival, deal damage to all adjacent enemies equal to tiles moved.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -169,7 +179,7 @@
 										{
 											"type": "push",
 											"tiles": 2,
-											"collision_damage": 3
+											"collision_damage": 4
 										},
 										{
 											"type": "damage",
@@ -190,8 +200,9 @@
 		},
 		{
 			"tier": 3,
-			"branch": "Inferno",
-			"description": "Magma Core: Enemies standing on your fire tiles when Eruption lands take burn. The whole field becomes a weapon.",
+			"half": "top",
+			"top_name": "Caldera",
+			"description": "Caldera: Enemies standing on fire tiles when Eruption lands take burn.",
 			"changes": [
 				{
 					"half": "top",
@@ -253,8 +264,9 @@
 		},
 		{
 			"tier": 3,
-			"branch": "Gale Force",
-			"description": "Cyclone: After the leap, you pull enemies back in — a push followed by a forced return.",
+			"half": "bottom",
+			"bottom_name": "Cyclone",
+			"description": "Cyclone: After the leap, push enemies outward and slow adjacent enemies on landing.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -307,14 +319,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move 4 tiles. Push nearby enemies 2 (radius 2). Slow adjacent enemies on landing."
+					"value": "Move 4 tiles. Push enemies within 2 (radius 2). Slow adjacent enemies on landing."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Inferno",
-			"description": "Living Volcano: Eruption now calls down fire on every imbued tile in range. The board burns.",
+			"half": "top",
+			"top_name": "Super volcano",
+			"description": "Super volcano: Eruption imbues all tiles within 2 and burns everything.",
 			"changes": [
 				{
 					"half": "top",
@@ -343,85 +356,15 @@
 					"half": "top",
 					"field": "rules_text",
 					"value": "Deal 8 damage. Apply Burn (2). Imbue all tiles within 2 of target with Fire."
-				},
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "move",
-								"tiles": 4
-							},
-							{
-								"type": "imbue_area",
-								"element": "fire",
-								"radius": 1
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "aoe",
-									"radius": 2,
-									"enemies_only": true
-								},
-								"do": {
-									"type": "conditional",
-									"if": {
-										"type": "target_on_tile",
-										"tile": "fire"
-									},
-									"then": {
-										"type": "apply_status",
-										"status": "burn",
-										"duration": 2
-									}
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Move 4 tiles. Imbue your landing zone with Fire. Burn enemies on fire tiles within 2."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Gale Force",
-			"description": "Storm Surge: The card unifies. Leap into enemies, push them into your own fire tiles, detonate.",
+			"half": "bottom",
+			"bottom_name": "Storm Surge",
+			"description": "Storm Surge: The leap becomes a tempest. Stun adjacent enemies and imbue landing zone with Storm.",
 			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 7
-							},
-							{
-								"type": "imbue_tile",
-								"element": "fire",
-								"bonus_damage": 3
-							},
-							{
-								"type": "apply_status",
-								"status": "burn",
-								"duration": 1
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 7 damage. Apply Burn (1). Imbue target tile with Fire."
-				},
 				{
 					"half": "bottom",
 					"field": "effect",

@@ -52,10 +52,15 @@
 		{
 			"tier": 1,
 			"half": "both",
-			"top_name": "Avatar of Elements +",
-			"bottom_name": "Maelstrom +",
-			"description": "Avatar lasts longer and grants more armor. Maelstrom hits harder.",
+			"top_name": "Avatar of Elements+",
+			"bottom_name": "Maelstrom+",
+			"description": "Avatar lasts longer and grants more armor. Maelstrom deals more damage.",
 			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 4
+				},
 				{
 					"half": "top",
 					"field": "effect.armor",
@@ -63,13 +68,8 @@
 				},
 				{
 					"half": "top",
-					"field": "effect.bonus_damage",
-					"value": 4
-				},
-				{
-					"half": "top",
 					"field": "rules_text",
-					"value": "Transform for 3 turns: gain 9 armor, spells deal +4 damage and imbue target with random element."
+					"value": "Transform for 4 turns: gain 9 armor, spells deal +3 damage and imbue with random element."
 				},
 				{
 					"half": "bottom",
@@ -79,70 +79,57 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create storm zone (radius 3). Each turn deals 7 damage, pushes clockwise, imbues with Storm. Lasts 3 turns."
+					"value": "Create storm zone (radius 3). Each turn: 7 damage, push clockwise, imbue Storm. Lasts 3 turns."
 				}
 			]
 		},
 		{
 			"tier": 2,
 			"half": "top",
-			"branch": "Elemental Sovereign",
 			"top_name": "Elemental Sovereign",
-			"description": "Elemental Sovereign: While Avatar is active, your attunement counters don't decay. The transformation sustains your elemental mastery.",
+			"description": "Elemental Sovereign: While transformed, gain attunement stacks each time you imbue.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.turns",
-					"value": 4
-				},
-				{
-					"half": "top",
-					"field": "effect.armor",
-					"value": 10
-				},
-				{
-					"half": "top",
-					"field": "effect.bonus_damage",
-					"value": 4
+					"field": "effect.attunement_on_imbue",
+					"value": true
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Transform for 4 turns: gain 10 armor, spells deal +4 damage and imbue target. Attunement doesn't decay."
+					"value": "Transform 4 turns: 9 armor, +3 damage, imbue on cast. Gain attunement stacks when you imbue during transform."
 				}
 			]
 		},
 		{
 			"tier": 2,
 			"half": "bottom",
-			"branch": "Living Terrain",
 			"bottom_name": "Storm Veil",
-			"description": "Storm Veil: Maelstrom now also imbues adjacent tiles with storm each turn. The storm spreads beyond its origin.",
+			"description": "Storm Veil: Maelstrom also grants shield to the caster each turn it deals damage.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.damage",
-					"value": 7
-				},
-				{
-					"half": "bottom",
-					"field": "effect.radius",
+					"field": "effect.shield_per_turn",
 					"value": 4
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create storm zone (radius 4). Each turn deals 7 damage, pushes clockwise, imbues tiles with Storm. Lasts 3 turns."
+					"value": "Create storm zone (radius 3). Each turn: 7 damage, push, imbue. Gain 4 shield per turn. Lasts 3 turns."
 				}
 			]
 		},
 		{
 			"tier": 3,
 			"half": "top",
-			"branch": "Elemental Sovereign",
 			"top_name": "Transcendence",
-			"description": "Transcendence: Avatar now also boosts your spell range by 2. Elemental sovereignty extends your reach.",
+			"description": "Transcendence: The transform bonus damage grows to +5 and all elements are imbued.",
 			"changes": [
+				{
+					"half": "top",
+					"field": "effect.bonus_damage",
+					"value": 5
+				},
 				{
 					"half": "top",
 					"field": "effect.turns",
@@ -150,13 +137,54 @@
 				},
 				{
 					"half": "top",
-					"field": "effect.armor",
-					"value": 11
+					"field": "rules_text",
+					"value": "Transform 4 turns: 9 armor, +5 damage on all spells. Each cast imbues random element. Attunement on imbue."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Eye of the Maelstrom",
+			"description": "Eye of the Maelstrom: The storm zone also freezes enemies pushed into its walls.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.freezes",
+					"value": true
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 8
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create storm zone (radius 3). Each turn: 8 damage, push, imbue Storm, freeze pushed enemies. Gain 4 shield. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "God of Elements",
+			"description": "God of Elements: Complete mastery — the transform is a total elemental ascension.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 5
 				},
 				{
 					"half": "top",
 					"field": "effect.bonus_damage",
-					"value": 5
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "effect.armor",
+					"value": 12
 				},
 				{
 					"half": "top",
@@ -166,84 +194,21 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Transform for 4 turns: gain 11 armor, +5 spell damage, +1 speed. Imbue each target with random element."
+					"value": "Transform 5 turns: 12 armor, +6 damage, +1 speed. Each cast imbues and grants attunement. Elemental trails on movement."
 				}
 			]
 		},
 		{
-			"tier": 3,
+			"tier": 4,
 			"half": "bottom",
-			"branch": "Living Terrain",
-			"bottom_name": "Eye of the Maelstrom",
-			"description": "Eye of the Maelstrom: Maelstrom now also freezes enemies at the end of each turn tick. The maelstrom locks enemies in place.",
+			"bottom_name": "World Storm",
+			"description": "World Storm: The maelstrom grows to radius 5 and persists for 5 turns.",
 			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect.damage",
-					"value": 8
-				},
 				{
 					"half": "bottom",
 					"field": "effect.radius",
-					"value": 4
-				},
-				{
-					"half": "bottom",
-					"field": "effect.freezes",
-					"value": true
-				},
-				{
-					"half": "bottom",
-					"field": "effect.turns",
-					"value": 4
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Create storm zone (radius 4). Each turn deals 8 damage, pushes, freezes, imbues Storm. Lasts 4 turns."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "top",
-			"top_name": "God of Elements",
-			"description": "God of Elements: Avatar transformation now triggers a burst of all four elements when it expires — a final eruption.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.turns",
 					"value": 5
 				},
-				{
-					"half": "top",
-					"field": "effect.armor",
-					"value": 12
-				},
-				{
-					"half": "top",
-					"field": "effect.bonus_damage",
-					"value": 6
-				},
-				{
-					"half": "top",
-					"field": "effect.bonus_speed",
-					"value": 2
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Transform for 5 turns: gain 12 armor, +6 spell damage, +2 speed. On expiry, burst all 4 attunement elements."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "bottom",
-			"branch": "Living Terrain",
-			"bottom_name": "World Storm",
-			"description": "World Storm: Two Maelstroms can now exist simultaneously. Place one and the other persists from before.",
-			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect.damage",
@@ -251,7 +216,7 @@
 				},
 				{
 					"half": "bottom",
-					"field": "effect.radius",
+					"field": "effect.turns",
 					"value": 5
 				},
 				{
@@ -261,13 +226,8 @@
 				},
 				{
 					"half": "bottom",
-					"field": "effect.turns",
-					"value": 5
-				},
-				{
-					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create storm zone (radius 5). Each turn deals 9 damage, pushes, freezes, imbues Storm. Lasts 5 turns."
+					"value": "Create massive storm zone (radius 5). Each turn: 9 damage, push, imbue, freeze. Gain 5 shield/turn. Lasts 5 turns."
 				}
 			]
 		}

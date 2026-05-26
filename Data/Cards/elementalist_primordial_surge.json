@@ -8,7 +8,7 @@
 		"name": "Primordial Surge",
 		"mana": 4,
 		"speed": "Sorcery",
-		"rules_text": "Imbue ALL tiles in AoE 6 with a random element. Deal 4 damage per unique element adjacent to each enemy.",
+		"rules_text": "Imbue ALL tiles in radius 4 with a random element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
 		"tags": [
 			"fire",
 			"ice",
@@ -28,7 +28,7 @@
 		"name": "Cataclysm",
 		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Remove imbuement from all tiles in AoE 4. Deal 2 damage per tile cleared. Draw 1 card per 3 tiles cleared.",
+		"rules_text": "Remove imbuement from all tiles in radius 4. Deal 2 damage per tile cleared. Draw 1 card per 3 tiles cleared.",
 		"tags": [
 			"fire",
 			"ice",
@@ -42,14 +42,16 @@
 			"type": "cataclysm",
 			"radius": 4,
 			"damage_per_tile": 2,
-			"cards_per_tiles": 1
+			"cards_per_tiles": 3
 		}
 	},
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
-			"description": "Primordial Surge imbues a larger area. Cataclysm deals more damage per tile.",
+			"half": "both",
+			"top_name": "Primordial Surge+",
+			"bottom_name": "Cataclysm+",
+			"description": "Primordial Surge deals more per adjacent element. Cataclysm deals more per tile.",
 			"changes": [
 				{
 					"half": "top",
@@ -59,7 +61,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue ALL tiles in AoE 6 with a random element. Deal 5 damage per unique adjacent element."
+					"value": "Imbue all tiles in radius 4 randomly. Deal 5 damage per adjacent unique element."
 				},
 				{
 					"half": "bottom",
@@ -69,14 +71,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Remove imbuement from AoE 4. Deal 3 damage per tile. Draw 1 per 3 tiles."
+					"value": "Remove imbues in radius 4. Deal 3 damage per tile cleared. Draw 1 per 3 tiles."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Chaos",
-			"description": "Chaos: Primordial Surge now deals immediate damage as well as the adjacency damage — the surge itself is a weapon.",
+			"half": "top",
+			"top_name": "Chaos",
+			"description": "Chaos: Primordial Surge radius grows to 5.",
 			"changes": [
 				{
 					"half": "top",
@@ -85,47 +88,95 @@
 				},
 				{
 					"half": "top",
-					"field": "effect.damage",
-					"value": 6
-				},
-				{
-					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue ALL tiles in AoE 5 with random elements. Deal 6 damage per unique adjacent element."
+					"value": "Imbue all tiles in radius 5 randomly. Deal 5 damage per adjacent unique element."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Reset",
-			"description": "Reset: Cataclysm now also sets all attunement counters to 2 after clearing tiles. Scorched earth into fresh start.",
+			"half": "bottom",
+			"bottom_name": "Reset",
+			"description": "Reset: Cataclysm draws more cards per tiles cleared.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.damage_per_tile",
-					"value": 3
-				},
-				{
-					"half": "bottom",
-					"field": "effect.tiles_per_draw",
+					"field": "effect.cards_per_tiles",
 					"value": 2
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Remove imbuement from AoE 4. Deal 3 damage per tile. Draw 1 per 2 tiles."
+					"value": "Remove imbues in radius 4. Deal 3 damage per tile. Draw 1 per 2 tiles cleared."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Chaos",
-			"description": "Elemental Madness: The random imbuing now heavily weights toward your dominant attunement element. Controlled chaos.",
+			"half": "top",
+			"top_name": "Elemental Madness",
+			"description": "Elemental Madness: Enemies adjacent to 3+ element types are stunned.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect.radius",
 					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.stun_threshold",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue all tiles in radius 5 randomly. Deal 5 damage per adjacent element. Enemies adjacent to 3+ elements are stunned."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Cleansing Fire",
+			"description": "Cleansing Fire: After clearing tiles, imbue them all with Fire.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "cataclysm",
+								"radius": 5,
+								"damage_per_tile": 3,
+								"cards_per_tiles": 2
+							},
+							{
+								"type": "imbue_area",
+								"element": "fire",
+								"radius": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Remove imbues in radius 5. Deal 3 damage per tile. Draw 1 per 2. Then imbue all cleared tiles with Fire."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Primordial Catastrophe",
+			"description": "Primordial Catastrophe: The surge becomes apocalyptic — maximum radius, all elements, massive damage.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 6
 				},
 				{
 					"half": "top",
@@ -134,94 +185,46 @@
 				},
 				{
 					"half": "top",
-					"field": "rules_text",
-					"value": "Imbue ALL tiles in AoE 5 with random elements. Deal 7 damage per unique adjacent element."
-				},
-				{
-					"half": "bottom",
-					"field": "effect.damage_per_tile",
-					"value": 4
-				},
-				{
-					"half": "bottom",
-					"field": "effect.radius",
-					"value": 5
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Remove imbuement from AoE 5. Deal 4 damage per tile. Draw 1 per 2 tiles."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"branch": "Reset",
-			"description": "Cleansing Fire: Cataclysm now also heals you for 2 HP per tile cleared. Destruction becomes sustain.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect.damage_per_tile",
-					"value": 4
-				},
-				{
-					"half": "bottom",
-					"field": "effect.tiles_per_draw",
+					"field": "effect.stun_threshold",
 					"value": 2
 				},
 				{
-					"half": "bottom",
+					"half": "top",
 					"field": "rules_text",
-					"value": "Remove imbuement from AoE 4. Deal 4 damage per tile. Draw 1 per 2 tiles. Heal 2 per tile."
+					"value": "Imbue all tiles in radius 6 randomly. Deal 7 damage per adjacent element. Enemies adjacent to 2+ elements are stunned."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Chaos",
-			"description": "Primordial Catastrophe: The two halves fuse — Primordial Surge immediately followed by Cataclysm in the same cast.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.radius",
-					"value": 6
-				},
-				{
-					"half": "top",
-					"field": "effect.damage",
-					"value": 8
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Imbue ALL tiles in AoE 6 with random elements. Deal 8 damage per unique adjacent element."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"branch": "Reset",
-			"description": "Eternal Cycle: After Cataclysm clears, immediately re-imbue cleared tiles with your dominant attunement element.",
+			"half": "bottom",
+			"bottom_name": "Eternal Cycle",
+			"description": "Eternal Cycle: Cataclysm and re-imbue happen simultaneously — destroy and rebuild.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.damage_per_tile",
-					"value": 5
-				},
-				{
-					"half": "bottom",
-					"field": "effect.radius",
-					"value": 6
-				},
-				{
-					"half": "bottom",
-					"field": "effect.tiles_per_draw",
-					"value": 2
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "cataclysm",
+								"radius": 6,
+								"damage_per_tile": 4,
+								"cards_per_tiles": 2
+							},
+							{
+								"type": "primordial_surge",
+								"radius": 6,
+								"damage": 3
+							}
+						]
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Remove imbuement from AoE 6. Deal 5 damage per tile. Draw 1 per 2 tiles. Gain 2 mana."
+					"value": "Remove imbues in radius 6, deal 4 per tile, draw 1 per 2. Then immediately imbue all cleared tiles randomly, dealing 3 per adjacent element."
 				}
 			]
 		}

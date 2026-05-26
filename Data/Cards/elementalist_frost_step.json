@@ -8,7 +8,7 @@
 		"name": "Frost Step",
 		"mana": 1,
 		"speed": "Instant",
-		"rules_text": "Move 2. Imbue tiles with Ice. Gain 4 armor.",
+		"rules_text": "Move 2. Imbue tiles with Ice. Gain 2 armor per tile.",
 		"tags": [
 			"ice"
 		],
@@ -45,7 +45,9 @@
 	"upgrades": [
 		{
 			"tier": 1,
-			"branch": null,
+			"half": "both",
+			"top_name": "Frost Step+",
+			"bottom_name": "Updraft+",
 			"description": "Frost Step moves further. Updraft pushes further.",
 			"changes": [
 				{
@@ -61,7 +63,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Move 3. Imbue tiles with Ice. Gain 6 armor."
+					"value": "Move 3. Imbue tiles with Ice. Gain 3 armor per tile."
 				},
 				{
 					"half": "bottom",
@@ -82,8 +84,9 @@
 		},
 		{
 			"tier": 2,
-			"branch": "Glacier",
-			"description": "Glacier: Frost Step leaves ice behind but also slows enemies who move through your ice trail this turn.",
+			"half": "top",
+			"top_name": "Glacier",
+			"description": "Glacier: Ice trail slows enemies who cross it this turn.",
 			"changes": [
 				{
 					"half": "top",
@@ -98,14 +101,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Move 3. Imbue tiles with Ice (slows enemies who cross). Gain 6 armor."
+					"value": "Move 3. Imbue tiles with Ice (slows enemies who cross). Gain 3 armor per tile."
 				}
 			]
 		},
 		{
 			"tier": 2,
-			"branch": "Windwalker",
-			"description": "Windwalker: Updraft now pushes all adjacent enemies, not just one. You become a storm in the center.",
+			"half": "bottom",
+			"bottom_name": "Wind-walker",
+			"description": "Wind-walker: Updraft now pushes all adjacent enemies outward, not just one.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -127,14 +131,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Push all enemies within 2 tiles, 2 tiles away. Collision: 4 damage."
+					"value": "Push all enemies within 2 tiles outward. Collision: 4 damage."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Glacier",
-			"description": "Arctic Trail: The ice trail grows wider — Frost Step imbues the tile moved through AND its neighbors.",
+			"half": "top",
+			"top_name": "Arctic Trail",
+			"description": "Arctic Trail: Frost Step imbues the path and adjacent tiles with Ice.",
 			"changes": [
 				{
 					"half": "top",
@@ -149,45 +154,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Move 4. Imbue path and adjacent tiles with Ice. Gain 8 armor."
-				},
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "push",
-								"tiles": 3,
-								"collision_damage": 6
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "target_on_tile",
-									"tile": "ice"
-								},
-								"then": {
-									"type": "apply_status",
-									"status": "frozen",
-									"duration": 1
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Push target 3 tiles. If pushed onto Ice, freeze for 1 turn."
+					"value": "Move 4. Imbue path and adjacent tiles with Ice. Gain 4 armor per tile."
 				}
 			]
 		},
 		{
 			"tier": 3,
-			"branch": "Windwalker",
-			"description": "Eye of the Storm: Frost Step now imbues storm tiles instead. Entering combat means entering the tempest.",
+			"half": "bottom",
+			"bottom_name": "Wind Stride",
+			"description": "Wind Stride: Frost Step now imbues storm tiles on the path. Earth and storm merge.",
 			"changes": [
 				{
 					"half": "top",
@@ -249,14 +224,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Push all enemies within 2 tiles, 2 tiles away. Slow adjacent enemies."
+					"value": "Push all enemies within 2 outward. Slow adjacent enemies."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Glacier",
-			"description": "Permafrost March: Every tile you've imbued with ice this combat becomes a frozen hazard. Frost Step draws the map.",
+			"half": "top",
+			"top_name": "Permafrost March",
+			"description": "Permafrost March: Ice trail is permanent and enemies entering it are slowed.",
 			"changes": [
 				{
 					"half": "top",
@@ -271,48 +247,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Move 5. Imbue path with Ice. Gain 4 armor per tile. Ice tiles slow enemies who enter."
-				},
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "push",
-								"tiles": 3,
-								"collision_damage": 7
-							},
-							{
-								"type": "apply_status",
-								"status": "frozen",
-								"duration": 1
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "self"
-								},
-								"do": {
-									"type": "draw",
-									"count": 1
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Push target 3 tiles (collision: 7). Freeze 1 turn. Draw 1."
+					"value": "Move 5. Imbue path with Ice (slows enemies). Gain 4 armor per tile."
 				}
 			]
 		},
 		{
 			"tier": 4,
-			"branch": "Windwalker",
-			"description": "Tempest Walk: Frost Step and Updraft become one — move through enemies rather than around them.",
+			"half": "bottom",
+			"bottom_name": "Eye of the Storm",
+			"description": "Eye of the Storm: Move through enemies. The storm push and trail fully fuse.",
 			"changes": [
 				{
 					"half": "top",
@@ -393,7 +336,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Push all enemies within 3 tiles, 3 tiles away. Stun enemies within 2."
+					"value": "Push all enemies within 3, three tiles outward. Stun enemies within 2."
 				}
 			]
 		}
