@@ -31,9 +31,9 @@ public static class CastMasteryTracker
         OwnedCard target = null;
         foreach (var card in save.PlayerDeck.Cards)
         {
-            if (!string.Equals(card.BlueprintId, blueprintId, 
+            if (!string.Equals(card.BlueprintId, blueprintId,
                 StringComparison.OrdinalIgnoreCase)) continue;
-            if (target == null || card.UpgradeTier < target.UpgradeTier)
+            if (target == null || card.PointsSpent < target.PointsSpent)
                 target = card;
         }
 

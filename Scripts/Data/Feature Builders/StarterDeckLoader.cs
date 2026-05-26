@@ -122,11 +122,10 @@ public static class StarterDeckLoader
             {
                 var owned = new OwnedCard
                 {
-                    BlueprintId  = bp.Id,
-                    InstanceId   = Guid.NewGuid().ToString("N"),
-                    UpgradeTier  = 0,
-                    Grafts       = new List<string>(),
-                    IsStarter    = true,
+                    BlueprintId = bp.Id,
+                    InstanceId = Guid.NewGuid().ToString("N"),
+                    Grafts = new List<string>(),
+                    IsStarter = true,
                 };
                 save.PlayerDeck.Cards.Add(owned);
                 save.PlayerDeck.ActiveDeckInstanceIds.Add(owned.InstanceId);
@@ -146,11 +145,10 @@ public static class StarterDeckLoader
 
                 var owned = new OwnedCard
                 {
-                    BlueprintId  = bp?.Id ?? card.CardName,
-                    InstanceId   = Guid.NewGuid().ToString("N"),
-                    UpgradeTier  = 0,
-                    Grafts       = new List<string>(),
-                    IsStarter    = true,
+                    BlueprintId = bp?.Id ?? card.CardName,
+                    InstanceId = Guid.NewGuid().ToString("N"),
+                    Grafts = new List<string>(),
+                    IsStarter = true,
                 };
                 save.PlayerDeck.Cards.Add(owned);
                 save.PlayerDeck.ActiveDeckInstanceIds.Add(owned.InstanceId);
@@ -199,7 +197,7 @@ public static class StarterDeckLoader
 
     private class StarterEntry
     {
-        public string Id    { get; set; }
-        public int    Count { get; set; } = 1;
+        public string Id { get; set; }
+        public int Count { get; set; } = 1;
     }
 }

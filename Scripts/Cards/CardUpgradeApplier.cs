@@ -28,7 +28,6 @@ using System.Text.Json.Nodes;
 //                 JsonCardLoader.cs (BuildCardPublic must be public),
 //                 CardDatabase.cs (blueprint lookup),
 //                 GuildSaveData / OwnedCard (UpgradeTier source),
-//                 CardUpgradeScreen.cs (calls GetUpgradeDescription)
 // ============================================================
 
 public static class CardUpgradeApplier
@@ -42,26 +41,110 @@ public static class CardUpgradeApplier
     // ── Public API ──────────────────────────────────────────────────
 
     /// <summary>
-    /// Returns a <see cref="Card"/> with halves upgraded to
-    /// <paramref name="tier"/>. At tier 0 returns the blueprint's
-    /// base card. At tiers 1-3 re-parses and recompiles the JSON
-    /// with patches applied.
+    /// Applies top-half upgrades up to topTier and bottom-half upgrades
+    /// up to botTier independently. Tier 1 is always "both" and applied
+    /// as a prerequisite before any half-specific upgrades.
     /// </summary>
-    public static Card Apply(string blueprintId, int tier, string chosenBranch = null)
+    public static Card Apply(string blueprintId, int topTier, int botTier)
     {
         var bp = CardDatabase.Blueprints.Find(b =>
             string.Equals(b.Id, blueprintId, StringComparison.OrdinalIgnoreCase));
         if (bp == null) return null;
-        if (tier <= 0) return CardDatabase.Instantiate(bp);
-        return BuildUpgradedCard(bp, tier, chosenBranch);
+        if (topTier <= 0 && botTier <= 0) return CardDatabase.Instantiate(bp);
+
+        string json = FindAndReadCardJson(bp);
+        if (json == null) return CardDatabase.Instantiate(bp);
+
+        JsonNode root;
+        try { root = JsonNode.Parse(json); }
+        catch { return CardDatabase.Instantiate(bp); }
+
+        if (root["upgrades"] is not JsonArray upgrades)
+            return CardDatabase.Instantiate(bp);
+
+        string topName = null;
+        string botName = null;
+
+        // Always apply tier 1 "both" node first if either half is upgraded
+        bool anyUpgraded = topTier >= 1 || botTier >= 1;
+        if (anyUpgraded)
+        {
+            foreach (var entry in upgrades)
+            {
+                if (entry["tier"]?.GetValue<int>() != 1) continue;
+                if (entry["half"]?.GetValue<string>() != "both") continue;
+                ApplyChanges(root, entry);
+                topName = entry["top_name"]?.GetValue<string>() ?? topName;
+                botName = entry["bottom_name"]?.GetValue<string>() ?? botName;
+                break;
+            }
+        }
+
+        // Apply top-half nodes from tier 2 up to topTier
+        for (int t = 2; t <= topTier; t++)
+        {
+            foreach (var entry in upgrades)
+            {
+                if (entry["tier"]?.GetValue<int>() != t) continue;
+                if (entry["half"]?.GetValue<string>() != "top") continue;
+                ApplyChanges(root, entry);
+                topName = entry["top_name"]?.GetValue<string>() ?? topName;
+                break;
+            }
+        }
+
+        // Apply bottom-half nodes from tier 2 up to botTier
+        for (int t = 2; t <= botTier; t++)
+        {
+            foreach (var entry in upgrades)
+            {
+                if (entry["tier"]?.GetValue<int>() != t) continue;
+                if (entry["half"]?.GetValue<string>() != "bottom") continue;
+                ApplyChanges(root, entry);
+                botName = entry["bottom_name"]?.GetValue<string>() ?? botName;
+                break;
+            }
+        }
+
+        var rootElement = JsonDocument.Parse(root.ToJsonString()).RootElement;
+        var upgraded = JsonCardLoader.BuildCardPublic(rootElement);
+        if (upgraded == null) return CardDatabase.Instantiate(bp);
+
+        // Apply names
+        if (upgraded.TopHalf != null && !string.IsNullOrEmpty(topName))
+            upgraded.TopHalf.Name = topName;
+        if (upgraded.BottomHalf != null && !string.IsNullOrEmpty(botName))
+            upgraded.BottomHalf.Name = botName;
+
+        upgraded.Rarity = bp.Rarity;
+        return upgraded;
     }
 
-    /// <summary>
-    /// Returns the human-readable description for an upgrade tier
-    /// without applying the patch. Used by the upgrade screen UI.
-    /// </summary>
-    public static string GetUpgradeDescription(string blueprintId, int tier,
-        string chosenBranch = null)
+    private static void ApplyChanges(JsonNode root, JsonNode upgradeNode)
+    {
+        if (upgradeNode["changes"] is not JsonArray changes) return;
+        foreach (var change in changes)
+        {
+            string half = change["half"]?.GetValue<string>();
+            string field = change["field"]?.GetValue<string>();
+            var value = change["value"];
+            if (string.IsNullOrEmpty(half) || string.IsNullOrEmpty(field) || value == null)
+                continue;
+            var halfNode = root[half];
+            if (halfNode == null) continue;
+            ApplyPatch(halfNode, field, value);
+        }
+    }
+
+    // Add helpers for the new per-half getters
+    public static string GetTopUpgradeDescription(string blueprintId, int tier)
+        => GetHalfUpgradeDescription(blueprintId, tier, "top");
+
+    public static string GetBotUpgradeDescription(string blueprintId, int tier)
+        => GetHalfUpgradeDescription(blueprintId, tier, "bottom");
+
+    private static string GetHalfUpgradeDescription(string blueprintId,
+        int tier, string half)
     {
         var bp = CardDatabase.Blueprints.Find(b =>
             string.Equals(b.Id, blueprintId, StringComparison.OrdinalIgnoreCase));
@@ -71,11 +154,21 @@ public static class CardUpgradeApplier
         try
         {
             var root = JsonNode.Parse(json);
-            var upgradeNode = FindUpgradeNode(root, tier, chosenBranch);
-            return upgradeNode?["description"]?.GetValue<string>() ?? "";
+            if (root["upgrades"] is not JsonArray upgrades) return "";
+            foreach (var entry in upgrades)
+            {
+                if (entry["tier"]?.GetValue<int>() != tier) continue;
+                string h = entry["half"]?.GetValue<string>() ?? "";
+                if (h != half && h != "both") continue;
+                return entry["description"]?.GetValue<string>() ?? "";
+            }
         }
-        catch { return ""; }
+        catch { }
+        return "";
     }
+
+    public static string GetSharedUpgradeDescription(string blueprintId)
+        => GetHalfUpgradeDescription(blueprintId, 1, "both");
 
     // ── Build upgraded card ─────────────────────────────────────────
 
@@ -239,36 +332,6 @@ public static class CardUpgradeApplier
                 return entry;
 
         return null;
-    }
-
-    public static List<(string branch, string description)> GetBranchOptions(
-    string blueprintId, int tier)
-    {
-        var result = new List<(string, string)>();
-        var bp = CardDatabase.Blueprints.Find(b =>
-            string.Equals(b.Id, blueprintId, StringComparison.OrdinalIgnoreCase));
-        if (bp == null) return result;
-
-        string json = FindAndReadCardJson(bp);
-        if (json == null) return result;
-
-        try
-        {
-            var root = JsonNode.Parse(json);
-            if (root["upgrades"] is not JsonArray upgrades) return result;
-
-            foreach (var entry in upgrades)
-            {
-                if (entry["tier"]?.GetValue<int>() != tier) continue;
-                var branch = entry["branch"]?.GetValue<string>();
-                var desc = entry["description"]?.GetValue<string>() ?? "";
-                if (!string.IsNullOrEmpty(branch))
-                    result.Add((branch, desc));
-            }
-        }
-        catch { }
-
-        return result;
     }
 
     // ── Field-path patcher ──────────────────────────────────────────

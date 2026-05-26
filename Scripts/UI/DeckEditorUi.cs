@@ -38,12 +38,12 @@ public partial class DeckEditorUi : Control
     // ── Layout nodes ─────────────────────────────────────────────────────
     private VBoxContainer _activeList;
     private VBoxContainer _stashList;
-    private Control       _previewZone;   // fixed bottom-right panel
-    private CardUi        _previewCard;   // live CardUi inside preview zone
-    private Label         _previewHint;
-    private Label         _activeDeckCountLabel;
-    private Label         _stashCountLabel;
-    private Label         _dustLabel;
+    private Control _previewZone;   // fixed bottom-right panel
+    private CardUi _previewCard;   // live CardUi inside preview zone
+    private Label _previewHint;
+    private Label _activeDeckCountLabel;
+    private Label _stashCountLabel;
+    private Label _dustLabel;
 
     // Drop highlight overlays (full-column tint when drag is in flight)
     private ColorRect _activeDropHighlight;
@@ -53,15 +53,15 @@ public partial class DeckEditorUi : Control
     private string _stashSearch = "";
 
     // ── Drag state ────────────────────────────────────────────────────────
-    private DeckRowControl _draggedRow     = null;
-    private bool           _isDragging     = false;
-    private bool           _dragFromActive = false;
-    private Label          _dragGhost      = null;  // follows cursor
+    private DeckRowControl _draggedRow = null;
+    private bool _isDragging = false;
+    private bool _dragFromActive = false;
+    private Label _dragGhost = null;  // follows cursor
 
     // ── Preview size ──────────────────────────────────────────────────────
     // The preview zone is this tall (px). Card is scaled to fit inside it.
     private const float PreviewZoneHeight = 380f;
-    private const float RightColumnWidth  = 300f;
+    private const float RightColumnWidth = 300f;
 
     // ─────────────────────────────────────────────────────────────────────
     // Boot
@@ -102,8 +102,8 @@ public partial class DeckEditorUi : Control
 
         var leftScroll = new ScrollContainer
         {
-            SizeFlagsVertical    = SizeFlags.ExpandFill,
-            SizeFlagsHorizontal  = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
         };
         leftOuter.AddChild(leftScroll);
@@ -113,26 +113,26 @@ public partial class DeckEditorUi : Control
         // ── RIGHT: Stash + Preview ────────────────────────────────────────
         // A VBoxContainer that holds:  [stash column shell]  [preview zone]
         var rightCol = new VBoxContainer();
-        rightCol.CustomMinimumSize   = new Vector2(RightColumnWidth, 0);
+        rightCol.CustomMinimumSize = new Vector2(RightColumnWidth, 0);
         rightCol.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
-        rightCol.SizeFlagsVertical   = SizeFlags.ExpandFill;
+        rightCol.SizeFlagsVertical = SizeFlags.ExpandFill;
         rightCol.AddThemeConstantOverride("separation", 0);
         body.AddChild(rightCol);
 
         // ── Preview zone (Upper right, fixed height) ──────────────────────
         _previewZone = new Control
         {
-            CustomMinimumSize   = new Vector2(RightColumnWidth, PreviewZoneHeight),
+            CustomMinimumSize = new Vector2(RightColumnWidth, PreviewZoneHeight),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical   = SizeFlags.ShrinkBegin,
-            ClipContents        = true,
+            SizeFlagsVertical = SizeFlags.ShrinkBegin,
+            ClipContents = true,
         };
         var previewBg = new StyleBoxFlat
         {
-            BgColor             = new Color(0.04f, 0.04f, 0.08f, 1f),
-            BorderColor         = UITheme.NeutralDim,
-            BorderWidthBottom   = 1,
-            BorderWidthLeft     = 1,
+            BgColor = new Color(0.04f, 0.04f, 0.08f, 1f),
+            BorderColor = UITheme.NeutralDim,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 1,
         };
         var previewPanel = new PanelContainer();
         previewPanel.SetAnchorsPreset(LayoutPreset.FullRect);
@@ -142,10 +142,10 @@ public partial class DeckEditorUi : Control
 
         _previewHint = new Label
         {
-            Text                = "Hover a card\nto preview",
+            Text = "Hover a card\nto preview",
             HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment   = VerticalAlignment.Center,
-            Name                = "HintLabel",
+            VerticalAlignment = VerticalAlignment.Center,
+            Name = "HintLabel",
         };
         _previewHint.SetAnchorsPreset(LayoutPreset.FullRect);
         _previewHint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -166,8 +166,8 @@ public partial class DeckEditorUi : Control
         // Search bar inside stash column
         var searchBar = new LineEdit
         {
-            PlaceholderText     = "Search…",
-            CustomMinimumSize   = new Vector2(0, 30),
+            PlaceholderText = "Search…",
+            CustomMinimumSize = new Vector2(0, 30),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
         searchBar.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -180,8 +180,8 @@ public partial class DeckEditorUi : Control
 
         var stashScroll = new ScrollContainer
         {
-            SizeFlagsVertical    = SizeFlags.ExpandFill,
-            SizeFlagsHorizontal  = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
         };
         stashOuter.AddChild(stashScroll);
@@ -192,23 +192,29 @@ public partial class DeckEditorUi : Control
         // ── Drag ghost label ──────────────────────────────────────────────
         _dragGhost = new Label
         {
-            Text        = "",
-            Visible     = false,
+            Text = "",
+            Visible = false,
             MouseFilter = MouseFilterEnum.Ignore,
-            ZIndex      = 1000,
+            ZIndex = 1000,
         };
         _dragGhost.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         _dragGhost.AddThemeColorOverride("font_color", UITheme.TextPrimary);
         var ghostStyle = new StyleBoxFlat
         {
-            BgColor        = new Color(0.08f, 0.08f, 0.18f, 0.95f),
-            BorderColor    = UITheme.Violet,
-            BorderWidthTop = 1, BorderWidthBottom = 1,
-            BorderWidthLeft = 1, BorderWidthRight = 1,
-            CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
-            CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
-            ContentMarginLeft = 10, ContentMarginRight = 10,
-            ContentMarginTop = 5, ContentMarginBottom = 5,
+            BgColor = new Color(0.08f, 0.08f, 0.18f, 0.95f),
+            BorderColor = UITheme.Violet,
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4,
+            ContentMarginLeft = 10,
+            ContentMarginRight = 10,
+            ContentMarginTop = 5,
+            ContentMarginBottom = 5,
         };
         _dragGhost.AddThemeStyleboxOverride("normal", ghostStyle);
         AddChild(_dragGhost);
@@ -227,30 +233,30 @@ public partial class DeckEditorUi : Control
         topBar.OffsetBottom = 60;
         topBar.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor           = UITheme.CampusTitleBarBg,
-            BorderColor       = UITheme.CampusTitleBarBorder,
+            BgColor = UITheme.CampusTitleBarBg,
+            BorderColor = UITheme.CampusTitleBarBorder,
             BorderWidthBottom = 2,
         });
         AddChild(topBar);
 
         var backBtn = new Button
         {
-            Text              = "← Back",
+            Text = "← Back",
             CustomMinimumSize = new Vector2(90, 36),
         };
         backBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         backBtn.SetAnchorsPreset(LayoutPreset.CenterLeft);
-        backBtn.OffsetLeft = 16; backBtn.OffsetRight  = 106;
-        backBtn.OffsetTop  = -18; backBtn.OffsetBottom = 18;
+        backBtn.OffsetLeft = 16; backBtn.OffsetRight = 106;
+        backBtn.OffsetTop = -18; backBtn.OffsetBottom = 18;
         UITheme.ApplyButtonStyle(backBtn, isPrimary: false);
         backBtn.Pressed += () => GetTree().ChangeSceneToFile(ReturnScenePath);
         topBar.AddChild(backBtn);
 
         var titleLbl = new Label
         {
-            Text                = "Manage Deck",
+            Text = "Manage Deck",
             HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment   = VerticalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
         };
         titleLbl.SetAnchorsPreset(LayoutPreset.FullRect);
         titleLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTitleFontSize);
@@ -260,7 +266,7 @@ public partial class DeckEditorUi : Control
         _dustLabel = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment   = VerticalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
         };
         _dustLabel.SetAnchorsPreset(LayoutPreset.FullRect);
         _dustLabel.OffsetRight = -16;
@@ -289,12 +295,12 @@ public partial class DeckEditorUi : Control
         if (expandFill)
         {
             shell.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            shell.SizeFlagsVertical   = SizeFlags.ExpandFill;
+            shell.SizeFlagsVertical = SizeFlags.ExpandFill;
         }
         shell.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor      = bgColor,
-            BorderColor  = accentColor,
+            BgColor = bgColor,
+            BorderColor = accentColor,
             BorderWidthRight = 1,
         });
         parent.AddChild(shell);
@@ -307,15 +313,15 @@ public partial class DeckEditorUi : Control
         var hdrPanel = new PanelContainer();
         hdrPanel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor           = new Color(accentColor.R, accentColor.G, accentColor.B, 0.10f),
-            BorderColor       = accentColor,
+            BgColor = new Color(accentColor.R, accentColor.G, accentColor.B, 0.10f),
+            BorderColor = accentColor,
             BorderWidthBottom = 1,
         });
         var hdrMargin = new MarginContainer();
-        hdrMargin.AddThemeConstantOverride("margin_left",   14);
-        hdrMargin.AddThemeConstantOverride("margin_right",  14);
-        hdrMargin.AddThemeConstantOverride("margin_top",     8);
-        hdrMargin.AddThemeConstantOverride("margin_bottom",  8);
+        hdrMargin.AddThemeConstantOverride("margin_left", 14);
+        hdrMargin.AddThemeConstantOverride("margin_right", 14);
+        hdrMargin.AddThemeConstantOverride("margin_top", 8);
+        hdrMargin.AddThemeConstantOverride("margin_bottom", 8);
         hdrPanel.AddChild(hdrMargin);
 
         var hdrRow = new HBoxContainer();
@@ -351,7 +357,7 @@ public partial class DeckEditorUi : Control
         if (save?.PlayerDeck == null)
         {
             Clear(_activeList); _activeList?.AddChild(MakeStub("No save loaded."));
-            Clear(_stashList);  _stashList?.AddChild(MakeStub("No save loaded."));
+            Clear(_stashList); _stashList?.AddChild(MakeStub("No save loaded."));
             return;
         }
 
@@ -363,14 +369,14 @@ public partial class DeckEditorUi : Control
     {
         Clear(_activeList);
         var activeIds = save.PlayerDeck.ActiveDeckInstanceIds ?? new List<string>();
-        int count     = activeIds.Count;
-        bool tooFew   = count < PlayerDeckSave.MinDeckSize;
+        int count = activeIds.Count;
+        bool tooFew = count < PlayerDeckSave.MinDeckSize;
 
         if (_activeDeckCountLabel != null)
         {
             _activeDeckCountLabel.Text = $"{count} / {PlayerDeckSave.MaxDeckSize}";
             _activeDeckCountLabel.AddThemeColorOverride("font_color",
-                tooFew                              ? UITheme.Danger  :
+                tooFew ? UITheme.Danger :
                 count == PlayerDeckSave.MaxDeckSize ? UITheme.Warning :
                                                       UITheme.Success);
         }
@@ -442,37 +448,41 @@ public partial class DeckEditorUi : Control
 
         string displayName = CardDatabase.GetDisplayName(bp);
         string botName = bp?.Prebuilt?.BottomHalf?.Name ?? "";
-        int    topMana = bp?.Prebuilt?.TopHalf?.ManaCost  ?? 0;
-        int    botMana = bp?.Prebuilt?.BottomHalf?.ManaCost ?? 0;
-        var    rarity  = bp?.Rarity ?? CardRarity.Common;
-        var    school  = bp?.School ?? CardSchool.Generic;
-        Color  accent  = SchoolColors.GetBorderColor(school);
-        Color  dark    = SchoolColors.GetDarkColor(school);
+        int topMana = bp?.Prebuilt?.TopHalf?.ManaCost ?? 0;
+        int botMana = bp?.Prebuilt?.BottomHalf?.ManaCost ?? 0;
+        var rarity = bp?.Rarity ?? CardRarity.Common;
+        var school = bp?.School ?? CardSchool.Generic;
+        Color accent = SchoolColors.GetBorderColor(school);
+        Color dark = SchoolColors.GetDarkColor(school);
 
         var row = new DeckRowControl
         {
-            BlueprintId    = copies[0].BlueprintId,
-            Copies         = copies,
-            IsActive       = isActive,
+            BlueprintId = copies[0].BlueprintId,
+            Copies = copies,
+            IsActive = isActive,
             DisplayTopName = displayName,
         };
         row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        row.CustomMinimumSize   = new Vector2(0, 46);
-        row.MouseFilter         = MouseFilterEnum.Stop;
+        row.CustomMinimumSize = new Vector2(0, 46);
+        row.MouseFilter = MouseFilterEnum.Stop;
 
         // Styles
         var normalStyle = new StyleBoxFlat
         {
-            BgColor          = UITheme.SurfaceLight,
-            BorderColor      = accent,
-            BorderWidthLeft  = 3,
-            BorderWidthTop   = 1, BorderWidthBottom = 1, BorderWidthRight = 1,
-            CornerRadiusTopLeft    = UITheme.CornerRadius - 1,
-            CornerRadiusTopRight   = UITheme.CornerRadius - 1,
+            BgColor = UITheme.SurfaceLight,
+            BorderColor = accent,
+            BorderWidthLeft = 3,
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            BorderWidthRight = 1,
+            CornerRadiusTopLeft = UITheme.CornerRadius - 1,
+            CornerRadiusTopRight = UITheme.CornerRadius - 1,
             CornerRadiusBottomLeft = UITheme.CornerRadius - 1,
             CornerRadiusBottomRight = UITheme.CornerRadius - 1,
-            ContentMarginLeft = 10, ContentMarginRight  = 8,
-            ContentMarginTop  =  7, ContentMarginBottom = 7,
+            ContentMarginLeft = 10,
+            ContentMarginRight = 8,
+            ContentMarginTop = 7,
+            ContentMarginBottom = 7,
         };
         var hoverStyle = normalStyle.Duplicate() as StyleBoxFlat;
         hoverStyle.BgColor = new Color(
@@ -482,7 +492,7 @@ public partial class DeckEditorUi : Control
 
         row.AddThemeStyleboxOverride("panel", normalStyle);
         row.NormalStyle = normalStyle;
-        row.HoverStyle  = hoverStyle;
+        row.HoverStyle = hoverStyle;
 
         // Inner HBox
         var hbox = new HBoxContainer();
@@ -492,10 +502,10 @@ public partial class DeckEditorUi : Control
 
         // Mana pip
         var pip = new Label { Text = topMana.ToString() };
-        pip.CustomMinimumSize       = new Vector2(24, 24);
-        pip.HorizontalAlignment     = HorizontalAlignment.Center;
-        pip.VerticalAlignment       = VerticalAlignment.Center;
-        pip.MouseFilter             = MouseFilterEnum.Ignore;
+        pip.CustomMinimumSize = new Vector2(24, 24);
+        pip.HorizontalAlignment = HorizontalAlignment.Center;
+        pip.VerticalAlignment = VerticalAlignment.Center;
+        pip.MouseFilter = MouseFilterEnum.Ignore;
         pip.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize + 1);
         pip.AddThemeColorOverride("font_color", Colors.White);
         var pipStyle = new StyleBoxFlat { BgColor = dark };
@@ -507,7 +517,7 @@ public partial class DeckEditorUi : Control
         var names = new VBoxContainer();
         names.AddThemeConstantOverride("separation", 1);
         names.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        names.MouseFilter         = MouseFilterEnum.Ignore;
+        names.MouseFilter = MouseFilterEnum.Ignore;
         hbox.AddChild(names);
 
         var topLbl = new Label { Text = displayName };
@@ -529,14 +539,23 @@ public partial class DeckEditorUi : Control
         var badges = new VBoxContainer();
         badges.AddThemeConstantOverride("separation", 2);
         badges.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
-        badges.MouseFilter         = MouseFilterEnum.Ignore;
+        badges.MouseFilter = MouseFilterEnum.Ignore;
         hbox.AddChild(badges);
 
         if (copies.Count > 1)
             badges.AddChild(MakeBadge($"×{copies.Count}", UITheme.TextSecondary));
-        int maxTier = copies.Max(c => c.UpgradeTier);
-        if (maxTier > 0)
-            badges.AddChild(MakeBadge(maxTier == 1 ? "+" : "++", UITheme.Success));
+        int maxPoints = copies.Max(c => c.PointsSpent);
+        if (maxPoints > 0)
+        {
+            string tierBadge = maxPoints switch
+            {
+                1 => "+",
+                2 or 3 => "++",
+                4 or 5 => "+++",
+                _ => "★"
+            };
+            badges.AddChild(MakeBadge(tierBadge, UITheme.Success));
+        }
         if (copies.Any(c => c.IsStarter))
             badges.AddChild(MakeBadge("⚑", UITheme.TextDim));
         int graftCount = copies.SelectMany(c => c.Grafts ?? new List<string>())
@@ -546,17 +565,17 @@ public partial class DeckEditorUi : Control
 
         // Arrow button
         bool allStarters = copies.All(c => c.IsStarter);
-        bool deckAtMin   = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
+        bool deckAtMin = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
                             <= PlayerDeckSave.MinDeckSize;
-        bool deckFull    = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
+        bool deckFull = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
                             >= PlayerDeckSave.MaxDeckSize;
 
         var btn = new Button
         {
-            Text              = isActive ? "→" : "←",
-            Disabled          = isActive ? (allStarters || deckAtMin) : deckFull,
+            Text = isActive ? "→" : "←",
+            Disabled = isActive ? (allStarters || deckAtMin) : deckFull,
             CustomMinimumSize = new Vector2(28, 28),
-            FocusMode         = FocusModeEnum.None,
+            FocusMode = FocusModeEnum.None,
         };
         btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         UITheme.ApplyButtonStyle(btn, isPrimary: !isActive);
@@ -575,7 +594,7 @@ public partial class DeckEditorUi : Control
             GD.Print($"[DeckEditor] Row MouseEntered — {displayName}");
             ShowPreview(bp);
         };
-        row.MouseExited  += () =>
+        row.MouseExited += () =>
         {
             if (!_isDragging) HidePreview();
         };
@@ -620,10 +639,10 @@ public partial class DeckEditorUi : Control
         _previewCard.SetCard(bp.Prebuilt.TopHalf, bp.Prebuilt.BottomHalf);
 
         // Bypass the draw-in animation — force visible at rest position
-        _previewCard.Modulate  = Colors.White;
-        _previewCard.Position  = Vector2.Zero;
-        _previewCard.Rotation  = 0f;
-        _previewCard.Scale     = Vector2.One;
+        _previewCard.Modulate = Colors.White;
+        _previewCard.Position = Vector2.Zero;
+        _previewCard.Rotation = 0f;
+        _previewCard.Scale = Vector2.One;
         _previewCard.SetProcess(false); // disable breathe animation
 
         CallDeferred(nameof(LayoutPreviewCard));
@@ -644,7 +663,7 @@ public partial class DeckEditorUi : Control
             (zoneH - 16f) / cardH);
         scale = Mathf.Clamp(scale, 0.4f, 1.1f);
 
-        _previewCard.Scale    = new Vector2(scale, scale);
+        _previewCard.Scale = new Vector2(scale, scale);
         _previewCard.Position = new Vector2(
             (zoneW - cardW * scale) * 0.5f,
             (zoneH - cardH * scale) * 0.5f);
@@ -666,34 +685,34 @@ public partial class DeckEditorUi : Control
 
     private void BeginDrag(DeckRowControl row, bool fromActive, string displayName)
     {
-        _isDragging     = true;
-        _draggedRow     = row;
+        _isDragging = true;
+        _draggedRow = row;
         _dragFromActive = fromActive;
-        _dragGhost.Text    = displayName;
+        _dragGhost.Text = displayName;
         _dragGhost.Visible = true;
         _dragGhost.GlobalPosition =
             GetViewport().GetMousePosition() + new Vector2(14, -10);
 
         if (_activeDropHighlight != null)
             _activeDropHighlight.Visible = !fromActive; // light up opposite column
-        if (_stashDropHighlight  != null)
-            _stashDropHighlight.Visible  = fromActive;
+        if (_stashDropHighlight != null)
+            _stashDropHighlight.Visible = fromActive;
     }
 
     private void FinishDrag(GuildSaveData save)
     {
-        _isDragging        = false;
+        _isDragging = false;
         _dragGhost.Visible = false;
         if (_activeDropHighlight != null) _activeDropHighlight.Visible = false;
-        if (_stashDropHighlight  != null) _stashDropHighlight.Visible  = false;
+        if (_stashDropHighlight != null) _stashDropHighlight.Visible = false;
 
         if (_draggedRow == null) return;
 
-        var mouse      = GetViewport().GetMousePosition();
+        var mouse = GetViewport().GetMousePosition();
         bool overActive = _activeList != null &&
                           _activeList.GetGlobalRect().GrowIndividual(0, 40, 0, 0)
                                      .HasPoint(mouse);
-        bool overStash  = _stashList  != null &&
+        bool overStash = _stashList != null &&
                           _stashList.GetGlobalRect().GrowIndividual(0, 40, 0, 0)
                                     .HasPoint(mouse);
 
@@ -746,12 +765,12 @@ public partial class DeckEditorUi : Control
     private MarginContainer MakeInnerMargin(ScrollContainer scroll)
     {
         var m = new MarginContainer();
-        m.AddThemeConstantOverride("margin_left",   12);
-        m.AddThemeConstantOverride("margin_right",  12);
-        m.AddThemeConstantOverride("margin_top",     8);
-        m.AddThemeConstantOverride("margin_bottom",  8);
+        m.AddThemeConstantOverride("margin_left", 12);
+        m.AddThemeConstantOverride("margin_right", 12);
+        m.AddThemeConstantOverride("margin_top", 8);
+        m.AddThemeConstantOverride("margin_bottom", 8);
         m.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        m.SizeFlagsVertical   = SizeFlags.ShrinkBegin;
+        m.SizeFlagsVertical = SizeFlags.ShrinkBegin;
         scroll.AddChild(m);
         return m;
     }
@@ -773,9 +792,9 @@ public partial class DeckEditorUi : Control
 
         var highlight = new ColorRect
         {
-            Color        = new Color(accent.R, accent.G, accent.B, 0.15f),
-            MouseFilter  = MouseFilterEnum.Ignore,
-            Visible      = false,
+            Color = new Color(accent.R, accent.G, accent.B, 0.15f),
+            MouseFilter = MouseFilterEnum.Ignore,
+            Visible = false,
         };
         highlight.SetAnchorsPreset(LayoutPreset.FullRect);
         shell.AddChild(highlight);
@@ -792,9 +811,9 @@ public partial class DeckEditorUi : Control
     {
         var l = new Label
         {
-            Text                = t,
+            Text = t,
             HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode        = TextServer.AutowrapMode.WordSmart,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         l.AddThemeFontSizeOverride("font_size", UITheme.CampusStubFontSize);
         l.Modulate = UITheme.CampusStubText;
@@ -805,9 +824,9 @@ public partial class DeckEditorUi : Control
     {
         var l = new Label
         {
-            Text                = t,
+            Text = t,
             HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode        = TextServer.AutowrapMode.WordSmart,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         l.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         l.AddThemeColorOverride("font_color", col);
@@ -830,12 +849,12 @@ public partial class DeckEditorUi : Control
 // ─────────────────────────────────────────────────────────────────────────────
 public partial class DeckRowControl : PanelContainer
 {
-    public string          BlueprintId;
+    public string BlueprintId;
     public List<OwnedCard> Copies;
-    public bool            IsActive;
-    public string          DisplayTopName;
-    public StyleBoxFlat    NormalStyle;
-    public StyleBoxFlat    HoverStyle;
+    public bool IsActive;
+    public string DisplayTopName;
+    public StyleBoxFlat NormalStyle;
+    public StyleBoxFlat HoverStyle;
 
     public override void _Notification(int what)
     {

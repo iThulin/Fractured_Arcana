@@ -116,22 +116,38 @@ theme_override_font_sizes/font_size = 13
 layout_mode = 2
 theme_override_constants/separation = 4
 
-; ── Scrollable card area (expands to fill remaining space) ─────────────────
-[node name="Scroll" type="ScrollContainer" parent="Margin/VBox"]
+[node name="ContentRow" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/VBox/ContentRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-; HBox centers the grid horizontally within the scroll area
-[node name="GridCentering" type="HBoxContainer" parent="Margin/VBox/Scroll"]
+[node name="GridCentering" type="HBoxContainer" parent="Margin/VBox/ContentRow/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
 
-; The actual card grid — columns set by script at runtime
-[node name="CardGrid" type="GridContainer" parent="Margin/VBox/Scroll/GridCentering"]
+[node name="CardGrid" type="GridContainer" parent="Margin/VBox/ContentRow/Scroll/GridCentering"]
 layout_mode = 2
 columns = 5
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
+
+[node name="DetailPanel" type="ScrollContainer" parent="Margin/VBox/ContentRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(520, 0)
+size_flags_horizontal = 0
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+visible = false
+
+[node name="DetailContent" type="VBoxContainer" parent="Margin/VBox/ContentRow/DetailPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12

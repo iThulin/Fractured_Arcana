@@ -10,8 +10,8 @@ using System.Linq;
 //                 owned cards, the current tier, upgrade cost,
 //                 and a before/after preview using CardUi.
 //                 Upgrade button spends ArcaneSplinters and
-//                 bumps OwnedCard.UpgradeTier in the save.
-//                 Gated by Training Grounds tier.
+//                 bumps OwnedCard top/bot tiers in the save.
+//                 Gated by Scriptorum tier.
 // Layer:          UI
 // Collaborators:  CardUpgradeApplier.cs (preview + apply),
 //                 PlayerDeckService.cs (OwnedCard lookup),
@@ -27,39 +27,30 @@ public partial class CardUpgradeScreen : Control
     [Export] public PackedScene CardUIScene;
     [Export] public string ReturnScenePath = "res://Scenes/Campus/CampusScene.tscn";
 
-    // Max upgrade tier
     private const int MAX_TIER = 4;
-    private bool _bypassCastRequirement = false; // DEV flag to bypass cast count requirement for testing
+    private bool _bypassCastRequirement = false;
 
-    // Upgrade costs per tier (tunable in JSON eventually)
-    // Tier 1: ~5 battles, Tier 2: ~10, Tier 3: ~20
-    private static readonly int[] TierCosts = { 0, 25, 60, 120, 250 };
-
-    // Tier labels
-    private static readonly string[] TierLabels =
-        { "Base", "Refined", "Specialized", "Mastered", "Transcendent" };
-
-    // Upgrade branches
-    private List<(string branch, string description)> _availableBranches = new();
-    private string _pendingBranch = null; // chosen but not yet confirmed
-    private Control _branchSelectionPanel = null;
+    public static class CardUpgradeCosts
+    {
+        public static readonly int[] HalfTierCost = { 0, 15, 20, 30, 45 };
+        public const int SharedUpgradeCost = 15;
+    }
 
     // ── Layout ────────────────────────────────────────────────────────
     private VBoxContainer _cardList;
     private Label _splinterLabel;
     private Label _selectedCardLabel;
-    private Label _upgradeDescLabel;
+    private Label _gateLabel;
     private Control _beforeZone;
     private Control _afterZone;
     private CardUi _beforeCard;
     private CardUi _afterCard;
-    private Button _upgradeButton;
-    private Label _upgradeCostLabel;
-    private Label _gateLabel;
+
+    // Stable reference to right panel content — never freed between refreshes
+    private VBoxContainer _rightContent = null;
 
     // ── State ─────────────────────────────────────────────────────────
     private OwnedCard _selectedOwned = null;
-
     private bool _buildPending = false;
 
     public override void _Ready()
@@ -95,14 +86,13 @@ public partial class CardUpgradeScreen : Control
 
             BuildTopBar();
 
-            // ── Body: list (left) + preview panel (right) ─────────────────
             var body = new HBoxContainer();
             body.SetAnchorsPreset(LayoutPreset.FullRect);
             body.OffsetTop = 60;
             body.AddThemeConstantOverride("separation", 0);
             AddChild(body);
 
-            // LEFT — card list
+            // ── LEFT — card list ──────────────────────────────────────────
             var leftShell = new PanelContainer();
             leftShell.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             leftShell.SizeFlagsVertical = SizeFlags.ExpandFill;
@@ -118,9 +108,7 @@ public partial class CardUpgradeScreen : Control
             leftVBox.SizeFlagsVertical = SizeFlags.ExpandFill;
             leftShell.AddChild(leftVBox);
 
-            // List header
-            var listHeader = BuildHeader("Your Cards", UITheme.Violet);
-            leftVBox.AddChild(listHeader);
+            leftVBox.AddChild(BuildHeader("Your Cards", UITheme.Violet));
 
             var leftScroll = new ScrollContainer
             {
@@ -132,7 +120,7 @@ public partial class CardUpgradeScreen : Control
             _cardList = MakeVBox(5);
             MakeInnerMargin(leftScroll).AddChild(_cardList);
 
-            // RIGHT — upgrade panel
+            // ── RIGHT — upgrade panel ─────────────────────────────────────
             var rightPanel = new PanelContainer();
             rightPanel.CustomMinimumSize = new Vector2(520, 0);
             rightPanel.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
@@ -143,10 +131,6 @@ public partial class CardUpgradeScreen : Control
             });
             body.AddChild(rightPanel);
 
-            var rightVBox = MakeVBox(16);
-            rightVBox.SizeFlagsVertical = SizeFlags.ExpandFill;
-            rightPanel.AddChild(rightVBox);
-
             var rightMargin = new MarginContainer();
             rightMargin.AddThemeConstantOverride("margin_left", 24);
             rightMargin.AddThemeConstantOverride("margin_right", 24);
@@ -155,11 +139,11 @@ public partial class CardUpgradeScreen : Control
             rightMargin.SizeFlagsVertical = SizeFlags.ExpandFill;
             rightPanel.AddChild(rightMargin);
 
-            var rightContent = MakeVBox(16);
-            rightContent.SizeFlagsVertical = SizeFlags.ExpandFill;
-            rightMargin.AddChild(rightContent);
+            _rightContent = MakeVBox(16);
+            _rightContent.SizeFlagsVertical = SizeFlags.ExpandFill;
+            rightMargin.AddChild(_rightContent);
 
-            // Selected card name
+            // Permanent static nodes — never freed
             _selectedCardLabel = new Label
             {
                 Text = "Select a card to upgrade",
@@ -167,9 +151,8 @@ public partial class CardUpgradeScreen : Control
             };
             _selectedCardLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSectionFontSize);
             _selectedCardLabel.AddThemeColorOverride("font_color", UITheme.Gold);
-            rightContent.AddChild(_selectedCardLabel);
+            _rightContent.AddChild(_selectedCardLabel);
 
-            // Gate label (shown when Training Grounds insufficient)
             _gateLabel = new Label
             {
                 Text = "",
@@ -178,50 +161,16 @@ public partial class CardUpgradeScreen : Control
             };
             _gateLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
             _gateLabel.AddThemeColorOverride("font_color", UITheme.Warning);
-            rightContent.AddChild(_gateLabel);
+            _rightContent.AddChild(_gateLabel);
 
-            // Before / After card previews side by side
+            // Before / After preview zones — permanent, content is swapped
             var previewRow = new HBoxContainer();
             previewRow.AddThemeConstantOverride("separation", 20);
             previewRow.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-            rightContent.AddChild(previewRow);
+            _rightContent.AddChild(previewRow);
 
             _beforeZone = BuildPreviewZone(previewRow, "Current");
             _afterZone = BuildPreviewZone(previewRow, "After Upgrade");
-
-            // Upgrade description
-            _upgradeDescLabel = new Label
-            {
-                Text = "",
-                HorizontalAlignment = HorizontalAlignment.Center,
-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            };
-            _upgradeDescLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            _upgradeDescLabel.AddThemeColorOverride("font_color", UITheme.TextSecondary);
-            rightContent.AddChild(_upgradeDescLabel);
-
-            // Cost label
-            _upgradeCostLabel = new Label
-            {
-                Text = "",
-                HorizontalAlignment = HorizontalAlignment.Center,
-            };
-            _upgradeCostLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            _upgradeCostLabel.AddThemeColorOverride("font_color", new Color(0.6f, 0.85f, 1f));
-            rightContent.AddChild(_upgradeCostLabel);
-
-            // Upgrade button
-            _upgradeButton = new Button
-            {
-                Text = "Upgrade",
-                CustomMinimumSize = new Vector2(220, 50),
-                Disabled = true,
-                SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-            };
-            _upgradeButton.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            UITheme.ApplyButtonStyle(_upgradeButton, isPrimary: true);
-            _upgradeButton.Pressed += OnUpgradePressed;
-            rightContent.AddChild(_upgradeButton);
 
             if (PlayerSession.DebugMode)
             {
@@ -242,7 +191,7 @@ public partial class CardUpgradeScreen : Control
                         : "Toggle Cast Bypass [DEV]";
                     RefreshUpgradePanel(SaveManager.ActiveSave);
                 };
-                rightContent.AddChild(bypassBtn);
+                _rightContent.AddChild(bypassBtn);
             }
 
             Refresh();
@@ -253,7 +202,6 @@ public partial class CardUpgradeScreen : Control
             GD.PrintErr($"[UpgradeScreen] BuildUI EXCEPTION: {ex.GetType().Name}: {ex.Message}");
             GD.PrintErr(ex.StackTrace);
         }
-
     }
 
     private void BuildTopBar()
@@ -365,181 +313,6 @@ public partial class CardUpgradeScreen : Control
         return hdr;
     }
 
-    private void BuildBranchSelectionPanel(VBoxContainer parent)
-    {
-        // Remove existing panel if present
-        _branchSelectionPanel?.QueueFree();
-        _branchSelectionPanel = null;
-
-        if (_selectedOwned == null) return;
-
-        int nextTier = _selectedOwned.UpgradeTier + 1;
-        _availableBranches = CardUpgradeApplier.GetBranchOptions(
-            _selectedOwned.BlueprintId, nextTier);
-
-        // If only one branch or no branching, nothing to show
-        if (_availableBranches.Count <= 1) return;
-
-        var panel = new PanelContainer();
-        panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(UITheme.Violet.R, UITheme.Violet.G, UITheme.Violet.B, 0.08f),
-            BorderColor = UITheme.Violet,
-            BorderWidthTop = 1,
-            BorderWidthBottom = 1,
-            BorderWidthLeft = 1,
-            BorderWidthRight = 1,
-            ContentMarginLeft = 12,
-            ContentMarginRight = 12,
-            ContentMarginTop = 12,
-            ContentMarginBottom = 12,
-        });
-        _branchSelectionPanel = panel;
-        parent.AddChild(panel);
-
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 10);
-        panel.AddChild(vbox);
-
-        var header = new Label
-        {
-            Text = "Choose a specialization path:",
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        header.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        header.AddThemeColorOverride("font_color", UITheme.Violet);
-        vbox.AddChild(header);
-
-        var branchRow = new HBoxContainer();
-        branchRow.AddThemeConstantOverride("separation", 12);
-        branchRow.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        vbox.AddChild(branchRow);
-
-        foreach (var (branch, description) in _availableBranches)
-        {
-            var branchCard = BuildBranchOptionCard(branch, description);
-            branchRow.AddChild(branchCard);
-        }
-    }
-
-    private Control BuildBranchOptionCard(string branch, string description)
-    {
-        bool isSelected = _pendingBranch == branch;
-
-        var panel = new PanelContainer();
-        panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        panel.MouseFilter = MouseFilterEnum.Stop;
-        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = isSelected
-                ? new Color(UITheme.Violet.R, UITheme.Violet.G, UITheme.Violet.B, 0.25f)
-                : UITheme.BgRaised,
-            BorderColor = isSelected ? UITheme.Violet : UITheme.Neutral,
-            BorderWidthTop = 2,
-            BorderWidthBottom = 2,
-            BorderWidthLeft = 2,
-            BorderWidthRight = 2,
-            CornerRadiusTopLeft = UITheme.CornerRadius,
-            CornerRadiusTopRight = UITheme.CornerRadius,
-            CornerRadiusBottomLeft = UITheme.CornerRadius,
-            CornerRadiusBottomRight = UITheme.CornerRadius,
-            ContentMarginLeft = 10,
-            ContentMarginRight = 10,
-            ContentMarginTop = 10,
-            ContentMarginBottom = 10,
-        });
-
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 6);
-        vbox.MouseFilter = MouseFilterEnum.Ignore;
-        panel.AddChild(vbox);
-
-        // Branch name
-        var nameLabel = new Label
-        {
-            Text = branch,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        nameLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-        nameLabel.AddThemeColorOverride("font_color",
-            isSelected ? UITheme.Violet : UITheme.TextPrimary);
-        vbox.AddChild(nameLabel);
-
-        // Preview of what the branch does — show the upgraded card halves
-        var previewZone = new Control
-        {
-            CustomMinimumSize = new Vector2(UITheme.LibraryCardWidth * 0.65f,
-                                            UITheme.LibraryCardHeight * 0.65f),
-            ClipContents = true,
-            MouseFilter = MouseFilterEnum.Ignore,
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-        };
-        var zoneBg = new ColorRect
-        {
-            Color = new Color(0.06f, 0.06f, 0.10f, 1f),
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        zoneBg.SetAnchorsPreset(LayoutPreset.FullRect);
-        previewZone.AddChild(zoneBg);
-        vbox.AddChild(previewZone);
-
-        // Spawn a card preview for this branch
-        if (CardUIScene != null)
-        {
-            int nextTier = _selectedOwned.UpgradeTier + 1;
-            var branchCard = CardUpgradeApplier.Apply(
-                _selectedOwned.BlueprintId, nextTier, branch);
-            if (branchCard != null)
-            {
-                var cardUi = CardUIScene.Instantiate<CardUi>();
-                previewZone.AddChild(cardUi);
-                cardUi.SetCard(branchCard.TopHalf, branchCard.BottomHalf);
-                var capturedCard = cardUi;
-                GetTree().CreateTimer(0.0).Timeout += () =>
-                {
-                    if (IsInstanceValid(capturedCard))
-                        capturedCard.SetStaticDisplay(0.65f);
-                };
-            }
-        }
-
-        // Description
-        var descLabel = new Label
-        {
-            Text = description,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        descLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
-        descLabel.AddThemeColorOverride("font_color", UITheme.TextSecondary);
-        vbox.AddChild(descLabel);
-
-        // Select button
-        var selectBtn = new Button
-        {
-            Text = isSelected ? "✓ Selected" : "Choose",
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-            CustomMinimumSize = new Vector2(100, 32),
-        };
-        selectBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        UITheme.ApplyButtonStyle(selectBtn, isPrimary: !isSelected);
-
-        string capturedBranch = branch;
-        selectBtn.Pressed += () =>
-        {
-            _pendingBranch = capturedBranch;
-            // Rebuild branch panel to update selection state
-            var save = SaveManager.ActiveSave;
-            RefreshUpgradePanel(save);
-        };
-        vbox.AddChild(selectBtn);
-
-        return panel;
-    }
-
     // ═════════════════════════════════════════════════════════════════
     // Refresh
     // ═════════════════════════════════════════════════════════════════
@@ -556,14 +329,6 @@ public partial class CardUpgradeScreen : Control
 
     private void RefreshSelectionHighlight()
     {
-        // Walk existing rows and update their border color based on _selectedOwned
-        foreach (Node child in _cardList.GetChildren())
-        {
-            if (child is not PanelContainer row) continue;
-            // We can't easily identify which row maps to which card without
-            // storing the mapping, so just rebuild the list minimally
-        }
-        // Simplest correct approach: rebuild the list but DON'T touch the preview zones
         var save = SaveManager.ActiveSave;
         RefreshCardList(save);
     }
@@ -578,7 +343,6 @@ public partial class CardUpgradeScreen : Control
             return;
         }
 
-        // Group by blueprint, deduplicated display
         var grouped = new Dictionary<string, List<OwnedCard>>();
         foreach (var c in save.PlayerDeck.Cards)
         {
@@ -589,16 +353,13 @@ public partial class CardUpgradeScreen : Control
         bool any = false;
         foreach (var kvp in grouped.OrderBy(k => k.Key))
         {
-            // Show the copy with the lowest tier first (upgrade that one)
-            var copies = kvp.Value.OrderBy(c => c.UpgradeTier).ToList();
-            var display = copies[0]; // lowest-tier copy to upgrade
+            var copies = kvp.Value.OrderBy(c => c.PointsSpent).ToList();
+            var display = copies[0];
             var bp = CardDatabase.Blueprints.Find(b =>
                 string.Equals(b.Id, display.BlueprintId, StringComparison.OrdinalIgnoreCase));
 
             string displayName = CardDatabase.GetDisplayName(bp, display);
-            int curTier = display.UpgradeTier;
-            bool maxed = curTier >= MAX_TIER;
-
+            bool maxed = display.IsMaxed;
             bool isSelected = _selectedOwned?.InstanceId == display.InstanceId;
 
             var row = new PanelContainer();
@@ -647,9 +408,9 @@ public partial class CardUpgradeScreen : Control
             info.AddChild(nameLbl);
 
             string tierText = maxed
-                ? $"{TierLabels[curTier]}  ★ MAX"
-                : $"{TierLabels[curTier]}  →  {TierLabels[curTier + 1]}  " +
-                  $"({TierCosts[curTier + 1]} ✦)";
+                ? $"{TierLabel(display.TopTier)}/{TierLabel(display.BotTier)}  ★ MAX"
+                : $"Top: {TierLabel(display.TopTier)}  Bot: {TierLabel(display.BotTier)}" +
+                  $"  ({display.PointsRemaining} pts remaining)";
             var tierLbl = new Label { Text = tierText };
             tierLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
             tierLbl.AddThemeColorOverride("font_color",
@@ -673,8 +434,6 @@ public partial class CardUpgradeScreen : Control
                     mb.ButtonIndex == MouseButton.Left)
                 {
                     _selectedOwned = capturedOwned;
-                    _pendingBranch = null;
-                    // Don't call Refresh() — only update the right panel and highlight
                     RefreshSelectionHighlight();
                     RefreshUpgradePanel(SaveManager.ActiveSave);
                     if (_splinterLabel != null)
@@ -691,17 +450,18 @@ public partial class CardUpgradeScreen : Control
 
     private void RefreshUpgradePanel(GuildSaveData save)
     {
-        GD.Print($"[UpgradeScreen] RefreshUpgradePanel _selectedOwned null={_selectedOwned == null}");
+        if (_rightContent == null) return;
+
+        // Update splinter label
+        if (_splinterLabel != null && save != null)
+            _splinterLabel.Text = $"✦ {save.ArcaneSplinters} Splinters";
+
         if (_selectedOwned == null)
         {
             SetPreviewEmpty();
-            _branchSelectionPanel?.QueueFree();
-            _branchSelectionPanel = null;
-            if (_upgradeButton != null) _upgradeButton.Disabled = true;
-            if (_upgradeCostLabel != null) _upgradeCostLabel.Text = "";
-            if (_upgradeDescLabel != null) _upgradeDescLabel.Text = "";
             if (_selectedCardLabel != null)
                 _selectedCardLabel.Text = "Select a card to upgrade";
+            ClearDynamicContent();
             return;
         }
 
@@ -709,13 +469,8 @@ public partial class CardUpgradeScreen : Control
             string.Equals(b.Id, _selectedOwned.BlueprintId,
                 StringComparison.OrdinalIgnoreCase));
 
-        string displayName = CardDatabase.GetDisplayName(bp, _selectedOwned);
-        int curTier = _selectedOwned.UpgradeTier;
-        int nextTier = curTier + 1;
-        bool maxed = curTier >= MAX_TIER;
-
         if (_selectedCardLabel != null)
-            _selectedCardLabel.Text = displayName;
+            _selectedCardLabel.Text = CardDatabase.GetDisplayName(bp, _selectedOwned);
 
         // Scriptorum gate
         int maxUpgradeStage = 0;
@@ -724,149 +479,357 @@ public partial class CardUpgradeScreen : Control
         else if (PlayerSession.HasFeature("card_upgrade_stage_1")) maxUpgradeStage = 1;
 
         bool gated = maxUpgradeStage == 0;
-        bool stageLocked = !maxed && nextTier > maxUpgradeStage;
 
         if (_gateLabel != null)
         {
-            _gateLabel.Visible = gated || stageLocked;
-            _gateLabel.Text = gated
-                ? "Requires a Scriptorum to refine your spells."
-                : $"Requires Scriptorum (Tier {nextTier}) to unlock {TierLabels[nextTier]} refinements.";
+            _gateLabel.Visible = gated;
+            _gateLabel.Text = "Requires a Scriptorum to refine your spells.";
+        }
+
+        // Clear only the dynamic section — permanent nodes (_selectedCardLabel,
+        // _gateLabel, preview zones, bypass button) are preserved
+        ClearDynamicContent();
+
+        bool isGeneric = bp?.School == CardSchool.Generic;
+        bool baseUpgraded = _selectedOwned.IsBaseUpgraded;
+        int pointsSpent = _selectedOwned.PointsSpent;
+        int splinters = save?.ArcaneSplinters ?? 0;
+
+        // ── Shared 1/1 upgrade ───────────────────────────────────────────
+        if (!baseUpgraded)
+        {
+            bool castOk = _bypassCastRequirement ||
+                CardMasteryThresholds.CanSpendNextPoint(
+                    _selectedOwned.CastCount, pointsSpent);
+            int castsNeeded = CardMasteryThresholds.CastsUntilNextPoint(
+                _selectedOwned.CastCount, pointsSpent);
+            bool canAfford = splinters >= CardUpgradeCosts.SharedUpgradeCost;
+
+            string desc = CardUpgradeApplier.GetSharedUpgradeDescription(
+                _selectedOwned.BlueprintId);
+
+            AddDynamic(MakeDescLabel(string.IsNullOrEmpty(desc)
+                ? "Refine both halves of this card."
+                : desc));
+
+            AddDynamic(MakeCostLabel(
+                CardUpgradeCosts.SharedUpgradeCost, castOk,
+                castsNeeded, canAfford, _bypassCastRequirement,
+                _selectedOwned.CastCount));
+
+            AddDynamic(MakeUpgradeButton(
+                "Refine Both Halves →",
+                !canAfford || gated || !castOk,
+                () => OnSharedUpgradePressed(save)));
+
+            ShowPreview(_selectedOwned.BlueprintId, 0, 0, 1, 1);
+            return;
+        }
+
+        // Generic cards stop at 1/1
+        if (isGeneric)
+        {
+            AddDynamic(MakeDescLabel("Generic cards cannot be further refined."));
+            ShowPreview(_selectedOwned.BlueprintId,
+                _selectedOwned.TopTier, _selectedOwned.BotTier, -1, -1);
+            return;
+        }
+
+        // ── Independent half upgrade tracks ──────────────────────────────
+        int pointsRemaining = _selectedOwned.PointsRemaining;
+
+        var tracksRow = new HBoxContainer();
+        tracksRow.AddThemeConstantOverride("separation", 16);
+        tracksRow.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        AddDynamic(tracksRow);
+
+        tracksRow.AddChild(BuildHalfTrack(
+            save, bp, isTop: true, pointsRemaining, maxUpgradeStage, gated));
+
+        var div = new ColorRect
+        {
+            Color = new Color(1, 1, 1, 0.08f),
+            CustomMinimumSize = new Vector2(1, 0),
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
+        tracksRow.AddChild(div);
+
+        tracksRow.AddChild(BuildHalfTrack(
+            save, bp, isTop: false, pointsRemaining, maxUpgradeStage, gated));
+
+        var pointsLabel = new Label
+        {
+            Text = $"Upgrade points remaining: {pointsRemaining} / 5",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        pointsLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        pointsLabel.AddThemeColorOverride("font_color",
+            pointsRemaining > 0 ? UITheme.TextSecondary : UITheme.Danger);
+        AddDynamic(pointsLabel);
+
+        ShowPreview(_selectedOwned.BlueprintId,
+            _selectedOwned.TopTier, _selectedOwned.BotTier, -1, -1);
+    }
+
+    // Tracks which children are dynamic so we can clear only them
+    private readonly List<Node> _dynamicNodes = new();
+
+    private void AddDynamic(Node node)
+    {
+        _rightContent.AddChild(node);
+        _dynamicNodes.Add(node);
+    }
+
+    private void ClearDynamicContent()
+    {
+        foreach (var node in _dynamicNodes)
+        {
+            if (node != null && IsInstanceValid(node))
+                node.QueueFree();
+        }
+        _dynamicNodes.Clear();
+    }
+
+    private Control BuildHalfTrack(GuildSaveData save, CardBlueprint bp,
+        bool isTop, int pointsRemaining, int maxUpgradeStage, bool gated)
+    {
+        var col = new VBoxContainer();
+        col.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        col.AddThemeConstantOverride("separation", 8);
+
+        int currentTier = isTop ? _selectedOwned.TopTier : _selectedOwned.BotTier;
+        int nextTier = currentTier + 1;
+        bool maxed = currentTier >= 4;
+        bool noPoints = pointsRemaining <= 0;
+        bool stageLocked = nextTier > maxUpgradeStage;
+
+        var halfLabel = new Label
+        {
+            Text = isTop ? "▲ Top Half" : "▼ Bottom Half",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        halfLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        halfLabel.AddThemeColorOverride("font_color",
+            isTop ? UITheme.ElementFire : UITheme.ElementIce);
+        col.AddChild(halfLabel);
+
+        var tierLabel = new Label
+        {
+            Text = TierLabel(currentTier),
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        tierLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        tierLabel.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        col.AddChild(tierLabel);
+
+        float previewScale = 0.55f;
+        float cw = UITheme.LibraryCardWidth * previewScale;
+        float ch = UITheme.LibraryCardHeight * previewScale;
+
+        var previewCard = CardUpgradeApplier.Apply(
+            _selectedOwned.BlueprintId, _selectedOwned.TopTier, _selectedOwned.BotTier);
+        if (previewCard != null && CardUIScene != null)
+        {
+            var wrapper = new Control
+            {
+                CustomMinimumSize = new Vector2(cw, ch),
+                SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+                ClipContents = true,
+            };
+            col.AddChild(wrapper);
+            var cardUi = CardUIScene.Instantiate<CardUi>();
+            wrapper.AddChild(cardUi);
+            cardUi.SetCard(previewCard.TopHalf, previewCard.BottomHalf);
+            cardUi.OffsetRight = UITheme.LibraryCardWidth;
+            cardUi.OffsetBottom = UITheme.LibraryCardHeight;
+            cardUi.Scale = new Vector2(previewScale, previewScale);
+            cardUi.PivotOffset = Vector2.Zero;
+            cardUi.Position = Vector2.Zero;
+            cardUi.Rotation = 0f;
+            cardUi.SetProcess(false);
+            DisableMouseRecursive(cardUi);
+            var capturedUi = cardUi;
+            bool capturedIsTop = isTop;
+            GetTree().CreateTimer(0.0).Timeout += () =>
+            {
+                if (IsInstanceValid(capturedUi))
+                {
+                    capturedUi.SetStaticDisplay(previewScale);
+                    capturedUi.SetHalfHighlight(capturedIsTop, !capturedIsTop);
+                }
+            };
         }
 
         if (maxed)
         {
-            _branchSelectionPanel?.QueueFree();
-            _branchSelectionPanel = null;
-            if (_upgradeDescLabel != null) _upgradeDescLabel.Text = "This card is fully mastered.";
-            if (_upgradeCostLabel != null) _upgradeCostLabel.Text = "";
-            if (_upgradeButton != null) { _upgradeButton.Text = "Already Mastered"; _upgradeButton.Disabled = true; }
-            ShowPreview(_selectedOwned.BlueprintId, curTier, -1, _selectedOwned.ChosenBranch);
-            return;
-        }
-
-        bool castUnlocked = _bypassCastRequirement ||
-            CardMasteryThresholds.IsStageUnlocked(_selectedOwned.CastCount, nextTier);
-        int castsNeeded = CardMasteryThresholds.CastsToNextStage(
-            _selectedOwned.CastCount, curTier);
-
-        int cost = TierCosts[nextTier];
-        int splinters = save?.ArcaneSplinters ?? 0;
-        bool canAfford = splinters >= cost;
-
-        // ── Branch selection ──────────────────────────────────────────────────
-        // Always rebuild to stay in sync with current selection state
-        _branchSelectionPanel?.QueueFree();
-        _branchSelectionPanel = null;
-
-        bool isBranchingTier = false;
-        if (!gated && !stageLocked)
-        {
-            var branches = CardUpgradeApplier.GetBranchOptions(
-                _selectedOwned.BlueprintId, nextTier);
-            isBranchingTier = branches.Count > 1;
-
-            if (isBranchingTier)
+            var maxLabel = new Label
             {
-                // Find rightContent — the parent VBoxContainer of the upgrade button
-                var rightContent = _upgradeButton?.GetParent() as VBoxContainer;
-                if (rightContent != null)
-                    BuildBranchSelectionPanel(rightContent);
-            }
+                Text = "★ Transcendent",
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            maxLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            maxLabel.AddThemeColorOverride("font_color", UITheme.Gold);
+            col.AddChild(maxLabel);
+            return col;
         }
 
-        bool branchRequired = isBranchingTier && string.IsNullOrEmpty(_pendingBranch);
+        string desc = isTop
+            ? CardUpgradeApplier.GetTopUpgradeDescription(
+                _selectedOwned.BlueprintId, nextTier)
+            : CardUpgradeApplier.GetBotUpgradeDescription(
+                _selectedOwned.BlueprintId, nextTier);
 
-        // ── Upgrade description ───────────────────────────────────────────────
-        // Use pending branch for description when at a branching tier
-        string activeBranch = isBranchingTier
-            ? _pendingBranch
-            : _selectedOwned.ChosenBranch;
-
-        string desc = CardUpgradeApplier.GetUpgradeDescription(
-            _selectedOwned.BlueprintId, nextTier, activeBranch);
-
-        if (_upgradeDescLabel != null)
-            _upgradeDescLabel.Text = branchRequired
-                ? "Choose a specialization path above."
-                : string.IsNullOrEmpty(desc)
-                    ? $"Upgrade to {TierLabels[nextTier]}"
-                    : desc;
-
-        // ── Cost label ────────────────────────────────────────────────────────
-        if (_upgradeCostLabel != null)
+        if (!string.IsNullOrEmpty(desc))
         {
-            string castStatus = _bypassCastRequirement
-                ? "✓ [DEV] cast bypass"
-                : castUnlocked
-                    ? $"✓ {_selectedOwned.CastCount} casts"
-                    : $"{castsNeeded} more casts needed";
-
-            _upgradeCostLabel.Text = castUnlocked
-                ? $"Cost: {cost} ✦  ({castStatus})"
-                : castStatus;
+            var descLabel = new Label
+            {
+                Text = desc,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            descLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            descLabel.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+            col.AddChild(descLabel);
         }
 
-        _upgradeCostLabel?.AddThemeColorOverride("font_color",
-            castUnlocked && canAfford ? new Color(0.6f, 0.85f, 1f) : UITheme.Danger);
+        int cost = CardUpgradeCosts.HalfTierCost[Mathf.Min(nextTier,
+            CardUpgradeCosts.HalfTierCost.Length - 1)];
+        bool castOk = _bypassCastRequirement ||
+            CardMasteryThresholds.CanSpendNextPoint(
+                _selectedOwned.CastCount, _selectedOwned.PointsSpent);
+        int castsNeeded = CardMasteryThresholds.CastsUntilNextPoint(
+            _selectedOwned.CastCount, _selectedOwned.PointsSpent);
+        bool canAfford = (save?.ArcaneSplinters ?? 0) >= cost;
 
-        // ── Upgrade button ────────────────────────────────────────────────────
-        if (_upgradeButton != null)
-        {
-            _upgradeButton.Text = branchRequired
-                ? "Choose a path first"
-                : $"Upgrade → {TierLabels[nextTier]}";
-            _upgradeButton.Disabled = !canAfford || gated || stageLocked
-                || !castUnlocked || branchRequired;
-        }
+        col.AddChild(MakeCostLabel(cost, castOk, castsNeeded,
+            canAfford, _bypassCastRequirement, _selectedOwned.CastCount));
 
-        // ── Preview ───────────────────────────────────────────────────────────
-        // After panel uses the active branch so preview reflects selection
-        ShowPreview(_selectedOwned.BlueprintId, curTier, nextTier, activeBranch);
+        bool disabled = !canAfford || gated || stageLocked || !castOk || noPoints;
+        string btnText = noPoints
+            ? "No points remaining"
+            : stageLocked
+                ? $"Requires Scriptorum Tier {nextTier}"
+                : $"Upgrade {(isTop ? "Top" : "Bottom")} → {TierLabel(nextTier)}";
+
+        col.AddChild(MakeUpgradeButton(btnText, disabled, () =>
+            OnHalfUpgradePressed(save, isTop)));
+
+        return col;
     }
+
+    // ═════════════════════════════════════════════════════════════════
+    // Upgrade actions
+    // ═════════════════════════════════════════════════════════════════
+
+    private void OnSharedUpgradePressed(GuildSaveData save)
+    {
+        if (save == null || _selectedOwned == null) return;
+        if (_selectedOwned.IsBaseUpgraded) return;
+
+        int cost = CardUpgradeCosts.SharedUpgradeCost;
+        if (save.ArcaneSplinters < cost) return;
+
+        save.ArcaneSplinters -= cost;
+        _selectedOwned.TopTier = 1;
+        _selectedOwned.BotTier = 1;
+        _selectedOwned.PointsSpent = 1;
+
+        SaveManager.Save();
+        GD.Print($"[CardUpgrade] Shared upgrade: '{_selectedOwned.BlueprintId}' → 1/1");
+        Refresh();
+    }
+
+    private void OnHalfUpgradePressed(GuildSaveData save, bool isTop)
+    {
+        if (save == null || _selectedOwned == null) return;
+        if (!_selectedOwned.IsBaseUpgraded) return;
+        if (_selectedOwned.PointsRemaining <= 0) return;
+
+        int currentTier = isTop ? _selectedOwned.TopTier : _selectedOwned.BotTier;
+        int nextTier = currentTier + 1;
+        if (nextTier > 4) return;
+
+        int cost = CardUpgradeCosts.HalfTierCost[
+            Mathf.Min(nextTier, CardUpgradeCosts.HalfTierCost.Length - 1)];
+        if (save.ArcaneSplinters < cost) return;
+
+        save.ArcaneSplinters -= cost;
+
+        if (isTop) _selectedOwned.TopTier = nextTier;
+        else _selectedOwned.BotTier = nextTier;
+        _selectedOwned.PointsSpent++;
+
+        SaveManager.Save();
+        GD.Print($"[CardUpgrade] {(isTop ? "Top" : "Bot")} upgraded: " +
+                 $"'{_selectedOwned.BlueprintId}' → {_selectedOwned.TopTier}/{_selectedOwned.BotTier}");
+        Refresh();
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Tier label
+    // ─────────────────────────────────────────────────────────────────
+
+    private static string TierLabel(int tier) => tier switch
+    {
+        0 => "Base",
+        1 => "Refined",
+        2 => "Specialized",
+        3 => "Mastered",
+        4 => "Transcendent",
+        _ => $"Tier {tier}"
+    };
 
     // ═════════════════════════════════════════════════════════════════
     // Preview
     // ═════════════════════════════════════════════════════════════════
 
-    private void ShowPreview(string blueprintId, int currentTier, int nextTier,
-        string branch = null)
+    private void ShowPreview(string blueprintId,
+        int currentTopTier, int currentBotTier,
+        int nextTopTier, int nextBotTier)
     {
-        ShowCardInZone(_beforeZone, ref _beforeCard, blueprintId,
-            currentTier, _selectedOwned?.ChosenBranch);
-        if (nextTier >= 0)
-            ShowCardInZone(_afterZone, ref _afterCard, blueprintId, nextTier, branch);
+        ShowCardInZone(_beforeZone, ref _beforeCard,
+            blueprintId, currentTopTier, currentBotTier);
+
+        if (nextTopTier >= 0 && nextBotTier >= 0)
+            ShowCardInZone(_afterZone, ref _afterCard,
+                blueprintId, nextTopTier, nextBotTier);
         else
             ClearZone(_afterZone, ref _afterCard, "★ MAX");
     }
 
     private void ShowCardInZone(Control zone, ref CardUi cardUi,
-       string blueprintId, int tier, string branch = null)
+        string blueprintId, int topTier, int botTier)
     {
-        if (cardUi != null && IsInstanceValid(cardUi))
-        {
-            cardUi.QueueFree();
-            cardUi = null;
-        }
+        cardUi?.QueueFree();
+        cardUi = null;
 
         var hint = zone.GetNodeOrNull<Label>("Hint");
         if (hint != null) hint.Visible = false;
 
         if (CardUIScene == null) return;
 
-        var card = CardUpgradeApplier.Apply(blueprintId, tier, branch);
+        var card = CardUpgradeApplier.Apply(blueprintId, topTier, botTier);
         if (card == null) return;
 
         var newCardUi = CardUIScene.Instantiate<CardUi>();
         zone.AddChild(newCardUi);
         newCardUi.SetCard(card.TopHalf, card.BottomHalf);
         cardUi = newCardUi;
+        cardUi.SetProcess(false);
+        DisableMouseRecursive(cardUi);
 
         var capturedCard = newCardUi;
+        int capturedTop = topTier;
+        int capturedBot = botTier;
         GetTree().CreateTimer(0.0).Timeout += () =>
         {
             if (IsInstanceValid(capturedCard))
+            {
                 capturedCard.SetStaticDisplay(0.78f);
+                bool topIsHigher = capturedTop > capturedBot;
+                bool botIsHigher = capturedBot > capturedTop;
+                capturedCard.SetHalfHighlight(topIsHigher, botIsHigher);
+            }
         };
     }
 
@@ -888,69 +851,60 @@ public partial class CardUpgradeScreen : Control
     }
 
     // ═════════════════════════════════════════════════════════════════
-    // Upgrade action
+    // Small UI helpers
     // ═════════════════════════════════════════════════════════════════
 
-    private void OnUpgradePressed()
+    private Label MakeDescLabel(string text)
     {
-        var save = SaveManager.ActiveSave;
-        if (save == null || _selectedOwned == null) return;
-
-        int nextTier = _selectedOwned.UpgradeTier + 1;
-        if (nextTier > MAX_TIER) return;
-
-        int cost = TierCosts[nextTier];
-        if (save.ArcaneSplinters < cost)
+        var label = new Label
         {
-            GD.PrintErr("[CardUpgrade] Not enough splinters.");
-            return;
-        }
-
-        // If this is a branching tier, lock in the chosen branch
-        var branches = CardUpgradeApplier.GetBranchOptions(
-            _selectedOwned.BlueprintId, nextTier);
-        if (branches.Count > 1)
-        {
-            if (string.IsNullOrEmpty(_pendingBranch))
-            {
-                GD.PrintErr("[CardUpgrade] Branch required but none chosen.");
-                return;
-            }
-            _selectedOwned.ChosenBranch = _pendingBranch;
-            GD.Print($"[CardUpgrade] Branch locked: {_pendingBranch}");
-        }
-
-        save.ArcaneSplinters -= cost;
-        _selectedOwned.UpgradeTier = nextTier;
-        _pendingBranch = null; // clear pending after commit
-
-        SaveManager.Save();
-        GD.Print($"[CardUpgrade] Upgraded '{_selectedOwned.BlueprintId}' " +
-                 $"to tier {nextTier} (branch: {_selectedOwned.ChosenBranch ?? "none"}). " +
-                 $"Splinters remaining: {save.ArcaneSplinters}");
-
-        Refresh();
+            Text = text,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        label.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        label.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        return label;
     }
 
-    // ═════════════════════════════════════════════════════════════════
-    // Upgrade description from JSON
-    // ═════════════════════════════════════════════════════════════════
-
-    private string GetUpgradeDescription(string blueprintId, int tier)
+    private Label MakeCostLabel(int cost, bool castOk, int castsNeeded,
+        bool canAfford, bool bypass, int castCount)
     {
-        // Quick pass — find the card JSON and read the description for this tier
-        // without fully applying the upgrade
-        var bp = CardDatabase.Blueprints.Find(b =>
-            string.Equals(b.Id, blueprintId, StringComparison.OrdinalIgnoreCase));
-        if (bp == null) return "";
+        string castStatus = bypass
+            ? "✓ [DEV] bypass"
+            : castOk
+                ? $"✓ {castCount} casts"
+                : $"{castsNeeded} more casts needed";
 
-        // CardUpgradeApplier exposes a description-only helper
-        return CardUpgradeApplier.GetUpgradeDescription(blueprintId, tier);
+        var label = new Label
+        {
+            Text = castOk
+                ? $"Cost: {cost} ✦  ({castStatus})"
+                : castStatus,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        label.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        label.AddThemeColorOverride("font_color",
+            castOk && canAfford ? new Color(0.6f, 0.85f, 1f) : UITheme.Danger);
+        return label;
     }
 
-    // ═════════════════════════════════════════════════════════════════
-    // Helpers
-    // ═════════════════════════════════════════════════════════════════
+    private Button MakeUpgradeButton(string text, bool disabled, Action onPress)
+    {
+        var btn = new Button
+        {
+            Text = text,
+            Disabled = disabled,
+            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+            CustomMinimumSize = new Vector2(180, 36),
+        };
+        btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(btn, isPrimary: !disabled);
+        if (!disabled) btn.Pressed += onPress;
+        return btn;
+    }
 
     private MarginContainer MakeInnerMargin(ScrollContainer s)
     {
@@ -982,5 +936,13 @@ public partial class CardUpgradeScreen : Control
         l.AddThemeFontSizeOverride("font_size", UITheme.CampusStubFontSize);
         l.Modulate = UITheme.CampusStubText;
         return l;
+    }
+
+    private static void DisableMouseRecursive(Control root)
+    {
+        root.MouseFilter = MouseFilterEnum.Ignore;
+        foreach (var child in root.GetChildren())
+            if (child is Control c)
+                DisableMouseRecursive(c);
     }
 }

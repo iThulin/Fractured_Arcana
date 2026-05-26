@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Godot;
 
 // ============================================================
 // CardMasteryThresholds.cs
@@ -12,18 +14,25 @@ using System;
 
 public static class CardMasteryThresholds
 {
-    // Casts required to make each stage available for purchase
-    // These unlock the option — the player still spends splinters
-    // to actually apply the upgrade at the Scriptorum
-    public static readonly int[] CastsRequired = { 0, 15, 35, 70, 120 };
+    // Cast count required before spending the Nth point
+    private static readonly int[] _thresholds = { 0, 10, 20, 35, 55, 80, 110 };
 
-    public static bool IsStageUnlocked(int castCount, int stage)
-        => castCount >= CastsRequired[stage];
-
-    public static int CastsToNextStage(int castCount, int currentStage)
+    /// <summary>
+    /// Returns true if the player has cast the card enough times
+    /// to spend their next upgrade point.
+    /// </summary>
+    public static bool CanSpendNextPoint(int castCount, int pointsSpent)
     {
-        int next = currentStage + 1;
-        if (next >= CastsRequired.Length) return 0;
-        return Math.Max(0, CastsRequired[next] - castCount);
+        int index = Mathf.Min(pointsSpent, _thresholds.Length - 1);
+        return castCount >= _thresholds[index];
+    }
+
+    /// <summary>
+    /// How many more casts are needed before the next point can be spent.
+    /// </summary>
+    public static int CastsUntilNextPoint(int castCount, int pointsSpent)
+    {
+        int index = Mathf.Min(pointsSpent, _thresholds.Length - 1);
+        return Mathf.Max(0, _thresholds[index] - castCount);
     }
 }

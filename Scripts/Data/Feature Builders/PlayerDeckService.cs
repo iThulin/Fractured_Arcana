@@ -106,7 +106,9 @@ public static class PlayerDeckService
         {
             BlueprintId = blueprintId,
             InstanceId = Guid.NewGuid().ToString("N"),
-            UpgradeTier = 0,
+            TopTier = 0,
+            BotTier = 0,
+            PointsSpent = 0,
             Grafts = new List<string>(),
             IsStarter = false,
         };
@@ -204,7 +206,7 @@ public static class PlayerDeckService
         {
             bool slotted = save.PlayerDeck.ActiveDeckInstanceIds?.Contains(c.InstanceId) ?? false;
             GD.Print($"  [{(slotted ? "ACTIVE" : "stash ")}] {c.BlueprintId} " +
-                     $"tier:{c.UpgradeTier} starter:{c.IsStarter} id:{c.InstanceId[..8]}…");
+                     $"top:{c.TopTier} bot:{c.BotTier} pts:{c.PointsSpent} starter:{c.IsStarter} id:{c.InstanceId[..8]}…");
         }
     }
 
@@ -222,8 +224,7 @@ public static class PlayerDeckService
             return null;
         }
 
-        var card = CardUpgradeApplier.Apply(owned.BlueprintId, owned.UpgradeTier);
-
+        var card = CardUpgradeApplier.Apply(owned.BlueprintId, owned.TopTier, owned.BotTier);
         // TODO: apply UpgradeTier via CardUpgradeApplier once that system exists.
         // TODO: apply Grafts via CardGraftApplier once that system exists.
         // Both are no-ops at tier 0 / empty grafts, so this is safe to ship.

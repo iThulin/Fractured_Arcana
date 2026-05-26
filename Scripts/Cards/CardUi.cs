@@ -359,13 +359,13 @@ public partial class CardUi : Control
         if (isTop)
         {
             style.BorderWidthTop = UITheme.BorderWidth;
-            style.BorderWidthBottom = 2;
+            style.BorderWidthBottom = 0;
             style.CornerRadiusTopLeft = UITheme.CornerRadius;
             style.CornerRadiusTopRight = UITheme.CornerRadius;
         }
         else
         {
-            style.BorderWidthTop = 2;
+            style.BorderWidthTop = 0;
             style.BorderWidthBottom = UITheme.BorderWidth;
             style.CornerRadiusBottomLeft = UITheme.CornerRadius;
             style.CornerRadiusBottomRight = UITheme.CornerRadius;
@@ -765,6 +765,24 @@ public partial class CardUi : Control
         Rotation = 0f;
         Position = Vector2.Zero;
         Scale = new Vector2(scale, scale);
+    }
+
+    /// <summary>
+    /// Highlights one or both card halves with a brightened border tint.
+    /// Call after SetStaticDisplay so the tint isn't overwritten by
+    /// the affordability refresh or draw-in animation.
+    /// </summary>
+    public void SetHalfHighlight(bool highlightTop, bool highlightBottom)
+    {
+        if (_topPanel != null)
+            _topPanel.Modulate = highlightTop
+                ? new Color(2.0f, 1.2f, 0.6f, 1f)  // warm orange-gold for top
+                : Colors.White;
+
+        if (_bottomPanel != null)
+            _bottomPanel.Modulate = highlightBottom
+                ? new Color(0.6f, 1.4f, 2.0f, 1f)  // cool blue for bottom
+                : Colors.White;
     }
 
     // ═════════════════════════════════════════════════════════════════════

@@ -50,6 +50,11 @@ public partial class CardLibraryUi : Control
 
     private int _lastColumnCount = -1;
 
+    // ── Detail panel ──────────────────────────────────────────────────────
+    private ScrollContainer _detailPanel = null;
+    private VBoxContainer _detailContent = null;
+    private CardBlueprint _selectedBlueprint = null;
+
     // ═════════════════════════════════════════════════════════════════════
     //  Lifecycle
     // ═════════════════════════════════════════════════════════════════════
@@ -100,9 +105,11 @@ public partial class CardLibraryUi : Control
         _manaTabs = GetNodeOrNull<HBoxContainer>("Margin/VBox/FilterBar/ManaRow/ManaTabs");
         _searchBox = GetNodeOrNull<LineEdit>("Margin/VBox/FilterBar/ManaRow/SearchBox");
         _countLabel = GetNodeOrNull<Label>("Margin/VBox/FilterBar/ManaRow/CountLabel");
-        _scroll = GetNodeOrNull<ScrollContainer>("Margin/VBox/Scroll");
-        _cardGrid = GetNodeOrNull<GridContainer>("Margin/VBox/Scroll/GridCentering/CardGrid");
+        _scroll = GetNodeOrNull<ScrollContainer>("Margin/VBox/ContentRow/Scroll");
+        _cardGrid = GetNodeOrNull<GridContainer>("Margin/VBox/ContentRow/Scroll/GridCentering/CardGrid");
         _backButton = GetNodeOrNull<Button>("Margin/VBox/TopBar/BackButton");
+        _detailPanel = GetNodeOrNull<ScrollContainer>("Margin/VBox/ContentRow/DetailPanel");
+        _detailContent = GetNodeOrNull<VBoxContainer>("Margin/VBox/ContentRow/DetailPanel/DetailContent");
 
         if (_schoolTabs == null) GD.PrintErr("[CardLibrary] SchoolTabs not found");
         if (_rarityTabs == null) GD.PrintErr("[CardLibrary] RarityTabs not found");
@@ -112,6 +119,8 @@ public partial class CardLibraryUi : Control
         if (_scroll == null) GD.PrintErr("[CardLibrary] Scroll not found");
         if (_cardGrid == null) GD.PrintErr("[CardLibrary] CardGrid not found");
         if (_backButton == null) GD.PrintErr("[CardLibrary] BackButton not found");
+        if (_detailPanel == null) GD.PrintErr("[CardLibrary] DetailPanel not found");
+        if (_detailContent == null) GD.PrintErr("[CardLibrary] DetailContent not found");
     }
 
     // ═════════════════════════════════════════════════════════════════════
@@ -259,9 +268,270 @@ public partial class CardLibraryUi : Control
     private int CalculateColumns()
     {
         float available = _scroll?.Size.X ?? GetViewportRect().Size.X;
+        // Panel takes 520px when open — grid gets the remainder
+        if (_detailPanel != null && _detailPanel.Visible)
+            available = Mathf.Max(available - 532, 100);
         float cellW = UITheme.LibraryCardWidth * CardScale + UITheme.LibraryGridSpacing;
         return Mathf.Max(1, Mathf.FloorToInt(available / cellW));
     }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  Detail panel
+    // ═════════════════════════════════════════════════════════════════════
+
+    private void ShowDetailPanel(CardBlueprint bp)
+    {
+        if (_detailPanel == null || _detailContent == null) return;
+
+        ClearChildren(_detailContent);
+        _detailPanel.Visible = true;
+        RebuildGrid();
+        _detailPanel.ScrollVertical = 0;
+
+        float cardScale = 0.72f;
+        float cw = UITheme.LibraryCardWidth * cardScale;
+        float ch = UITheme.LibraryCardHeight * cardScale;
+
+        // ── Header ────────────────────────────────────────────────────────
+        var header = new HBoxContainer();
+        header.AddThemeConstantOverride("separation", 10);
+        _detailContent.AddChild(header);
+
+        var titleLabel = new Label
+        {
+            Text = CardDatabase.GetDisplayName(bp),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        titleLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize + 2);
+        titleLabel.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        header.AddChild(titleLabel);
+
+        var rarityLabel = new Label
+        {
+            Text = bp.Rarity.ToString(),
+            HorizontalAlignment = HorizontalAlignment.Right,
+        };
+        rarityLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        rarityLabel.AddThemeColorOverride("font_color", UITheme.GetRarityColor(bp.Rarity));
+        header.AddChild(rarityLabel);
+
+        var closeBtn = new Button { Text = "✕" };
+        closeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(closeBtn, isPrimary: false);
+        closeBtn.Pressed += () =>
+        {
+            _selectedBlueprint = null;
+            _detailPanel.Visible = false;
+            RebuildGrid();
+            foreach (var child in _cardGrid.GetChildren())
+                if (child is Control w)
+                {
+                    var h = w.GetNodeOrNull<ColorRect>("ColorRect");
+                    if (h != null) h.Visible = false;
+                }
+        };
+        header.AddChild(closeBtn);
+
+        _detailContent.AddChild(new HSeparator());
+
+        // ── Base card ─────────────────────────────────────────────────────
+        AddStageLabel(_detailContent, "Base");
+        _detailContent.AddChild(MakeCardPreviewCard(bp.Id, 0, 0, cw, ch, cardScale));
+
+        // ── Stage 1 (shared upgrade) ──────────────────────────────────────
+        var stage1Card = CardUpgradeApplier.Apply(bp.Id, 1, 1);
+        if (stage1Card != null)
+        {
+            _detailContent.AddChild(MakeArrow());
+            AddStageLabel(_detailContent, "Refined");
+            _detailContent.AddChild(MakeCardPreviewCard(bp.Id, 1, 1, cw, ch, cardScale));
+        }
+        else
+        {
+            // No upgrades defined for this card
+            return;
+        }
+
+        // ── Independent half paths ────────────────────────────────────────
+        _detailContent.AddChild(MakeArrow());
+
+        var splitHeader = new Label
+        {
+            Text = "Independent upgrade paths:",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        splitHeader.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        splitHeader.AddThemeColorOverride("font_color", UITheme.Violet);
+        _detailContent.AddChild(splitHeader);
+
+        var pathRow = new HBoxContainer();
+        pathRow.AddThemeConstantOverride("separation", 16);
+        pathRow.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _detailContent.AddChild(pathRow);
+
+        // ── Top half column ───────────────────────────────────────────────
+        var topCol = new VBoxContainer();
+        topCol.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        topCol.AddThemeConstantOverride("separation", 8);
+        pathRow.AddChild(topCol);
+
+        var topLabel = new Label
+        {
+            Text = "▲ Top Half",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        topLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        topLabel.AddThemeColorOverride("font_color", UITheme.ElementFire);
+        topCol.AddChild(topLabel);
+
+        var topDivider = new ColorRect
+        {
+            Color = new Color(UITheme.ElementFire.R, UITheme.ElementFire.G,
+                              UITheme.ElementFire.B, 0.35f),
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        topCol.AddChild(topDivider);
+
+        for (int tier = 2; tier <= 4; tier++)
+        {
+            var upgraded = CardUpgradeApplier.Apply(bp.Id, tier, 1);
+            if (upgraded == null) break;
+            if (tier > 2)
+            {
+                var arr = new Label
+                {
+                    Text = "↓",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                };
+                arr.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+                topCol.AddChild(arr);
+            }
+            AddStageLabel(topCol, TierLabel(tier));
+            topCol.AddChild(MakeCardPreviewCard(bp.Id, tier, 1, cw, ch, cardScale,
+                highlightTop: true, highlightBot: false));
+        }
+
+        // ── Bottom half column ────────────────────────────────────────────
+        var botCol = new VBoxContainer();
+        botCol.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        botCol.AddThemeConstantOverride("separation", 8);
+        pathRow.AddChild(botCol);
+
+        var botLabel = new Label
+        {
+            Text = "▼ Bottom Half",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        botLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        botLabel.AddThemeColorOverride("font_color", UITheme.ElementIce);
+        botCol.AddChild(botLabel);
+
+        var botDivider = new ColorRect
+        {
+            Color = new Color(UITheme.ElementIce.R, UITheme.ElementIce.G,
+                              UITheme.ElementIce.B, 0.35f),
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        botCol.AddChild(botDivider);
+
+        for (int tier = 2; tier <= 4; tier++)
+        {
+            var upgraded = CardUpgradeApplier.Apply(bp.Id, 1, tier);
+            if (upgraded == null) break;
+            if (tier > 2)
+            {
+                var arr = new Label
+                {
+                    Text = "↓",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                };
+                arr.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+                botCol.AddChild(arr);
+            }
+            AddStageLabel(botCol, TierLabel(tier));
+            botCol.AddChild(MakeCardPreviewCard(bp.Id, 1, tier, cw, ch, cardScale,
+                highlightTop: false, highlightBot: true));
+        }
+    }
+
+    private Control MakeCardPreviewCard(string blueprintId, int topTier, int botTier,
+        float cw, float ch, float scale,
+        bool highlightTop = false, bool highlightBot = false)
+    {
+        var wrapper = new Control
+        {
+            CustomMinimumSize = new Vector2(cw, ch),
+            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+            ClipContents = true,
+        };
+
+        if (CardUIScene == null) return wrapper;
+
+        var card = CardUpgradeApplier.Apply(blueprintId, topTier, botTier);
+        if (card == null) return wrapper;
+
+        var cardUi = CardUIScene.Instantiate<CardUi>();
+        wrapper.AddChild(cardUi);
+        cardUi.SetCard(card.TopHalf, card.BottomHalf);
+        cardUi.OffsetRight = UITheme.LibraryCardWidth;
+        cardUi.OffsetBottom = UITheme.LibraryCardHeight;
+        cardUi.Scale = new Vector2(scale, scale);
+        cardUi.PivotOffset = Vector2.Zero;
+        cardUi.Modulate = Colors.White;
+        cardUi.Position = Vector2.Zero;
+        cardUi.Rotation = 0f;
+        DisableMouseRecursive(cardUi);
+
+        var capturedCard = cardUi;
+        bool capTop = highlightTop;
+        bool capBot = highlightBot;
+        GetTree().CreateTimer(0.0).Timeout += () =>
+        {
+            if (IsInstanceValid(capturedCard))
+            {
+                capturedCard.SetStaticDisplay(scale);
+                capturedCard.SetHalfHighlight(capTop, capBot);
+            }
+        };
+
+        return wrapper;
+    }
+
+    private void AddStageLabel(Control parent, string text)
+    {
+        var label = new Label
+        {
+            Text = text,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        label.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        label.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        parent.AddChild(label);
+    }
+
+    private Control MakeArrow()
+    {
+        var label = new Label
+        {
+            Text = "↓",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        label.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        return label;
+    }
+
+    private static string TierLabel(int tier) => tier switch
+    {
+        1 => "Refined (+)",
+        2 => "Specialized",
+        3 => "Mastered",
+        4 => "Transcendent",
+        _ => $"Tier {tier}"
+    };
 
     // ═════════════════════════════════════════════════════════════════════
     //  Grid rebuild
@@ -314,29 +584,78 @@ public partial class CardLibraryUi : Control
             };
             _cardGrid.AddChild(wrapper);
 
+            // Selection highlight ring
+            var highlight = new ColorRect
+            {
+                Color = new Color(UITheme.Violet.R, UITheme.Violet.G,
+                                  UITheme.Violet.B, 0.25f),
+                MouseFilter = MouseFilterEnum.Ignore,
+                Visible = false,
+            };
+            highlight.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            wrapper.AddChild(highlight);
+
             var cardUi = CardUIScene.Instantiate<CardUi>();
             cardUi.SetCard(card);
-
-            cardUi.AnchorLeft = 0;
-            cardUi.AnchorTop = 0;
-            cardUi.AnchorRight = 0;
-            cardUi.AnchorBottom = 0;
-            cardUi.OffsetLeft = 0;
-            cardUi.OffsetTop = 0;
+            cardUi.AnchorLeft = 0; cardUi.AnchorTop = 0;
+            cardUi.AnchorRight = 0; cardUi.AnchorBottom = 0;
+            cardUi.OffsetLeft = 0; cardUi.OffsetTop = 0;
             cardUi.OffsetRight = UITheme.LibraryCardWidth;
             cardUi.OffsetBottom = UITheme.LibraryCardHeight;
             cardUi.Scale = new Vector2(s, s);
             cardUi.PivotOffset = Vector2.Zero;
-
             wrapper.AddChild(cardUi);
 
             cardUi.Modulate = Colors.White;
             cardUi.Position = Vector2.Zero;
             cardUi.Rotation = 0f;
-
             cardUi.SetProcess(false);
-
             DisableMouseRecursive(cardUi);
+
+            // Click area on top of everything
+            var clickArea = new Button
+            {
+                Flat = true,
+                MouseFilter = MouseFilterEnum.Stop,
+            };
+            clickArea.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            clickArea.AddThemeStyleboxOverride("normal",
+                new StyleBoxEmpty());
+            clickArea.AddThemeStyleboxOverride("hover",
+                new StyleBoxEmpty());
+            clickArea.AddThemeStyleboxOverride("pressed",
+                new StyleBoxEmpty());
+            clickArea.AddThemeStyleboxOverride("focus",
+                new StyleBoxEmpty());
+            wrapper.AddChild(clickArea);
+
+            var capturedBp = bp;
+            var capturedHighlight = highlight;
+            clickArea.Pressed += () =>
+            {
+                // Clear previous highlight
+                foreach (var child in _cardGrid.GetChildren())
+                {
+                    if (child is Control w)
+                    {
+                        var h = w.GetNodeOrNull<ColorRect>("ColorRect");
+                        if (h != null) h.Visible = false;
+                    }
+                }
+
+                if (_selectedBlueprint == capturedBp)
+                {
+                    // Deselect — close panel
+                    _selectedBlueprint = null;
+                    if (_detailPanel != null) _detailPanel.Visible = false;
+                }
+                else
+                {
+                    _selectedBlueprint = capturedBp;
+                    capturedHighlight.Visible = true;
+                    ShowDetailPanel(capturedBp);
+                }
+            };
         }
 
         if (_countLabel != null)

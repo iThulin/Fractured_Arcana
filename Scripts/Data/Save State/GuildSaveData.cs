@@ -178,10 +178,14 @@ public class OwnedCard
     public string InstanceId = "";
 
     /// <summary>
-    /// 0 = base, 1 = Refined (+), 2 = Mastered (++).
+    /// 0 = base, 1 = Refined (+), 2 = Mastered (++), 3 = Ascended (+++).
     /// Applied by PlayerDeckService when instantiating the card for a run.
     /// </summary>
-    public int UpgradeTier = 0;
+    public int TopTier = 0;
+
+    public int BotTier = 0;
+
+    public int PointsSpent = 0; // total upgrade points spent on this card, for display purposes
 
     /// <summary>
     /// Ids of grafts applied to this copy. Max 2 grafts per card.
@@ -200,9 +204,29 @@ public class OwnedCard
     /// Used as a resource for card mastery.
     public int CastCount = 0;
 
-    /// <summary>
-    ///Tracks the path of branches chosen for an individual upgrade
-    public string ChosenBranch = null; // null = no branch chosen yet
+    // ── Migration shims ───────────────────────────────────────────────
+    // Read during v4→v5 migration from old saves. Suppressed on write
+    // when at default values so they don't appear in new save files.
+    [System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public int UpgradeTier = 0;
+
+    [System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public string ChosenBranch = null;
+
+    // ── Convenience ──────────────────────────────────────────────────
+    public bool IsBaseUpgraded => TopTier >= 1 && BotTier >= 1;
+    public int TotalTier => TopTier + BotTier;
+    public bool IsMaxed => TopTier >= 4 && BotTier >= 4;
+
+    // Points remaining after mandatory 1/1 step
+    public int PointsRemaining => 6 - PointsSpent;
+
+    // Whether a given half can be upgraded further
+    public bool CanUpgradeTop => IsBaseUpgraded && TopTier < 4 && PointsRemaining > 0;
+    public bool CanUpgradeBot => IsBaseUpgraded && BotTier < 4 && PointsRemaining > 0;
+
 }
 
 // ────────────────────────────────────────────────────────────────────────────

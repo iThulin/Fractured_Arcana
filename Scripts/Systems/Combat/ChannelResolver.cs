@@ -41,15 +41,23 @@ public static class ChannelResolver
             { owned = c; break; }
         }
 
-        int currentTier = owned?.UpgradeTier ?? 0;
-        int channelTier = currentTier + 1;
+        bool isTop = half == cardInstance.TopHalf;
 
-        // Pass chosen branch so channel respects the player's upgrade path
+        int currentTopTier = owned?.TopTier ?? 0;
+        int currentBotTier = owned?.BotTier ?? 0;
+
+        // Channel previews the next tier on the relevant half
+        int channelTopTier = isTop
+            ? Mathf.Min(currentTopTier + 1, 4)
+            : currentTopTier;
+        int channelBotTier = isTop
+            ? currentBotTier
+            : Mathf.Min(currentBotTier + 1, 4);
+
         var upgraded = CardUpgradeApplier.Apply(
-            cardInstance.BlueprintId, channelTier, owned?.ChosenBranch);
+            cardInstance.BlueprintId, channelTopTier, channelBotTier);
         if (upgraded == null) return null;
 
-        bool isTop = half == cardInstance.TopHalf;
         return isTop ? upgraded.TopHalf : upgraded.BottomHalf;
     }
 

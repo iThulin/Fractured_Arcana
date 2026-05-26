@@ -26,7 +26,7 @@ public static class SaveManager
 {
     private const string SAVE_DIR = "user://saves/";
     private const int MAX_SLOTS = 3;
-    private const int CURRENT_VERSION = 4;
+    private const int CURRENT_VERSION = 5;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -272,6 +272,40 @@ public static class SaveManager
                         owned.BlueprintId = RewriteBlueprintId(owned.BlueprintId);
                 }
                 data.SaveVersion = 4;
+                break;
+            case 4:
+                GD.Print("[SaveMigration] v4 → v5: Converting UpgradeTier to TopTier/BotTier.");
+                if (data.PlayerDeck?.Cards != null)
+                {
+                    foreach (var owned in data.PlayerDeck.Cards)
+                    {
+                        // Map old single tier to both halves
+                        // Old tier 0 = 0/0, tier 1 = 1/1, tier 2+ = split evenly
+                        int oldTier = owned.UpgradeTier;
+                        if (oldTier == 0)
+                        {
+                            owned.TopTier = 0;
+                            owned.BotTier = 0;
+                            owned.PointsSpent = 0;
+                        }
+                        else if (oldTier == 1)
+                        {
+                            owned.TopTier = 1;
+                            owned.BotTier = 1;
+                            owned.PointsSpent = 1;
+                        }
+                        else
+                        {
+                            // Best-effort: put old tier on top, 1 on bottom
+                            owned.TopTier = Mathf.Min(oldTier, 4);
+                            owned.BotTier = 1;
+                            owned.PointsSpent = 1 + (owned.TopTier - 1);
+                        }
+                        owned.UpgradeTier = 0; // clear old field
+                        owned.ChosenBranch = null;
+                    }
+                }
+                data.SaveVersion = 5;
                 break;
         }
 
