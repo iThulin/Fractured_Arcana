@@ -126,16 +126,36 @@ public static class CardDatabase
     /// Returns a display name combining school and both half names.
     /// Format: "[School] TopName / BottomName"
     /// </summary>
-    public static string GetDisplayName(CardBlueprint bp)
+    public static string GetDisplayName(CardBlueprint bp, OwnedCard owned = null)
     {
         if (bp == null) return "Unknown";
-        string top = bp.Prebuilt?.TopHalf?.Name ?? "";
-        string bot = bp.Prebuilt?.BottomHalf?.Name ?? "";
-        string school = bp.School.ToString();
-        if (!string.IsNullOrEmpty(top) && !string.IsNullOrEmpty(bot))
-            return $"[{school}] {top} / {bot}";
-        if (!string.IsNullOrEmpty(top))
-            return $"[{school}] {top}";
+
+        // If the card has been upgraded along a branch, show the branch names
+        if (owned != null && owned.UpgradeTier >= 2 &&
+            !string.IsNullOrEmpty(owned.ChosenBranch))
+        {
+            var upgraded = CardUpgradeApplier.Apply(
+                owned.BlueprintId, owned.UpgradeTier, owned.ChosenBranch);
+            if (upgraded != null)
+            {
+                string top = upgraded.TopHalf?.Name ?? "";
+                string bot = upgraded.BottomHalf?.Name ?? "";
+                string school = bp.School.ToString();
+                if (!string.IsNullOrEmpty(top) && !string.IsNullOrEmpty(bot))
+                    return $"[{school}] {top} / {bot}";
+                if (!string.IsNullOrEmpty(top))
+                    return $"[{school}] {top}";
+            }
+        }
+
+        // Fall back to blueprint names
+        string baseTop = bp.Prebuilt?.TopHalf?.Name ?? "";
+        string baseBot = bp.Prebuilt?.BottomHalf?.Name ?? "";
+        string baseSchool = bp.School.ToString();
+        if (!string.IsNullOrEmpty(baseTop) && !string.IsNullOrEmpty(baseBot))
+            return $"[{baseSchool}] {baseTop} / {baseBot}";
+        if (!string.IsNullOrEmpty(baseTop))
+            return $"[{baseSchool}] {baseTop}";
         return bp.Id;
     }
 

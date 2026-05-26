@@ -101,7 +101,9 @@
 		{
 			"tier": 2,
 			"branch": "Avalanche",
-			"description": "Avalanche: The rubble pile spreads — boulder creates rubble on the vacated tile and the tile it lands on.",
+			"top_name": "Rockslide",
+			"bottom_name": "Permafrost",
+			"description": "Rockslide: The rubble pile spreads — boulder creates rubble on the vacated tile and the tile it lands on.",
 			"changes": [
 				{
 					"half": "top",
@@ -135,6 +137,8 @@
 		{
 			"tier": 2,
 			"branch": "Siege",
+			"top_name": "Boulder Hurl",
+			"bottom_name": "Siege",
 			"description": "Siege: Permafrost no longer needs a target — it imbues a target tile directly, trapping approach paths.",
 			"changes": [
 				{
@@ -183,7 +187,9 @@
 		{
 			"tier": 3,
 			"branch": "Avalanche",
-			"description": "Rockslide: Boulder Hurl fires three boulders in a cone, each creating rubble.",
+			"top_name": "Avalanche",
+			"bottom_name": "Permafrost",
+			"description": "Avalanche: Boulder Hurl fires three boulders in a cone, each creating rubble.",
 			"changes": [
 				{
 					"half": "top",
@@ -225,6 +231,8 @@
 		{
 			"tier": 3,
 			"branch": "Siege",
+			"top_name": "Boulder Hurl",
+			"bottom_name": "Fortification",
 			"description": "Fortification: Stone Wall from the bottom and Boulder Hurl work together — killing a frozen target creates a stone pillar on its tile.",
 			"changes": [
 				{
@@ -304,6 +312,8 @@
 		{
 			"tier": 4,
 			"branch": "Avalanche",
+			"top_name": "Mountain Fall",
+			"bottom_name": "Permafrost",
 			"description": "Mountain Fall: Boulder Hurl becomes a seismic event — massive damage, massive push, the whole area becomes rubble.",
 			"changes": [
 				{
@@ -344,6 +354,8 @@
 		{
 			"tier": 4,
 			"branch": "Siege",
+			"top_name": "Boulder Hurl",
+			"bottom_name": "Iron Citadel",
 			"description": "Iron Citadel: The card fuses — Boulder Hurl into frozen enemies triggers an immediate Permafrost. Attack and fortify simultaneously.",
 			"changes": [
 				{

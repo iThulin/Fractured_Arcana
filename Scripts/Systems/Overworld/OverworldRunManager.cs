@@ -29,7 +29,7 @@ public partial class OverworldRunManager : Node2D
     public int StepsRemaining { get; set; }
     public int CurrentHP { get; set; }
     public int GoldEarned { get; set; }
-    public int SplinterEarned  { get; set; }
+    public int SplinterEarned { get; set; }
     public int EncountersWon { get; set; }
     public bool RunComplete { get; private set; }
 
@@ -166,7 +166,9 @@ public partial class OverworldRunManager : Node2D
 
         // Apply debug flags
         if (PlayerSession.DebugMode && PlayerSession.StartWithGold)
-            GoldEarned += 500;
+            GoldEarned += 5000;
+        if (PlayerSession.DebugMode && PlayerSession.StartWithSplinters)
+            SplinterEarned += 5000;
 
         // ── Restore from combat or place at entry ───────────────────────────
         if (router != null && router.HasPendingReturn)
@@ -220,7 +222,7 @@ public partial class OverworldRunManager : Node2D
         StepsRemaining = router.SavedStepsRemaining;
         CurrentHP = router.SavedCurrentHP;
         GoldEarned = router.SavedGoldEarned;
-        SplinterEarned = router.SavedSplinterEarned; 
+        SplinterEarned = router.SavedSplinterEarned;
         EncountersWon = router.SavedEncountersWon;
 
         // Restore fog state
@@ -270,8 +272,8 @@ public partial class OverworldRunManager : Node2D
                     hex.RefreshVisuals();
                 }
 
-                    ShowInfo($"Victory! Earned {router.GoldReward} gold, " +
-                            $"{router.SplinterReward} Arcane Splinters.");
+                ShowInfo($"Victory! Earned {router.GoldReward} gold, " +
+                        $"{router.SplinterReward} Arcane Splinters.");
             }
             else
             {
@@ -626,7 +628,7 @@ public partial class OverworldRunManager : Node2D
             router.SavedStepsRemaining = StepsRemaining;
             router.SavedCurrentHP = CurrentHP;
             router.SavedGoldEarned = GoldEarned;
-            router.SavedSplinterEarned  = SplinterEarned;
+            router.SavedSplinterEarned = SplinterEarned;
             router.SavedEncountersWon = EncountersWon;
             router.SavedPartyCoord = _party.CurrentCoord;
             router.SavedCombatHexCoord = coord;     // reuse field for the triggering hex
@@ -683,7 +685,7 @@ public partial class OverworldRunManager : Node2D
 
         if (EncounterRouter.Instance != null)
         {
-            EncounterRouter.Instance.HasSavedSeed    = false;
+            EncounterRouter.Instance.HasSavedSeed = false;
             EncounterRouter.Instance.HasPendingReturn = false;
         }
 
@@ -694,13 +696,13 @@ public partial class OverworldRunManager : Node2D
         {
             var save = SaveManager.ActiveSave;
             save.TotalRuns++;
-            save.TotalGoldEarned    += GoldEarned;
+            save.TotalGoldEarned += GoldEarned;
             save.TotalEncountersWon += EncountersWon;
-            save.Gold               += GoldEarned;
-            save.ArcaneSplinters    += SplinterEarned;
+            save.Gold += GoldEarned;
+            save.ArcaneSplinters += SplinterEarned;
 
             if (reachedObjective) save.RunsWon++;
-            else                  save.RunsLost++;
+            else save.RunsLost++;
 
             SaveManager.Save();
         }

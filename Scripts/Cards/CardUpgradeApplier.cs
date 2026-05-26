@@ -47,34 +47,31 @@ public static class CardUpgradeApplier
     /// base card. At tiers 1-3 re-parses and recompiles the JSON
     /// with patches applied.
     /// </summary>
-    public static Card Apply(string blueprintId, int tier)
+    public static Card Apply(string blueprintId, int tier, string chosenBranch = null)
     {
         var bp = CardDatabase.Blueprints.Find(b =>
             string.Equals(b.Id, blueprintId, StringComparison.OrdinalIgnoreCase));
         if (bp == null) return null;
-
         if (tier <= 0) return CardDatabase.Instantiate(bp);
-
-        return BuildUpgradedCard(bp, tier);
+        return BuildUpgradedCard(bp, tier, chosenBranch);
     }
 
     /// <summary>
     /// Returns the human-readable description for an upgrade tier
     /// without applying the patch. Used by the upgrade screen UI.
     /// </summary>
-    public static string GetUpgradeDescription(string blueprintId, int tier)
+    public static string GetUpgradeDescription(string blueprintId, int tier,
+        string chosenBranch = null)
     {
         var bp = CardDatabase.Blueprints.Find(b =>
             string.Equals(b.Id, blueprintId, StringComparison.OrdinalIgnoreCase));
         if (bp == null) return "";
-
         string json = FindAndReadCardJson(bp);
         if (json == null) return "";
-
         try
         {
             var root = JsonNode.Parse(json);
-            var upgradeNode = FindUpgradeNode(root, tier);
+            var upgradeNode = FindUpgradeNode(root, tier, chosenBranch);
             return upgradeNode?["description"]?.GetValue<string>() ?? "";
         }
         catch { return ""; }
@@ -82,7 +79,8 @@ public static class CardUpgradeApplier
 
     // ── Build upgraded card ─────────────────────────────────────────
 
-    private static Card BuildUpgradedCard(CardBlueprint bp, int tier)
+    private static Card BuildUpgradedCard(CardBlueprint bp, int tier,
+    string chosenBranch = null)
     {
         string json = FindAndReadCardJson(bp);
         if (json == null)
@@ -99,14 +97,13 @@ public static class CardUpgradeApplier
             return CardDatabase.Instantiate(bp);
         }
 
-        var upgradeNode = FindUpgradeNode(root, tier);
+        var upgradeNode = FindUpgradeNode(root, tier, chosenBranch);
         if (upgradeNode == null)
         {
             GD.PrintErr($"[CardUpgradeApplier] No tier {tier} upgrade for '{bp.Id}'. Using base.");
             return CardDatabase.Instantiate(bp);
         }
 
-        // Apply each change patch
         if (upgradeNode["changes"] is JsonArray changes)
         {
             foreach (var change in changes)
@@ -114,43 +111,47 @@ public static class CardUpgradeApplier
                 string half = change["half"]?.GetValue<string>();
                 string field = change["field"]?.GetValue<string>();
                 var value = change["value"];
-
                 if (string.IsNullOrEmpty(half) || string.IsNullOrEmpty(field) || value == null)
                 {
                     GD.PrintErr($"[CardUpgradeApplier] Malformed change in tier {tier} " +
-                                $"for '{bp.Id}': missing half/field/value");
+                                $"for '{bp.Id}'");
                     continue;
                 }
-
                 var halfNode = root[half];
                 if (halfNode == null)
                 {
                     GD.PrintErr($"[CardUpgradeApplier] Half '{half}' not found in '{bp.Id}'");
                     continue;
                 }
-
                 ApplyPatch(halfNode, field, value);
             }
         }
 
-        // Rebuild card from patched JSON
         var rootElement = JsonDocument.Parse(root.ToJsonString()).RootElement;
         var upgraded = JsonCardLoader.BuildCardPublic(rootElement);
 
         if (upgraded == null)
         {
-            GD.PrintErr($"[CardUpgradeApplier] BuildCard failed for '{bp.Id}' tier {tier}. " +
-                        $"Falling back to base.");
+            GD.PrintErr($"[CardUpgradeApplier] BuildCard failed for '{bp.Id}' tier {tier}.");
             return CardDatabase.Instantiate(bp);
         }
 
-        // Apply tier suffix to names
-        string suffix = tier switch { 1 => "+", 2 => "++", 3 => "+++", _ => "" };
-        if (upgraded.TopHalf != null) upgraded.TopHalf.Name += suffix;
-        if (upgraded.BottomHalf != null) upgraded.BottomHalf.Name += suffix;
+        string topName = upgradeNode["top_name"]?.GetValue<string>();
+        string botName = upgradeNode["bottom_name"]?.GetValue<string>();
+
+        if (upgraded.TopHalf != null)
+            upgraded.TopHalf.Name = !string.IsNullOrEmpty(topName)
+                ? topName
+                : upgraded.TopHalf.Name + (tier == 1 ? "+" : "");
+
+        if (upgraded.BottomHalf != null)
+            upgraded.BottomHalf.Name = !string.IsNullOrEmpty(botName)
+                ? botName
+                : upgraded.BottomHalf.Name + (tier == 1 ? "+" : "");
         upgraded.Rarity = bp.Rarity;
 
-        GD.Print($"[CardUpgradeApplier] Applied tier {tier} to '{bp.Id}'.");
+        GD.Print($"[CardUpgradeApplier] Applied tier {tier} " +
+                 $"(branch: {chosenBranch ?? "none"}) to '{bp.Id}'.");
         return upgraded;
     }
 
@@ -183,7 +184,7 @@ public static class CardUpgradeApplier
             {
                 var doc = JsonDocument.Parse(json);
                 if (!doc.RootElement.TryGetProperty("id", out var cardId)) continue;
-                
+
                 if (string.Equals(cardId.GetString(), bp.Id, StringComparison.OrdinalIgnoreCase))
                 {
                     dir.ListDirEnd();
@@ -202,12 +203,72 @@ public static class CardUpgradeApplier
 
     // ── Upgrade node finder ─────────────────────────────────────────
 
-    private static JsonNode FindUpgradeNode(JsonNode root, int tier)
+    private static JsonNode FindUpgradeNode(JsonNode root, int tier, string chosenBranch = null)
     {
         if (root["upgrades"] is not JsonArray upgrades) return null;
+
+        // For tier 1, branch is always null — return the first null-branch entry
+        if (tier == 1)
+        {
+            foreach (var entry in upgrades)
+                if (entry["tier"]?.GetValue<int>() == tier &&
+                    entry["branch"]?.GetValue<string>() == null)
+                    return entry;
+            // Fallback: any tier 1 entry
+            foreach (var entry in upgrades)
+                if (entry["tier"]?.GetValue<int>() == tier)
+                    return entry;
+            return null;
+        }
+
+        // For tier 2+, match on both tier and branch
+        if (!string.IsNullOrEmpty(chosenBranch))
+        {
+            foreach (var entry in upgrades)
+            {
+                if (entry["tier"]?.GetValue<int>() != tier) continue;
+                var branch = entry["branch"]?.GetValue<string>();
+                if (string.Equals(branch, chosenBranch, StringComparison.OrdinalIgnoreCase))
+                    return entry;
+            }
+        }
+
+        // Fallback: first entry matching tier (handles cards with no branching)
         foreach (var entry in upgrades)
-            if (entry["tier"]?.GetValue<int>() == tier) return entry;
+            if (entry["tier"]?.GetValue<int>() == tier)
+                return entry;
+
         return null;
+    }
+
+    public static List<(string branch, string description)> GetBranchOptions(
+    string blueprintId, int tier)
+    {
+        var result = new List<(string, string)>();
+        var bp = CardDatabase.Blueprints.Find(b =>
+            string.Equals(b.Id, blueprintId, StringComparison.OrdinalIgnoreCase));
+        if (bp == null) return result;
+
+        string json = FindAndReadCardJson(bp);
+        if (json == null) return result;
+
+        try
+        {
+            var root = JsonNode.Parse(json);
+            if (root["upgrades"] is not JsonArray upgrades) return result;
+
+            foreach (var entry in upgrades)
+            {
+                if (entry["tier"]?.GetValue<int>() != tier) continue;
+                var branch = entry["branch"]?.GetValue<string>();
+                var desc = entry["description"]?.GetValue<string>() ?? "";
+                if (!string.IsNullOrEmpty(branch))
+                    result.Add((branch, desc));
+            }
+        }
+        catch { }
+
+        return result;
     }
 
     // ── Field-path patcher ──────────────────────────────────────────

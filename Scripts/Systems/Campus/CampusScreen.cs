@@ -293,6 +293,7 @@ public partial class CampusScreen : Control
                 PlayerSession.UnlimitedSteps = false;
                 PlayerSession.GodModeHP = false;
                 PlayerSession.StartWithGold = false;
+                PlayerSession.StartWithSplinters = false;
                 PlayerSession.SkipDeployment = false;
                 PlayerSession.ForceNextEncounterType = -1;
             }
@@ -1156,6 +1157,8 @@ public partial class CampusScreen : Control
             on => PlayerSession.GodModeHP = on));
         grid.AddChild(MakeDebugCheck("Start With Gold", PlayerSession.StartWithGold,
             on => PlayerSession.StartWithGold = on));
+        grid.AddChild(MakeDebugCheck("Start With Splinters", PlayerSession.StartWithSplinters,
+            on => PlayerSession.StartWithSplinters = on));
         grid.AddChild(MakeDebugCheck("Skip Deployment", PlayerSession.SkipDeployment,
             on => PlayerSession.SkipDeployment = on));
 

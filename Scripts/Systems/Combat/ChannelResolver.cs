@@ -28,8 +28,8 @@ public static class ChannelResolver
     public static CardHalf ResolveChannel(CardHalf half, Card cardInstance)
     {
         if (half == null || !half.CanChannel) return null;
+        if (cardInstance == null) return null;
 
-        // Find the OwnedCard to get current tier and chosen branch
         var save = SaveManager.ActiveSave;
         if (save?.PlayerDeck?.Cards == null) return null;
 
@@ -38,20 +38,17 @@ public static class ChannelResolver
         {
             if (string.Equals(c.BlueprintId, cardInstance.BlueprintId,
                 StringComparison.OrdinalIgnoreCase))
-            {
-                owned = c;
-                break;
-            }
+            { owned = c; break; }
         }
 
         int currentTier = owned?.UpgradeTier ?? 0;
         int channelTier = currentTier + 1;
 
-        // Apply the next tier temporarily
-        var upgraded = CardUpgradeApplier.Apply(cardInstance.BlueprintId, channelTier);
+        // Pass chosen branch so channel respects the player's upgrade path
+        var upgraded = CardUpgradeApplier.Apply(
+            cardInstance.BlueprintId, channelTier, owned?.ChosenBranch);
         if (upgraded == null) return null;
 
-        // Return the matching half (top or bottom)
         bool isTop = half == cardInstance.TopHalf;
         return isTop ? upgraded.TopHalf : upgraded.BottomHalf;
     }

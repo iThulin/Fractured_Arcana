@@ -26,7 +26,8 @@ public static class PlayerSession
     public static bool NoFog = false;              // reveal all hexes
     public static bool UnlimitedSteps = false;     // step budget never decreases
     public static bool GodModeHP = false;          // HP never drops below 1
-    public static bool StartWithGold = false;      // begin run with 500 gold
+    public static bool StartWithGold = false;      // begin run with 5000 gold
+    public static bool StartWithSplinters = false; // begin run with 5000 splinters
     public static bool SkipDeployment = false;     // auto-place units in combat
 
     // Force a specific POI type for the next encounter (-1 = no override)

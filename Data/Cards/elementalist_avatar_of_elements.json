@@ -84,6 +84,8 @@
 		{
 			"tier": 2,
 			"branch": "Elemental Sovereign",
+			"top_name": "Elemental Sovereign",
+			"bottom_name": "Maelstrom",
 			"description": "Elemental Sovereign: While Avatar is active, your attunement counters don't decay. The transformation sustains your elemental mastery.",
 			"changes": [
 				{
@@ -111,7 +113,9 @@
 		{
 			"tier": 2,
 			"branch": "Living Terrain",
-			"description": "Living Terrain: Maelstrom now also imbues adjacent tiles with storm each turn. The storm spreads beyond its origin.",
+			"top_name": "Avatar of Elements",
+			"bottom_name": "Storm Veil",
+			"description": "Storm Veil: Maelstrom now also imbues adjacent tiles with storm each turn. The storm spreads beyond its origin.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -133,6 +137,8 @@
 		{
 			"tier": 3,
 			"branch": "Elemental Sovereign",
+			"top_name": "Transcendence",
+			"bottom_name": "Maelstrom",
 			"description": "Transcendence: Avatar now also boosts your spell range by 2. Elemental sovereignty extends your reach.",
 			"changes": [
 				{
@@ -165,7 +171,9 @@
 		{
 			"tier": 3,
 			"branch": "Living Terrain",
-			"description": "Storm Core: Maelstrom now also freezes enemies at the end of each turn tick. The maelstrom locks enemies in place.",
+			"top_name": "Avatar of Elements",
+			"bottom_name": "Eye of the Maelstrom",
+			"description": "Eye of the Maelstrom: Maelstrom now also freezes enemies at the end of each turn tick. The maelstrom locks enemies in place.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -197,6 +205,8 @@
 		{
 			"tier": 4,
 			"branch": "Elemental Sovereign",
+			"top_name": "God of Elements",
+			"bottom_name": "Maelstrom",
 			"description": "God of Elements: Avatar transformation now triggers a burst of all four elements when it expires — a final eruption.",
 			"changes": [
 				{
@@ -229,6 +239,8 @@
 		{
 			"tier": 4,
 			"branch": "Living Terrain",
+			"top_name": "Avatar of Elements",
+			"bottom_name": "World Storm",
 			"description": "World Storm: Two Maelstroms can now exist simultaneously. Place one and the other persists from before.",
 			"changes": [
 				{

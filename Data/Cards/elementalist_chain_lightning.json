@@ -125,6 +125,8 @@
 		{
 			"tier": 2,
 			"branch": "Conductor",
+			"top_name": "Conductor",
+			"bottom_name": "Wind Shear",
 			"description": "Conductor: Chain Lightning now chains 4 times instead of 2. Each chain has diminishing damage but the reach is devastating.",
 			"changes": [
 				{
@@ -193,6 +195,8 @@
 		{
 			"tier": 2,
 			"branch": "Stormweaver",
+			"top_name": "Stormweaver",
+			"bottom_name": "Wind Shear",
 			"description": "Stormweaver: Each chain imbues the target's tile with Storm. Chain Lightning becomes a terrain tool.",
 			"changes": [
 				{
@@ -265,6 +269,8 @@
 		{
 			"tier": 3,
 			"branch": "Conductor",
+			"top_name": "Overload",
+			"bottom_name": "Wind Shear",
 			"description": "Overload: Each chain applies a 1-turn slow. The lightning paralyzes as it bounces.",
 			"changes": [
 				{
@@ -358,6 +364,8 @@
 		{
 			"tier": 3,
 			"branch": "Stormweaver",
+			"top_name": "Stormweaver",
+			"bottom_name": "Grid Lock",
 			"description": "Grid Lock: Enemies standing on storm tiles when Chain Lightning bounces to them take bonus damage.",
 			"changes": [
 				{
@@ -401,6 +409,8 @@
 		{
 			"tier": 4,
 			"branch": "Conductor",
+			"top_name": "Ball Lightning",
+			"bottom_name": "Wind Shear",
 			"description": "Ball Lightning: Chain Lightning becomes a persistent effect — it bounces automatically at the start of each turn for 2 turns.",
 			"changes": [
 				{
@@ -494,6 +504,8 @@
 		{
 			"tier": 4,
 			"branch": "Stormweaver",
+			"top_name": "Supercell",
+			"bottom_name": "Wind Shear",
 			"description": "Supercell: Chain Lightning detonates every storm tile it touches instead of just imbuing them.",
 			"changes": [
 				{
