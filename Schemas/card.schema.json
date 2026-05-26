@@ -60,11 +60,23 @@
 				"stub"
 			]
 		},
+		"can_channel": {
+			"type": "boolean",
+			"description": "Whether this half can be channeled. When true, the player may spend 1 extra mana to cast the next upgrade stage of this half instead of the base version.",
+			"default": true
+		},
 		"top": {
 			"$ref": "#/$defs/CardHalf"
 		},
 		"bottom": {
 			"$ref": "#/$defs/CardHalf"
+		},
+		"upgrades": {
+			"type": "array",
+			"description": "Ordered list of upgrade nodes. Each node patches the card's JSON for a given tier and branch.",
+			"items": {
+				"$ref": "#/$defs/UpgradeNode"
+			}
 		}
 	},
 	"$defs": {
@@ -136,17 +148,8 @@
 				},
 				"effect": {
 					"$ref": "#/$defs/Effect"
-				},
-				"channel": {
-					"$ref": "#/$defs/ChannelVariant",
-					"description": "Optional channeled version of this half. Played as a Reaction in response to the base half."
 				}
 			}
-		},
-		"can_channel": {
-			"type": "boolean",
-			"description": "Whether this half can be channeled. When true, the player may spend 1 extra mana to cast the next upgrade stage of this half instead of the base version.",
-			"default": true
 		},
 		"Targeting": {
 			"type": "object",
@@ -327,7 +330,7 @@
 				"move": {
 					"type": "integer",
 					"description": "Tiles to move during an imbued path. Used by: imbue_path.",
-					"minimum": 0
+					"minimum": 1
 				},
 				"armor_per_tile": {
 					"type": "integer",
@@ -491,6 +494,81 @@
 					"description": "Reserved for predicates that compare against a numeric threshold (e.g. attunement >= n). Currently unused by any registered predicate.",
 					"minimum": 1,
 					"maximum": 4
+				}
+			}
+		},
+		"UpgradeNode": {
+			"type": "object",
+			"description": "A single upgrade stage for one branch path.",
+			"required": [
+				"tier",
+				"branch",
+				"description",
+				"changes"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"tier": {
+					"type": "integer",
+					"description": "Upgrade stage this node applies at (1-4).",
+					"minimum": 1,
+					"maximum": 4
+				},
+				"branch": {
+					"type": [
+						"string",
+						"null"
+					],
+					"description": "Branch name this node belongs to. Null for tier 1 (pre-branch)."
+				},
+				"top_name": {
+					"type": "string",
+					"description": "Replacement name for the top half when this branch is active."
+				},
+				"bottom_name": {
+					"type": "string",
+					"description": "Replacement name for the bottom half when this branch is active."
+				},
+				"description": {
+					"type": "string",
+					"description": "Flavour description of what this upgrade does. Shown in the upgrade screen.",
+					"minLength": 1
+				},
+				"changes": {
+					"type": "array",
+					"description": "List of JSON patch operations to apply to the card's base definition.",
+					"items": {
+						"$ref": "#/$defs/UpgradeChange"
+					},
+					"minItems": 1
+				}
+			}
+		},
+		"UpgradeChange": {
+			"type": "object",
+			"description": "A single field patch within an upgrade node.",
+			"required": [
+				"half",
+				"field",
+				"value"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"half": {
+					"type": "string",
+					"description": "Which card half to patch.",
+					"enum": [
+						"top",
+						"bottom"
+					]
+				},
+				"field": {
+					"type": "string",
+					"description": "Dot-notation path into the half's JSON (e.g. 'effect.amount', 'rules_text').",
+					"minLength": 1
+				},
+				"value": {
+					"description": "Replacement value. Can be any JSON type — string, number, boolean, object, or array."
 				}
 			}
 		}
