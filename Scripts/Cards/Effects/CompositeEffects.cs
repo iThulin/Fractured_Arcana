@@ -208,6 +208,89 @@ public sealed class PushDamageEffect : EffectBase
     }
 }
 
+// ── Pull Damage Effect ─────────────────────────────────────────────────────────
+
+/// <summary>
+/// Pulls each target toward the caster up to <see cref="PullTiles"/> tiles,
+/// then deals <c>pulled × DamagePerTile</c> damage proportional to actual
+/// distance moved. Mirrors PushDamageEffect exactly but in reverse direction.
+/// JSON keys: "tiles", "damage_per_tile".
+/// </summary>
+public sealed class PullDamageEffect : EffectBase
+{
+    public int PullTiles;
+    public int DamagePerTile;
+
+    public PullDamageEffect(int pullTiles, int damagePerTile)
+    {
+        PullTiles = pullTiles;
+        DamagePerTile = damagePerTile;
+    }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        var casterUnit = FindCasterUnit(s, caster);
+        if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null) return;
+
+        var casterPos = casterUnit.CurrentTile.Axial;
+
+        foreach (var obj in targets.Items)
+        {
+            var victim = ResolveTargetUnit(s, obj);
+            if (victim == null || victim.CurrentTile == null) continue;
+            if (victim == casterUnit) continue;
+
+            int pulled = 0;
+
+            for (int i = 0; i < PullTiles; i++)
+            {
+                var current = victim.CurrentTile.Axial;
+
+                if (s.Grid.Distance(casterPos, current) <= 1) break;
+
+                TileData bestTile = null;
+                int bestDist = int.MaxValue;
+
+                foreach (var neighbor in s.Grid.GetNeighbors(current))
+                {
+                    var td = s.Grid.GetTile(neighbor);
+                    if (td == null || !td.CanEnter(victim)) continue;
+
+                    int distFromCaster = s.Grid.Distance(casterPos, neighbor);
+                    if (distFromCaster < bestDist)
+                    {
+                        bestDist = distFromCaster;
+                        bestTile = td;
+                    }
+                }
+
+                if (bestTile != null)
+                {
+                    victim.CurrentTile.ClearOccupant(victim);
+                    victim.PlaceOnTile(bestTile);
+                    pulled++;
+                }
+                else
+                {
+                    s.Log($"[PullDamage] {victim.Name} blocked after {pulled} tile(s).");
+                    break;
+                }
+            }
+
+            int totalDmg = pulled * DamagePerTile;
+            if (totalDmg > 0)
+            {
+                victim.ApplyDamage(totalDmg);
+                s.Log($"[PullDamage] {victim.Name} pulled {pulled} tile(s), takes {totalDmg} damage ({DamagePerTile}/tile).");
+            }
+            else
+            {
+                s.Log($"[PullDamage] {victim.Name} couldn't be pulled.");
+            }
+        }
+    }
+}
+
 /// <summary>
 /// Replaces the current target set with a freshly computed one from a new
 /// <see cref="ITargetSelector"/>, runs the child effect against it, then restores the
@@ -274,6 +357,9 @@ public sealed class RetargetEffect : EffectBase
             Child.Resolve(ctx.Game, ctx.Caster, ctx.Targets, ctx.Snapshot);
             result = new EffectResult();
         }
+
+        // Store for siblings before restoring
+        ctx.LastRetargetedTargets = ctx.Targets;
 
         // Restore
         ctx.Targets = originalTargets;
@@ -374,7 +460,7 @@ public sealed class PrimordialSurgeEffect : EffectBase
         TileElementType.Fire, TileElementType.Frost,
         TileElementType.Lightning, TileElementType.Earth
     };
-    private Random _rng = new();
+    private static readonly Random _rng = new()
 
     public PrimordialSurgeEffect(int radius = 4, int damage = 4) { Radius = radius; Damage = damage; }
 

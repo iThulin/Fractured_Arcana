@@ -583,6 +583,81 @@ public sealed class PushEffect : EffectBase
 	}
 }
 
+// ── Pull Effect ─────────────────────────────────────────────────────────
+
+/// <summary>
+/// Pulls each target N tiles directly toward the caster. When a pull is blocked
+/// by an obstacle, the unit stops at the last valid tile — no collision damage
+/// since being pulled into the caster is intentional positioning, not a hazard.
+/// JSON key is "tiles". See PushEffect for the inverse.
+/// </summary>
+public sealed class PullEffect : EffectBase
+{
+    public int Tiles;
+
+    public PullEffect(int tiles)
+    {
+        Tiles = tiles;
+    }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        var casterUnit = FindCasterUnit(s, caster);
+        if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null) return;
+
+        var casterPos = casterUnit.CurrentTile.Axial;
+
+        foreach (var obj in targets.Items)
+        {
+            var victim = ResolveTargetUnit(s, obj);
+            if (victim == null || victim.CurrentTile == null) continue;
+
+            // Don't pull the caster toward themselves
+            if (victim == casterUnit) continue;
+
+            int pulled = 0;
+
+            for (int i = 0; i < Tiles; i++)
+            {
+                var current = victim.CurrentTile.Axial;
+
+                // Already adjacent to caster — nowhere closer to go
+                if (s.Grid.Distance(casterPos, current) <= 1) break;
+
+                TileData bestTile = null;
+                int bestDist = int.MaxValue;
+
+                foreach (var neighbor in s.Grid.GetNeighbors(current))
+                {
+                    var td = s.Grid.GetTile(neighbor);
+                    if (td == null || !td.CanEnter(victim)) continue;
+
+                    int distFromCaster = s.Grid.Distance(casterPos, neighbor);
+                    if (distFromCaster < bestDist)
+                    {
+                        bestDist = distFromCaster;
+                        bestTile = td;
+                    }
+                }
+
+                if (bestTile != null)
+                {
+                    victim.CurrentTile.ClearOccupant(victim);
+                    victim.PlaceOnTile(bestTile);
+                    pulled++;
+                }
+                else
+                {
+                    // Blocked — stop here, no collision
+                    break;
+                }
+            }
+
+            s.Log($"[Pull] {victim.Name} pulled {pulled} tile(s) toward {casterUnit.Name}.");
+        }
+    }
+}
+
 // ── Shield / Armor Effects ──────────────────────────────────────────────
 
 /// <summary>Grants the caster temporary shield (consumed before HP, cleared at end of turn).</summary>
@@ -653,6 +728,54 @@ public sealed class GiveTargetArmorEffect : EffectBase
 			s.Log($"[GiveTargetArmor] {unit.Name} gains {Amount} armor (now {unit.Stats.Armor}).");
 		}
 	}
+}
+
+The sequence passes the TargetSet through each step, so armor_per_target will receive the same enemy list that the retarget aoe resolved. Count the targets, multiply, apply to caster:
+csharp// ── Armor Per Target Effect ─────────────────────────────────────────────────────────
+
+/// <summary>
+/// Grants the caster armor equal to <see cref="Amount"/> multiplied by the number
+/// of units in the current TargetSet. Designed to follow a retarget step in a
+/// sequence — the targets from the prior step are the units being counted.
+/// JSON keys: "type": "armor_per_target", "amount": n.
+/// </summary>
+public sealed class ArmorPerTargetEffect : EffectBase
+{
+    public int Amount;
+
+    public ArmorPerTargetEffect(int amount)
+    {
+        Amount = amount;
+    }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        var casterUnit = FindCasterUnit(s, caster);
+        if (casterUnit == null) return;
+
+        int targetCount = 0;
+        if (targets != null)
+        {
+            foreach (var obj in targets.Items)
+            {
+                var unit = ResolveTargetUnit(s, obj);
+                if (unit != null) targetCount++;
+            }
+        }
+
+        int totalArmor = targetCount * Amount;
+        if (totalArmor > 0)
+        {
+            casterUnit.Stats.Armor += totalArmor;
+            casterUnit.RefreshHealthBar();
+            s.Log($"[ArmorPerTarget] {casterUnit.Name} gains {totalArmor} armor " +
+                  $"({targetCount} target(s) × {Amount}) — now {casterUnit.Stats.Armor}.");
+        }
+        else
+        {
+            s.Log($"[ArmorPerTarget] {casterUnit.Name}: no targets to count, no armor gained.");
+        }
+    }
 }
 
 // ── Remove Status Effect ────────────────────────────────────────────────
@@ -844,6 +967,46 @@ public sealed class ImbueTileEffect : EffectBase
 	}
 }
 
+// ── Imbue All Tiles Random Effect ─────────────────────────────────────────────────────────
+
+/// <summary>
+/// Imbues every tile on the board with a random element. No radius restriction —
+/// this is a board-wide effect. Used by Ragnarok and similar capstone cards.
+/// JSON key: "type": "imbue_all_tiles_random". No parameters.
+/// </summary>
+public sealed class ImbueAllTilesRandomEffect : EffectBase
+{
+    private static readonly TileElementType[] Elements =
+    {
+        TileElementType.Fire, TileElementType.Frost,
+        TileElementType.Lightning, TileElementType.Earth
+    };
+
+    private static readonly Random _rng = new();
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (s?.Grid == null) return;
+
+        int imbued = 0;
+        foreach (var kvp in s.Grid.Tiles)
+        {
+            var tile = kvp.Value;
+            if (tile == null) continue;
+
+            var element = Elements[_rng.Next(Elements.Length)];
+            tile.ElementType = element;
+            tile.ElementStrength = 1.0f;
+            if (element == TileElementType.Fire)
+                tile.IsHazardous = true;
+            tile.TileView?.SetElement(element);
+            imbued++;
+        }
+
+        s.Log($"[ImbueAllTilesRandom] Imbued {imbued} tiles with random elements.");
+    }
+}
+
 /// <summary>Places a triggered glyph on the target tile. Glyph fires when an enemy steps on the tile and is consumed by the trigger. Optionally applies a named status on trigger. One glyph per cast; tile must be unblocked and not already glyphed.</summary>
 public sealed class PlaceGlyphEffect : EffectBase
 {
@@ -931,6 +1094,55 @@ public sealed class ApplyStatusEffect : EffectBase
 			}
 		}
 	}
+}
+
+// ── Cleanse Debuffs Effect ─────────────────────────────────────────────────────────
+
+/// <summary>
+/// Removes all negative status effects from the caster. Debuffs are defined
+/// as a hardcoded set of known negative status names. Any status not in this
+/// set (e.g. buffs like "chaining") is left untouched.
+/// JSON key: "type": "cleanse_debuffs". No parameters.
+/// </summary>
+public sealed class CleanseDebuffsEffect : EffectBase
+{
+    private static readonly HashSet<string> Debuffs = new()
+    {
+        "frozen",
+        "rooted",
+        "slowed",
+        "stunned",
+        "burn",
+        "poisoned",
+        "weakened",
+        "blinded",
+        "silenced",
+        "cursed",
+    };
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        var casterUnit = FindCasterUnit(s, caster);
+        if (casterUnit == null) return;
+
+        var toRemove = new List<string>();
+        foreach (var status in casterUnit.Stats.StatusEffects.Keys)
+        {
+            if (Debuffs.Contains(status))
+                toRemove.Add(status);
+        }
+
+        foreach (var status in toRemove)
+        {
+            casterUnit.RemoveStatus(status);
+            s.Log($"[Cleanse] {casterUnit.Name}: removed {status}.");
+        }
+
+        if (toRemove.Count == 0)
+            s.Log($"[Cleanse] {casterUnit.Name}: no debuffs to remove.");
+        else
+            s.Log($"[Cleanse] {casterUnit.Name}: cleared {toRemove.Count} debuff(s).");
+    }
 }
 
 /// <summary>Spawns <see cref="Count"/> instances of a named unit kind on the player's side. Requires <c>GameState.OnSummonRequested</c> to be wired by the combat scene; without it, the effect logs an error and no-ops. Uses targeted tile when provided, otherwise falls back to the first empty neighbor of the caster.</summary>

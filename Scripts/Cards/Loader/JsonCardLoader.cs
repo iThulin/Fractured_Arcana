@@ -202,6 +202,13 @@ public static class CardScriptRegistry
         RegisterEffect("grant_armor", n =>
             new GiveTargetArmorEffect(n.GetProperty("amount").GetInt32()).WithTag("Defense"));
 
+        // Armor per target: { "type": "armor_per_target", "amount": n }
+        RegisterEffect("armor_per_target", n =>
+        {
+            int amount = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 2;
+            return new ArmorPerTargetEffect(amount).WithTag("Defense");
+        });
+
         // Summon: { "type": "summon", "unit": "kind", "count": n }
         RegisterEffect("summon", n =>
         {
@@ -248,6 +255,10 @@ public static class CardScriptRegistry
             return new ImbueAreaEffect(element, radius).WithTag("Terrain");
         });
 
+        // Imbue all tiles randomly: { "type": "imbue_all_tiles_random" }
+        RegisterEffect("imbue_all_tiles_random", _ =>
+            new ImbueAllTilesRandomEffect().WithTag("Terrain"));
+
         // Place glyph: { "type": "place_glyph", "damage": n, "status": "slowed", "duration": n }
         RegisterEffect("place_glyph", n =>
         {
@@ -265,6 +276,10 @@ public static class CardScriptRegistry
             return new ApplyStatusEffect(status, duration).WithTag("Status");
         });
 
+        // Cleanse debuffs: { "type": "cleanse_debuffs" }
+        RegisterEffect("cleanse_debuffs", _ =>
+            new CleanseDebuffsEffect().WithTag("Utility"));
+
         // Push: { "type": "push", "tiles": n, "collision_damage": m }
         RegisterEffect("push", n =>
         {
@@ -279,6 +294,21 @@ public static class CardScriptRegistry
             int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 1;
             int dmgPerTile = n.TryGetProperty("damage_per_tile", out var d) ? d.GetInt32() : 0;
             return new PushDamageEffect(tiles, dmgPerTile).WithTag("Movement");
+        });
+
+        // Pull: { "type": "pull", "tiles": n }
+        RegisterEffect("pull", n =>
+        {
+            int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 2;
+            return new PullEffect(tiles).WithTag("Movement");
+        });
+
+        // Pull + damage: { "type": "pull_damage", "tiles": n, "damage_per_tile": m }
+        RegisterEffect("pull_damage", n =>
+        {
+            int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 2;
+            int dmgPerTile = n.TryGetProperty("damage_per_tile", out var d) ? d.GetInt32() : 0;
+            return new PullDamageEffect(tiles, dmgPerTile).WithTag("Movement");
         });
 
         // Imbue + move: { "type": "imbue_path", "element": "ice", "move": n, "armor_per_tile": m }

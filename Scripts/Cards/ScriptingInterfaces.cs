@@ -68,6 +68,9 @@ public sealed class PredicateContext
     /// <summary>Current target set. Replaced by <c>RetargetEffect</c> when chaining into a new targeter.</summary>
     public TargetSet Targets;
 
+    /// <summary>Previous target set in a sequence cast.</summary>
+    public TargetSet LastRetargetedTargets = null;
+
     /// <summary>Cast-time snapshot of any values the effect captured at cast (target position, attunement counts, etc.).</summary>
     public EffectSnapshot Snapshot;
 
