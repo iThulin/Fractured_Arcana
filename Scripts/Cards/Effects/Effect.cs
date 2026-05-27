@@ -593,69 +593,69 @@ public sealed class PushEffect : EffectBase
 /// </summary>
 public sealed class PullEffect : EffectBase
 {
-    public int Tiles;
+	public int Tiles;
 
-    public PullEffect(int tiles)
-    {
-        Tiles = tiles;
-    }
+	public PullEffect(int tiles)
+	{
+		Tiles = tiles;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null) return;
 
-        var casterPos = casterUnit.CurrentTile.Axial;
+		var casterPos = casterUnit.CurrentTile.Axial;
 
-        foreach (var obj in targets.Items)
-        {
-            var victim = ResolveTargetUnit(s, obj);
-            if (victim == null || victim.CurrentTile == null) continue;
+		foreach (var obj in targets.Items)
+		{
+			var victim = ResolveTargetUnit(s, obj);
+			if (victim == null || victim.CurrentTile == null) continue;
 
-            // Don't pull the caster toward themselves
-            if (victim == casterUnit) continue;
+			// Don't pull the caster toward themselves
+			if (victim == casterUnit) continue;
 
-            int pulled = 0;
+			int pulled = 0;
 
-            for (int i = 0; i < Tiles; i++)
-            {
-                var current = victim.CurrentTile.Axial;
+			for (int i = 0; i < Tiles; i++)
+			{
+				var current = victim.CurrentTile.Axial;
 
-                // Already adjacent to caster — nowhere closer to go
-                if (s.Grid.Distance(casterPos, current) <= 1) break;
+				// Already adjacent to caster — nowhere closer to go
+				if (s.Grid.Distance(casterPos, current) <= 1) break;
 
-                TileData bestTile = null;
-                int bestDist = int.MaxValue;
+				TileData bestTile = null;
+				int bestDist = int.MaxValue;
 
-                foreach (var neighbor in s.Grid.GetNeighbors(current))
-                {
-                    var td = s.Grid.GetTile(neighbor);
-                    if (td == null || !td.CanEnter(victim)) continue;
+				foreach (var neighbor in s.Grid.GetNeighbors(current))
+				{
+					var td = s.Grid.GetTile(neighbor);
+					if (td == null || !td.CanEnter(victim)) continue;
 
-                    int distFromCaster = s.Grid.Distance(casterPos, neighbor);
-                    if (distFromCaster < bestDist)
-                    {
-                        bestDist = distFromCaster;
-                        bestTile = td;
-                    }
-                }
+					int distFromCaster = s.Grid.Distance(casterPos, neighbor);
+					if (distFromCaster < bestDist)
+					{
+						bestDist = distFromCaster;
+						bestTile = td;
+					}
+				}
 
-                if (bestTile != null)
-                {
-                    victim.CurrentTile.ClearOccupant(victim);
-                    victim.PlaceOnTile(bestTile);
-                    pulled++;
-                }
-                else
-                {
-                    // Blocked — stop here, no collision
-                    break;
-                }
-            }
+				if (bestTile != null)
+				{
+					victim.CurrentTile.ClearOccupant(victim);
+					victim.PlaceOnTile(bestTile);
+					pulled++;
+				}
+				else
+				{
+					// Blocked — stop here, no collision
+					break;
+				}
+			}
 
-            s.Log($"[Pull] {victim.Name} pulled {pulled} tile(s) toward {casterUnit.Name}.");
-        }
-    }
+			s.Log($"[Pull] {victim.Name} pulled {pulled} tile(s) toward {casterUnit.Name}.");
+		}
+	}
 }
 
 // ── Shield / Armor Effects ──────────────────────────────────────────────
@@ -740,56 +740,56 @@ public sealed class GiveTargetArmorEffect : EffectBase
 /// </summary>
 public sealed class ArmorPerTargetEffect : EffectBase
 {
-    public int Amount;
+	public int Amount;
 
-    public ArmorPerTargetEffect(int amount)
-    {
-        Amount = amount;
-    }
+	public ArmorPerTargetEffect(int amount)
+	{
+		Amount = amount;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        // Fallback path — no PredicateContext available, count whatever targets are passed
-        ApplyArmor(s, caster, targets);
-    }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		// Fallback path — no PredicateContext available, count whatever targets are passed
+		ApplyArmor(s, caster, targets);
+	}
 
-    public override EffectResult ResolveWithResult(PredicateContext ctx)
-    {
-        // Prefer LastRetargetedTargets so this works correctly as a sequence
-        // sibling after a retarget step (e.g. pull all enemies, then armor per enemy)
-        var countTargets = ctx.LastRetargetedTargets ?? ctx.Targets;
-        ApplyArmor(ctx.Game, ctx.Caster, countTargets);
-        return new EffectResult();
-    }
+	public override EffectResult ResolveWithResult(PredicateContext ctx)
+	{
+		// Prefer LastRetargetedTargets so this works correctly as a sequence
+		// sibling after a retarget step (e.g. pull all enemies, then armor per enemy)
+		var countTargets = ctx.LastRetargetedTargets ?? ctx.Targets;
+		ApplyArmor(ctx.Game, ctx.Caster, countTargets);
+		return new EffectResult();
+	}
 
-    private void ApplyArmor(GameState s, Entity caster, TargetSet targets)
-    {
-        var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit == null) return;
+	private void ApplyArmor(GameState s, Entity caster, TargetSet targets)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit == null) return;
 
-        int targetCount = 0;
-        if (targets != null)
-        {
-            foreach (var obj in targets.Items)
-            {
-                var unit = ResolveTargetUnit(s, obj);
-                if (unit != null) targetCount++;
-            }
-        }
+		int targetCount = 0;
+		if (targets != null)
+		{
+			foreach (var obj in targets.Items)
+			{
+				var unit = ResolveTargetUnit(s, obj);
+				if (unit != null) targetCount++;
+			}
+		}
 
-        int totalArmor = targetCount * Amount;
-        if (totalArmor > 0)
-        {
-            casterUnit.Stats.Armor += totalArmor;
-            casterUnit.RefreshHealthBar();
-            s.Log($"[ArmorPerTarget] {casterUnit.Name} gains {totalArmor} armor " +
-                  $"({targetCount} target(s) × {Amount}) — now {casterUnit.Stats.Armor}.");
-        }
-        else
-        {
-            s.Log($"[ArmorPerTarget] {casterUnit.Name}: no targets counted, no armor gained.");
-        }
-    }
+		int totalArmor = targetCount * Amount;
+		if (totalArmor > 0)
+		{
+			casterUnit.Stats.Armor += totalArmor;
+			casterUnit.RefreshHealthBar();
+			s.Log($"[ArmorPerTarget] {casterUnit.Name} gains {totalArmor} armor " +
+				  $"({targetCount} target(s) × {Amount}) — now {casterUnit.Stats.Armor}.");
+		}
+		else
+		{
+			s.Log($"[ArmorPerTarget] {casterUnit.Name}: no targets counted, no armor gained.");
+		}
+	}
 }
 
 // ── Remove Status Effect ────────────────────────────────────────────────
@@ -894,46 +894,46 @@ public sealed class ManaGainEffect : EffectBase
 /// </summary>
 public sealed class ManaPerNearbyElementEffect : EffectBase
 {
-    public int Radius;
+	public int Radius;
 
-    public ManaPerNearbyElementEffect(int radius = 3)
-    {
-        Radius = radius;
-    }
+	public ManaPerNearbyElementEffect(int radius = 3)
+	{
+		Radius = radius;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null || s?.Grid == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit?.CurrentTile == null || s?.Grid == null) return;
 
-        var center = casterUnit.CurrentTile.Axial;
-        var uniqueElements = new HashSet<TileElementType>();
+		var center = casterUnit.CurrentTile.Axial;
+		var uniqueElements = new HashSet<TileElementType>();
 
-        foreach (var kvp in s.Grid.Tiles)
-        {
-            var tile = kvp.Value;
-            if (tile == null) continue;
-            if (tile.ElementType == TileElementType.None) continue;
-            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
+		foreach (var kvp in s.Grid.Tiles)
+		{
+			var tile = kvp.Value;
+			if (tile == null) continue;
+			if (tile.ElementType == TileElementType.None) continue;
+			if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
 
-            uniqueElements.Add(tile.ElementType);
-        }
+			uniqueElements.Add(tile.ElementType);
+		}
 
-        int manaGained = uniqueElements.Count;
-        if (manaGained == 0)
-        {
-            s.Log($"[ManaPerNearbyElement] {casterUnit.Name}: no elements within {Radius} — no mana gained.");
-            return;
-        }
+		int manaGained = uniqueElements.Count;
+		if (manaGained == 0)
+		{
+			s.Log($"[ManaPerNearbyElement] {casterUnit.Name}: no elements within {Radius} — no mana gained.");
+			return;
+		}
 
-        casterUnit.GainMana(manaGained);
-        if (s.Mana.ContainsKey(caster))
-            s.Mana[caster] = casterUnit.Stats.Mana;
+		casterUnit.GainMana(manaGained);
+		if (s.Mana.ContainsKey(caster))
+			s.Mana[caster] = casterUnit.Stats.Mana;
 
-        var elementNames = string.Join(", ", uniqueElements);
-        s.Log($"[ManaPerNearbyElement] {casterUnit.Name} gains {manaGained} mana " +
-              $"({elementNames}) — now {casterUnit.Stats.Mana}/{casterUnit.Stats.MaxMana}.");
-    }
+		var elementNames = string.Join(", ", uniqueElements);
+		s.Log($"[ManaPerNearbyElement] {casterUnit.Name} gains {manaGained} mana " +
+			  $"({elementNames}) — now {casterUnit.Stats.Mana}/{casterUnit.Stats.MaxMana}.");
+	}
 }
 
 /// <summary>Caster takes <see cref="Amount"/> damage. Used for life-cost spells.</summary>
@@ -1043,35 +1043,35 @@ public sealed class ImbueTileEffect : EffectBase
 /// </summary>
 public sealed class ImbueAllTilesRandomEffect : EffectBase
 {
-    private static readonly TileElementType[] Elements =
-    {
-        TileElementType.Fire, TileElementType.Frost,
-        TileElementType.Lightning, TileElementType.Earth
-    };
+	private static readonly TileElementType[] Elements =
+	{
+		TileElementType.Fire, TileElementType.Frost,
+		TileElementType.Lightning, TileElementType.Earth
+	};
 
-    private static readonly Random _rng = new();
+	private static readonly Random _rng = new();
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Grid == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Grid == null) return;
 
-        int imbued = 0;
-        foreach (var kvp in s.Grid.Tiles)
-        {
-            var tile = kvp.Value;
-            if (tile == null) continue;
+		int imbued = 0;
+		foreach (var kvp in s.Grid.Tiles)
+		{
+			var tile = kvp.Value;
+			if (tile == null) continue;
 
-            var element = Elements[_rng.Next(Elements.Length)];
-            tile.ElementType = element;
-            tile.ElementStrength = 1.0f;
-            if (element == TileElementType.Fire)
-                tile.IsHazardous = true;
-            tile.TileView?.SetElement(element);
-            imbued++;
-        }
+			var element = Elements[_rng.Next(Elements.Length)];
+			tile.ElementType = element;
+			tile.ElementStrength = 1.0f;
+			if (element == TileElementType.Fire)
+				tile.IsHazardous = true;
+			tile.TileView?.SetElement(element);
+			imbued++;
+		}
 
-        s.Log($"[ImbueAllTilesRandom] Imbued {imbued} tiles with random elements.");
-    }
+		s.Log($"[ImbueAllTilesRandom] Imbued {imbued} tiles with random elements.");
+	}
 }
 
 /// <summary>Places a triggered glyph on the target tile. Glyph fires when an enemy steps on the tile and is consumed by the trigger. Optionally applies a named status on trigger. One glyph per cast; tile must be unblocked and not already glyphed.</summary>
@@ -1173,43 +1173,43 @@ public sealed class ApplyStatusEffect : EffectBase
 /// </summary>
 public sealed class CleanseDebuffsEffect : EffectBase
 {
-    private static readonly HashSet<string> Debuffs = new()
-    {
-        "frozen",
-        "rooted",
-        "slowed",
-        "stunned",
-        "burn",
-        "poisoned",
-        "weakened",
-        "blinded",
-        "silenced",
-        "cursed",
-    };
+	private static readonly HashSet<string> Debuffs = new()
+	{
+		"frozen",
+		"rooted",
+		"slowed",
+		"stunned",
+		"burn",
+		"poisoned",
+		"weakened",
+		"blinded",
+		"silenced",
+		"cursed",
+	};
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit == null) return;
 
-        var toRemove = new List<string>();
-        foreach (var status in casterUnit.Stats.StatusEffects.Keys)
-        {
-            if (Debuffs.Contains(status))
-                toRemove.Add(status);
-        }
+		var toRemove = new List<string>();
+		foreach (var status in casterUnit.Stats.StatusEffects.Keys)
+		{
+			if (Debuffs.Contains(status))
+				toRemove.Add(status);
+		}
 
-        foreach (var status in toRemove)
-        {
-            casterUnit.RemoveStatus(status);
-            s.Log($"[Cleanse] {casterUnit.Name}: removed {status}.");
-        }
+		foreach (var status in toRemove)
+		{
+			casterUnit.RemoveStatus(status);
+			s.Log($"[Cleanse] {casterUnit.Name}: removed {status}.");
+		}
 
-        if (toRemove.Count == 0)
-            s.Log($"[Cleanse] {casterUnit.Name}: no debuffs to remove.");
-        else
-            s.Log($"[Cleanse] {casterUnit.Name}: cleared {toRemove.Count} debuff(s).");
-    }
+		if (toRemove.Count == 0)
+			s.Log($"[Cleanse] {casterUnit.Name}: no debuffs to remove.");
+		else
+			s.Log($"[Cleanse] {casterUnit.Name}: cleared {toRemove.Count} debuff(s).");
+	}
 }
 
 /// <summary>Spawns <see cref="Count"/> instances of a named unit kind on the player's side. Requires <c>GameState.OnSummonRequested</c> to be wired by the combat scene; without it, the effect logs an error and no-ops. Uses targeted tile when provided, otherwise falls back to the first empty neighbor of the caster.</summary>
@@ -1397,6 +1397,41 @@ public sealed class RaiseTerrainEffect : EffectBase
 			}
 
 			s.Log($"[RaiseTerrain] {tile.Axial} raised by {HeightIncrease} (now height {tile.Height}), imbued with earth, rubble created.");
+		}
+	}
+}
+
+/// ── Memorial Effect ────────────────────────────────────────────────────────
+/// <summary>Creates a memorial on each target tile. Memorials are persistent objects that display the name of the unit that died there and optionally provide a small gameplay benefit (e.g. blocking line of sight, granting vision, etc.). See README §5.4 for details on the JSON key and parameters.</summary>
+public sealed class CreateMemorialEffect : EffectBase
+{
+	public MemorialStrength Strength;
+	public CreateMemorialEffect(MemorialStrength strength = MemorialStrength.Solid)
+	{
+		Strength = strength;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null) return;
+
+		var unit = s.ActiveCasterUnit;
+		int ownerTeam = unit?.TeamId ?? 0;
+		string casterName = unit?.DisplayName ?? "Unknown";
+
+		foreach (var obj in targets.Items)
+		{
+			TileData tile = obj switch
+			{
+				TileData td => td,
+				Unit u => u.CurrentTile,
+				_ => null
+			};
+
+			if (tile == null) continue;
+
+			s.Memorials.CreateMemorial(tile, casterName, false, Strength, ownerTeam);
+			s.Log($"[Memorial] Created on {tile.Axial} from {casterName}.");
 		}
 	}
 }

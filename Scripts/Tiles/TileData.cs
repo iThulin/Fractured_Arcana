@@ -136,6 +136,18 @@ public class TileData
             Occupant = null;
     }
 
+    // ── Memorial data for necromancy and flavor ─────────────────────────────
+    /// <summary>
+    /// When a unit dies on this tile, a MemorialData instance is created to track the source, strength, and age of the death.
+    /// </summary>
+    public MemorialData Memorial = null;
+
+    /// <summary>
+    /// Convenience accessor — true when a memorial is present and has not been consumed by a card effect this turn. Note that a memorial may be present but "consumed" (flagged for removal at end of turn) if a card effect has interacted with it, so this accessor checks both conditions.
+    /// </summary>
+    public bool HasMemorial => Memorial != null && !Memorial.ConsumedThisTurn;
+    public bool IsHallowed => HasMemorial && Memorial.State == MemorialState.Hallowed;
+
     /// <summary>
     /// Applies a named persistent terrain modifier ("rubble", "scorched", "frozen") that
     /// changes move cost and hazard state. Passing "none" reverts to the saved base cost.

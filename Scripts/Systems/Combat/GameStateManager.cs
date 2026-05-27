@@ -27,6 +27,7 @@ public sealed class GameState
     public Resolver Resolver;
 
     public List<PersistentEffect> ActiveEffects = new();
+    public MemorialManager Memorials;
 
     public string Step = "Main";
     public HexGridManager Grid;
@@ -50,6 +51,7 @@ public sealed class GameState
         Resolver = new Resolver(Bus, Stack);
         Mana[PlayerA] = 5; Mana[PlayerB] = 5;
         Priority.ResetForNewStep(PlayerA);
+        Memorials = new MemorialManager(Grid);
     }
 
     public void OpenPriorityWindow() { Bus.Emit("PriorityOpened"); }

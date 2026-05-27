@@ -47,6 +47,13 @@ public partial class HexTile : Node3D
     private Color baseColor;
 
     private ImbuementOverlay imbuementOverlay;
+    private MemorialState? _memorialState = null;
+
+    // Memorial overlay color constants
+    private static readonly Color MemorialFreshColor = new Color(0.85f, 0.82f, 0.6f, 0.55f);
+    private static readonly Color MemorialEstablishedColor = new Color(0.75f, 0.75f, 0.55f, 0.38f);
+    private static readonly Color MemorialHallowedColor = new Color(0.95f, 0.92f, 0.7f, 0.65f);
+    private static readonly Color MemorialNoneColor = new Color(0f, 0f, 0f, 0f);
 
     /// <summary>Axial (q, r) coordinate identifying this tile's grid position.</summary>
     public Vector2I Axial { get; set; }
@@ -334,8 +341,38 @@ public partial class HexTile : Node3D
 
         Color finalColor = baseColor;
         if (deploymentHighlighted) finalColor = finalColor.Lerp(UITheme.TileDeployHighlight, 0.45f);
-        if (moveHighlighted) finalColor = finalColor.Lerp(_moveHighlightColor, 0.45f);
+        if (moveHighlighted) finalColor = finalColor.Lerp(UITheme.TileMoveHighlight, 0.45f);
+
+        // ── Memorial overlay ──────────────────────────────────────────
+        if (_memorialState.HasValue)
+        {
+            Color memColor = _memorialState.Value switch
+            {
+                MemorialState.Fresh => MemorialFreshColor,
+                MemorialState.Established => MemorialEstablishedColor,
+                MemorialState.Hallowed => MemorialHallowedColor,
+                _ => MemorialNoneColor
+            };
+            // Lerp into the terrain color rather than overriding it —
+            // the ground still reads as grass/stone/etc underneath
+            finalColor = finalColor.Lerp(memColor, memColor.A);
+        }
+
         material.AlbedoColor = finalColor;
+    }
+
+    public void SetMemorial(MemorialData memorial)
+    {
+        if (memorial == null)
+        {
+            _memorialState = null;
+            // Clear the overlay — RefreshVisualState handles the base color
+            RefreshVisualState();
+            return;
+        }
+
+        _memorialState = memorial.State;
+        RefreshVisualState();
     }
 
 }

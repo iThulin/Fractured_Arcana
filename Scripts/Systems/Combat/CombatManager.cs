@@ -172,16 +172,16 @@ public partial class CombatManager : Node3D
             combatUI.ConfirmDeploymentPressed += OnConfirmDeploymentPressed;
             combatUI.EndTurnPressed += OnEndTurnPressed;
 
-            // NEW – unit bar buttons select the corresponding unit
+            // Unit bar buttons select the corresponding unit
             combatUI.UnitButtonPressed += OnUnitBarButtonPressed;
-            // NEW – enemy roster buttons inspect the corresponding enemy
+            // Enemy roster buttons inspect the corresponding enemy
             combatUI.EnemyButtonPressed += OnEnemyRosterButtonPressed;
         }
 
         // Movement zone renderer — child of HexGridManager
         _zoneRenderer = new MovementZoneRenderer();
         _zoneRenderer.Name = "MovementZoneRenderer";
-        // HexRadius must match HexGridManager.HexRadius — set after grid is found
+
         CallDeferred(nameof(InitZoneRenderer));
 
         // Create the attunement UI as a child of CombatUI
@@ -214,7 +214,6 @@ public partial class CombatManager : Node3D
 
     public override void _Process(double delta)
     {
-        if (!IsInsideTree()) return;
         if (_pruneNeeded)
         {
             _pruneNeeded = false;
@@ -225,14 +224,22 @@ public partial class CombatManager : Node3D
 
         if (currentPhase == CombatPhase.EnemyTurn) return;
 
-        var camera = GetViewport().GetCamera3D();
+        // ── Guard: viewport and world may not be ready on first frames ──
+        var viewport = GetViewport();
+        if (viewport == null) return;
+
+        var camera = viewport.GetCamera3D();
         if (camera == null) return;
 
-        Vector2 mousePos = GetViewport().GetMousePosition();
+        var world = GetWorld3D();
+        if (world?.DirectSpaceState == null) return;
+        // ───────────────────────────────────────────────────────────────
+
+        Vector2 mousePos = viewport.GetMousePosition();
         Vector3 from = camera.ProjectRayOrigin(mousePos);
         Vector3 to = from + camera.ProjectRayNormal(mousePos) * 1000f;
 
-        var result = GetWorld3D().DirectSpaceState
+        var result = world.DirectSpaceState
             .IntersectRay(PhysicsRayQueryParameters3D.Create(from, to));
 
         Unit hitUnit = null;
@@ -1242,6 +1249,7 @@ public partial class CombatManager : Node3D
 
             unit.TickStatuses();
             unit.Attunement?.Decay();
+            State.Memorials.Tick();
 
             if (unit.DeckData != null)
             {
@@ -1947,6 +1955,25 @@ public partial class CombatManager : Node3D
         GD.Print(deathMsg);
         combatUI?.AppendActionLog(deathMsg);
 
+        // ── Memorial creation ─────────────────────────────────────────────
+        if (State?.Memorials != null && unit.CurrentTile != null)
+        {
+            // Find any player-team necromancer to determine owner
+            int necroTeam = -1;
+            foreach (var u in playerUnits)
+            {
+                if (u != null && u.School == CardSchool.Necromancer)
+                {
+                    necroTeam = u.TeamId;
+                    break;
+                }
+            }
+
+            if (necroTeam >= 0)
+                State.Memorials.CreateMemorial(unit.CurrentTile, unit, necroTeam);
+        }
+        // ─────────────────────────────────────────────────────────────────
+
         // Make sure the unit's logical death cleanup ran
         if (!unit.IsDeathQueued)
             unit.Die();
@@ -2455,6 +2482,12 @@ public partial class CombatManager : Node3D
         // dummyUnit / enemyUnits are wired after enemy spawn in SpawnAndPlaceEnemies()
 
         State.Grid = grid;
+
+        State.Memorials = new MemorialManager(grid);
+        State.Memorials.OnMemorialCreated += tile => tile.TileView?.SetMemorial(tile.Memorial);
+        State.Memorials.OnMemorialChanged += tile => tile.TileView?.SetMemorial(tile.Memorial);
+        State.Memorials.OnMemorialRemoved += tile => tile.TileView?.SetMemorial(null);
+
         State.PlayerUnit = playerUnit;
         // State.EnemyUnit set after enemy spawn
         State.UnitsInPlay.Clear();
