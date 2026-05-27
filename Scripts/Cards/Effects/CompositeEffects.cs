@@ -460,7 +460,7 @@ public sealed class PrimordialSurgeEffect : EffectBase
         TileElementType.Fire, TileElementType.Frost,
         TileElementType.Lightning, TileElementType.Earth
     };
-    private static readonly Random _rng = new()
+    private static readonly Random _rng = new();
 
     public PrimordialSurgeEffect(int radius = 4, int damage = 4) { Radius = radius; Damage = damage; }
 
@@ -1205,6 +1205,120 @@ public sealed class CreateMaelstromEffect : EffectBase
 
         s.Log($"[Maelstrom] Created at {center}, radius {Radius}, {Turns} turns, damage {Damage}.");
     }
+}
+
+// ── Worldshaper Effect ─────────────────────────────────────────────────────────
+
+/// <summary>
+/// Imbues all tiles within <see cref="Radius"/> with the caster's highest
+/// attunement element, then deals <see cref="DamagePerTile"/> damage to every
+/// enemy for each tile imbued. If the caster has no attunement charges, falls
+/// back to Fire. When <see cref="ElementCount"/> is 2, imbues with the top two
+/// attunement elements (alternating by tile distance).
+/// JSON keys: "type": "worldshaper", "radius": n, "damage_per_tile": m,
+/// "elements": 1 or 2.
+/// </summary>
+public sealed class WorldshaperEffect : EffectBase
+{
+    public int Radius;
+    public int DamagePerTile;
+    public int ElementCount; // 1 = highest only, 2 = top two
+
+    public WorldshaperEffect(int radius = 3, int damagePerTile = 3, int elementCount = 1)
+    {
+        Radius = radius;
+        DamagePerTile = damagePerTile;
+        ElementCount = elementCount;
+    }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (s?.Grid == null) return;
+        var casterUnit = FindCasterUnit(s, caster);
+        if (casterUnit?.CurrentTile == null) return;
+
+        var attunement = casterUnit.Attunement as ElementalAttunement;
+        var elements = GetTopElements(attunement, ElementCount);
+
+        var center = casterUnit.CurrentTile.Axial;
+        int imbued = 0;
+        int tileIndex = 0;
+
+        foreach (var kvp in s.Grid.Tiles)
+        {
+            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
+            var tile = kvp.Value;
+            if (tile == null) continue;
+
+            // Cycle through the chosen elements when ElementCount > 1
+            var element = elements[tileIndex % elements.Count];
+            tileIndex++;
+
+            TileElementType tileElement = MapToTileElement(element);
+            tile.ElementType = tileElement;
+            tile.ElementStrength = 1.0f;
+            if (tileElement == TileElementType.Fire)
+                tile.IsHazardous = true;
+            tile.TileView?.SetElement(tileElement);
+            imbued++;
+        }
+
+        s.Log($"[Worldshaper] Imbued {imbued} tiles within {Radius} " +
+              $"with {string.Join(", ", elements)}.");
+
+        if (DamagePerTile <= 0 || imbued == 0) return;
+
+        int totalDmg = imbued * DamagePerTile;
+        foreach (var unit in s.UnitsInPlay)
+        {
+            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
+            if (unit.TeamId == casterUnit.TeamId) continue;
+            if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius) continue;
+
+            unit.ApplyDamage(totalDmg);
+            s.Log($"[Worldshaper] {unit.Name} takes {totalDmg} damage ({imbued} tiles × {DamagePerTile}).");
+        }
+    }
+
+    private static List<ElementTag> GetTopElements(ElementalAttunement attunement, int count)
+    {
+        // Default to Fire if no attunement available
+        if (attunement == null)
+            return new List<ElementTag> { ElementTag.Fire };
+
+        // Sort all four elements by charge count descending
+        var sorted = new List<(ElementTag element, int charges)>
+        {
+            (ElementTag.Fire,  attunement.Charges[ElementTag.Fire]),
+            (ElementTag.Ice,   attunement.Charges[ElementTag.Ice]),
+            (ElementTag.Storm, attunement.Charges[ElementTag.Storm]),
+            (ElementTag.Earth, attunement.Charges[ElementTag.Earth]),
+        };
+        sorted.Sort((a, b) => b.charges.CompareTo(a.charges));
+
+        var result = new List<ElementTag>();
+        for (int i = 0; i < Math.Min(count, sorted.Count); i++)
+        {
+            // Skip elements with 0 charges when picking second element
+            if (i > 0 && sorted[i].charges == 0) break;
+            result.Add(sorted[i].element);
+        }
+
+        // Always return at least one element
+        if (result.Count == 0)
+            result.Add(ElementTag.Fire);
+
+        return result;
+    }
+
+    private static TileElementType MapToTileElement(ElementTag element) => element switch
+    {
+        ElementTag.Fire  => TileElementType.Fire,
+        ElementTag.Ice   => TileElementType.Frost,
+        ElementTag.Storm => TileElementType.Lightning,
+        ElementTag.Earth => TileElementType.Earth,
+        _                => TileElementType.None
+    };
 }
 
 

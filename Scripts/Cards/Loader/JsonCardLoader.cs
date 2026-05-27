@@ -231,6 +231,13 @@ public static class CardScriptRegistry
         RegisterEffect("mana_gain", n =>
             new ManaGainEffect(n.GetProperty("amount").GetInt32()).WithTag("Mana"));
 
+        // Mana per nearby element: { "type": "mana_per_nearby_element", "radius": n }
+        RegisterEffect("mana_per_nearby_element", n =>
+        {
+            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 3;
+            return new ManaPerNearbyElementEffect(radius).WithTag("Mana");
+        });
+
         // Self damage: { "type": "self_damage", "amount": n }
         RegisterEffect("self_damage", n =>
             new SelfDamageEffect(n.GetProperty("amount").GetInt32()).WithTag("SelfDamage"));
@@ -420,6 +427,15 @@ public static class CardScriptRegistry
             int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 3;
             bool freezes = n.TryGetProperty("freezes", out var f) && f.GetBoolean();
             return new CreateMaelstromEffect(radius, damage, turns, freezes).WithTag("Terrain");
+        });
+
+        // Worldshaper: { "type": "worldshaper", "radius": n, "damage_per_tile": m, "elements": 1 }
+        RegisterEffect("worldshaper", n =>
+        {
+            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 3;
+            int dmgPerTile = n.TryGetProperty("damage_per_tile", out var d) ? d.GetInt32() : 3;
+            int elements = n.TryGetProperty("elements", out var e) ? e.GetInt32() : 1;
+            return new WorldshaperEffect(radius, dmgPerTile, elements).WithTag("Terrain");
         });
 
         // ═══════════════════════════════════════════════════════════

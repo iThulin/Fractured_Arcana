@@ -730,8 +730,7 @@ public sealed class GiveTargetArmorEffect : EffectBase
 	}
 }
 
-The sequence passes the TargetSet through each step, so armor_per_target will receive the same enemy list that the retarget aoe resolved. Count the targets, multiply, apply to caster:
-csharp// ── Armor Per Target Effect ─────────────────────────────────────────────────────────
+// ── Armor Per Target Effect ─────────────────────────────────────────────────────────
 
 /// <summary>
 /// Grants the caster armor equal to <see cref="Amount"/> multiplied by the number
@@ -749,6 +748,21 @@ public sealed class ArmorPerTargetEffect : EffectBase
     }
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        // Fallback path — no PredicateContext available, count whatever targets are passed
+        ApplyArmor(s, caster, targets);
+    }
+
+    public override EffectResult ResolveWithResult(PredicateContext ctx)
+    {
+        // Prefer LastRetargetedTargets so this works correctly as a sequence
+        // sibling after a retarget step (e.g. pull all enemies, then armor per enemy)
+        var countTargets = ctx.LastRetargetedTargets ?? ctx.Targets;
+        ApplyArmor(ctx.Game, ctx.Caster, countTargets);
+        return new EffectResult();
+    }
+
+    private void ApplyArmor(GameState s, Entity caster, TargetSet targets)
     {
         var casterUnit = FindCasterUnit(s, caster);
         if (casterUnit == null) return;
@@ -773,7 +787,7 @@ public sealed class ArmorPerTargetEffect : EffectBase
         }
         else
         {
-            s.Log($"[ArmorPerTarget] {casterUnit.Name}: no targets to count, no armor gained.");
+            s.Log($"[ArmorPerTarget] {casterUnit.Name}: no targets counted, no armor gained.");
         }
     }
 }
@@ -867,6 +881,59 @@ public sealed class ManaGainEffect : EffectBase
 			s.Log($"[ManaGain] {casterUnit.Name} gains {Amount} mana (now {casterUnit.Stats.Mana}/{casterUnit.Stats.MaxMana}).");
 		}
 	}
+}
+
+// ── Mana Per Nearby Element Effect ─────────────────────────────────────────────────────────
+
+/// <summary>
+/// Grants the caster 1 mana for each unique element type present on tiles
+/// within <see cref="Radius"/> of the caster. Maximum 4 mana (one per element).
+/// Designed for Worldshaper's Elemental Read — rewards building a diverse
+/// elemental board state.
+/// JSON keys: "type": "mana_per_nearby_element", "radius": n.
+/// </summary>
+public sealed class ManaPerNearbyElementEffect : EffectBase
+{
+    public int Radius;
+
+    public ManaPerNearbyElementEffect(int radius = 3)
+    {
+        Radius = radius;
+    }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        var casterUnit = FindCasterUnit(s, caster);
+        if (casterUnit?.CurrentTile == null || s?.Grid == null) return;
+
+        var center = casterUnit.CurrentTile.Axial;
+        var uniqueElements = new HashSet<TileElementType>();
+
+        foreach (var kvp in s.Grid.Tiles)
+        {
+            var tile = kvp.Value;
+            if (tile == null) continue;
+            if (tile.ElementType == TileElementType.None) continue;
+            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
+
+            uniqueElements.Add(tile.ElementType);
+        }
+
+        int manaGained = uniqueElements.Count;
+        if (manaGained == 0)
+        {
+            s.Log($"[ManaPerNearbyElement] {casterUnit.Name}: no elements within {Radius} — no mana gained.");
+            return;
+        }
+
+        casterUnit.GainMana(manaGained);
+        if (s.Mana.ContainsKey(caster))
+            s.Mana[caster] = casterUnit.Stats.Mana;
+
+        var elementNames = string.Join(", ", uniqueElements);
+        s.Log($"[ManaPerNearbyElement] {casterUnit.Name} gains {manaGained} mana " +
+              $"({elementNames}) — now {casterUnit.Stats.Mana}/{casterUnit.Stats.MaxMana}.");
+    }
 }
 
 /// <summary>Caster takes <see cref="Amount"/> damage. Used for life-cost spells.</summary>
