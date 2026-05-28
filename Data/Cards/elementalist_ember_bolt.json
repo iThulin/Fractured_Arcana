@@ -39,7 +39,7 @@
 		"speed": "Instant",
 		"rules_text": "Gain 5 shield. If standing on Stone terrain gain 5 armor instead.",
 		"tags": [
-			"stone"
+			"earth"
 		],
 		"targeting": {
 			"type": "self"

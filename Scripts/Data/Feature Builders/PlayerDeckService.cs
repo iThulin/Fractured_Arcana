@@ -169,12 +169,6 @@ public static class PlayerDeckService
         var owned = save.PlayerDeck.Cards?.Find(c => c.InstanceId == instanceId);
         if (owned == null) return false;
 
-        if (owned.IsStarter)
-        {
-            GD.PrintErr($"[PlayerDeckService] Cannot unslot starter card '{instanceId}'.");
-            return false;
-        }
-
         save.PlayerDeck.ActiveDeckInstanceIds?.Remove(instanceId);
         return true;
     }

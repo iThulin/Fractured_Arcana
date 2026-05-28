@@ -10,7 +10,7 @@
 		"speed": "Instant",
 		"rules_text": "Move 2. Imbue tiles with Stone. Gain 3 armor per tile moved.",
 		"tags": [
-			"stone"
+			"earth"
 		],
 		"targeting": {
 			"type": "self"

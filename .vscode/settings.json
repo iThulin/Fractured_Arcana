@@ -14,5 +14,10 @@
   "[csharp]": {
     "editor.defaultFormatter": "ms-dotnettools.csharp"
   },
-  "cSpell.words": ["dkysycp", "ejql", "Unslot"]
+  "cSpell.words": [
+    "dkysycp",
+    "ejql",
+    "Unslot"
+  ],
+  "godotTools.editorPath.godot4": "c:\\Users\\Ian Thulin\\Downloads\\Godot_v4.6.2-stable_mono_win64\\Godot_v4.6.2-stable_mono_win64\\Godot_v4.6.2-stable_mono_win64.exe"
 }

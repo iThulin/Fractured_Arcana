@@ -343,24 +343,30 @@ public partial class CardUpgradeScreen : Control
             return;
         }
 
-        var grouped = new Dictionary<string, List<OwnedCard>>();
-        foreach (var c in save.PlayerDeck.Cards)
-        {
-            if (!grouped.ContainsKey(c.BlueprintId)) grouped[c.BlueprintId] = new List<OwnedCard>();
-            grouped[c.BlueprintId].Add(c);
-        }
+        // Sort: by blueprint ID, then by PointsSpent descending (upgraded first)
+        var sorted = save.PlayerDeck.Cards
+            .OrderBy(c => c.BlueprintId)
+            .ThenByDescending(c => c.PointsSpent)
+            .ToList();
 
         bool any = false;
-        foreach (var kvp in grouped.OrderBy(k => k.Key))
+        foreach (var owned in sorted)
         {
-            var copies = kvp.Value.OrderBy(c => c.PointsSpent).ToList();
-            var display = copies[0];
             var bp = CardDatabase.Blueprints.Find(b =>
-                string.Equals(b.Id, display.BlueprintId, StringComparison.OrdinalIgnoreCase));
+                string.Equals(b.Id, owned.BlueprintId, StringComparison.OrdinalIgnoreCase));
 
-            string displayName = CardDatabase.GetDisplayName(bp, display);
-            bool maxed = display.IsMaxed;
-            bool isSelected = _selectedOwned?.InstanceId == display.InstanceId;
+            string displayName = CardDatabase.GetDisplayName(bp, owned);
+            bool maxed = owned.IsMaxed;
+            bool isSelected = _selectedOwned?.InstanceId == owned.InstanceId;
+
+            // Count sibling copies for context label
+            int siblingCount = save.PlayerDeck.Cards
+                .Count(c => string.Equals(c.BlueprintId, owned.BlueprintId,
+                    StringComparison.OrdinalIgnoreCase));
+
+
+            Color accent = SchoolColors.GetBorderColor(bp?.School ?? CardSchool.Generic);
+            Color dark = SchoolColors.GetDarkColor(bp?.School ?? CardSchool.Generic);
 
             var row = new PanelContainer();
             row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -374,7 +380,7 @@ public partial class CardUpgradeScreen : Control
                     : UITheme.SurfaceLight,
                 BorderColor = isSelected ? UITheme.Violet
                                 : maxed ? UITheme.Gold
-                                : UITheme.RarityColor(bp?.Rarity.ToString() ?? "Common"),
+                                : accent,
                 BorderWidthLeft = 3,
                 BorderWidthTop = 1,
                 BorderWidthBottom = 1,
@@ -391,43 +397,144 @@ public partial class CardUpgradeScreen : Control
             row.AddThemeStyleboxOverride("panel", normalStyle);
 
             var hbox = new HBoxContainer();
-            hbox.AddThemeConstantOverride("separation", 8);
+            hbox.AddThemeConstantOverride("separation", 6);
             hbox.MouseFilter = MouseFilterEnum.Ignore;
             row.AddChild(hbox);
 
-            var info = MakeVBox(2);
-            info.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            info.MouseFilter = MouseFilterEnum.Ignore;
-            hbox.AddChild(info);
+            // Class label
+            var classLbl = new Label { Text = (bp?.School ?? CardSchool.Generic).ToString() };
+            classLbl.CustomMinimumSize = new Vector2(90, 0);
+            classLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+            classLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            classLbl.AddThemeColorOverride("font_color", accent);
+            classLbl.MouseFilter = MouseFilterEnum.Ignore;
+            classLbl.VerticalAlignment = VerticalAlignment.Center;
+            classLbl.ClipContents = true;
+            classLbl.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+            hbox.AddChild(classLbl);
 
-            var nameLbl = new Label { Text = displayName };
-            nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            nameLbl.AddThemeColorOverride("font_color",
-                UITheme.RarityColor(bp?.Rarity.ToString() ?? "Common"));
-            nameLbl.MouseFilter = MouseFilterEnum.Ignore;
-            info.AddChild(nameLbl);
-
-            string tierText = maxed
-                ? $"{TierLabel(display.TopTier)}/{TierLabel(display.BotTier)}  ★ MAX"
-                : $"Top: {TierLabel(display.TopTier)}  Bot: {TierLabel(display.BotTier)}" +
-                  $"  ({display.PointsRemaining} pts remaining)";
-            var tierLbl = new Label { Text = tierText };
-            tierLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
-            tierLbl.AddThemeColorOverride("font_color",
-                maxed ? UITheme.Gold : UITheme.TextSecondary);
-            tierLbl.MouseFilter = MouseFilterEnum.Ignore;
-            info.AddChild(tierLbl);
-
-            if (copies.Count > 1)
+            var div1 = new ColorRect
             {
-                var countBadge = new Label { Text = $"×{copies.Count}" };
-                countBadge.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
-                countBadge.AddThemeColorOverride("font_color", UITheme.TextDim);
-                countBadge.MouseFilter = MouseFilterEnum.Ignore;
-                hbox.AddChild(countBadge);
+                Color = new Color(0, 0, 0, 0.20f),
+                CustomMinimumSize = new Vector2(1, 0),
+                SizeFlagsVertical = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            hbox.AddChild(div1);
+
+            // Top half block
+            string topHalfName = bp?.Prebuilt?.TopHalf?.Name ?? owned.BlueprintId;
+            string botHalfName = bp?.Prebuilt?.BottomHalf?.Name ?? "";
+            int topMana = bp?.Prebuilt?.TopHalf?.ManaCost ?? 0;
+            int botMana = bp?.Prebuilt?.BottomHalf?.ManaCost ?? 0;
+
+
+            // Top half block
+            var topBlock = new HBoxContainer();
+            topBlock.CustomMinimumSize = new Vector2(340, 0);
+            topBlock.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+            topBlock.AddThemeConstantOverride("separation", 4);
+            topBlock.MouseFilter = MouseFilterEnum.Ignore;
+            hbox.AddChild(topBlock);
+
+            topBlock.AddChild(CardRowHelpers.MakePip(topMana.ToString(), dark));
+            var topLbl = new Label { Text = topHalfName };
+            topLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+            topLbl.CustomMinimumSize = new Vector2(150, 0);
+            topLbl.ClipContents = true;
+            topLbl.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+            topLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            topLbl.AddThemeColorOverride("font_color", UITheme.RarityColor(bp?.Rarity.ToString() ?? "Common"));
+            topLbl.MouseFilter = MouseFilterEnum.Ignore;
+            topLbl.AutowrapMode = TextServer.AutowrapMode.Off;
+            topBlock.AddChild(topLbl);
+            CardRowHelpers.AddElementTags(topBlock, bp?.Prebuilt?.TopHalf);
+
+            // Divider between halves
+            if (!string.IsNullOrEmpty(botHalfName))
+            {
+                var div = new ColorRect
+                {
+                    Color = new Color(0, 0, 0, 0.20f),
+                    CustomMinimumSize = new Vector2(1, 0),
+                    SizeFlagsVertical = SizeFlags.ExpandFill,
+                    MouseFilter = MouseFilterEnum.Ignore,
+                };
+                div.AddThemeConstantOverride("margin_left", 4);
+                div.AddThemeConstantOverride("margin_right", 4);
+                hbox.AddChild(div);
+
+                var botBlock = new HBoxContainer();
+                botBlock.CustomMinimumSize = new Vector2(340, 0);
+                botBlock.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+                botBlock.AddThemeConstantOverride("separation", 4);
+                botBlock.MouseFilter = MouseFilterEnum.Ignore;
+                hbox.AddChild(botBlock);
+
+                botBlock.AddChild(CardRowHelpers.MakePip(botMana.ToString(), dark));
+                var botLbl = new Label { Text = botHalfName };
+                botLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+                botLbl.CustomMinimumSize = new Vector2(110, 0);
+                botLbl.ClipContents = true;
+                botLbl.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+                botLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+                botLbl.AddThemeColorOverride("font_color", UITheme.RarityColor(bp?.Rarity.ToString() ?? "Common"));
+                botLbl.MouseFilter = MouseFilterEnum.Ignore;
+                botLbl.AutowrapMode = TextServer.AutowrapMode.Off;
+                botBlock.AddChild(botLbl);
+                CardRowHelpers.AddElementTags(botBlock, bp?.Prebuilt?.BottomHalf);
             }
 
-            var capturedOwned = display;
+            var div2 = new ColorRect
+            {
+                Color = new Color(0, 0, 0, 0.20f),
+                CustomMinimumSize = new Vector2(1, 0),
+                SizeFlagsVertical = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            hbox.AddChild(div2);
+
+            // Spacer
+            var spacer = new Control();
+            spacer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            spacer.MouseFilter = MouseFilterEnum.Ignore;
+            hbox.AddChild(spacer);
+
+            // Right side — tier badge + points remaining
+            var rightCol = new HBoxContainer();
+            rightCol.AddThemeConstantOverride("separation", 6);
+            rightCol.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
+            rightCol.MouseFilter = MouseFilterEnum.Ignore;
+            rightCol.Alignment = BoxContainer.AlignmentMode.Center;
+            hbox.AddChild(rightCol);
+
+            if (owned.PointsSpent > 0)
+                rightCol.AddChild(MakeUpgradePip(TierBadge(owned.PointsSpent),
+                    maxed ? UITheme.Gold : new Color(0.65f, 0.50f, 0.10f)));
+
+            if (maxed)
+            {
+                rightCol.AddChild(MakeUpgradePip("★ MAX", UITheme.Gold));
+            }
+            else if (owned.PointsSpent > 0)
+            {
+                // Small gap before pts label
+                var gap = new Control { CustomMinimumSize = new Vector2(6, 0) };
+                gap.MouseFilter = MouseFilterEnum.Ignore;
+                rightCol.AddChild(gap);
+
+                var ptsLbl = new Label
+                {
+                    Text = $"{owned.PointsRemaining} pts remaining",
+                    MouseFilter = MouseFilterEnum.Ignore,
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                ptsLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+                ptsLbl.AddThemeColorOverride("font_color", new Color(0.45f, 0.45f, 0.45f));
+                rightCol.AddChild(ptsLbl);
+            }
+
+            var capturedOwned = owned;
             row.GuiInput += (e) =>
             {
                 if (e is InputEventMouseButton mb && !mb.Pressed &&
@@ -447,6 +554,40 @@ public partial class CardUpgradeScreen : Control
 
         if (!any) _cardList.AddChild(MakeStub("No cards owned yet."));
     }
+
+    private Label MakeUpgradePip(string text, Color color)
+    {
+        var l = new Label
+        {
+            Text = text,
+            CustomMinimumSize = new Vector2(0, 16),
+            SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.Off,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        l.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize - 1);
+        l.AddThemeColorOverride("font_color", Colors.White);
+        var style = new StyleBoxFlat { BgColor = color };
+        style.SetCornerRadiusAll(3);
+        style.ContentMarginLeft = 5;
+        style.ContentMarginRight = 5;
+        style.ContentMarginTop = 2;
+        style.ContentMarginBottom = 2;
+        l.AddThemeStyleboxOverride("normal", style);
+        return l;
+    }
+
+    private static string TierBadge(int pointsSpent) => pointsSpent switch
+    {
+        1 => "Inscribed",
+        2 => "Refined",
+        3 => "Attuned",
+        4 => "Mastered",
+        5 => "Transcendent",
+        _ => "Upgraded"
+    };
 
     private void RefreshUpgradePanel(GuildSaveData save)
     {
@@ -772,10 +913,10 @@ public partial class CardUpgradeScreen : Control
     private static string TierLabel(int tier) => tier switch
     {
         0 => "Base",
-        1 => "Refined",
-        2 => "Specialized",
-        3 => "Mastered",
-        4 => "Transcendent",
+        1 => "Inscribed",
+        2 => "Refined",
+        3 => "Attuned",
+        4 => "Mastered",
         _ => $"Tier {tier}"
     };
 

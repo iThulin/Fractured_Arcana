@@ -50,7 +50,7 @@
 		"speed": "Instant",
 		"rules_text": "Requires Stone tile. Create Stone pillar on target tile. Gain 4 armor.",
 		"tags": [
-			"stone"
+			"earth"
 		],
 		"requires": [
 			"stone_tile"

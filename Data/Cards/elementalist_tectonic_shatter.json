@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Requires Stone tile. Shatter target's tile — deal 8 damage, create rubble, push adjacent enemies 2 tiles.",
 		"tags": [
-			"stone"
+			"earth"
 		],
 		"requires": [
 			"stone_tile"
@@ -53,7 +53,7 @@
 		"speed": "Instant",
 		"rules_text": "Pull all enemies within 3 tiles toward you by 2. Gain 2 armor per enemy pulled.",
 		"tags": [
-			"stone"
+			"earth"
 		],
 		"targeting": {
 			"type": "self"

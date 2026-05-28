@@ -13,7 +13,7 @@
 			"fire",
 			"ice",
 			"storm",
-			"stone"
+			"earth"
 		],
 		"targeting": {
 			"type": "self"
@@ -33,7 +33,7 @@
 			"fire",
 			"ice",
 			"storm",
-			"stone"
+			"earth"
 		],
 		"targeting": {
 			"type": "self"

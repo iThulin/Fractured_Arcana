@@ -172,6 +172,10 @@ text = "Rules text"
 scroll_active = false
 vertical_alignment = 1
 
+[node name="ElementTags" type="HBoxContainer" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
 [node name="SplitDivider" type="ColorRect" parent="CardVisual/SplitView" unique_id=1317860190]
 layout_mode = 0
 offset_top = 148.0
@@ -254,6 +258,10 @@ theme_override_font_sizes/normal_font_size = 12
 text = "Rules text"
 scroll_active = false
 vertical_alignment = 1
+
+[node name="ElementTags" type="HBoxContainer" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
 
 [node name="FullCardView" type="Control" parent="CardVisual" unique_id=60360563]
 visible = false

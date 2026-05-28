@@ -111,6 +111,12 @@ public class GuildSaveData
     public PlayerDeckSave PlayerDeck = new();
 
     /// <summary>
+    /// Minimum cards that must remain in the deck. Default 10.
+    /// Cannot disenchant below this floor.
+    /// </summary>
+    public int MinDeckSize = 10;
+
+    /// <summary>
     /// Set of CardBlueprint.Id values the player has "discovered" —
     /// only discovered cards appear in draft pools. Starter cards are
     /// added here automatically during SeedStarterDeck. New cards enter

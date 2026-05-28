@@ -49,7 +49,7 @@
 		"speed": "Instant",
 		"rules_text": "Requires Stone tile. Root yourself. Gain 7 armor.",
 		"tags": [
-			"stone"
+			"earth"
 		],
 		"requires": [
 			"stone_tile"

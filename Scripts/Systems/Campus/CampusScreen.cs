@@ -1188,8 +1188,9 @@ public partial class CampusScreen : Control
 
     private void RefreshAll()
     {
-        var bonuses = BuildingEffectApplier.CalculateRunBonuses(SaveManager.ActiveSave);
-        PlayerSession.ApplyUnlockedFeatures(bonuses.UnlockedFeatures);
+        PlayerSession.ClearRunState();
+        BuildingEffectApplier.CalculateRunBonuses(SaveManager.ActiveSave);
+        BuildingEffectApplier.ApplyCampusEffects(SaveManager.ActiveSave);
 
         RefreshSlotButtons();
         RefreshCompanionList();
@@ -1490,6 +1491,7 @@ public partial class CampusScreen : Control
         }
         _selectedSlot = slot;
         EnsureRostersAndBuildings();
+        BuildingEffectApplier.ApplyCampusEffects(SaveManager.ActiveSave);
         EnsureStarterItems();
         RefreshAll();
         RefreshGoldLabel();

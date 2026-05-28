@@ -51,6 +51,7 @@ public partial class DeckEditorUi : Control
 
     // ── Filter state ─────────────────────────────────────────────────────
     private string _stashSearch = "";
+    // Declare once near the top of BuildRow, after the sibling count block:
 
     // ── Drag state ────────────────────────────────────────────────────────
     private DeckRowControl _draggedRow = null;
@@ -62,6 +63,7 @@ public partial class DeckEditorUi : Control
     // The preview zone is this tall (px). Card is scaled to fit inside it.
     private const float PreviewZoneHeight = 380f;
     private const float RightColumnWidth = 300f;
+    private int _bodyTopOffset = 60;
 
     // ─────────────────────────────────────────────────────────────────────
     // Boot
@@ -85,10 +87,41 @@ public partial class DeckEditorUi : Control
 
         BuildTopBar();
 
+        if (PlayerSession.IsOnExpedition)
+        {
+            var banner = new PanelContainer();
+            banner.SetAnchorsPreset(LayoutPreset.TopWide);
+            banner.OffsetTop = 60;
+            banner.OffsetBottom = 88;
+            banner.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = new Color(UITheme.Warning.R, UITheme.Warning.G,
+                                    UITheme.Warning.B, 0.15f),
+                BorderColor = UITheme.Warning,
+                BorderWidthBottom = 1,
+            });
+            var bannerLabel = new Label
+            {
+                Text = "You are on an expedition — deck editing is locked until you return to campus.",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            bannerLabel.SetAnchorsPreset(LayoutPreset.FullRect);
+            bannerLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            bannerLabel.AddThemeColorOverride("font_color", UITheme.Warning);
+            banner.AddChild(bannerLabel);
+            AddChild(banner);
+
+            // Push the body down to make room for the banner
+            // (body is added after this block, so adjust its OffsetTop)
+            // Store the extra offset for the body HBoxContainer:
+            _bodyTopOffset = 88;
+        }
+
         // ── Body: left column + right column ─────────────────────────────
         var body = new HBoxContainer();
         body.SetAnchorsPreset(LayoutPreset.FullRect);
-        body.OffsetTop = 60;
+        body.OffsetTop = _bodyTopOffset;
         body.AddThemeConstantOverride("separation", 0);
         AddChild(body);
 
@@ -219,6 +252,16 @@ public partial class DeckEditorUi : Control
         _dragGhost.AddThemeStyleboxOverride("normal", ghostStyle);
         AddChild(_dragGhost);
 
+
+        GD.Print($"[DeckEditor] card_disenchant feature active: {PlayerSession.HasFeature("card_disenchant")}");
+        GD.Print($"[DeckEditor] dissolution_chamber tier: {SaveManager.ActiveSave?.Buildings?.Find(b => b.Id == "dissolution_chamber")?.Tier ?? -1}");
+
+        // Ensure building features are active for this screen
+        // (CampusScreen.RefreshAll does this too, but deck editor
+        // can be opened independently)
+        PlayerSession.ClearRunState();
+        BuildingEffectApplier.CalculateRunBonuses(SaveManager.ActiveSave);
+        BuildingEffectApplier.ApplyCampusEffects(SaveManager.ActiveSave);
         Refresh();
     }
 
@@ -352,7 +395,9 @@ public partial class DeckEditorUi : Control
     {
         var save = SaveManager.ActiveSave;
         if (_dustLabel != null)
-            _dustLabel.Text = save != null ? $"✦ {save.ArcaneSplinters} Splinters" : "";
+            _dustLabel.Text = save != null
+                ? $"✦ {save.ArcaneSplinters} Splinters   ◈ {save.Gold} Gold"
+                : "";
 
         if (save?.PlayerDeck == null)
         {
@@ -389,10 +434,12 @@ public partial class DeckEditorUi : Control
         var cards = activeIds
             .Select(id => save.PlayerDeck.Cards?.Find(c => c.InstanceId == id))
             .Where(c => c != null)
+            .OrderBy(c => c.BlueprintId)
+            .ThenByDescending(c => c.PointsSpent)
             .ToList();
 
-        foreach (var group in GroupByBlueprint(cards))
-            _activeList.AddChild(BuildRow(group, save, isActive: true));
+        foreach (var owned in cards)
+            _activeList.AddChild(BuildRow(owned, save, isActive: true));
     }
 
     private void RefreshStash(GuildSaveData save)
@@ -402,6 +449,8 @@ public partial class DeckEditorUi : Control
             save.PlayerDeck.ActiveDeckInstanceIds ?? new List<string>());
         var stashed = (save.PlayerDeck.Cards ?? new List<OwnedCard>())
                         .Where(c => !activeSet.Contains(c.InstanceId))
+                        .OrderBy(c => c.BlueprintId)
+                        .ThenByDescending(c => c.PointsSpent)
                         .ToList();
 
         if (_stashCountLabel != null)
@@ -418,36 +467,23 @@ public partial class DeckEditorUi : Control
             return;
         }
 
-        foreach (var group in GroupByBlueprint(stashed))
-            _stashList.AddChild(BuildRow(group, save, isActive: false));
-    }
-
-    private List<List<OwnedCard>> GroupByBlueprint(List<OwnedCard> cards)
-    {
-        var dict = new Dictionary<string, List<OwnedCard>>();
-        foreach (var c in cards)
-        {
-            if (!dict.ContainsKey(c.BlueprintId)) dict[c.BlueprintId] = new List<OwnedCard>();
-            dict[c.BlueprintId].Add(c);
-        }
-        return dict
-            .OrderByDescending(kv => kv.Value[0].IsStarter)
-            .ThenBy(kv => kv.Key)
-            .Select(kv => kv.Value)
-            .ToList();
+        foreach (var owned in stashed)
+            _stashList.AddChild(BuildRow(owned, save, isActive: false));
     }
 
     // ─────────────────────────────────────────────────────────────────────
     // Row
     // ─────────────────────────────────────────────────────────────────────
 
-    private Control BuildRow(List<OwnedCard> copies, GuildSaveData save, bool isActive)
+    private Control BuildRow(OwnedCard owned, GuildSaveData save, bool isActive)
     {
-        var bp = CardDatabase.Blueprints.Find(b =>
-            string.Equals(b.Id, copies[0].BlueprintId, StringComparison.OrdinalIgnoreCase));
+        bool onExpedition = PlayerSession.IsOnExpedition;
 
-        string displayName = CardDatabase.GetDisplayName(bp);
-        string botName = bp?.Prebuilt?.BottomHalf?.Name ?? "";
+        var bp = CardDatabase.Blueprints.Find(b =>
+            string.Equals(b.Id, owned.BlueprintId, StringComparison.OrdinalIgnoreCase));
+
+        string topHalfName = bp?.Prebuilt?.TopHalf?.Name ?? owned.BlueprintId;
+        string botHalfName = bp?.Prebuilt?.BottomHalf?.Name ?? "";
         int topMana = bp?.Prebuilt?.TopHalf?.ManaCost ?? 0;
         int botMana = bp?.Prebuilt?.BottomHalf?.ManaCost ?? 0;
         var rarity = bp?.Rarity ?? CardRarity.Common;
@@ -455,18 +491,29 @@ public partial class DeckEditorUi : Control
         Color accent = SchoolColors.GetBorderColor(school);
         Color dark = SchoolColors.GetDarkColor(school);
 
+        // How many sibling copies of this blueprint exist in the same zone?
+        // Used only for the disambiguation badge — no longer used for grouping.
+        var activeSet = new HashSet<string>(
+            save.PlayerDeck.ActiveDeckInstanceIds ?? new List<string>());
+        int siblingCount = isActive
+            ? (save.PlayerDeck.ActiveDeckInstanceIds ?? new List<string>())
+                .Count(id => save.PlayerDeck.Cards?
+                    .Find(c => c.InstanceId == id)?.BlueprintId == owned.BlueprintId)
+            : (save.PlayerDeck.Cards ?? new List<OwnedCard>())
+                .Count(c => !activeSet.Contains(c.InstanceId) && c.BlueprintId == owned.BlueprintId);
+
         var row = new DeckRowControl
         {
-            BlueprintId = copies[0].BlueprintId,
-            Copies = copies,
+            BlueprintId = owned.BlueprintId,
+            Copies = new List<OwnedCard> { owned },   // single-instance list kept for drag compat
             IsActive = isActive,
-            DisplayTopName = displayName,
+            DisplayTopName = topHalfName,
+            DisplayBotName = botHalfName,
         };
         row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         row.CustomMinimumSize = new Vector2(0, 46);
         row.MouseFilter = MouseFilterEnum.Stop;
 
-        // Styles
         var normalStyle = new StyleBoxFlat
         {
             BgColor = UITheme.SurfaceLight,
@@ -494,118 +541,207 @@ public partial class DeckEditorUi : Control
         row.NormalStyle = normalStyle;
         row.HoverStyle = hoverStyle;
 
-        // Inner HBox
         var hbox = new HBoxContainer();
         hbox.AddThemeConstantOverride("separation", 6);
         hbox.MouseFilter = MouseFilterEnum.Ignore;
         row.AddChild(hbox);
 
-        // Mana pip
-        var pip = new Label { Text = topMana.ToString() };
-        pip.CustomMinimumSize = new Vector2(24, 24);
-        pip.HorizontalAlignment = HorizontalAlignment.Center;
-        pip.VerticalAlignment = VerticalAlignment.Center;
-        pip.MouseFilter = MouseFilterEnum.Ignore;
-        pip.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize + 1);
-        pip.AddThemeColorOverride("font_color", Colors.White);
-        var pipStyle = new StyleBoxFlat { BgColor = dark };
-        pipStyle.SetCornerRadiusAll(12);
-        pip.AddThemeStyleboxOverride("normal", pipStyle);
-        hbox.AddChild(pip);
+        // Class label — fixed width
+        var classLbl = new Label { Text = school.ToString() };
+        classLbl.CustomMinimumSize = new Vector2(150, 0);
+        classLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+        classLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        classLbl.AddThemeColorOverride("font_color", accent);
+        classLbl.MouseFilter = MouseFilterEnum.Ignore;
+        classLbl.VerticalAlignment = VerticalAlignment.Center;
+        classLbl.ClipContents = true;
+        classLbl.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        hbox.AddChild(classLbl);
 
-        // Names
-        var names = new VBoxContainer();
-        names.AddThemeConstantOverride("separation", 1);
-        names.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        names.MouseFilter = MouseFilterEnum.Ignore;
-        hbox.AddChild(names);
+        var div1 = new ColorRect
+        {
+            Color = new Color(0, 0, 0, 0.20f),
+            CustomMinimumSize = new Vector2(1, 0),
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        hbox.AddChild(div1);
 
-        var topLbl = new Label { Text = displayName };
+        // Top half block
+        var topBlock = new HBoxContainer();
+        topBlock.CustomMinimumSize = new Vector2(340, 0);
+        topBlock.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+        topBlock.AddThemeConstantOverride("separation", 4);
+        topBlock.MouseFilter = MouseFilterEnum.Ignore;
+        hbox.AddChild(topBlock);
+
+        topBlock.AddChild(CardRowHelpers.MakePip(topMana.ToString(), dark));
+        var topLbl = new Label { Text = topHalfName };
+        topLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+        topLbl.CustomMinimumSize = new Vector2(150, 0);
+        topLbl.ClipContents = true;
+        topLbl.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         topLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         topLbl.AddThemeColorOverride("font_color", UITheme.RarityColor(rarity.ToString()));
         topLbl.MouseFilter = MouseFilterEnum.Ignore;
-        names.AddChild(topLbl);
+        topLbl.AutowrapMode = TextServer.AutowrapMode.Off;
+        topBlock.AddChild(topLbl);
+        CardRowHelpers.AddElementTags(topBlock, bp?.Prebuilt?.TopHalf);
 
-        if (!string.IsNullOrEmpty(botName))
+        // Divider between halves
+        if (!string.IsNullOrEmpty(botHalfName))
         {
-            var botLbl = new Label { Text = $"{botName}  {botMana}◆" };
-            botLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
-            botLbl.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+            var div = new ColorRect
+            {
+                Color = new Color(0, 0, 0, 0.20f),
+                CustomMinimumSize = new Vector2(1, 0),
+                SizeFlagsVertical = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            div.AddThemeConstantOverride("margin_left", 4);
+            div.AddThemeConstantOverride("margin_right", 4);
+            hbox.AddChild(div);
+
+            var botBlock = new HBoxContainer();
+            botBlock.CustomMinimumSize = new Vector2(340, 0);
+            botBlock.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+            botBlock.AddThemeConstantOverride("separation", 4);
+            botBlock.MouseFilter = MouseFilterEnum.Ignore;
+            hbox.AddChild(botBlock);
+
+            botBlock.AddChild(CardRowHelpers.MakePip(botMana.ToString(), dark));
+            var botLbl = new Label { Text = botHalfName };
+            botLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+            botLbl.CustomMinimumSize = new Vector2(110, 0);
+            botLbl.ClipContents = true;
+            botLbl.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+            botLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            botLbl.AddThemeColorOverride("font_color", UITheme.RarityColor(rarity.ToString()));
             botLbl.MouseFilter = MouseFilterEnum.Ignore;
-            names.AddChild(botLbl);
+            botLbl.AutowrapMode = TextServer.AutowrapMode.Off;
+            botBlock.AddChild(botLbl);
+            CardRowHelpers.AddElementTags(botBlock, bp?.Prebuilt?.BottomHalf);
         }
 
+        var div2 = new ColorRect
+        {
+            Color = new Color(0, 0, 0, 0.20f),
+            CustomMinimumSize = new Vector2(1, 0),
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        hbox.AddChild(div2);
+
+        // Spacer — pushes everything after it to the right
+        var spacer = new Control();
+        spacer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        spacer.MouseFilter = MouseFilterEnum.Ignore;
+        hbox.AddChild(spacer);
+
         // Badges
-        var badges = new VBoxContainer();
-        badges.AddThemeConstantOverride("separation", 2);
+        var badges = new HBoxContainer();
+        badges.AddThemeConstantOverride("separation", 4);
         badges.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
         badges.MouseFilter = MouseFilterEnum.Ignore;
         hbox.AddChild(badges);
 
-        if (copies.Count > 1)
-            badges.AddChild(MakeBadge($"×{copies.Count}", UITheme.TextSecondary));
-        int maxPoints = copies.Max(c => c.PointsSpent);
-        if (maxPoints > 0)
-        {
-            string tierBadge = maxPoints switch
-            {
-                1 => "+",
-                2 or 3 => "++",
-                4 or 5 => "+++",
-                _ => "★"
-            };
-            badges.AddChild(MakeBadge(tierBadge, UITheme.Success));
-        }
-        if (copies.Any(c => c.IsStarter))
-            badges.AddChild(MakeBadge("⚑", UITheme.TextDim));
-        int graftCount = copies.SelectMany(c => c.Grafts ?? new List<string>())
-                               .Distinct().Count();
-        if (graftCount > 0)
-            badges.AddChild(MakeBadge($"✦{graftCount}", new Color(0.6f, 0.85f, 1f)));
+        if (owned.PointsSpent > 0)
+            badges.AddChild(MakeBadge(TierBadge(owned.PointsSpent), new Color(0.65f, 0.50f, 0.10f)));
 
-        // Arrow button
-        bool allStarters = copies.All(c => c.IsStarter);
+        // Disenchant button (gated by feature flag, before arrow button)
+        bool canDisenchant = PlayerSession.HasFeature("card_disenchant")
+                             && !onExpedition;
+        bool atFloor = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= save.MinDeckSize;
+        bool disenchantBlocked = isActive && atFloor;
+
+        if (canDisenchant && !owned.IsStarter)
+        {
+            int yield = DisenchantValues.GetYield(owned);
+            var disBtn = new Button
+            {
+                Text = $"✕ +{yield}✦",
+                Disabled = disenchantBlocked,
+                CustomMinimumSize = new Vector2(64, 28),
+                FocusMode = FocusModeEnum.None,
+                TooltipText = disenchantBlocked
+                    ? $"Cannot disenchant — deck at minimum size ({save.MinDeckSize})"
+                    : $"Disenchant for {yield} Arcane Splinters",
+            };
+            disBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            UITheme.ApplyButtonStyle(disBtn, isPrimary: false);
+            disBtn.Modulate = new Color(1f, 0.55f, 0.45f);
+            disBtn.MouseFilter = MouseFilterEnum.Stop;
+            var capturedOwned = owned;
+            disBtn.Pressed += () => OnDisenchantPressed(capturedOwned, save);
+            hbox.AddChild(disBtn);
+        }
+
+        // Arrow button (slot / unslot)
+        // ── Arrow button (slot / unslot) ──────────────────────────────
         bool deckAtMin = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
                             <= PlayerDeckSave.MinDeckSize;
         bool deckFull = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
                             >= PlayerDeckSave.MaxDeckSize;
 
+        // Slotting costs gold; unslotting is free
+        int slotCost = PlayerSession.CardSlotCost;
+        bool canAffordSlot = (save.Gold >= slotCost);
+
+        string btnText;
+        bool btnDisabled;
+
+        if (onExpedition)
+        {
+            btnText = "🔒";
+            btnDisabled = true;
+        }
+        else if (isActive)
+        {
+            btnText = "→";
+            btnDisabled = deckAtMin;
+        }
+        else
+        {
+            btnText = slotCost > 0 ? $"← {slotCost}◈" : "←";
+            btnDisabled = deckFull || !canAffordSlot;
+        }
+
         var btn = new Button
         {
-            Text = isActive ? "→" : "←",
-            Disabled = isActive ? (allStarters || deckAtMin) : deckFull,
-            CustomMinimumSize = new Vector2(28, 28),
+            Text = btnText,
+            Disabled = btnDisabled,
+            CustomMinimumSize = new Vector2(slotCost > 0 && !isActive ? 56 : 28, 28),
             FocusMode = FocusModeEnum.None,
+            TooltipText = onExpedition ? "Return to campus to edit your deck."
+                        : !isActive && !canAffordSlot ? $"Costs {slotCost} gold to slot."
+                        : "",
         };
         btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        UITheme.ApplyButtonStyle(btn, isPrimary: !isActive);
+        UITheme.ApplyButtonStyle(btn, isPrimary: !isActive && !btnDisabled);
         btn.MouseFilter = MouseFilterEnum.Stop;
-        var capturedCopies = copies;
+        var capturedOwnedBtn = owned;
         btn.Pressed += () =>
         {
-            MoveCard(save, capturedCopies, isActive);
+            MoveCard(save, capturedOwnedBtn, isActive);
             Refresh();
         };
         hbox.AddChild(btn);
 
-        // ── Hover → preview ───────────────────────────────────────────────
-        row.MouseEntered += () =>
+        var capturedBp = bp;
+        var capturedOwnedPreview = owned;
+        row.GuiInput += (e) =>
         {
-            GD.Print($"[DeckEditor] Row MouseEntered — {displayName}");
-            ShowPreview(bp);
-        };
-        row.MouseExited += () =>
-        {
-            if (!_isDragging) HidePreview();
+            if (e is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left && !mb.Pressed)
+                ShowPreview(capturedBp, capturedOwnedPreview);
         };
 
-        // ── Drag ──────────────────────────────────────────────────────────
+        // Drag
         row.GuiInput += (e) =>
         {
             if (e is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
             {
                 if (mb.Pressed)
-                    BeginDrag(row, isActive, displayName);
+                    BeginDrag(row, isActive, topHalfName);
                 else if (_isDragging)
                     FinishDrag(save);
             }
@@ -614,18 +750,24 @@ public partial class DeckEditorUi : Control
         return row;
     }
 
+    private static string TierBadge(int pointsSpent) => pointsSpent switch
+    {
+        1 => "Inscribed",
+        2 => "Refined",
+        3 => "Attuned",
+        4 => "Mastered",
+        5 => "Transcendent",
+        _ => "Upgraded"
+    };
+
+
     // ─────────────────────────────────────────────────────────────────────
     // Preview
     // ─────────────────────────────────────────────────────────────────────
 
-    private void ShowPreview(CardBlueprint bp)
+    private void ShowPreview(CardBlueprint bp, OwnedCard owned)
     {
-        if (_previewZone == null || CardUIScene == null || bp?.Prebuilt == null)
-        {
-            if (_previewHint != null) _previewHint.Visible = true;
-            return;
-        }
-
+        if (_previewZone == null || CardUIScene == null || bp == null) return;
         if (_previewHint != null) _previewHint.Visible = false;
 
         if (_previewCard != null && IsInstanceValid(_previewCard))
@@ -634,16 +776,22 @@ public partial class DeckEditorUi : Control
             _previewCard = null;
         }
 
+        // Use the upgraded version if available, fall back to blueprint prebuilt
+        Card card = null;
+        if (owned != null && owned.PointsSpent > 0)
+            card = CardUpgradeApplier.Apply(owned.BlueprintId, owned.TopTier, owned.BotTier);
+        card ??= bp.Prebuilt;
+
+        if (card == null) return;
+
         _previewCard = CardUIScene.Instantiate<CardUi>();
         _previewZone.AddChild(_previewCard);
-        _previewCard.SetCard(bp.Prebuilt.TopHalf, bp.Prebuilt.BottomHalf);
-
-        // Bypass the draw-in animation — force visible at rest position
+        _previewCard.SetCard(card.TopHalf, card.BottomHalf);
         _previewCard.Modulate = Colors.White;
         _previewCard.Position = Vector2.Zero;
         _previewCard.Rotation = 0f;
         _previewCard.Scale = Vector2.One;
-        _previewCard.SetProcess(false); // disable breathe animation
+        _previewCard.SetProcess(false);
 
         CallDeferred(nameof(LayoutPreviewCard));
     }
@@ -716,28 +864,41 @@ public partial class DeckEditorUi : Control
                           _stashList.GetGlobalRect().GrowIndividual(0, 40, 0, 0)
                                     .HasPoint(mouse);
 
-        if (_dragFromActive && overStash)
-            MoveCard(save, _draggedRow.Copies, isActive: true);
-        else if (!_dragFromActive && overActive)
-            MoveCard(save, _draggedRow.Copies, isActive: false);
+        var owned = _draggedRow.Copies.FirstOrDefault();
+        if (owned != null)
+        {
+            if (_dragFromActive && overStash)
+                MoveCard(save, owned, isActive: true);
+            else if (!_dragFromActive && overActive)
+                MoveCard(save, owned, isActive: false);
+        }
 
         _draggedRow = null;
-        SaveManager.Save();
         Refresh();
     }
 
-    private void MoveCard(GuildSaveData save, List<OwnedCard> copies, bool isActive)
+    private void MoveCard(GuildSaveData save, OwnedCard owned, bool isActive)
     {
         if (isActive)
         {
-            var toMove = copies.FirstOrDefault(c => !c.IsStarter);
-            if (toMove != null) PlayerDeckService.UnslotCard(save, toMove.InstanceId);
+            // Unslotting — free, starters included
+            PlayerDeckService.UnslotCard(save, owned.InstanceId);
         }
         else
         {
-            var toMove = copies.FirstOrDefault();
-            if (toMove != null) PlayerDeckService.SlotCard(save, toMove.InstanceId);
+            // Slotting — costs gold
+            int cost = PlayerSession.CardSlotCost;
+            if (save.Gold < cost)
+            {
+                GD.Print($"[DeckEditor] Cannot slot — need {cost} gold, have {save.Gold}.");
+                return;
+            }
+            save.Gold -= cost;
+            PlayerDeckService.SlotCard(save, owned.InstanceId);
+            GD.Print($"[DeckEditor] Slotted '{owned.BlueprintId}'. " +
+                     $"Cost: {cost}g. Remaining gold: {save.Gold}.");
         }
+        SaveManager.Save();
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -758,6 +919,37 @@ public partial class DeckEditorUi : Control
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // Global input — mouse-up cancels drag anywhere on screen
+    // ─────────────────────────────────────────────────────────────────────
+    private void OnDisenchantPressed(OwnedCard owned, GuildSaveData save)
+    {
+        if (save == null || owned == null) return;
+        if (owned.IsStarter) return;
+
+        // Double-check floor — button should already be disabled but belt-and-suspenders
+        bool isActive = save.PlayerDeck.ActiveDeckInstanceIds?.Contains(owned.InstanceId) ?? false;
+        if (isActive && (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= save.MinDeckSize)
+        {
+            GD.Print("[Disenchant] Blocked — deck at minimum size.");
+            return;
+        }
+
+        int yield = DisenchantValues.GetYield(owned);
+
+        // Remove from active deck if slotted
+        save.PlayerDeck.ActiveDeckInstanceIds?.Remove(owned.InstanceId);
+        // Remove from owned cards entirely
+        save.PlayerDeck.Cards?.Remove(owned);
+
+        save.ArcaneSplinters += yield;
+
+        SaveManager.Save();
+        GD.Print($"[Disenchant] '{owned.BlueprintId}' removed. +{yield} splinters. " +
+                 $"Total: {save.ArcaneSplinters}");
+
+        Refresh();
+    }
     // ─────────────────────────────────────────────────────────────────────
     // Layout helpers
     // ─────────────────────────────────────────────────────────────────────
@@ -835,10 +1027,25 @@ public partial class DeckEditorUi : Control
 
     private Label MakeBadge(string text, Color color)
     {
-        var l = new Label { Text = text };
-        l.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
-        l.AddThemeColorOverride("font_color", color);
-        l.MouseFilter = MouseFilterEnum.Ignore;
+        var l = new Label
+        {
+            Text = text,
+            CustomMinimumSize = new Vector2(0, 16),
+            SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.Off,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        l.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize - 1);
+        l.AddThemeColorOverride("font_color", Colors.White);
+        var style = new StyleBoxFlat { BgColor = new Color(color.R, color.G, color.B) };
+        style.SetCornerRadiusAll(3);
+        style.ContentMarginLeft = 5;
+        style.ContentMarginRight = 5;
+        style.ContentMarginTop = 2;
+        style.ContentMarginBottom = 2;
+        l.AddThemeStyleboxOverride("normal", style);
         return l;
     }
 }
@@ -853,6 +1060,7 @@ public partial class DeckRowControl : PanelContainer
     public List<OwnedCard> Copies;
     public bool IsActive;
     public string DisplayTopName;
+    public string DisplayBotName;
     public StyleBoxFlat NormalStyle;
     public StyleBoxFlat HoverStyle;
 

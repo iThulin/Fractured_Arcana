@@ -156,13 +156,16 @@ public partial class OverworldRunManager : Node2D
         RunComplete = false;
 
         // ── Apply building bonuses ──────────────────────────────────────
+        PlayerSession.ClearRunState();
         var buildingBonuses = BuildingEffectApplier.CalculateRunBonuses(SaveManager.ActiveSave);
-        PlayerSession.ApplyUnlockedFeatures(buildingBonuses.UnlockedFeatures);
+        BuildingEffectApplier.ApplyCampusEffects(SaveManager.ActiveSave);
         MaxHP += buildingBonuses.BonusHP;
         CurrentHP = MaxHP;
         StepBudget += buildingBonuses.BonusSteps;
         StepsRemaining = StepBudget;
         GoldEarned += buildingBonuses.BonusGold;
+
+        PlayerSession.IsOnExpedition = true;
 
         // Apply debug flags
         if (PlayerSession.DebugMode && PlayerSession.StartWithGold)
@@ -682,6 +685,7 @@ public partial class OverworldRunManager : Node2D
     private void EndRun(bool reachedObjective)
     {
         RunComplete = true;
+        PlayerSession.IsOnExpedition = false;
 
         if (EncounterRouter.Instance != null)
         {

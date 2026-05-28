@@ -11,7 +11,7 @@
 		"rules_text": "Deal 6 damage. Imbue target tile and adjacent ring with Fire. Enemies on fire tiles take 3 extra damage.",
 		"tags": [
 			"fire",
-			"stone"
+			"earth"
 		],
 		"targeting": {
 			"type": "unit",
@@ -54,7 +54,7 @@
 		"rules_text": "Requires Fire tile. Gain 6 armor. Deal 5 damage to adjacent enemies.",
 		"tags": [
 			"fire",
-			"stone"
+			"earth"
 		],
 		"requires": [
 			"fire_tile"

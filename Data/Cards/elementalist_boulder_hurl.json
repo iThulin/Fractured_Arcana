@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Requires Stone tile. Hurl a boulder at target. Deal 8 damage and push 2 tiles.",
 		"tags": [
-			"stone"
+			"earth"
 		],
 		"requires": [
 			"stone_tile"
@@ -42,7 +42,7 @@
 		"speed": "Instant",
 		"rules_text": "Summon 2 Stone pillars adjacent to you. Gain 6 armor.",
 		"tags": [
-			"stone"
+			"earth"
 		],
 		"targeting": {
 			"type": "self"

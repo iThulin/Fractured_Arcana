@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 // ============================================================
@@ -60,6 +61,7 @@ public static class BuildingDatabase
         dir.ListDirEnd();
 
         GD.Print($"BuildingDatabase: Loaded {_templates.Count} building templates.");
+        GD.Print($"[BuildingDB] Loaded buildings: {string.Join(", ", _templates.Select(b => b.Id))}");
         return _templates;
     }
 

@@ -54,5 +54,10 @@ public class BuildingTier
     public string BonusTokenType = "";       // which token type
     public int PreRevealHexCount = 0;        // hexes revealed at run start
     public bool UnlocksCardLibrary = false;  // Phase 2 stub
+    public int DisenchantSplinterBonus = 0;
+
+    /// <summary>Reduces the gold cost to slot a card into the active deck.
+    /// Stacks across tiers. Applied by BuildingEffectApplier.</summary>
+    public int SlotCostReduction = 0;
     public List<string> UnlocksFeatures = new();  // string flags for future features
 }

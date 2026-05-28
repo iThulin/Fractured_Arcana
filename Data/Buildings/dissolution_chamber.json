@@ -1,0 +1,42 @@
+{
+	"id": "dissolution_chamber",
+	"name": "Dissolution Chamber",
+	"description": "An Arcanist laboratory for deconstructing and reorganising your spell repertoire.",
+	"category": "School",
+	"schoolAffinity": "Arcanist",
+	"maxTier": 3,
+	"tiers": [
+		{
+			"tier": 1,
+			"description": "Basic deconstruction. Unlocks card disenchanting. Slotting cards costs 30 gold.",
+			"goldCost": 150,
+			"requiredBuildings": [],
+			"unlocksFeatures": [
+				"card_disenchant"
+			]
+		},
+		{
+			"tier": 2,
+			"description": "Refined formulae. +5 splinters per disenchant. Slotting cards costs 20 gold.",
+			"goldCost": 250,
+			"requiredBuildings": [],
+			"unlocksFeatures": [
+				"card_disenchant"
+			],
+			"disenchantSplinterBonus": 5,
+			"slotCostReduction": 10
+		},
+		{
+			"tier": 3,
+			"description": "Master deconstruction. +10 splinters per disenchant. Slotting cards costs 10 gold. Minimum deck floor reduced to 3.",
+			"goldCost": 400,
+			"requiredBuildings": [],
+			"unlocksFeatures": [
+				"card_disenchant",
+				"deck_floor_reduced"
+			],
+			"disenchantSplinterBonus": 10,
+			"slotCostReduction": 20
+		}
+	]
+}

@@ -14,35 +14,74 @@ using System.Collections.Generic;
 // See:            README §6 — Debug flags
 // ============================================================
 
-/// <summary>Per-process active-run scratchpad. Holds school selection plus a set of debug-mode flags that bypass standard rules (no fog, unlimited steps, god-mode HP, etc.). Distinct from save data — these toggles do not persist.</summary>
+/// <summary>
+/// Per-process active-run scratchpad. Holds school selection, run-scoped
+/// feature flags unlocked by campus buildings, debug-mode flags, and the
+/// disenchant splinter bonus accumulated from building tiers.
+/// Distinct from save data — nothing here persists to disk.
+/// </summary>
 public static class PlayerSession
 {
+
+    /// <summary>True while the player is on an active expedition run.
+    /// Gates deck editing in DeckEditorUi.</summary>
+    public static bool IsOnExpedition = false;
     /// <summary>Currently selected wizard school. Drives starting deck composition and school-specific systems.</summary>
     public static CardSchool SelectedSchool = CardSchool.Elementalist;
     public static bool DebugMode = false;
     public static int DeckSize = 10;
 
-    // ── Debug flags (only active when DebugMode = true) ─────────────────
-    public static bool NoFog = false;              // reveal all hexes
-    public static bool UnlimitedSteps = false;     // step budget never decreases
-    public static bool GodModeHP = false;          // HP never drops below 1
-    public static bool StartWithGold = false;      // begin run with 5000 gold
-    public static bool StartWithSplinters = false; // begin run with 5000 splinters
-    public static bool SkipDeployment = false;     // auto-place units in combat
-
-    // Force a specific POI type for the next encounter (-1 = no override)
-    public static int ForceNextEncounterType = -1; // maps to OverworldHex.POIType int value
-
-    public static HashSet<string> UnlockedFeatures { get; private set; } = new();
+    /// <summary>Gold cost to slot one card into the active deck.
+    /// Base 30, reduced by buildings. Never below 0.</summary>
+    public static int CardSlotCost = 30;
 
     /// <summary>
-    /// Called by OverworldRunManager at run start after BuildingEffectApplier runs.
-    /// Also called on campus load so the upgrade screen can read flags without starting a run.
+    /// Extra Arcane Splinters added to every disenchant yield.
+    /// Accumulated from Dissolution Chamber tiers by BuildingEffectApplier.
+    /// Reset to 0 by ClearRunState().
     /// </summary>
-    public static void ApplyUnlockedFeatures(HashSet<string> features)
+    public static int DisenchantSplinterBonus = 0;
+
+    // ── Debug flags (only active when DebugMode = true) ─────────────────
+    public static bool NoFog = false;
+    public static bool UnlimitedSteps = false;
+    public static bool GodModeHP = false;
+    public static bool StartWithGold = false;
+    public static bool StartWithSplinters = false;
+    public static bool SkipDeployment = false;
+
+    // Force a specific POI type for the next encounter (-1 = no override)
+    public static int ForceNextEncounterType = -1;
+
+    // ── Feature flags ────────────────────────────────────────────────────
+    // Populated by BuildingEffectApplier.CalculateRunBonuses() via SetFeature().
+    // Also populated by BuildingEffectApplier.ApplyCampusEffects() so campus
+    // screens (upgrade, deck editor) can read flags without starting a run.
+    // Cleared by ClearRunState() before each new run.
+    private static readonly HashSet<string> _activeFeatures = new();
+
+    /// <summary>
+    /// Activate a named feature flag. Called by BuildingEffectApplier when
+    /// iterating UnlocksFeatures on each built building tier.
+    /// </summary>
+    public static void SetFeature(string feature)
     {
-        UnlockedFeatures = features ?? new HashSet<string>();
+        if (!string.IsNullOrEmpty(feature))
+            _activeFeatures.Add(feature);
     }
 
-    public static bool HasFeature(string flag) => UnlockedFeatures.Contains(flag);
+    /// <summary>Returns true if the named feature is currently active.</summary>
+    public static bool HasFeature(string feature) => _activeFeatures.Contains(feature);
+
+    /// <summary>
+    /// Clear all run-scoped state. Call before BuildingEffectApplier runs
+    /// at the start of each run so stale flags don't carry forward.
+    /// </summary>
+    public static void ClearRunState()
+    {
+        _activeFeatures.Clear();
+        DisenchantSplinterBonus = 0;
+        CardSlotCost = 30;
+        ForceNextEncounterType = -1;
+    }
 }

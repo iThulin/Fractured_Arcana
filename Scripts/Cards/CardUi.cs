@@ -75,6 +75,7 @@ public partial class CardUi : Control
     private Label _topManaLabel;
     private Label _topNameLabel;
     private Label _topSpeedLabel;
+    private HBoxContainer _topElementTags;
     private RichTextLabel _topRulesLabel;
     private Panel _topChannelPanel;
     private RichTextLabel _topChannelLabel;
@@ -83,6 +84,7 @@ public partial class CardUi : Control
     private Label _botManaLabel;
     private Label _botNameLabel;
     private Label _botSpeedLabel;
+    private HBoxContainer _botElementTags;
     private RichTextLabel _botRulesLabel;
     private Panel _botChannelPanel;
     private RichTextLabel _botChannelLabel;
@@ -147,6 +149,7 @@ public partial class CardUi : Control
         _topManaLabel = GetNodeOrNull<Label>($"{SplitTop}/NameBar/ManaPip/ManaLabel");
         _topNameLabel = GetNodeOrNull<Label>($"{SplitTop}/NameBar/SpellName");
         _topSpeedLabel = GetNodeOrNull<Label>($"{SplitTop}/NameBar/SpeedLabel");
+        _topElementTags = GetNodeOrNull<HBoxContainer>($"{SplitTop}/ElementTags");
         _topRulesLabel = GetNodeOrNull<RichTextLabel>($"{SplitTop}/RulesText");
         _topChannelPanel = GetNodeOrNull<Panel>($"{SplitTop}/ChannelStrip");
         _topChannelLabel = GetNodeOrNull<RichTextLabel>($"{SplitTop}/ChannelStrip/ChannelLabel");
@@ -155,6 +158,7 @@ public partial class CardUi : Control
         _botManaLabel = GetNodeOrNull<Label>($"{SplitBot}/NameBar/ManaPip/ManaLabel");
         _botNameLabel = GetNodeOrNull<Label>($"{SplitBot}/NameBar/SpellName");
         _botSpeedLabel = GetNodeOrNull<Label>($"{SplitBot}/NameBar/SpeedLabel");
+        _botElementTags = GetNodeOrNull<HBoxContainer>($"{SplitBot}/ElementTags");
         _botRulesLabel = GetNodeOrNull<RichTextLabel>($"{SplitBot}/RulesText");
         _botChannelPanel = GetNodeOrNull<Panel>($"{SplitBot}/ChannelStrip");
         _botChannelLabel = GetNodeOrNull<RichTextLabel>($"{SplitBot}/ChannelStrip/ChannelLabel");
@@ -307,11 +311,11 @@ public partial class CardUi : Control
 
         // ── Populate top split half ─────────────────────────────────
         PopulateSplitHalf(top,
-            _topManaLabel, _topNameLabel, _topSpeedLabel, _topRulesLabel);
+            _topManaLabel, _topNameLabel, _topSpeedLabel, _topRulesLabel, _topElementTags);
 
         // ── Populate bottom split half ──────────────────────────────
         PopulateSplitHalf(bottom,
-            _botManaLabel, _botNameLabel, _botSpeedLabel, _botRulesLabel);
+            _botManaLabel, _botNameLabel, _botSpeedLabel, _botRulesLabel, _botElementTags);
 
         // ── Apply school-colored borders ────────────────────────────
         var school = top?.School ?? bottom?.School ?? CardSchool.Generic;
@@ -340,12 +344,14 @@ public partial class CardUi : Control
     }
 
     private void PopulateSplitHalf(CardHalf half,
-        Label mana, Label name, Label speed, RichTextLabel rules)
+        Label mana, Label name, Label speed, RichTextLabel rules,
+        HBoxContainer elementTags)
     {
         if (mana != null) mana.Text = (half?.ManaCost ?? 0).ToString();
         if (name != null) name.Text = half?.Name ?? "";
         if (speed != null) speed.Text = half?.Speed.ToString() ?? "Sorcery";
         if (rules != null) rules.Text = half?.RulesText ?? "";
+        PopulateElementTags(elementTags, half);
     }
 
     private void ApplyPanelBorder(Panel panel, Color borderCol, bool isTop)
@@ -380,6 +386,35 @@ public partial class CardUi : Control
         var s = new StyleBoxFlat { BgColor = darkCol };
         s.SetCornerRadiusAll(UITheme.CornerRadiusLg);
         pip.AddThemeStyleboxOverride("panel", s);
+    }
+
+    private void PopulateElementTags(HBoxContainer container, CardHalf half)
+    {
+        if (container == null) return;
+        foreach (Node c in container.GetChildren()) c.QueueFree();
+
+        foreach (var tag in half?.Tags ?? Array.Empty<string>())
+        {
+            var pip = new Label
+            {
+                Text = ElementColors.GetLabel(tag),
+                CustomMinimumSize = new Vector2(0, 16),
+                SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                AutowrapMode = TextServer.AutowrapMode.Off,
+            };
+            pip.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
+            pip.AddThemeColorOverride("font_color", Colors.White);
+            var style = new StyleBoxFlat { BgColor = ElementColors.Get(tag) };
+            style.SetCornerRadiusAll(4);
+            style.ContentMarginLeft = 5;
+            style.ContentMarginRight = 5;
+            style.ContentMarginTop = 2;
+            style.ContentMarginBottom = 2;
+            pip.AddThemeStyleboxOverride("normal", style);
+            container.AddChild(pip);
+        }
     }
 
     private void SetChannelBadge(string nameBarPath, bool canChannel)
@@ -444,26 +479,7 @@ public partial class CardUi : Control
         }
 
         // Element tags
-        if (_elementTagContainer != null)
-        {
-            foreach (Node c in _elementTagContainer.GetChildren())
-                c.QueueFree();
-
-            foreach (var tag in half.Tags ?? Array.Empty<string>())
-            {
-                var pip = new Label();
-                pip.Text = ElementColors.GetLabel(tag);
-                pip.CustomMinimumSize = new Vector2(14, 14);
-                pip.HorizontalAlignment = HorizontalAlignment.Center;
-                pip.VerticalAlignment = VerticalAlignment.Center;
-                pip.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall / 2);
-                pip.AddThemeColorOverride("font_color", Colors.White);
-                var pipStyle = new StyleBoxFlat { BgColor = ElementColors.Get(tag) };
-                pipStyle.SetCornerRadiusAll(UITheme.CornerRadius + 2);
-                pip.AddThemeStyleboxOverride("normal", pipStyle);
-                _elementTagContainer.AddChild(pip);
-            }
-        }
+        PopulateElementTags(_elementTagContainer, half);
 
         // Divider
         if (_fullDivider != null)

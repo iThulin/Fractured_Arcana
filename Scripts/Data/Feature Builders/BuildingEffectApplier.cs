@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 // ============================================================
@@ -27,52 +28,98 @@ public static class BuildingEffectApplier
         public int PreRevealHexCount;
         public int NegotiationTokenCount;
         public string NegotiationTokenType;
-        public HashSet<string> UnlockedFeatures;
     }
 
     /// <summary>
     /// Calculate all run bonuses from built buildings.
     /// </summary>
     public static RunBonuses CalculateRunBonuses(GuildSaveData save)
-{
-    var bonuses = new RunBonuses();
-    bonuses.UnlockedFeatures = new HashSet<string>(); // NEW
-    if (save == null) return bonuses;
-
-    foreach (var buildingSave in save.Buildings)
     {
-        if (buildingSave.Tier <= 0) continue;
+        var bonuses = new RunBonuses();
 
-        // Aggregate ALL built tiers, not just current —
-        // a Tier 2 building should carry Tier 1 flags too.
-        var template = BuildingDatabase.GetTemplate(buildingSave.Id);
-        if (template == null) continue;
+        if (save == null) return bonuses;
 
-        for (int t = 1; t <= buildingSave.Tier; t++)
+        foreach (var buildingSave in save.Buildings)
         {
-            var tierData = template.Tiers.Find(td => td.Tier == t);
-            if (tierData == null) continue;
+            if (buildingSave.Tier <= 0) continue;
 
-            bonuses.BonusHP += tierData.BonusStartingHP;
-            bonuses.BonusSteps += tierData.BonusStartingSteps;
-            bonuses.BonusGold += tierData.BonusStartingGold;
-            bonuses.PreRevealHexCount += tierData.PreRevealHexCount;
+            // Aggregate ALL built tiers, not just current —
+            // a Tier 2 building should carry Tier 1 flags too.
+            var template = BuildingDatabase.GetTemplate(buildingSave.Id);
+            if (template == null) continue;
 
-            if (tierData.BonusNegotiationTokens > 0 &&
-                !string.IsNullOrEmpty(tierData.BonusTokenType))
+            for (int t = 1; t <= buildingSave.Tier; t++)
             {
-                bonuses.NegotiationTokenCount += tierData.BonusNegotiationTokens;
-                bonuses.NegotiationTokenType = tierData.BonusTokenType;
-            }
+                var tierData = template.Tiers.Find(td => td.Tier == t);
+                if (tierData == null) continue;
 
-            // NEW — aggregate feature flags
-            if (tierData.UnlocksFeatures != null)
-                foreach (var feature in tierData.UnlocksFeatures)
-                    bonuses.UnlockedFeatures.Add(feature);
+                bonuses.BonusHP += tierData.BonusStartingHP;
+                bonuses.BonusSteps += tierData.BonusStartingSteps;
+                bonuses.BonusGold += tierData.BonusStartingGold;
+                bonuses.PreRevealHexCount += tierData.PreRevealHexCount;
+
+                if (tierData.BonusNegotiationTokens > 0 &&
+                    !string.IsNullOrEmpty(tierData.BonusTokenType))
+                {
+                    bonuses.NegotiationTokenCount += tierData.BonusNegotiationTokens;
+                    bonuses.NegotiationTokenType = tierData.BonusTokenType;
+                }
+
+                // Aggregate feature flags
+                if (tierData.UnlocksFeatures != null)
+                {
+                    foreach (var feature in tierData.UnlocksFeatures)
+                    {
+                        PlayerSession.SetFeature(feature);
+                        GD.Print($"[Building] Feature unlocked: {feature}");
+                    }
+                }
+
+                if (tierData.SlotCostReduction > 0)
+                    PlayerSession.CardSlotCost = Math.Max(0,
+                        PlayerSession.CardSlotCost - tierData.SlotCostReduction);
+
+                if (tierData.DisenchantSplinterBonus > 0)
+                    PlayerSession.DisenchantSplinterBonus += tierData.DisenchantSplinterBonus;
+            }
         }
+
+        if (bonuses.BonusHP > 0 || bonuses.BonusSteps > 0 || bonuses.BonusGold > 0)
+            GD.Print($"[Buildings] Run bonuses: +{bonuses.BonusHP}HP, " +
+                     $"+{bonuses.BonusSteps}Steps, +{bonuses.BonusGold}Gold, " +
+                     $"{bonuses.PreRevealHexCount} pre-reveals");
+        return bonuses;
     }
 
-    GD.Print($"[Buildings] Unlocked features: {string.Join(", ", bonuses.UnlockedFeatures)}");
-    return bonuses;
-}
+    /// <summary>
+    /// Apply campus-persistent effects (not run bonuses) — e.g., MinDeckSize.
+    /// Call from CampusScreen after buildings are loaded.
+    /// </summary>
+    public static void ApplyCampusEffects(GuildSaveData save)
+    {
+        if (save == null) return;
+
+        // Reset to default before recomputing
+        save.MinDeckSize = 5;
+
+        foreach (var buildingSave in save.Buildings)
+        {
+            if (buildingSave.Tier <= 0) continue;
+
+            // Accumulate all tiers up to current (effects stack)
+            var template = BuildingDatabase.GetTemplate(buildingSave.Id);
+            if (template == null) continue;
+
+            foreach (var tier in template.Tiers)
+            {
+                if (tier.Tier > buildingSave.Tier) continue;
+
+                if (tier.UnlocksFeatures != null &&
+                    tier.UnlocksFeatures.Contains("deck_floor_reduced"))
+                {
+                    save.MinDeckSize = Math.Max(3, save.MinDeckSize - 2);
+                }
+            }
+        }
+    }
 }
