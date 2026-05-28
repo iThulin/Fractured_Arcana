@@ -50,28 +50,28 @@ public partial class SettingsManager : Node
         Instance = this;
         ProcessMode = ProcessModeEnum.Always;
         LoadSettings();
-        DebugMonitors();
         ApplyAllSettings();
+
+        // Deferred so the window system is fully ready
+        if (!IsEmbedded)
+            CallDeferred(nameof(ForceWindowToPrimaryScreen));
 
         if (IsEmbedded)
             GD.Print("[Settings] Running in editor — window resize/move skipped.");
     }
 
-    private void DebugMonitors()
+    private void ForceWindowToPrimaryScreen()
     {
-        int count = DisplayServer.GetScreenCount();
-        GD.Print($"[Monitor Debug] Screen count: {count}");
-        GD.Print($"[Monitor Debug] GetPrimaryScreen: {DisplayServer.GetPrimaryScreen()}");
+        int primary = DisplayServer.GetPrimaryScreen();
+        var screenPos = DisplayServer.ScreenGetPosition(primary);
 
-        for (int i = 0; i < count; i++)
-        {
-            var pos = DisplayServer.ScreenGetPosition(i);
-            var size = DisplayServer.ScreenGetSize(i);
-            GD.Print($"[Monitor Debug] Screen {i}: pos={pos}, size={size}");
-        }
+        // Must be windowed to move, then go fullscreen
+        DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
+        DisplayServer.WindowSetPosition(screenPos + new Vector2I(10, 10));
+        DisplayServer.WindowSetCurrentScreen(primary);
+        DisplayServer.WindowSetMode(WindowMode);
 
-        GD.Print($"[Monitor Debug] Current window screen: {DisplayServer.WindowGetCurrentScreen()}");
-        GD.Print($"[Monitor Debug] Window position: {DisplayServer.WindowGetPosition()}");
+        GD.Print($"[Settings] Forced to screen {primary} at {screenPos}, mode={WindowMode}");
     }
 
     // ════════════════════════════════════════════════════════════════════════
