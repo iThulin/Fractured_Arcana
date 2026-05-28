@@ -29,7 +29,7 @@ public partial class SettingsManager : Node
 
     // ── Public state ────────────────────────────────────────────────────────
     public Vector2I Resolution { get; private set; } = new Vector2I(1920, 1080);
-    public DisplayServer.WindowMode WindowMode { get; private set; } = DisplayServer.WindowMode.Windowed;
+    public DisplayServer.WindowMode WindowMode { get; private set; } = DisplayServer.WindowMode.Fullscreen;
     public bool VSync { get; private set; } = true;
     public float UIScale { get; private set; } = 1.0f;
     public float MasterVolume { get; private set; } = 1.0f;
@@ -50,10 +50,28 @@ public partial class SettingsManager : Node
         Instance = this;
         ProcessMode = ProcessModeEnum.Always;
         LoadSettings();
+        DebugMonitors();
         ApplyAllSettings();
 
         if (IsEmbedded)
             GD.Print("[Settings] Running in editor — window resize/move skipped.");
+    }
+
+    private void DebugMonitors()
+    {
+        int count = DisplayServer.GetScreenCount();
+        GD.Print($"[Monitor Debug] Screen count: {count}");
+        GD.Print($"[Monitor Debug] GetPrimaryScreen: {DisplayServer.GetPrimaryScreen()}");
+
+        for (int i = 0; i < count; i++)
+        {
+            var pos = DisplayServer.ScreenGetPosition(i);
+            var size = DisplayServer.ScreenGetSize(i);
+            GD.Print($"[Monitor Debug] Screen {i}: pos={pos}, size={size}");
+        }
+
+        GD.Print($"[Monitor Debug] Current window screen: {DisplayServer.WindowGetCurrentScreen()}");
+        GD.Print($"[Monitor Debug] Window position: {DisplayServer.WindowGetPosition()}");
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -62,6 +80,14 @@ public partial class SettingsManager : Node
 
     public void ApplyAllSettings()
     {
+        // ── Always start on the primary screen ──────────────────────────────
+        if (!IsEmbedded)
+        {
+            int primary = DisplayServer.GetPrimaryScreen();
+            var screenPos = DisplayServer.ScreenGetPosition(primary);
+            DisplayServer.WindowSetPosition(screenPos + new Vector2I(10, 10));
+        }
+
         ApplyWindowMode();
         ApplyResolution();
         ApplyVSync();
@@ -122,10 +148,33 @@ public partial class SettingsManager : Node
 
     private void ApplyWindowMode()
     {
-        // The embedded player only supports Windowed mode — skip silently.
         if (IsEmbedded) return;
 
-        DisplayServer.WindowSetMode(WindowMode);
+        // For fullscreen modes, explicitly move to the primary monitor first.
+        // WindowSetCurrentScreen alone is unreliable — position-based targeting
+        // is more consistent across drivers.
+        if (WindowMode == DisplayServer.WindowMode.Fullscreen ||
+            WindowMode == DisplayServer.WindowMode.ExclusiveFullscreen)
+        {
+            int primary = DisplayServer.GetPrimaryScreen();
+
+            // Get the top-left position of the primary monitor in desktop space
+            var screenPos = DisplayServer.ScreenGetPosition(primary);
+
+            // Step 1: ensure we're windowed so we can be moved
+            DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
+
+            // Step 2: move the window onto that monitor
+            DisplayServer.WindowSetPosition(screenPos + new Vector2I(1, 1));
+
+            // Step 3: now go fullscreen — it will fullscreen on whichever
+            // monitor the window is currently sitting on
+            DisplayServer.WindowSetMode(WindowMode);
+        }
+        else
+        {
+            DisplayServer.WindowSetMode(WindowMode);
+        }
     }
 
     private void ApplyVSync()
@@ -170,8 +219,8 @@ public partial class SettingsManager : Node
         int mode = (int)cfg.GetValue("display", "window_mode", (int)DisplayServer.WindowMode.Windowed);
         WindowMode = (DisplayServer.WindowMode)mode;
 
-        VSync        = (bool)cfg.GetValue("display", "vsync", true);
-        UIScale      = (float)cfg.GetValue("ui", "scale", 1.0f);
+        VSync = (bool)cfg.GetValue("display", "vsync", true);
+        UIScale = (float)cfg.GetValue("ui", "scale", 1.0f);
         MasterVolume = (float)cfg.GetValue("audio", "master_volume", 1.0f);
 
         GD.Print($"[Settings] Loaded — {Resolution.X}x{Resolution.Y}, mode={WindowMode}, " +

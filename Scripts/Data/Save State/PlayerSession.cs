@@ -22,6 +22,11 @@ using System.Collections.Generic;
 /// </summary>
 public static class PlayerSession
 {
+    /// <summary>
+    /// When starting a new game from the campus screen, store the selected slot
+    /// here so the NewGameScreen can write the new save to the correct slot.
+    /// </summary>
+    public static int PendingNewGameSlot = -1;
 
     /// <summary>True while the player is on an active expedition run.
     /// Gates deck editing in DeckEditorUi.</summary>

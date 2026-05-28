@@ -1,0 +1,54 @@
+{
+	"worldName": "The Fractured Realm",
+	"startingRegionId": "frontier_wilds",
+	"nodes": [
+		{
+			"regionId": "frontier_wilds",
+			"displayName": "Frontier Wilds",
+			"description": "Dense wilderness beyond the guild's reach. Your first expedition.",
+			"col": 1,
+			"row": 1,
+			"adjacentTo": [
+				"haunted_ruins",
+				"trade_city"
+			],
+			"unlockedByDefault": true,
+			"deploymentCost": 0,
+			"schoolAffinity": "Elementalist",
+			"atmosphere": "Hostile",
+			"terrainFlavor": "Dense Forest"
+		},
+		{
+			"regionId": "haunted_ruins",
+			"displayName": "Haunted Ruins",
+			"description": "The bones of an ancient city. The dead do not rest here.",
+			"col": 0,
+			"row": 2,
+			"adjacentTo": [
+				"frontier_wilds"
+			],
+			"unlockedByDefault": false,
+			"requiresRegionCleared": "frontier_wilds",
+			"deploymentCost": 50,
+			"schoolAffinity": "Necromancer",
+			"atmosphere": "Hostile",
+			"terrainFlavor": "Ancient Ruins"
+		},
+		{
+			"regionId": "trade_city",
+			"displayName": "Trade City Outskirts",
+			"description": "Where deals are struck and information flows freely.",
+			"col": 2,
+			"row": 2,
+			"adjacentTo": [
+				"frontier_wilds"
+			],
+			"unlockedByDefault": false,
+			"requiresRegionCleared": "frontier_wilds",
+			"deploymentCost": 30,
+			"schoolAffinity": "Enchanter",
+			"atmosphere": "Neutral",
+			"terrainFlavor": "Settled Roads"
+		}
+	]
+}

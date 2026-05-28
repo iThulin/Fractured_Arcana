@@ -108,12 +108,21 @@ public partial class OverworldHexGrid : Node2D
         if (Region != null && Region.HasMountainRange)
             GenerateMountainRange();
 
-        // ── Place entry and objective ───────────────────────────────────
-        EntryCoord = new Vector2I(1, GridHeight / 2);
-        // Make sure entry area is walkable
+        // ── Place entry and objective — seeded random positions ─────────
+        // Entry:     left edge column (q=1), row randomised in middle third.
+        // Objective: right edge column (q=GridWidth-2), independently randomised.
+        // Uses _rng which is already seeded, so positions are deterministic
+        // per seed and regenerate identically on return from combat.
+        int rowMin = GridHeight / 4;
+        int rowMax = (3 * GridHeight) / 4;
+        int rowRange = Mathf.Max(1, rowMax - rowMin); // guard against tiny grids
+
+        int entryRow = rowMin + (int)(_rng.Randi() % (uint)rowRange);
+        EntryCoord = new Vector2I(1, entryRow);
         ClearTerrainAround(EntryCoord, 1, OverworldHex.TerrainType.Grassland);
 
-        ObjectiveCoord = new Vector2I(GridWidth - 2, GridHeight / 2);
+        int objRow = rowMin + (int)(_rng.Randi() % (uint)rowRange);
+        ObjectiveCoord = new Vector2I(GridWidth - 2, objRow);
         if (Hexes.TryGetValue(ObjectiveCoord, out var objHex))
         {
             objHex.POI = OverworldHex.POIType.Objective;
@@ -137,7 +146,7 @@ public partial class OverworldHexGrid : Node2D
         public int Radius;
     }
 
-        private void GenerateBiomes()
+    private void GenerateBiomes()
     {
         // Start everything as grassland
         foreach (var hex in Hexes.Values)

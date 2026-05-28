@@ -13,6 +13,7 @@ using System.Collections.Generic;
 // Collaborators:  OverworldHexGrid.cs, FogOfWarManager.cs,
 //                 OverworldPartyToken.cs, RegionLoader.cs,
 //                 NarrativeEncounterPanel.cs / Loader.cs,
+//                 ScoutReportPanel.cs (combat pre-flight),
 //                 EncounterRouter.cs (combat dispatch),
 //                 RunResultData.cs (writes results on end)
 // See:            README §3 — top of the overworld layer
@@ -40,13 +41,26 @@ public partial class OverworldRunManager : Node2D
     private Camera2D _camera;
     private RegionDefinition _region;
     private NarrativeEncounterPanel _narrativePanel;
+    private ScoutReportPanel _scoutPanel;
     private List<NarrativeEncounterData> _encounterPool;
+
+    // ── Pending combat state ─────────────────────────────────────────────
+    // Set when the scout panel is open; cleared on engage or retreat.
+    private Vector2I? _pendingCombatHexCoord = null;
+    private EncounterDefinition _pendingEncounter = null;
 
     // ── UI ───────────────────────────────────────────────────────────────
     private Label _stepLabel;
     private Label _hpLabel;
     private Label _infoLabel;
     private Label _objectiveLabel;
+    private Button _returnButton;
+
+    // ── Camera pan state ─────────────────────────────────────────────────
+    // When the player pans manually, we detach the camera from the party.
+    // It reattaches on the next party move.
+    private bool _cameraFreeMode = false;
+    private const float CameraPanSpeed = 400f; // pixels per second
 
     [Signal] public delegate void RunEndedEventHandler(bool reachedObjective);
 
@@ -63,6 +77,9 @@ public partial class OverworldRunManager : Node2D
         var router = EncounterRouter.Instance;
 
         // ── Decide which seed to use for this overworld ─────────────────────
+        // Priority: (1) returning from combat — use router's saved seed
+        //           (2) returning to a visited region — use region memory seed
+        //           (3) fresh visit — generate a new random seed
         int seed;
         if (router != null && router.HasSavedSeed)
         {
@@ -71,8 +88,19 @@ public partial class OverworldRunManager : Node2D
         }
         else
         {
-            seed = (int)GD.Randi();
-            GD.Print($"RunManager: New run with seed {seed}.");
+            // Check if this region has been visited before
+            string earlyRegionId = SaveManager.ActiveSave?.CurrentRegionId ?? "frontier_wilds";
+            int savedSeed = RegionMemoryService.GetSavedSeed(earlyRegionId);
+            if (savedSeed != 0)
+            {
+                seed = savedSeed;
+                GD.Print($"RunManager: Using saved region seed {seed} (return visit to '{earlyRegionId}').");
+            }
+            else
+            {
+                seed = (int)GD.Randi();
+                GD.Print($"RunManager: New run with seed {seed}.");
+            }
         }
 
         // ── Build equipment loadouts for the run ─────────────────────
@@ -84,7 +112,6 @@ public partial class OverworldRunManager : Node2D
 
         if (_region != null)
         {
-            // Sync step budget from region
             StepBudget = _region.StepBudget;
             GD.Print($"RunManager: Loaded region '{_region.DisplayName}' " +
                     $"(StepBudget={StepBudget}, POIs: {_region.CombatPOICount}/" +
@@ -134,21 +161,108 @@ public partial class OverworldRunManager : Node2D
         var canvas = new CanvasLayer { Name = "UI" };
         AddChild(canvas);
 
-        _stepLabel = MakeUILabel(new Vector2(20, 20));
-        canvas.AddChild(_stepLabel);
+        // ── HUD panel — dark background keeps labels readable over any terrain ──
+        var hudPanel = new PanelContainer
+        {
+            // Top-left, fixed width, auto-height
+            AnchorLeft = 0f,
+            AnchorTop = 0f,
+            AnchorRight = 0f,
+            AnchorBottom = 0f,
+            OffsetLeft = 12,
+            OffsetTop = 12,
+            OffsetRight = 300,
+            OffsetBottom = 12, // height driven by content
+        };
+        var hudStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0f, 0f, 0f, 0.55f),
+            BorderColor = new Color(1f, 1f, 1f, 0.08f),
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6,
+            CornerRadiusBottomLeft = 6,
+            CornerRadiusBottomRight = 6,
+        };
+        hudPanel.AddThemeStyleboxOverride("panel", hudStyle);
+        canvas.AddChild(hudPanel);
 
-        _hpLabel = MakeUILabel(new Vector2(20, 55));
-        canvas.AddChild(_hpLabel);
+        var hudVBox = new VBoxContainer();
+        hudVBox.AddThemeConstantOverride("separation", 4);
+        // Inner padding
+        var hudMargin = new MarginContainer();
+        hudMargin.AddThemeConstantOverride("margin_left", 12);
+        hudMargin.AddThemeConstantOverride("margin_right", 12);
+        hudMargin.AddThemeConstantOverride("margin_top", 10);
+        hudMargin.AddThemeConstantOverride("margin_bottom", 10);
+        hudMargin.AddChild(hudVBox);
+        hudPanel.AddChild(hudMargin);
 
-        _objectiveLabel = MakeUILabel(new Vector2(20, 90));
-        canvas.AddChild(_objectiveLabel);
+        _stepLabel = MakeHUDLabel();
+        hudVBox.AddChild(_stepLabel);
 
-        _infoLabel = MakeUILabel(new Vector2(20, 130));
+        _hpLabel = MakeHUDLabel();
+        hudVBox.AddChild(_hpLabel);
+
+        hudVBox.AddChild(new HSeparator());
+
+        _objectiveLabel = MakeHUDLabel();
+        hudVBox.AddChild(_objectiveLabel);
+
+        hudVBox.AddChild(new HSeparator());
+
+        _infoLabel = MakeHUDLabel();
         _infoLabel.Modulate = UITheme.OverworldInfoLabelTint;
-        canvas.AddChild(_infoLabel);
+        _infoLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        hudVBox.AddChild(_infoLabel);
+
+        // ── Pan hint label (bottom-left, outside panel) ──────────────────
+        var panHint = new Label
+        {
+            Text = "WASD / Arrow Keys — pan map",
+            Position = new Vector2(12, 0),
+            AnchorTop = 1f,
+            AnchorBottom = 1f,
+            OffsetTop = -30,
+            OffsetBottom = -6,
+        };
+        panHint.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        panHint.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.4f));
+        canvas.AddChild(panHint);
+
+        // ── Scout report panel ──────────────────────────────────────────────
+        _scoutPanel = new ScoutReportPanel { Name = "ScoutPanel" };
+        canvas.AddChild(_scoutPanel);
+
+        // ── Return-to-campus button (hidden until run ends) ─────────────────
+        _returnButton = new Button
+        {
+            Text = "Return to Campus",
+            Visible = false,
+            // Centered horizontally, anchored near the bottom of the screen
+            AnchorLeft = 0.5f,
+            AnchorTop = 0.82f,
+            AnchorRight = 0.5f,
+            AnchorBottom = 0.82f,
+            GrowHorizontal = Control.GrowDirection.Both,
+            GrowVertical = Control.GrowDirection.Both,
+            OffsetLeft = -130,
+            OffsetRight = 130,
+            OffsetTop = -26,
+            OffsetBottom = 26,
+        };
+        _returnButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        _returnButton.AddThemeColorOverride("font_color", UITheme.NarrativeTitleColor);
+        _returnButton.Pressed += () =>
+            GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
+        canvas.AddChild(_returnButton);
 
         // ── Initialize run state defaults (may be overwritten by restore) ───
         StepsRemaining = StepBudget;
+        MaxHP = ComputePartyBaseHP();
         CurrentHP = MaxHP;
         GoldEarned = 0;
         SplinterEarned = 0;
@@ -181,13 +295,19 @@ public partial class OverworldRunManager : Node2D
         else
         {
             _party.Initialize(_grid, _fog, _grid.EntryCoord);
-            ShowInfo("Explore the map. Reach the golden objective marker.");
 
-            // Pre-reveal hexes from Courier Station
+            // Restore fog/POI state from region memory if this is a return visit
+            string initRegionId = _region?.Id ?? SaveManager.ActiveSave?.CurrentRegionId ?? "frontier_wilds";
+            bool isReturnVisit = RegionMemoryService.Restore(initRegionId, _grid);
+
+            if (isReturnVisit)
+                ShowInfo("You return to familiar ground. Unexplored territory awaits.");
+            else
+                ShowInfo("Explore the map. Find and reach the objective.");
+
             if (buildingBonuses.PreRevealHexCount > 0)
                 PreRevealHexes(buildingBonuses.PreRevealHexCount);
 
-            // Apply fog after pre-reveals
             if (PlayerSession.DebugMode && PlayerSession.NoFog)
                 RevealAllFog();
         }
@@ -206,7 +326,6 @@ public partial class OverworldRunManager : Node2D
         _party.PartyMoved += OnPartyMoved;
         _party.PartyArrived += OnPartyArrived;
 
-        // Debug: reveal all fog
         if (PlayerSession.DebugMode && PlayerSession.NoFog)
             RevealAllFog();
 
@@ -214,46 +333,145 @@ public partial class OverworldRunManager : Node2D
         UpdateUI();
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    // Party HP derivation
+    // ════════════════════════════════════════════════════════════════════════
+
     /// <summary>
-    /// Restore overworld state after returning from a combat encounter.
+    /// Derives overworld MaxHP from the wizard's base HP (20, matching
+    /// CombatManager) plus each active recruited companion's BaseHP.
+    /// Building bonuses are applied on top of this in _Ready.
     /// </summary>
+    private int ComputePartyBaseHP()
+    {
+        const int WizardBaseHP = 20;
+        int total = WizardBaseHP;
+
+        var save = SaveManager.ActiveSave;
+        if (save == null) return total;
+
+        foreach (var companionId in save.ActivePartyCompanionIds)
+        {
+            var companion = save.Companions.Find(
+                c => c.Id == companionId && c.IsRecruited && !c.IsPermadead);
+            if (companion != null)
+                total += companion.BaseHP;
+        }
+
+        return total;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Combat routing
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Called when the party steps onto a Combat POI. Pre-builds the
+    /// EncounterDefinition so the scout panel has full data, then shows
+    /// the panel. The party has already paid the step cost to arrive here.
+    /// </summary>
+    private void OpenScoutReport(Vector2I coord, OverworldHex hex)
+    {
+        string terrainType = hex.Terrain.ToString();
+        string regionId = _region?.Id ?? "frontier_wilds";
+        float diffMult = _region?.EnemyDifficultyMult ?? 1.0f;
+        var tier = EncounterTier.Battle; // expand when POI stores sub-type
+
+        var encounterDef = EncounterPoolLoader.Pick(regionId, tier, terrainType, diffMult);
+
+        _pendingCombatHexCoord = coord;
+        _pendingEncounter = encounterDef;
+
+        _scoutPanel.OnEngage = () =>
+        {
+            if (_pendingCombatHexCoord.HasValue && _pendingEncounter != null)
+                CommitCombat(_pendingCombatHexCoord.Value, _pendingEncounter);
+            _pendingCombatHexCoord = null;
+            _pendingEncounter = null;
+        };
+
+        _scoutPanel.OnRetreat = () =>
+        {
+            ShowInfo("You fall back. The encounter remains.");
+            _pendingCombatHexCoord = null;
+            _pendingEncounter = null;
+        };
+
+        int stepCost = GetTerrainStepCost(hex.Terrain);
+        _scoutPanel.Show(encounterDef, hex.Terrain.ToString(), stepCost);
+    }
+
+    /// <summary>
+    /// Saves all overworld state to the router and swaps to the combat
+    /// scene, using the pre-built EncounterDefinition from the scout panel.
+    /// Bypasses EncounterRouter.StartCombat() to avoid a second Pick() call.
+    /// </summary>
+    private void CommitCombat(Vector2I hexCoord, EncounterDefinition encounterDef)
+    {
+        var router = EncounterRouter.Instance;
+        if (router == null)
+        {
+            GD.PrintErr("RunManager: EncounterRouter not found!");
+            return;
+        }
+
+        // ── Save overworld state ────────────────────────────────────────
+        router.SavedStepsRemaining = StepsRemaining;
+        router.SavedCurrentHP = CurrentHP;
+        router.SavedGoldEarned = GoldEarned;
+        router.SavedSplinterEarned = SplinterEarned;
+        router.SavedEncountersWon = EncountersWon;
+        router.SavedPartyCoord = _party.CurrentCoord;
+        router.SavedCombatHexCoord = hexCoord;
+
+        router.SavedFogStates.Clear();
+        router.SavedPOIConsumed.Clear();
+        foreach (var kvp in _grid.Hexes)
+        {
+            router.SavedFogStates[kvp.Key] = kvp.Value.Fog;
+            router.SavedPOIConsumed[kvp.Key] = kvp.Value.POIConsumed;
+        }
+
+        router.HasPendingReturn = false;
+        router.HasSavedSeed = true;
+        router.SavedRunSeed = _grid.Seed;
+
+        // ── Hand off the pre-built definition and tier ──────────────────
+        EncounterContextCarrier.Set(encounterDef);
+        router.SetCurrentTier(encounterDef.Tier);
+
+        GD.Print($"RunManager: Committing combat — {encounterDef.DisplayName} " +
+                 $"({encounterDef.Tier}, {encounterDef.Enemies.Count} enemies) at {hexCoord}");
+
+        ShowInfo("Entering combat...");
+        GetTree().ChangeSceneToFile(router.CombatScenePath);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // State restore
+    // ════════════════════════════════════════════════════════════════════════
+
     private void RestoreFromCombat(EncounterRouter router)
     {
         GD.Print("RunManager: Restoring state from combat...");
 
-        // Restore run state
         StepsRemaining = router.SavedStepsRemaining;
         CurrentHP = router.SavedCurrentHP;
         GoldEarned = router.SavedGoldEarned;
         SplinterEarned = router.SavedSplinterEarned;
         EncountersWon = router.SavedEncountersWon;
 
-        // Restore fog state
         foreach (var kvp in router.SavedFogStates)
-        {
-            if (_grid.Hexes.TryGetValue(kvp.Key, out var hex))
-            {
-                hex.Fog = kvp.Value;
-            }
-        }
+            if (_grid.Hexes.TryGetValue(kvp.Key, out var h)) h.Fog = kvp.Value;
 
-        // Restore POI consumed state
         foreach (var kvp in router.SavedPOIConsumed)
-        {
-            if (_grid.Hexes.TryGetValue(kvp.Key, out var hex))
-            {
-                hex.POIConsumed = kvp.Value;
-            }
-        }
+            if (_grid.Hexes.TryGetValue(kvp.Key, out var h)) h.POIConsumed = kvp.Value;
 
-        // Refresh all hex visuals after restoring state
         foreach (var hex in _grid.Hexes.Values)
             hex.RefreshVisuals();
 
-        // Place party at saved position
         _party.Initialize(_grid, _fog, router.SavedPartyCoord);
 
-        // Apply results — negotiation or combat
         var resultHex = router.SavedCombatHexCoord;
 
         if (NegotiationContext.HasResult)
@@ -262,7 +480,6 @@ public partial class OverworldRunManager : Node2D
         }
         else
         {
-            // Combat result
             if (router.CombatWon)
             {
                 GoldEarned += router.GoldReward;
@@ -276,13 +493,12 @@ public partial class OverworldRunManager : Node2D
                 }
 
                 ShowInfo($"Victory! Earned {router.GoldReward} gold, " +
-                        $"{router.SplinterReward} Arcane Splinters.");
+                         $"{router.SplinterReward} Arcane Splinters.");
             }
             else
             {
                 CurrentHP -= router.DamageTaken;
 
-                // Debug: God mode prevents death
                 if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
                     CurrentHP = Mathf.Max(1, CurrentHP);
 
@@ -300,6 +516,7 @@ public partial class OverworldRunManager : Node2D
                     UpdateUI();
                     return;
                 }
+
                 ShowInfo($"Defeated... Lost {router.DamageTaken} HP.");
             }
         }
@@ -308,22 +525,20 @@ public partial class OverworldRunManager : Node2D
 
         GD.Print($"RunManager: Restored. Party at {router.SavedPartyCoord}, " +
                  $"Steps: {StepsRemaining}, HP: {CurrentHP}, Gold: {GoldEarned}");
-
     }
 
-    /// <summary>
-    /// Make sure the EncounterRouter singleton exists in the tree.
-    /// It lives on the root so it survives scene changes.
-    /// </summary>
+    // ════════════════════════════════════════════════════════════════════════
+    // Setup helpers
+    // ════════════════════════════════════════════════════════════════════════
+
     private void EnsureEncounterRouter()
     {
         if (EncounterRouter.Instance != null) return;
 
         var router = new EncounterRouter { Name = "EncounterRouter" };
         router.CombatScenePath = "res://Scenes/Combat/Battlefield.tscn";
-        router.OverworldScenePath = "res://Scenes/Overworld/OverworldScene.tscn"; // ← FIXED
+        router.OverworldScenePath = "res://Scenes/Overworld/OverworldScene.tscn";
 
-        // Add immediately, not deferred — we need it ready for the seed check below.
         GetTree().Root.AddChild(router);
         GD.Print("RunManager: Created EncounterRouter on tree root.");
     }
@@ -333,12 +548,13 @@ public partial class OverworldRunManager : Node2D
         var save = SaveManager.ActiveSave;
         if (save == null) return;
 
-        // "wizard" is the canonical ID for the player wizard unit.
-        // Companions use their Companion.Id.
         var companionIds = save.ActivePartyCompanionIds ?? new List<string>();
-
         EquipmentLoadout.BuildForRun(save.Armory, "wizard", companionIds);
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Movement / POI handlers
+    // ════════════════════════════════════════════════════════════════════════
 
     private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
@@ -351,7 +567,6 @@ public partial class OverworldRunManager : Node2D
             hpDrain = GetTerrainHPDrain(hex.Terrain);
         }
 
-        // Debug: unlimited steps skips all step/exhaustion logic
         if (!(PlayerSession.DebugMode && PlayerSession.UnlimitedSteps))
         {
             if (StepsRemaining > 0)
@@ -410,15 +625,14 @@ public partial class OverworldRunManager : Node2D
         if (PlayerSession.DebugMode && PlayerSession.ForceNextEncounterType >= 0)
         {
             poiType = (OverworldHex.POIType)PlayerSession.ForceNextEncounterType;
-            PlayerSession.ForceNextEncounterType = -1; // consume — only forces once
+            PlayerSession.ForceNextEncounterType = -1;
             GD.Print($"[Debug] Forcing encounter type: {poiType}");
         }
 
         switch (poiType)
         {
             case OverworldHex.POIType.Combat:
-                ShowInfo("Combat encounter! (Press SPACE to fight, ESC to skip)");
-                _pendingCombatHex = coord;
+                OpenScoutReport(coord, hex);
                 break;
 
             case OverworldHex.POIType.Rest:
@@ -428,8 +642,7 @@ public partial class OverworldRunManager : Node2D
                 hex.RefreshVisuals();
                 int restSplinters = SplinterDropTable.RestSite();
                 SplinterEarned += restSplinters;
-                ShowInfo($"Rest site. Recovered {healAmount} HP. " +
-                        $"+{restSplinters} Arcane Splinters.");
+                ShowInfo($"Rest site. Recovered {healAmount} HP. +{restSplinters} Arcane Splinters.");
                 GoldEarned += 15;
                 UpdateUI();
                 break;
@@ -449,6 +662,10 @@ public partial class OverworldRunManager : Node2D
                 break;
         }
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Terrain helpers
+    // ════════════════════════════════════════════════════════════════════════
 
     private int GetTerrainStepCost(OverworldHex.TerrainType terrain)
     {
@@ -471,59 +688,14 @@ public partial class OverworldRunManager : Node2D
         return terrain switch
         {
             OverworldHex.TerrainType.Swamp => 3,
-            OverworldHex.TerrainType.Volcanic => GD.Randf() < 0.3f ? 5 : 0, // 30% chance
+            OverworldHex.TerrainType.Volcanic => GD.Randf() < 0.3f ? 5 : 0,
             _ => 0
         };
     }
 
-    private Vector2I? _pendingCombatHex = null;
-
-    public override void _UnhandledInput(InputEvent @event)
-    {
-        if (@event is InputEventKey key && key.Pressed)
-        {
-            if (_pendingCombatHex.HasValue && key.Keycode == Key.Space)
-            {
-                StartRealCombat(_pendingCombatHex.Value);
-                _pendingCombatHex = null;
-            }
-            else if (_pendingCombatHex.HasValue && key.Keycode == Key.Escape)
-            {
-                ShowInfo("Skipped encounter. It remains on the map.");
-                _pendingCombatHex = null;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Save state and swap to the combat scene.
-    /// </summary>
-    private void StartRealCombat(Vector2I hexCoord)
-    {
-        var router = EncounterRouter.Instance;
-        if (router == null)
-        {
-            GD.PrintErr("RunManager: EncounterRouter not found!");
-            return;
-        }
-
-        // Determine tier and terrain from the hex being entered
-        string terrainType = "Grassland";
-        var tier = EncounterTier.Battle; // default
-
-        if (_grid.Hexes.TryGetValue(hexCoord, out var hex))
-        {
-            terrainType = hex.Terrain.ToString();
-
-            // Map POI sub-type to tier — expand when POI sub-types are richer
-            // For now all Combat POIs default to Battle; add Skirmish/Siege
-            // when POIType gains sub-types in Phase 3.
-            tier = EncounterTier.Battle;
-        }
-
-        ShowInfo("Entering combat...");
-        router.StartCombat(this, hexCoord, tier, terrainType);
-    }
+    // ════════════════════════════════════════════════════════════════════════
+    // Narrative / Negotiation encounter handlers (unchanged)
+    // ════════════════════════════════════════════════════════════════════════
 
     private void TriggerNarrativeEncounter(OverworldHex hex, Vector2I coord)
     {
@@ -535,7 +707,6 @@ public partial class OverworldRunManager : Node2D
 
         if (encounter == null)
         {
-            // Pool exhausted — fall back to a small reward
             int gold = 15 + (int)(GD.Randf() * 20);
             GoldEarned += gold;
             hex.POIConsumed = true;
@@ -545,7 +716,6 @@ public partial class OverworldRunManager : Node2D
             return;
         }
 
-        // Mark consumed immediately so re-entering doesn't re-trigger
         hex.POIConsumed = true;
         hex.RefreshVisuals();
 
@@ -564,7 +734,6 @@ public partial class OverworldRunManager : Node2D
         {
             CurrentHP = Mathf.Clamp(CurrentHP + choice.HPDelta, 0, MaxHP);
 
-            // Debug: God mode prevents death
             if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
                 CurrentHP = Mathf.Max(1, CurrentHP);
 
@@ -580,16 +749,13 @@ public partial class OverworldRunManager : Node2D
 
         int narrativeSplinters = SplinterDropTable.Narrative();
         SplinterEarned += narrativeSplinters;
-        ShowInfo($"Encounter resolved. +{narrativeSplinters} Arcane Splinters.");
 
-        // Track completed unique encounters in save data
         if (SaveManager.ActiveSave != null && !string.IsNullOrEmpty(encounter.Id))
         {
             if (!SaveManager.ActiveSave.CompletedEvents.Contains(encounter.Id))
                 SaveManager.ActiveSave.CompletedEvents.Add(encounter.Id);
         }
 
-        // Apply any flags set by the choice
         if (choice.SetFlags != null && SaveManager.ActiveSave != null)
         {
             foreach (var flag in choice.SetFlags)
@@ -599,7 +765,7 @@ public partial class OverworldRunManager : Node2D
             }
         }
 
-        ShowInfo($"Encounter resolved.");
+        ShowInfo($"Encounter resolved. +{narrativeSplinters} Arcane Splinters.");
         UpdateUI();
     }
 
@@ -619,12 +785,10 @@ public partial class OverworldRunManager : Node2D
             return;
         }
 
-        // Store context and save overworld state
         NegotiationContext.Clear();
         NegotiationContext.EncounterId = encounter.Id;
         NegotiationContext.HexCoordKey = $"{coord.X},{coord.Y}";
 
-        // Save overworld state the same way combat does
         var router = EncounterRouter.Instance;
         if (router != null)
         {
@@ -634,7 +798,7 @@ public partial class OverworldRunManager : Node2D
             router.SavedSplinterEarned = SplinterEarned;
             router.SavedEncountersWon = EncountersWon;
             router.SavedPartyCoord = _party.CurrentCoord;
-            router.SavedCombatHexCoord = coord;     // reuse field for the triggering hex
+            router.SavedCombatHexCoord = coord;
             router.HasPendingReturn = true;
             router.HasSavedSeed = true;
             router.SavedRunSeed = _grid.Seed;
@@ -657,10 +821,6 @@ public partial class OverworldRunManager : Node2D
             GoldEarned += NegotiationContext.GoldDelta;
             GoldEarned = Mathf.Max(0, GoldEarned);
 
-            // Apply steps delta from terms if any
-            // (Phase 3: iterate terms and apply each one)
-
-            // Apply reputation to save
             if (SaveManager.ActiveSave != null && !string.IsNullOrEmpty(NegotiationContext.FactionId))
             {
                 var rep = SaveManager.ActiveSave.FactionReputation;
@@ -682,6 +842,36 @@ public partial class OverworldRunManager : Node2D
         UpdateUI();
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    // Run end
+    // ════════════════════════════════════════════════════════════════════════
+
+    public override void _Process(double delta)
+    {
+        if (RunComplete || _camera == null) return;
+        HandleCameraPan((float)delta);
+    }
+
+    private void HandleCameraPan(float delta)
+    {
+        var dir = Vector2.Zero;
+
+        if (Input.IsActionPressed("ui_right") || Input.IsKeyPressed(Key.D))
+            dir.X += 1f;
+        if (Input.IsActionPressed("ui_left") || Input.IsKeyPressed(Key.A))
+            dir.X -= 1f;
+        if (Input.IsActionPressed("ui_down") || Input.IsKeyPressed(Key.S))
+            dir.Y += 1f;
+        if (Input.IsActionPressed("ui_up") || Input.IsKeyPressed(Key.W))
+            dir.Y -= 1f;
+
+        if (dir != Vector2.Zero)
+        {
+            _cameraFreeMode = true;
+            _camera.Position += dir.Normalized() * CameraPanSpeed * delta / _camera.Zoom.X;
+        }
+    }
+
     private void EndRun(bool reachedObjective)
     {
         RunComplete = true;
@@ -694,7 +884,7 @@ public partial class OverworldRunManager : Node2D
         }
 
         RunResultData.Set(reachedObjective, GoldEarned,
-                        EncountersWon, CurrentHP, SplinterEarned);
+                          EncountersWon, CurrentHP, SplinterEarned);
 
         if (SaveManager.ActiveSave != null)
         {
@@ -708,30 +898,30 @@ public partial class OverworldRunManager : Node2D
             if (reachedObjective) save.RunsWon++;
             else save.RunsLost++;
 
+            // Persist region map state (fog, POIs, seed, objective status)
+            string endRegionId = _region?.Id ?? save.CurrentRegionId ?? "frontier_wilds";
+            RegionMemoryService.Save(endRegionId, _grid, _party.CurrentCoord, reachedObjective);
+
             SaveManager.Save();
         }
 
         string result = reachedObjective ? "SUCCESS" : "FAILED";
         ShowInfo($"Run {result} — Gold: {GoldEarned}, " +
-                $"Splinters: {SplinterEarned}, " +
-                $"Encounters: {EncountersWon}. Press R to return.");
+                 $"Splinters: {SplinterEarned}, Encounters: {EncountersWon}.");
+
+        // Show the clickable return button
+        if (_returnButton != null)
+            _returnButton.Visible = true;
+
         EmitSignal(SignalName.RunEnded, reachedObjective);
     }
 
-    public override void _Input(InputEvent @event)
-    {
-        if (@event is InputEventKey key && key.Pressed && key.Keycode == Key.R && RunComplete)
-        {
-            // Return to campus instead of reloading the overworld
-            GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
-        }
-    }
-
-    // ── Building helpers ─────────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════════════
+    // Building helpers
+    // ════════════════════════════════════════════════════════════════════════
 
     private void PreRevealHexes(int count)
     {
-        // Reveal random hexes near the entry point
         var candidates = new System.Collections.Generic.List<Vector2I>();
 
         foreach (var kvp in _grid.Hexes)
@@ -742,7 +932,6 @@ public partial class OverworldRunManager : Node2D
                 candidates.Add(kvp.Key);
         }
 
-        // Shuffle candidates
         for (int i = candidates.Count - 1; i > 0; i--)
         {
             int j = (int)(GD.Randi() % (uint)(i + 1));
@@ -765,8 +954,6 @@ public partial class OverworldRunManager : Node2D
             GD.Print($"[Buildings] Pre-revealed {revealed} hexes (Courier Station).");
     }
 
-
-
     private void RevealAllFog()
     {
         foreach (var hex in _grid.Hexes.Values)
@@ -777,7 +964,9 @@ public partial class OverworldRunManager : Node2D
         GD.Print("[Debug] All fog revealed.");
     }
 
-    // ── UI helpers ──────────────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════════════
+    // UI helpers
+    // ════════════════════════════════════════════════════════════════════════
 
     private void UpdateUI()
     {
@@ -796,12 +985,8 @@ public partial class OverworldRunManager : Node2D
         int dist = _grid.Distance(_party.CurrentCoord, _grid.ObjectiveCoord);
         _objectiveLabel.Text = $"Objective: ~{dist} hexes away";
 
-        // Show terrain info for current hex
         if (_grid.Hexes.TryGetValue(_party.CurrentCoord, out var currentHex))
-        {
-            string terrainName = currentHex.Terrain.ToString();
-            _objectiveLabel.Text += $"  |  Terrain: {terrainName}";
-        }
+            _objectiveLabel.Text += $"  |  Terrain: {currentHex.Terrain}";
     }
 
     private void ShowInfo(string message)
@@ -813,12 +998,16 @@ public partial class OverworldRunManager : Node2D
     private void CenterCamera()
     {
         if (_camera != null)
+        {
             _camera.Position = _party.Position;
+            _cameraFreeMode = false;
+        }
     }
 
-    private Label MakeUILabel(Vector2 pos)
+    /// <summary>Label for inside the HUD panel — no position needed, VBox handles layout.</summary>
+    private Label MakeHUDLabel()
     {
-        var label = new Label { Position = pos };
+        var label = new Label { AutowrapMode = TextServer.AutowrapMode.Off };
         label.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         return label;
     }

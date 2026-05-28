@@ -248,25 +248,3 @@ public class BuildingSaveData
     public string Category = "";
     public string SchoolAffinity = "";
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// Region memory types
-// ────────────────────────────────────────────────────────────────────────────
-
-/// <summary>Save data for explored region state.</summary>
-public class RegionMemorySaveData
-{
-    public string RegionId = "";
-    public float ExplorationPercent = 0f;
-    public List<RevealedHexData> RevealedHexes = new();
-    public List<string> CompletedLandmarks = new();
-    public System.Collections.Generic.Dictionary<string, string> FactionControl = new();
-}
-
-/// <summary>Minimal data for a single revealed hex.</summary>
-public class RevealedHexData
-{
-    public int Q;
-    public int R;
-    public string FogState = "Revealed";
-}

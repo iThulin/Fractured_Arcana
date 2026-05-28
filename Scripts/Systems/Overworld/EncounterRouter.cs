@@ -30,8 +30,8 @@ public partial class EncounterRouter : Node
     public bool CombatWon { get; set; }
     public int GoldReward { get; set; }
     public int DamageTaken { get; set; }
-    public int SplinterReward       { get; set; }
-    public int SavedSplinterEarned  { get; set; }
+    public int SplinterReward { get; set; }
+    public int SavedSplinterEarned { get; set; }
     private EncounterTier _currentTier = EncounterTier.Battle;
 
     public int SavedStepsRemaining;
@@ -111,8 +111,8 @@ public partial class EncounterRouter : Node
     public void OnCombatFinished(bool playerWon)
     {
         EncounterContextCarrier.Clear();
-        CombatWon      = playerWon;
-        GoldReward     = CalculateGoldRewardForTier(_currentTier);
+        CombatWon = playerWon;
+        GoldReward = CalculateGoldRewardForTier(_currentTier);
         SplinterReward = SplinterDropTable.Combat(_currentTier);
         HasPendingReturn = true;
 
@@ -135,11 +135,17 @@ public partial class EncounterRouter : Node
         }
     }
 
+    /// <summary>
+    /// Called by OverworldRunManager.CommitCombat when bypassing StartCombat
+    /// with a pre-built EncounterDefinition from the scout panel.
+    /// </summary>
+    public void SetCurrentTier(EncounterTier tier) => _currentTier = tier;
+
     private int CalculateGoldRewardForTier(EncounterTier tier) => tier switch
     {
-        EncounterTier.Skirmish => (int)GD.RandRange(8,  15),
-        EncounterTier.Battle   => (int)GD.RandRange(18, 30),
-        EncounterTier.Siege    => (int)GD.RandRange(40, 60),
-        _                      => (int)GD.RandRange(15, 25),
+        EncounterTier.Skirmish => (int)GD.RandRange(8, 15),
+        EncounterTier.Battle => (int)GD.RandRange(18, 30),
+        EncounterTier.Siege => (int)GD.RandRange(40, 60),
+        _ => (int)GD.RandRange(15, 25),
     };
 }

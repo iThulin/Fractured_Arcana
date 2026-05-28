@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://rk7a7lidnahn"]
+
+[ext_resource type="Script" uid="uid://cgjskxontltyr" path="res://Scripts/UI/NewGameScreen.cs" id="1_x7dj4"]
+
+[node name="NewGameScreen_cs" type="Control" unique_id=619451365]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_x7dj4")

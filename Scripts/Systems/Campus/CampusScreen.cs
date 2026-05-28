@@ -33,13 +33,12 @@ public partial class CampusScreen : Control
     private Label _goldLabel;
     private VBoxContainer _slotContainer;
     private Label _summaryLabel;
-    private OptionButton _schoolPicker;
-    private Label _schoolDescription;
     private CheckBox _debugCheckbox;
     private PanelContainer _debugPanel;
     private OptionButton _forceEncounterDropdown;
-    private Button _startRunButton;
     private Button _cardLibraryButton;
+    private VBoxContainer _guildIdentityContainer;
+    private VBoxContainer _guildResultContainer;
 
     // Companions tab
     private VBoxContainer _companionContainer;
@@ -53,6 +52,17 @@ public partial class CampusScreen : Control
     // Training tab
     private VBoxContainer _trainingContainer;
     private string _selectedTrainingCompanionId = null;
+
+    // Expedition tab
+    private string _selectedExpeditionRegionId = null;
+    private VBoxContainer _expeditionRegionList;
+    private Panel _expeditionDetailPanel;
+    private Label _expeditionDetailName;
+    private Label _expeditionDetailDesc;
+    private Label _expeditionDetailStats;
+    private Label _expeditionDetailLock;
+    private Button _expeditionDeployButton;
+    private WorldMapDefinition _worldMap;
 
     private static readonly Dictionary<CardSchool, string> SchoolDescriptions = new()
     {
@@ -111,6 +121,25 @@ public partial class CampusScreen : Control
         _goldLabel.SetAnchorsPreset(LayoutPreset.FullRect);
         _goldLabel.OffsetRight = -16; // right margin
         titleBar.AddChild(_goldLabel);
+
+        var quitBtn = new Button
+        {
+            Text = "Quit",
+            AnchorLeft = 1f,
+            AnchorTop = 0.5f,
+            AnchorRight = 1f,
+            AnchorBottom = 0.5f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            GrowVertical = Control.GrowDirection.Both,
+            OffsetLeft = -80,
+            OffsetRight = -8,
+            OffsetTop = -16,
+            OffsetBottom = 16,
+        };
+        quitBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(quitBtn, isPrimary: false);
+        quitBtn.Pressed += () => GetTree().Quit();
+        titleBar.AddChild(quitBtn);
 
         // Tab bar
         var tabBar = new HBoxContainer();
@@ -173,14 +202,10 @@ public partial class CampusScreen : Control
             _selectedSlot = SaveManager.ActiveSlot;
             EnsureRostersAndBuildings();
             if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave.SelectedSchool, out var school))
-            {
-                _schoolPicker.Selected = (int)school;
-                UpdateSchoolDescription();
-            }
+                PlayerSession.SelectedSchool = school;
         }
 
         RefreshAll();
-        UpdateStartButton();
         SelectTab(0);
     }
 
@@ -197,78 +222,59 @@ public partial class CampusScreen : Control
         // Refresh the newly visible tab so it always shows current data
         switch (index)
         {
+            case 3: RefreshExpeditionTab(); break;
             case 4: RefreshArmoryTab(); break;
             case 5: RefreshTrainingTab(); break;
         }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Tab builders
+    // Guild Tab
     // ═══════════════════════════════════════════════════════════════════════
 
     private void BuildGuildTab(ScrollContainer scroll)
     {
         var margins = MakeMargins(32, 20);
         scroll.AddChild(margins);
-        var layout = MakeVBox(14);
+        var layout = MakeVBox(16);
         margins.AddChild(layout);
 
+        // ── Guild identity — filled by RefreshGuildTab() ─────────────────
+        _guildIdentityContainer = MakeVBox(0);
+        layout.AddChild(_guildIdentityContainer);
+
+        // ── Last run result — filled by RefreshGuildTab() ────────────────
+        _guildResultContainer = MakeVBox(0);
+        layout.AddChild(_guildResultContainer);
+
+        // ── Save slots ───────────────────────────────────────────────────
+        layout.AddChild(new HSeparator());
         AddSectionHeader(layout, "Save Slots");
-        _slotContainer = MakeVBox(8);
+        _slotContainer = MakeVBox(6);
         layout.AddChild(_slotContainer);
+
+        // ── Card management ──────────────────────────────────────────────
         layout.AddChild(new HSeparator());
+        AddSectionHeader(layout, "Cards");
 
-        _summaryLabel = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        _summaryLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-        layout.AddChild(_summaryLabel);
+        var cardRow = new HBoxContainer();
+        cardRow.AddThemeConstantOverride("separation", 10);
+        cardRow.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        layout.AddChild(cardRow);
 
-        if (RunResultData.HasResults)
-        {
-            string outcome = RunResultData.ReachedObjective ? "✓ SUCCESS" : "✗ FAILED";
-            _summaryLabel.Text = $"Last Run: {outcome}  |  " +
-                                $"Gold: {RunResultData.GoldEarned}  |  " +
-                                $"Splinters: {RunResultData.ArcaneSplinters}  |  " +
-                                $"Encounters: {RunResultData.EncountersWon}  |  " +
-                                $"HP: {RunResultData.HPRemaining}";
-            _summaryLabel.Modulate = RunResultData.ReachedObjective
-                ? UITheme.CampusRunSuccess : UITheme.CampusRunFail;
-            RunResultData.Clear();
-        }
-        else
-        {
-            _summaryLabel.Text = "No expeditions yet. The wilds await.";
-            _summaryLabel.Modulate = UITheme.CampusNoRunText;
-        }
+        var libBtn = MakeButton("Card Library", 160, 40, 15);
+        libBtn.Pressed += () => GetTree().ChangeSceneToFile("res://Scenes/UI/CardLibrary.tscn");
+        cardRow.AddChild(libBtn);
 
-        layout.AddChild(new HSeparator());
-        AddSectionHeader(layout, "Wizard School");
+        var deckBtn = MakeButton("Manage Deck", 160, 40, 15);
+        deckBtn.Pressed += () => GetTree().ChangeSceneToFile("res://Scenes/UI/DeckEditor.tscn");
+        cardRow.AddChild(deckBtn);
 
-        _schoolPicker = new OptionButton
-        {
-            CustomMinimumSize = new Vector2(320, 40),
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-        };
-        foreach (CardSchool school in Enum.GetValues(typeof(CardSchool)))
-            _schoolPicker.AddItem(school.ToString(), (int)school);
-        _schoolPicker.Selected = (int)PlayerSession.SelectedSchool;
-        _schoolPicker.ItemSelected += (_) => UpdateSchoolDescription();
-        layout.AddChild(_schoolPicker);
+        var upgradeBtn = MakeButton("Upgrade Cards", 160, 40, 15);
+        upgradeBtn.Pressed += () => GetTree().ChangeSceneToFile("res://Scenes/UI/CardUpgradeScreen.tscn");
+        cardRow.AddChild(upgradeBtn);
 
-        _schoolDescription = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            CustomMinimumSize = new Vector2(0, 48),
-        };
-        _schoolDescription.AddThemeFontSizeOverride("font_size", UITheme.CampusSchoolFontSize);
-        _schoolDescription.Modulate = UITheme.CampusSchoolDescText;
-        layout.AddChild(_schoolDescription);
-        UpdateSchoolDescription();
-
+        // ── Debug ────────────────────────────────────────────────────────
         layout.AddChild(new HSeparator());
 
         _debugCheckbox = new CheckBox
@@ -299,31 +305,183 @@ public partial class CampusScreen : Control
             }
         };
 
-        layout.AddChild(new HSeparator());
+        _summaryLabel = new Label { Visible = false };
+        layout.AddChild(_summaryLabel);
 
-        _startRunButton = MakeButton("Begin Expedition", 280, 52, 20);
-        _startRunButton.Pressed += OnStartRun;
-        layout.AddChild(_startRunButton);
-
-        _cardLibraryButton = MakeButton("Card Library", 280, 40, 16);
-        _cardLibraryButton.Pressed += () =>
-            GetTree().ChangeSceneToFile("res://Scenes/UI/CardLibrary.tscn");
-        layout.AddChild(_cardLibraryButton);
-
-        var deckEditorButton = MakeButton("Manage Deck", 280, 40, 16);
-        deckEditorButton.Pressed += () =>
-            GetTree().ChangeSceneToFile("res://Scenes/UI/DeckEditor.tscn");
-        layout.AddChild(deckEditorButton);
-
-        var upgradeBtn = MakeButton("Upgrade Cards", 280, 40, 16);
-        upgradeBtn.Pressed += () =>
-            GetTree().ChangeSceneToFile("res://Scenes/UI/CardUpgradeScreen.tscn");
-        layout.AddChild(upgradeBtn);
-
-        var quitBtn = MakeButton("Quit", 280, 36, 15);
-        quitBtn.Pressed += () => GetTree().Quit();
-        layout.AddChild(quitBtn);
     }
+
+    private void RefreshGuildTab()
+    {
+        RefreshGuildIdentityPanel();
+        RefreshGuildResultPanel();
+        RefreshSlotButtons();
+    }
+
+    private void RefreshGuildIdentityPanel()
+    {
+        if (_guildIdentityContainer == null) return;
+        foreach (var child in _guildIdentityContainer.GetChildren())
+            child.QueueFree();
+
+        var save = SaveManager.ActiveSave;
+
+        var identityPanel = new PanelContainer();
+        var identityStyle = new StyleBoxFlat
+        {
+            BgColor = UITheme.BgRaised,
+            BorderColor = save != null ? UITheme.Violet : UITheme.NeutralDim,
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6,
+            CornerRadiusBottomLeft = 6,
+            CornerRadiusBottomRight = 6,
+        };
+        identityPanel.AddThemeStyleboxOverride("panel", identityStyle);
+        identityPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _guildIdentityContainer.AddChild(identityPanel);
+
+        var identityMargin = new MarginContainer();
+        identityMargin.AddThemeConstantOverride("margin_left", 20);
+        identityMargin.AddThemeConstantOverride("margin_right", 20);
+        identityMargin.AddThemeConstantOverride("margin_top", 14);
+        identityMargin.AddThemeConstantOverride("margin_bottom", 14);
+        identityPanel.AddChild(identityMargin);
+
+        var identityVBox = MakeVBox(6);
+        identityMargin.AddChild(identityVBox);
+
+        if (save == null)
+        {
+            var noSaveLabel = new Label
+            {
+                Text = "No guild selected — choose a save slot below.",
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            noSaveLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            noSaveLabel.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+            identityVBox.AddChild(noSaveLabel);
+            return;
+        }
+
+        // Guild name + school badge
+        var nameRow = new HBoxContainer();
+        nameRow.AddThemeConstantOverride("separation", 12);
+        identityVBox.AddChild(nameRow);
+
+        var guildNameLabel = new Label
+        {
+            Text = save.GuildName,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        guildNameLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSectionFontSize + 2);
+        guildNameLabel.AddThemeColorOverride("font_color", UITheme.Gold);
+        nameRow.AddChild(guildNameLabel);
+
+        var schoolBadge = new Label { Text = save.SelectedSchool };
+        schoolBadge.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        schoolBadge.AddThemeColorOverride("font_color", UITheme.Violet);
+        nameRow.AddChild(schoolBadge);
+
+        // Stats row
+        var statsRow = new HBoxContainer();
+        statsRow.AddThemeConstantOverride("separation", 24);
+        identityVBox.AddChild(statsRow);
+
+        void AddStat(string label, string value)
+        {
+            var col = MakeVBox(2);
+            var lbl = new Label { Text = label };
+            lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            lbl.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+            col.AddChild(lbl);
+            var val = new Label { Text = value };
+            val.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            val.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+            col.AddChild(val);
+            statsRow.AddChild(col);
+        }
+
+        AddStat("RUNS", $"{save.TotalRuns}");
+        AddStat("WON", $"{save.RunsWon}");
+        AddStat("LOST", $"{save.RunsLost}");
+        AddStat("GOLD EARNED", $"{save.TotalGoldEarned}");
+        AddStat("REGION", save.CurrentRegionId.Replace("_", " ").ToUpper());
+    }
+
+    private void RefreshGuildResultPanel()
+    {
+        if (_guildResultContainer == null) return;
+        foreach (var child in _guildResultContainer.GetChildren())
+            child.QueueFree();
+
+        if (!RunResultData.HasResults) return;
+
+        bool won = RunResultData.ReachedObjective;
+
+        var resultPanel = new PanelContainer();
+        var resultStyle = new StyleBoxFlat
+        {
+            BgColor = won
+                ? new Color(0.05f, 0.18f, 0.05f, 0.9f)
+                : new Color(0.18f, 0.05f, 0.05f, 0.9f),
+            BorderColor = won ? UITheme.Success : UITheme.Danger,
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 3,
+            BorderWidthRight = 1,
+            CornerRadiusTopLeft = 5,
+            CornerRadiusTopRight = 5,
+            CornerRadiusBottomLeft = 5,
+            CornerRadiusBottomRight = 5,
+        };
+        resultPanel.AddThemeStyleboxOverride("panel", resultStyle);
+        resultPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _guildResultContainer.AddChild(resultPanel);
+
+        var resultMargin = new MarginContainer();
+        resultMargin.AddThemeConstantOverride("margin_left", 16);
+        resultMargin.AddThemeConstantOverride("margin_right", 16);
+        resultMargin.AddThemeConstantOverride("margin_top", 10);
+        resultMargin.AddThemeConstantOverride("margin_bottom", 10);
+        resultPanel.AddChild(resultMargin);
+
+        var resultVBox = MakeVBox(6);
+        resultMargin.AddChild(resultVBox);
+
+        var resultTitle = new Label
+        {
+            Text = won ? "✓  Last Expedition — Success" : "✗  Last Expedition — Failed",
+        };
+        resultTitle.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        resultTitle.AddThemeColorOverride("font_color", won ? UITheme.Success : UITheme.Danger);
+        resultVBox.AddChild(resultTitle);
+
+        var resultRow = new HBoxContainer();
+        resultRow.AddThemeConstantOverride("separation", 20);
+        resultVBox.AddChild(resultRow);
+
+        void AddResult(string label, string value)
+        {
+            var lbl = new Label { Text = $"{label}  {value}" };
+            lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            lbl.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+            resultRow.AddChild(lbl);
+        }
+
+        AddResult("Gold:", $"{RunResultData.GoldEarned}");
+        AddResult("Splinters:", $"{RunResultData.ArcaneSplinters}");
+        AddResult("Encounters:", $"{RunResultData.EncountersWon}");
+        AddResult("HP:", $"{RunResultData.HPRemaining}");
+
+        RunResultData.Clear();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Tab builders
+    // ═══════════════════════════════════════════════════════════════════════
 
     private void BuildCompanionsTab(ScrollContainer scroll)
     {
@@ -372,26 +530,6 @@ public partial class CampusScreen : Control
         layout.AddChild(_buildingContainer);
     }
 
-    private void BuildExpeditionTab(ScrollContainer scroll)
-    {
-        var margins = MakeMargins(32, 20);
-        scroll.AddChild(margins);
-        var layout = MakeVBox(14);
-        margins.AddChild(layout);
-
-        AddSectionHeader(layout, "Choose Destination");
-
-        var stub = new Label
-        {
-            Text = "Region selection coming in Phase 3.\n\nCurrently exploring: Frontier Wilds.",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        stub.AddThemeFontSizeOverride("font_size", UITheme.CampusTabFontSize);
-        stub.Modulate = UITheme.CampusStubText;
-        layout.AddChild(stub);
-    }
-
     private void BuildArmoryTab(ScrollContainer scroll)
     {
         // EnsureStarterItems removed — now called from OnSlotSelected
@@ -416,6 +554,421 @@ public partial class CampusScreen : Control
 
         RefreshTrainingTab();
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Expedition Tab
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void BuildExpeditionTab(ScrollContainer scroll)
+    {
+        _worldMap = WorldMapLoader.Load();
+
+        // Two-column layout: region list (left) + detail panel (right)
+        var margins = MakeMargins(24, 16);
+        scroll.AddChild(margins);
+
+        var outerVBox = MakeVBox(10);
+        margins.AddChild(outerVBox);
+
+        AddSectionHeader(outerVBox, "Choose Destination");
+
+        var hint = new Label
+        {
+            Text = "Select a region to view details and deploy your expedition.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        hint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        hint.Modulate = UITheme.CampusSubtleText;
+        outerVBox.AddChild(hint);
+        outerVBox.AddChild(new HSeparator());
+
+        // ── Two-column HBox ──────────────────────────────────────────────
+        var columns = new HBoxContainer();
+        columns.AddThemeConstantOverride("separation", 16);
+        columns.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        outerVBox.AddChild(columns);
+
+        // Left column — region card list
+        var leftCol = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(280, 0),
+        };
+        leftCol.AddThemeConstantOverride("separation", 8);
+        columns.AddChild(leftCol);
+
+        _expeditionRegionList = MakeVBox(8);
+        leftCol.AddChild(_expeditionRegionList);
+
+        // Right column — detail panel
+        _expeditionDetailPanel = new Panel
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(300, 320),
+        };
+        var detailStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.06f, 0.06f, 0.1f, 0.9f),
+            BorderColor = UITheme.NeutralDim,
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6,
+            CornerRadiusBottomLeft = 6,
+            CornerRadiusBottomRight = 6,
+        };
+        _expeditionDetailPanel.AddThemeStyleboxOverride("panel", detailStyle);
+        columns.AddChild(_expeditionDetailPanel);
+
+        var detailMargin = new MarginContainer
+        {
+            AnchorRight = 1f,
+            AnchorBottom = 1f,
+        };
+        detailMargin.AddThemeConstantOverride("margin_left", 16);
+        detailMargin.AddThemeConstantOverride("margin_right", 16);
+        detailMargin.AddThemeConstantOverride("margin_top", 16);
+        detailMargin.AddThemeConstantOverride("margin_bottom", 16);
+        _expeditionDetailPanel.AddChild(detailMargin);
+
+        var detailVBox = new VBoxContainer();
+        detailVBox.AddThemeConstantOverride("separation", 10);
+        detailMargin.AddChild(detailVBox);
+
+        _expeditionDetailName = MakeExpDetailLabel("Select a region", UITheme.NarrativeTitleColor, UITheme.CampusSectionFontSize);
+        detailVBox.AddChild(_expeditionDetailName);
+
+        detailVBox.AddChild(new HSeparator());
+
+        _expeditionDetailDesc = MakeExpDetailLabel("Click a region card to see details.", UITheme.NarrativeBodyColor, UITheme.CampusBodyFontSize);
+        _expeditionDetailDesc.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        detailVBox.AddChild(_expeditionDetailDesc);
+
+        detailVBox.AddChild(new HSeparator());
+
+        _expeditionDetailStats = MakeExpDetailLabel("", UITheme.CampusSubtleText, UITheme.CampusSmallFontSize);
+        _expeditionDetailStats.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        detailVBox.AddChild(_expeditionDetailStats);
+
+        _expeditionDetailLock = MakeExpDetailLabel("", new Color(1f, 0.4f, 0.4f), UITheme.CampusSmallFontSize);
+        _expeditionDetailLock.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _expeditionDetailLock.Visible = false;
+        detailVBox.AddChild(_expeditionDetailLock);
+
+        // Spacer pushes button to bottom
+        detailVBox.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
+
+        _expeditionDeployButton = MakeButton("Deploy Expedition", 260, 48, UITheme.CampusBodyFontSize);
+        _expeditionDeployButton.Visible = false;
+        _expeditionDeployButton.Pressed += OnExpeditionDeployPressed;
+        detailVBox.AddChild(_expeditionDeployButton);
+
+        // Populate the region list
+        PopulateExpeditionRegionList();
+    }
+
+    private void PopulateExpeditionRegionList()
+    {
+        if (_expeditionRegionList == null || _worldMap == null) return;
+
+        foreach (var child in _expeditionRegionList.GetChildren())
+            child.QueueFree();
+
+        var save = SaveManager.ActiveSave;
+
+        foreach (var node in _worldMap.Nodes)
+        {
+            bool unlocked = IsExpeditionRegionUnlocked(node);
+            bool visited = RegionMemoryService.HasMemory(node.RegionId);
+            bool isCurrent = save?.CurrentRegionId == node.RegionId;
+
+            // ── Card panel ───────────────────────────────────────────────
+            var card = new PanelContainer();
+            card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+
+            Color bgColor = !unlocked
+                ? new Color(0.06f, 0.06f, 0.06f, 0.8f)
+                : isCurrent
+                    ? new Color(0.08f, 0.18f, 0.1f, 0.9f)
+                    : visited
+                        ? new Color(0.07f, 0.1f, 0.16f, 0.9f)
+                        : new Color(0.05f, 0.08f, 0.12f, 0.9f);
+
+            Color borderColor = isCurrent
+                ? UITheme.POIObjective
+                : unlocked
+                    ? UITheme.NeutralDim
+                    : new Color(0.15f, 0.15f, 0.15f);
+
+            var cardStyle = new StyleBoxFlat
+            {
+                BgColor = bgColor,
+                BorderColor = borderColor,
+                BorderWidthTop = isCurrent ? 2 : 1,
+                BorderWidthBottom = isCurrent ? 2 : 1,
+                BorderWidthLeft = isCurrent ? 2 : 1,
+                BorderWidthRight = isCurrent ? 2 : 1,
+                CornerRadiusTopLeft = 5,
+                CornerRadiusTopRight = 5,
+                CornerRadiusBottomLeft = 5,
+                CornerRadiusBottomRight = 5,
+            };
+            card.AddThemeStyleboxOverride("panel", cardStyle);
+
+            var cardMargin = new MarginContainer();
+            cardMargin.AddThemeConstantOverride("margin_left", 12);
+            cardMargin.AddThemeConstantOverride("margin_right", 12);
+            cardMargin.AddThemeConstantOverride("margin_top", 8);
+            cardMargin.AddThemeConstantOverride("margin_bottom", 8);
+            card.AddChild(cardMargin);
+
+            var cardVBox = new VBoxContainer();
+            cardVBox.AddThemeConstantOverride("separation", 3);
+            cardMargin.AddChild(cardVBox);
+
+            // Row 1: name + lock icon
+            var nameRow = new HBoxContainer();
+            nameRow.AddThemeConstantOverride("separation", 6);
+            cardVBox.AddChild(nameRow);
+
+            var nameLabel = new Label
+            {
+                Text = unlocked ? node.DisplayName : "???",
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            };
+            nameLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            nameLabel.AddThemeColorOverride("font_color",
+                unlocked ? Colors.White : new Color(0.35f, 0.35f, 0.35f));
+            nameRow.AddChild(nameLabel);
+
+            if (isCurrent)
+            {
+                var currentBadge = new Label { Text = "● Active" };
+                currentBadge.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
+                currentBadge.AddThemeColorOverride("font_color", UITheme.POIObjective);
+                nameRow.AddChild(currentBadge);
+            }
+
+            // Row 2: terrain flavor or lock
+            if (unlocked)
+            {
+                var flavorLabel = new Label
+                {
+                    Text = $"{node.Atmosphere}  ·  {node.TerrainFlavor}",
+                };
+                flavorLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
+                flavorLabel.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+                cardVBox.AddChild(flavorLabel);
+            }
+
+            // Row 3: exploration bar or "not yet explored"
+            if (visited)
+            {
+                var (visits, explored, cleared) = RegionMemoryService.GetStats(node.RegionId);
+
+                var barRow = new HBoxContainer();
+                barRow.AddThemeConstantOverride("separation", 6);
+                cardVBox.AddChild(barRow);
+
+                var barLabel = new Label { Text = $"{explored:F0}%" };
+                barLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
+                barLabel.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+                barRow.AddChild(barLabel);
+
+                var bar = new ProgressBar
+                {
+                    Value = explored,
+                    SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                    CustomMinimumSize = new Vector2(0, 10),
+                    ShowPercentage = false,
+                };
+                barRow.AddChild(bar);
+
+                if (cleared)
+                {
+                    var clearedLabel = new Label { Text = "✓ Cleared" };
+                    clearedLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
+                    clearedLabel.AddThemeColorOverride("font_color", UITheme.POIObjective);
+                    barRow.AddChild(clearedLabel);
+                }
+            }
+            else if (unlocked)
+            {
+                var unvisitedLabel = new Label { Text = "Unexplored" };
+                unvisitedLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
+                unvisitedLabel.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+                cardVBox.AddChild(unvisitedLabel);
+            }
+            else
+            {
+                var lockLabel = new Label { Text = "🔒 Locked" };
+                lockLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
+                lockLabel.AddThemeColorOverride("font_color", new Color(0.4f, 0.4f, 0.4f));
+                cardVBox.AddChild(lockLabel);
+            }
+
+            // Deployment cost badge
+            if (unlocked && node.DeploymentCost > 0)
+            {
+                var costLabel = new Label { Text = $"Deploy cost: {node.DeploymentCost}g" };
+                costLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
+                costLabel.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.3f));
+                cardVBox.AddChild(costLabel);
+            }
+
+            // Invisible click button layered over the whole card
+            var clickBtn = new Button
+            {
+                AnchorRight = 1f,
+                AnchorBottom = 1f,
+                Flat = true,
+                FocusMode = FocusModeEnum.None,
+            };
+            string capturedId = node.RegionId;
+            clickBtn.Pressed += () => OnExpeditionRegionSelected(capturedId);
+            card.AddChild(clickBtn);
+
+            _expeditionRegionList.AddChild(card);
+        }
+    }
+
+    private void OnExpeditionRegionSelected(string regionId)
+    {
+        _selectedExpeditionRegionId = regionId;
+
+        var node = _worldMap?.Nodes.Find(n => n.RegionId == regionId);
+        if (node == null) return;
+
+        bool unlocked = IsExpeditionRegionUnlocked(node);
+        var (visits, explored, cleared) = RegionMemoryService.GetStats(regionId);
+
+        _expeditionDetailName.Text = unlocked ? node.DisplayName : "Unknown Region";
+        _expeditionDetailDesc.Text = unlocked
+            ? node.Description
+            : "Explore adjacent regions to unlock this area.";
+
+        if (visits > 0)
+        {
+            string objectiveStatus = cleared ? "Objective completed" : "Objective not reached";
+            _expeditionDetailStats.Text =
+                $"Visits: {visits}\n" +
+                $"Explored: {explored:F0}%\n" +
+                $"{objectiveStatus}";
+        }
+        else if (unlocked)
+        {
+            _expeditionDetailStats.Text = "No expeditions recorded.";
+        }
+        else
+        {
+            _expeditionDetailStats.Text = "";
+        }
+
+        if (!unlocked)
+        {
+            string reason = GetExpeditionLockReason(node);
+            _expeditionDetailLock.Text = reason;
+            _expeditionDetailLock.Visible = true;
+            _expeditionDeployButton.Visible = false;
+        }
+        else
+        {
+            _expeditionDetailLock.Visible = false;
+            _expeditionDeployButton.Visible = true;
+
+            int gold = SaveManager.ActiveSave?.Gold ?? 0;
+            bool canAfford = node.DeploymentCost == 0 || gold >= node.DeploymentCost;
+            _expeditionDeployButton.Disabled = !canAfford || _selectedSlot < 0;
+            _expeditionDeployButton.Text = node.DeploymentCost > 0
+                ? $"Deploy  ({node.DeploymentCost}g)"
+                : "Deploy Expedition";
+        }
+    }
+
+    private void OnExpeditionDeployPressed()
+    {
+        if (_selectedExpeditionRegionId == null) return;
+        if (_selectedSlot < 0) return;
+
+        var node = _worldMap?.Nodes.Find(n => n.RegionId == _selectedExpeditionRegionId);
+        if (node == null || !IsExpeditionRegionUnlocked(node)) return;
+
+        var save = SaveManager.ActiveSave;
+        if (save == null) return;
+
+        // Deduct deployment cost
+        if (node.DeploymentCost > 0)
+        {
+            if (save.Gold < node.DeploymentCost)
+            {
+                GD.Print("[Expedition] Not enough gold to deploy.");
+                return;
+            }
+            save.Gold -= node.DeploymentCost;
+        }
+
+        // Set destination and launch
+        save.CurrentRegionId = _selectedExpeditionRegionId;
+        if (Enum.TryParse<CardSchool>(save.SelectedSchool, out var school))
+            PlayerSession.SelectedSchool = school;
+        SaveManager.Save();
+
+        GD.Print($"[Expedition] Deploying to '{_selectedExpeditionRegionId}'");
+        GetTree().ChangeSceneToFile("res://Scenes/Overworld/OverworldScene.tscn");
+    }
+
+    private void RefreshExpeditionTab()
+    {
+        if (_expeditionRegionList == null) return;
+        PopulateExpeditionRegionList();
+
+        // Re-select previously selected region if still valid
+        if (_selectedExpeditionRegionId != null)
+            OnExpeditionRegionSelected(_selectedExpeditionRegionId);
+    }
+
+    // ── Access helpers ───────────────────────────────────────────────────
+
+    private bool IsExpeditionRegionUnlocked(RegionNode node)
+    {
+        if (node.UnlockedByDefault) return true;
+
+        var save = SaveManager.ActiveSave;
+        if (save == null) return false;
+
+        if (!string.IsNullOrEmpty(node.RequiresRegionCleared))
+        {
+            if (!save.RegionMemory.TryGetValue(node.RequiresRegionCleared, out var mem))
+                return false;
+            return mem.ObjectiveReached;
+        }
+
+        return true;
+    }
+
+    private string GetExpeditionLockReason(RegionNode node)
+    {
+        if (!string.IsNullOrEmpty(node.RequiresRegionCleared) && _worldMap != null)
+        {
+            var req = _worldMap.Nodes.Find(n => n.RegionId == node.RequiresRegionCleared);
+            string reqName = req?.DisplayName ?? node.RequiresRegionCleared;
+            return $"Requires: complete the objective in {reqName}";
+        }
+        return "Requirements not met.";
+    }
+
+    // ── Detail label helper (mirrors WorldMapScreen) ─────────────────────
+
+    private static Label MakeExpDetailLabel(string text, Color color, int fontSize)
+    {
+        var lbl = new Label { Text = text };
+        lbl.AddThemeFontSizeOverride("font_size", fontSize);
+        lbl.AddThemeColorOverride("font_color", color);
+        return lbl;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // Armory Tab
     // ═══════════════════════════════════════════════════════════════════════
@@ -1208,44 +1761,144 @@ public partial class CampusScreen : Control
         var slots = SaveManager.GetAllSlotInfo();
         foreach (var slot in slots)
         {
-            var hbox = new HBoxContainer();
-            hbox.AddThemeConstantOverride("separation", 10);
+            bool isActive = slot.Slot == _selectedSlot;
 
-            string label = slot.IsEmpty
-                ? $"Slot {slot.Slot + 1}: Empty"
-                : $"Slot {slot.Slot + 1}: {slot.GuildName} ({slot.School})" +
-                  $"  |  Gold: {slot.Gold}  |  Runs: {slot.TotalRuns}";
+            var card = new PanelContainer();
+            card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 
-            var loadBtn = new Button
+            var cardStyle = new StyleBoxFlat
             {
-                Text = slot.IsEmpty ? $"New Game (Slot {slot.Slot + 1})" : label,
-                CustomMinimumSize = new Vector2(360, 36),
-                SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+                BgColor = isActive
+                    ? new Color(0.10f, 0.18f, 0.10f, 0.9f)
+                    : UITheme.BgRaised,
+                BorderColor = isActive ? UITheme.Success : UITheme.NeutralDim,
+                BorderWidthTop = 1,
+                BorderWidthBottom = 1,
+                BorderWidthLeft = isActive ? 3 : 1,
+                BorderWidthRight = 1,
+                CornerRadiusTopLeft = 5,
+                CornerRadiusTopRight = 5,
+                CornerRadiusBottomLeft = 5,
+                CornerRadiusBottomRight = 5,
             };
-            UITheme.ApplyButtonStyle(loadBtn, isPrimary: false);
+            card.AddThemeStyleboxOverride("panel", cardStyle);
 
-            if (slot.Slot == _selectedSlot)
-                loadBtn.Modulate = UITheme.CampusSlotSelected;
+            var cardMargin = new MarginContainer();
+            cardMargin.AddThemeConstantOverride("margin_left", 16);
+            cardMargin.AddThemeConstantOverride("margin_right", 16);
+            cardMargin.AddThemeConstantOverride("margin_top", 10);
+            cardMargin.AddThemeConstantOverride("margin_bottom", 10);
+            card.AddChild(cardMargin);
+
+            var cardRow = new HBoxContainer();
+            cardRow.AddThemeConstantOverride("separation", 16);
+            cardMargin.AddChild(cardRow);
+
+            // Left: slot info
+            var infoCol = MakeVBox(4);
+            infoCol.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            cardRow.AddChild(infoCol);
+
+            if (slot.IsEmpty)
+            {
+                var emptyLabel = new Label { Text = $"Slot {slot.Slot + 1}  —  Empty" };
+                emptyLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+                emptyLabel.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+                infoCol.AddChild(emptyLabel);
+
+                var newGameHint = new Label { Text = "Click to start a new guild" };
+                newGameHint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+                newGameHint.AddThemeColorOverride("font_color", UITheme.TextDim);
+                infoCol.AddChild(newGameHint);
+            }
+            else
+            {
+                // Name + school row
+                var nameRow = new HBoxContainer();
+                nameRow.AddThemeConstantOverride("separation", 10);
+                infoCol.AddChild(nameRow);
+
+                var slotNum = new Label { Text = $"[{slot.Slot + 1}]" };
+                slotNum.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+                slotNum.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+                nameRow.AddChild(slotNum);
+
+                var nameLabel = new Label { Text = slot.GuildName };
+                nameLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+                nameLabel.AddThemeColorOverride("font_color",
+                    isActive ? Colors.White : UITheme.TextPrimary);
+                nameRow.AddChild(nameLabel);
+
+                var schoolBadge = new Label { Text = slot.School };
+                schoolBadge.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+                schoolBadge.AddThemeColorOverride("font_color", UITheme.Violet);
+                nameRow.AddChild(schoolBadge);
+
+                if (isActive)
+                {
+                    var activeBadge = new Label { Text = "● Active" };
+                    activeBadge.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+                    activeBadge.AddThemeColorOverride("font_color", UITheme.Success);
+                    nameRow.AddChild(activeBadge);
+                }
+
+                // Stats row
+                var statsRow = new HBoxContainer();
+                statsRow.AddThemeConstantOverride("separation", 20);
+                infoCol.AddChild(statsRow);
+
+                void AddMiniStat(string label, string value)
+                {
+                    var lbl = new Label { Text = $"{label}  {value}" };
+                    lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+                    lbl.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+                    statsRow.AddChild(lbl);
+                }
+
+                AddMiniStat("Gold:", $"{slot.Gold}");
+                AddMiniStat("Runs:", $"{slot.TotalRuns}");
+                if (!string.IsNullOrEmpty(slot.LastPlayed))
+                    AddMiniStat("Last played:", slot.LastPlayed[..10]); // date only
+            }
+
+            // Right: action buttons
+            var btnCol = MakeVBox(4);
+            btnCol.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
+            cardRow.AddChild(btnCol);
 
             int capturedSlot = slot.Slot;
             bool isEmpty = slot.IsEmpty;
+
+            var loadBtn = new Button
+            {
+                Text = slot.IsEmpty ? "New Game" : (isActive ? "Reload" : "Load"),
+                CustomMinimumSize = new Vector2(90, 32),
+            };
+            loadBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            UITheme.ApplyButtonStyle(loadBtn, isPrimary: !isActive);
             loadBtn.Pressed += () => OnSlotSelected(capturedSlot, isEmpty);
-            hbox.AddChild(loadBtn);
+            btnCol.AddChild(loadBtn);
 
             if (!slot.IsEmpty)
             {
-                var delBtn = new Button { Text = "✕", CustomMinimumSize = new Vector2(36, 36) };
+                var delBtn = new Button
+                {
+                    Text = "Delete",
+                    CustomMinimumSize = new Vector2(90, 28),
+                };
+                delBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
                 UITheme.ApplyButtonStyle(delBtn, isPrimary: false);
+                delBtn.AddThemeColorOverride("font_color", UITheme.Danger);
                 delBtn.Pressed += () =>
                 {
                     SaveManager.DeleteSlot(capturedSlot);
                     _selectedSlot = -1;
                     RefreshAll();
-                    UpdateStartButton();
                 };
-                hbox.AddChild(delBtn);
+                btnCol.AddChild(delBtn);
             }
-            _slotContainer.AddChild(hbox);
+
+            _slotContainer.AddChild(card);
         }
     }
 
@@ -1475,19 +2128,15 @@ public partial class CampusScreen : Control
     {
         if (isEmpty)
         {
-            var school = (CardSchool)_schoolPicker.GetSelectedId();
-            SaveManager.NewGame(slot, $"Guild of {school}");
-            SaveManager.ActiveSave.SelectedSchool = school.ToString();
-            SaveManager.Save();
+            PlayerSession.PendingNewGameSlot = slot;
+            GetTree().ChangeSceneToFile("res://Scenes/UI/NewGameScreen.tscn");
+            return;
         }
         else
         {
             SaveManager.Load(slot);
             if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave.SelectedSchool, out var school))
-            {
-                _schoolPicker.Selected = (int)school;
-                UpdateSchoolDescription();
-            }
+                PlayerSession.SelectedSchool = school;
         }
         _selectedSlot = slot;
         EnsureRostersAndBuildings();
@@ -1497,22 +2146,7 @@ public partial class CampusScreen : Control
         RefreshGoldLabel();
         RefreshArmoryTab();
         RefreshTrainingTab();
-        UpdateStartButton();
         GD.Print($"Selected slot {slot}");
-    }
-
-    private void OnStartRun()
-    {
-        if (_selectedSlot < 0) return;
-        PlayerSession.SelectedSchool = (CardSchool)_schoolPicker.GetSelectedId();
-        PlayerSession.DebugMode = _debugCheckbox.ButtonPressed;
-        if (SaveManager.ActiveSave != null)
-        {
-            SaveManager.ActiveSave.SelectedSchool = PlayerSession.SelectedSchool.ToString();
-            SaveManager.Save();
-        }
-        GD.Print($"Starting run: {PlayerSession.SelectedSchool}, Debug: {PlayerSession.DebugMode}");
-        GetTree().ChangeSceneToFile("res://Scenes/Overworld/OverworldScene.tscn");
     }
 
     private bool TryBuildOrUpgrade(string buildingId)
@@ -1552,24 +2186,6 @@ public partial class CampusScreen : Control
     // ═══════════════════════════════════════════════════════════════════════
     // Helpers
     // ═══════════════════════════════════════════════════════════════════════
-
-    private void UpdateSchoolDescription()
-    {
-        if (_schoolPicker == null || _schoolDescription == null) return;
-        var school = (CardSchool)_schoolPicker.GetSelectedId();
-        int count = 0;
-        foreach (var bp in CardDatabase.Blueprints)
-            if (bp.School == school) count++;
-        string desc = SchoolDescriptions.TryGetValue(school, out var d) ? d : "";
-        _schoolDescription.Text = $"{desc}\n{count} cards available.";
-    }
-
-    private void UpdateStartButton()
-    {
-        if (_startRunButton == null) return;
-        _startRunButton.Disabled = _selectedSlot < 0;
-        _startRunButton.Text = _selectedSlot >= 0 ? "Begin Expedition" : "Select a save slot first";
-    }
 
     private void EnsureRostersAndBuildings()
     {
