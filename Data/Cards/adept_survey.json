@@ -1,0 +1,25 @@
+{
+	"id": "adept_survey",
+	"status": "wip",
+	"name": "Survey",
+	"school": "Adept",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Survey",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Draw 2 cards.",
+		"tags": [],
+		"targeting": { "type": "self" },
+		"effect": { "type": "draw", "count": 2 }
+	},
+	"bottom": {
+		"name": "Reconnoitre",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 1 mana.",
+		"tags": [],
+		"targeting": { "type": "self" },
+		"effect": { "type": "mana_gain", "amount": 1 }
+	}
+}

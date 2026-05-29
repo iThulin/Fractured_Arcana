@@ -1,0 +1,25 @@
+{
+	"id": "adept_primer_bolt",
+	"status": "wip",
+	"name": "Primer Bolt",
+	"school": "Adept",
+	"rarity": "Common",
+	"top": {
+		"name": "Primer Bolt",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal damage equal to distance to target (min 2, max 6).",
+		"tags": [],
+		"targeting": { "type": "unit", "range": 7, "los": true, "enemies_only": true },
+		"effect": { "type": "damage_by_distance", "min": 2, "max": 6 }
+	},
+	"bottom": {
+		"name": "Quick Step",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Move 2 tiles.",
+		"tags": [],
+		"targeting": { "type": "self" },
+		"effect": { "type": "move", "tiles": 2 }
+	}
+}

@@ -1,22 +1,17 @@
 {
-	"id": "adept_mana_tap",
+	"id": "adept_reserve",
 	"status": "wip",
-	"name": "Mana Tap",
+	"name": "Reserve",
 	"school": "Adept",
 	"rarity": "Common",
 	"top": {
-		"name": "Mana Tap",
+		"name": "Reserve",
 		"mana": 0,
 		"speed": "Sorcery",
 		"rules_text": "Gain 2 mana.",
 		"tags": [],
-		"targeting": {
-			"type": "self"
-		},
-		"effect": {
-			"type": "mana_gain",
-			"amount": 2
-		}
+		"targeting": { "type": "self" },
+		"effect": { "type": "mana_gain", "amount": 2 }
 	},
 	"bottom": {
 		"name": "Study",
@@ -24,12 +19,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Draw 1 card.",
 		"tags": [],
-		"targeting": {
-			"type": "self"
-		},
-		"effect": {
-			"type": "draw",
-			"count": 1
-		}
+		"targeting": { "type": "self" },
+		"effect": { "type": "draw", "count": 1 }
 	}
 }

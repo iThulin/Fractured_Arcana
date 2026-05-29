@@ -1,29 +1,21 @@
 {
-	"id": "adept_arcane_step",
+	"id": "adept_field_step",
 	"status": "wip",
-	"name": "Arcane Step",
+	"name": "Field Step",
 	"school": "Adept",
 	"rarity": "Common",
 	"top": {
-		"name": "Arcane Step",
+		"name": "Field Step",
 		"mana": 1,
 		"speed": "Instant",
 		"rules_text": "Move 2 tiles. Gain 1 shield.",
 		"tags": [],
-		"targeting": {
-			"type": "self"
-		},
+		"targeting": { "type": "self" },
 		"effect": {
 			"type": "sequence",
 			"steps": [
-				{
-					"type": "move",
-					"tiles": 2
-				},
-				{
-					"type": "shield",
-					"amount": 1
-				}
+				{ "type": "move", "tiles": 2 },
+				{ "type": "shield", "amount": 1 }
 			]
 		}
 	},
@@ -33,12 +25,7 @@
 		"speed": "Instant",
 		"rules_text": "Move 1 tile.",
 		"tags": [],
-		"targeting": {
-			"type": "self"
-		},
-		"effect": {
-			"type": "move",
-			"tiles": 1
-		}
+		"targeting": { "type": "self" },
+		"effect": { "type": "move", "tiles": 1 }
 	}
 }

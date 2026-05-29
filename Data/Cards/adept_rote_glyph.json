@@ -1,0 +1,26 @@
+{
+	"id": "adept_rote_glyph",
+	"status": "wip",
+	"name": "Rote Glyph",
+	"school": "Adept",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Rote Glyph",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Place a Glyph on target empty tile within 3. The first enemy to enter triggers it: deal 3 damage and apply Slowed for 1 turn.",
+		"tags": [],
+		"requires": ["empty_tile"],
+		"targeting": { "type": "empty_tile", "range": 3 },
+		"effect": { "type": "place_glyph", "damage": 3, "status": "slowed", "duration": 1 }
+	},
+	"bottom": {
+		"name": "Chalk Mark",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Mark target enemy. The next spell that hits them deals 3 bonus damage.",
+		"tags": [],
+		"targeting": { "type": "unit", "range": 6, "los": true, "enemies_only": true },
+		"effect": { "type": "apply_status", "status": "arcane_mark", "duration": 3 }
+	}
+}

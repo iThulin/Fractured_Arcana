@@ -1,0 +1,25 @@
+{
+	"id": "adept_study_ward",
+	"status": "wip",
+	"name": "Study Ward",
+	"school": "Adept",
+	"rarity": "Common",
+	"top": {
+		"name": "Study Ward",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 4 shield.",
+		"tags": [],
+		"targeting": { "type": "self" },
+		"effect": { "type": "shield", "amount": 4 }
+	},
+	"bottom": {
+		"name": "Barrier",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Grant an adjacent ally 4 shield.",
+		"tags": [],
+		"targeting": { "type": "unit", "range": 1, "los": true, "enemies_only": false },
+		"effect": { "type": "shield", "amount": 4 }
+	}
+}
