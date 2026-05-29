@@ -23,7 +23,7 @@ public partial class ClassSelectUi : Control
     private OptionButton _schoolPicker;
     private Label _descriptionLabel;
     private Button _confirmButton;
-	private CheckBox _debugCheckbox;
+    private CheckBox _debugCheckbox;
 
     // Description for each school shown below the picker
     private static readonly System.Collections.Generic.Dictionary<CardSchool, string> Descriptions = new()
@@ -33,7 +33,7 @@ public partial class ClassSelectUi : Control
         { CardSchool.Necromancer, "Summons minions and drains life from enemies." },
         { CardSchool.Enchanter,   "Buffs, debuffs, and tile enchantments." },
         { CardSchool.Tinker,    "Mechanical traps, turrets, and area control." },
-        { CardSchool.Generic,     "A mixed deck drawn from all schools." },
+        { CardSchool.Adept,     "A mixed deck drawn from all schools." },
     };
 
     public override void _Ready()
@@ -41,10 +41,10 @@ public partial class ClassSelectUi : Control
         // Ensure card database is loaded for school descriptions and deck generation
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
 
-        _schoolPicker   = GetNode<OptionButton>("MarginContainer/VBox/SchoolPicker");
+        _schoolPicker = GetNode<OptionButton>("MarginContainer/VBox/SchoolPicker");
         _descriptionLabel = GetNode<Label>("MarginContainer/VBox/DescriptionLabel");
-        _confirmButton  = GetNode<Button>("MarginContainer/VBox/ConfirmButton");
-		_debugCheckbox    = GetNode<CheckBox>("MarginContainer/VBox/DebugCheckbox");
+        _confirmButton = GetNode<Button>("MarginContainer/VBox/ConfirmButton");
+        _debugCheckbox = GetNode<CheckBox>("MarginContainer/VBox/DebugCheckbox");
 
         // Populate dropdown from enum
         _schoolPicker.Clear();
@@ -58,7 +58,7 @@ public partial class ClassSelectUi : Control
         _schoolPicker.ItemSelected += (_) => UpdateDescription();
         _confirmButton.Pressed += OnConfirm;
 
-		_debugCheckbox.ButtonPressed = false;
+        _debugCheckbox.ButtonPressed = false;
     }
 
     private void UpdateDescription()
@@ -74,10 +74,10 @@ public partial class ClassSelectUi : Control
             : $"{count} cards available.";
     }
 
-	private void OnConfirm()
-	{
-		PlayerSession.SelectedSchool = (CardSchool)_schoolPicker.GetSelectedId();
-		PlayerSession.DebugMode = _debugCheckbox.ButtonPressed;
-		GetTree().ChangeSceneToFile(BattlefieldScenePath);
-	}
+    private void OnConfirm()
+    {
+        PlayerSession.SelectedSchool = (CardSchool)_schoolPicker.GetSelectedId();
+        PlayerSession.DebugMode = _debugCheckbox.ButtonPressed;
+        GetTree().ChangeSceneToFile(BattlefieldScenePath);
+    }
 }

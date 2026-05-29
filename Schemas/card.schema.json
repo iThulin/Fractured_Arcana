@@ -31,14 +31,14 @@
 			"type": "string",
 			"description": "Wizard school this card belongs to. Must match the CardSchool enum exactly.",
 			"enum": [
+				"Adept",
 				"Elementalist",
-				"Arcanist",
+				"Druid",
 				"Necromancer",
-				"Enchanter",
-				"Artificer",
-				"Chronomancer",
 				"Tinker",
-				"Generic"
+				"Enchanter",
+				"Arcanist",
+				"Chronomancer"
 			]
 		},
 		"rarity": {

@@ -1,8 +1,8 @@
 {
-	"id": "generic_leyline_tap",
+	"id": "adept_leyline_tap",
 	"status": "wip",
 	"name": "Leyline Tap",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Uncommon",
 	"top": {
 		"name": "Leyline Tap",

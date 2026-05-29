@@ -68,7 +68,7 @@ public partial class Unit : Node3D
     // School-specific class mechanic. Created in _Ready based on School.
     // Null for Generic or schools without a mechanic yet.
     public ISchoolAttunement Attunement { get; private set; }
-    [Export] public CardSchool School = CardSchool.Generic;
+    [Export] public CardSchool School = CardSchool.Adept;
 
     // ── Equipment passives — set by CombatManager after applying loadout ────
     public List<(ItemPassiveTag tag, int value)> EquipmentPassives = new();

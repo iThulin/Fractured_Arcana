@@ -1,8 +1,8 @@
 {
-	"id": "generic_arcane_bolt",
+	"id": "adept_arcane_bolt",
 	"status": "wip",
 	"name": "Arcane Bolt",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Arcane Bolt",

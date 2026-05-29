@@ -1,8 +1,8 @@
 {
-	"id": "generic_focused_strike",
+	"id": "adept_focused_strike",
 	"status": "wip",
 	"name": "Focused Strike",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Focused Strike",

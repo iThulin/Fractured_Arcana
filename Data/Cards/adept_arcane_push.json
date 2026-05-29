@@ -1,8 +1,8 @@
 {
-	"id": "generic_force_push",
+	"id": "adept_force_push",
 	"status": "wip",
 	"name": "Force Push",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Force Push",

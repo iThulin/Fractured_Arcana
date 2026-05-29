@@ -405,7 +405,7 @@ All card JSON files must conform to `Schemas/card.schema.json`. VS Code validate
 | `bottom` | CardHalf | — | Bottom half of the card. |
 
 **Valid `school` values** (must match `CardSchool` enum exactly, case-sensitive):
-`Elementalist`, `Arcanist`, `Necromancer`, `Enchanter`, `Artificer`, `Chronomancer`, `Tinker`, `Generic`
+`Adept`, `Elementalist`, `Druid`, `Necromancer`, `Tinker`, `Enchanter`, `Arcanist`, `Chronomancer`
 
 ---
 

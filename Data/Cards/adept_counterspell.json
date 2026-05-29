@@ -1,8 +1,8 @@
 {
-	"id": "generic_counterspell",
+	"id": "adept_counterspell",
 	"status": "wip",
 	"name": "Counterspell",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Uncommon",
 	"top": {
 		"name": "Counterspell",

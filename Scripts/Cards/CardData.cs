@@ -22,8 +22,8 @@ public enum CardType { Attack, Skill, Environment, Summon, Reaction }
 /// <summary>Coarse-grained targeting bucket used by the legacy CardData model. Runtime targeting is expressed by <see cref="ITargetSelector"/> implementations.</summary>
 public enum TargetType { None, SingleEnemy, AllEnemies, Tile, Self, Global }
 
-/// <summary>Wizard school. Must match the `school` field in card JSON exactly (case-insensitive on load). Adding a school requires updating JSON cards, the card schema enum, and any UI that lists schools.</summary>
-public enum CardSchool { Generic, Tinker, Chronomancer, Necromancer, Enchanter, Elementalist, Arcanist }
+/// <summary>Wizard school. Must match the `school` field in card JSON exactly (case-insensitive on load). Adding a school requires updating JSON cards, the card schema enum, and any UI that lists schools. Schools: Druid, Tinker, Chronomancer, Necromancer, Enchanter, Elementalist, Arcanist.</summary>
+public enum CardSchool { Adept, Elementalist, Druid, Necromancer, Tinker, Enchanter, Arcanist, Chronomancer }
 
 /// <summary>Card rarity tier. Drives loot tables, draft rates, and UI border colour.</summary>
 public enum CardRarity { Common, Uncommon, Rare, Legendary }

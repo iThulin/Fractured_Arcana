@@ -1,8 +1,8 @@
 {
-	"id": "generic_glyph_of_warding",
+	"id": "adept_glyph_of_warding",
 	"status": "wip",
 	"name": "Glyph of Warding",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Uncommon",
 	"top": {
 		"name": "Glyph of Warding",

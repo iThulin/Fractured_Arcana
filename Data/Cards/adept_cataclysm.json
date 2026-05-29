@@ -1,8 +1,8 @@
 {
-	"id": "generic_cataclysm",
+	"id": "adept_cataclysm",
 	"status": "wip",
 	"name": "Cataclysm",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Rare",
 	"top": {
 		"name": "Cataclysm",

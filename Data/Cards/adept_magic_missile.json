@@ -1,8 +1,8 @@
 {
-	"id": "generic_magic_missile",
+	"id": "adept_magic_missile",
 	"status": "wip",
 	"name": "Magic Missile",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Magic Missile",

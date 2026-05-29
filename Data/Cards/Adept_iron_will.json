@@ -1,8 +1,8 @@
 {
-	"id": "generic_iron_will",
+	"id": "adept_iron_will",
 	"status": "wip",
 	"name": "Iron Will",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Uncommon",
 	"top": {
 		"name": "Iron Will",

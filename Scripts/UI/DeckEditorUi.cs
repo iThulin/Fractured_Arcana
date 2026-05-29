@@ -487,7 +487,7 @@ public partial class DeckEditorUi : Control
         int topMana = bp?.Prebuilt?.TopHalf?.ManaCost ?? 0;
         int botMana = bp?.Prebuilt?.BottomHalf?.ManaCost ?? 0;
         var rarity = bp?.Rarity ?? CardRarity.Common;
-        var school = bp?.School ?? CardSchool.Generic;
+        var school = bp?.School ?? CardSchool.Adept;
         Color accent = SchoolColors.GetBorderColor(school);
         Color dark = SchoolColors.GetDarkColor(school);
 

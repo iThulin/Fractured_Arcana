@@ -148,7 +148,7 @@ public partial class CardRewardScreen : Control
         // Build a weighted pool: 70% school, 30% generic.
         // Each slot is independently rolled so you can get 0-3 generic cards.
         var schoolPool = BuildWeightedPool(school);
-        var genericPool = BuildWeightedPool(CardSchool.Generic);
+        var genericPool = BuildWeightedPool(CardSchool.Adept);
 
         var usedIds = new HashSet<string>();
 

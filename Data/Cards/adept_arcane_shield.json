@@ -1,8 +1,8 @@
 {
-	"id": "generic_arcane_shield",
+	"id": "adept_arcane_shield",
 	"status": "wip",
 	"name": "Arcane Shield",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Arcane Shield",

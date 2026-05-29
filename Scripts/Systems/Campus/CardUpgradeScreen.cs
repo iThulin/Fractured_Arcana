@@ -365,8 +365,8 @@ public partial class CardUpgradeScreen : Control
                     StringComparison.OrdinalIgnoreCase));
 
 
-            Color accent = SchoolColors.GetBorderColor(bp?.School ?? CardSchool.Generic);
-            Color dark = SchoolColors.GetDarkColor(bp?.School ?? CardSchool.Generic);
+            Color accent = SchoolColors.GetBorderColor(bp?.School ?? CardSchool.Adept);
+            Color dark = SchoolColors.GetDarkColor(bp?.School ?? CardSchool.Adept);
 
             var row = new PanelContainer();
             row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -402,7 +402,7 @@ public partial class CardUpgradeScreen : Control
             row.AddChild(hbox);
 
             // Class label
-            var classLbl = new Label { Text = (bp?.School ?? CardSchool.Generic).ToString() };
+            var classLbl = new Label { Text = (bp?.School ?? CardSchool.Adept).ToString() };
             classLbl.CustomMinimumSize = new Vector2(90, 0);
             classLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
             classLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
@@ -631,7 +631,7 @@ public partial class CardUpgradeScreen : Control
         // _gateLabel, preview zones, bypass button) are preserved
         ClearDynamicContent();
 
-        bool isGeneric = bp?.School == CardSchool.Generic;
+        bool isGeneric = bp?.School == CardSchool.Adept;
         bool baseUpgraded = _selectedOwned.IsBaseUpgraded;
         int pointsSpent = _selectedOwned.PointsSpent;
         int splinters = save?.ArcaneSplinters ?? 0;

@@ -1,8 +1,8 @@
 {
-	"id": "generic_jolt",
+	"id": "adept_jolt",
 	"status": "wip",
 	"name": "Jolt",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Jolt",

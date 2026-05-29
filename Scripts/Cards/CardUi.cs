@@ -318,7 +318,7 @@ public partial class CardUi : Control
             _botManaLabel, _botNameLabel, _botSpeedLabel, _botRulesLabel, _botElementTags);
 
         // ── Apply school-colored borders ────────────────────────────
-        var school = top?.School ?? bottom?.School ?? CardSchool.Generic;
+        var school = top?.School ?? bottom?.School ?? CardSchool.Adept;
         var borderCol = SchoolColors.GetBorderColor(school);
         var darkCol = SchoolColors.GetDarkColor(school);
 

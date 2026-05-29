@@ -1,8 +1,8 @@
 {
-	"id": "generic_minor_restoration",
+	"id": "adept_minor_restoration",
 	"status": "wip",
 	"name": "Minor Restoration",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Minor Restoration",

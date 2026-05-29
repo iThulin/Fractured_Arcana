@@ -1,8 +1,8 @@
 {
-	"id": "generic_ward",
+	"id": "adept_ward",
 	"status": "wip",
 	"name": "Ward",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Ward",

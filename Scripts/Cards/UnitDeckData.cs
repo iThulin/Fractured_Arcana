@@ -24,7 +24,7 @@ public class UnitDeckData
 	public List<Card> Hand = new();
 	public List<Card> DiscardPile = new();
 	public int MaxHandSize = 5;
-	public CardSchool School = CardSchool.Generic;
+	public CardSchool School = CardSchool.Adept;
 
 	private Random _rng = new();
 

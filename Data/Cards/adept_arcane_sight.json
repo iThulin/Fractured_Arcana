@@ -1,8 +1,8 @@
 {
-	"id": "generic_arcane_sight",
+	"id": "adept_arcane_sight",
 	"status": "wip",
 	"name": "Arcane Sight",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Uncommon",
 	"top": {
 		"name": "Arcane Sight",

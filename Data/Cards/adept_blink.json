@@ -1,8 +1,8 @@
 {
-	"id": "generic_blink",
+	"id": "adept_blink",
 	"status": "wip",
 	"name": "Blink",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Blink",

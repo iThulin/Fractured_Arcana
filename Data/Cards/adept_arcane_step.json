@@ -1,8 +1,8 @@
 {
-	"id": "generic_arcane_step",
+	"id": "adept_arcane_step",
 	"status": "wip",
 	"name": "Arcane Step",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Arcane Step",

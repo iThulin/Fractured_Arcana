@@ -1,8 +1,8 @@
 {
-	"id": "generic_riposte",
+	"id": "adept_riposte",
 	"status": "wip",
 	"name": "Riposte",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Uncommon",
 	"top": {
 		"name": "Riposte",

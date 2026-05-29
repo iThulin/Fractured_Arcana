@@ -71,7 +71,7 @@ public partial class CampusScreen : Control
         { CardSchool.Necromancer,  "Summons minions and drains life from enemies." },
         { CardSchool.Enchanter,    "Buffs, debuffs, and tile enchantments." },
         { CardSchool.Tinker,       "Mechanical traps, turrets, and area control." },
-        { CardSchool.Generic,      "Academy trained magical initiates at their finest." },
+        { CardSchool.Adept,      "Academy trained magical initiates at their finest." },
     };
 
     public override void _Ready()

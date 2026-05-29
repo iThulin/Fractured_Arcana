@@ -2424,7 +2424,7 @@ public partial class CombatManager : Node3D
             {
                 // Arcane companion — school deck gets added in InitializeUnitDecks
                 unit.School = System.Enum.TryParse<CardSchool>(companion.School,
-                    out var cs) ? cs : CardSchool.Generic;
+                    out var cs) ? cs : CardSchool.Adept;
                 unit.MaxActionPoints = unit.Stats.BaseSpeed;      // ← add this
                 unit.CurrentActionPoints = unit.MaxActionPoints;  // ← add this
             }

@@ -1,8 +1,8 @@
 {
-	"id": "generic_mana_tap",
+	"id": "adept_mana_tap",
 	"status": "wip",
 	"name": "Mana Tap",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Mana Tap",

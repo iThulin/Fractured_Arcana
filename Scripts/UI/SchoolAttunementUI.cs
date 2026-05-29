@@ -22,7 +22,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	// ── State ───────────────────────────────────────────────────────
 	private Unit _currentUnit;
 	private ElementalAttunement _boundAttunement;
-	private CardSchool _currentSchool = CardSchool.Generic;
+	private CardSchool _currentSchool = CardSchool.Adept;
 
 	// ── UI refs ─────────────────────────────────────────────────────
 	private VBoxContainer _container;

@@ -1,8 +1,8 @@
 {
-	"id": "generic_archmages_gambit",
+	"id": "adept_archmages_gambit",
 	"status": "wip",
 	"name": "Archmage's Gambit",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Rare",
 	"top": {
 		"name": "Archmage's Gambit",

@@ -1,8 +1,8 @@
 {
-	"id": "generic_flare",
+	"id": "adept_flare",
 	"status": "wip",
 	"name": "Flare",
-	"school": "Generic",
+	"school": "Adept",
 	"rarity": "Common",
 	"top": {
 		"name": "Flare",
