@@ -22,6 +22,7 @@ config/features=PackedStringArray("4.6", "C#", "GL Compatibility")
 
 SettingsManager="*res://Scripts/Systems/SettingsManager.cs"
 PauseManager="*res://Scripts/Systems/PauseManager.cs"
+TooltipManager="*uid://d1cfw28qpve6q"
 
 [display]
 

@@ -25,44 +25,44 @@ public partial class NewGameScreen : Control
     private static readonly Dictionary<CardSchool, (string desc, string flavor, string symbol, string identity)> SchoolData = new()
     {
         { CardSchool.Adept, (
-            "Graduated top of their cohort at the Aldric Academy, which prepares a person extremely well for everything except what actually happens next. Draws from all six schools without deep attunement to any — broad, adaptable, and carrying more theoretical knowledge than field experience. The perfect starting point for a wizard who hasn't yet decided what kind of wizard they intend to be.",
+            "Aldric Academy graduates know the proper name of every spell, the eight classical schools, the seventeen permitted variant pronunciations, and the precise angle at which to hold the wand during a formal casting examination. None of this has ever been useful. An Adept knows a little of everything and is constantly in the process of learning that \"a little of everything\" is what people say when they mean \"not enough of anything yet.\" They will become something, probably.",
             "The academy taught me the name of every spell. The world is teaching me when to use them.",
-            "✧", "The Graduate"
+            "✧", "Wenna Aldric"
         )},
         { CardSchool.Elementalist, (
-            "Channels raw elemental force — fire, ice, lightning, and earth — building attunement with each cast. As charges accumulate, spells transform: a simple bolt becomes a chain, a barrier becomes an avalanche. The Elementalist brute-forces the map, smashes obstacles, and fights whatever they find. Aggressive, direct, and devastating at full attunement.",
-            "The Conclave tried to contain the storm. They built walls of iron and doctrine. I watched both burn.",
-            "✦", "The Pathbreaker"
+            "The four elements are older than language and have been arguing for longer than that. The Elementalist is what happens when one person agrees to host the argument. Fire wants to spread. Ice wants to hold. Storm wants to move. Earth wants to stay. They reach no conclusion through him, but they reach it loudly, and the landscape around him tends to reflect whichever of them was making the better point that morning. He is not winning a fight. He is the place a much older fight is presently occurring.",
+            "They told me the storm could be contained. I asked who told them.",
+            "✦", "Joren Kall, who answered the storm"
         )},
         { CardSchool.Druid, (
-            "Reads the land the way other wizards read books — as something with opinions, with memory, with preferences about what happens on it. Shapes terrain to punish enemies who stand in the wrong place, binds animal companions into combat with a word, and heals companions not through arcane theory but through the same instinct that closes a wound on a living tree. The land does not fight for the Druid. It simply stops cooperating with everyone else.",
-            "I did not move the river. I reminded it where it wanted to go.",
-            "᛫", "The Shaper"
+            "The Druid sleeps where she falls and eats what is in front of her. She has been doing this for a long time. The land does what she asks. It does so not because she commands it, and not because it serves her, but because what she asks is generally what the land was going to do anyway. In the slow vocabulary of root and weather and bone, she has learned to ask only for what is already coming. She does not heal so much as decide which wounds are permitted to close. The animals that follow her are not pets. They are present for the same reason the carrion birds are present, which is that something is about to happen and they would like to be there when it does.",
+            "The river goes where it wants. I happen to know where that is.",
+            "᛫", "Hess, who does not intervene"
         )},
         { CardSchool.Necromancer, (
-            "Moves between the living and the dead with the ease of someone who has done it a thousand times. Heals allies by drawing on the energy of fallen enemies, shields companions with spirit-light, and reads the echo of every ruin to learn what waits inside. Not a commander of the dead — a confidant. They come because, in their experience, it is worth showing up when they are called.",
-            "Sugar, everyone ends up on my side of the bar eventually. I just make sure they have a good time getting there.",
-            "☽", "The Conductor"
+            "She runs a bar. The bar is also a funeral home, depending on what you need. Most of her regulars are dead, which she finds restful — they listen better, drink less, and never ask her to weigh in on whose fault it was. She heals the living by asking the dead to chip in, and they do, because she is the kind of person you want to be on good terms with on both sides of the door. Spirit-light. Ruin-echoes. The usual.",
+            "He still owes me eighty silver. I'll get it eventually. Patience is sort of my whole thing.",
+            "☽", "Ondria Vell, Hostess of the Long Table"
         )},
         { CardSchool.Tinker, (
-            "Builds what others cannot yet imagine and deploys it before they finish asking whether it is possible. Turrets, arc emitters, pressure traps, and scouting drones — every engagement is an engineering problem, and every engineering problem has already been solved on paper. The Tinker arrives at the battlefield having already won it. The enemies simply have not received the report yet.",
-            "The mathematics have been correct since Tuesday. I am waiting for the rest of the world to catch up.",
-            "⚙", "The Engineer"
+            "A turret is just a question with a satisfying answer. The Tinker has many questions. They arrive at every fight with a small cart, three projects in various states of completion, and a notebook full of diagrams that other wizards describe as \"concerning\" and engineers describe as \"not yet, but close.\" Half the devices work. The other half are research. The distinction matters less than you'd think.",
+            "That wasn't supposed to do that. Write it down.",
+            "⚙", "Master Bram Korro"
         )},
         { CardSchool.Enchanter, (
-            "Layers enchantments with the patience of someone who finds complexity restful. Each glyph references the last, each binding tightens the one beneath it — by the fourth layer most wizards have stopped following, and by the seventh they have quietly left the room. The Enchanter does not prevent enemies from acting. They ensure that every action an enemy takes pulls another thread, and that all threads lead to the same place.",
-            "You are welcome to try to unpick it. Most people only attempt that once.",
-            "⬡", "The Namer"
+            "An Enchanter does not stop you from doing things. An Enchanter makes sure that whatever you do, the next thing you have to do is worse. There are seven layers in a properly built binding. Other wizards have, at various academic conferences, suggested that four is sufficient and seven is excessive. The Enchanter, present in the room, did not respond. The paper was withdrawn.",
+            "I'm not finished. Sit.",
+            "⬡", "Cael Morn, of the Seventh Layer"
         )},
         { CardSchool.Arcanist, (
-            "Studies the deep rules of magic itself — not spells, but the laws that govern them. Arcanists amplify, redirect, and replicate effects, turning a single card into a cascade. They see hidden details in every POI they reveal, and argue more effectively because they understand the logical structure of every situation. Demanding to master; nearly unmatched at peak play.",
-            "There are no miracles. Only observers who lacked the patience to understand what they were watching.",
-            "◈", "The Analyst"
+           "The Arcanist does not cast spells so much as revise them. He keeps a tome. The tome is not a spellbook in any sense another wizard would recognize; it is closer to a workshop, with the spells of every school laid out on the bench in pieces, partially disassembled, annotated in three languages and a personal shorthand that he has never explained. When another wizard casts something near him, he sees what it is doing and, more importantly, what it is failing to do — the constraint someone built into it for safety, the redundancy nobody bothered to remove, the second verse the original author forgot was there. A fire spell passes through the room and he lets it pass; a moment later, in a way nobody can quite trace, it is still burning. A binding goes around an enemy and holds tighter than it should, because the Arcanist has quietly removed the clause the original caster put in to make it humane.",
+           "There are no miracles. Only observers who lacked the patience to understand what they were watching.",
+            "◈", "Master Aurel Pendry"
         )},
         { CardSchool.Chronomancer, (
-            "Reads the celestial record and repositions events until the stars align with the outcome already written. Does not bend time — reads it. Delays enemy actions by holding them in a moment not yet resolved, echoes spells that the heavens say should have landed twice, and charts the overworld ahead by consulting what the sky has already declared. Deeply technical. Cosmically patient. Correct far more often than anyone is comfortable with.",
-            "The outcome was written before your grandfather drew his first breath. I am not here to change it. I am here to make sure you are standing in the right place when it arrives.",
-            "◎", "The Astrologer"
+            "The Chronomancer is not bending time. He will correct you on this. What he is doing is reading — the sky writes the outcome of every event before the event happens, and he has spent a long time learning the script. He knows who wins. He knows who loses. He knows, with some precision, the moment at which each of you stopped having a real choice. He has been generous with this knowledge, in places. He has been less generous in others. The galaxy turns, and he turns with it, and somewhere in that turning he made a decision he is not, yet, willing to discuss.",
+            "I am not changing what happens. I am changing where you are standing when it does. The distinction will matter to you, later.",
+            "◎", "Kassian Vor-Aleth, who read the Sky"
         )},
     };
 

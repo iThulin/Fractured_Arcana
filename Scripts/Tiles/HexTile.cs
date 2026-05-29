@@ -67,8 +67,12 @@ public partial class HexTile : Node3D
     private bool targetHighlighted = false;
     private bool rangeHighlighted = false;
     private bool rangeBorderHighlighted = false;
+
     /// <summary>Colour used when a draggable card is hovered over this tile during targeting.</summary>
     [Export] public Color DragHoverColor = UITheme.TileDragHover;
+
+    /// <summary>Back-pointer to this tile's TileData. Set by HexGridManager during grid generation.</summary>
+    public TileData Data { get; set; }
 
     public override void _Ready()
     {
@@ -118,6 +122,10 @@ public partial class HexTile : Node3D
         Color c = material.AlbedoColor;
         c = c.Lerp(HoverColor, 0.5f);
         material.AlbedoColor = c;
+
+        // ── Tooltip ──────────────────────────────────────────────
+        if (Data != null)
+            TooltipManager.Instance?.ShowTileTooltip(Data);
     }
 
     private void OnMouseExited()
@@ -135,6 +143,10 @@ public partial class HexTile : Node3D
         {
             RefreshVisualState();
         }
+
+        // ── Tooltip ──────────────────────────────────────────────
+        GD.Print($"[HexTile] Mouse entered {Axial}. TooltipManager: {TooltipManager.Instance != null}, Data: {Data != null}");
+        TooltipManager.Instance?.HideTileTooltip();
     }
 
     /// <summary>Replaces the tile's material with a per-tile duplicate (so AlbedoColor changes don't bleed to siblings). Pass a StandardMaterial3D for the standard hover/highlight path; other material types disable the colour blending features.</summary>

@@ -351,6 +351,7 @@ public partial class HexGridManager : Node3D
                     //ElementId = 0
                 };
 
+                tileNode.Data = tileData;
                 Tiles[coord] = tileData;
                 tileNode.RefreshLabel(tileData);
 

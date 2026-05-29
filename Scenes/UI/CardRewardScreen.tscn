@@ -1,9 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://cktpgcwsu4ah8"]
 
-[ext_resource type="Script" path="res://Scripts/UI/CardRewardScreen.cs" id="1_crs"]
+[ext_resource type="Script" uid="uid://bcj2o1gkn4tdp" path="res://Scripts/UI/CardRewardScreen.cs" id="1_crs"]
 [ext_resource type="PackedScene" uid="uid://iuge2orfh1hw" path="res://Scenes/Cards/CardUI.tscn" id="2_card"]
 
-[node name="CardRewardScreen" type="Control"]
+[node name="CardRewardScreen" type="Control" unique_id=662126398]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,4 +12,3 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_crs")
 CardUIScene = ExtResource("2_card")
-OverworldScenePath = "res://Scenes/Overworld/OverworldScene.tscn"
