@@ -1,0 +1,285 @@
+{
+    "id": "necromancer_march_and_remember",
+    "status": "wip",
+    "name": "March and Remember",
+    "school": "Necromancer",
+    "rarity": "Uncommon",
+    "top": {
+        "name": "March and Remember",
+        "mana": 2,
+        "speed": "Instant",
+        "rules_text": "All spirits advance 2 tiles toward the nearest enemy and attack. Kills leave memorials.",
+        "targeting": {
+            "type": "none"
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "advance_all_spirits",
+                    "tiles": 2,
+                    "attack_if_adjacent": true,
+                    "grant_attack_if_reached": true
+                },
+                {
+                    "type": "mark_spirits_memorial_on_kill"
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Memorial Ground",
+        "mana": 1,
+        "speed": "Sorcery",
+        "rules_text": "Imbue target tile as Memorial Ground (3 turns). Summon spells targeting this tile cost 2 less.",
+        "targeting": {
+            "type": "tile",
+            "range": 4
+        },
+        "effect": {
+            "type": "create_memorial_ground",
+            "duration": 3,
+            "summon_discount": 2
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "March and Remember+",
+            "bottom_name": "Memorial Ground+",
+            "description": "Spirits advance 3 tiles. Memorial Ground lasts 5 turns.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].tiles",
+                    "value": 3
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits advance 3 tiles and attack. Kills leave memorials."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.duration",
+                    "value": 5
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Imbue target tile as Memorial Ground (5 turns). Summon spells cost 2 less here."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "With Purpose",
+            "description": "With Purpose: Spirits gain +3 damage before marching.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "damage",
+                                "amount": 3,
+                                "duration": 1
+                            },
+                            {
+                                "type": "advance_all_spirits",
+                                "tiles": 3,
+                                "attack_if_adjacent": true,
+                                "grant_attack_if_reached": true
+                            },
+                            {
+                                "type": "mark_spirits_memorial_on_kill"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits gain +3 damage. Advance 3 tiles and attack. Kills leave memorials."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Sacred Ground",
+            "description": "Sacred Ground: Spirits on Memorial Ground regenerate 2HP per turn.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.spirit_regen",
+                    "value": 2
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Imbue target tile as Memorial Ground (5 turns). Summon cost -2. Spirits here regen 2HP/turn."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "The Long March",
+            "description": "The Long March: Spirits not in combat after attacking advance 2 more tiles.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "damage",
+                                "amount": 3,
+                                "duration": 1
+                            },
+                            {
+                                "type": "advance_all_spirits",
+                                "tiles": 3,
+                                "attack_if_adjacent": true,
+                                "grant_attack_if_reached": true
+                            },
+                            {
+                                "type": "mark_spirits_memorial_on_kill"
+                            },
+                            {
+                                "type": "advance_all_spirits",
+                                "tiles": 2,
+                                "attack_if_adjacent": true,
+                                "if_not_adjacent_to_enemy": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits +3 damage. Advance 3, attack. Kills: memorial. Spirits not in combat advance 2 more."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "The Garden",
+            "description": "The Garden: Imbues target tile and all adjacent tiles as Memorial Ground.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "create_memorial_ground_area",
+                        "radius": 1,
+                        "duration": 5,
+                        "summon_discount": 2,
+                        "spirit_regen": 2
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Imbue target tile and adjacent tiles as Memorial Ground (5 turns). Summon cost -2. Spirits regen 2HP/turn."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "All Rise",
+            "description": "All Rise: Summons a Spirit (8HP 4DMG) from every memorial created this turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "damage",
+                                "amount": 3,
+                                "duration": 1
+                            },
+                            {
+                                "type": "advance_all_spirits",
+                                "tiles": 3,
+                                "attack_if_adjacent": true,
+                                "grant_attack_if_reached": true
+                            },
+                            {
+                                "type": "mark_spirits_memorial_on_kill"
+                            },
+                            {
+                                "type": "advance_all_spirits",
+                                "tiles": 2,
+                                "attack_if_adjacent": true,
+                                "if_not_adjacent_to_enemy": true
+                            },
+                            {
+                                "type": "summon_spirit_from_new_memorials",
+                                "unit": "Spirit",
+                                "hp": 8,
+                                "damage": 4,
+                                "speed": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits +3 damage. Advance 3, attack. Kills: memorial + summon Spirit (8HP 4DMG). Remaining spirits advance 2 more."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "Consecrated Battlefield",
+            "description": "Consecrated Battlefield: The entire battlefield becomes Memorial Ground permanently.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "create_memorial_ground_area",
+                        "radius": 99,
+                        "duration": 99,
+                        "summon_discount": 2,
+                        "spirit_regen": 2
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "The entire battlefield becomes Memorial Ground for the rest of combat. Summon cost -2 everywhere. Spirits regen 2HP/turn."
+                }
+            ]
+        }
+    ]
+}

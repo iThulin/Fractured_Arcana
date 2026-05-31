@@ -1,0 +1,221 @@
+{
+    "id": "necromancer_they_chose_to_stay",
+    "status": "wip",
+    "name": "They Chose to Stay",
+    "school": "Necromancer",
+    "rarity": "Rare",
+    "top": {
+        "name": "They Chose to Stay",
+        "mana": 3,
+        "speed": "Sorcery",
+        "rules_text": "Any spirit that falls this turn rises again at end of turn (8HP).",
+        "targeting": {
+            "type": "none"
+        },
+        "effect": {
+            "type": "apply_status_to_all_spirits",
+            "status": "undying_turn",
+            "revive_hp": 8,
+            "duration": 1
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "The Answering",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Summon a Spirit from every memorial on the board. Each has HP equal to the number of other spirits you control.",
+        "targeting": {
+            "type": "none"
+        },
+        "effect": {
+            "type": "summon_spirit_from_all_memorials",
+            "unit": "Spirit",
+            "hp_per_spirit": true,
+            "damage": 5,
+            "speed": 1
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "They Chose to Stay+",
+            "bottom_name": "The Answering+",
+            "description": "Spirits revive at 12HP. Answering spirits have 4HP base + 1 per spirit, 6DMG.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.revive_hp",
+                    "value": 12
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Any spirit that falls this turn rises again at end of turn (12HP)."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.base_hp",
+                    "value": 4
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.damage",
+                    "value": 6
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit from every memorial (4HP + 1 per other spirit you control, 6 DMG)."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Not Yet",
+            "description": "Not Yet: Spirits revive at full HP instead of a fixed amount.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.status",
+                    "value": "undying_full_restore"
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Any spirit that falls this turn rises again at end of turn at full HP."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "With Purpose",
+            "description": "With Purpose: Answering spirits advance 1 tile on arrival.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.on_arrive_advance",
+                    "value": 1
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit from every memorial (4HP + 1/spirit, 6 DMG). Each advances 1 tile on arrival."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Bound to This World",
+            "description": "Bound to This World: All spirits are invulnerable this turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "apply_status_to_all_spirits",
+                                "status": "invulnerable",
+                                "duration": 1
+                            },
+                            {
+                                "type": "apply_status_to_all_spirits",
+                                "status": "undying_full_restore",
+                                "duration": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits are invulnerable this turn and will fully restore if they would fall."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "In Their Name",
+            "description": "In Their Name: Each spirit gains +2 DMG per point of memorial strength.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.bonus_damage_per_strength",
+                    "value": 2
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.inherit_memorial_name",
+                    "value": true
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit from every memorial (4HP + 1/spirit, 6 DMG + 2/memorial strength). Each advances 1 tile."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Vigil",
+            "description": "The Vigil: Spirits fully restore each time they would fall for 2 turns.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "apply_status_to_all_spirits",
+                        "status": "vigil",
+                        "duration": 2
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits enter the Vigil (2 turns). Each time a spirit would fall during the vigil, it fully restores instead."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "All of Them",
+            "description": "All of Them: Spirits also rise from every tile a spirit fell on this combat.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "summon_spirit_from_all_memorials_and_death_sites",
+                        "unit": "Spirit",
+                        "hp_per_spirit": true,
+                        "base_hp": 4,
+                        "damage": 6,
+                        "speed": 1,
+                        "on_arrive_advance": 1,
+                        "bonus_damage_per_strength": 2,
+                        "inherit_memorial_name": true
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Summon Spirits from every memorial AND every tile a spirit fell on this combat. Each advances 1 tile."
+                }
+            ]
+        }
+    ]
+}

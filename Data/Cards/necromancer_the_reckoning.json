@@ -1,0 +1,242 @@
+{
+    "id": "necromancer_the_reckoning",
+    "status": "wip",
+    "name": "The Reckoning",
+    "school": "Necromancer",
+    "rarity": "Rare",
+    "top": {
+        "name": "The Reckoning",
+        "mana": 3,
+        "speed": "Sorcery",
+        "rules_text": "Each memorial on the board strikes adjacent enemies for 4 damage.",
+        "targeting": {
+            "type": "none"
+        },
+        "effect": {
+            "type": "memorial_strike_all",
+            "damage": 4
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Revenant Champion",
+        "mana": 3,
+        "speed": "Sorcery",
+        "rules_text": "Consume 2 memorials within range 3. Summon a Revenant Champion (24HP 8DMG 1SPD).",
+        "targeting": {
+            "type": "tile",
+            "range": 3
+        },
+        "requires": [
+            "memorial_tile"
+        ],
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "consume_memorials_for_champion",
+                    "count": 2,
+                    "range": 3
+                },
+                {
+                    "type": "summon_spirit",
+                    "unit": "Revenant_Champion",
+                    "hp": 24,
+                    "damage": 8,
+                    "speed": 1
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "The Reckoning+",
+            "bottom_name": "Revenant Champion+",
+            "description": "Memorials strike for 6 damage. Champion is 28HP 10DMG.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.damage",
+                    "value": 6
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Each memorial on the board strikes adjacent enemies for 6 damage."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[1].hp",
+                    "value": 28
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[1].damage",
+                    "value": 10
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Consume 2 memorials within range 3. Summon a Revenant Champion (28HP 10DMG 1SPD)."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "The Answering",
+            "description": "The Answering: Memorials remain after striking.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.leave_memorial",
+                    "value": true
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Each memorial strikes adjacent enemies for 6 damage. Memorials remain."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Grief Made Flesh",
+            "description": "Grief Made Flesh: Champion scales with combined memorial strength (+4HP/+2DMG per point).",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "consume_memorials_for_champion",
+                                "count": 2,
+                                "range": 3
+                            },
+                            {
+                                "type": "summon_spirit_scaled",
+                                "unit": "Revenant_Champion",
+                                "base_hp": 28,
+                                "base_damage": 10,
+                                "hp_per_strength": 4,
+                                "damage_per_strength": 2,
+                                "speed": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Consume 2 memorials within range 3. Summon a Revenant Champion scaled to combined memorial strength (+4HP/+2DMG per point)."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Thousand Voices",
+            "description": "Thousand Voices: Struck enemies are pushed 1 tile.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.push",
+                    "value": 1
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Each memorial strikes adjacent enemies for 6 damage and pushes them 1 tile. Memorials remain."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "The Covenant Champion",
+            "description": "The Covenant Champion: Survives a killing blow at 1HP once per combat.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[1].min_hp_per_hit",
+                    "value": 1
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[1].min_hp_once",
+                    "value": true
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Consume 2 memorials. Scaled Revenant Champion. Once per combat: survives a killing blow at 1HP."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Day of Reckoning",
+            "description": "The Day of Reckoning: Each memorial strikes all enemies twice. Board-wide.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "memorial_strike_all",
+                        "damage": 6,
+                        "push": 1,
+                        "leave_memorial": true,
+                        "strikes": 2,
+                        "global": true
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Each memorial strikes all enemies on the board twice for 6 damage + push 1. Memorials remain."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "Legion of the Honored",
+            "description": "Legion of the Honored: Summons one Revenant Champion per 2 memorials consumed within range 3.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "consume_all_memorials_for_champions",
+                        "range": 3,
+                        "unit": "Revenant_Champion",
+                        "base_hp": 24,
+                        "base_damage": 8,
+                        "speed": 1
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "requires",
+                    "value": []
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Consume all memorials within range 3. Per 2 memorials consumed: summon a Revenant Champion (24HP 8DMG)."
+                }
+            ]
+        }
+    ]
+}

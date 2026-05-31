@@ -1,0 +1,331 @@
+{
+    "id": "necromancer_the_departure",
+    "status": "wip",
+    "name": "The Departure",
+    "school": "Necromancer",
+    "rarity": "Uncommon",
+    "top": {
+        "name": "The Departure",
+        "mana": 2,
+        "speed": "Instant",
+        "rules_text": "Consume target memorial or dismiss target spirit within range 5. Deal 5 damage to adjacent enemies. Leave a Strong memorial.",
+        "targeting": {
+            "type": "tile",
+            "range": 5
+        },
+        "requires": [
+            "memorial_or_spirit_tile"
+        ],
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "consume_memorial_or_dismiss_spirit"
+                },
+                {
+                    "type": "retarget",
+                    "targeting": {
+                        "type": "aoe",
+                        "radius": 1,
+                        "enemies_only": true
+                    },
+                    "do": {
+                        "type": "damage",
+                        "amount": 5
+                    }
+                },
+                {
+                    "type": "create_memorial",
+                    "strength": "strong"
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Grief Surge",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Spend all Grief. Deal 3 damage to all enemies per charge spent.",
+        "targeting": {
+            "type": "none"
+        },
+        "effect": {
+            "type": "grief_discharge_damage",
+            "damage_per_grief": 3
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "The Departure+",
+            "bottom_name": "Grief Surge+",
+            "description": "Departure deals 7 damage. Surge deals 4 damage per Grief.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].do.amount",
+                    "value": 7
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Consume memorial or dismiss spirit within range 5. Deal 7 damage to adjacent enemies. Leave a Strong memorial."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.damage_per_grief",
+                    "value": 4
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Spend all Grief. Deal 4 damage to all enemies per charge spent."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "The Chosen Moment",
+            "description": "The Chosen Moment: Survivors are pushed 2 tiles.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "consume_memorial_or_dismiss_spirit"
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 1,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "sequence",
+                                    "steps": [
+                                        {
+                                            "type": "damage",
+                                            "amount": 7
+                                        },
+                                        {
+                                            "type": "push",
+                                            "tiles": 2,
+                                            "collision_damage": 2
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "type": "create_memorial",
+                                "strength": "strong"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Consume memorial or dismiss spirit within range 5. Deal 7 damage and push 2 to adjacent enemies. Leave a Strong memorial."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Controlled Release",
+            "description": "Controlled Release: Choose how much Grief to spend. Deals 5 damage per charge.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.damage_per_grief",
+                    "value": 5
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.choose_amount",
+                    "value": true
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.min_spend",
+                    "value": 1
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Spend Grief (choose amount, min 1). Deal 5 damage to all enemies per charge spent."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Sacred Explosion",
+            "description": "Sacred Explosion: Burst radius increases to 2. Strong memorial auto-rises a spirit next turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "consume_memorial_or_dismiss_spirit"
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 2,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "sequence",
+                                    "steps": [
+                                        {
+                                            "type": "damage",
+                                            "amount": 7
+                                        },
+                                        {
+                                            "type": "push",
+                                            "tiles": 2,
+                                            "collision_damage": 2
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "type": "create_memorial",
+                                "strength": "strong"
+                            },
+                            {
+                                "type": "hallow_tile",
+                                "duration": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Consume memorial or dismiss spirit. Deal 7 damage + push 2 in radius 2. Leave Strong memorial \u2014 auto-rises a spirit next turn."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Grief Made Weapon",
+            "description": "Grief Made Weapon: Gains 1 armor per charge spent.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "grief_discharge_damage",
+                                "damage_per_grief": 5,
+                                "choose_amount": true,
+                                "min_spend": 1
+                            },
+                            {
+                                "type": "armor_per_grief_spent",
+                                "amount_per": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Spend Grief (choose, min 1). Deal 5 damage/charge to all enemies. Gain 1 armor per charge spent."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Grand Departure",
+            "description": "The Grand Departure: Dismisses all spirits. Each bursts for 7 damage + push 2 and leaves a Strong memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "mass_departure",
+                        "damage": 7,
+                        "push": 2,
+                        "collision_damage": 2,
+                        "memorial_strength": "strong"
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "requires",
+                    "value": []
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Dismiss all spirits. Each bursts: 7 damage + push 2 at their location. Each leaves a Strong memorial."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Flood of Grief",
+            "description": "The Flood of Grief: After the discharge, triggers the Flood.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "grief_discharge_damage",
+                                "damage_per_grief": 5,
+                                "choose_amount": true,
+                                "min_spend": 1
+                            },
+                            {
+                                "type": "armor_per_grief_spent",
+                                "amount_per": 1
+                            },
+                            {
+                                "type": "trigger_flood"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Spend Grief (choose, min 1). Deal 5 damage/charge. Gain 1 armor/charge. Trigger the Flood \u2014 all spirits refresh."
+                }
+            ]
+        }
+    ]
+}

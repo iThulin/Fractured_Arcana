@@ -1,0 +1,302 @@
+{
+    "id": "necromancer_release_and_remember",
+    "status": "wip",
+    "name": "Release and Remember",
+    "school": "Necromancer",
+    "rarity": "Common",
+    "top": {
+        "name": "Release and Remember",
+        "mana": 1,
+        "speed": "Sorcery",
+        "rules_text": "Consume target memorial within range 4. Gain 2 mana and draw 1 card.",
+        "targeting": {
+            "type": "tile",
+            "range": 4
+        },
+        "requires": [
+            "memorial_tile"
+        ],
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "consume_memorial"
+                },
+                {
+                    "type": "gain_mana",
+                    "amount": 2
+                },
+                {
+                    "type": "draw",
+                    "count": 1
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Mourning Shroud",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Gain 1 armor per memorial on the board.",
+        "targeting": {
+            "type": "self"
+        },
+        "effect": {
+            "type": "armor_per_memorial",
+            "amount_per": 1
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Release and Remember+",
+            "bottom_name": "Mourning Shroud+",
+            "description": "Release yields 3 mana. Shroud grants 2 armor per memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].amount",
+                    "value": 3
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Consume target memorial within range 4. Gain 3 mana and draw 1 card."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.amount_per",
+                    "value": 2
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Gain 2 armor per memorial on the board."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Final Rest",
+            "description": "Final Rest: Also gains 1 Grief when consuming a memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "consume_memorial"
+                            },
+                            {
+                                "type": "gain_mana",
+                                "amount": 3
+                            },
+                            {
+                                "type": "draw",
+                                "count": 1
+                            },
+                            {
+                                "type": "gain_grief",
+                                "amount": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Consume target memorial within range 4. Gain 3 mana, draw 1 card, gain 1 Grief."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "The Weight We Carry",
+            "description": "The Weight We Carry: Also gains 1 shield per memorial.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "armor_per_memorial",
+                                "amount_per": 2
+                            },
+                            {
+                                "type": "shield_per_memorial",
+                                "amount_per": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Gain 2 armor and 1 shield per memorial on the board."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Mass Release",
+            "description": "Mass Release: Consumes all memorials within range 2. Per memorial: 2 mana, 1 card, 1 Grief.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "consume_all_memorials_in_range",
+                        "range": 2,
+                        "mana_per": 2,
+                        "draw_per": 1,
+                        "grief_per": 1
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "targeting",
+                    "value": {
+                        "type": "self"
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "requires",
+                    "value": []
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Consume all memorials within range 2. Per memorial: gain 2 mana, draw 1 card, gain 1 Grief."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Grief Armor",
+            "description": "Grief Armor: Also gains 2 armor per current Grief charge.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "armor_per_memorial",
+                                "amount_per": 2
+                            },
+                            {
+                                "type": "shield_per_memorial",
+                                "amount_per": 1
+                            },
+                            {
+                                "type": "armor_per_grief",
+                                "amount_per": 2
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Gain 2 armor per memorial + 2 armor per Grief charge + 1 shield per memorial."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Great Release",
+            "description": "The Great Release: Consumes all memorials on the board. Per memorial: 2 mana, 1 card, 1 Spirit.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "consume_all_memorials_global",
+                        "mana_per": 2,
+                        "draw_per": 1,
+                        "summon_per": {
+                            "unit": "Spirit",
+                            "hp": 8,
+                            "damage": 4,
+                            "speed": 1
+                        }
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "requires",
+                    "value": []
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Consume all memorials on the board. Per memorial: gain 2 mana, draw 1 card, summon a Spirit (8HP 4DMG)."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "Untouchable",
+            "description": "Untouchable: Adds Shrouded this turn \u2014 max 5 damage per hit.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "armor_per_memorial",
+                                "amount_per": 2
+                            },
+                            {
+                                "type": "shield_per_memorial",
+                                "amount_per": 1
+                            },
+                            {
+                                "type": "armor_per_grief",
+                                "amount_per": 2
+                            },
+                            {
+                                "type": "apply_status",
+                                "status": "shrouded",
+                                "duration": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Gain 2 armor per memorial + 2 per Grief charge + 1 shield per memorial. Shrouded this turn (max 5 damage per hit)."
+                }
+            ]
+        }
+    ]
+}

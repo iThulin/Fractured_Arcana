@@ -1,0 +1,347 @@
+{
+    "id": "necromancer_elegy",
+    "status": "wip",
+    "name": "Elegy",
+    "school": "Necromancer",
+    "rarity": "Common",
+    "top": {
+        "name": "Elegy",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Deal 5 damage. Apply Haunted (3 damage at start of target's turn) for 1 turn.",
+        "targeting": {
+            "type": "unit",
+            "range": 6,
+            "los": true,
+            "enemies_only": true
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "damage",
+                    "amount": 5
+                },
+                {
+                    "type": "apply_status",
+                    "status": "haunted",
+                    "duration": 1
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "bottom": {
+        "name": "Memorial Step",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Teleport to any memorial tile within range 5.",
+        "targeting": {
+            "type": "tile",
+            "range": 5
+        },
+        "requires": [
+            "memorial_tile"
+        ],
+        "effect": {
+            "type": "teleport"
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Elegy+",
+            "bottom_name": "Memorial Step+",
+            "description": "Elegy deals 7 and Haunted lasts 2 turns. Memorial Step reaches any memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].amount",
+                    "value": 7
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].duration",
+                    "value": 2
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage. Apply Haunted (2 turns)."
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting.range",
+                    "value": 99
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Teleport to any memorial on the board."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Mournful Chord",
+            "description": "Mournful Chord: Haunted spreads to all adjacent enemies for 1 turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 7
+                            },
+                            {
+                                "type": "apply_status",
+                                "status": "haunted",
+                                "duration": 2
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 1,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "apply_status",
+                                    "status": "haunted",
+                                    "duration": 1
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage. Apply Haunted (2 turns). Spread Haunted (1 turn) to adjacent enemies."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Arrive With Purpose",
+            "description": "Arrive With Purpose: Deals 4 damage to adjacent enemies on arrival.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "teleport"
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 1,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "damage",
+                                    "amount": 4
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Teleport to any memorial on the board. Deal 4 damage to adjacent enemies on arrival."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Funeral Song",
+            "description": "Funeral Song: Enemies dying while Haunted leave a Strong memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 7
+                            },
+                            {
+                                "type": "apply_status",
+                                "status": "haunted_marked",
+                                "duration": 2
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 1,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "apply_status",
+                                    "status": "haunted_marked",
+                                    "duration": 1
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage. Apply Haunted (2 turns, spreads 1 turn). Enemies that die while Haunted leave a Strong memorial."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Leave a Mark",
+            "description": "Leave a Mark: Leaves a memorial on departure. Arrival damage increases to 6.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "create_memorial",
+                                "strength": "faint"
+                            },
+                            {
+                                "type": "teleport"
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 1,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "damage",
+                                    "amount": 6
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Leave a memorial on your current tile. Teleport to any memorial. Deal 6 damage to adjacent enemies on arrival."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Last Song",
+            "description": "The Last Song: Deals 7 damage and Haunted to all enemies. Kills leave Strong memorials.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "retarget",
+                        "targeting": {
+                            "type": "aoe",
+                            "radius": 99,
+                            "enemies_only": true
+                        },
+                        "do": {
+                            "type": "sequence",
+                            "steps": [
+                                {
+                                    "type": "damage",
+                                    "amount": 7
+                                },
+                                {
+                                    "type": "apply_status",
+                                    "status": "haunted_marked",
+                                    "duration": 2
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage to all enemies. Apply Haunted (2 turns). Kills leave Strong memorials."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Grand Procession",
+            "description": "The Grand Procession: All spirits also teleport to their nearest memorial.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "create_memorial",
+                                "strength": "faint"
+                            },
+                            {
+                                "type": "teleport"
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 1,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "damage",
+                                    "amount": 6
+                                }
+                            },
+                            {
+                                "type": "teleport_all_spirits_to_nearest_memorial"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Leave a memorial. Teleport to any memorial. Deal 6 arrival damage. All spirits teleport to their nearest memorial."
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,282 @@
+{
+    "id": "necromancer_the_price_of_knowing",
+    "status": "wip",
+    "name": "The Price of Knowing",
+    "school": "Necromancer",
+    "rarity": "Common",
+    "top": {
+        "name": "The Price of Knowing",
+        "mana": 0,
+        "speed": "Sorcery",
+        "rules_text": "Lose 4 HP. Gain 2 mana. Create a memorial on your tile.",
+        "targeting": {
+            "type": "self"
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "damage",
+                    "amount": 4
+                },
+                {
+                    "type": "gain_mana",
+                    "amount": 2
+                },
+                {
+                    "type": "create_memorial",
+                    "strength": "solid"
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "bottom": {
+        "name": "Hollow Step",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Move 2 tiles. If you end on a memorial tile, draw a card.",
+        "targeting": {
+            "type": "self"
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "move",
+                    "tiles": 2
+                },
+                {
+                    "type": "draw_if_memorial_end",
+                    "count": 1
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "The Price of Knowing+",
+            "bottom_name": "Hollow Step+",
+            "description": "Costs less HP, yields more mana. Step moves further.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].amount",
+                    "value": 3
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].amount",
+                    "value": 3
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Lose 3 HP. Gain 3 mana. Create a memorial on your tile."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].tiles",
+                    "value": 3
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Move 3 tiles. If you end on a memorial tile, draw a card."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Deep Communion",
+            "description": "Deep Communion: Also draws a card.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 3
+                            },
+                            {
+                                "type": "gain_mana",
+                                "amount": 3
+                            },
+                            {
+                                "type": "create_memorial",
+                                "strength": "solid"
+                            },
+                            {
+                                "type": "draw",
+                                "count": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Lose 3 HP. Gain 3 mana. Create a memorial on your tile. Draw 1 card."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Procession",
+            "description": "Procession: Draws 1 card per memorial passed through.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "move",
+                                "tiles": 3
+                            },
+                            {
+                                "type": "draw_per_memorial_passed",
+                                "count_per": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Move 3 tiles. Draw 1 card per memorial tile passed through or ended on."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Willing Sacrifice",
+            "description": "Willing Sacrifice: Creates a Strong memorial instead of Solid.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[2].strength",
+                    "value": "strong"
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Lose 3 HP. Gain 3 mana. Create a Strong memorial on your tile. Draw 1 card."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "The Guided",
+            "description": "The Guided: Gains 2 armor per memorial passed through.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "move",
+                                "tiles": 3
+                            },
+                            {
+                                "type": "draw_per_memorial_passed",
+                                "count_per": 1
+                            },
+                            {
+                                "type": "armor_per_memorial_passed",
+                                "amount_per": 2
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Move 3 tiles. Per memorial passed: draw 1 card, gain 2 armor."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "Full Crossing",
+            "description": "Full Crossing: No HP cost. Gain 4 mana and draw 2 cards.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "gain_mana",
+                                "amount": 4
+                            },
+                            {
+                                "type": "create_memorial",
+                                "strength": "strong"
+                            },
+                            {
+                                "type": "draw",
+                                "count": 2
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Gain 4 mana. Create a Strong memorial on your tile. Draw 2 cards."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "Ghost Road",
+            "description": "Ghost Road: Move through terrain and units. Leave a memorial on each tile.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "imbue_path_memorial",
+                                "move": 4,
+                                "phase": true
+                            },
+                            {
+                                "type": "draw_per_memorial_passed",
+                                "count_per": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Move 4 tiles, ignoring terrain and units. Leave a memorial on each tile passed through. Draw 1 card per memorial left."
+                }
+            ]
+        }
+    ]
+}

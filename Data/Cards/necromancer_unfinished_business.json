@@ -1,0 +1,270 @@
+{
+    "id": "necromancer_unfinished_business",
+    "status": "wip",
+    "name": "Unfinished Business",
+    "school": "Necromancer",
+    "rarity": "Common",
+    "top": {
+        "name": "Unfinished Business",
+        "mana": 1,
+        "speed": "Sorcery",
+        "rules_text": "Immobilize target enemy for 1 turn. Requires a memorial or spirit within 2 tiles of the target.",
+        "targeting": {
+            "type": "unit",
+            "range": 6,
+            "los": true,
+            "enemies_only": true
+        },
+        "requires": [
+            "memorial_or_spirit_nearby"
+        ],
+        "effect": {
+            "type": "apply_status",
+            "status": "rooted",
+            "duration": 1
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Drawn Back",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Pull target enemy 2 tiles toward your wizard.",
+        "targeting": {
+            "type": "unit",
+            "range": 6,
+            "los": false,
+            "enemies_only": true
+        },
+        "effect": {
+            "type": "push",
+            "tiles": 2,
+            "direction": "toward_caster",
+            "collision_damage": 2
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Unfinished Business+",
+            "bottom_name": "Drawn Back+",
+            "description": "Immobilize lasts 2 turns. Pull moves 3 tiles.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.duration",
+                    "value": 2
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Immobilize target enemy for 2 turns. Requires a memorial or spirit within 2 tiles of the target."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.tiles",
+                    "value": 3
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Pull target enemy 3 tiles toward your wizard."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "They Have Something to Say",
+            "description": "They Have Something to Say: Also applies Haunted (3 damage/turn) for 2 turns.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "apply_status",
+                                "status": "rooted",
+                                "duration": 2
+                            },
+                            {
+                                "type": "apply_status",
+                                "status": "haunted",
+                                "duration": 2
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Immobilize target for 2 turns. Apply Haunted (3 damage/turn) for 2 turns."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Into the Memory",
+            "description": "Into the Memory: Pulls target onto the nearest memorial instead.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "pull_to_memorial",
+                        "range": 6
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Pull target enemy onto the nearest memorial tile within range 6."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Last Words",
+            "description": "Last Words: Dying while affected leaves a Strong memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "apply_status",
+                                "status": "rooted",
+                                "duration": 2
+                            },
+                            {
+                                "type": "apply_status",
+                                "status": "haunted",
+                                "duration": 2
+                            },
+                            {
+                                "type": "mark_on_death_memorial",
+                                "strength": "strong"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Immobilize 2 turns. Haunted 2 turns. If target dies while affected, leaves a Strong memorial."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Congregation Pull",
+            "description": "Congregation Pull: Pulls all enemies within range 3 one tile toward nearest memorial.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "pull_all_to_memorial",
+                        "range": 3,
+                        "tiles": 1
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Pull all enemies within range 3 one tile toward the nearest memorial."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "Bound",
+            "description": "Bound: Target cannot act or be freed until your next turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "apply_status",
+                                "status": "bound",
+                                "duration": 1
+                            },
+                            {
+                                "type": "apply_status",
+                                "status": "haunted",
+                                "duration": 2
+                            },
+                            {
+                                "type": "mark_on_death_memorial",
+                                "strength": "strong"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "requires",
+                    "value": []
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Bind target until your next turn \u2014 cannot act or be freed. Haunted 2 turns. Leaves a Strong memorial on death."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Summoning",
+            "description": "The Summoning: Pulls every enemy on the board 2 tiles toward nearest memorial.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "pull_all_to_memorial",
+                        "range": 99,
+                        "tiles": 2
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Pull every enemy on the board 2 tiles toward the nearest memorial."
+                }
+            ]
+        }
+    ]
+}

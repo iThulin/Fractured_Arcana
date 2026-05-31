@@ -1,0 +1,228 @@
+{
+    "id": "necromancer_the_memorial_seat",
+    "status": "wip",
+    "name": "The Memorial Seat",
+    "school": "Necromancer",
+    "rarity": "Legendary",
+    "top": {
+        "name": "The Memorial Seat",
+        "mana": 4,
+        "speed": "Sorcery",
+        "rules_text": "Place the Memorial Seat on target tile (30HP). While it stands: all spirits gain +2 DMG and +2 armor, healing and release effects trigger twice. If destroyed, take 8 damage.",
+        "targeting": {
+            "type": "tile",
+            "range": 4
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "summon_spirit",
+                    "unit": "Memorial_Seat",
+                    "hp": 30,
+                    "damage": 0,
+                    "speed": 0
+                },
+                {
+                    "type": "create_persistent_effect",
+                    "effect": "memorial_seat_aura"
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Hallowed Ground",
+        "mana": 3,
+        "speed": "Sorcery",
+        "rules_text": "Hallow all tiles within range 2. For the rest of combat: any unit that dies on hallowed ground summons 2 spirits instead of 1.",
+        "targeting": {
+            "type": "self"
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "hallow_area",
+                    "radius": 2,
+                    "duration": 99
+                },
+                {
+                    "type": "create_persistent_effect",
+                    "effect": "hallowed_double_rise"
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "The Memorial Seat+",
+            "bottom_name": "Hallowed Ground+",
+            "description": "Seat is 40HP. Hallowed Ground covers range 3.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].hp",
+                    "value": 40
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Place the Memorial Seat (40HP). Spirits: +2 DMG/+2 armor. Healing triggers twice. Destroyed: 8 damage."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].radius",
+                    "value": 3
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Hallow all tiles within range 3 permanently. Deaths on hallowed ground summon 2 spirits."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "A Place of Gathering",
+            "description": "A Place of Gathering: Spirits within range 2 regenerate 2HP per turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].spirit_regen",
+                    "value": 2
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].spirit_regen_range",
+                    "value": 2
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Place the Memorial Seat (40HP). Spirits: +2/+2, healing x2, regen 2HP/turn within range 2. Destroyed: 8 dmg."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Sacred Earth",
+            "description": "Sacred Earth: Enemies entering hallowed ground are rooted for 1 turn.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].enemy_on_enter_status",
+                    "value": "rooted"
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].enemy_on_enter_duration",
+                    "value": 1
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Hallow range 3 permanently. Deaths summon 2 spirits. Enemies entering hallowed ground are rooted 1 turn."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "The Counsel of the Dead",
+            "description": "The Counsel of the Dead: Draw 1 card at the start of each turn while the Seat stands.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].draw_per_turn",
+                    "value": 1
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Place the Memorial Seat (40HP). Spirits: +2/+2, healing x2, regen 2HP/turn. Draw 1 at turn start. Destroyed: 8 dmg."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "The Ground Remembers",
+            "description": "The Ground Remembers: Kills on hallowed ground grant all spirits +1 DMG permanently.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[1].effect",
+                    "value": "hallowed_double_rise_empower"
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Hallow range 3 permanently. Deaths summon 2 spirits. All spirits gain +1 DMG per kill on hallowed ground (stacks)."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Covenant Seat",
+            "description": "The Covenant Seat: The Seat is indestructible.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].hp",
+                    "value": 99
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].invulnerable",
+                    "value": true
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].unit",
+                    "value": "Covenant_Seat"
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Place the Covenant Seat (indestructible). Spirits: +2/+2, healing x2, regen 2HP/turn. Draw 1/turn."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "All Ground Is Hallowed",
+            "description": "All Ground Is Hallowed: The entire battlefield is hallowed permanently.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].radius",
+                    "value": 99
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "The entire battlefield is hallowed permanently. Every death summons 2 spirits. Kills grant all spirits +1 DMG (stacks)."
+                }
+            ]
+        }
+    ]
+}

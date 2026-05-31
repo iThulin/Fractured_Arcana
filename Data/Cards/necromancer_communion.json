@@ -1,0 +1,365 @@
+{
+    "id": "necromancer_communion",
+    "status": "wip",
+    "name": "Communion",
+    "school": "Necromancer",
+    "rarity": "Uncommon",
+    "top": {
+        "name": "Communion",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Deal 6 damage. If target is on or adjacent to a memorial, heal 4 HP.",
+        "targeting": {
+            "type": "unit",
+            "range": 6,
+            "los": true,
+            "enemies_only": true
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "damage",
+                    "amount": 6
+                },
+                {
+                    "type": "conditional",
+                    "if": {
+                        "type": "target_adjacent_to_tile",
+                        "tile": "memorial"
+                    },
+                    "then": {
+                        "type": "retarget",
+                        "targeting": {
+                            "type": "self"
+                        },
+                        "do": {
+                            "type": "heal",
+                            "amount": 4
+                        }
+                    }
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "bottom": {
+        "name": "Grief Harvest",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Gain 1 Grief. Draw 1 card.",
+        "targeting": {
+            "type": "self"
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "gain_grief",
+                    "amount": 1
+                },
+                {
+                    "type": "draw",
+                    "count": 1
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Communion+",
+            "bottom_name": "Grief Harvest+",
+            "description": "Communion deals 8 and heals 6 near memorial. Grief Harvest yields 2 Grief.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].amount",
+                    "value": 8
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].then.do.amount",
+                    "value": 6
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 8 damage. Adjacent to memorial: heal 6 HP."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].amount",
+                    "value": 2
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Gain 2 Grief. Draw 1 card."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Deep Communion",
+            "description": "Deep Communion: Heals 4 always. Heals 12 near memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 8
+                            },
+                            {
+                                "type": "conditional",
+                                "if": {
+                                    "type": "target_adjacent_to_tile",
+                                    "tile": "memorial"
+                                },
+                                "then": {
+                                    "type": "retarget",
+                                    "targeting": {
+                                        "type": "self"
+                                    },
+                                    "do": {
+                                        "type": "heal",
+                                        "amount": 12
+                                    }
+                                },
+                                "else": {
+                                    "type": "retarget",
+                                    "targeting": {
+                                        "type": "self"
+                                    },
+                                    "do": {
+                                        "type": "heal",
+                                        "amount": 4
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 8 damage. Heal 4. Adjacent to memorial: heal 12 instead."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "The Weight and the Gift",
+            "description": "The Weight and the Gift: Also gains 1 armor per Grief charge.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "gain_grief",
+                                "amount": 2
+                            },
+                            {
+                                "type": "draw",
+                                "count": 1
+                            },
+                            {
+                                "type": "armor_per_grief",
+                                "amount_per": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Gain 2 Grief. Draw 1 card. Gain 1 armor per Grief charge."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "The Exchange",
+            "description": "The Exchange: Also heals the most damaged spirit by the same amount.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 8
+                            },
+                            {
+                                "type": "conditional",
+                                "if": {
+                                    "type": "target_adjacent_to_tile",
+                                    "tile": "memorial"
+                                },
+                                "then": {
+                                    "type": "sequence",
+                                    "steps": [
+                                        {
+                                            "type": "retarget",
+                                            "targeting": {
+                                                "type": "self"
+                                            },
+                                            "do": {
+                                                "type": "heal",
+                                                "amount": 12
+                                            }
+                                        },
+                                        {
+                                            "type": "heal_most_damaged_spirit",
+                                            "amount": 12
+                                        }
+                                    ]
+                                },
+                                "else": {
+                                    "type": "sequence",
+                                    "steps": [
+                                        {
+                                            "type": "retarget",
+                                            "targeting": {
+                                                "type": "self"
+                                            },
+                                            "do": {
+                                                "type": "heal",
+                                                "amount": 4
+                                            }
+                                        },
+                                        {
+                                            "type": "heal_most_damaged_spirit",
+                                            "amount": 4
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 8 damage. Heal 4 (12 near memorial). Heal your most damaged spirit by the same amount."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Overflowing",
+            "description": "Overflowing: If Grief exceeds 4, refreshes all spirit HP.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "gain_grief",
+                                "amount": 2
+                            },
+                            {
+                                "type": "draw",
+                                "count": 1
+                            },
+                            {
+                                "type": "armor_per_grief",
+                                "amount_per": 1
+                            },
+                            {
+                                "type": "grief_overflow_heal_spirits"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Gain 2 Grief. Draw 1 card. Gain 1 armor per Grief. If Grief overflows, refresh all spirit HP."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "Total Communion",
+            "description": "Total Communion: Deals damage equal to target's missing HP. Heals for full amount.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage_equal_to_missing_hp"
+                            },
+                            {
+                                "type": "heal_equal_to_damage_dealt"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal damage equal to target's missing HP. Heal for the full amount dealt."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Flood Within",
+            "description": "The Flood Within: Sets Grief to 4. Draw 2 cards. Triggers the Flood immediately.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "set_grief",
+                                "amount": 4
+                            },
+                            {
+                                "type": "draw",
+                                "count": 2
+                            },
+                            {
+                                "type": "trigger_flood"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Set Grief to 4. Draw 2 cards. Trigger the Flood \u2014 all spirits refresh, Grief resets to 0."
+                }
+            ]
+        }
+    ]
+}

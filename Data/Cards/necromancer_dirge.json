@@ -1,0 +1,217 @@
+{
+    "id": "necromancer_dirge",
+    "status": "wip",
+    "name": "Dirge",
+    "school": "Necromancer",
+    "rarity": "Rare",
+    "top": {
+        "name": "Dirge",
+        "mana": 3,
+        "speed": "Instant",
+        "rules_text": "All enemies within 2 tiles of any spirit or memorial take 3 damage and are pushed 1 tile.",
+        "targeting": {
+            "type": "none"
+        },
+        "effect": {
+            "type": "dirge_pulse",
+            "damage": 3,
+            "push": 1
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Memorial Garden",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Hallow target tile (3 turns). Spirits within range 2 of this tile auto-rise from memorials at turn start.",
+        "targeting": {
+            "type": "tile",
+            "range": 4
+        },
+        "effect": {
+            "type": "hallow_tile",
+            "duration": 3,
+            "auto_rise_range": 2
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Dirge+",
+            "bottom_name": "Memorial Garden+",
+            "description": "Dirge deals 4 damage and pushes 2. Garden lasts 5 turns.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.damage",
+                    "value": 4
+                },
+                {
+                    "half": "top",
+                    "field": "effect.push",
+                    "value": 2
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All enemies within 2 of any spirit or memorial take 4 damage and are pushed 2 tiles."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.duration",
+                    "value": 5
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Hallow target tile (5 turns). Spirits within range 2 auto-rise from memorials at turn start."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "The Mournful Song",
+            "description": "The Mournful Song: Collision deals 3 bonus damage.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.collision_damage",
+                    "value": 3
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All enemies within 2 of any spirit/memorial take 4 damage, pushed 2. Collision: 3 bonus damage."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Consecrated Ground",
+            "description": "Consecrated Ground: Enemies on the hallowed tile deal 2 less damage.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.enemy_debuff",
+                    "value": "weakened_2"
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Hallow tile (5 turns). Spirits auto-rise from nearby memorials. Enemies on this tile deal 2 less damage."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Second Line",
+            "description": "Second Line: All spirits advance 1 tile after the pulse.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "dirge_pulse",
+                                "damage": 4,
+                                "push": 2,
+                                "collision_damage": 3
+                            },
+                            {
+                                "type": "advance_all_spirits",
+                                "tiles": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All enemies within 2 of any spirit/memorial: 4 damage, push 2, 3 collision. All spirits advance 1 tile."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "The Garden Remembers",
+            "description": "The Garden Remembers: Hallowed tile is permanent. Destroyed: 8 damage.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.duration",
+                    "value": 99
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.on_destroy_damage",
+                    "value": 8
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Hallow tile permanently. Spirits auto-rise from nearby memorials. Enemies here deal 2 less. Destroyed: 8 damage."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Song That Ends All Things",
+            "description": "The Song That Ends All Things: Dirge hits the entire board. Enemies adjacent to spirits take double damage.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "dirge_pulse_global",
+                        "damage": 4,
+                        "push": 2,
+                        "collision_damage": 3,
+                        "adjacent_spirit_multiplier": 2
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All enemies on the board: 4 damage, push 2, 3 collision. Adjacent to a spirit: double damage."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "Sacred Grove",
+            "description": "Sacred Grove: Hallows all tiles within range 2 permanently.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "hallow_area",
+                        "radius": 2,
+                        "duration": 99,
+                        "auto_rise_range": 2,
+                        "enemy_debuff": "weakened_2"
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Hallow all tiles within range 2 permanently. Spirits auto-rise from nearby memorials. Enemies deal 2 less."
+                }
+            ]
+        }
+    ]
+}

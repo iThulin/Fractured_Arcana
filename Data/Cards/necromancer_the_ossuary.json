@@ -1,0 +1,322 @@
+{
+    "id": "necromancer_the_ossuary",
+    "status": "wip",
+    "name": "The Ossuary",
+    "school": "Necromancer",
+    "rarity": "Uncommon",
+    "top": {
+        "name": "The Ossuary",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Place an Ossuary on target tile (15HP, immobile). Spirits within range 2 heal 2HP at the start of each turn.",
+        "targeting": {
+            "type": "tile",
+            "range": 4
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "summon_spirit",
+                    "unit": "Ossuary",
+                    "hp": 15,
+                    "damage": 0,
+                    "speed": 0
+                },
+                {
+                    "type": "create_persistent_effect",
+                    "effect": "ossuary_aura",
+                    "spirit_regen_range": 2,
+                    "spirit_regen": 2
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Seance",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Target a memorial within range 3. Draw 2 cards and gain 1 Grief.",
+        "targeting": {
+            "type": "tile",
+            "range": 3
+        },
+        "requires": [
+            "memorial_tile"
+        ],
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "draw",
+                    "count": 2
+                },
+                {
+                    "type": "gain_grief",
+                    "amount": 1
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "The Ossuary+",
+            "bottom_name": "Seance+",
+            "description": "Ossuary is 20HP, spirits regen 3HP. Seance draws 3 cards.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].hp",
+                    "value": 20
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].spirit_regen",
+                    "value": 3
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Place an Ossuary (20HP). Spirits within range 2 heal 3HP per turn."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].count",
+                    "value": 3
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Target a memorial within range 3. Draw 3 cards and gain 1 Grief."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Shrine",
+            "description": "Shrine: Spirits that fall within range 2 leave a memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "summon_spirit",
+                                "unit": "Ossuary_Shrine",
+                                "hp": 20,
+                                "damage": 0,
+                                "speed": 0
+                            },
+                            {
+                                "type": "create_persistent_effect",
+                                "effect": "ossuary_aura_shrine",
+                                "spirit_regen_range": 2,
+                                "spirit_regen": 3,
+                                "memorial_on_spirit_death_range": 2
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Place Shrine (20HP). Spirits within range 2 heal 3HP/turn. Spirits that fall near the shrine leave memorials."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Deep Listening",
+            "description": "Deep Listening: Consumes the memorial after communing. Gains 2 mana.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "draw",
+                                "count": 3
+                            },
+                            {
+                                "type": "gain_grief",
+                                "amount": 1
+                            },
+                            {
+                                "type": "consume_memorial"
+                            },
+                            {
+                                "type": "gain_mana",
+                                "amount": 2
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Target memorial within range 3. Draw 3, gain 1 Grief. Consume memorial, gain 2 mana."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Memorial Garden",
+            "description": "Memorial Garden: Adjacent memorials auto-rise spirits each turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "summon_spirit",
+                                "unit": "Ossuary_Garden",
+                                "hp": 20,
+                                "damage": 0,
+                                "speed": 0
+                            },
+                            {
+                                "type": "create_persistent_effect",
+                                "effect": "ossuary_aura_garden",
+                                "spirit_regen_range": 2,
+                                "spirit_regen": 3,
+                                "memorial_on_spirit_death_range": 2,
+                                "auto_rise_range": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Place Memorial Garden (20HP). Spirits regen 3HP/turn. Deaths near it leave memorials. Adjacent memorials auto-rise spirits each turn."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Many Voices",
+            "description": "Many Voices: Communes with all memorials within range 3. Draw 1 and gain 1 Grief per memorial.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "commune_all_memorials",
+                        "range": 3,
+                        "draw_per": 1,
+                        "grief_per": 1
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "requires",
+                    "value": []
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Commune with all memorials within range 3. Per memorial: draw 1 card, gain 1 Grief."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Soul Well",
+            "description": "The Soul Well: Indestructible. Regen range 4. Gains 1 Grief per turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "summon_spirit",
+                                "unit": "Soul_Well",
+                                "hp": 99,
+                                "damage": 0,
+                                "speed": 0,
+                                "invulnerable": true
+                            },
+                            {
+                                "type": "create_persistent_effect",
+                                "effect": "soul_well_aura",
+                                "spirit_regen_range": 4,
+                                "spirit_regen": 3,
+                                "memorial_on_spirit_death_range": 4,
+                                "auto_rise_range": 2,
+                                "grief_per_turn": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Place the Soul Well (indestructible). Spirits within range 4 regen 3HP/turn. Auto-rise range 2. Gain 1 Grief per turn."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Grand Seance",
+            "description": "The Grand Seance: Communes with every memorial on the board. Per memorial: draw 1, gain 1 Grief, summon 1 Spirit. Memorials remain.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "commune_all_memorials",
+                        "range": 99,
+                        "draw_per": 1,
+                        "grief_per": 1,
+                        "summon_per": {
+                            "unit": "Spirit",
+                            "hp": 8,
+                            "damage": 4,
+                            "speed": 1
+                        },
+                        "consume": false
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "requires",
+                    "value": []
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Commune with every memorial on the board. Per memorial: draw 1 card, gain 1 Grief, summon a Spirit (8HP 4DMG). Memorials remain."
+                }
+            ]
+        }
+    ]
+}

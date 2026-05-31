@@ -1,0 +1,260 @@
+{
+    "id": "necromancer_final_escort",
+    "status": "wip",
+    "name": "Final Escort",
+    "school": "Necromancer",
+    "rarity": "Common",
+    "top": {
+        "name": "Final Escort",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Summon a Spirit on target memorial within range 4 (10HP 5DMG 1SPD).",
+        "tags": [
+            "spirit"
+        ],
+        "targeting": {
+            "type": "tile",
+            "range": 4
+        },
+        "requires": [
+            "memorial_tile"
+        ],
+        "effect": {
+            "type": "summon_spirit",
+            "unit": "Spirit",
+            "hp": 10,
+            "damage": 5,
+            "speed": 1
+        }
+    },
+    "bottom": {
+        "name": "Spirit Wall",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Summon a Spirit Wall on target memorial within range 4 (8HP, blocks movement).",
+        "tags": [
+            "spirit"
+        ],
+        "targeting": {
+            "type": "tile",
+            "range": 4
+        },
+        "requires": [
+            "memorial_tile"
+        ],
+        "effect": {
+            "type": "summon_spirit",
+            "unit": "Spirit_Wall",
+            "hp": 8,
+            "damage": 0,
+            "speed": 0
+        }
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Final Escort+",
+            "bottom_name": "Spirit Wall+",
+            "description": "Spirit arrives at 13HP 6DMG. Spirit Wall holds at 12HP.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.hp",
+                    "value": 13
+                },
+                {
+                    "half": "top",
+                    "field": "effect.damage",
+                    "value": 6
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit on target memorial within range 4 (13HP 6DMG 1SPD)."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.hp",
+                    "value": 12
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit Wall on target memorial within range 4 (12HP, blocks movement)."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Honored Guard",
+            "description": "Honored Guard: Spirit leaves a memorial when it falls.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.on_death_memorial",
+                    "value": true
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit on target memorial within range 4 (13HP 6DMG 1SPD). Leaves a memorial when it falls."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Mourning Veil",
+            "description": "Mourning Veil: Enemies adjacent to the wall deal 2 less damage.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.aura",
+                    "value": "weaken_adjacent"
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.aura_amount",
+                    "value": 2
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit Wall on target memorial within range 4 (12HP, blocks movement). Enemies adjacent deal 2 less damage."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "The Answering",
+            "description": "The Answering: Also summons a second Spirit at the nearest other memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "summon_spirit",
+                                "unit": "Spirit",
+                                "hp": 13,
+                                "damage": 6,
+                                "speed": 1,
+                                "on_death_memorial": true
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "nearest_memorial"
+                                },
+                                "do": {
+                                    "type": "summon_spirit",
+                                    "unit": "Spirit",
+                                    "hp": 10,
+                                    "damage": 5,
+                                    "speed": 1
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit at target memorial (13HP 6DMG). Summon a second Spirit at the nearest other memorial (10HP 5DMG)."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Last Line",
+            "description": "Last Line: Attackers take 4 damage and are pushed 1 tile.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.on_hit_retaliate",
+                    "value": 4
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.on_hit_push",
+                    "value": 1
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit Wall on target memorial (12HP, blocks movement). Attackers take 4 damage and are pushed 1 tile."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "Congregation",
+            "description": "Congregation: Summons a Spirit from every memorial on the board.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "summon_spirit_from_all_memorials",
+                        "unit": "Spirit",
+                        "hp": 10,
+                        "damage": 5,
+                        "speed": 1
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "requires",
+                    "value": []
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit from every memorial on the board (10HP 5DMG 1SPD each)."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Covenant",
+            "description": "The Covenant: 20HP. Cannot be reduced below 1HP per hit. Regenerates 3HP per turn.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.hp",
+                    "value": 20
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.min_hp_per_hit",
+                    "value": 1
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.regen",
+                    "value": 3
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Summon a Spirit Wall on target memorial (20HP, blocks movement). Cannot be reduced below 1HP in a single hit. Regenerates 3HP per turn."
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,334 @@
+{
+    "id": "necromancer_the_honored_dead",
+    "status": "wip",
+    "name": "The Honored Dead",
+    "school": "Necromancer",
+    "rarity": "Legendary",
+    "top": {
+        "name": "The Honored Dead",
+        "mana": 3,
+        "speed": "Sorcery",
+        "rules_text": "Summon a Revenant Elder on target memorial (20HP 6DMG 2SPD). Spirits within range 3 gain +2 damage. On death: leaves 2 memorials and grants 2 Grief.",
+        "targeting": {
+            "type": "tile",
+            "range": 4
+        },
+        "requires": [
+            "memorial_tile"
+        ],
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "summon_spirit",
+                    "unit": "Revenant_Elder",
+                    "hp": 20,
+                    "damage": 6,
+                    "speed": 2,
+                    "on_death_memorial_count": 2,
+                    "on_death_grief": 2
+                },
+                {
+                    "type": "create_persistent_effect",
+                    "effect": "elder_aura",
+                    "spirit_buff_damage": 2,
+                    "spirit_buff_range": 3
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Memorial Wave",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Deal 3 damage to all enemies per memorial on the board. Consume all memorials. Draw 1 card per memorial consumed.",
+        "targeting": {
+            "type": "none"
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "damage_per_memorial_global",
+                    "damage_per": 3
+                },
+                {
+                    "type": "consume_all_memorials_global",
+                    "draw_per": 1
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "The Honored Dead+",
+            "bottom_name": "Memorial Wave+",
+            "description": "Elder is 25HP 8DMG. Wave deals 4 damage per memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].hp",
+                    "value": 25
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].damage",
+                    "value": 8
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].spirit_buff_damage",
+                    "value": 3
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Summon a Revenant Elder (25HP 8DMG 2SPD). Spirits within range 3 gain +3 damage. Death: 2 memorials + 2 Grief."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].damage_per",
+                    "value": 4
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Deal 4 damage to all enemies per memorial. Consume all memorials. Draw 1 per memorial consumed."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Keeper of Memories",
+            "description": "Keeper of Memories: Memorials cannot be consumed by enemy effects while Elder stands.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].protect_memorials",
+                    "value": true
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Summon Revenant Elder (25HP 8DMG). Spirits +3 damage within range 3. Memorials protected from enemy effects. Death: 2 memorials + 2 Grief."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "The Great Wave",
+            "description": "The Great Wave: Surviving enemies are pushed 2 tiles from nearest memorial.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage_per_memorial_global",
+                                "damage_per": 4
+                            },
+                            {
+                                "type": "push_all_from_memorial",
+                                "tiles": 2,
+                                "collision_damage": 2
+                            },
+                            {
+                                "type": "consume_all_memorials_global",
+                                "draw_per": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Deal 4 damage/memorial to all. Push all enemies 2 tiles from nearest memorial. Consume all: draw 1 per memorial."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "The Council",
+            "description": "The Council: Summons a second Revenant Elder at the nearest other memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "summon_spirit",
+                                "unit": "Revenant_Elder",
+                                "hp": 25,
+                                "damage": 8,
+                                "speed": 2,
+                                "on_death_memorial_count": 2,
+                                "on_death_grief": 2
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "nearest_memorial"
+                                },
+                                "do": {
+                                    "type": "summon_spirit",
+                                    "unit": "Revenant_Elder",
+                                    "hp": 25,
+                                    "damage": 8,
+                                    "speed": 2,
+                                    "on_death_memorial_count": 2,
+                                    "on_death_grief": 2
+                                }
+                            },
+                            {
+                                "type": "create_persistent_effect",
+                                "effect": "elder_aura",
+                                "spirit_buff_damage": 3,
+                                "spirit_buff_range": 3,
+                                "protect_memorials": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Summon two Revenant Elders \u2014 one at target memorial, one at the nearest other. Spirits +3 damage. Memorials protected."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Cascading Grief",
+            "description": "Cascading Grief: Summons a Spirit from each memorial before consuming it.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage_per_memorial_global",
+                                "damage_per": 4
+                            },
+                            {
+                                "type": "push_all_from_memorial",
+                                "tiles": 2,
+                                "collision_damage": 2
+                            },
+                            {
+                                "type": "consume_all_memorials_global",
+                                "draw_per": 1,
+                                "summon_before_consume": {
+                                    "unit": "Spirit",
+                                    "hp": 6,
+                                    "damage": 3,
+                                    "speed": 1
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "4 damage/memorial to all. Push 2 from memorial. Per memorial: summon Spirit (6HP 3DMG), then consume (draw 1)."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Deathless Covenant",
+            "description": "The Deathless Covenant: Elder cannot die \u2014 becomes a Strong memorial and rises again next turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "summon_spirit",
+                                "unit": "Covenant_Elder",
+                                "hp": 25,
+                                "damage": 8,
+                                "speed": 2,
+                                "on_death_becomes_memorial": true,
+                                "on_death_memorial_strength": "strong",
+                                "on_death_rise_again_from_nearest_memorial": true,
+                                "on_death_grief": 2
+                            },
+                            {
+                                "type": "create_persistent_effect",
+                                "effect": "elder_aura",
+                                "spirit_buff_damage": 3,
+                                "spirit_buff_range": 3,
+                                "protect_memorials": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Summon the Covenant Elder (25HP 8DMG). Cannot die \u2014 becomes a Strong memorial on death, rises again next turn. Spirits +3 damage. Memorials protected."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Flood of Memory",
+            "description": "The Flood of Memory: Wave does not consume memorials. Strengthens all memorials instead.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage_per_memorial_global",
+                                "damage_per": 4
+                            },
+                            {
+                                "type": "push_all_from_memorial",
+                                "tiles": 2,
+                                "collision_damage": 2
+                            },
+                            {
+                                "type": "draw_per_memorial_global",
+                                "count_per": 1
+                            },
+                            {
+                                "type": "strengthen_all_memorials"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Deal 4 damage/memorial to all. Push 2 from nearest memorial. Draw 1 per memorial. Strengthen all memorials instead of consuming."
+                }
+            ]
+        }
+    ]
+}

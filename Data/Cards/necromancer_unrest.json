@@ -1,0 +1,285 @@
+{
+    "id": "necromancer_unrest",
+    "status": "wip",
+    "name": "Unrest",
+    "school": "Necromancer",
+    "rarity": "Uncommon",
+    "top": {
+        "name": "Unrest",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Deal 4 damage. Apply Haunted (3 damage/turn) for 2 turns. Haunted spreads to 1 adjacent enemy for 1 turn.",
+        "targeting": {
+            "type": "unit",
+            "range": 6,
+            "los": true,
+            "enemies_only": true
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "damage",
+                    "amount": 4
+                },
+                {
+                    "type": "apply_status",
+                    "status": "haunted",
+                    "duration": 2
+                },
+                {
+                    "type": "retarget",
+                    "targeting": {
+                        "type": "adjacent_to_target",
+                        "enemies_only": true,
+                        "count": 1
+                    },
+                    "do": {
+                        "type": "apply_status",
+                        "status": "haunted",
+                        "duration": 1
+                    }
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "bottom": {
+        "name": "Congregation",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Memorials within range 3 move 1 tile toward your wizard. Two memorials that overlap summon a Revenant (12HP 5DMG 1SPD).",
+        "targeting": {
+            "type": "self"
+        },
+        "effect": {
+            "type": "pull_memorials_and_merge",
+            "range": 3,
+            "merge_unit": "Revenant",
+            "merge_hp": 12,
+            "merge_damage": 5,
+            "merge_speed": 1
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Unrest+",
+            "bottom_name": "Congregation+",
+            "description": "Unrest deals 5 damage, Haunted lasts 3 turns. Congregation pulls range 5.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].amount",
+                    "value": 5
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].duration",
+                    "value": 3
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 5 damage. Apply Haunted (3 turns). Spreads to 1 adjacent enemy (1 turn)."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.range",
+                    "value": 5
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Memorials within range 5 move 1 tile toward your wizard. Overlapping memorials summon a Revenant (12HP 5DMG)."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Spreading Sorrow",
+            "description": "Spreading Sorrow: Haunted spreads to all adjacent enemies for 2 turns.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 5
+                            },
+                            {
+                                "type": "apply_status",
+                                "status": "haunted",
+                                "duration": 3
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 1,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "apply_status",
+                                    "status": "haunted",
+                                    "duration": 2
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 5 damage. Apply Haunted (3 turns). Spreads to all adjacent enemies (2 turns)."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Mass Gathering",
+            "description": "Mass Gathering: Revenant stats scale with combined memorial strength.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.scale_with_strength",
+                    "value": true
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Memorials within range 5 converge. Merged memorials summon a Revenant scaled to combined memorial strength."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "The Memory That Remains",
+            "description": "The Memory That Remains: Haunted enemies leave a memorial on death.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 5
+                            },
+                            {
+                                "type": "apply_status",
+                                "status": "haunted_marked",
+                                "duration": 3
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 1,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "apply_status",
+                                    "status": "haunted_marked",
+                                    "duration": 2
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 5 damage. Apply Haunted (3 turns, spreads 2 turns). Haunted enemies leave a memorial on death."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "The Answering Procession",
+            "description": "The Answering Procession: Revenants advance 2 tiles toward nearest enemy on arrival.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.on_arrive_advance",
+                    "value": 2
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Memorials within range 5 converge. Merged Revenants advance 2 tiles toward nearest enemy on arrival."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "Dirge",
+            "description": "Dirge: All enemies adjacent to any spirit or memorial take 3 damage and are pushed 1 tile.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "dirge_pulse",
+                        "damage": 3,
+                        "push": 1
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All enemies adjacent to any spirit or memorial take 3 damage and are pushed 1 tile."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Flood",
+            "description": "The Flood: All memorials converge. Pairs summon Revenants. Lone memorials summon Spirits.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "pull_memorials_and_merge",
+                        "range": 99,
+                        "merge_unit": "Revenant",
+                        "scale_with_strength": true,
+                        "remainder_unit": "Spirit",
+                        "remainder_hp": 8,
+                        "remainder_damage": 4,
+                        "remainder_speed": 1
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "All memorials on the board converge. Each pair summons a Revenant. Lone memorials summon Spirits (8HP 4DMG)."
+                }
+            ]
+        }
+    ]
+}

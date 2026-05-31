@@ -1,0 +1,307 @@
+{
+    "id": "necromancer_grief_strike",
+    "status": "wip",
+    "name": "Grief Strike",
+    "school": "Necromancer",
+    "rarity": "Common",
+    "top": {
+        "name": "Grief Strike",
+        "mana": 1,
+        "speed": "Sorcery",
+        "rules_text": "Deal 4 damage. If target is adjacent to a memorial, deal 6 instead.",
+        "tags": [
+            "spirit"
+        ],
+        "targeting": {
+            "type": "unit",
+            "range": 6,
+            "los": true,
+            "enemies_only": true
+        },
+        "effect": {
+            "type": "conditional",
+            "if": {
+                "type": "target_adjacent_to_tile",
+                "tile": "memorial"
+            },
+            "then": {
+                "type": "damage",
+                "amount": 6
+            },
+            "else": {
+                "type": "damage",
+                "amount": 4
+            }
+        }
+    },
+    "bottom": {
+        "name": "Hollow Step",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Move 2 tiles. If you pass through or end on a memorial tile, draw a card.",
+        "targeting": {
+            "type": "self"
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "move",
+                    "tiles": 2
+                },
+                {
+                    "type": "draw_if_memorial_passed",
+                    "count": 1
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Grief Strike+",
+            "bottom_name": "Hollow Step+",
+            "description": "Grief Strike deals more near memorials. Hollow Step moves further.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.then.amount",
+                    "value": 8
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 4 damage. Adjacent to memorial: deal 8 instead."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].tiles",
+                    "value": 3
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Move 3 tiles. If you pass through or end on a memorial tile, draw a card."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Communion Strike",
+            "description": "Communion Strike: Also heals 3 when bonus damage triggers.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "conditional",
+                        "if": {
+                            "type": "target_adjacent_to_tile",
+                            "tile": "memorial"
+                        },
+                        "then": {
+                            "type": "sequence",
+                            "steps": [
+                                {
+                                    "type": "damage",
+                                    "amount": 8
+                                },
+                                {
+                                    "type": "retarget",
+                                    "targeting": {
+                                        "type": "self"
+                                    },
+                                    "do": {
+                                        "type": "heal",
+                                        "amount": 3
+                                    }
+                                }
+                            ]
+                        },
+                        "else": {
+                            "type": "damage",
+                            "amount": 4
+                        }
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 4 damage. Adjacent to memorial: deal 8 and heal 3."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Memorial Walk",
+            "description": "Memorial Walk: Leaves a memorial on departure tile.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "create_memorial",
+                                "strength": "faint"
+                            },
+                            {
+                                "type": "move",
+                                "tiles": 3
+                            },
+                            {
+                                "type": "draw_if_memorial_passed",
+                                "count": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Leave a memorial on your current tile. Move 3 tiles. If you pass through or end on a memorial, draw a card."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Weight of Loss",
+            "description": "Weight of Loss: Deals 1 bonus damage per memorial on the board.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 4
+                            },
+                            {
+                                "type": "damage_per_memorial",
+                                "amount_per": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 4 damage + 1 per memorial on the board."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Spirit Trail",
+            "description": "Spirit Trail: Leaves a memorial on every tile passed through.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "imbue_path_memorial",
+                                "move": 3
+                            },
+                            {
+                                "type": "draw",
+                                "count": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Move 3 tiles, leaving a memorial on each tile passed through. Draw 1 card."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Reckoning",
+            "description": "The Reckoning: Each memorial within range 4 deals 4 damage to the nearest enemy.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "memorial_strike_all",
+                        "damage": 4,
+                        "range": 4
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Each memorial within range 4 deals 4 damage to the nearest enemy."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "Between Worlds",
+            "description": "Between Worlds: Teleport to any memorial on the board. Draw 2 cards.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "teleport"
+                            },
+                            {
+                                "type": "draw",
+                                "count": 2
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting",
+                    "value": {
+                        "type": "tile",
+                        "range": 99
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "requires",
+                    "value": [
+                        "memorial_tile"
+                    ]
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Teleport to any memorial on the board. Draw 2 cards."
+                }
+            ]
+        }
+    ]
+}

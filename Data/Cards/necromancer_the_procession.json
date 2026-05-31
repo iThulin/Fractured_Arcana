@@ -1,0 +1,310 @@
+{
+    "id": "necromancer_the_procession",
+    "status": "wip",
+    "name": "The Procession",
+    "school": "Necromancer",
+    "rarity": "Common",
+    "top": {
+        "name": "The Procession",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "All spirits advance 1 tile toward the nearest enemy. If already adjacent, attack instead.",
+        "targeting": {
+            "type": "none"
+        },
+        "effect": {
+            "type": "advance_all_spirits",
+            "tiles": 1,
+            "attack_if_adjacent": true
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Shove",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Deal 4 damage. Push target 1 tile. If pushed adjacent to a memorial, deal 3 bonus damage.",
+        "targeting": {
+            "type": "unit",
+            "range": 6,
+            "los": true,
+            "enemies_only": true
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "damage",
+                    "amount": 4
+                },
+                {
+                    "type": "push",
+                    "tiles": 1,
+                    "collision_damage": 2
+                },
+                {
+                    "type": "conditional",
+                    "if": {
+                        "type": "target_adjacent_to_tile",
+                        "tile": "memorial"
+                    },
+                    "then": {
+                        "type": "damage",
+                        "amount": 3
+                    }
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "The Procession+",
+            "bottom_name": "Shove+",
+            "description": "Spirits advance 2 tiles. Shove deals 6 damage and 4 bonus near memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.tiles",
+                    "value": 2
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits advance 2 tiles toward the nearest enemy. If adjacent, attack instead."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].amount",
+                    "value": 6
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[2].then.amount",
+                    "value": 4
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Deal 6 damage. Push 1 tile. Adjacent to memorial: 4 bonus damage."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "March and Strike",
+            "description": "March and Strike: Spirits gain +2 damage before advancing.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "damage",
+                                "amount": 2,
+                                "duration": 1
+                            },
+                            {
+                                "type": "advance_all_spirits",
+                                "tiles": 2,
+                                "attack_if_adjacent": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits gain +2 damage this turn. Advance 2 tiles toward nearest enemy, attack if adjacent."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Into the Memory",
+            "description": "Into the Memory: Pushes target onto the nearest memorial.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 6
+                            },
+                            {
+                                "type": "pull_to_memorial",
+                                "range": 6
+                            },
+                            {
+                                "type": "damage",
+                                "amount": 4
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Deal 6 damage. Push target onto the nearest memorial. Deal 4 damage on landing."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Relentless",
+            "description": "Relentless: Spirits that reach an enemy attack regardless of action state.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "damage",
+                                "amount": 2,
+                                "duration": 1
+                            },
+                            {
+                                "type": "advance_all_spirits",
+                                "tiles": 2,
+                                "attack_if_adjacent": true,
+                                "grant_attack_if_reached": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits gain +2 damage. Advance 2 tiles. Spirits that reach an enemy attack regardless of action state."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Put Them in Place",
+            "description": "Put Them in Place: Targets 2 enemies. Each is pushed to a separate memorial.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 6
+                            },
+                            {
+                                "type": "pull_to_memorial",
+                                "range": 6
+                            },
+                            {
+                                "type": "damage",
+                                "amount": 4
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting",
+                    "value": {
+                        "type": "unit",
+                        "range": 6,
+                        "los": true,
+                        "enemies_only": true,
+                        "count": 2
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Target 2 enemies. Each takes 6 damage and is pushed to a separate nearby memorial for 4 more on landing."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Final March",
+            "description": "The Final March: Kills grant an additional 2-tile advance.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "damage",
+                                "amount": 2,
+                                "duration": 1
+                            },
+                            {
+                                "type": "advance_all_spirits",
+                                "tiles": 2,
+                                "attack_if_adjacent": true,
+                                "grant_attack_if_reached": true,
+                                "advance_again_on_kill": 2
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits gain +2 damage. Advance 2, attack. Kills grant an additional 2-tile advance."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Trap Is Set",
+            "description": "The Trap Is Set: Deals 5 damage to all enemies and pushes each toward nearest memorial.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "push_all_to_memorial",
+                        "damage_before": 5,
+                        "damage_on_land": 4
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Deal 5 damage to all enemies. Push each toward the nearest memorial for 4 more on landing."
+                }
+            ]
+        }
+    ]
+}

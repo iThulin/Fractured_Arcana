@@ -1,0 +1,420 @@
+{
+    "id": "necromancer_last_rite",
+    "status": "wip",
+    "name": "Last Rite",
+    "school": "Necromancer",
+    "rarity": "Uncommon",
+    "top": {
+        "name": "Last Rite",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Deal 5 damage. If lethal, strike an adjacent enemy for 4 damage and leave a memorial.",
+        "targeting": {
+            "type": "unit",
+            "range": 6,
+            "los": true,
+            "enemies_only": true
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "damage",
+                    "amount": 5
+                },
+                {
+                    "type": "conditional",
+                    "if": {
+                        "type": "was_lethal"
+                    },
+                    "then": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "adjacent_to_target",
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "damage",
+                                    "amount": 4
+                                }
+                            },
+                            {
+                                "type": "create_memorial",
+                                "strength": "solid"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Trade Places",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "Swap positions with a friendly spirit. The spirit deals 4 damage to adjacent enemies on arrival.",
+        "targeting": {
+            "type": "unit",
+            "range": 99
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "swap_with_spirit"
+                },
+                {
+                    "type": "retarget",
+                    "targeting": {
+                        "type": "aoe",
+                        "radius": 1,
+                        "enemies_only": true
+                    },
+                    "do": {
+                        "type": "damage",
+                        "amount": 4
+                    }
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Last Rite+",
+            "bottom_name": "Trade Places+",
+            "description": "Last Rite deals 7 damage, adjacent strike deals 5. Trade Places deals 6 on arrival.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].amount",
+                    "value": 7
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].then.steps[0].do.amount",
+                    "value": 5
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage. If lethal, strike adjacent enemy for 5 and leave a memorial."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[1].do.amount",
+                    "value": 6
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Swap with a friendly spirit. Spirit deals 6 damage to adjacent enemies on arrival."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "One Last Act",
+            "description": "One Last Act: Adjacent strike also roots for 1 turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 7
+                            },
+                            {
+                                "type": "conditional",
+                                "if": {
+                                    "type": "was_lethal"
+                                },
+                                "then": {
+                                    "type": "sequence",
+                                    "steps": [
+                                        {
+                                            "type": "retarget",
+                                            "targeting": {
+                                                "type": "adjacent_to_target",
+                                                "enemies_only": true
+                                            },
+                                            "do": {
+                                                "type": "sequence",
+                                                "steps": [
+                                                    {
+                                                        "type": "damage",
+                                                        "amount": 5
+                                                    },
+                                                    {
+                                                        "type": "apply_status",
+                                                        "status": "rooted",
+                                                        "duration": 1
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "type": "create_memorial",
+                                            "strength": "solid"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage. If lethal, strike adjacent enemy for 5, root 1 turn, and leave a memorial."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "You Take the Hit",
+            "description": "You Take the Hit: Gain 5 armor after swapping.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "swap_with_spirit"
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 1,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "damage",
+                                    "amount": 6
+                                }
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "self"
+                                },
+                                "do": {
+                                    "type": "armor",
+                                    "amount": 5
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Swap with a friendly spirit. Spirit deals 6 damage on arrival. Gain 5 armor."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Honored Departure",
+            "description": "Honored Departure: Lethal kills also summon a Spirit (8HP 4DMG) from the memorial.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 7
+                            },
+                            {
+                                "type": "conditional",
+                                "if": {
+                                    "type": "was_lethal"
+                                },
+                                "then": {
+                                    "type": "sequence",
+                                    "steps": [
+                                        {
+                                            "type": "retarget",
+                                            "targeting": {
+                                                "type": "adjacent_to_target",
+                                                "enemies_only": true
+                                            },
+                                            "do": {
+                                                "type": "sequence",
+                                                "steps": [
+                                                    {
+                                                        "type": "damage",
+                                                        "amount": 5
+                                                    },
+                                                    {
+                                                        "type": "apply_status",
+                                                        "status": "rooted",
+                                                        "duration": 1
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "type": "create_memorial",
+                                            "strength": "solid"
+                                        },
+                                        {
+                                            "type": "summon_spirit",
+                                            "unit": "Spirit",
+                                            "hp": 8,
+                                            "damage": 4,
+                                            "speed": 1
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage. If lethal: strike adjacent for 5 (root 1), leave memorial, summon Spirit (8HP 4DMG)."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Chain of Being",
+            "description": "Chain of Being: The spirit then swaps with the nearest enemy.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "swap_with_spirit"
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 1,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "damage",
+                                    "amount": 6
+                                }
+                            },
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "self"
+                                },
+                                "do": {
+                                    "type": "armor",
+                                    "amount": 5
+                                }
+                            },
+                            {
+                                "type": "spirit_swap_with_nearest_enemy"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Swap with a spirit (deals 6 on arrival, gain 5 armor). That spirit then swaps with the nearest enemy."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "Mass Rites",
+            "description": "Mass Rites: Deals 7 damage to all enemies. Each kill performs the full rite.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "last_rite_aoe",
+                        "damage": 7,
+                        "spirit_strike": 5,
+                        "summon_on_kill": {
+                            "unit": "Spirit",
+                            "hp": 8,
+                            "damage": 4,
+                            "speed": 1
+                        }
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "targeting",
+                    "value": {
+                        "type": "aoe",
+                        "radius": 99,
+                        "enemies_only": true
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage to all enemies. Each kill: strike adjacent for 5 (root 1), leave memorial, summon Spirit (8HP 4DMG)."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Dance",
+            "description": "The Dance: You and all spirits may swap with each other or enemies as free actions this turn.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "apply_status",
+                        "status": "dancing",
+                        "duration": 1
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting",
+                    "value": {
+                        "type": "self"
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "This turn: you and all spirits may swap positions with each other or any enemy as free actions."
+                }
+            ]
+        }
+    ]
+}

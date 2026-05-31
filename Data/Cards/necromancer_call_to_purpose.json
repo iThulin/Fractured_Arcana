@@ -1,0 +1,346 @@
+{
+    "id": "necromancer_call_to_purpose",
+    "status": "wip",
+    "name": "Call to Purpose",
+    "school": "Necromancer",
+    "rarity": "Uncommon",
+    "top": {
+        "name": "Call to Purpose",
+        "mana": 2,
+        "speed": "Sorcery",
+        "rules_text": "All spirits gain +3 damage until end of turn. Each spirit that kills an enemy this turn leaves a memorial.",
+        "targeting": {
+            "type": "none"
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "buff_all_spirits",
+                    "stat": "damage",
+                    "amount": 3,
+                    "duration": 1
+                },
+                {
+                    "type": "mark_spirits_memorial_on_kill"
+                }
+            ]
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "bottom": {
+        "name": "Necrotic Surge",
+        "mana": 1,
+        "speed": "Instant",
+        "rules_text": "Deal 5 damage. Heal for half the damage dealt.",
+        "targeting": {
+            "type": "unit",
+            "range": 6,
+            "los": true,
+            "enemies_only": true
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "damage",
+                    "amount": 5
+                },
+                {
+                    "type": "heal_fraction_of_damage",
+                    "fraction": 0.5
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Call to Purpose+",
+            "bottom_name": "Necrotic Surge+",
+            "description": "Spirits gain +4 damage. Surge deals 7 damage.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].amount",
+                    "value": 4
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits gain +4 damage until end of turn. Each kill leaves a memorial."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.steps[0].amount",
+                    "value": 7
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage. Heal for half the damage dealt."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "They Remember Everything",
+            "description": "They Remember Everything: Spirits also gain +2 armor this turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "damage",
+                                "amount": 4,
+                                "duration": 1
+                            },
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "armor",
+                                "amount": 2,
+                                "duration": 1
+                            },
+                            {
+                                "type": "mark_spirits_memorial_on_kill"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits gain +4 damage and +2 armor until end of turn. Kills leave memorials."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "Blood Memory",
+            "description": "Blood Memory: Heals full damage dealt if target is adjacent to a memorial.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "conditional",
+                        "if": {
+                            "type": "target_adjacent_to_tile",
+                            "tile": "memorial"
+                        },
+                        "then": {
+                            "type": "sequence",
+                            "steps": [
+                                {
+                                    "type": "damage",
+                                    "amount": 7
+                                },
+                                {
+                                    "type": "heal_fraction_of_damage",
+                                    "fraction": 1.0
+                                }
+                            ]
+                        },
+                        "else": {
+                            "type": "sequence",
+                            "steps": [
+                                {
+                                    "type": "damage",
+                                    "amount": 7
+                                },
+                                {
+                                    "type": "heal_fraction_of_damage",
+                                    "fraction": 0.5
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage. Heal half dealt. Adjacent to memorial: heal full amount instead."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "One Last Push",
+            "description": "One Last Push: Kills also draw 1 card.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "damage",
+                                "amount": 4,
+                                "duration": 1
+                            },
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "armor",
+                                "amount": 2,
+                                "duration": 1
+                            },
+                            {
+                                "type": "mark_spirits_memorial_on_kill"
+                            },
+                            {
+                                "type": "mark_spirits_draw_on_kill",
+                                "count": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits gain +4 damage, +2 armor. Kills: leave memorial, draw 1 card."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Grief Drain",
+            "description": "Grief Drain: Gains 1 Grief per 3 damage dealt.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "damage",
+                                "amount": 7
+                            },
+                            {
+                                "type": "heal_fraction_of_damage",
+                                "fraction": 0.5
+                            },
+                            {
+                                "type": "grief_per_damage",
+                                "damage_per_grief": 3
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Deal 7 damage. Heal half. Gain 1 Grief per 3 damage dealt."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "The Final Stand",
+            "description": "The Final Stand: Spirits gain +6 damage, +4 armor, Undying this turn.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "damage",
+                                "amount": 6,
+                                "duration": 1
+                            },
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "armor",
+                                "amount": 4,
+                                "duration": 1
+                            },
+                            {
+                                "type": "buff_all_spirits",
+                                "stat": "undying",
+                                "amount": 1,
+                                "duration": 1
+                            },
+                            {
+                                "type": "mark_spirits_memorial_on_kill"
+                            },
+                            {
+                                "type": "mark_spirits_draw_on_kill",
+                                "count": 1
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "All spirits gain +6 damage, +4 armor, Undying this turn. Kills: memorial + draw 1."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "Soul Flood",
+            "description": "Soul Flood: Deals 5 damage to all enemies. Heals for total damage dealt.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "retarget",
+                                "targeting": {
+                                    "type": "aoe",
+                                    "radius": 99,
+                                    "enemies_only": true
+                                },
+                                "do": {
+                                    "type": "damage",
+                                    "amount": 5
+                                }
+                            },
+                            {
+                                "type": "heal_fraction_of_total_damage",
+                                "fraction": 1.0
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "targeting",
+                    "value": {
+                        "type": "none"
+                    }
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "Deal 5 damage to all enemies. Heal for the total damage dealt across all targets."
+                }
+            ]
+        }
+    ]
+}

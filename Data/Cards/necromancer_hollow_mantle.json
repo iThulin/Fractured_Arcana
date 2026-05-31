@@ -1,0 +1,213 @@
+{
+    "id": "necromancer_hollow_mantle",
+    "status": "wip",
+    "name": "Hollow Mantle",
+    "school": "Necromancer",
+    "rarity": "Legendary",
+    "top": {
+        "name": "Hollow Mantle",
+        "mana": 4,
+        "speed": "Sorcery",
+        "rules_text": "Gain 11 armor. For 3 turns: spells cost 1 less and you cannot be reduced below 1HP.",
+        "targeting": {
+            "type": "self"
+        },
+        "effect": {
+            "type": "sequence",
+            "steps": [
+                {
+                    "type": "armor",
+                    "amount": 11
+                },
+                {
+                    "type": "create_persistent_effect",
+                    "effect": "hollow_mantle",
+                    "turns": 3
+                }
+            ]
+        },
+        "tags": [
+            "necrotic"
+        ]
+    },
+    "bottom": {
+        "name": "Open the Gate",
+        "mana": 3,
+        "speed": "Sorcery",
+        "rules_text": "For 3 turns: all enemies that die create memorials and immediately summon a spirit.",
+        "targeting": {
+            "type": "none"
+        },
+        "effect": {
+            "type": "create_persistent_effect",
+            "effect": "open_gate",
+            "turns": 3
+        },
+        "tags": [
+            "spirit"
+        ]
+    },
+    "upgrades": [
+        {
+            "tier": 1,
+            "half": "both",
+            "top_name": "Hollow Mantle+",
+            "bottom_name": "Open the Gate+",
+            "description": "Mantle grants 14 armor and lasts 4 turns. Gate lasts 5 turns.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[0].amount",
+                    "value": 14
+                },
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].turns",
+                    "value": 4
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Gain 14 armor. For 4 turns: spells cost 1 less, cannot be reduced below 1HP."
+                },
+                {
+                    "half": "bottom",
+                    "field": "effect.turns",
+                    "value": 5
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "For 5 turns: all enemies that die create memorials and immediately summon a spirit."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "top",
+            "top_name": "Deep Mantle",
+            "description": "Deep Mantle: Gains 2 Grief per turn while mantled.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].grief_per_turn",
+                    "value": 2
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Gain 14 armor. For 4 turns: spells cost 1 less, cannot go below 1HP, gain 2 Grief/turn."
+                }
+            ]
+        },
+        {
+            "tier": 2,
+            "half": "bottom",
+            "bottom_name": "The Gate Holds Open",
+            "description": "The Gate Holds Open: Enemies adjacent to spirits take 2 damage at turn start.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.adjacent_spirit_damage",
+                    "value": 2
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "For 5 turns: deaths create memorials + spirits. Enemies adjacent to spirits take 2 damage at turn start."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "top",
+            "top_name": "Speak With the Dead",
+            "description": "Speak With the Dead: Draws 1 card when a spirit falls while mantled.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect.steps[1].draw_on_spirit_death",
+                    "value": 1
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Gain 14 armor. For 4 turns: cost -1, cannot go below 1HP, +2 Grief/turn. Draw 1 when a spirit falls."
+                }
+            ]
+        },
+        {
+            "tier": 3,
+            "half": "bottom",
+            "bottom_name": "Willing Passage",
+            "description": "Willing Passage: Memorial spells cost 2 less while the gate is open.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.memorial_spell_discount",
+                    "value": 2
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "For 5 turns: deaths create memorials + spirits. Adjacent spirit damage 2/turn. Memorial spells cost 2 less."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "top",
+            "top_name": "Walk Between",
+            "description": "Walk Between: Untargetable 2 turns. Spirits heal 3HP each time you cast a spell.",
+            "changes": [
+                {
+                    "half": "top",
+                    "field": "effect",
+                    "value": {
+                        "type": "sequence",
+                        "steps": [
+                            {
+                                "type": "armor",
+                                "amount": 14
+                            },
+                            {
+                                "type": "apply_status",
+                                "status": "untargetable",
+                                "duration": 2
+                            },
+                            {
+                                "type": "create_persistent_effect",
+                                "effect": "walk_between",
+                                "turns": 2,
+                                "spirit_heal_on_cast": 3
+                            }
+                        ]
+                    }
+                },
+                {
+                    "half": "top",
+                    "field": "rules_text",
+                    "value": "Gain 14 armor. Untargetable 2 turns. Spirits heal 3HP each time you cast a spell."
+                }
+            ]
+        },
+        {
+            "tier": 4,
+            "half": "bottom",
+            "bottom_name": "The Flood Eternal",
+            "description": "The Flood Eternal: Gate is permanent for this combat. Memorial spells cost 2 less.",
+            "changes": [
+                {
+                    "half": "bottom",
+                    "field": "effect.turns",
+                    "value": 99
+                },
+                {
+                    "half": "bottom",
+                    "field": "rules_text",
+                    "value": "For the rest of combat: all deaths create memorials and immediately summon a spirit. Memorial spells cost 2 less."
+                }
+            ]
+        }
+    ]
+}
