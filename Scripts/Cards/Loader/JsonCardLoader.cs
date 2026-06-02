@@ -693,11 +693,174 @@ public static class CardScriptRegistry
             return new GainGriefEffect(amount).WithTag("Grief"); // simplified: GainGrief handles clamping
         });
 
-
+        // Hollow Mantle: gain armor, create a protective barrier that absorbs damage for a few turns
+        // { "type": "hollow_mantle", "turns": n, "armor": n }
         RegisterEffect("hollow_mantle", n =>
         {
             int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 3;
             int armor = n.TryGetProperty("armor", out var a) ? a.GetInt32() : 11;
+            return new HollowMantleLeafEffect(turns, armor).WithTag("Transform");
+        });
+
+        // Open Gate: deaths create memorials + summon spirits
+        // { "type": "open_gate", "turns": n }
+        RegisterEffect("open_gate", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 3;
+            return new OpenGateLeafEffect(turns).WithTag("Persistent");
+        });
+
+        // Ossuary Aura: spirits within range regen HP per turn
+        // { "type": "ossuary_aura", "spirit_regen": n, "spirit_regen_range": n }
+        RegisterEffect("ossuary_aura", n =>
+        {
+            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 2;
+            int range  = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 2;
+            int mdr    = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 0;
+            int arr    = n.TryGetProperty("auto_rise_range", out var ar) ? ar.GetInt32() : 0;
+            int grief  = n.TryGetProperty("grief_per_turn", out var g) ? g.GetInt32() : 0;
+            return new OssUaryAuraLeafEffect(turns, regen, range, mdr, arr, grief).WithTag("Persistent");
+        });
+
+        // Ossuary Shrine (spirit deaths near ossuary leave memorials)
+        // { "type": "ossuary_aura_shrine", "spirit_regen": n, "spirit_regen_range": n, "memorial_on_spirit_death_range": n }
+        RegisterEffect("ossuary_aura_shrine", n =>
+        {
+            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 3;
+            int range  = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 2;
+            int mdr    = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 2;
+            return new OssUaryAuraLeafEffect(turns, regen, range, mdr).WithTag("Persistent");
+        });
+
+        // Ossuary Garden (auto-rise from adjacent memorials)
+        // { "type": "ossuary_aura_garden", "spirit_regen": n, "spirit_regen_range": n, "memorial_on_spirit_death_range": n, "auto_rise_range": n }
+        RegisterEffect("ossuary_aura_garden", n =>
+        {
+            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 3;
+            int range  = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 2;
+            int mdr    = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 2;
+            int arr    = n.TryGetProperty("auto_rise_range", out var ar) ? ar.GetInt32() : 1;
+            return new OssUaryAuraLeafEffect(turns, regen, range, mdr, arr).WithTag("Persistent");
+        });
+
+        // Soul Well (indestructible ossuary variant with grief per turn)
+        // { "type": "soul_well_aura", "spirit_regen": n, "spirit_regen_range": n, "memorial_on_spirit_death_range": n, "auto_rise_range": n, "grief_per_turn": n }
+        RegisterEffect("soul_well_aura", n =>
+        {
+            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 3;
+            int range  = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 4;
+            int mdr    = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 4;
+            int arr    = n.TryGetProperty("auto_rise_range", out var ar) ? ar.GetInt32() : 2;
+            int grief  = n.TryGetProperty("grief_per_turn", out var g) ? g.GetInt32() : 1;
+            return new OssUaryAuraLeafEffect(99, regen, range, mdr, arr, grief).WithTag("Persistent");
+        });
+
+        // Memorial Seat Aura: spirits +2/+2, healing triggers twice
+        // { "type": "memorial_seat_aura" }
+        RegisterEffect("memorial_seat_aura", n =>
+        {
+            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int dmg    = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
+            int armor  = n.TryGetProperty("spirit_buff_armor", out var a) ? a.GetInt32() : 2;
+            return new MemorialSeatAuraLeafEffect(turns, dmg, armor).WithTag("Persistent");
+        });
+
+        // Memorial Seat Aura (with healing)
+        // { "type": "memorial_seat_aura_healing", "turns": n, "spirit_buff_damage": n, "spirit_buff_armor": n, "spirit_regen": n }
+        RegisterEffect("memorial_seat_aura_healing", n =>
+        {
+            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int dmg    = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
+            int armor  = n.TryGetProperty("spirit_buff_armor", out var a) ? a.GetInt32() : 2;
+            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 2;
+            return new MemorialSeatAuraLeafEffect(turns, dmg, armor, regenRange: 2, regen: regen).WithTag("Persistent");
+        });
+
+        // Memorial Seat Aura (with draw per turn)
+        // { "type": "memorial_seat_aura_counsel", "turns": n, "spirit_buff_damage": n, "spirit_regen": n, "draw_per_turn": n }
+        RegisterEffect("memorial_seat_aura_counsel", n =>
+        {
+            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int dmg    = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
+            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 2;
+            int draw   = n.TryGetProperty("draw_per_turn", out var dr) ? dr.GetInt32() : 1;
+            return new MemorialSeatAuraLeafEffect(turns, dmg, 2, regenRange: 2, regen: regen, drawPerTurn: draw).WithTag("Persistent");
+        });
+
+        // Hallowed Double Rise: deaths on hallowed ground summon 2 spirits
+        // { "type": "hallowed_double_rise" }
+        RegisterEffect("hallowed_double_rise", n =>
+            new HallowedDoubleRiseLeafEffect(false).WithTag("Persistent"));
+
+        // Hallowed Double Rise (with spirit empowerment on kill)
+        RegisterEffect("hallowed_double_rise_empower", n =>
+            new HallowedDoubleRiseLeafEffect(true).WithTag("Persistent"));
+
+        // Elder Aura: spirits within range gain bonus damage
+        // { "type": "elder_aura", "spirit_buff_damage": n, "spirit_buff_range": n }
+        RegisterEffect("elder_aura", n =>
+        {
+            int turns   = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int dmg     = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
+            int range   = n.TryGetProperty("spirit_buff_range", out var r) ? r.GetInt32() : 3;
+            bool prot   = n.TryGetProperty("protect_memorials", out var p) && p.GetBoolean();
+            return new ElderAuraLeafEffect(turns, dmg, range, prot).WithTag("Persistent");
+        });
+
+        // Elder Aura Keeper (with memorial protection)
+        // { "type": "elder_aura_keeper", "spirit_buff_damage": n, "spirit_buff_range": n }
+        RegisterEffect("elder_aura_keeper", n =>
+        {
+            int turns   = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int dmg     = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 3;
+            int range   = n.TryGetProperty("spirit_buff_range", out var r) ? r.GetInt32() : 3;
+            return new ElderAuraLeafEffect(turns, dmg, range, protectMemorials: true).WithTag("Persistent");
+        });
+
+        // Open Gate variants
+        // Open Gate: deaths create memorials + summon spirits, but with different parameters or tags for specific cards
+        RegisterEffect("open_gate_aura", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 5;
+            return new OpenGateLeafEffect(turns).WithTag("Persistent");
+        });
+
+        // Open Gate (with summon discount instead of free summons)
+        // { "type": "open_gate_aura_discount", "turns": n }
+        RegisterEffect("open_gate_aura_discount", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 5;
+            return new OpenGateLeafEffect(turns).WithTag("Persistent");
+        });
+
+        // Hollow Mantle variants
+        // Hollow Mantle: gain armor, create a protective barrier that absorbs damage for a few turns, but with different parameters or tags for specific cards
+        // { "type": "hollow_mantle_grief", "turns": n, "armor": n }
+        RegisterEffect("hollow_mantle_grief", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 4;
+            int armor = n.TryGetProperty("armor", out var a) ? a.GetInt32() : 14;
+            return new HollowMantleLeafEffect(turns, armor).WithTag("Transform");
+        });
+
+        // Hollow Mantle + Draw: gain armor, create a protective barrier, and draw cards on damage taken
+        // { "type": "hollow_mantle_grief_draw", "turns": n, "armor": n }
+        RegisterEffect("hollow_mantle_grief_draw", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 4;
+            int armor = n.TryGetProperty("armor", out var a) ? a.GetInt32() : 14;
+            return new HollowMantleLeafEffect(turns, armor).WithTag("Transform");
+        });
+
+        // Walk Between 
+        // { "type": "hollow_mantle_bonus_armor", "turns": n, "armor": n, "bonus_armor": n }
+        RegisterEffect("walk_between", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 2;
+            int armor = n.TryGetProperty("armor", out var a) ? a.GetInt32() : 14;
             return new HollowMantleLeafEffect(turns, armor).WithTag("Transform");
         });
 
