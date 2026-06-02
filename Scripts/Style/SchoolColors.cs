@@ -27,7 +27,7 @@ public static class SchoolColors
         CardSchool.Adept => new Color("#A8A6A0"),  // warm grey
         CardSchool.Elementalist => new Color("#F06A35"),  // vivid ember orange
         CardSchool.Druid => new Color("#6DBF45"),  // living forest green
-        CardSchool.Necromancer => new Color("#3DDBB8"),  // spectral teal-green
+        CardSchool.Necromancer => new Color("#2BA888"),  // spectral teal-green
         CardSchool.Tinker => new Color("#E09420"),  // warm amber gold
         CardSchool.Enchanter => new Color("#C45B9E"),  // deep runic rose-magenta
         CardSchool.Arcanist => new Color("#7B6FE8"),  // bright arcane indigo

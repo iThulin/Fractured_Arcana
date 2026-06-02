@@ -11,7 +11,7 @@ public static class CardRowHelpers
         pip.VerticalAlignment = VerticalAlignment.Center;
         pip.MouseFilter = Control.MouseFilterEnum.Ignore;
         pip.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize + 1);
-        pip.AddThemeColorOverride("font_color", Colors.White);
+        pip.AddThemeColorOverride("font_color", ElementColors.GetTextColor(color));
         var style = new StyleBoxFlat { BgColor = new Color(color.R, color.G, color.B) };
         style.SetCornerRadiusAll(12);
         style.ContentMarginLeft = 4;
@@ -35,7 +35,7 @@ public static class CardRowHelpers
                 MouseFilter = Control.MouseFilterEnum.Ignore,
             };
             pip.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize - 1);
-            pip.AddThemeColorOverride("font_color", Colors.White);
+            pip.AddThemeColorOverride("font_color", ElementColors.GetTextColor(ElementColors.Get(tag)));
             var style = new StyleBoxFlat { BgColor = ElementColors.Get(tag) };
             style.SetCornerRadiusAll(3);
             style.ContentMarginLeft = 4;

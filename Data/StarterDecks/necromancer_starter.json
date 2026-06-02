@@ -1,0 +1,33 @@
+{
+    "school": "Necromancer",
+    "cards": [
+        {
+            "id": "necromancer_grief_strike",
+            "count": 2
+        },
+        {
+            "id": "necromancer_the_price_of_knowing",
+            "count": 2
+        },
+        {
+            "id": "necromancer_final_escort",
+            "count": 2
+        },
+        {
+            "id": "necromancer_unfinished_business",
+            "count": 1
+        },
+        {
+            "id": "necromancer_release_and_remember",
+            "count": 1
+        },
+        {
+            "id": "necromancer_elegy",
+            "count": 1
+        },
+        {
+            "id": "necromancer_the_procession",
+            "count": 1
+        }
+    ]
+}

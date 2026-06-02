@@ -405,7 +405,7 @@ public partial class CardUi : Control
                 AutowrapMode = TextServer.AutowrapMode.Off,
             };
             pip.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
-            pip.AddThemeColorOverride("font_color", Colors.White);
+            pip.AddThemeColorOverride("font_color", ElementColors.GetTextColor(ElementColors.Get(tag)));
             var style = new StyleBoxFlat { BgColor = ElementColors.Get(tag) };
             style.SetCornerRadiusAll(4);
             style.ContentMarginLeft = 5;

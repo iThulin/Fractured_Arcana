@@ -145,7 +145,7 @@ public static class StarterDeckLoader
 
                 var owned = new OwnedCard
                 {
-                    BlueprintId = bp?.Id ?? card.CardName,
+                    BlueprintId = bp?.Id ?? card.BlueprintId ?? card.CardName,
                     InstanceId = Guid.NewGuid().ToString("N"),
                     Grafts = new List<string>(),
                     IsStarter = true,
