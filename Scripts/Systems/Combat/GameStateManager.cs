@@ -29,6 +29,9 @@ public sealed class GameState
     public List<PersistentEffect> ActiveEffects = new();
     public MemorialManager Memorials;
 
+    public int LastDamageDealt = 0;   // set by DealDamageEffect after each hit
+    public int LastGriefSpent = 0;    // set by GriefDischargeDamageEffect
+
     public string Step = "Main";
     public HexGridManager Grid;
     public Unit PlayerUnit;

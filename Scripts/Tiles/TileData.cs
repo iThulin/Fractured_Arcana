@@ -148,6 +148,9 @@ public class TileData
     public bool HasMemorial => Memorial != null && !Memorial.ConsumedThisTurn;
     public bool IsHallowed => HasMemorial && Memorial.State == MemorialState.Hallowed;
 
+    public int SummonDiscount = 0;
+    public int SummonDiscountTurns = 0;
+
     /// <summary>
     /// Applies a named persistent terrain modifier ("rubble", "scorched", "frozen") that
     /// changes move cost and hazard state. Passing "none" reverts to the saved base cost.

@@ -1322,6 +1322,31 @@ public sealed class WorldshaperEffect : EffectBase
 }
 
 
+public sealed class HollowMantleLeafEffect : EffectBase
+{
+    public int Turns, Armor;
+
+    public HollowMantleLeafEffect(int turns, int armor)
+    {
+        Turns = turns;
+        Armor = armor;
+    }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        var casterUnit = s.ActiveCasterUnit;
+        if (casterUnit == null) return;
+
+        casterUnit.Stats.Armor += Armor;
+        casterUnit.RefreshHealthBar();
+
+        s.ActiveEffects ??= new List<PersistentEffect>();
+        s.ActiveEffects.Add(new HollowMantleEffect(Turns, caster));
+
+        s.Log($"[HollowMantle] Activated — {Armor} armor, {Turns} turns.");
+    }
+}
+
 /// <summary>Does nothing. Used by the registry's `empty` factory as a placeholder while a card is being sketched, and as the fallback for unknown effect types so unknown JSON never crashes the loader.</summary>
 public sealed class EmptyEffect : EffectBase
 {

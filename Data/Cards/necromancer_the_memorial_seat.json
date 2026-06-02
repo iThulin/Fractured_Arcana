@@ -24,8 +24,7 @@
                     "speed": 0
                 },
                 {
-                    "type": "create_persistent_effect",
-                    "effect": "memorial_seat_aura"
+                    "type": "memorial_seat_aura"
                 }
             ]
         },
@@ -50,8 +49,7 @@
                     "duration": 99
                 },
                 {
-                    "type": "create_persistent_effect",
-                    "effect": "hallowed_double_rise"
+                    "type": "hallowed_double_rise"
                 }
             ]
         },

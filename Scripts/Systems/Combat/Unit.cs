@@ -117,6 +117,22 @@ public partial class Unit : Node3D
     private StandardMaterial3D _hoverMat;
     private bool _isHovered = false;
 
+    // ── Spirit fields (Necromancer summoned units) ─────────────────────────────
+    public bool IsSpirit = false;
+    public int SummonerTeamId = -1;
+    public bool OnDeathMemorial = false;
+    public bool CreateMemorialOnKill = false;
+    public int SpiritDamageBuff = 0;
+    public int SpiritDamageBuffTurns = 0;
+    public bool IsUndying = false;
+    public bool UndyingFullRestore = false;
+    public int UndyingReviveHP = 8;
+    public int UndyingTurns = 0;
+    public bool IsInvulnerable = false;
+    public int InvulnerableTurns = 0;
+    public bool IsVigil = false;
+    public int VigilTurns = 0;
+
     /// <summary>
     /// Fires when this unit moves to a new tile.
     /// Parameters: the tile the unit just LEFT (may be null on first placement).
@@ -443,13 +459,19 @@ public partial class Unit : Node3D
         mesh.SetSurfaceOverrideMaterial(0, mat);
     }
 
+    public void ApplySpiritAppearance()
+    {
+        // Pale blue-white — luminous, distinct from enemy undead
+        SetBodyColor(new Color(0.72f, 0.88f, 1.0f));
+    }
+
     public void InitializeAttunement()
     {
         Attunement = School switch
         {
             CardSchool.Elementalist => new ElementalAttunement(),
             // Future schools:
-            // CardSchool.Necromancer => new NecromancerBinding(),
+            CardSchool.Necromancer => new GriefAttunement(),
             // CardSchool.Arcanist   => new ArcaneFocus(),
             _ => null
         };

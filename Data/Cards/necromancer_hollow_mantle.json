@@ -20,8 +20,7 @@
                     "amount": 11
                 },
                 {
-                    "type": "create_persistent_effect",
-                    "effect": "hollow_mantle",
+                    "type": "hollow_mantle",
                     "turns": 3
                 }
             ]
@@ -39,8 +38,7 @@
             "type": "none"
         },
         "effect": {
-            "type": "create_persistent_effect",
-            "effect": "open_gate",
+            "type": "open_gate",
             "turns": 3
         },
         "tags": [
@@ -176,8 +174,7 @@
                                 "duration": 2
                             },
                             {
-                                "type": "create_persistent_effect",
-                                "effect": "walk_between",
+                                "type": "walk_between",
                                 "turns": 2,
                                 "spirit_heal_on_cast": 3
                             }

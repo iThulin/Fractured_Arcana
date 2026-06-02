@@ -208,3 +208,39 @@ public class AvatarAuraEffect : PersistentEffect
         s.Log($"[Avatar] Spell deals +{BonusDamage} bonus damage.");
     }
 }
+
+// In PersistentEffect.cs — add after AvatarAuraEffect
+
+// ── Hollow Mantle ────────────────────────────────────────────
+
+/// <summary>
+/// Necromancer legendary aura. While active: spells cost 1 less mana
+/// and the caster cannot be reduced below 1HP by any single hit.
+/// Ticks down each turn; expired by the combat loop automatically.
+/// </summary>
+public class HollowMantleEffect : PersistentEffect
+{
+    public HollowMantleEffect(int turns, Entity owner)
+    {
+        TurnsRemaining = turns;
+        Owner = owner;
+    }
+
+    public override void Tick(GameState s)
+    {
+        TurnsRemaining--;
+        s.Log($"[HollowMantle] {TurnsRemaining} turn(s) remaining.");
+    }
+
+    /// <summary>
+    /// Called by DealDamageEffect (or wherever damage is applied) to clamp
+    /// incoming damage so the caster cannot drop below 1HP in a single hit.
+    /// Wire this into Unit.ApplyDamage the same way AvatarAuraEffect.BonusDamage
+    /// is queried by DealDamageEffect.
+    /// </summary>
+    public int ClampDamage(Unit target, int incomingDamage)
+    {
+        if (target.Stats.Health <= 1) return incomingDamage;
+        return Math.Min(incomingDamage, target.Stats.Health - 1);
+    }
+}

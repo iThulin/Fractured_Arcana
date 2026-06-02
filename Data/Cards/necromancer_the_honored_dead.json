@@ -29,8 +29,7 @@
                     "on_death_grief": 2
                 },
                 {
-                    "type": "create_persistent_effect",
-                    "effect": "elder_aura",
+                    "type": "elder_aura",
                     "spirit_buff_damage": 2,
                     "spirit_buff_range": 3
                 }
@@ -195,8 +194,7 @@
                                 }
                             },
                             {
-                                "type": "create_persistent_effect",
-                                "effect": "elder_aura",
+                                "type": "elder_aura",
                                 "spirit_buff_damage": 3,
                                 "spirit_buff_range": 3,
                                 "protect_memorials": true
@@ -276,8 +274,7 @@
                                 "on_death_grief": 2
                             },
                             {
-                                "type": "create_persistent_effect",
-                                "effect": "elder_aura",
+                                "type": "elder_aura",
                                 "spirit_buff_damage": 3,
                                 "spirit_buff_range": 3,
                                 "protect_memorials": true

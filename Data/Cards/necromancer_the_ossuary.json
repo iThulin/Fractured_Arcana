@@ -24,8 +24,7 @@
                     "speed": 0
                 },
                 {
-                    "type": "create_persistent_effect",
-                    "effect": "ossuary_aura",
+                    "type": "ossuary_aura",
                     "spirit_regen_range": 2,
                     "spirit_regen": 2
                 }
@@ -119,8 +118,7 @@
                                 "speed": 0
                             },
                             {
-                                "type": "create_persistent_effect",
-                                "effect": "ossuary_aura_shrine",
+                                "type": "ossuary_aura_shrine",
                                 "spirit_regen_range": 2,
                                 "spirit_regen": 3,
                                 "memorial_on_spirit_death_range": 2
@@ -192,8 +190,7 @@
                                 "speed": 0
                             },
                             {
-                                "type": "create_persistent_effect",
-                                "effect": "ossuary_aura_garden",
+                                "type": "ossuary_aura_garden",
                                 "spirit_regen_range": 2,
                                 "spirit_regen": 3,
                                 "memorial_on_spirit_death_range": 2,
@@ -258,8 +255,7 @@
                                 "invulnerable": true
                             },
                             {
-                                "type": "create_persistent_effect",
-                                "effect": "soul_well_aura",
+                                "type": "soul_well_aura",
                                 "spirit_regen_range": 4,
                                 "spirit_regen": 3,
                                 "memorial_on_spirit_death_range": 4,
