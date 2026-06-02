@@ -9,6 +9,9 @@
         "mana": 1,
         "speed": "Sorcery",
         "rules_text": "Immobilize target enemy for 1 turn. Requires a memorial or spirit within 2 tiles of the target.",
+        "tags": [
+            "spirit"
+        ],
         "targeting": {
             "type": "unit",
             "range": 6,
@@ -22,16 +25,16 @@
             "type": "apply_status",
             "status": "rooted",
             "duration": 1
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "Drawn Back",
         "mana": 1,
         "speed": "Instant",
         "rules_text": "Pull target enemy 2 tiles toward your wizard.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "unit",
             "range": 6,
@@ -43,10 +46,7 @@
             "tiles": 2,
             "direction": "toward_caster",
             "collision_damage": 2
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "upgrades": [
         {

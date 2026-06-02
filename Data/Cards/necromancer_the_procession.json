@@ -9,6 +9,12 @@
         "mana": 1,
         "speed": "Instant",
         "rules_text": "All spirits advance 1 tile toward the nearest enemy. If already adjacent, attack instead.",
+        "tags": [
+            "spirit"
+        ],
+        "requires": [
+            "any_spirit"
+        ],
         "targeting": {
             "type": "none"
         },
@@ -16,16 +22,16 @@
             "type": "advance_all_spirits",
             "tiles": 1,
             "attack_if_adjacent": true
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "Shove",
         "mana": 1,
         "speed": "Instant",
         "rules_text": "Deal 4 damage. Push target 1 tile. If pushed adjacent to a memorial, deal 3 bonus damage.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "unit",
             "range": 6,
@@ -56,10 +62,7 @@
                     }
                 }
             ]
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "upgrades": [
         {

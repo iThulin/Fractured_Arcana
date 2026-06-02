@@ -9,13 +9,16 @@
         "mana": 2,
         "speed": "Instant",
         "rules_text": "Consume target memorial or dismiss target spirit within range 5. Deal 5 damage to adjacent enemies. Leave a Strong memorial.",
+        "tags": [
+            "spirit"
+        ],
+        "requires": [
+            "memorial_or_spirit_tile"
+        ],
         "targeting": {
             "type": "tile",
             "range": 5
         },
-        "requires": [
-            "memorial_or_spirit_tile"
-        ],
         "effect": {
             "type": "sequence",
             "steps": [
@@ -39,26 +42,23 @@
                     "strength": "strong"
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "Grief Surge",
         "mana": 1,
         "speed": "Instant",
         "rules_text": "Spend all Grief. Deal 3 damage to all enemies per charge spent.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "none"
         },
         "effect": {
             "type": "grief_discharge_damage",
             "damage_per_grief": 3
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "upgrades": [
         {

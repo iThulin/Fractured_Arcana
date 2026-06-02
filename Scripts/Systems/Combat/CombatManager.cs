@@ -3074,6 +3074,65 @@ public partial class CombatManager : Node3D
                         return false;
                     }
                     break;
+                    
+                case "memorial_tile":
+                    // Target-tile check: enforced by the targeter (only memorial tiles
+                    // are selectable), so nothing to validate here at cast time.
+                    break;
+
+                case "memorial_or_spirit_tile":
+                    // Also enforced by the targeter — pass through.
+                    break;
+
+                case "any_memorial":
+                    // Board-state check: at least one memorial must exist anywhere.
+                    if (State.Memorials == null || State.Memorials.CountMemorials() == 0)
+                    {
+                        failReason = "Requires at least one memorial on the board!";
+                        return false;
+                    }
+                    break;
+
+                case "any_spirit":
+                    // Board-state check: at least one friendly spirit must be in play.
+                    bool hasSpirit = false;
+                    foreach (var u in State.UnitsInPlay)
+                    {
+                        if (u != null && u.IsSpirit && u.SummonerTeamId == selectedUnit?.TeamId
+                            && u.Stats.IsAlive)
+                        {
+                            hasSpirit = true;
+                            break;
+                        }
+                    }
+                    if (!hasSpirit)
+                    {
+                        failReason = "Requires at least one spirit in play!";
+                        return false;
+                    }
+                    break;
+
+                case "spirit_or_memorial":
+                    // Board-state check: either a spirit or a memorial must exist.
+                    bool hasSpiritOrMem = State.Memorials?.CountMemorials() > 0;
+                    if (!hasSpiritOrMem)
+                    {
+                        foreach (var u in State.UnitsInPlay)
+                        {
+                            if (u != null && u.IsSpirit && u.SummonerTeamId == selectedUnit?.TeamId
+                                && u.Stats.IsAlive)
+                            {
+                                hasSpiritOrMem = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!hasSpiritOrMem)
+                    {
+                        failReason = "Requires a spirit or memorial on the board!";
+                        return false;
+                    }
+                    break;
             }
         }
 

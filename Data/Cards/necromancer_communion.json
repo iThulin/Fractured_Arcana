@@ -9,6 +9,9 @@
         "mana": 2,
         "speed": "Sorcery",
         "rules_text": "Deal 6 damage. If target is on or adjacent to a memorial, heal 4 HP.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "unit",
             "range": 6,
@@ -40,16 +43,16 @@
                     }
                 }
             ]
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "bottom": {
         "name": "Grief Harvest",
         "mana": 1,
         "speed": "Instant",
         "rules_text": "Gain 1 Grief. Draw 1 card.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "self"
         },
@@ -65,10 +68,7 @@
                     "count": 1
                 }
             ]
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "upgrades": [
         {

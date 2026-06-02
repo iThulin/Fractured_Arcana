@@ -121,7 +121,7 @@
 				},
 				"tags": {
 					"type": "array",
-					"description": "Element and school tags read at cast time by attunement, buff systems, and targeting selectors. Required on every half — use an empty array [] for halves with no elemental or school identity. Tag strings are open-ended; new schools and mechanics will introduce new values over time without requiring schema changes.",
+					"description": "Element and school tags read at cast time by attunement, buff systems, and targeting selectors. Required on every half — use an empty array [] for halves with no elemental or school identity.",
 					"items": {
 						"type": "string",
 						"minLength": 1
@@ -129,7 +129,7 @@
 				},
 				"requires": {
 					"type": "array",
-					"description": "Pre-cast validation checks. Card cannot be played unless all conditions are met.",
+					"description": "Pre-cast validation checks. Card cannot be played unless ALL conditions are met. Checked in CheckCastRequirements() in CombatManager.\n\nTile-target checks (block selection of invalid tiles via the targeter):\n  'memorial_tile'         — Targeted tile must have an active memorial.\n  'memorial_or_spirit_tile' — Targeted tile must have a memorial OR be occupied by a friendly spirit.\n  'fire_tile'             — Targeted tile must be Fire terrain or imbued with Fire.\n  'ice_tile'              — Targeted tile must be Ice terrain or imbued with Frost.\n  'storm_tile'            — Targeted tile must be Storm terrain or imbued with Lightning.\n  'stone_tile'            — Targeted tile must be Stone terrain or imbued with Earth.\n  'empty_tile'            — Targeted tile must have no occupant.\n\nBoard-state checks (evaluated against global game state at cast time):\n  'any_memorial'          — At least one memorial must exist anywhere on the board.\n  'any_spirit'            — At least one friendly spirit must be alive on the board.\n  'spirit_or_memorial'    — At least one friendly spirit OR one memorial must exist.\n\nOther:\n  'ally_adjacent'         — A friendly unit must be adjacent to the caster.\n  'enemy_adjacent'        — An enemy unit must be adjacent to the caster.",
 					"items": {
 						"type": "string",
 						"enum": [
@@ -138,6 +138,11 @@
 							"storm_tile",
 							"stone_tile",
 							"empty_tile",
+							"memorial_tile",
+							"memorial_or_spirit_tile",
+							"any_memorial",
+							"any_spirit",
+							"spirit_or_memorial",
 							"ally_adjacent",
 							"enemy_adjacent"
 						]
@@ -162,7 +167,7 @@
 				"type": {
 					"type": "string",
 					"minLength": 1,
-					"description": "Targeting strategy. Must match a key registered in CardScriptRegistry.RegisterBuiltins() under RegisterTargeter. Adding a new value requires both a runtime factory and an entry in this enum.",
+					"description": "Targeting strategy. Must match a key registered in CardScriptRegistry.RegisterBuiltins() under RegisterTargeter.",
 					"enum": [
 						"self",
 						"none",
@@ -197,6 +202,11 @@
 				"enemies_only": {
 					"type": "boolean",
 					"description": "Restrict the selection to enemy-controlled units. Used by: unit, aoe, cone, line, by_tag."
+				},
+				"count": {
+					"type": "integer",
+					"description": "Maximum number of targets to select. Used by: adjacent_to_target.",
+					"minimum": 1
 				},
 				"los": {
 					"type": "boolean",
@@ -236,12 +246,15 @@
 						"armor",
 						"shield",
 						"self_damage",
-						"mana_gain",
+						"gain_mana",
+						"draw",
 						"apply_status",
 						"imbue_tile",
 						"imbue_area",
 						"push",
 						"push_damage",
+						"pull",
+						"move",
 						"imbue_path",
 						"remove_armor",
 						"consume_element_tile",
@@ -256,22 +269,67 @@
 						"summon",
 						"sequence",
 						"conditional",
-						"retarget"
+						"retarget",
+						"empty",
+						"summon_spirit",
+						"create_memorial",
+						"consume_memorial",
+						"consume_all_memorials_global",
+						"consume_all_memorials_in_range",
+						"consume_memorials_for_champion",
+						"consume_memorial_or_dismiss_spirit",
+						"damage_per_memorial",
+						"damage_per_memorial_global",
+						"armor_per_memorial",
+						"shield_per_memorial",
+						"armor_per_grief",
+						"armor_per_grief_spent",
+						"heal_fraction_of_damage",
+						"gain_mana",
+						"gain_grief",
+						"grief_discharge_damage",
+						"draw_if_memorial_passed",
+						"draw_if_memorial_end",
+						"advance_all_spirits",
+						"buff_all_spirits",
+						"apply_status_to_all_spirits",
+						"mark_spirits_memorial_on_kill",
+						"mark_on_death_memorial",
+						"swap_with_spirit",
+						"ossuary_aura",
+						"elder_aura",
+						"memorial_seat_aura",
+						"open_gate",
+						"hollow_mantle",
+						"hallow_tile",
+						"hallow_area",
+						"hallowed_double_rise",
+						"pull_to_memorial",
+						"pull_all_to_memorial",
+						"pull_memorials_and_merge",
+						"push_all_to_memorial",
+						"mass_departure",
+						"memorial_strike_all",
+						"create_memorial_ground",
+						"dirge_pulse",
+						"damage_per_memorial",
+						"summon_spirit_from_all_memorials",
+						"summon_spirit_from_all_memorials_and_death_sites"
 					]
 				},
 				"amount": {
 					"type": "integer",
-					"description": "Generic magnitude. Used by: damage, heal, shield, armor, grant_armor, mana_gain, self_damage, remove_armor.",
+					"description": "Generic magnitude. Used by: damage, heal, shield, armor, gain_mana, self_damage, remove_armor, buff_all_spirits (stat amount), gain_grief.",
 					"minimum": 0
 				},
 				"radius": {
 					"type": "integer",
-					"description": "Radius (in tiles) of an area effect. Used by: aoe_all, imbue_area, consume_element_tile, terraform, elemental_convergence, primordial_surge, tectonic_shatter, create_maelstrom, cataclysm.",
+					"description": "Radius (in tiles) of an area effect. Used by: aoe_all, imbue_area, consume_element_tile, terraform, elemental_convergence, primordial_surge, tectonic_shatter, create_maelstrom, cataclysm, hallow_area, ossuary_aura, elder_aura.",
 					"minimum": 1
 				},
 				"damage": {
 					"type": "integer",
-					"description": "Per-hit damage figure for effects that pair area with a damage value. Used by: aoe_all, consume_element_tile, terraform, create_maelstrom.",
+					"description": "Per-hit damage figure for effects that pair area with a damage value. Used by: aoe_all, consume_element_tile, terraform, create_maelstrom, memorial_strike_all, dirge_pulse, mass_departure.",
 					"minimum": 0
 				},
 				"damage_per_element": {
@@ -296,17 +354,17 @@
 				},
 				"tiles": {
 					"type": "integer",
-					"description": "Tiles to push or move. NOTE: this is 'tiles' not 'amount' — a common typo source. Used by: move, push, push_damage.",
+					"description": "Tiles to push, pull, or move. NOTE: this is 'tiles' not 'amount' — a common typo source. Used by: move, push, push_damage, pull, advance_all_spirits, pull_all_to_memorial.",
 					"minimum": 1
 				},
 				"collision_damage": {
 					"type": "integer",
-					"description": "Bonus damage dealt when a pushed unit collides with an obstacle. Used by: push.",
+					"description": "Bonus damage dealt when a pushed unit collides with an obstacle. Used by: push, dirge_pulse, mass_departure.",
 					"minimum": 0
 				},
 				"turns": {
 					"type": "integer",
-					"description": "Duration in turns. Used by: avatar_transform, create_maelstrom.",
+					"description": "Duration in turns. Used by: avatar_transform, create_maelstrom, hollow_mantle, open_gate, hallow_tile, create_memorial_ground.",
 					"minimum": 1
 				},
 				"bonus_speed": {
@@ -339,12 +397,12 @@
 				},
 				"count": {
 					"type": "integer",
-					"description": "Number of items to produce. Used by: draw (cards drawn), summon (units summoned).",
+					"description": "Number of items to produce or consume. Used by: draw (cards drawn), summon (units summoned), consume_memorials_for_champion.",
 					"minimum": 1
 				},
 				"unit": {
 					"type": "string",
-					"description": "Identifier of the unit kind to summon. Resolved at runtime against the summon registry. Used by: summon.",
+					"description": "Identifier of the unit kind to summon. Resolved at runtime against the summon registry. Used by: summon, summon_spirit, pull_memorials_and_merge.",
 					"minLength": 1
 				},
 				"min": {
@@ -396,7 +454,7 @@
 				},
 				"status": {
 					"type": "string",
-					"description": "Status effect to apply. Used by: apply_status.",
+					"description": "Status effect to apply. Used by: apply_status, apply_status_to_all_spirits.",
 					"enum": [
 						"burn",
 						"frozen",
@@ -406,11 +464,18 @@
 						"poisoned",
 						"weakened",
 						"blinded",
-						"arcane_mark"
+						"arcane_mark",
+						"haunted",
+						"haunted_marked",
+						"bound",
+						"undying_turn",
+						"undying_full_restore",
+						"vigil"
 					]
 				},
 				"duration": {
 					"type": "integer",
+					"description": "Duration in turns for a status effect. Used by: apply_status, apply_status_to_all_spirits.",
 					"minimum": 1
 				},
 				"steps": {
@@ -435,6 +500,264 @@
 				},
 				"do": {
 					"$ref": "#/$defs/Effect"
+				},
+				"hp": {
+					"type": "integer",
+					"description": "Base hit points of the summoned unit. Used by: summon_spirit.",
+					"minimum": 1
+				},
+				"speed": {
+					"type": "integer",
+					"description": "Movement speed of the summoned unit. 0 = immobile. Used by: summon_spirit.",
+					"minimum": 0
+				},
+				"strength": {
+					"type": "string",
+					"description": "Memorial strength to create. Used by: create_memorial, mark_on_death_memorial.",
+					"enum": [
+						"faint",
+						"solid",
+						"strong"
+					]
+				},
+				"amount_per": {
+					"type": "number",
+					"description": "Magnitude per memorial or grief charge. Used by: armor_per_memorial, shield_per_memorial, damage_per_memorial, armor_per_grief, armor_per_grief_spent.",
+					"minimum": 0
+				},
+				"fraction": {
+					"type": "number",
+					"description": "Fraction of a value (0.0–1.0). Used by: heal_fraction_of_damage.",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"damage_per_grief": {
+					"type": "integer",
+					"description": "Damage to deal per grief charge spent. Used by: grief_discharge_damage.",
+					"minimum": 1
+				},
+				"choose_amount": {
+					"type": "boolean",
+					"description": "When true, the player chooses how much grief to spend (rather than spending all). Used by: grief_discharge_damage."
+				},
+				"min_spend": {
+					"type": "integer",
+					"description": "Minimum grief required to spend when choose_amount is true. Used by: grief_discharge_damage.",
+					"minimum": 1
+				},
+				"stat": {
+					"type": "string",
+					"description": "Stat name to buff on spirits. Used by: buff_all_spirits.",
+					"enum": [
+						"damage",
+						"armor",
+						"speed",
+						"health"
+					]
+				},
+				"attack_if_adjacent": {
+					"type": "boolean",
+					"description": "When true, spirits that are already adjacent to an enemy attack instead of advancing. Used by: advance_all_spirits."
+				},
+				"grant_attack_if_reached": {
+					"type": "boolean",
+					"description": "When true, spirits that reach an enemy after advancing are granted an attack action. Used by: advance_all_spirits."
+				},
+				"advance_again_on_kill": {
+					"type": "integer",
+					"description": "Bonus tiles a spirit may advance after scoring a kill. Used by: advance_all_spirits.",
+					"minimum": 1
+				},
+				"on_arrive_advance": {
+					"type": "integer",
+					"description": "Tiles the summoned unit automatically advances toward the nearest enemy on arrival. Used by: summon_spirit, pull_memorials_and_merge.",
+					"minimum": 1
+				},
+				"revive_hp": {
+					"type": "integer",
+					"description": "HP at which a spirit revives after falling. Used by: apply_status_to_all_spirits with status undying_turn.",
+					"minimum": 1
+				},
+				"on_death_memorial_count": {
+					"type": "integer",
+					"description": "Number of memorials to create when this summoned unit dies. Used by: summon_spirit.",
+					"minimum": 1
+				},
+				"on_death_grief": {
+					"type": "integer",
+					"description": "Grief granted to the caster when this summoned unit dies. Used by: summon_spirit.",
+					"minimum": 1
+				},
+				"spirit_buff_damage": {
+					"type": "integer",
+					"description": "Bonus damage granted to spirits within aura range. Used by: elder_aura.",
+					"minimum": 1
+				},
+				"spirit_buff_range": {
+					"type": "integer",
+					"description": "Tile range of the spirit buff aura. Used by: elder_aura.",
+					"minimum": 1
+				},
+				"spirit_regen": {
+					"type": "integer",
+					"description": "HP regenerated by spirits per turn while within aura range. Used by: ossuary_aura, create_memorial_ground.",
+					"minimum": 1
+				},
+				"spirit_regen_range": {
+					"type": "integer",
+					"description": "Tile range of the spirit regen aura. Used by: ossuary_aura.",
+					"minimum": 1
+				},
+				"grief_per_turn": {
+					"type": "integer",
+					"description": "Grief gained per turn while the effect is active. Used by: hollow_mantle.",
+					"minimum": 1
+				},
+				"draw_per_turn": {
+					"type": "integer",
+					"description": "Cards drawn at the start of each turn while the effect is active. Used by: memorial_seat_aura.",
+					"minimum": 1
+				},
+				"summon_discount": {
+					"type": "integer",
+					"description": "Mana discount on summon spells cast targeting this tile. Used by: create_memorial_ground.",
+					"minimum": 1
+				},
+				"push": {
+					"type": "integer",
+					"description": "Tiles to push enemies away. Used by: dirge_pulse, mass_departure.",
+					"minimum": 1
+				},
+				"mana_per": {
+					"type": "integer",
+					"description": "Mana gained per memorial consumed. Used by: consume_all_memorials_in_range.",
+					"minimum": 1
+				},
+				"draw_per": {
+					"type": "integer",
+					"description": "Cards drawn per memorial consumed. Used by: consume_all_memorials_in_range, consume_all_memorials_global.",
+					"minimum": 1
+				},
+				"grief_per": {
+					"type": "integer",
+					"description": "Grief gained per memorial consumed. Used by: consume_all_memorials_in_range.",
+					"minimum": 1
+				},
+				"range": {
+					"type": "integer",
+					"description": "Search range in tiles. Used by: pull_memorials_and_merge, pull_all_to_memorial, pull_to_memorial, consume_memorials_for_champion.",
+					"minimum": 1
+				},
+				"merge_unit": {
+					"type": "string",
+					"description": "Unit kind to summon when two memorials merge. Used by: pull_memorials_and_merge.",
+					"minLength": 1
+				},
+				"merge_hp": {
+					"type": "integer",
+					"description": "HP of the merged unit. Used by: pull_memorials_and_merge.",
+					"minimum": 1
+				},
+				"merge_damage": {
+					"type": "integer",
+					"description": "Damage of the merged unit. Used by: pull_memorials_and_merge.",
+					"minimum": 0
+				},
+				"merge_speed": {
+					"type": "integer",
+					"description": "Speed of the merged unit. Used by: pull_memorials_and_merge.",
+					"minimum": 0
+				},
+				"scale_with_strength": {
+					"type": "boolean",
+					"description": "When true, merged unit stats scale with the combined memorial strength. Used by: pull_memorials_and_merge."
+				},
+				"remainder_unit": {
+					"type": "string",
+					"description": "Unit kind to summon from unmerged (odd) memorials. Used by: pull_memorials_and_merge.",
+					"minLength": 1
+				},
+				"remainder_hp": {
+					"type": "integer",
+					"description": "HP of the remainder unit. Used by: pull_memorials_and_merge.",
+					"minimum": 1
+				},
+				"remainder_damage": {
+					"type": "integer",
+					"description": "Damage of the remainder unit. Used by: pull_memorials_and_merge.",
+					"minimum": 0
+				},
+				"remainder_speed": {
+					"type": "integer",
+					"description": "Speed of the remainder unit. Used by: pull_memorials_and_merge.",
+					"minimum": 0
+				},
+				"hp_per_spirit": {
+					"type": "boolean",
+					"description": "When true, each summoned spirit's HP equals the number of other friendly spirits in play. Used by: summon_spirit_from_all_memorials."
+				},
+				"base_hp": {
+					"type": "integer",
+					"description": "Base HP before the per-spirit bonus is added. Used by: summon_spirit_from_all_memorials.",
+					"minimum": 1
+				},
+				"inherit_memorial_name": {
+					"type": "boolean",
+					"description": "When true, the summoned spirit takes the name recorded on the source memorial. Used by: summon_spirit_from_all_memorials."
+				},
+				"bonus_damage_per_strength": {
+					"type": "integer",
+					"description": "Additional damage per point of memorial strength on the source tile. Used by: summon_spirit_from_all_memorials.",
+					"minimum": 1
+				},
+				"auto_rise_range": {
+					"type": "integer",
+					"description": "Spirits within this many tiles of a hallowed tile automatically rise from memorials at turn start. Used by: hallow_tile.",
+					"minimum": 1
+				},
+				"damage_before": {
+					"type": "integer",
+					"description": "Damage dealt to all enemies before pushing them. Used by: push_all_to_memorial.",
+					"minimum": 0
+				},
+				"damage_on_land": {
+					"type": "integer",
+					"description": "Damage dealt when an enemy lands on a memorial after being pushed. Used by: push_all_to_memorial, mass_departure.",
+					"minimum": 0
+				},
+				"memorial_strength": {
+					"type": "string",
+					"description": "Strength of memorials left behind. Used by: mass_departure.",
+					"enum": [
+						"faint",
+						"solid",
+						"strong"
+					]
+				},
+				"enemy_on_enter_status": {
+					"type": "string",
+					"description": "Status applied to enemies that enter hallowed ground. Used by: hallow_area upgrade patches.",
+					"enum": [
+						"rooted",
+						"slowed",
+						"stunned",
+						"haunted"
+					]
+				},
+				"enemy_on_enter_duration": {
+					"type": "integer",
+					"description": "Duration in turns of the on-enter status effect. Used by: hallow_area upgrade patches.",
+					"minimum": 1
+				},
+				"draw_count": {
+					"type": "integer",
+					"description": "Number of cards to draw. Alias for 'count' on draw effects where 'count' is already claimed by another field.",
+					"minimum": 1
+				},
+				"amount_per_strength": {
+					"type": "number",
+					"description": "Bonus amount per point of memorial strength. Used by upgrade patches on armour/damage scaling effects.",
+					"minimum": 0
 				}
 			}
 		},
@@ -453,7 +776,7 @@
 				},
 				"tile": {
 					"type": "string",
-					"description": "Tile-type key the predicate checks against. Used by: target_on_tile, target_adjacent_to_tile.",
+					"description": "Tile-type key the predicate checks against. Used by: target_on_tile, target_adjacent_to_tile. Valid values include: 'memorial', 'stone', 'ice', 'fire', 'storm'.",
 					"minLength": 1
 				},
 				"terrain": {
@@ -566,7 +889,7 @@
 				},
 				"field": {
 					"type": "string",
-					"description": "Dot-notation path into the half's JSON (e.g. 'effect.amount', 'rules_text').",
+					"description": "Dot-notation path into the half's JSON (e.g. 'effect.amount', 'rules_text', 'requires').",
 					"minLength": 1
 				},
 				"value": {

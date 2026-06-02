@@ -9,6 +9,9 @@
         "mana": 2,
         "speed": "Sorcery",
         "rules_text": "Deal 5 damage. If lethal, strike an adjacent enemy for 4 damage and leave a memorial.",
+        "tags": [
+            "spirit"
+        ],
         "targeting": {
             "type": "unit",
             "range": 6,
@@ -49,16 +52,19 @@
                     }
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "Trade Places",
         "mana": 2,
         "speed": "Sorcery",
         "rules_text": "Swap positions with a friendly spirit. The spirit deals 4 damage to adjacent enemies on arrival.",
+        "tags": [
+            "spirit"
+        ],
+        "requires": [
+            "any_spirit"
+        ],
         "targeting": {
             "type": "unit",
             "range": 99
@@ -82,10 +88,7 @@
                     }
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "upgrades": [
         {

@@ -39,6 +39,9 @@
         "mana": 1,
         "speed": "Instant",
         "rules_text": "Move 2 tiles. If you pass through or end on a memorial tile, draw a card.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "self"
         },
@@ -54,10 +57,7 @@
                     "count": 1
                 }
             ]
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "upgrades": [
         {

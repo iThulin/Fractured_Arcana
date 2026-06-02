@@ -9,6 +9,9 @@
         "mana": 4,
         "speed": "Sorcery",
         "rules_text": "Place the Memorial Seat on target tile (30HP). While it stands: all spirits gain +2 DMG and +2 armor, healing and release effects trigger twice. If destroyed, take 8 damage.",
+        "tags": [
+            "spirit"
+        ],
         "targeting": {
             "type": "tile",
             "range": 4
@@ -27,16 +30,16 @@
                     "type": "memorial_seat_aura"
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "Hallowed Ground",
         "mana": 3,
         "speed": "Sorcery",
         "rules_text": "Hallow all tiles within range 2. For the rest of combat: any unit that dies on hallowed ground summons 2 spirits instead of 1.",
+        "tags": [
+            "spirit"
+        ],
         "targeting": {
             "type": "self"
         },
@@ -52,10 +55,7 @@
                     "type": "hallowed_double_rise"
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "upgrades": [
         {

@@ -9,6 +9,9 @@
         "mana": 3,
         "speed": "Sorcery",
         "rules_text": "Summon a Revenant Elder on target memorial (20HP 6DMG 2SPD). Spirits within range 3 gain +2 damage. On death: leaves 2 memorials and grants 2 Grief.",
+        "tags": [
+            "spirit"
+        ],
         "targeting": {
             "type": "tile",
             "range": 4
@@ -34,16 +37,19 @@
                     "spirit_buff_range": 3
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "Memorial Wave",
         "mana": 2,
         "speed": "Sorcery",
         "rules_text": "Deal 3 damage to all enemies per memorial on the board. Consume all memorials. Draw 1 card per memorial consumed.",
+        "tags": [
+            "necrotic"
+        ],
+        "requires": [
+            "any_memorial"
+        ],
         "targeting": {
             "type": "none"
         },
@@ -59,10 +65,7 @@
                     "draw_per": 1
                 }
             ]
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "upgrades": [
         {

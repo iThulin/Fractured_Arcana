@@ -9,29 +9,35 @@
         "mana": 3,
         "speed": "Sorcery",
         "rules_text": "Each memorial on the board strikes adjacent enemies for 4 damage.",
+        "tags": [
+            "spirit"
+        ],
+        "requires": [
+            "any_memorial"
+        ],
         "targeting": {
             "type": "none"
         },
         "effect": {
             "type": "memorial_strike_all",
             "damage": 4
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "Revenant Champion",
         "mana": 3,
         "speed": "Sorcery",
         "rules_text": "Consume 2 memorials within range 3. Summon a Revenant Champion (24HP 8DMG 1SPD).",
+        "tags": [
+            "spirit"
+        ],
+        "requires": [
+            "memorial_tile"
+        ],
         "targeting": {
             "type": "tile",
             "range": 3
         },
-        "requires": [
-            "memorial_tile"
-        ],
         "effect": {
             "type": "sequence",
             "steps": [
@@ -48,10 +54,7 @@
                     "speed": 1
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "upgrades": [
         {

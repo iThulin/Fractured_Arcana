@@ -9,6 +9,12 @@
         "mana": 2,
         "speed": "Sorcery",
         "rules_text": "Place an Ossuary on target tile (15HP, immobile). Spirits within range 2 heal 2HP at the start of each turn.",
+        "tags": [
+            "spirit"
+        ],
+        "requires": [
+            "any_spirit"
+        ],
         "targeting": {
             "type": "tile",
             "range": 4
@@ -29,16 +35,16 @@
                     "spirit_regen": 2
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "Seance",
         "mana": 2,
         "speed": "Sorcery",
         "rules_text": "Target a memorial within range 3. Draw 2 cards and gain 1 Grief.",
+        "tags": [
+            "spirit"
+        ],
         "targeting": {
             "type": "tile",
             "range": 3
@@ -58,10 +64,7 @@
                     "amount": 1
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "upgrades": [
         {

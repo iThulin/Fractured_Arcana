@@ -9,6 +9,12 @@
         "mana": 3,
         "speed": "Sorcery",
         "rules_text": "Any spirit that falls this turn rises again at end of turn (8HP).",
+        "tags": [
+            "spirit"
+        ],
+        "requires": [
+            "any_spirit"
+        ],
         "targeting": {
             "type": "none"
         },
@@ -17,16 +23,19 @@
             "status": "undying_turn",
             "revive_hp": 8,
             "duration": 1
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "The Answering",
         "mana": 2,
         "speed": "Sorcery",
         "rules_text": "Summon a Spirit from every memorial on the board. Each has HP equal to the number of other spirits you control.",
+        "tags": [
+            "spirit"
+        ],
+        "requires": [
+            "any_memorial"
+        ],
         "targeting": {
             "type": "none"
         },
@@ -36,10 +45,7 @@
             "hp_per_spirit": true,
             "damage": 5,
             "speed": 1
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "upgrades": [
         {

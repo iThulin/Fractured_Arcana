@@ -9,6 +9,9 @@
         "mana": 0,
         "speed": "Sorcery",
         "rules_text": "Lose 4 HP. Gain 2 mana. Create a memorial on your tile.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "self"
         },
@@ -28,16 +31,16 @@
                     "strength": "solid"
                 }
             ]
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "bottom": {
         "name": "Hollow Step",
         "mana": 1,
         "speed": "Instant",
         "rules_text": "Move 2 tiles. If you end on a memorial tile, draw a card.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "self"
         },
@@ -53,10 +56,7 @@
                     "count": 1
                 }
             ]
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "upgrades": [
         {

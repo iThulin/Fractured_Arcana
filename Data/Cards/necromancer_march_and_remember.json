@@ -9,6 +9,12 @@
         "mana": 2,
         "speed": "Instant",
         "rules_text": "All spirits advance 2 tiles toward the nearest enemy and attack. Kills leave memorials.",
+        "tags": [
+            "spirit"
+        ],
+        "requires": [
+            "any_spirit"
+        ],
         "targeting": {
             "type": "none"
         },
@@ -25,16 +31,16 @@
                     "type": "mark_spirits_memorial_on_kill"
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "Memorial Ground",
         "mana": 1,
         "speed": "Sorcery",
         "rules_text": "Imbue target tile as Memorial Ground (3 turns). Summon spells targeting this tile cost 2 less.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "tile",
             "range": 4
@@ -43,10 +49,7 @@
             "type": "create_memorial_ground",
             "duration": 3,
             "summon_discount": 2
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "upgrades": [
         {

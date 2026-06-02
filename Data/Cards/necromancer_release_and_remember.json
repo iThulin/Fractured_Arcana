@@ -9,6 +9,9 @@
         "mana": 1,
         "speed": "Sorcery",
         "rules_text": "Consume target memorial within range 4. Gain 2 mana and draw 1 card.",
+        "tags": [
+            "spirit"
+        ],
         "targeting": {
             "type": "tile",
             "range": 4
@@ -31,26 +34,23 @@
                     "count": 1
                 }
             ]
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "bottom": {
         "name": "Mourning Shroud",
         "mana": 1,
         "speed": "Instant",
         "rules_text": "Gain 1 armor per memorial on the board.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "self"
         },
         "effect": {
             "type": "armor_per_memorial",
             "amount_per": 1
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "upgrades": [
         {

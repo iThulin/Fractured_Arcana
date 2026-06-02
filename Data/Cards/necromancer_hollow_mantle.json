@@ -9,6 +9,9 @@
         "mana": 4,
         "speed": "Sorcery",
         "rules_text": "Gain 11 armor. For 3 turns: spells cost 1 less and you cannot be reduced below 1HP.",
+        "tags": [
+            "necrotic"
+        ],
         "targeting": {
             "type": "self"
         },
@@ -24,26 +27,23 @@
                     "turns": 3
                 }
             ]
-        },
-        "tags": [
-            "necrotic"
-        ]
+        }
     },
     "bottom": {
         "name": "Open the Gate",
         "mana": 3,
         "speed": "Sorcery",
         "rules_text": "For 3 turns: all enemies that die create memorials and immediately summon a spirit.",
+        "tags": [
+            "spirit"
+        ],
         "targeting": {
             "type": "none"
         },
         "effect": {
             "type": "open_gate",
             "turns": 3
-        },
-        "tags": [
-            "spirit"
-        ]
+        }
     },
     "upgrades": [
         {

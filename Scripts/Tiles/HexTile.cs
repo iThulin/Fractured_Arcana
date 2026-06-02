@@ -44,6 +44,7 @@ public partial class HexTile : Node3D
     private StandardMaterial3D material;
     private Label3D coordLabel;
     private Label3D _glyphLabel;
+    private Label3D _memorialLabel;
     private Color baseColor;
 
     private ImbuementOverlay imbuementOverlay;
@@ -373,18 +374,80 @@ public partial class HexTile : Node3D
         material.AlbedoColor = finalColor;
     }
 
+    /// <summary>
+    /// Updates the tile's memorial visual state — both the ground tint and the
+    /// floating symbol. Pass null to clear all memorial visuals.
+    /// </summary>
     public void SetMemorial(MemorialData memorial)
     {
         if (memorial == null)
         {
             _memorialState = null;
-            // Clear the overlay — RefreshVisualState handles the base color
+            ClearMemorialLabel();
             RefreshVisualState();
             return;
         }
 
         _memorialState = memorial.State;
         RefreshVisualState();
+        UpdateMemorialLabel(memorial.State);
+    }
+
+    private void UpdateMemorialLabel(MemorialState state)
+    {
+        // Symbol and opacity keyed to memorial strength.
+        // ✦ = solid four-pointed star (strongest signal).
+        // ✧ = outline star (medium).
+        // · = faint dot (weakest).
+        string symbol = state switch
+        {
+            MemorialState.Hallowed    => "✦",
+            MemorialState.Fresh       => "✧",
+            MemorialState.Established => "·",
+            _                         => ""
+        };
+
+        float alpha = state switch
+        {
+            MemorialState.Hallowed    => 0.95f,
+            MemorialState.Fresh       => 0.70f,
+            MemorialState.Established => 0.40f,
+            _                         => 0f
+        };
+
+        if (string.IsNullOrEmpty(symbol) || alpha <= 0f)
+        {
+            ClearMemorialLabel();
+            return;
+        }
+
+        if (_memorialLabel == null)
+        {
+            _memorialLabel = new Label3D
+            {
+                Name        = "MemorialIndicator",
+                Text        = symbol,
+                FontSize    = 48,
+                Billboard   = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                // Sit just above the imbuement overlay height
+                Position    = new Vector3(0f, 0.85f, 0f),
+                Modulate    = new Color(0.92f, 0.88f, 0.72f, alpha),
+            };
+            CallDeferred("add_child", _memorialLabel);
+        }
+        else
+        {
+            _memorialLabel.Visible = true;
+            _memorialLabel.Text    = symbol;
+            _memorialLabel.Modulate = new Color(0.92f, 0.88f, 0.72f, alpha);
+        }
+    }
+
+    private void ClearMemorialLabel()
+    {
+        if (_memorialLabel != null)
+            _memorialLabel.Visible = false;
     }
 
 }
