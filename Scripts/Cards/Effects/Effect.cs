@@ -1430,49 +1430,75 @@ public sealed class SummonSpiritEffect : EffectBase
     }
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s.OnSummonRequested == null)
-        {
-            s.Log("[SummonSpirit] No summon handler registered.");
-            return;
-        }
+	{
+		if (s.OnSummonRequested == null)
+		{
+			s.Log("[SummonSpirit] No summon handler registered.");
+			return;
+		}
 
-        var casterUnit = s.ActiveCasterUnit;
-        int ownerTeam = casterUnit?.TeamId ?? 0;
+		var casterUnit = s.ActiveCasterUnit;
+		int ownerTeam = casterUnit?.TeamId ?? 0;
 
-        foreach (var obj in targets?.Items ?? new List<object>())
-        {
-            TileData tile = obj switch
-            {
-                TileData td => td,
-                Unit u => u.CurrentTile,
-                _ => null
-            };
+		foreach (var obj in targets?.Items ?? new List<object>())
+		{
+			TileData tile = obj switch
+			{
+				TileData td => td,
+				Unit u => u.CurrentTile,
+				_ => null
+			};
 
-            if (tile == null || !tile.HasMemorial)
-            {
-                s.Log("[SummonSpirit] Target tile has no memorial — cannot summon here.");
-                continue;
-            }
+			if (tile == null || !tile.HasMemorial)
+			{
+				s.Log("[SummonSpirit] Target tile has no memorial — cannot summon here.");
+				continue;
+			}
 
-            string sourceName = tile.Memorial?.SourceName ?? "Unknown";
+			// If the memorial tile is occupied, try to find an adjacent empty tile.
+			// HACK: Caster or another unit standing on the memorial would cause the
+			// summon handler to place the spirit at an undefined position (observed: (1,1)).
+			TileData spawnTile = tile;
+			if (tile.IsOccupied && s.Grid != null)
+			{
+				spawnTile = null;
+				foreach (var neighborCoord in s.Grid.GetNeighbors(tile.Axial))
+				{
+					var neighbor = s.Grid.GetTile(neighborCoord);
+					if (neighbor != null && neighbor.IsWalkable && !neighbor.IsBlocked && !neighbor.IsOccupied)
+					{
+						spawnTile = neighbor;
+						break;
+					}
+				}
 
-            var spirit = s.OnSummonRequested(UnitKind, tile, ownerTeam);
-            if (spirit == null) continue;
+				if (spawnTile == null)
+				{
+					s.Log($"[SummonSpirit] Memorial at {tile.Axial} is occupied and no adjacent tile is free — summon blocked.");
+					continue;
+				}
 
-            spirit.IsSpirit = true;
-            spirit.SummonerTeamId = ownerTeam;
-            spirit.Stats.MaxHealth = HP;
-            spirit.Stats.Health = HP;
-            spirit.Stats.BaseSpeed = Speed;
-            spirit.AttackDamage = Damage;
-            spirit.OnDeathMemorial = OnDeathMemorial;
-            spirit.ApplySpiritAppearance();
+				s.Log($"[SummonSpirit] Memorial tile {tile.Axial} occupied; placing spirit at adjacent tile {spawnTile.Axial}.");
+			}
 
-            s.Memorials?.ConsumeMemorial(tile);
-            s.Log($"[SummonSpirit] {sourceName} answers the call as {UnitKind} at {tile.Axial}.");
-        }
-    }
+			string sourceName = tile.Memorial?.SourceName ?? "Unknown";
+
+			var spirit = s.OnSummonRequested(UnitKind, spawnTile, ownerTeam);
+			if (spirit == null) continue;
+
+			spirit.IsSpirit = true;
+			spirit.SummonerTeamId = ownerTeam;
+			spirit.Stats.MaxHealth = HP;
+			spirit.Stats.Health = HP;
+			spirit.Stats.BaseSpeed = Speed;
+			spirit.AttackDamage = Damage;
+			spirit.OnDeathMemorial = OnDeathMemorial;
+			spirit.ApplySpiritAppearance();
+
+			s.Memorials?.ConsumeMemorial(tile);
+			s.Log($"[SummonSpirit] {sourceName} answers the call as {UnitKind} at {spawnTile.Axial}.");
+		}
+	}
 }
 
 // ── Summon Spirit From All Memorials ──────────────────────────────────────────

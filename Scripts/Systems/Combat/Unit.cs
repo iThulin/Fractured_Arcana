@@ -461,8 +461,69 @@ public partial class Unit : Node3D
 
     public void ApplySpiritAppearance()
     {
-        // Pale blue-white — luminous, distinct from enemy undead
-        SetBodyColor(new Color(0.72f, 0.88f, 1.0f));
+        var meshNode = GetNodeOrNull<MeshInstance3D>("MeshInstance3D");
+        if (meshNode == null) return;
+
+        // ── Inherit mesh from guild death records ────────────────────────
+        var record = HonoredDeadService.Claim();
+
+        if (record != null && !string.IsNullOrEmpty(record.MeshResourcePath))
+        {
+            var inheritedMesh = GD.Load<Mesh>(record.MeshResourcePath);
+            if (inheritedMesh != null)
+            {
+                meshNode.Mesh = inheritedMesh;
+                GD.Print($"[Spirit] Inherited mesh from {record.Name}.");
+            }
+
+            // Show the source name for 2 seconds then revert to spirit name
+            if (_nameLabel != null)
+            {
+                _nameLabel.Text = record.Name;
+                var timer = GetTree().CreateTimer(2.0);
+                timer.Timeout += () =>
+                {
+                    if (IsInstanceValid(this) && _nameLabel != null)
+                        _nameLabel.Text = DisplayName?.Length > 0 ? DisplayName : Name;
+                };
+            }
+        }
+
+        // ── Tint: warm gold for allies, cool blue for enemies ────────────
+        Color baseAlbedo = record?.WasAlly == true
+            ? new Color(1.0f, 0.92f, 0.72f, 0.45f)   // ally — warm gold-white
+            : new Color(0.72f, 0.88f, 1.0f,  0.45f);  // enemy — cool blue-white
+
+        Color emission = record?.WasAlly == true
+            ? new Color(1.0f, 0.85f, 0.55f)
+            : new Color(0.55f, 0.78f, 1.0f);
+
+        // ── Ethereal material ────────────────────────────────────────────
+        var etherealMat = new StandardMaterial3D
+        {
+            AlbedoColor              = baseAlbedo,
+            Transparency             = BaseMaterial3D.TransparencyEnum.Alpha,
+            EmissionEnabled          = true,
+            Emission                 = emission,
+            EmissionEnergyMultiplier = 0.8f,
+            ShadingMode              = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            RimEnabled               = true,
+            Rim                      = 0.6f,
+            RimTint                  = 0.3f,
+        };
+
+        meshNode.SetSurfaceOverrideMaterial(0, etherealMat);
+
+        meshNode.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+
+        // ── Name label tint ──────────────────────────────────────────────
+        if (_nameLabel != null)
+            _nameLabel.Modulate = record?.WasAlly == true
+                ? new Color(1.0f, 0.92f, 0.72f, 0.9f)   // warm gold
+                : new Color(0.75f, 0.90f, 1.0f, 0.85f);  // cool blue
+
+        // ── Slightly larger scale — spirits feel weightless ──────────────
+        meshNode.Scale = new Vector3(1.05f, 1.12f, 1.05f);
     }
 
     public void InitializeAttunement()

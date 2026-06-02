@@ -1955,6 +1955,8 @@ public partial class CombatManager : Node3D
         GD.Print(deathMsg);
         combatUI?.AppendActionLog(deathMsg);
 
+        HonoredDeadService.RecordDeath(unit);
+
         // ── Memorial creation ─────────────────────────────────────────────
         if (State?.Memorials != null && unit.CurrentTile != null)
         {
@@ -2488,6 +2490,11 @@ public partial class CombatManager : Node3D
         State.Memorials.OnMemorialChanged += tile => tile.TileView?.SetMemorial(tile.Memorial);
         State.Memorials.OnMemorialRemoved += tile => tile.TileView?.SetMemorial(null);
 
+        string regionName = EncounterContextCarrier.HasEncounter
+            ? EncounterContextCarrier.Current?.RegionId ?? ""
+            : "";
+        HonoredDeadService.OnCombatStart(regionName);
+
         State.PlayerUnit = playerUnit;
         // State.EnemyUnit set after enemy spawn
         State.UnitsInPlay.Clear();
@@ -2869,6 +2876,24 @@ public partial class CombatManager : Node3D
                     speed = 0;
                     armor = 12; // pre-charged with more armor
                     break;
+                // Spirit summons stats are handled by the SummonSpiritEffect
+                case "spirit":
+                case "spirit_wall":
+                case "revenant":
+                case "revenant_champion":
+                case "revenant_elder":
+                case "covenant_elder":
+                case "ossuary":
+                case "ossuary_shrine":
+                case "ossuary_garden":
+                case "soul_well":
+                case "memorial_seat":
+                case "covenant_seat":
+                    scene = PlayerUnitScene;
+                    hp = 10;
+                    speed = 1;
+                    armor = 0;
+                    break;
 
                 default:
                     GD.PrintErr($"[Summon] Unknown unit kind: {unitKind}");
@@ -2900,8 +2925,16 @@ public partial class CombatManager : Node3D
             unit.RefreshNameLabel();
 
             // Color: friendly summons are blue-ish, pillars are grey
+            // Spirits skip this — ApplySpiritAppearance handles their visuals
             if (unitKind.Contains("pillar") || unitKind.Contains("boulder"))
                 unit.SetBodyColor(UITheme.SummonColorPillar);
+            else if (unitKind is "spirit" or "spirit_wall" or "revenant"
+                or "revenant_champion" or "revenant_elder" or "covenant_elder"
+                or "ossuary" or "ossuary_shrine" or "ossuary_garden"
+                or "soul_well" or "memorial_seat" or "covenant_seat")
+            {
+                // No color set here — SummonSpiritEffect calls ApplySpiritAppearance after spawn
+            }
             else if (isPlayerControlled)
                 unit.SetBodyColor(UITheme.SummonColorFriendly);
             else

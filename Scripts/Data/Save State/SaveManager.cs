@@ -26,7 +26,7 @@ public static class SaveManager
 {
     private const string SAVE_DIR = "user://saves/";
     private const int MAX_SLOTS = 3;
-    private const int CURRENT_VERSION = 6;
+    private const int CURRENT_VERSION = 7;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -311,8 +311,13 @@ public static class SaveManager
                 GD.Print("[SaveMigration] v5 → v6: RegionMemory expanded with seed/visit tracking.");
                 // Existing RegionMemory entries are safe — new fields default to 0/false/empty.
                 data.SaveVersion = 6;
-                goto case 6;
+                break;
             case 6:
+                data.HonoredDead ??= new List<HonoredDeadRecord>();
+                data.SaveVersion = 7;
+                GD.Print("[SaveMigration] v6 → v7: HonoredDead list added.");
+                break;
+            case 7:
                 data.SaveVersion = CURRENT_VERSION;
                 break;
         }

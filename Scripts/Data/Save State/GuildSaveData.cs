@@ -28,7 +28,7 @@ using System.Collections.Generic;
 public class GuildSaveData
 {
     // ── Meta ────────────────────────────────────────────────────────────
-    public int SaveVersion = 3;
+    public int SaveVersion = 7;
     public string GuildName = "New Guild";
     public string CreatedAt = "";
     public string LastPlayedAt = "";
@@ -129,6 +129,14 @@ public class GuildSaveData
 
     // ── Region memory (which hexes revealed per region) ─────────────────
     public System.Collections.Generic.Dictionary<string, RegionMemorySaveData> RegionMemory = new();
+
+    // ── Honored Dead records ─────────────────────────────────────────────
+    /// <summary>
+    /// Records of units who died in combat, used to summon spirits in the Ossuary.
+    /// Appended to when units die, but never removed or modified (except for the 
+    /// HasBeenSummoned flag) — the full history of deaths is preserved.
+    /// </summary>
+    public List<HonoredDeadRecord> HonoredDead = new();
 
     // ── Lore / progression flags ────────────────────────────────────────
     public List<string> UnlockedLoreEntries = new();
