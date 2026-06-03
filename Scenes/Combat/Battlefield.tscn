@@ -53,47 +53,6 @@ offset_right = 0
 offset_bottom = 0
 mouse_filter = 2
 
-[node name="DeckLabel" type="Label" parent="DeckUI" unique_id=2107762318]
-offset_left = 277.0
-offset_top = 12.0
-offset_right = 320.0
-offset_bottom = 35.0
-text = "Deck:"
-
-[node name="DeckCountLabel" type="Label" parent="DeckUI" unique_id=688479240]
-offset_left = 320.0
-offset_top = 12.0
-offset_right = 360.0
-offset_bottom = 35.0
-text = "#"
-
-[node name="HandLabel" type="Label" parent="DeckUI" unique_id=174581602]
-offset_left = 277.0
-offset_top = 35.0
-offset_right = 323.0
-offset_bottom = 58.0
-text = "Hand:"
-
-[node name="HandCountLabel" type="Label" parent="DeckUI" unique_id=1991424751]
-offset_left = 323.0
-offset_top = 35.0
-offset_right = 363.0
-offset_bottom = 58.0
-text = "#"
-
-[node name="DiscardLabel" type="Label" parent="DeckUI" unique_id=1160018119]
-offset_left = 277.0
-offset_top = 58.0
-offset_right = 340.0
-offset_bottom = 81.0
-text = "Discard:"
-
-[node name="DiscardCountLabel" type="Label" parent="DeckUI" unique_id=1481814575]
-offset_left = 340.0
-offset_top = 58.0
-offset_right = 380.0
-offset_bottom = 81.0
-text = "#"
 
 [node name="DeckUIManager" type="Node2D" parent="DeckUI" unique_id=1949982600]
 position = Vector2(0, 0)

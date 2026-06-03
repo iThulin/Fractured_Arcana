@@ -52,10 +52,6 @@ public partial class DeckUiManager : Node2D
 
 		CallDeferred(nameof(InitHandUISize));
 
-		deckCountLabel = GetNodeOrNull<Label>("../DeckCountLabel");
-		handCountLabel = GetNodeOrNull<Label>("../HandCountLabel");
-		discardCountLabel = GetNodeOrNull<Label>("../DiscardCountLabel");
-
 		// Hide debug buttons — deck/grave managed by CombatUI bottom bar
 		drawButton = GetNodeOrNull<Button>("../DrawButton");
 		discardButton = GetNodeOrNull<Button>("../DiscardButton");
@@ -70,14 +66,6 @@ public partial class DeckUiManager : Node2D
 			reshuffleButton.Visible = false;
 		if (removeButton != null)
 			removeButton.Visible = false;
-
-		// Hide the old count labels too — CombatUI bottom bar shows these
-		if (deckCountLabel != null)
-			deckCountLabel.Visible = false;
-		if (handCountLabel != null)
-			handCountLabel.Visible = false;
-		if (discardCountLabel != null)
-			discardCountLabel.Visible = false;
 
 		// Wire buttons even though hidden (DeckManager still calls them internally)
 		if (drawButton != null)
@@ -230,35 +218,29 @@ public partial class DeckUiManager : Node2D
 
 		Vector2 screen = GetViewport().GetVisibleRect().Size;
 
-		float bottomReserve = 80f;
 		float leftReserve = 290f;
 		float rightReserve = 230f;
-
 		float boxLeft = leftReserve;
 		float boxRight = screen.X - rightReserve;
-		float boxBottom = screen.Y - bottomReserve;
 		float boxCenterX = boxLeft + (boxRight - boxLeft) * 0.5f;
 
-		// Card dimensions
 		float cardW = 200f;
 		float cardH = 300f;
 
-		float cardBotY = boxBottom - cardH * 0.25f;
-
-		// Arc radius: large enough that the arc is nearly flat across the hand width
-		float handWidth = boxRight - boxLeft;
-		float radius = handWidth * 1.4f;
-
-		// Arc center: directly below card center position
+		// Cards flush with screen bottom
+		float cardBotY = screen.Y - cardH * 0.15f;
 		float cardCenterY = cardBotY - cardH * 0.5f;
+
+		// Very large radius = very flat arc = cards stay low and barely rotate
+		float radius = screen.Y * 1.8f;
+
 		Vector2 arcCenter = new Vector2(boxCenterX, cardCenterY + radius);
 
-		// Arc span: just enough to spread cards without overlap
-		// Gap between card centers should be about cardW + some padding
-		float desiredGap = cardW * 1.15f;
+		// Wider gap between cards
+		float desiredGap = cardW * 1.8f;
 		float halfChord = desiredGap * (count - 1) * 0.5f;
 		float arcSpanRad = 2f * Mathf.Asin(Mathf.Clamp(halfChord / radius, 0f, 1f));
-		float arcSpan = Mathf.Clamp(arcSpanRad, Mathf.DegToRad(1f), Mathf.DegToRad(30f));
+		float arcSpan = Mathf.Clamp(arcSpanRad, Mathf.DegToRad(1f), Mathf.DegToRad(25f));
 
 		float angleStart = count > 1 ? -arcSpan / 2f : 0f;
 		float angleStep = count > 1 ? arcSpan / (count - 1) : 0f;

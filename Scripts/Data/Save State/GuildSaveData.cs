@@ -28,13 +28,14 @@ using System.Collections.Generic;
 public class GuildSaveData
 {
     // ── Meta ────────────────────────────────────────────────────────────
-    public int SaveVersion = 7;
+    public int SaveVersion = 8;
     public string GuildName = "New Guild";
     public string CreatedAt = "";
     public string LastPlayedAt = "";
 
     // ── Wizard ──────────────────────────────────────────────────────────
     public string SelectedSchool = "Elementalist";
+    public string WizardName = "Wizard";
 
     // ── Region ──────────────────────────────────────────────────────────
     public string CurrentRegionId = "frontier_wilds";
@@ -91,7 +92,8 @@ public class GuildSaveData
     private int GetBuildingTier(string buildingId)
     {
         foreach (var b in Buildings)
-            if (b.Id == buildingId) return b.Tier;
+            if (b.Id == buildingId)
+                return b.Tier;
         return 0;
     }
 

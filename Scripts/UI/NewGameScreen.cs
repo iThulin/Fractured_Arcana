@@ -68,6 +68,7 @@ public partial class NewGameScreen : Control
 
     // ── Node refs ────────────────────────────────────────────────────────
     private LineEdit _guildNameInput;
+    private LineEdit _wizardNameInput;
     private Label _errorLabel;
     private CardSchool _selectedSchool = CardSchool.Elementalist;
     private int _targetSlot = -1;
@@ -454,6 +455,7 @@ public partial class NewGameScreen : Control
         _guildNameInput.AddThemeColorOverride("font_color", Colors.White);
         _guildNameInput.AddThemeColorOverride("font_placeholder_color", new Color(0.32f, 0.32f, 0.42f));
 
+
         var inputNormal = new StyleBoxFlat
         {
             BgColor = new Color(0.06f, 0.05f, 0.10f),
@@ -497,6 +499,30 @@ public partial class NewGameScreen : Control
         _errorLabel.AddThemeColorOverride("font_color", UITheme.Danger);
         nameSection.AddChild(_errorLabel);
 
+        var wizardSection = new VBoxContainer();
+        wizardSection.AddThemeConstantOverride("separation", 6);
+        wizardSection.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        bar.AddChild(wizardSection);
+
+        var wizardHdr = new Label { Text = "WIZARD NAME" };
+        wizardHdr.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
+        wizardHdr.AddThemeColorOverride("font_color", new Color(0.38f, 0.38f, 0.48f));
+        wizardSection.AddChild(wizardHdr);
+
+        _wizardNameInput = new LineEdit
+        {
+            PlaceholderText = "Name your wizard...",
+            MaxLength = 32,
+            CustomMinimumSize = new Vector2(0, 44),
+        };
+        _wizardNameInput.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        _wizardNameInput.AddThemeColorOverride("font_color", Colors.White);
+        _wizardNameInput.AddThemeColorOverride("font_placeholder_color",
+            new Color(0.32f, 0.32f, 0.42f));
+        _wizardNameInput.AddThemeStyleboxOverride("normal", inputNormal);
+        _wizardNameInput.AddThemeStyleboxOverride("focus", inputFocus);
+        wizardSection.AddChild(_wizardNameInput);
+
         // Buttons
         var btnCol = new VBoxContainer();
         btnCol.AddThemeConstantOverride("separation", 6);
@@ -522,8 +548,10 @@ public partial class NewGameScreen : Control
         StyleGhostButton(backBtn);
         backBtn.Pressed += () =>
         {
-            if (OnCancel != null) OnCancel.Invoke();
-            else GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
+            if (OnCancel != null)
+                OnCancel.Invoke();
+            else
+                GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
         };
         btnCol.AddChild(backBtn);
     }
@@ -554,7 +582,8 @@ public partial class NewGameScreen : Control
 
     private void UpdateDetailPanel()
     {
-        if (_detailName == null) return;
+        if (_detailName == null)
+            return;
 
         var accent = SchoolColors.GetBorderColor(_selectedSchool);
         var dark = SchoolColors.GetDarkColor(_selectedSchool);
@@ -620,10 +649,16 @@ public partial class NewGameScreen : Control
     private void OnConfirmPressed()
     {
         string guildName = _guildNameInput?.Text.Trim() ?? "";
+        string wizardName = _wizardNameInput?.Text.Trim() ?? "";
 
         if (string.IsNullOrEmpty(guildName))
         {
             ShowError("Please enter a guild name.");
+            return;
+        }
+        if (string.IsNullOrEmpty(wizardName))
+        {
+            ShowError("Please enter a wizard name.");
             return;
         }
         if (_targetSlot < 0)
@@ -634,18 +669,25 @@ public partial class NewGameScreen : Control
 
         PlayerSession.SelectedSchool = _selectedSchool;
 
-        if (OnComplete != null) { OnComplete.Invoke(_selectedSchool, guildName); return; }
+        if (OnComplete != null)
+        { OnComplete.Invoke(_selectedSchool, guildName); return; }
 
         var save = SaveManager.NewGame(_targetSlot, guildName, _selectedSchool.ToString());
-        if (save == null) { ShowError("Failed to create save. Please try again."); return; }
+        if (save == null)
+        { ShowError("Failed to create save."); return; }
 
-        GD.Print($"[NewGame] Guild '{guildName}' founded as {_selectedSchool} in slot {_targetSlot}");
+        // Store wizard name on save
+        save.WizardName = wizardName;
+        SaveManager.Save();
+
+        GD.Print($"[NewGame] Guild '{guildName}' / Wizard '{wizardName}' founded as {_selectedSchool}");
         GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
     }
 
     private void ShowError(string msg)
     {
-        if (_errorLabel == null) return;
+        if (_errorLabel == null)
+            return;
         _errorLabel.Text = msg;
         _errorLabel.Visible = true;
     }
@@ -728,7 +770,8 @@ public partial class NewGameScreen : Control
     {
         int n = 0;
         foreach (var bp in CardDatabase.Blueprints)
-            if (bp.School == school) n++;
+            if (bp.School == school)
+                n++;
         return n;
     }
 }

@@ -793,6 +793,55 @@ public partial class CombatManager : Node3D
         return null;
     }
 
+    private void OrientCameraForCombat()
+    {
+        var controller = GetNodeOrNull<CameraController>("../CameraController");
+        if (controller == null || grid == null)
+            return;
+
+        // Compute player zone centroid
+        Vector3 playerCenter = Vector3.Zero;
+        int playerCount = 0;
+        foreach (var zone in grid.SpawnZones)
+        {
+            if (zone.Side != HexGridManager.SpawnSide.Player)
+                continue;
+            foreach (var coord in zone.Tiles)
+            {
+                var tile = grid.GetTileView(coord);
+                if (tile == null)
+                    continue;
+                playerCenter += tile.GlobalPosition;
+                playerCount++;
+            }
+        }
+        if (playerCount == 0)
+            return;
+        playerCenter /= playerCount;
+
+        // Compute enemy zone centroid
+        Vector3 enemyCenter = Vector3.Zero;
+        int enemyCount = 0;
+        foreach (var zone in grid.SpawnZones)
+        {
+            if (zone.Side != HexGridManager.SpawnSide.Enemy)
+                continue;
+            foreach (var coord in zone.Tiles)
+            {
+                var tile = grid.GetTileView(coord);
+                if (tile == null)
+                    continue;
+                enemyCenter += tile.GlobalPosition;
+                enemyCount++;
+            }
+        }
+        if (enemyCount == 0)
+            return;
+        enemyCenter /= enemyCount;
+
+        controller.FaceToward(playerCenter, enemyCenter);
+    }
+
     private void InspectEnemy(Unit enemy)
     {
         if (enemy == null || !enemy.Stats.IsAlive)
@@ -2276,8 +2325,15 @@ public partial class CombatManager : Node3D
         currentPhase = CombatPhase.Deployment;
         RefreshAllUI();
 
-        // Deferred so it fires after the deferred RefreshPhaseUI/RefreshSelectedUnitUI
-        // calls in _Ready() have settled — otherwise RefreshAllUI overwrites it.
+        // Auto-select first player unit
+        if (playerUnits.Count > 0 && playerUnits[0] != null)
+        {
+            selectedDeployUnit = playerUnits[0];
+            selectedDeployUnit.SetSelected(true);
+            RefreshSelectedUnitUI();
+        }
+
+        CallDeferred(nameof(OrientCameraForCombat));
         CallDeferred(nameof(ShowDeploymentIntel));
     }
 
@@ -2573,6 +2629,10 @@ public partial class CombatManager : Node3D
             maxHealth: 20, health: 20, baseSpeed: 3, maxMana: 3, mana: 3, armor: 0, shield: 0);
         if (wizard != null)
         {
+            string wizardName = SaveManager.ActiveSave?.WizardName ?? "Wizard";
+            string safeNodeName = wizardName.Replace(" ", "_");
+            wizard.Name = safeNodeName;
+            wizard.DisplayName = wizardName;
             wizard.IsMartial = false;
             wizard.CompanionId = "wizard";
             wizard.MoveRange = 3;
@@ -2603,8 +2663,10 @@ public partial class CombatManager : Node3D
             if (unit == null)
                 continue;
 
+            unit.Name = companion.Name;
+            unit.DisplayName = companion.Name;
+
             unit.CompanionId = companion.Id;
-            unit.IsMartial = isMartial;
 
             if (isMartial)
             {
@@ -2928,9 +2990,14 @@ public partial class CombatManager : Node3D
             unit.PlaceOnTile(tile);
 
             unit.Name = $"{p.NamePrefix}_{i + 1}";
-            unit.EnemyArchetype = p.Archetype;      // ← store so AI can read it
-            unit.AttackRange = p.AttackRange;    // ← store attack range
-            unit.AttackDamage = p.AttackDamage;   // ← store attack damage
+            int sameTypeCount = sorted.Count(s => s.Archetype == p.Archetype);
+            unit.Name = sameTypeCount > 1
+                ? $"{p.NamePrefix}_{sorted.Take(i + 1).Count(s => s.Archetype == p.Archetype)}"
+                : p.NamePrefix;
+            unit.DisplayName = unit.Name;
+            unit.EnemyArchetype = p.Archetype;
+            unit.AttackRange = p.AttackRange;
+            unit.AttackDamage = p.AttackDamage;
             unit.MaxActionPoints = p.BaseSpeed;
             unit.CurrentActionPoints = unit.MaxActionPoints;
             unit.SetBodyColor(p.BodyColor);

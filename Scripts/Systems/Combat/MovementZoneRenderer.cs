@@ -41,11 +41,6 @@ public partial class MovementZoneRenderer : Node3D
     private bool _isPlayerZone = true;
     private float _animOffset = 0f;
 
-    // Flat-top hex: the 6 edge midpoint offsets and their perpendicular directions
-    // Edge i connects corner i and corner (i+1)%6
-    // For a flat-top hex with radius R, corners are at angles 0,60,120,180,240,300 degrees
-    private static readonly float[] CornerAngles = { 0f, 60f, 120f, 180f, 240f, 300f };
-
     // The 6 axial neighbor directions (same order as HexGridManager.HexDirs)
     private static readonly Vector2I[] HexDirs =
     {
@@ -57,10 +52,10 @@ public partial class MovementZoneRenderer : Node3D
         new Vector2I( 0,  1),
     };
 
-    // Which edge index (0-5) faces each neighbor direction.
-    // Edge i is between corner i and corner (i+1)%6 in flat-top orientation.
     // Neighbor in direction HexDirs[d] shares edge EdgeForDir[d].
-    private static readonly int[] EdgeForDir = { 0, 1, 2, 3, 4, 5 };
+    // HexDirs runs CW, corners/edges run CCW → reflection (6 - d) % 6.
+    private static readonly int[] EdgeForDir = { 0, 5, 4, 3, 2, 1 };
+
 
     public override void _Ready()
     {
@@ -95,7 +90,8 @@ public partial class MovementZoneRenderer : Node3D
 
     public override void _Process(double delta)
     {
-        if (_reachableSet.Count == 0) return;
+        if (_reachableSet.Count == 0)
+            return;
         _animOffset = (_animOffset + (float)delta * AnimSpeed) % 1.0f;
         RebuildMesh();
     }
@@ -108,7 +104,8 @@ public partial class MovementZoneRenderer : Node3D
         _grid = grid;
         _reachableSet.Clear();
         _costMap = costMap;
-        foreach (var k in costMap.Keys) _reachableSet.Add(k);
+        foreach (var k in costMap.Keys)
+            _reachableSet.Add(k);
         _isPlayerZone = true;
         _lineMaterial.AlbedoColor = PlayerColor;
         HideCostLabel();
@@ -142,8 +139,10 @@ public partial class MovementZoneRenderer : Node3D
     /// </summary>
     public void ShowCostLabelForTile(Vector2I axial, HexGridManager grid, int baseSpeed)
     {
-        if (!_reachableSet.Contains(axial)) { HideCostLabel(); return; }
-        if (axial == _lastHoveredTile) return;
+        if (!_reachableSet.Contains(axial))
+        { HideCostLabel(); return; }
+        if (axial == _lastHoveredTile)
+            return;
         _lastHoveredTile = axial;
 
         int stepCost = _costMap.TryGetValue(axial, out var c) ? c : -1;
@@ -173,7 +172,8 @@ public partial class MovementZoneRenderer : Node3D
     private void RebuildMesh()
     {
         _immediateMesh.ClearSurfaces();
-        if (_reachableSet.Count == 0) return;
+        if (_reachableSet.Count == 0)
+            return;
 
         // ── Pass 1: tile fill ─────────────────────────────────────────────
         var fillColor = _isPlayerZone
@@ -192,7 +192,8 @@ public partial class MovementZoneRenderer : Node3D
             for (int d = 0; d < 6; d++)
             {
                 var neighbor = coord + HexDirs[d];
-                if (_reachableSet.Contains(neighbor)) continue;
+                if (_reachableSet.Contains(neighbor))
+                    continue;
                 DrawEdge(coord, d);
             }
         }
@@ -220,9 +221,12 @@ public partial class MovementZoneRenderer : Node3D
             var vA = new Vector3(cA.X, tileY, cA.Y);
             var vB = new Vector3(cB.X, tileY, cB.Y);
 
-            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(center3D);
-            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(vA);
-            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(vB);
+            _immediateMesh.SurfaceSetColor(color);
+            _immediateMesh.SurfaceAddVertex(center3D);
+            _immediateMesh.SurfaceSetColor(color);
+            _immediateMesh.SurfaceAddVertex(vA);
+            _immediateMesh.SurfaceSetColor(color);
+            _immediateMesh.SurfaceAddVertex(vB);
         }
     }
 
@@ -238,15 +242,15 @@ public partial class MovementZoneRenderer : Node3D
 
         var center2D = AxialToWorld2D(coord);
 
-        // The two corners that form the edge facing neighbor direction neighborDir.
-        // For flat-top hex with 30° offset, edge facing direction d
-        // is between corners d and (d+1)%6.
-        int cornerA = neighborDir;
-        int cornerB = (neighborDir + 1) % 6;
+        // HexDirs runs clockwise; corners run counter-clockwise. The edge facing
+        // axial direction d is the reflected index, not d itself.
+        int edge = EdgeForDir[neighborDir];          // = (6 - neighborDir) % 6
+        int cornerA = edge;
+        int cornerB = (edge + 1) % 6;
 
         var cA = center2D + HexCorner(cornerA);
         var cB = center2D + HexCorner(cornerB);
-
+        // ── everything below here is unchanged ──
         float edgeLen = cA.DistanceTo(cB);
         var start3D = new Vector3(cA.X, tileY, cA.Y);
         var end3D = new Vector3(cB.X, tileY, cB.Y);
@@ -278,13 +282,19 @@ public partial class MovementZoneRenderer : Node3D
                 var v3 = p2 + offset;
                 var v4 = p2 - offset;
 
-                _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(v1);
-                _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(v2);
-                _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(v3);
+                _immediateMesh.SurfaceSetColor(color);
+                _immediateMesh.SurfaceAddVertex(v1);
+                _immediateMesh.SurfaceSetColor(color);
+                _immediateMesh.SurfaceAddVertex(v2);
+                _immediateMesh.SurfaceSetColor(color);
+                _immediateMesh.SurfaceAddVertex(v3);
 
-                _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(v1);
-                _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(v3);
-                _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(v4);
+                _immediateMesh.SurfaceSetColor(color);
+                _immediateMesh.SurfaceAddVertex(v1);
+                _immediateMesh.SurfaceSetColor(color);
+                _immediateMesh.SurfaceAddVertex(v3);
+                _immediateMesh.SurfaceSetColor(color);
+                _immediateMesh.SurfaceAddVertex(v4);
             }
 
             t += cycleLen;

@@ -81,6 +81,11 @@ public partial class CombatUI : CanvasLayer
 	private Button _endTurnButton;
 	private Button _confirmDeploymentButton;
 
+	// Pending selected unit state for when ShowSelectedUnit arrives before BuildUI
+	private Unit _pendingUnit = null;
+	private int _pendingMana = 0;
+	private bool _unitPending = false;
+
 	// ── Right panel nodes ────────────────────────────────────────────────
 	private PanelContainer _rightPanel;
 	private VBoxContainer _enemyRosterBox;
@@ -139,8 +144,10 @@ public partial class CombatUI : CanvasLayer
 		BuildRightPanel();
 		BuildPopups();
 
-		// Flush anything that arrived before the UI was ready
 		RedrawLog();
+
+		if (_unitPending)
+			ApplySelectedUnit(_pendingUnit, _pendingMana);
 
 		if (_pendingIntel != null)
 			BuildEnemyIntelRows(_pendingIntel);
@@ -148,7 +155,6 @@ public partial class CombatUI : CanvasLayer
 		if (_deploymentModePending)
 			ApplyDeploymentMode();
 	}
-
 	// ════════════════════════════════════════════════════════════════════
 	// Left panel
 	// ════════════════════════════════════════════════════════════════════
@@ -408,6 +414,19 @@ public partial class CombatUI : CanvasLayer
 	public void ShowSelectedUnit(Unit unit, int mana)
 	{
 		if (_unitNameLabel == null)
+		{
+			_pendingUnit = unit;
+			_pendingMana = mana;
+			_unitPending = true;
+			return;
+		}
+		_unitPending = false;
+		ApplySelectedUnit(unit, mana);
+	}
+
+	private void ApplySelectedUnit(Unit unit, int mana)
+	{
+		if (_unitNameLabel == null)
 			return;
 
 		if (unit == null)
@@ -433,7 +452,6 @@ public partial class CombatUI : CanvasLayer
 		_unitNameLabel.Text = isEnemy ? $"[Enemy]  {unit.Name}" : unit.Name;
 		_unitNameLabel.Modulate = isEnemy ? UITheme.Danger : UITheme.TextPrimary;
 
-		// HP — gradient green → yellow → red
 		float hpPct = unit.Stats.MaxHealth <= 0 ? 0f
 			: Mathf.Clamp((float)unit.Stats.Health / unit.Stats.MaxHealth, 0f, 1f);
 		Color hpCol = hpPct > 0.5f
@@ -443,7 +461,6 @@ public partial class CombatUI : CanvasLayer
 		if (_hpText != null)
 			_hpText.Text = $"{unit.Stats.Health}/{unit.Stats.MaxHealth}";
 
-		// Mana
 		bool hasMana = unit.Stats.MaxMana > 0;
 		if (_mpBar != null)
 			_mpBar.Visible = hasMana;
@@ -456,7 +473,6 @@ public partial class CombatUI : CanvasLayer
 				_mpText.Text = $"{mana}/{unit.Stats.MaxMana}";
 		}
 
-		// Stat line
 		if (_statLine != null)
 		{
 			string apPips = "";
@@ -471,7 +487,6 @@ public partial class CombatUI : CanvasLayer
 			_statLine.Text = $"{armor}{shield}{ap}{spd}";
 		}
 
-		// Stance
 		if (_stanceLine != null)
 		{
 			if (!isEnemy && unit.IsMartial && unit.ActiveStance != null)
