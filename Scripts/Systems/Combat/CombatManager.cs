@@ -255,19 +255,29 @@ public partial class CombatManager : Node3D
 
         if (hitUnit != _hoveredUnit)
         {
+            // Collapse old hovered bar only if it isn't pinned by selection/inspection
+            if (_hoveredUnit != null
+                && _hoveredUnit != selectedUnit
+                && _hoveredUnit != inspectedEnemyUnit)
+                _hoveredUnit.SetDetailedBar(false);
+
             _hoveredUnit?.SetHovered(false);
             _hoveredUnit = hitUnit;
             _hoveredUnit?.SetHovered(true);
 
+            // Expand new hovered bar, same pin check
+            if (_hoveredUnit != null
+                && _hoveredUnit != selectedUnit
+                && _hoveredUnit != inspectedEnemyUnit)
+                _hoveredUnit.SetDetailedBar(true);
+
             // ── Show/hide threat zone for hovered enemy ──
-            if (hitUnit != null && !hitUnit.IsPlayerControlled
-                && hitUnit.Stats.IsAlive)
+            if (hitUnit != null && !hitUnit.IsPlayerControlled && hitUnit.Stats.IsAlive)
             {
                 ShowEnemyThreatZone(hitUnit);
             }
             else if (selectedUnit != null)
             {
-                // Restore player move zone when no longer hovering enemy
                 ShowMoveTilesWithCost(selectedUnit);
             }
             else
@@ -745,17 +755,21 @@ public partial class CombatManager : Node3D
     {
         if (enemy == null || !enemy.Stats.IsAlive) return;
 
-        // Clear previous inspected enemy ring
         if (inspectedEnemyUnit != null)
+        {
             inspectedEnemyUnit.SetSelected(false);
+            inspectedEnemyUnit.SetDetailedBar(false);   // ← collapse old
+        }
 
         if (selectedUnit != null)
             selectedUnit.SetSelected(false);
+
         selectedUnit = null;
         inspectedEnemyUnit = enemy;
-        inspectedEnemyUnit.SetSelected(true);   // ← ADD THIS
-        ClearMoveTiles();
+        inspectedEnemyUnit.SetSelected(true);
+        inspectedEnemyUnit.SetDetailedBar(true);        // ← expand new
 
+        ClearMoveTiles();
         RefreshSelectedUnitUI();
         RefreshPlayerUnitBar();
         GD.Print($"Inspecting enemy: {enemy.Name}  HP={enemy.Stats.Health}/{enemy.Stats.MaxHealth}");
@@ -837,15 +851,20 @@ public partial class CombatManager : Node3D
     {
         if (unit == null || !unit.IsPlayerControlled) return;
 
+        // Collapse previous selection's bar
+        selectedUnit?.SetDetailedBar(false);
         if (selectedUnit != null) selectedUnit.SetSelected(false);
+
         if (inspectedEnemyUnit != null)
         {
             inspectedEnemyUnit.SetSelected(false);
+            inspectedEnemyUnit.SetDetailedBar(false);
             inspectedEnemyUnit = null;
         }
 
         selectedUnit = unit;
         selectedUnit.SetSelected(true);
+        selectedUnit.SetDetailedBar(true);
         ClearTargetHighlight();
 
         ClearMoveTiles();
@@ -1247,7 +1266,6 @@ public partial class CombatManager : Node3D
             if (unit.IsMartial && unit.ActiveStance != null)
                 ApplyMartialStancePassives(unit);
 
-            unit.TickStatuses();
             unit.Attunement?.Decay();
             State.Memorials.Tick();
 
@@ -1422,7 +1440,6 @@ public partial class CombatManager : Node3D
             if (unit != null && unit.Stats.IsAlive)
             {
                 unit.StartTurn();
-                unit.TickStatuses();
             }
         }
 
@@ -1994,11 +2011,7 @@ public partial class CombatManager : Node3D
 
                 // Kill if max HP reached zero
                 if (unit.Stats.MaxHealth <= 0 && !unit.IsDeathQueued)
-                {
-                    unit.Stats.Health = 0;
-                    unit.OnDied?.Invoke(unit);
-                    unit.Die();
-                }
+                    unit.KillFromEffect();
             }
         }
     }

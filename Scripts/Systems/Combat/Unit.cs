@@ -165,6 +165,7 @@ public partial class Unit : Node3D
         Stats.Mana = Mathf.Clamp(StartMana, 0, StartMaxMana);
 
         _healthBar = GetNodeOrNull<HealthBarRoot>("HealthBarRoot");
+        _healthBar?.Initialize(IsPlayerControlled);
         _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
 
@@ -186,9 +187,38 @@ public partial class Unit : Node3D
 
         CurrentActionPoints = MaxActionPoints;
         Stats.HasActed = false;
+        Stats.MovePoints = Stats.BaseSpeed;
 
         Stats.Mana = Stats.MaxMana;
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
+
+        // Tick statuses first so expired ones don't affect this turn
+        TickStatuses();
+
+        // Now apply movement/action restrictions from still-active statuses
+        if (HasStatus("frozen") || HasStatus("stunned"))
+        {
+            CurrentActionPoints = 0;
+            Stats.MovePoints = 0;
+        }
+        else if (HasStatus("rooted"))
+        {
+            Stats.MovePoints = 0;
+            // AP unchanged — rooted unit can still cast
+        }
+        else if (HasStatus("slowed"))
+        {
+            Stats.MovePoints = Math.Max(0, Stats.MovePoints / 2);
+            // AP unchanged — slowed unit can still act, just moves less
+        }
+
+        if (HasStatus("bound"))
+        {
+            CurrentActionPoints = 0;
+            Stats.MovePoints = 0;
+        }
+
+        RefreshHealthBar();
     }
 
 
@@ -285,6 +315,18 @@ public partial class Unit : Node3D
         SetProcessUnhandledInput(false);
     }
 
+    /// <summary>
+    /// Forces this unit to die from a non-damage source (e.g. poison max HP drain).
+    /// Fires OnDied and delegates to Die() for cleanup.
+    /// </summary>
+    public void KillFromEffect()
+    {
+        if (IsDeathQueued || !Stats.IsAlive) return;
+        Stats.Health = 0;
+        OnDied?.Invoke(this);
+        Die();
+    }
+
     public void GainMana(int amount)
     {
         if (amount <= 0) return;
@@ -310,9 +352,8 @@ public partial class Unit : Node3D
     {
         _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
-        _healthBar?.SetArmor(Stats.Armor, Stats.MaxHealth);
-        _healthBar?.SetShield(Stats.Shield, Stats.MaxHealth);
-        _healthBar?.SetSpeed(Stats.MovePoints);
+        _healthBar?.SetAP(CurrentActionPoints, MaxActionPoints, Stats.Armor, Stats.Shield);
+        _healthBar?.RefreshStatuses(Stats.StatusEffects);
     }
 
     // Status handling
@@ -357,6 +398,7 @@ public partial class Unit : Node3D
         }
 
         GD.Print($"{Name} gains {status} for {duration} turn(s).");
+        _healthBar?.RefreshStatuses(Stats.StatusEffects);
     }
 
     public bool HasStatus(string status)
@@ -372,12 +414,9 @@ public partial class Unit : Node3D
 
     public void TickStatuses()
     {
-        // Call this at the START of each unit's turn
         var expired = new List<string>();
         foreach (var kvp in Stats.StatusEffects)
         {
-
-            // Poison is permanent until combat ends
             if (kvp.Key == "poisoned") continue;
 
             Stats.StatusEffects[kvp.Key] = kvp.Value - 1;
@@ -391,11 +430,7 @@ public partial class Unit : Node3D
             GD.Print($"{Name}: {key} expired.");
         }
 
-        // Re-apply ongoing effects for statuses that are still active
-        if (HasStatus("frozen") || HasStatus("rooted"))
-            Stats.MovePoints = 0;
-        else if (HasStatus("slowed"))
-            Stats.MovePoints = Math.Max(0, Stats.MovePoints / 2);
+        _healthBar?.RefreshStatuses(Stats.StatusEffects);
     }
 
     /// <summary>
@@ -507,6 +542,15 @@ public partial class Unit : Node3D
     {
         if (_nameLabel != null)
             _nameLabel.Text = DisplayName.Length > 0 ? DisplayName : Name;
+    }
+
+    public void SetDetailedBar(bool detailed)
+    {
+        _healthBar?.SetDetailed(detailed);
+        // Also push AP into the bar whenever detail opens
+        if (detailed)
+            _healthBar?.SetAP(CurrentActionPoints, MaxActionPoints,
+                            Stats.Armor, Stats.Shield);
     }
 
     public void SetBodyColor(Color color)

@@ -31,7 +31,7 @@ public partial class CameraController : Node3D
     /// <summary>Lerp rate used to ease zoom toward its target. Higher = snappier.</summary>
     [Export] public float ZoomLerpSpeed    = 8f;   // how snappy zoom feels
     /// <summary>Closest the camera can get to the pivot (minimum zoom).</summary>
-    [Export] public float MinZoom          = 5f;
+    [Export] public float MinZoom          = 3f;
     /// <summary>Farthest the camera can pull out (maximum zoom).</summary>
     [Export] public float MaxZoom          = 30f;  // was 40 — tighter ceiling
     /// <summary>Distance from screen edge (in pixels) within which edge-scroll pan activates.</summary>
@@ -109,8 +109,8 @@ public partial class CameraController : Node3D
         _pitch = -35f;
         _pivot.RotationDegrees = new Vector3(_pitch, _yaw, 0f);
 
-        // Start closer — 0.6 instead of 0.9
-        float startZoom = Mathf.Clamp(boardSpan * 0.6f, MinZoom, MaxZoom);
+        // Start closer — 0.35 instead of 0.6
+        float startZoom = Mathf.Clamp(boardSpan * 0.35f, MinZoom, MaxZoom);
         _camera.Position = new Vector3(0f, 0f, startZoom);
         _zoomTarget      = startZoom;
 
