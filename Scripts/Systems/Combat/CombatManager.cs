@@ -164,7 +164,6 @@ public partial class CombatManager : Node3D
         }
 
         combatUI = GetNodeOrNull<CombatUI>(CombatUIPath);
-        GD.Print($"[CombatUI] Instance: {combatUI?.GetType().Name} Built: {combatUI != null}");
         if (combatUI == null)
             GD.PrintErr("CombatUI not found. Fix CombatUIPath.");
 
@@ -539,7 +538,6 @@ public partial class CombatManager : Node3D
         ClearMoveTiles();
         RefreshSelectedUnitUI();
         RefreshPlayerUnitBar();
-        GD.Print($"Inspecting enemy: {enemy.Name}");
     }
 
     private void RefreshMoveHighlight()
@@ -817,7 +815,6 @@ public partial class CombatManager : Node3D
         ClearMoveTiles();
         RefreshSelectedUnitUI();
         RefreshPlayerUnitBar();
-        GD.Print($"Inspecting enemy: {enemy.Name}  HP={enemy.Stats.Health}/{enemy.Stats.MaxHealth}");
     }
 
     private void ShowEnemyThreatZone(Unit enemy)
@@ -1027,6 +1024,7 @@ public partial class CombatManager : Node3D
         if (selectedUnit.TryMoveTo(grid, tileData))
         {
             GD.Print($"{selectedUnit.Name} moved to {tileData.Axial}");
+            combatUI?.AppendActionLog($"{selectedUnit.Name} moves.");
             ClearMoveTiles();
             ShowMoveTilesWithCost(selectedUnit);
             RefreshSelectedUnitUI();
@@ -1402,6 +1400,7 @@ public partial class CombatManager : Node3D
         }
 
         GD.Print($"=== Round {roundNumber}: Player Turn ===");
+        combatUI?.AppendActionLog($"── Round {roundNumber} ──");
         schoolAttunementUI?.Refresh();
         RefreshAllUI();
     }
@@ -1451,7 +1450,7 @@ public partial class CombatManager : Node3D
             var dropped = unit.DeckData.Hand[0];
             unit.DeckData.Hand.RemoveAt(0);
             unit.DeckData.DiscardPile.Add(dropped);
-            GD.Print($"[Hand] {dropped.TopHalf?.Name ?? dropped.CardName} discarded — hand over limit.");
+            combatUI?.AppendActionLog($"{dropped.TopHalf?.Name ?? dropped.CardName} discarded (overflow).");
         }
 
         // Refresh UI and clear all discard flags
@@ -1999,9 +1998,6 @@ public partial class CombatManager : Node3D
 
         target.ApplyDamage(dmg);
 
-        string hpMsg = $"  ({target.Stats.Health}/{target.Stats.MaxHealth} HP remaining)";
-        GD.Print(hpMsg);
-
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();
         RefreshPlayerUnitBar();
@@ -2036,9 +2032,6 @@ public partial class CombatManager : Node3D
         combatUI?.AppendActionLog(msg);
 
         target.ApplyDamage(dmg);
-
-        string hpMsg = $"  ({target.Stats.Health}/{target.Stats.MaxHealth} HP remaining)";
-        GD.Print(hpMsg);
 
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();
@@ -2252,6 +2245,7 @@ public partial class CombatManager : Node3D
             currentPhase = CombatPhase.Victory;
             RefreshPhaseUI();
             GD.Print("=== VICTORY ===");
+            combatUI?.AppendActionLog("Victory!");
             EmitSignal(SignalName.CombatCompleted, true);   // ← ADD THIS
             return true;
         }
@@ -2261,6 +2255,7 @@ public partial class CombatManager : Node3D
             currentPhase = CombatPhase.Defeat;
             RefreshPhaseUI();
             GD.Print("=== DEFEAT ===");
+            combatUI?.AppendActionLog("Defeat.");
             EmitSignal(SignalName.CombatCompleted, false);  // ← ADD THIS
             return true;
         }
@@ -3616,6 +3611,7 @@ public partial class CombatManager : Node3D
 
         if (ok)
         {
+            combatUI?.AppendActionLog($"Cast: {resolvedHalf.Name}.");
             // Record mastery cast against the original half's blueprint
             if (!string.IsNullOrEmpty(cardUi.CardInstance?.BlueprintId))
                 CastMasteryTracker.RecordCast(cardUi.CardInstance.BlueprintId);

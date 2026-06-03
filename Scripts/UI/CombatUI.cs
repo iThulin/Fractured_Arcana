@@ -527,7 +527,6 @@ public partial class CombatUI : CanvasLayer
 		_logQueue.Enqueue(message);
 		while (_logQueue.Count > LogLineCount)
 			_logQueue.Dequeue();
-		GD.Print($"[Log] queued='{message}' lines={_logLines?.Length ?? -1} built={_built}");
 		RedrawLog();
 	}
 
