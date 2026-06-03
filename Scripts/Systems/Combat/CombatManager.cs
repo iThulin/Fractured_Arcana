@@ -1284,6 +1284,7 @@ public partial class CombatManager : Node3D
             }
         }
 
+        ProcessStatusEffects(playerUnits);
         ApplyHazardDamage(playerUnits);
 
         // Cleanups (imbue path callbacks, etc.)
@@ -1425,6 +1426,7 @@ public partial class CombatManager : Node3D
             }
         }
 
+        ProcessStatusEffects(enemyUnits);
         ApplyHazardDamage(enemyUnits);
 
         if (State.ActiveEffects != null)
@@ -1468,9 +1470,11 @@ public partial class CombatManager : Node3D
 
             if (!enemy.CanAct())
             {
-                GD.Print($"{enemy.Name} is frozen — skipping turn.");
-                combatUI?.AppendActionLog($"{enemy.Name} is frozen!");
-                continue;
+                string reason = enemy.HasStatus("bound") ? "bound"
+                            : enemy.HasStatus("stunned") ? "stunned"
+                            : "frozen";
+                GD.Print($"{enemy.Name} is {reason} — skipping turn.");
+                combatUI?.AppendActionLog($"{enemy.Name} is {reason}!");
             }
 
             var target = FindNearestPlayerUnit(enemy);
@@ -1947,6 +1951,58 @@ public partial class CombatManager : Node3D
         }
     }
 
+    /// <summary>
+    /// Processes per-turn status effect damage and healing for a list of units.
+    /// Called at the start of each side's turn, after TickStatuses() has already
+    /// decremented durations. Units that die here are handled by the normal
+    /// death pipeline via ApplyDamage → OnDied → HandleUnitDeath.
+    /// </summary>
+    private void ProcessStatusEffects(List<Unit> units)
+    {
+        var snapshot = units.ToList();
+        foreach (var unit in snapshot)
+        {
+            if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive) continue;
+
+            // ── Burn (3 damage per turn) ─────────────────────────────────────
+            if (unit.HasStatus("burn"))
+            {
+                int burnDmg = 3;
+                unit.ApplyDamage(burnDmg);
+                string msg = $"{unit.Name} takes {burnDmg} damage from Burn.";
+                GD.Print(msg);
+                combatUI?.AppendActionLog(msg);
+            }
+            // ── Poison (max HP drain per turn) ───────────────────────────────
+            if (unit.HasStatus("poisoned") && unit.Stats.PoisonDrainPerTurn > 0)
+            {
+                int drain = unit.Stats.PoisonDrainPerTurn;
+
+                // Reduce max HP permanently
+                unit.Stats.MaxHealth = Math.Max(0, unit.Stats.MaxHealth - drain);
+
+                // Clamp current HP to the new max — this IS damage
+                if (unit.Stats.Health > unit.Stats.MaxHealth)
+                    unit.Stats.Health = unit.Stats.MaxHealth;
+
+                unit.RefreshHealthBar();
+
+                string msg = $"{unit.Name} is poisoned — max HP reduced by {drain} " +
+                            $"(now {unit.Stats.Health}/{unit.Stats.MaxHealth}).";
+                GD.Print(msg);
+                combatUI?.AppendActionLog(msg);
+
+                // Kill if max HP reached zero
+                if (unit.Stats.MaxHealth <= 0 && !unit.IsDeathQueued)
+                {
+                    unit.Stats.Health = 0;
+                    unit.OnDied?.Invoke(unit);
+                    unit.Die();
+                }
+            }
+        }
+    }
+
     private void HandleUnitDeath(Unit unit)
     {
         if (unit == null) return;
@@ -1960,7 +2016,6 @@ public partial class CombatManager : Node3D
         // ── Memorial creation ─────────────────────────────────────────────
         if (State?.Memorials != null && unit.CurrentTile != null)
         {
-            // Find any player-team necromancer to determine owner
             int necroTeam = -1;
             foreach (var u in playerUnits)
             {
@@ -1971,8 +2026,21 @@ public partial class CombatManager : Node3D
                 }
             }
 
-            if (necroTeam >= 0)
+            if (unit.HasStatus("haunted"))
+            {
+                // Haunted overrides normal memorial creation — always creates a
+                // Strong memorial regardless of whether a Necromancer is present,
+                // and regardless of the unit's HP tier.
+                int team = necroTeam >= 0 ? necroTeam : 0;
+                State.Memorials.CreateMemorial(unit.CurrentTile, unit.Name,
+                    wasAlly: false, MemorialStrength.Strong, team);
+                State.Log($"[Haunted] {unit.Name} died while haunted — Strong memorial created.");
+            }
+            else if (necroTeam >= 0)
+            {
+                // Normal Necromancer memorial — strength based on unit HP tier
                 State.Memorials.CreateMemorial(unit.CurrentTile, unit, necroTeam);
+            }
         }
         // ─────────────────────────────────────────────────────────────────
 

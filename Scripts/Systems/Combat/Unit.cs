@@ -40,6 +40,10 @@ public sealed class Stats
     public int Armor;
     public int Shield;
 
+    // Poison tracks drain rate separately because the status dict only
+    // stores duration. Set when poisoned is applied, persists until combat ends.
+    public int PoisonDrainPerTurn = 0;
+
     public bool IsAlive => Health > 0;
 
     // Active status effects: name -> turns remaining
@@ -132,6 +136,11 @@ public partial class Unit : Node3D
     public int InvulnerableTurns = 0;
     public bool IsVigil = false;
     public int VigilTurns = 0;
+
+    /// <summary>False when the unit has the 'bound' status, which prevents 
+    /// cleanse/dispel effects from removing it.
+    /// </summary>
+    public bool CanBeFreed => !HasStatus("bound");
 
     /// <summary>
     /// Fires when this unit moves to a new tile.
@@ -317,14 +326,37 @@ public partial class Unit : Node3D
             Stats.StatusEffects[status] = duration;
 
         // Apply status immediately
-        if (status == "frozen" || status == "rooted")
+        if (status == "frozen")
             CurrentActionPoints = 0;
+        else if (status == "rooted")
+            Stats.MovePoints = 0;  // can still cast, can't move
         else if (status == "slowed")
             CurrentActionPoints = Math.Max(0, CurrentActionPoints / 2);
+        else if (status == "bound")
+        {
+            // Cannot act or be freed until next player turn — zero AP, immune to cleanse
+            CurrentActionPoints = 0;
+            Stats.MovePoints = 0;
+        }
+        else if (status == "poisoned")
+        {
+            Stats.PoisonDrainPerTurn = Math.Max(Stats.PoisonDrainPerTurn, duration);
+            // Override duration to a large number so TickStatuses doesn't
+            // accidentally expire it — poison is permanent until combat ends.
+            if (Stats.StatusEffects.ContainsKey("poisoned"))
+                Stats.StatusEffects["poisoned"] = 999;
+            else
+                Stats.StatusEffects["poisoned"] = 999;
+            // Don't fall through to the normal duration assignment below.
+            GD.Print($"{Name} is poisoned ({Stats.PoisonDrainPerTurn} max HP/turn).");
+            return;
+        }
         else if (status == "chaining")
+        {
             // no immediate effect, but checked at cast time by DealDamageEffect
+        }
 
-            GD.Print($"{Name} gains {status} for {duration} turn(s).");
+        GD.Print($"{Name} gains {status} for {duration} turn(s).");
     }
 
     public bool HasStatus(string status)
@@ -344,6 +376,10 @@ public partial class Unit : Node3D
         var expired = new List<string>();
         foreach (var kvp in Stats.StatusEffects)
         {
+
+            // Poison is permanent until combat ends
+            if (kvp.Key == "poisoned") continue;
+
             Stats.StatusEffects[kvp.Key] = kvp.Value - 1;
             if (Stats.StatusEffects[kvp.Key] <= 0)
                 expired.Add(kvp.Key);
@@ -362,10 +398,32 @@ public partial class Unit : Node3D
             Stats.MovePoints = Math.Max(0, Stats.MovePoints / 2);
     }
 
+    /// <summary>
+    /// Applies poison, reducing max HP by <paramref name="drainPerTurn"/> each turn,
+    /// clamping current HP to the new max. Stacks by taking the highest drain rate.
+    /// Permanent until combat ends — does not tick down via TickStatuses.
+    /// </summary>
+    public void ApplyPoison(int drainPerTurn)
+    {
+        ApplyStatus("poisoned", drainPerTurn);
+    }
+
+    /// <summary>
+    /// Clears the poison status and resets the drain rate.
+    /// Call this at combat end to avoid carrying poison state into the next fight.
+    /// </summary>
+    public void ClearPoison()
+    {
+        Stats.StatusEffects.Remove("poisoned");
+        Stats.PoisonDrainPerTurn = 0;
+    }
+
     public bool CanAct()
     {
         // Frozen = can't do anything (move or cast)
         if (HasStatus("frozen")) return false;
+        if (HasStatus("bound")) return false; // can't act or be freed until next player turn
+        if (HasStatus("stunned")) return false; // can't act but can still move
         return true;
     }
 

@@ -186,7 +186,7 @@
                             },
                             {
                                 "type": "apply_status",
-                                "status": "haunted_marked",
+                                "status": "haunted",
                                 "duration": 2
                             },
                             {
@@ -198,7 +198,7 @@
                                 },
                                 "do": {
                                     "type": "apply_status",
-                                    "status": "haunted_marked",
+                                    "status": "haunted",
                                     "duration": 1
                                 }
                             }
@@ -278,7 +278,7 @@
                                 },
                                 {
                                     "type": "apply_status",
-                                    "status": "haunted_marked",
+                                    "status": "haunted",
                                     "duration": 2
                                 }
                             ]

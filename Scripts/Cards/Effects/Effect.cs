@@ -802,7 +802,7 @@ public sealed class RemoveStatusEffect : EffectBase
 	public string StatusName; // null = remove all negative statuses
 	private static readonly HashSet<string> NegativeStatuses = new()
 	{
-		"burn", "frozen", "slowed", "stunned", "rooted", "poisoned", "weakened", "blinded"
+		"burn", "frozen", "slowed", "stunned", "rooted", "poisoned", "weakened", "blinded", "bound"
 	};
 
 	public RemoveStatusEffect(string statusName = null)
@@ -818,6 +818,12 @@ public sealed class RemoveStatusEffect : EffectBase
 		{
 			var unit = ResolveTargetUnit(s, obj);
 			if (unit == null) continue;
+
+			if (StatusName == null && !unit.CanBeFreed)
+			{
+				s.Log($"[RemoveStatus] {unit.Name} is bound — cannot clear statuses.");
+				continue;
+			}
 
 			if (StatusName != null)
 			{
@@ -1187,12 +1193,19 @@ public sealed class CleanseDebuffsEffect : EffectBase
 		"blinded",
 		"silenced",
 		"cursed",
+		"bound"
 	};
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var casterUnit = FindCasterUnit(s, caster);
 		if (casterUnit == null) return;
+
+		if (!casterUnit.CanBeFreed)
+		{
+			s.Log($"[Cleanse] {casterUnit.Name} is bound — cannot be cleansed.");
+			return;
+		}
 
 		var toRemove = new List<string>();
 		foreach (var status in casterUnit.Stats.StatusEffects.Keys)
