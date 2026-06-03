@@ -24,6 +24,12 @@ public partial class DeckUiManager : Node2D
 	[Export] public PackedScene CardUIPackedScene;
 	[Export] public PackedScene DropSlotScene;
 
+	// ── Bounding box for the hand — adjust these exports per screen ───────
+	[Export] public float HandBoundLeft = 0.25f;  // fraction of screen width
+	[Export] public float HandBoundRight = 0.75f;  // fraction of screen width
+	[Export] public float HandBoundBottom = 0.92f;  // fraction of screen height (leaves room for bottom bar)
+	[Export] public float HandBoundTop = 0.65f;  // fraction of screen height (cards don't go above this)
+
 	private DeckManager deckManager;
 	private Control handUIContainer;
 
@@ -42,24 +48,64 @@ public partial class DeckUiManager : Node2D
 	public override void _Ready()
 	{
 		deckManager = GetNodeOrNull<DeckManager>("../../Player/DeckManager");
-		if (deckManager == null)
-			GD.PrintErr("DeckManager not found at ../../Player/DeckManager");
-
 		handUIContainer = GetNode<Control>("../HandUI");
 
-		deckCountLabel = GetNode<Label>("../DeckCountLabel");
-		handCountLabel = GetNode<Label>("../HandCountLabel"); //DeckUI/HandCountLabel
-		discardCountLabel = GetNode<Label>("../DiscardCountLabel");
+		CallDeferred(nameof(InitHandUISize));
 
-		drawButton = GetNode<Button>("../DrawButton");
-		discardButton = GetNode<Button>("../DiscardButton");
-		reshuffleButton = GetNode<Button>("../ReshuffleButton");
-		removeButton = GetNode<Button>("../RemoveButton");
+		deckCountLabel = GetNodeOrNull<Label>("../DeckCountLabel");
+		handCountLabel = GetNodeOrNull<Label>("../HandCountLabel");
+		discardCountLabel = GetNodeOrNull<Label>("../DiscardCountLabel");
 
-		drawButton.Pressed += () => { deckManager.DrawCards(1); };
-		discardButton.Pressed += () => { DiscardTopCard(); };
-		reshuffleButton.Pressed += () => { deckManager.Reshuffle(); };
-		removeButton.Pressed += () => { RemoveTopCard(); };
+		// Hide debug buttons — deck/grave managed by CombatUI bottom bar
+		drawButton = GetNodeOrNull<Button>("../DrawButton");
+		discardButton = GetNodeOrNull<Button>("../DiscardButton");
+		reshuffleButton = GetNodeOrNull<Button>("../ReshuffleButton");
+		removeButton = GetNodeOrNull<Button>("../RemoveButton");
+
+		if (drawButton != null)
+			drawButton.Visible = false;
+		if (discardButton != null)
+			discardButton.Visible = false;
+		if (reshuffleButton != null)
+			reshuffleButton.Visible = false;
+		if (removeButton != null)
+			removeButton.Visible = false;
+
+		// Hide the old count labels too — CombatUI bottom bar shows these
+		if (deckCountLabel != null)
+			deckCountLabel.Visible = false;
+		if (handCountLabel != null)
+			handCountLabel.Visible = false;
+		if (discardCountLabel != null)
+			discardCountLabel.Visible = false;
+
+		// Wire buttons even though hidden (DeckManager still calls them internally)
+		if (drawButton != null)
+			drawButton.Pressed += () => deckManager.DrawCards(1);
+		if (discardButton != null)
+			discardButton.Pressed += () => DiscardTopCard();
+		if (reshuffleButton != null)
+			reshuffleButton.Pressed += () => deckManager.Reshuffle();
+		if (removeButton != null)
+			removeButton.Pressed += () => RemoveTopCard();
+
+		GetViewport().SizeChanged += OnViewportSizeChanged;
+	}
+
+	private void InitHandUISize()
+	{
+		if (handUIContainer == null)
+			return;
+		var vpSize = GetViewport().GetVisibleRect().Size;
+		handUIContainer.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		handUIContainer.Size = vpSize;
+		handUIContainer.Position = Vector2.Zero;
+	}
+
+	private void OnViewportSizeChanged()
+	{
+		InitHandUISize();
+		PositionHandCards();
 	}
 
 	public async Task RefreshUI()
@@ -75,7 +121,8 @@ public partial class DeckUiManager : Node2D
 			// Find existing UI nodes
 			var currentUiCards = new List<CardUi>();
 			foreach (Node child in handUIContainer.GetChildren())
-				if (child is CardUi c) currentUiCards.Add(c);
+				if (child is CardUi c)
+					currentUiCards.Add(c);
 
 			// Cards whose UI node should be removed
 			var toRemove = new List<CardUi>();
@@ -120,7 +167,8 @@ public partial class DeckUiManager : Node2D
 			// Remove any UI nodes that are still not in the final hand
 			var allUiCards = new List<CardUi>();
 			foreach (Node child in handUIContainer.GetChildren())
-				if (child is CardUi c) allUiCards.Add(c);
+				if (child is CardUi c)
+					allUiCards.Add(c);
 
 			foreach (var cardUi in allUiCards)
 			{
@@ -136,7 +184,8 @@ public partial class DeckUiManager : Node2D
 			// Add any UI nodes still missing after awaits
 			var presentCards = new HashSet<Card>();
 			foreach (Node child in handUIContainer.GetChildren())
-				if (child is CardUi c) presentCards.Add(c.CardInstance);
+				if (child is CardUi c)
+					presentCards.Add(c.CardInstance);
 
 			foreach (var card in deckManager.Hand)
 			{
@@ -176,63 +225,89 @@ public partial class DeckUiManager : Node2D
 	private void PositionHandCards()
 	{
 		int count = handUIContainer.GetChildCount();
-		if (count == 0) return;
+		if (count == 0)
+			return;
 
-		Vector2 screenSize = GetViewport().GetVisibleRect().Size;
+		Vector2 screen = GetViewport().GetVisibleRect().Size;
 
-		float radius = screenSize.Y * UITheme.HandArcRadiusScale;
-		Vector2 arcCenter = new Vector2(screenSize.X / 2f, screenSize.Y + radius * UITheme.HandArcCenterYScale);
+		float bottomReserve = 80f;
+		float leftReserve = 290f;
+		float rightReserve = 230f;
 
-		float maxArcSpanDeg = UITheme.HandArcMaxSpanDeg;
-		float minArcSpanDeg = UITheme.HandArcMinSpanDeg;
-		float stepPerCard = UITheme.HandArcStepPerCard;
-		float arcSpanDeg = Mathf.Min(maxArcSpanDeg, stepPerCard * (count - 1));
+		float boxLeft = leftReserve;
+		float boxRight = screen.X - rightReserve;
+		float boxBottom = screen.Y - bottomReserve;
+		float boxCenterX = boxLeft + (boxRight - boxLeft) * 0.5f;
 
-		arcSpanDeg = Mathf.Max(minArcSpanDeg, arcSpanDeg);
-		float arcSpan = Mathf.DegToRad(arcSpanDeg);
+		// Card dimensions
+		float cardW = 200f;
+		float cardH = 300f;
 
-		float angleStart = (count > 1) ? -arcSpan / 2f : 0f;
-		float angleStep = (count > 1) ? arcSpan / (count - 1) : 0f;
+		float cardBotY = boxBottom - cardH * 0.25f;
+
+		// Arc radius: large enough that the arc is nearly flat across the hand width
+		float handWidth = boxRight - boxLeft;
+		float radius = handWidth * 1.4f;
+
+		// Arc center: directly below card center position
+		float cardCenterY = cardBotY - cardH * 0.5f;
+		Vector2 arcCenter = new Vector2(boxCenterX, cardCenterY + radius);
+
+		// Arc span: just enough to spread cards without overlap
+		// Gap between card centers should be about cardW + some padding
+		float desiredGap = cardW * 1.15f;
+		float halfChord = desiredGap * (count - 1) * 0.5f;
+		float arcSpanRad = 2f * Mathf.Asin(Mathf.Clamp(halfChord / radius, 0f, 1f));
+		float arcSpan = Mathf.Clamp(arcSpanRad, Mathf.DegToRad(1f), Mathf.DegToRad(30f));
+
+		float angleStart = count > 1 ? -arcSpan / 2f : 0f;
+		float angleStep = count > 1 ? arcSpan / (count - 1) : 0f;
 
 		for (int i = 0; i < count; i++)
 		{
-			if (handUIContainer.GetChild(i) is Control card)
-			{
-				float angle = angleStart + angleStep * i;
+			if (handUIContainer.GetChild(i) is not Control card)
+				continue;
 
-				Vector2 arcOffset = new Vector2(
-					Mathf.Sin(angle),
-					-Mathf.Cos(angle)
-				) * radius;
+			float angle = angleStart + angleStep * i;
+			Vector2 offset = new Vector2(Mathf.Sin(angle), -Mathf.Cos(angle)) * radius;
+			Vector2 pos = arcCenter + offset;
 
-				Vector2 localPos = arcCenter + arcOffset;
-				card.Position = localPos - (card.Size / 2f);
-				card.Rotation = angle;
+			Vector2 cs = card.Size.LengthSquared() > 0 ? card.Size
+				: card.CustomMinimumSize.LengthSquared() > 0 ? card.CustomMinimumSize
+				: new Vector2(cardW, cardH);
 
-				if (card is CardUi cardUi)
-					cardUi.SetRestTransform(card.Position, card.Rotation);
-			}
+			card.Position = pos - cs * 0.5f;
+			card.Rotation = angle;
+
+			if (card is CardUi cardUi)
+				cardUi.SetRestTransform(card.Position, card.Rotation);
 		}
+
 		UpdateCardCounts();
 	}
 
 	private void UpdateCardCounts()
 	{
-		deckCountLabel.Text = $"{deckManager.DrawPile.Count}";
-		handCountLabel.Text = $"Hand: {deckManager.Hand.Count}";
-		discardCountLabel.Text = $"Discard: {deckManager.DiscardPile.Count}";
+		if (deckCountLabel != null)
+			deckCountLabel.Text = $"{deckManager.DrawPile.Count}";
+		if (handCountLabel != null)
+			handCountLabel.Text = $"Hand: {deckManager.Hand.Count}";
+		if (discardCountLabel != null)
+			discardCountLabel.Text = $"Discard: {deckManager.DiscardPile.Count}";
 	}
 
 	private void DiscardTopCard()
 	{
-		if (deckManager.Hand.Count == 0) return;
+		if (deckManager.Hand.Count == 0)
+			return;
 		var card = deckManager.Hand[^1];
 		deckManager.DiscardCard(card);
 	}
 
 	private void RemoveTopCard()
 	{
-		if (deckManager.Hand.Count == 0) return;
+		if (deckManager.Hand.Count == 0)
+			return;
 		var card = deckManager.Hand[^1];
 		deckManager.Hand.RemoveAt(deckManager.Hand.Count - 1);
 		deckManager.DiscardPile.Add(card);
@@ -278,8 +353,10 @@ public partial class DeckUiManager : Node2D
 
 		for (int i = 0; i < count; i++)
 		{
-			if (handUIContainer.GetChild(i) is not CardUi neighbor) continue;
-			if (neighbor == hoveredCard) continue;
+			if (handUIContainer.GetChild(i) is not CardUi neighbor)
+				continue;
+			if (neighbor == hoveredCard)
+				continue;
 
 			int dist = i - hoveredIndex;
 			// Push neighbors outward by up to 18px, falling off with distance

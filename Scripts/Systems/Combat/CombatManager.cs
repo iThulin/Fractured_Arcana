@@ -164,6 +164,7 @@ public partial class CombatManager : Node3D
         }
 
         combatUI = GetNodeOrNull<CombatUI>(CombatUIPath);
+        GD.Print($"[CombatUI] Instance: {combatUI?.GetType().Name} Built: {combatUI != null}");
         if (combatUI == null)
             GD.PrintErr("CombatUI not found. Fix CombatUIPath.");
 
@@ -222,17 +223,21 @@ public partial class CombatManager : Node3D
                 CheckCombatEnd();
         }
 
-        if (currentPhase == CombatPhase.EnemyTurn) return;
+        if (currentPhase == CombatPhase.EnemyTurn)
+            return;
 
         // ── Guard: viewport and world may not be ready on first frames ──
         var viewport = GetViewport();
-        if (viewport == null) return;
+        if (viewport == null)
+            return;
 
         var camera = viewport.GetCamera3D();
-        if (camera == null) return;
+        if (camera == null)
+            return;
 
         var world = GetWorld3D();
-        if (world?.DirectSpaceState == null) return;
+        if (world?.DirectSpaceState == null)
+            return;
         // ───────────────────────────────────────────────────────────────
 
         Vector2 mousePos = viewport.GetMousePosition();
@@ -248,7 +253,8 @@ public partial class CombatManager : Node3D
             Node current = cv.AsGodotObject() as Node;
             while (current != null)
             {
-                if (current is Unit u) { hitUnit = u; break; }
+                if (current is Unit u)
+                { hitUnit = u; break; }
                 current = current.GetParent();
             }
         }
@@ -321,7 +327,8 @@ public partial class CombatManager : Node3D
 
     private void InitZoneRenderer()
     {
-        if (grid == null || _zoneRenderer == null) return;
+        if (grid == null || _zoneRenderer == null)
+            return;
         _zoneRenderer.HexRadius = grid.HexRadius;
         grid.AddChild(_zoneRenderer);
     }
@@ -333,8 +340,10 @@ public partial class CombatManager : Node3D
 
         foreach (var unit in playerUnits)
         {
-            if (unit == null) continue;
-            if (unit.IsMartial) continue;
+            if (unit == null)
+                continue;
+            if (unit.IsMartial)
+                continue;
 
             unit.DeckData = new UnitDeckData(unit.School, 5);
 
@@ -462,19 +471,19 @@ public partial class CombatManager : Node3D
 
     private void RefreshSelectedUnitUI()
     {
-        if (combatUI == null) return;
+        if (combatUI == null)
+            return;
+
+        Unit unitToShow = isInDeploymentPhase
+            ? selectedDeployUnit
+            : (selectedUnit ?? inspectedEnemyUnit);
 
         int mana = selectedUnit?.Stats.Mana ?? 0;
         if (State.Mana.ContainsKey(Me))
             State.Mana[Me] = mana;
 
-        // Priority: deployment selection → player selection → inspected enemy
-        Unit unitToShow = isInDeploymentPhase
-            ? selectedDeployUnit
-            : (selectedUnit ?? inspectedEnemyUnit);
-
-        // Pass mana=-1 for enemies so the mana row is suppressed when appropriate
         int manaToShow = (unitToShow != null && !unitToShow.IsPlayerControlled) ? 0 : mana;
+
         combatUI.ShowSelectedUnit(unitToShow, manaToShow);
     }
 
@@ -498,22 +507,27 @@ public partial class CombatManager : Node3D
     private void RefreshDeckCounts()
     {
         var deck = deckManager?.GetActiveDeck();
-        if (deck == null) return;
+        if (deck == null)
+            return;
         combatUI?.RefreshDeckCounts(deck.DrawPile, deck.DiscardPile);
     }
 
     private void OnUnitBarButtonPressed(int index)
     {
-        if (index < 0 || index >= playerUnits.Count) return;
-        if (currentPhase != CombatPhase.PlayerTurn) return;
+        if (index < 0 || index >= playerUnits.Count)
+            return;
+        if (currentPhase != CombatPhase.PlayerTurn)
+            return;
         SelectUnit(playerUnits[index]);
     }
 
     private void OnEnemyRosterButtonPressed(int index)
     {
-        if (index < 0 || index >= enemyUnits.Count) return;
+        if (index < 0 || index >= enemyUnits.Count)
+            return;
         var enemy = enemyUnits[index];
-        if (enemy == null || !enemy.Stats.IsAlive) return;
+        if (enemy == null || !enemy.Stats.IsAlive)
+            return;
 
         if (inspectedEnemyUnit != null)
             inspectedEnemyUnit.SetSelected(false);  // ← ADD THIS
@@ -531,7 +545,8 @@ public partial class CombatManager : Node3D
     private void RefreshMoveHighlight()
     {
         ClearMoveTiles();
-        if (selectedUnit == null || !selectedUnit.CanMove()) return;
+        if (selectedUnit == null || !selectedUnit.CanMove())
+            return;
 
         var reachable = grid.GetReachableTiles(selectedUnit);
         foreach (var coord in reachable)
@@ -565,12 +580,15 @@ public partial class CombatManager : Node3D
             }
         }
 
-        if (e.IsActionPressed("ui_select")) { Pass(); } // space by default
-        if (e.IsActionPressed("ui_accept")) { ResolveTop(); } // enter
+        if (e.IsActionPressed("ui_select"))
+        { Pass(); } // space by default
+        if (e.IsActionPressed("ui_accept"))
+        { ResolveTop(); } // enter
         if (e is InputEventKey k && k.Pressed && !k.Echo)
         {
             // Existing bindings
-            if (k.Keycode == Key.R) ResolveTop();
+            if (k.Keycode == Key.R)
+                ResolveTop();
 
             // ── Unit selection ────────────────────────────────────────────
             if (currentPhase == CombatPhase.PlayerTurn)
@@ -578,23 +596,33 @@ public partial class CombatManager : Node3D
                 // Enemy inspection — check shift first
                 if (k.ShiftPressed)
                 {
-                    if (k.Keycode == Key.Key1) { TryInspectEnemyByIndex(0); return; }
-                    if (k.Keycode == Key.Key2) { TryInspectEnemyByIndex(1); return; }
-                    if (k.Keycode == Key.Key3) { TryInspectEnemyByIndex(2); return; }
-                    if (k.Keycode == Key.Key4) { TryInspectEnemyByIndex(3); return; }
+                    if (k.Keycode == Key.Key1)
+                    { TryInspectEnemyByIndex(0); return; }
+                    if (k.Keycode == Key.Key2)
+                    { TryInspectEnemyByIndex(1); return; }
+                    if (k.Keycode == Key.Key3)
+                    { TryInspectEnemyByIndex(2); return; }
+                    if (k.Keycode == Key.Key4)
+                    { TryInspectEnemyByIndex(3); return; }
                 }
 
                 // Unit selection
-                if (k.Keycode == Key.Key1) TrySelectUnitByIndex(0);
-                if (k.Keycode == Key.Key2) TrySelectUnitByIndex(1);
-                if (k.Keycode == Key.Key3) TrySelectUnitByIndex(2);
-                if (k.Keycode == Key.Key4) TrySelectUnitByIndex(3);
+                if (k.Keycode == Key.Key1)
+                    TrySelectUnitByIndex(0);
+                if (k.Keycode == Key.Key2)
+                    TrySelectUnitByIndex(1);
+                if (k.Keycode == Key.Key3)
+                    TrySelectUnitByIndex(2);
+                if (k.Keycode == Key.Key4)
+                    TrySelectUnitByIndex(3);
 
                 // Tab cycles units
                 if (k.Keycode == Key.Tab)
                 {
-                    if (k.ShiftPressed) CycleSelectedUnit(-1);
-                    else CycleSelectedUnit(1);
+                    if (k.ShiftPressed)
+                        CycleSelectedUnit(-1);
+                    else
+                        CycleSelectedUnit(1);
                 }
             }
         }
@@ -602,7 +630,7 @@ public partial class CombatManager : Node3D
 
     private void TryHandleMainPhaseClick()
     {
-        GD.Print($"TryHandleMainPhaseClick phase={currentPhase}");
+        //GD.Print($"TryHandleMainPhaseClick phase={currentPhase}");
 
         if (currentPhase != CombatPhase.PlayerTurn)
         {
@@ -613,7 +641,8 @@ public partial class CombatManager : Node3D
         }
 
         var camera = GetViewport().GetCamera3D();
-        if (camera == null) { GD.PrintErr("No active camera."); return; }
+        if (camera == null)
+        { GD.PrintErr("No active camera."); return; }
 
         Vector2 mousePos = GetViewport().GetMousePosition();
         Vector3 from = camera.ProjectRayOrigin(mousePos);
@@ -621,11 +650,14 @@ public partial class CombatManager : Node3D
 
         var spaceState = GetWorld3D().DirectSpaceState;
         var result = spaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(from, to));
-        if (result.Count == 0) return;
-        if (!result.TryGetValue("collider", out var colliderVar)) return;
+        if (result.Count == 0)
+            return;
+        if (!result.TryGetValue("collider", out var colliderVar))
+            return;
 
         var collider = colliderVar.AsGodotObject() as Node;
-        if (collider == null) return;
+        if (collider == null)
+            return;
 
         Node current = collider;
         while (current != null)
@@ -662,8 +694,10 @@ public partial class CombatManager : Node3D
 
     private void OnLeftMousePressed(Vector2 screenPos)
     {
-        if (isInDeploymentPhase) { TryHandleDeploymentClick(); return; }
-        if (currentPhase != CombatPhase.PlayerTurn) return;
+        if (isInDeploymentPhase)
+        { TryHandleDeploymentClick(); return; }
+        if (currentPhase != CombatPhase.PlayerTurn)
+            return;
 
         _dragStartScreenPos = screenPos;
         _isDraggingUnit = false;
@@ -682,8 +716,10 @@ public partial class CombatManager : Node3D
 
     private void OnLeftMouseReleased(Vector2 screenPos)
     {
-        if (isInDeploymentPhase) return;
-        if (currentPhase != CombatPhase.PlayerTurn) return;
+        if (isInDeploymentPhase)
+            return;
+        if (currentPhase != CombatPhase.PlayerTurn)
+            return;
 
         float dragDist = screenPos.DistanceTo(_dragStartScreenPos);
         bool wasDrag = dragDist > DragThresholdPixels;
@@ -708,7 +744,8 @@ public partial class CombatManager : Node3D
     private Unit GetUnitUnderMouse()
     {
         var camera = GetViewport().GetCamera3D();
-        if (camera == null) return null;
+        if (camera == null)
+            return null;
 
         Vector2 mousePos = GetViewport().GetMousePosition();
         Vector3 from = camera.ProjectRayOrigin(mousePos);
@@ -716,13 +753,16 @@ public partial class CombatManager : Node3D
 
         var result = GetWorld3D().DirectSpaceState
             .IntersectRay(PhysicsRayQueryParameters3D.Create(from, to));
-        if (result.Count == 0) return null;
-        if (!result.TryGetValue("collider", out var cv)) return null;
+        if (result.Count == 0)
+            return null;
+        if (!result.TryGetValue("collider", out var cv))
+            return null;
 
         Node current = cv.AsGodotObject() as Node;
         while (current != null)
         {
-            if (current is Unit u) return u;
+            if (current is Unit u)
+                return u;
             current = current.GetParent();
         }
         return null;
@@ -731,7 +771,8 @@ public partial class CombatManager : Node3D
     private HexTile GetTileViewUnderMouse()
     {
         var camera = GetViewport().GetCamera3D();
-        if (camera == null) return null;
+        if (camera == null)
+            return null;
 
         Vector2 mousePos = GetViewport().GetMousePosition();
         Vector3 from = camera.ProjectRayOrigin(mousePos);
@@ -739,13 +780,16 @@ public partial class CombatManager : Node3D
 
         var result = GetWorld3D().DirectSpaceState
             .IntersectRay(PhysicsRayQueryParameters3D.Create(from, to));
-        if (result.Count == 0) return null;
-        if (!result.TryGetValue("collider", out var cv)) return null;
+        if (result.Count == 0)
+            return null;
+        if (!result.TryGetValue("collider", out var cv))
+            return null;
 
         Node current = cv.AsGodotObject() as Node;
         while (current != null)
         {
-            if (current is HexTile tile) return tile;
+            if (current is HexTile tile)
+                return tile;
             current = current.GetParent();
         }
         return null;
@@ -753,7 +797,8 @@ public partial class CombatManager : Node3D
 
     private void InspectEnemy(Unit enemy)
     {
-        if (enemy == null || !enemy.Stats.IsAlive) return;
+        if (enemy == null || !enemy.Stats.IsAlive)
+            return;
 
         if (inspectedEnemyUnit != null)
         {
@@ -777,7 +822,8 @@ public partial class CombatManager : Node3D
 
     private void ShowEnemyThreatZone(Unit enemy)
     {
-        if (_zoneRenderer == null || enemy?.CurrentTile == null) return;
+        if (_zoneRenderer == null || enemy?.CurrentTile == null)
+            return;
 
         // Temporarily give enemy enough AP to show their threat range
         int savedAP = enemy.CurrentActionPoints;
@@ -797,7 +843,8 @@ public partial class CombatManager : Node3D
     private Vector2I? GetHoveredTile()
     {
         var camera = GetViewport().GetCamera3D();
-        if (camera == null) return null;
+        if (camera == null)
+            return null;
 
         Vector2 mousePos = GetViewport().GetMousePosition();
         Vector3 from = camera.ProjectRayOrigin(mousePos);
@@ -805,13 +852,16 @@ public partial class CombatManager : Node3D
 
         var result = GetWorld3D().DirectSpaceState
             .IntersectRay(PhysicsRayQueryParameters3D.Create(from, to));
-        if (result.Count == 0) return null;
-        if (!result.TryGetValue("collider", out var cv)) return null;
+        if (result.Count == 0)
+            return null;
+        if (!result.TryGetValue("collider", out var cv))
+            return null;
 
         Node current = cv.AsGodotObject() as Node;
         while (current != null)
         {
-            if (current is HexTile tile) return tile.Axial;
+            if (current is HexTile tile)
+                return tile.Axial;
             current = current.GetParent();
         }
         return null;
@@ -820,7 +870,8 @@ public partial class CombatManager : Node3D
     private void TryInspectClick()
     {
         var camera = GetViewport().GetCamera3D();
-        if (camera == null) return;
+        if (camera == null)
+            return;
 
         Vector2 mousePos = GetViewport().GetMousePosition();
         Vector3 from = camera.ProjectRayOrigin(mousePos);
@@ -828,8 +879,10 @@ public partial class CombatManager : Node3D
 
         var result = GetWorld3D().DirectSpaceState
             .IntersectRay(PhysicsRayQueryParameters3D.Create(from, to));
-        if (result.Count == 0) return;
-        if (!result.TryGetValue("collider", out var cv)) return;
+        if (result.Count == 0)
+            return;
+        if (!result.TryGetValue("collider", out var cv))
+            return;
 
         Node current = cv.AsGodotObject() as Node;
         while (current != null)
@@ -849,11 +902,13 @@ public partial class CombatManager : Node3D
 
     private void SelectUnit(Unit unit)
     {
-        if (unit == null || !unit.IsPlayerControlled) return;
+        if (unit == null || !unit.IsPlayerControlled)
+            return;
 
         // Collapse previous selection's bar
         selectedUnit?.SetDetailedBar(false);
-        if (selectedUnit != null) selectedUnit.SetSelected(false);
+        if (selectedUnit != null)
+            selectedUnit.SetSelected(false);
 
         if (inspectedEnemyUnit != null)
         {
@@ -904,7 +959,8 @@ public partial class CombatManager : Node3D
     private void TrySelectUnitByIndex(int index)
     {
         var alive = playerUnits.Where(u => u != null && u.Stats.IsAlive).ToList();
-        if (index < 0 || index >= alive.Count) return;
+        if (index < 0 || index >= alive.Count)
+            return;
         SelectUnit(alive[index]);
     }
 
@@ -914,14 +970,16 @@ public partial class CombatManager : Node3D
             .Where(u => u != null && u.Stats.IsAlive)
             .ToList();
 
-        if (index < 0 || index >= alive.Count) return;
+        if (index < 0 || index >= alive.Count)
+            return;
         InspectEnemy(alive[index]);
     }
 
     private void CycleSelectedUnit(int direction)
     {
         var alive = playerUnits.Where(u => u != null && u.Stats.IsAlive).ToList();
-        if (alive.Count == 0) return;
+        if (alive.Count == 0)
+            return;
 
         int currentIndex = selectedUnit != null ? alive.IndexOf(selectedUnit) : -1;
         int nextIndex = (currentIndex + direction + alive.Count) % alive.Count;
@@ -930,8 +988,10 @@ public partial class CombatManager : Node3D
 
     private void ShowMoveTilesWithCost(Unit unit)
     {
-        if (_zoneRenderer == null) return;
-        if (!unit.CanMove()) return;
+        if (_zoneRenderer == null)
+            return;
+        if (!unit.CanMove())
+            return;
 
         var costMap = grid.GetReachableTilesWithCost(unit);
 
@@ -944,7 +1004,8 @@ public partial class CombatManager : Node3D
 
     private void TryMoveSelectedUnit(HexTile tileView)
     {
-        if (selectedUnit == null || tileView == null) return;
+        if (selectedUnit == null || tileView == null)
+            return;
         if (!currentMoveTiles.Contains(tileView.Axial))
         {
             GD.Print("Tile not in range.");
@@ -952,7 +1013,8 @@ public partial class CombatManager : Node3D
         }
 
         var tileData = grid.GetTile(tileView.Axial);
-        if (tileData == null) return;
+        if (tileData == null)
+            return;
 
         if (!selectedUnit.CanMove())
         {
@@ -961,7 +1023,6 @@ public partial class CombatManager : Node3D
         }
 
         var debugTile = grid.GetTile(tileView.Axial);
-        GD.Print($"[MoveDebug] Target {tileView.Axial} — Walkable={debugTile?.IsWalkable} Blocked={debugTile?.IsBlocked} Occupied={debugTile?.IsOccupied} Obstacle={debugTile?.ObstacleKind}");
 
         if (selectedUnit.TryMoveTo(grid, tileData))
         {
@@ -984,8 +1045,10 @@ public partial class CombatManager : Node3D
 
     private void TryMartialAttack(Unit attacker, Unit target)
     {
-        if (attacker == null || target == null) return;
-        if (!attacker.IsMartial) return;
+        if (attacker == null || target == null)
+            return;
+        if (!attacker.IsMartial)
+            return;
         if (!attacker.CanAct())
         {
             combatUI?.AppendActionLog($"{attacker.Name} is frozen!");
@@ -1046,7 +1109,8 @@ public partial class CombatManager : Node3D
 
     public bool TrySwitchStance(Unit unit, StanceDefinition newStance)
     {
-        if (unit == null || !unit.IsMartial) return false;
+        if (unit == null || !unit.IsMartial)
+            return false;
         if (unit.HasSwitchedStanceThisTurn)
         {
             combatUI?.AppendActionLog($"{unit.Name} has already switched stance this turn.");
@@ -1092,10 +1156,12 @@ public partial class CombatManager : Node3D
 
         // Equipment bonus (from loadout)
         var loadout = EquipmentLoadout.Get(attacker.CompanionId);
-        if (loadout != null) damage += loadout.BonusAttackDamage;
+        if (loadout != null)
+            damage += loadout.BonusAttackDamage;
 
         // Stance passive damage bonus
-        if (stance != null) damage += stance.AttackDamageBonus;
+        if (stance != null)
+            damage += stance.AttackDamageBonus;
 
         // Berserk scaling
         if (stance?.SpecialTag == StanceSpecialTag.BerserkScaling)
@@ -1147,7 +1213,8 @@ public partial class CombatManager : Node3D
             int savedArmor = target.Stats.Armor;
             target.Stats.Armor = 0;
             target.ApplyDamage(damage);
-            if (target.Stats.IsAlive) target.Stats.Armor = savedArmor;
+            if (target.Stats.IsAlive)
+                target.Stats.Armor = savedArmor;
             combatUI?.AppendActionLog($"[Aimed] Armor ignored.");
         }
         else
@@ -1162,9 +1229,12 @@ public partial class CombatManager : Node3D
             foreach (var neighbor in grid.GetNeighbors(attacker.CurrentTile.Axial))
             {
                 var nTile = grid.GetTile(neighbor);
-                if (nTile?.Occupant == null) continue;
-                if (nTile.Occupant == target) continue;        // already hit
-                if (nTile.Occupant.TeamId == attacker.TeamId) continue; // skip allies
+                if (nTile?.Occupant == null)
+                    continue;
+                if (nTile.Occupant == target)
+                    continue;        // already hit
+                if (nTile.Occupant.TeamId == attacker.TeamId)
+                    continue; // skip allies
                 nTile.Occupant.ApplyDamage(damage);
                 combatUI?.AppendActionLog($"[Reckless] {nTile.Occupant.Name} takes {damage} damage.");
             }
@@ -1208,9 +1278,11 @@ public partial class CombatManager : Node3D
                 foreach (var neighbor in grid.GetNeighbors(target.CurrentTile.Axial))
                 {
                     var td = grid.GetTile(neighbor);
-                    if (td == null || !td.CanEnter(target)) continue;
+                    if (td == null || !td.CanEnter(target))
+                        continue;
                     int d = grid.Distance(casterPos, neighbor);
-                    if (d > bestDist) { bestDist = d; bestTile = td; }
+                    if (d > bestDist)
+                    { bestDist = d; bestTile = td; }
                 }
                 if (bestTile != null)
                 {
@@ -1230,7 +1302,8 @@ public partial class CombatManager : Node3D
             // Recalculate reachable tiles
             ClearMoveTiles();
             var reachable = grid.GetReachableTiles(attacker);
-            foreach (var coord in reachable) currentMoveTiles.Add(coord);
+            foreach (var coord in reachable)
+                currentMoveTiles.Add(coord);
             ShowMoveTilesWithCost(selectedUnit);
         }
 
@@ -1259,7 +1332,8 @@ public partial class CombatManager : Node3D
 
         foreach (var unit in playerUnits)
         {
-            if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive) continue;
+            if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
+                continue;
             unit.StartTurn();
 
             // Apply martial stance passives
@@ -1328,7 +1402,6 @@ public partial class CombatManager : Node3D
         }
 
         GD.Print($"=== Round {roundNumber}: Player Turn ===");
-        combatUI?.ClearActionLog();
         schoolAttunementUI?.Refresh();
         RefreshAllUI();
     }
@@ -1346,7 +1419,8 @@ public partial class CombatManager : Node3D
             unit.RefreshHealthBar();
         }
 
-        if (currentPhase != CombatPhase.PlayerTurn) return;
+        if (currentPhase != CombatPhase.PlayerTurn)
+            return;
         selectedUnit = null;
         inspectedEnemyUnit = null;
         ClearMoveTiles();
@@ -1357,16 +1431,19 @@ public partial class CombatManager : Node3D
 
     private void OnEndTurnPressed()
     {
-        if (currentPhase != CombatPhase.PlayerTurn) return;
+        if (currentPhase != CombatPhase.PlayerTurn)
+            return;
         EndPlayerTurn();
     }
 
     private void DiscardOverflowCards(Unit unit)
     {
-        if (unit?.DeckData == null) return;
+        if (unit?.DeckData == null)
+            return;
 
         int overflow = unit.DeckData.Hand.Count - unit.DeckData.MaxHandSize;
-        if (overflow <= 0) return;
+        if (overflow <= 0)
+            return;
 
         for (int i = 0; i < overflow; i++)
         {
@@ -1384,7 +1461,8 @@ public partial class CombatManager : Node3D
     private void ApplyMartialStancePassives(Unit unit)
     {
         var stance = unit.ActiveStance;
-        if (stance == null) return;
+        if (stance == null)
+            return;
 
         // Speed bonus
         if (stance.PassiveSpeedBonus != 0)
@@ -1413,9 +1491,12 @@ public partial class CombatManager : Node3D
             foreach (var neighbor in grid.GetNeighbors(unit.CurrentTile.Axial))
             {
                 var td = grid.GetTile(neighbor);
-                if (td?.Occupant == null) continue;
-                if (td.Occupant.TeamId != unit.TeamId) continue;
-                if (td.Occupant == unit) continue;
+                if (td?.Occupant == null)
+                    continue;
+                if (td.Occupant.TeamId != unit.TeamId)
+                    continue;
+                if (td.Occupant == unit)
+                    continue;
                 td.Occupant.Stats.Armor += auraArmor;
                 td.Occupant.RefreshHealthBar();
                 combatUI?.AppendActionLog($"[Guardian] {td.Occupant.Name} " +
@@ -1428,7 +1509,8 @@ public partial class CombatManager : Node3D
 
     private async void StartEnemyTurn()
     {
-        if (enemyPhaseRunning) return;
+        if (enemyPhaseRunning)
+            return;
 
         currentPhase = CombatPhase.EnemyTurn;
         enemyPhaseRunning = true;
@@ -1470,7 +1552,8 @@ public partial class CombatManager : Node3D
 
         PruneDeadUnits();
 
-        if (CheckCombatEnd()) return;
+        if (CheckCombatEnd())
+            return;
 
         roundNumber++;
         StartPlayerTurn();
@@ -1495,11 +1578,13 @@ public partial class CombatManager : Node3D
             }
 
             var target = FindNearestPlayerUnit(enemy);
-            if (target == null) continue;
+            if (target == null)
+                continue;
 
             await ActEnemyUnit(enemy, target);
 
-            if (CheckCombatEnd()) return;
+            if (CheckCombatEnd())
+                return;
         }
 
         GD.Print("=== Enemy Turn End ===");
@@ -1512,7 +1597,8 @@ public partial class CombatManager : Node3D
 
     private async System.Threading.Tasks.Task ActEnemyUnit(Unit enemy, Unit target)
     {
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
 
         switch (enemy.EnemyArchetype)
         {
@@ -1541,7 +1627,8 @@ public partial class CombatManager : Node3D
 
     private async System.Threading.Tasks.Task ActSoldier(Unit enemy, Unit target)
     {
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
 
         int dist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
 
@@ -1553,7 +1640,8 @@ public partial class CombatManager : Node3D
 
         await MoveToward(enemy, target);
 
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
         if (grid.Distance(enemy.CurrentTile, target.CurrentTile) <= 1)
             await PerformAttack(enemy, target);
     }
@@ -1567,12 +1655,16 @@ public partial class CombatManager : Node3D
         int bestHp = -1;
         foreach (var u in playerUnits)
         {
-            if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive) continue;
-            if (u.Stats.Health > bestHp) { bestHp = u.Stats.Health; target = u; }
+            if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive)
+                continue;
+            if (u.Stats.Health > bestHp)
+            { bestHp = u.Stats.Health; target = u; }
         }
 
-        if (target == null || !IsValidActor(target)) return;
-        if (!IsValidActor(enemy)) return;
+        if (target == null || !IsValidActor(target))
+            return;
+        if (!IsValidActor(enemy))
+            return;
 
         int dist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
 
@@ -1584,7 +1676,8 @@ public partial class CombatManager : Node3D
 
         await MoveToward(enemy, target);
 
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
         if (grid.Distance(enemy.CurrentTile, target.CurrentTile) <= 1)
             await PerformAttack(enemy, target);
     }
@@ -1593,7 +1686,8 @@ public partial class CombatManager : Node3D
 
     private async System.Threading.Tasks.Task ActDefender(Unit enemy, Unit target)
     {
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
 
         int dist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
 
@@ -1609,9 +1703,11 @@ public partial class CombatManager : Node3D
         int nearestAllyDist = int.MaxValue;
         foreach (var u in enemyUnits)
         {
-            if (u == null || u == enemy || !u.Stats.IsAlive || u.CurrentTile == null) continue;
+            if (u == null || u == enemy || !u.Stats.IsAlive || u.CurrentTile == null)
+                continue;
             int d = grid.Distance(enemy.CurrentTile, u.CurrentTile);
-            if (d < nearestAllyDist) { nearestAllyDist = d; nearestAlly = u; }
+            if (d < nearestAllyDist)
+            { nearestAllyDist = d; nearestAlly = u; }
         }
 
         var moveOptions = grid.GetReachableTiles(enemy);
@@ -1646,7 +1742,8 @@ public partial class CombatManager : Node3D
             }
 
             // Still attack if adjacent to player after repositioning
-            if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+            if (!IsValidActor(enemy) || !IsValidActor(target))
+                return;
             if (grid.Distance(enemy.CurrentTile, target.CurrentTile) <= 1)
                 await PerformAttack(enemy, target);
             return;
@@ -1671,7 +1768,8 @@ public partial class CombatManager : Node3D
             combatUI?.AppendActionLog(holdMsg);
         }
 
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
         if (grid.Distance(enemy.CurrentTile, target.CurrentTile) <= 1)
             await PerformAttack(enemy, target);
     }
@@ -1682,8 +1780,10 @@ public partial class CombatManager : Node3D
         foreach (var neighbor in grid.GetNeighbors(fromCoord))
         {
             var tile = grid.GetTile(neighbor);
-            if (tile?.Occupant == null) continue;
-            if (tile.Occupant == unit) continue;
+            if (tile?.Occupant == null)
+                continue;
+            if (tile.Occupant == unit)
+                continue;
             if (tile.Occupant.TeamId == unit.TeamId && tile.Occupant.Stats.IsAlive)
                 count++;
         }
@@ -1694,7 +1794,8 @@ public partial class CombatManager : Node3D
 
     private async System.Threading.Tasks.Task ActRanger(Unit enemy, Unit target)
     {
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
 
         int dist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
         int preferred = enemy.AttackRange; // preferred engagement distance = attack range
@@ -1711,7 +1812,8 @@ public partial class CombatManager : Node3D
         if (dist < minDist)
         {
             await MoveAwayFrom(enemy, target, minDist);
-            if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+            if (!IsValidActor(enemy) || !IsValidActor(target))
+                return;
             // Shoot if we ended up in range
             if (grid.Distance(enemy.CurrentTile, target.CurrentTile) <= enemy.AttackRange)
                 await PerformRangedAttack(enemy, target);
@@ -1720,7 +1822,8 @@ public partial class CombatManager : Node3D
 
         // Target is out of range — move closer to preferred distance
         await MoveToDistance(enemy, target, preferred);
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
         if (grid.Distance(enemy.CurrentTile, target.CurrentTile) <= enemy.AttackRange)
             await PerformRangedAttack(enemy, target);
     }
@@ -1729,7 +1832,8 @@ public partial class CombatManager : Node3D
 
     private async System.Threading.Tasks.Task ActWizard(Unit enemy, Unit target)
     {
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
 
         int dist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
         int preferredRange = enemy.AttackRange;
@@ -1748,7 +1852,8 @@ public partial class CombatManager : Node3D
         // In preferred zone — hold position
         // (no movement needed)
 
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
 
         // Charge mechanic
         bool wasCharging = enemy.HasStatus("wizard_charging");
@@ -1794,7 +1899,8 @@ public partial class CombatManager : Node3D
     /// Move one step toward target (existing behaviour, extracted).
     private async System.Threading.Tasks.Task MoveToward(Unit enemy, Unit target)
     {
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
 
         // Find the actual next step along a navigable path, not just the
         // closest reachable tile — avoids getting stuck on obstacle walls
@@ -1811,17 +1917,21 @@ public partial class CombatManager : Node3D
             foreach (var coord in moveOptions)
             {
                 var tile = grid.GetTile(coord);
-                if (tile == null) continue;
+                if (tile == null)
+                    continue;
                 int d = grid.Distance(tile, target.CurrentTile);
-                if (d < bestDist) { bestDist = d; bestMove = coord; }
+                if (d < bestDist)
+                { bestDist = d; bestMove = coord; }
             }
 
-            if (bestMove == enemy.CurrentTile.Axial) return; // truly stuck
+            if (bestMove == enemy.CurrentTile.Axial)
+                return; // truly stuck
 
             nextStep = grid.GetTile(bestMove);
         }
 
-        if (nextStep == null) return;
+        if (nextStep == null)
+            return;
 
         // Only move there if it's within this turn's movement range
         int pathCost = grid.GetMoveCostTo(enemy, nextStep);
@@ -1845,7 +1955,8 @@ public partial class CombatManager : Node3D
     private async System.Threading.Tasks.Task MoveToDistance(Unit enemy, Unit target, int desiredDist)
     {
         var nextStep = grid.GetFirstStepToDistance(enemy, target.CurrentTile.Axial, desiredDist);
-        if (nextStep == null) return;
+        if (nextStep == null)
+            return;
 
         if (enemy.TryMoveTo(grid, nextStep))
         {
@@ -1860,10 +1971,12 @@ public partial class CombatManager : Node3D
     private async System.Threading.Tasks.Task MoveAwayFrom(Unit enemy, Unit target, int minDist)
     {
         // Already far enough — no need to move
-        if (grid.Distance(enemy.CurrentTile, target.CurrentTile) >= minDist) return;
+        if (grid.Distance(enemy.CurrentTile, target.CurrentTile) >= minDist)
+            return;
 
         var nextStep = grid.GetFirstStepAwayFrom(enemy, target.CurrentTile.Axial);
-        if (nextStep == null) return;
+        if (nextStep == null)
+            return;
 
         if (enemy.TryMoveTo(grid, nextStep))
         {
@@ -1898,7 +2011,8 @@ public partial class CombatManager : Node3D
 
     private async System.Threading.Tasks.Task PerformRangedAttack(Unit enemy, Unit target, int bonusDamage = 0)
     {
-        if (!IsValidActor(enemy) || !IsValidActor(target)) return;
+        if (!IsValidActor(enemy) || !IsValidActor(target))
+            return;
 
         int dist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
         if (dist > enemy.AttackRange)
@@ -1946,8 +2060,10 @@ public partial class CombatManager : Node3D
             if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
                 continue;
 
-            if (unit.CurrentTile == null) continue;
-            if (!unit.CurrentTile.IsHazardous) continue;
+            if (unit.CurrentTile == null)
+                continue;
+            if (!unit.CurrentTile.IsHazardous)
+                continue;
 
             // Capture everything we need from the tile BEFORE damage —
             // ApplyDamage may kill the unit and null out CurrentTile.
@@ -1979,7 +2095,8 @@ public partial class CombatManager : Node3D
         var snapshot = units.ToList();
         foreach (var unit in snapshot)
         {
-            if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive) continue;
+            if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
+                continue;
 
             // ── Burn (3 damage per turn) ─────────────────────────────────────
             if (unit.HasStatus("burn"))
@@ -2018,7 +2135,8 @@ public partial class CombatManager : Node3D
 
     private void HandleUnitDeath(Unit unit)
     {
-        if (unit == null) return;
+        if (unit == null)
+            return;
 
         string deathMsg = $"{unit.Name} has died.";
         GD.Print(deathMsg);
@@ -2122,10 +2240,12 @@ public partial class CombatManager : Node3D
         bool allPlayersDead = true;
 
         foreach (var u in enemyUnits)
-            if (u != null && u.Stats.IsAlive) { allEnemiesDead = false; break; }
+            if (u != null && u.Stats.IsAlive)
+            { allEnemiesDead = false; break; }
 
         foreach (var u in playerUnits)
-            if (u != null && u.Stats.IsAlive) { allPlayersDead = false; break; }
+            if (u != null && u.Stats.IsAlive)
+            { allPlayersDead = false; break; }
 
         if (allEnemiesDead)
         {
@@ -2189,12 +2309,14 @@ public partial class CombatManager : Node3D
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();
 
-        if (AutoStartAfterDeployment) StartPlayerTurn();
+        if (AutoStartAfterDeployment)
+            StartPlayerTurn();
     }
 
     private void OnConfirmDeploymentPressed()
     {
-        if (!isInDeploymentPhase) return;
+        if (!isInDeploymentPhase)
+            return;
         EndDeploymentPhase();
     }
 
@@ -2202,21 +2324,26 @@ public partial class CombatManager : Node3D
     {
         if (e is InputEventKey key && key.Pressed)
         {
-            if (key.Keycode == Key.Enter) { EndDeploymentPhase(); return; }
-            if (key.Keycode == Key.Backspace) { ResetDeploymentPositions(); return; }
+            if (key.Keycode == Key.Enter)
+            { EndDeploymentPhase(); return; }
+            if (key.Keycode == Key.Backspace)
+            { ResetDeploymentPositions(); return; }
         }
 
         if (e is InputEventMouseButton mb && mb.Pressed)
         {
-            if (mb.ButtonIndex == MouseButton.Left) { TryHandleDeploymentClick(); return; }
-            if (mb.ButtonIndex == MouseButton.Right) { ClearDeploymentSelection(); GD.Print("Deployment selection cleared."); }
+            if (mb.ButtonIndex == MouseButton.Left)
+            { TryHandleDeploymentClick(); return; }
+            if (mb.ButtonIndex == MouseButton.Right)
+            { ClearDeploymentSelection(); GD.Print("Deployment selection cleared."); }
         }
     }
 
     private void TryHandleDeploymentClick()
     {
         var camera = GetViewport().GetCamera3D();
-        if (camera == null) return;
+        if (camera == null)
+            return;
 
         Vector2 mousePos = GetViewport().GetMousePosition();
         Vector3 from = camera.ProjectRayOrigin(mousePos);
@@ -2224,22 +2351,28 @@ public partial class CombatManager : Node3D
 
         var result = GetWorld3D().DirectSpaceState
             .IntersectRay(PhysicsRayQueryParameters3D.Create(from, to));
-        if (result.Count == 0) return;
-        if (!result.TryGetValue("collider", out var cv)) return;
+        if (result.Count == 0)
+            return;
+        if (!result.TryGetValue("collider", out var cv))
+            return;
 
         Node current = cv.AsGodotObject() as Node;
         while (current != null)
         {
-            if (current is Unit unit) { TrySelectDeploymentUnit(unit); return; }
-            if (current is HexTile tile) { TryPlaceDeploymentUnit(tile); return; }
+            if (current is Unit unit)
+            { TrySelectDeploymentUnit(unit); return; }
+            if (current is HexTile tile)
+            { TryPlaceDeploymentUnit(tile); return; }
             current = current.GetParent();
         }
     }
 
     private void TrySelectDeploymentUnit(Unit unit)
     {
-        if (unit == null || !unit.IsPlayerControlled || !playerUnits.Contains(unit)) return;
-        if (selectedDeployUnit != null) selectedDeployUnit.SetSelected(false);
+        if (unit == null || !unit.IsPlayerControlled || !playerUnits.Contains(unit))
+            return;
+        if (selectedDeployUnit != null)
+            selectedDeployUnit.SetSelected(false);
         selectedDeployUnit = unit;
         selectedDeployUnit.SetSelected(true);
         GD.Print($"Selected deploy unit: {unit.Name}");
@@ -2248,12 +2381,16 @@ public partial class CombatManager : Node3D
 
     private void TryPlaceDeploymentUnit(HexTile tileView)
     {
-        if (selectedDeployUnit == null || tileView == null) return;
-        if (!playerDeployCoords.Contains(tileView.Axial)) { GD.Print("Tile outside deployment zone."); return; }
+        if (selectedDeployUnit == null || tileView == null)
+            return;
+        if (!playerDeployCoords.Contains(tileView.Axial))
+        { GD.Print("Tile outside deployment zone."); return; }
 
         var tileData = grid.GetTile(tileView.Axial);
-        if (tileData == null) return;
-        if (!tileData.IsWalkable || tileData.IsBlocked || tileData.IsOccupied) { GD.Print("Deployment tile not available."); return; }
+        if (tileData == null)
+            return;
+        if (!tileData.IsWalkable || tileData.IsBlocked || tileData.IsOccupied)
+        { GD.Print("Deployment tile not available."); return; }
 
         selectedDeployUnit.PlaceOnTile(tileData);
         GD.Print($"{selectedDeployUnit.Name} deployed to {tileData.Axial}");
@@ -2263,7 +2400,8 @@ public partial class CombatManager : Node3D
 
     private void ClearDeploymentSelection()
     {
-        if (selectedDeployUnit != null) selectedDeployUnit.SetSelected(false);
+        if (selectedDeployUnit != null)
+            selectedDeployUnit.SetSelected(false);
         selectedDeployUnit = null;
         RefreshSelectedUnitUI();
     }
@@ -2296,11 +2434,14 @@ public partial class CombatManager : Node3D
     {
         foreach (var unit in playerUnits)
         {
-            if (unit?.Attunement == null) continue;
-            if (unit.CurrentTile == null) continue;
+            if (unit?.Attunement == null)
+                continue;
+            if (unit.CurrentTile == null)
+                continue;
 
             // Only Elementalists have elemental attunement seeding
-            if (unit.Attunement is not ElementalAttunement ea) continue;
+            if (unit.Attunement is not ElementalAttunement ea)
+                continue;
 
             ElementTag? element = unit.CurrentTile.TerrainType switch
             {
@@ -2311,7 +2452,8 @@ public partial class CombatManager : Node3D
                 _ => null
             };
 
-            if (element == null) continue;
+            if (element == null)
+                continue;
 
             // Simulate casting a spell with that element tag to go through
             // the proper opposition logic and fire OnChargeChanged events
@@ -2335,7 +2477,8 @@ public partial class CombatManager : Node3D
         var baseZoneTiles = new List<TileData>();
         foreach (var zone in grid.SpawnZones)
         {
-            if (zone.Side != HexGridManager.SpawnSide.Player) continue;
+            if (zone.Side != HexGridManager.SpawnSide.Player)
+                continue;
             foreach (var coord in zone.Tiles)
             {
                 var td = grid.GetTile(coord);
@@ -2360,11 +2503,13 @@ public partial class CombatManager : Node3D
         {
             foreach (var neighbor in grid.GetNeighborCoords(coord))
             {
-                if (alreadySeen.Contains(neighbor)) continue;
+                if (alreadySeen.Contains(neighbor))
+                    continue;
                 alreadySeen.Add(neighbor);
 
                 var td = grid.GetTile(neighbor);
-                if (td == null || !td.IsWalkable || td.IsBlocked) continue;
+                if (td == null || !td.IsWalkable || td.IsBlocked)
+                    continue;
                 candidates.Add(td);
             }
         }
@@ -2377,15 +2522,18 @@ public partial class CombatManager : Node3D
         {
             bool aIsNew = !existingTypes.Contains(a.TerrainType);
             bool bIsNew = !existingTypes.Contains(b.TerrainType);
-            if (aIsNew && !bIsNew) return -1;
-            if (!aIsNew && bIsNew) return 1;
+            if (aIsNew && !bIsNew)
+                return -1;
+            if (!aIsNew && bIsNew)
+                return 1;
             return 0;
         });
 
         int added = 0;
         foreach (var td in candidates)
         {
-            if (added >= 3) break;
+            if (added >= 3)
+                break;
             playerDeployCoords.Add(td.Axial);
             added++;
         }
@@ -2397,8 +2545,10 @@ public partial class CombatManager : Node3D
         foreach (var c in coords)
         {
             var td = grid.GetTile(c);
-            if (td != null) types.Add(td.TerrainType);
-            if (types.Count >= 2) return true;
+            if (td != null)
+                types.Add(td.TerrainType);
+            if (types.Count >= 2)
+                return true;
         }
         return false;
     }
@@ -2407,8 +2557,10 @@ public partial class CombatManager : Node3D
     {
         GD.Print($"[SpawnTest] PlayerUnitScene={PlayerUnitScene != null}, DummyUnitScene={DummyUnitScene != null}");
         grid = GetNodeOrNull<HexGridManager>(GridPath);
-        if (grid == null) { GD.PrintErr($"HexGridManager not found at: {GridPath}"); return; }
-        if (PlayerUnitScene == null || DummyUnitScene == null) { GD.PrintErr("Assign PlayerUnitScene and DummyUnitScene in the Inspector."); return; }
+        if (grid == null)
+        { GD.PrintErr($"HexGridManager not found at: {GridPath}"); return; }
+        if (PlayerUnitScene == null || DummyUnitScene == null)
+        { GD.PrintErr("Assign PlayerUnitScene and DummyUnitScene in the Inspector."); return; }
 
         if (PlayerUnitScene == null || DummyUnitScene == null)
         {
@@ -2453,7 +2605,8 @@ public partial class CombatManager : Node3D
                 armor: companion.BaseArmor,
                 shield: 0);
 
-            if (unit == null) continue;
+            if (unit == null)
+                continue;
 
             unit.CompanionId = companion.Id;
             unit.IsMartial = isMartial;
@@ -2492,7 +2645,8 @@ public partial class CombatManager : Node3D
                                              companion.TrainedStanceIds.Count); s++)
                 {
                     var stance = StanceRegistry.Get(companion.TrainedStanceIds[s]);
-                    if (stance != null) unit.AvailableStances.Add(stance);
+                    if (stance != null)
+                        unit.AvailableStances.Add(stance);
                 }
 
                 // Default to first trained stance
@@ -2579,7 +2733,8 @@ public partial class CombatManager : Node3D
         State.PlayerUnit = playerUnit;
         // State.EnemyUnit set after enemy spawn
         State.UnitsInPlay.Clear();
-        foreach (var u in playerUnits) State.UnitsInPlay.Add(u);
+        foreach (var u in playerUnits)
+            State.UnitsInPlay.Add(u);
 
         GD.Print($"Spawned {playerUnits.Count} player unit(s). Enemies pending deployment commit.");
 
@@ -2599,7 +2754,8 @@ public partial class CombatManager : Node3D
         // Martial companions skip this entirely
         foreach (var unit in playerUnits.Skip(1))
         {
-            if (unit.IsMartial) continue;
+            if (unit.IsMartial)
+                continue;
             unit.InitializeAttunement();
         }
 
@@ -2724,7 +2880,8 @@ public partial class CombatManager : Node3D
 
         foreach (var zone in grid.SpawnZones)
         {
-            if (zone.Side != HexGridManager.SpawnSide.Enemy) continue;
+            if (zone.Side != HexGridManager.SpawnSide.Enemy)
+                continue;
             foreach (var coord in zone.Tiles)
             {
                 var td = grid.GetTile(coord);
@@ -2805,12 +2962,14 @@ public partial class CombatManager : Node3D
     /// Returns the axial centroid of all living player units.
     private Vector2I ComputePlayerCentroid()
     {
-        if (playerUnits.Count == 0) return Vector2I.Zero;
+        if (playerUnits.Count == 0)
+            return Vector2I.Zero;
         int q = 0, r = 0;
         int count = 0;
         foreach (var u in playerUnits)
         {
-            if (u?.CurrentTile == null) continue;
+            if (u?.CurrentTile == null)
+                continue;
             q += u.CurrentTile.Axial.X;
             r += u.CurrentTile.Axial.Y;
             count++;
@@ -2825,10 +2984,12 @@ public partial class CombatManager : Node3D
         int maxMana, int mana, int armor, int shield)
     {
         var slot = grid.ClaimNextSpawnSlot(side);
-        if (slot == null) { GD.PrintErr($"No spawn slot for side: {side}"); return null; }
+        if (slot == null)
+        { GD.PrintErr($"No spawn slot for side: {side}"); return null; }
 
         var tile = grid.GetTileAtSpawnSlot(slot);
-        if (tile == null) { GD.PrintErr($"Spawn slot had no valid tile for side: {side}"); return null; }
+        if (tile == null)
+        { GD.PrintErr($"Spawn slot had no valid tile for side: {side}"); return null; }
 
         var unit = scene.Instantiate<Unit>();
 
@@ -2884,11 +3045,14 @@ public partial class CombatManager : Node3D
         int bestDist = int.MaxValue;
         foreach (var player in playerUnits)
         {
-            if (player == null || !IsInstanceValid(player)) continue;
-            if (!player.Stats.IsAlive || player.CurrentTile == null) continue;
+            if (player == null || !IsInstanceValid(player))
+                continue;
+            if (!player.Stats.IsAlive || player.CurrentTile == null)
+                continue;
 
             int dist = grid.Distance(enemy.CurrentTile, player.CurrentTile);
-            if (dist < bestDist) { bestDist = dist; best = player; }
+            if (dist < bestDist)
+            { bestDist = dist; best = player; }
         }
         return best;
     }
@@ -2981,7 +3145,8 @@ public partial class CombatManager : Node3D
                     return null;
             }
 
-            if (scene == null) return null;
+            if (scene == null)
+                return null;
 
             var unit = scene.Instantiate<Unit>();
             unit.IsPlayerControlled = isPlayerControlled;
@@ -3042,7 +3207,8 @@ public partial class CombatManager : Node3D
     private void ApplyEquipmentLoadout(Unit unit, string unitId)
     {
         var loadout = EquipmentLoadout.Get(unitId);
-        if (loadout == null) return;
+        if (loadout == null)
+            return;
 
         // ── Stat modifiers ────────────────────────────────────────────────
         if (loadout.BonusMaxHP > 0)
@@ -3155,7 +3321,7 @@ public partial class CombatManager : Node3D
                         return false;
                     }
                     break;
-                    
+
                 case "memorial_tile":
                     // Target-tile check: enforced by the targeter (only memorial tiles
                     // are selectable), so nothing to validate here at cast time.
@@ -3222,14 +3388,18 @@ public partial class CombatManager : Node3D
 
     private bool TargetHasTileType(TargetSet targets, TileTerrainType terrain, TileElementType element)
     {
-        if (targets == null) return false;
+        if (targets == null)
+            return false;
 
         foreach (var obj in targets.Items)
         {
             TileData tile = null;
-            if (obj is TileData td) tile = td;
-            else if (obj is HexTile tv) tile = grid.GetTile(tv.Axial);
-            else if (obj is Unit u && u.CurrentTile != null) tile = u.CurrentTile;
+            if (obj is TileData td)
+                tile = td;
+            else if (obj is HexTile tv)
+                tile = grid.GetTile(tv.Axial);
+            else if (obj is Unit u && u.CurrentTile != null)
+                tile = u.CurrentTile;
             else if (obj is Entity e)
             {
                 // Self-targeting: check the caster's tile
@@ -3237,7 +3407,8 @@ public partial class CombatManager : Node3D
                     tile = selectedUnit.CurrentTile;
             }
 
-            if (tile == null) continue;
+            if (tile == null)
+                continue;
             if (tile.TerrainType == terrain || tile.ElementType == element)
                 return true;
         }
@@ -3247,15 +3418,19 @@ public partial class CombatManager : Node3D
 
     private bool TargetHasEmptyTile(TargetSet targets)
     {
-        if (targets == null) return false;
+        if (targets == null)
+            return false;
 
         foreach (var obj in targets.Items)
         {
             TileData tile = null;
-            if (obj is TileData td) tile = td;
-            else if (obj is HexTile tv) tile = grid.GetTile(tv.Axial);
+            if (obj is TileData td)
+                tile = td;
+            else if (obj is HexTile tv)
+                tile = grid.GetTile(tv.Axial);
 
-            if (tile != null && tile.Occupant == null) return true;
+            if (tile != null && tile.Occupant == null)
+                return true;
         }
 
         return false;
@@ -3263,10 +3438,12 @@ public partial class CombatManager : Node3D
 
     private void OnCardHalfHovered(CardUi cardUi, bool isTop, bool isEntering)
     {
-        if (currentPhase != CombatPhase.PlayerTurn) return;
+        if (currentPhase != CombatPhase.PlayerTurn)
+            return;
 
         // Lock during drag — ignore hover changes on other cards entirely
-        if (_isCardBeingDragged) return;
+        if (_isCardBeingDragged)
+            return;
 
         if (isEntering)
         {
@@ -3285,10 +3462,12 @@ public partial class CombatManager : Node3D
         _draggedHalf = null;
         ClearTargetHighlight();
 
-        if (isInDeploymentPhase) { GD.Print("Cannot cast during deployment."); return; }
+        if (isInDeploymentPhase)
+        { GD.Print("Cannot cast during deployment."); return; }
 
         var half = isTop ? cardUi.TopHalf : cardUi.BottomHalf;
-        if (half == null) { State.Log("Dropped half was null."); return; }
+        if (half == null)
+        { State.Log("Dropped half was null."); return; }
 
         if (selectedUnit != null && !selectedUnit.CanAct())
         {
@@ -3360,7 +3539,8 @@ public partial class CombatManager : Node3D
 
             case SelectTileTarget tt:
                 var tileData = grid.GetTile(tile.Axial);
-                if (tileData == null) { State.Log("Invalid tile."); return; }
+                if (tileData == null)
+                { State.Log("Invalid tile."); return; }
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, tile.Axial);
@@ -3384,7 +3564,8 @@ public partial class CombatManager : Node3D
 
             case SelectElementTileTarget:
                 var etData = grid.GetTile(tile.Axial);
-                if (etData == null) { State.Log("Invalid tile."); return; }
+                if (etData == null)
+                { State.Log("Invalid tile."); return; }
                 targets.Items.Add(etData);
                 break;
 
@@ -3396,7 +3577,8 @@ public partial class CombatManager : Node3D
 
             case SelectEmptyTileTarget et:
                 var emptyTile = grid.GetTile(tile.Axial);
-                if (emptyTile == null) { State.Log("Invalid tile."); return; }
+                if (emptyTile == null)
+                { State.Log("Invalid tile."); return; }
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, tile.Axial);
@@ -3534,8 +3716,10 @@ public partial class CombatManager : Node3D
 
     private void OnGameEvent(GameEvent ge)
     {
-        if (ge.Type != "AbilityResolved") return;
-        if (ge.Payload is not StackItem item) return;
+        if (ge.Type != "AbilityResolved")
+            return;
+        if (ge.Payload is not StackItem item)
+            return;
         if (item.SourceCard != null && deckManager != null
             && item.Ability is CardHalf half && half.ConsumesCardOnResolve)
         {
@@ -3547,12 +3731,14 @@ public partial class CombatManager : Node3D
     void Pass()
     {
         var advanced = State.Priority.PassPriority(State);
-        if (!advanced) GD.Print($"Pass. Priority → {(State.Priority.PriorityHolder == Me ? "Me" : "Opp")}");
+        if (!advanced)
+            GD.Print($"Pass. Priority → {(State.Priority.PriorityHolder == Me ? "Me" : "Opp")}");
     }
 
     void ResolveTop()
     {
-        if (State.Stack.IsEmpty) { GD.Print("Stack empty."); return; }
+        if (State.Stack.IsEmpty)
+        { GD.Print("Stack empty."); return; }
         GD.Print($"Resolving top… (stack size before: {State.StackCount()})");
         State.Resolver.ResolveTop(State);
         GD.Print($"Resolved. (stack size after: {State.StackCount()})");
@@ -3561,7 +3747,8 @@ public partial class CombatManager : Node3D
     void DumpHand()
     {
         var unit = playerUnits.Count > 0 ? playerUnits[0] : null;
-        if (unit?.DeckData == null) { GD.Print("No active deck."); return; }
+        if (unit?.DeckData == null)
+        { GD.Print("No active deck."); return; }
         GD.Print("Hand:");
         for (int i = 0; i < unit.DeckData.Hand.Count; i++)
         {
@@ -3577,7 +3764,8 @@ public partial class CombatManager : Node3D
     private void ShowTargetHighlight(CardHalf half)
     {
         ClearTargetHighlight();
-        if (half == null || selectedUnit == null || grid == null) return;
+        if (half == null || selectedUnit == null || grid == null)
+            return;
 
         _lastHighlightedHalf = half;
         var enemyCoords = GetValidTargetCoords(half); // now also sets range highlights internally
@@ -3605,7 +3793,8 @@ public partial class CombatManager : Node3D
     private HashSet<Vector2I> GetValidTargetCoords(CardHalf half)
     {
         var coords = new HashSet<Vector2I>();
-        if (half?.Targeting == null || selectedUnit?.CurrentTile == null) return coords;
+        if (half?.Targeting == null || selectedUnit?.CurrentTile == null)
+            return coords;
 
         var center = selectedUnit.CurrentTile.Axial;
         var targeter = half.Targeting;
@@ -3632,8 +3821,10 @@ public partial class CombatManager : Node3D
             // Highlight valid enemy targets on top of range
             foreach (var unit in State.UnitsInPlay)
             {
-                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-                if (ut.enemyOnly && unit.TeamId == 0) continue;
+                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                    continue;
+                if (ut.enemyOnly && unit.TeamId == 0)
+                    continue;
                 coords.Add(unit.CurrentTile.Axial);
             }
 
@@ -3703,7 +3894,8 @@ public partial class CombatManager : Node3D
                 {
                     var coord = center + dir * step;
                     var tileData = grid.GetTile(coord);
-                    if (tileData == null) continue;
+                    if (tileData == null)
+                        continue;
 
                     bool isTip = step == ct.Range;
                     _targetHighlightTiles.Add(coord);
@@ -3717,8 +3909,10 @@ public partial class CombatManager : Node3D
             // Highlight valid targets on top
             foreach (var unit in State.UnitsInPlay)
             {
-                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-                if (ct.EnemiesOnly && unit.TeamId == 0) continue;
+                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                    continue;
+                if (ct.EnemiesOnly && unit.TeamId == 0)
+                    continue;
                 coords.Add(unit.CurrentTile.Axial);
             }
         }
@@ -3737,7 +3931,8 @@ public partial class CombatManager : Node3D
                 {
                     var coord = center + dir * step;
                     var tileData = grid.GetTile(coord);
-                    if (tileData == null) continue; // off-grid
+                    if (tileData == null)
+                        continue; // off-grid
 
                     bool isTip = step == lt.Length;
                     _targetHighlightTiles.Add(coord);
@@ -3751,8 +3946,10 @@ public partial class CombatManager : Node3D
             // Highlight valid targets on top
             foreach (var unit in State.UnitsInPlay)
             {
-                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-                if (lt.EnemiesOnly && unit.TeamId == 0) continue;
+                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                    continue;
+                if (lt.EnemiesOnly && unit.TeamId == 0)
+                    continue;
                 coords.Add(unit.CurrentTile.Axial);
             }
         }
@@ -3785,8 +3982,10 @@ public partial class CombatManager : Node3D
             // Highlight any valid targets on the ring
             foreach (var unit in State.UnitsInPlay)
             {
-                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-                if (rt.IncludeTiles) continue; // tile-only targeting, no unit highlights
+                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                    continue;
+                if (rt.IncludeTiles)
+                    continue; // tile-only targeting, no unit highlights
                 int dist = grid.Distance(center, unit.CurrentTile.Axial);
                 if (dist == rt.Radius)
                     coords.Add(unit.CurrentTile.Axial);

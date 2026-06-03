@@ -38,18 +38,20 @@ position = Vector2(1, 844)
 script = ExtResource("2_tfvp6")
 
 [node name="DeckUI" type="CanvasLayer" parent="." unique_id=1348508917]
-follow_viewport_enabled = true
+follow_viewport_enabled = false
 
-[node name="HandUI" type="Control" parent="DeckUI" unique_id=1890802103]
-custom_minimum_size = Vector2(10, 10)
+[node name="HandUI" type="Control" parent="DeckUI"]
 layout_mode = 3
-anchors_preset = 0
-offset_left = 1.0
-offset_top = 844.0
-offset_right = 11.0
-offset_bottom = 854.0
-size_flags_horizontal = 3
-size_flags_vertical = 2
+anchors_preset = 15
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0
+offset_top = 0
+offset_right = 0
+offset_bottom = 0
+mouse_filter = 2
 
 [node name="DeckLabel" type="Label" parent="DeckUI" unique_id=2107762318]
 offset_left = 277.0
@@ -94,7 +96,7 @@ offset_bottom = 81.0
 text = "#"
 
 [node name="DeckUIManager" type="Node2D" parent="DeckUI" unique_id=1949982600]
-position = Vector2(960, 1080)
+position = Vector2(0, 0)
 script = ExtResource("3_pqsji")
 CardUIPackedScene = ExtResource("4_f341a")
 DropSlotScene = ExtResource("5_fcnvh")
