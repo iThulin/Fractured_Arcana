@@ -1,8 +1,16 @@
 {
   "json.schemas": [
     {
-      "fileMatch": ["Data/Cards/*.json"],
+      "fileMatch": [
+        "Data/Cards/*.json"
+      ],
       "url": "./Schemas/card.schema.json"
+    },
+    {
+      "fileMatch": [
+        "Data/Maps/*.json"
+      ],
+      "url": "./Data/Schemas/map.schema.json"
     }
   ],
   "editor.formatOnSave": true,

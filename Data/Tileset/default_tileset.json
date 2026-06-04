@@ -1,0 +1,114 @@
+{
+	"id": "default",
+	"terrains": {
+		"grass": {
+			"chance": 0.65,
+			"count": [
+				1,
+				3
+			],
+			"props": [
+				{
+					"scene": "res://Assets/Props/grass_tuft.glb",
+					"weight": 4,
+					"scale": [
+						0.85,
+						1.2
+					],
+					"jitter": 0.35,
+					"batch": true
+				},
+				{
+					"scene": "res://Assets/Props/flower.glb",
+					"weight": 1,
+					"scale": [
+						0.8,
+						1.0
+					],
+					"jitter": 0.3,
+					"batch": true
+				}
+			]
+		},
+		"forest": {
+			"chance": 0.95,
+			"count": [
+				2,
+				5
+			],
+			"props": [
+				{
+					"scene": "res://Assets/Props/tree_a.glb",
+					"weight": 3,
+					"scale": [
+						0.9,
+						1.3
+					],
+					"jitter": 0.25,
+					"blocks_los": true,
+					"batch": true
+				},
+				{
+					"scene": "res://Assets/Props/tree_b.glb",
+					"weight": 2,
+					"scale": [
+						0.9,
+						1.3
+					],
+					"jitter": 0.25,
+					"blocks_los": true,
+					"batch": true
+				},
+				{
+					"scene": "res://Assets/Props/fern.glb",
+					"weight": 5,
+					"scale": [
+						0.8,
+						1.1
+					],
+					"jitter": 0.3,
+					"batch": true
+				},
+				{
+					"scene": "res://Assets/Props/mushroom.glb",
+					"weight": 2,
+					"scale": [
+						0.8,
+						1.1
+					],
+					"jitter": 0.3,
+					"batch": true
+				}
+			]
+		},
+		"stone": {
+			"chance": 0.5,
+			"count": [
+				1,
+				2
+			],
+			"props": [
+				{
+					"scene": "res://Assets/Props/rock_small.glb",
+					"weight": 3,
+					"scale": [
+						0.8,
+						1.4
+					],
+					"jitter": 0.3,
+					"batch": true
+				},
+				{
+					"scene": "res://Assets/Props/scree.glb",
+					"weight": 2,
+					"scale": [
+						0.7,
+						1.0
+					],
+					"jitter": 0.35,
+					"batch": true
+				}
+			]
+		}
+	}
+}

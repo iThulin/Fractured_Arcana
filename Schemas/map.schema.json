@@ -1,0 +1,314 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://fracturedarcana/schemas/map.schema.json",
+	"title": "Fractured Arcana Map Recipe",
+	"type": "object",
+	"required": [
+		"id"
+	],
+	"additionalProperties": false,
+	"properties": {
+		"id": {
+			"type": "string",
+			"minLength": 1,
+			"description": "Unique recipe id; set MapRecipeId to this."
+		},
+		"display_name": {
+			"type": "string"
+		},
+		"shape": {
+			"$ref": "#/$defs/shape"
+		},
+		"base_terrain": {
+			"$ref": "#/$defs/baseTerrain"
+		},
+		"atmosphere": {
+			"$ref": "#/$defs/atmosphere"
+		},
+		"features": {
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/feature"
+			}
+		}
+	},
+	"$defs": {
+		"intOrRange": {
+			"description": "An integer, or a [min, max] range rolled at generation.",
+			"oneOf": [
+				{
+					"type": "integer"
+				},
+				{
+					"type": "array",
+					"items": {
+						"type": "integer"
+					},
+					"minItems": 1,
+					"maxItems": 2
+				}
+			]
+		},
+		"color": {
+			"description": "[r, g, b] or [r, g, b, a], each 0..1.",
+			"type": "array",
+			"items": {
+				"type": "number",
+				"minimum": 0,
+				"maximum": 1
+			},
+			"minItems": 3,
+			"maxItems": 4
+		},
+		"coord": {
+			"description": "A named anchor or an explicit [q, r] axial coordinate.",
+			"oneOf": [
+				{
+					"type": "string",
+					"enum": [
+						"center",
+						"random",
+						"high_tile",
+						"low_tile",
+						"player_anchor",
+						"enemy_anchor"
+					]
+				},
+				{
+					"type": "array",
+					"items": {
+						"type": "integer"
+					},
+					"minItems": 2,
+					"maxItems": 2
+				}
+			]
+		},
+		"terrain": {
+			"type": "string",
+			"enum": [
+				"grass",
+				"forest",
+				"stone",
+				"water",
+				"lava",
+				"arcane",
+				"ice"
+			]
+		},
+		"shape": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": [
+						"parallelogram",
+						"rectangle",
+						"hexagon",
+						"triangle",
+						"blob"
+					]
+				},
+				"width": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"height": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"radius": {
+					"type": "integer",
+					"minimum": 1,
+					"description": "Used by hexagon / triangle / blob."
+				},
+				"erosion": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"description": "Blob edge raggedness."
+				}
+			}
+		},
+		"paletteRule": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"terrain"
+			],
+			"description": "First rule whose bounds all pass wins. Omit bounds for a fallback rule.",
+			"properties": {
+				"terrain": {
+					"$ref": "#/$defs/terrain"
+				},
+				"max_elevation": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"min_elevation": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"max_moisture": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"min_moisture": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				}
+			}
+		},
+		"baseTerrain": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"elevation_frequency": {
+					"type": "number"
+				},
+				"moisture_frequency": {
+					"type": "number"
+				},
+				"detail_weight": {
+					"type": "number"
+				},
+				"max_height_step": {
+					"type": "integer"
+				},
+				"min_height_step": {
+					"type": "integer"
+				},
+				"palette": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/paletteRule"
+					}
+				}
+			}
+		},
+		"atmosphere": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"sun_color": {
+					"$ref": "#/$defs/color"
+				},
+				"sun_energy": {
+					"type": "number"
+				},
+				"ambient_color": {
+					"$ref": "#/$defs/color"
+				},
+				"ambient_energy": {
+					"type": "number"
+				},
+				"fog_color": {
+					"$ref": "#/$defs/color"
+				},
+				"fog_density": {
+					"type": "number"
+				}
+			}
+		},
+		"feature": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"feature"
+			],
+			"properties": {
+				"feature": {
+					"type": "string",
+					"enum": [
+						"lake",
+						"river",
+						"stream",
+						"crevice",
+						"mountainside",
+						"meadow",
+						"clearing",
+						"scatter_copses",
+						"rocky_outcrop",
+						"obstacle_cluster",
+						"height_hill",
+						"height_basin",
+						"carve_lane",
+						"patch",
+						"element_patch"
+					]
+				},
+				"phase": {
+					"type": "string",
+					"enum": [
+						"skeleton",
+						"accent"
+					],
+					"description": "skeleton = pre-spawn (layout), accent = post-spawn (dressing)."
+				},
+				"chance": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"at": {
+					"$ref": "#/$defs/coord"
+				},
+				"from": {
+					"$ref": "#/$defs/coord"
+				},
+				"to": {
+					"$ref": "#/$defs/coord"
+				},
+				"radius": {
+					"$ref": "#/$defs/intOrRange"
+				},
+				"depth": {
+					"$ref": "#/$defs/intOrRange"
+				},
+				"length": {
+					"$ref": "#/$defs/intOrRange"
+				},
+				"width": {
+					"$ref": "#/$defs/intOrRange"
+				},
+				"peak": {
+					"$ref": "#/$defs/intOrRange"
+				},
+				"count": {
+					"$ref": "#/$defs/intOrRange"
+				},
+				"size": {
+					"$ref": "#/$defs/intOrRange"
+				},
+				"dir": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 5,
+					"description": "Hex direction index; omit for random."
+				},
+				"kind": {
+					"type": "string",
+					"enum": [
+						"rock",
+						"crystal"
+					]
+				},
+				"terrain": {
+					"$ref": "#/$defs/terrain"
+				},
+				"element": {
+					"type": "string",
+					"description": "TileElementType name, e.g. fire / frost / arcane."
+				},
+				"strength": {
+					"type": "number"
+				}
+			}
+		}
+	}
+}

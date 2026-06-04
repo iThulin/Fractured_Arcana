@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 // ============================================================
 // MapField.cs
@@ -183,6 +184,26 @@ public sealed class MapField
             default:
                 return TileTerrainType.Grass;
         }
+    }
+
+    // ── MapField integration ─────────────────────────────────────────────────
+
+    /// <summary>Data-driven terrain classification: first palette rule whose elevation/moisture bounds all pass wins.</summary>
+    public TileTerrainType ClassifyByPalette(List<PaletteRule> rules, float elevation01, float moisture01)
+    {
+        foreach (var r in rules)
+        {
+            if (r.MaxElevation.HasValue && elevation01 >= r.MaxElevation.Value)
+                continue;
+            if (r.MinElevation.HasValue && elevation01 <= r.MinElevation.Value)
+                continue;
+            if (r.MaxMoisture.HasValue && moisture01 >= r.MaxMoisture.Value)
+                continue;
+            if (r.MinMoisture.HasValue && moisture01 <= r.MinMoisture.Value)
+                continue;
+            return r.Terrain;
+        }
+        return TileTerrainType.Grass;
     }
 
     // ── Internals ───────────────────────────────────────────────────────────

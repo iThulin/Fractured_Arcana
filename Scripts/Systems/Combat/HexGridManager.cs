@@ -56,6 +56,8 @@ public partial class HexGridManager : Node3D
 
     /// <summary>Deterministic map seed. 0 = randomise on generation (and write the chosen seed back here).</summary>
     [Export] public int MapSeed = 0;
+    /// <summary>Map recipe id from Data/Maps. When set and found, the recipe drives shape/terrain/features/atmosphere and overrides the enum Theme/Layout. Empty = use enum path.</summary>
+    [Export] public string MapRecipeId = "";
 
     // Spawn conditions
 
@@ -315,46 +317,55 @@ public partial class HexGridManager : Node3D
 
     public void GenerateMap()
     {
-        // Create base grid and data structures
         InitRng();
+        ResolveRecipe();          // may override Shape/size from the recipe; null = enum path
         GenerateBaseGrid();
         ClearReservedTiles();
 
-        if (RandomizeLayout)
+        if (RandomizeLayout && _activeRecipe == null)
         {
             var values = Enum.GetValues<MapLayoutType>();
             LayoutType = values[_rng.RandiRange(0, values.Length - 1)];
         }
 
-        // Resolve density knobs and layout anchors
         ApplyDensityPreset();
         DetermineLayoutAnchors();
 
-        // Substrate: coherent terrain + height from a seeded noise field.
-        // Replaces the old flood-fill base terrain + per-tile random height bumps.
-        MapField field = BuildField();
+        MapField field = _activeRecipe != null ? BuildFieldFromRecipe(_activeRecipe) : BuildField();
         ApplyFieldTerrainAndHeight(field);
 
-        // Layer deliberate structure ADDITIVELY on top of the field.
-        GenerateLayoutSkeleton();
-        GenerateSpawnPlan();
-        ApplyThemeToLayout();
-        PlaceThemeLandmark();
+        // Skeleton phase (pre-spawn): recipe skeleton features, or the enum layout.
+        if (_activeRecipe != null)
+            RunRecipeFeatures(_activeRecipe, "skeleton");
+        else
+            GenerateLayoutSkeleton();
 
-        // NOTE: SmoothTileHeights is intentionally gone — the field is already
-        // coherent, and averaging used to flatten the hand-placed features.
+        GenerateSpawnPlan();
+
+        // Accent phase (post-spawn): recipe accent features, or enum theme + landmark.
+        if (_activeRecipe != null)
+        {
+            RunRecipeFeatures(_activeRecipe, "accent");
+        }
+        else
+        {
+            ApplyThemeToLayout();
+            PlaceThemeLandmark();
+        }
 
         EnsureReservedTilesArePlayable();
         EnsureConnectivityBetweenSpawns();
 
-        // Apply visuals after all generation steps are done to minimize redundant updates
         ApplyTileHeights();
         ApplyTileVisuals();
-        ApplyThemeAtmosphere();
 
-        // Add props and obstacles after visuals so they appear on top of the tiles
+        if (_activeRecipe?.Atmosphere != null)
+            ApplyRecipeAtmosphere(_activeRecipe.Atmosphere);
+        else
+            ApplyThemeAtmosphere();
+
         SpawnObstacleVisuals();
-        SpawnTerrainProps();
+        SpawnTerrainPropsFromManifest();
         RefreshAllTileLabels();
     }
 
@@ -393,12 +404,18 @@ public partial class HexGridManager : Node3D
     /// <summary>Derives terrain type and integer height for every tile from the field.</summary>
     private void ApplyFieldTerrainAndHeight(MapField field)
     {
+        var palette = _activeRecipe?.BaseTerrain?.Palette;
+
         foreach (var tile in Tiles.Values)
         {
             float elevation = field.SampleElevation01(tile.Axial);
             float moisture = field.SampleMoisture01(tile.Axial);
 
-            ApplyTerrainType(tile, field.ClassifyTerrain(Theme, elevation, moisture));
+            TileTerrainType terrain = palette != null
+                ? field.ClassifyByPalette(palette, elevation, moisture)
+                : field.ClassifyTerrain(Theme, elevation, moisture);
+
+            ApplyTerrainType(tile, terrain);
             tile.Height = field.ElevationToHeightStep(elevation);
         }
     }
