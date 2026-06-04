@@ -41,6 +41,9 @@ public partial class HexTile : Node3D
 
     // Cached nodes and materials
     private MeshInstance3D meshInstance;
+    private Transform3D _meshOriginalTransform;
+    private float _meshOriginalDepth;
+    public const float HeightStep = 0.6f;
     private StandardMaterial3D material;
     private Label3D coordLabel;
     private Label3D _glyphLabel;
@@ -78,6 +81,10 @@ public partial class HexTile : Node3D
     public override void _Ready()
     {
         meshInstance = GetNode<MeshInstance3D>("HexMesh");
+        _meshOriginalTransform = meshInstance.Transform;
+        // Origin.Y = -0.5 in the scene; depth = distance from top (Y=0) to bottom = -2 × origin.Y = 1.0
+        _meshOriginalDepth = Mathf.Max(-2f * _meshOriginalTransform.Origin.Y, HeightStep);
+
         coordLabel = GetNode<Label3D>("CoordLabel");
 
         // Get the material and cache base color
@@ -118,7 +125,8 @@ public partial class HexTile : Node3D
 
     private void OnMouseEntered()
     {
-        if (material == null) return;
+        if (material == null)
+            return;
         // Blend hover on top of current color (highlight override or base)
         Color c = material.AlbedoColor;
         c = c.Lerp(HoverColor, 0.5f);
@@ -169,14 +177,36 @@ public partial class HexTile : Node3D
         }
     }
 
-    /// <summary>Lifts the tile vertically by an integer step count. The Y offset multiplier (currently 0.5 units per step) is tuned visually.</summary>
-    public void SetHeight(int height)
+    public void SetHeight(int height, float worldFloor = -1.0f)
     {
-        var pos = Position;
-        pos.Y = height * 0.5f; // scale factor (tune this)
-        Position = pos;
+        float tileTop = height * HeightStep;
 
-        //GD.Print($"SetHeight on tile {Axial}: height={height}, new pos={Position}");
+        // Move the tile's origin to its top surface — units, props, raycasts unaffected.
+        Position = new Vector3(Position.X, tileTop, Position.Z);
+
+        // How far down the cylinder must reach in local HexTile space.
+        // (tileTop - worldFloor) is in world units = local units since HexTile scale = 1.)
+        float requiredDepth = Mathf.Max(tileTop - worldFloor, _meshOriginalDepth);
+        float yScaleRatio = requiredDepth / _meshOriginalDepth;
+
+        // Scale the MeshInstance3D transform — never the shared CylinderMesh resource.
+        // Basis.Y is the (0, 3, 0) column from the scene; length = 3 = original Y scale.
+        float newYScale = _meshOriginalTransform.Basis.Y.Length() * yScaleRatio;
+        float newYOrigin = -requiredDepth * 0.5f; // top stays at local Y=0
+
+        var origBasis = _meshOriginalTransform.Basis;
+        meshInstance.Transform = new Transform3D(
+            new Basis(
+                origBasis.X,
+                origBasis.Y.Normalized() * newYScale, // stretch Y, preserve rotation
+                origBasis.Z
+            ),
+            new Vector3(
+                _meshOriginalTransform.Origin.X,
+                newYOrigin,
+                _meshOriginalTransform.Origin.Z
+            )
+        );
     }
 
     /// <summary>Sets both the <see cref="Axial"/> coordinate and the visible debug label.</summary>
@@ -283,7 +313,8 @@ public partial class HexTile : Node3D
     /// <summary>Sets a custom colour for the movement highlight overlay, then enables it. Used to distinguish player vs ally vs reachable-via-dash highlights at the gameplay level.</summary>
     public void SetMoveHighlightColored(Color color)
     {
-        if (material == null) return;
+        if (material == null)
+            return;
         _moveHighlightColor = color;
         moveHighlighted = true;
         RefreshVisualState();
@@ -328,7 +359,8 @@ public partial class HexTile : Node3D
             return;
         }
 
-        if (material == null) return;
+        if (material == null)
+            return;
 
         if (border)
             material.AlbedoColor = UITheme.TileRangeBorder;
@@ -339,7 +371,8 @@ public partial class HexTile : Node3D
     /// <summary>Applies the drag-hover colour when a card is being dragged over this tile. Restores the prior state when <paramref name="on"/> is false.</summary>
     public void SetDragHoverHighlight(bool on)
     {
-        if (material == null) return;
+        if (material == null)
+            return;
         if (on)
             material.AlbedoColor = DragHoverColor;
         else
@@ -349,12 +382,16 @@ public partial class HexTile : Node3D
     /// <summary>Recomputes the current AlbedoColor from the layered highlight flags (base → deployment → move). No-op while a target/range highlight is active — those override.</summary>
     public void RefreshVisualState()
     {
-        if (material == null) return;
-        if (_isHighlighted) return;
+        if (material == null)
+            return;
+        if (_isHighlighted)
+            return;
 
         Color finalColor = baseColor;
-        if (deploymentHighlighted) finalColor = finalColor.Lerp(UITheme.TileDeployHighlight, 0.45f);
-        if (moveHighlighted) finalColor = finalColor.Lerp(UITheme.TileMoveHighlight, 0.45f);
+        if (deploymentHighlighted)
+            finalColor = finalColor.Lerp(UITheme.TileDeployHighlight, 0.45f);
+        if (moveHighlighted)
+            finalColor = finalColor.Lerp(UITheme.TileMoveHighlight, 0.45f);
 
         // ── Memorial overlay ──────────────────────────────────────────
         if (_memorialState.HasValue)
@@ -401,18 +438,18 @@ public partial class HexTile : Node3D
         // · = faint dot (weakest).
         string symbol = state switch
         {
-            MemorialState.Hallowed    => "✦",
-            MemorialState.Fresh       => "✧",
+            MemorialState.Hallowed => "✦",
+            MemorialState.Fresh => "✧",
             MemorialState.Established => "·",
-            _                         => ""
+            _ => ""
         };
 
         float alpha = state switch
         {
-            MemorialState.Hallowed    => 0.95f,
-            MemorialState.Fresh       => 0.70f,
+            MemorialState.Hallowed => 0.95f,
+            MemorialState.Fresh => 0.70f,
             MemorialState.Established => 0.40f,
-            _                         => 0f
+            _ => 0f
         };
 
         if (string.IsNullOrEmpty(symbol) || alpha <= 0f)
@@ -425,21 +462,21 @@ public partial class HexTile : Node3D
         {
             _memorialLabel = new Label3D
             {
-                Name        = "MemorialIndicator",
-                Text        = symbol,
-                FontSize    = 48,
-                Billboard   = BaseMaterial3D.BillboardModeEnum.Enabled,
+                Name = "MemorialIndicator",
+                Text = symbol,
+                FontSize = 48,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 NoDepthTest = true,
                 // Sit just above the imbuement overlay height
-                Position    = new Vector3(0f, 0.85f, 0f),
-                Modulate    = new Color(0.92f, 0.88f, 0.72f, alpha),
+                Position = new Vector3(0f, 0.85f, 0f),
+                Modulate = new Color(0.92f, 0.88f, 0.72f, alpha),
             };
             CallDeferred("add_child", _memorialLabel);
         }
         else
         {
             _memorialLabel.Visible = true;
-            _memorialLabel.Text    = symbol;
+            _memorialLabel.Text = symbol;
             _memorialLabel.Modulate = new Color(0.92f, 0.88f, 0.72f, alpha);
         }
     }

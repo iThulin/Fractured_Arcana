@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://cmy15kdfht3q1" path="res://Scripts/Cards/DeckManager.cs" id="2_tfvp6"]
 [ext_resource type="Script" uid="uid://c07b4kiher343" path="res://Scripts/UI/DeckUiManager.cs" id="3_pqsji"]
 [ext_resource type="PackedScene" uid="uid://iuge2orfh1hw" path="res://Scenes/Cards/CardUI.tscn" id="4_f341a"]
-[ext_resource type="PackedScene" uid="" path="res://Scenes/Cards/DropSlot.tscn" id="5_fcnvh"]
+[ext_resource type="PackedScene" uid="uid://csdmm1n6b4hoe" path="res://Scenes/Cards/DropSlot.tscn" id="5_fcnvh"]
 [ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/Combat/HexGridManager.cs" id="6_duw5d"]
 [ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/Combat/HexTile.tscn" id="7_vjrxi"]
 [ext_resource type="PackedScene" uid="uid://dpnt6dp1jietn" path="res://Scenes/Combat/Summons/HexTile_Stone_Blocker.tscn" id="8_qd0yx"]
@@ -15,7 +15,7 @@
 [ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Combat/Players/Unit.tscn" id="13_golrv"]
 [ext_resource type="Environment" uid="uid://bbtn025ticmfd" path="res://Assets/Combat_Environment.tres" id="13_tfvp6"]
 [ext_resource type="PackedScene" uid="uid://chfd280du8r83" path="res://Scenes/Combat/Monsters/TargetDummy.tscn" id="14_jroeh"]
-[ext_resource type="PackedScene" uid="" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
+[ext_resource type="PackedScene" uid="uid://cl1s1lbvr48m" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h4djk"]
 albedo_color = Color(0.357868, 0.30020714, 0.22991636, 1)
@@ -38,24 +38,17 @@ position = Vector2(1, 844)
 script = ExtResource("2_tfvp6")
 
 [node name="DeckUI" type="CanvasLayer" parent="." unique_id=1348508917]
-follow_viewport_enabled = false
 
-[node name="HandUI" type="Control" parent="DeckUI"]
+[node name="HandUI" type="Control" parent="DeckUI" unique_id=1934539151]
 layout_mode = 3
 anchors_preset = 15
-anchor_left = 0.0
-anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 0
-offset_top = 0
-offset_right = 0
-offset_bottom = 0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
-
 [node name="DeckUIManager" type="Node2D" parent="DeckUI" unique_id=1949982600]
-position = Vector2(0, 0)
 script = ExtResource("3_pqsji")
 CardUIPackedScene = ExtResource("4_f341a")
 DropSlotScene = ExtResource("5_fcnvh")
@@ -93,7 +86,8 @@ script = ExtResource("6_duw5d")
 GridWidth = 15
 GridHeight = 15
 HexRadius = 1.025
-Theme = 3
+LayoutType = 1
+Theme = 6
 TerrainDensity = 0.4
 TerrainRoughness = 0.4
 HeightVariation = 1.0

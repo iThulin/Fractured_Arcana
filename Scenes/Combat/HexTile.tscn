@@ -15,7 +15,7 @@ HoverColor = Color(0.345098, 0.470588, 0.337255, 1)
 ImbuementOverlayScene = ExtResource("2_62qp0")
 
 [node name="HexMesh" type="MeshInstance3D" parent="." unique_id=858530921]
-transform = Transform3D(0.86602527, 0, 0.50000024, 0, 3, 0, -0.50000024, 0, 0.86602527, 0, -0.25, 0)
+transform = Transform3D(0.86602527, 0, 0.50000024, 0, 3, 0, -0.50000024, 0, 0.86602527, 0, -0.5, 0)
 mesh = ExtResource("2_1spyd")
 surface_material_override/0 = SubResource("StandardMaterial3D_1spyd")
 
