@@ -50,6 +50,8 @@ public partial class OverworldRunManager : Node2D
     private EncounterDefinition _pendingEncounter = null;
     private string _pendingTerrain = null;
     private float _scaledDifficultyMult = 1.0f;
+    private OverworldFactionManager _factionManager;
+    private bool _ambushPending = false;
 
     // ── UI ───────────────────────────────────────────────────────────────
     private Label _stepLabel;
@@ -139,6 +141,8 @@ public partial class OverworldRunManager : Node2D
                      $"ScaledMult={_scaledDifficultyMult:F2}");
         }
 
+        CampaignManager.OnRegionEntered(_region?.Id ?? regionId);
+
         // ── Build the grid with that seed ───────────────────────────────────
         _grid = new OverworldHexGrid { Name = "HexGrid", Seed = seed };
         _grid.Region = _region;
@@ -152,6 +156,12 @@ public partial class OverworldRunManager : Node2D
         int outpostCount = _region?.OutpostPOICount ?? 0;
         POIGenerator.Generate(_grid, combatCount, restCount, narrativeCount,
                               negotiationCount, seed, outpostCount);
+
+        // ── Faction tokens — must go AFTER POI placement so patrols avoid POI hexes ──
+        _factionManager = new OverworldFactionManager { Name = "FactionManager" };
+        _grid.AddChild(_factionManager);
+        _factionManager.Initialize(_grid, regionId, SaveManager.ActiveSave?.Campaign);
+        _factionManager.PatrolCapturedPlayer += OnPatrolCapturedPlayer;
 
         // Stash the seed on the router
         if (router != null)
@@ -462,6 +472,13 @@ public partial class OverworldRunManager : Node2D
         router.HasSavedSeed = true;
         router.SavedRunSeed = _grid.Seed;
 
+        // Save patrol positions so they restore correctly on return from combat.
+        if (_factionManager != null)
+        {
+            router.SavedPatrolPositions = _factionManager.GetPatrolPositions();
+            router.SavedPatrolArchmageId = _factionManager.GetArchmageId();
+        }
+
         // ── Hand off the pre-built definition, terrain, and tier ────────
         EncounterContextCarrier.Set(encounterDef);
         EncounterContextCarrier.SetContext(terrainType, encounterDef.Tier);
@@ -472,6 +489,31 @@ public partial class OverworldRunManager : Node2D
 
         ShowInfo("Entering combat...");
         GetTree().ChangeSceneToFile(router.CombatScenePath);
+    }
+
+    /// <summary>
+    /// Called when a patrol captures the player. Triggers an immediate skirmish-tier ambush
+    ///  encounter with no retreat option. This is a "soft" capture — the player can return 
+    /// to the patrol's hex after combat and it will still be there (unless the encounter consumes it).
+    /// </summary>
+    private void OnPatrolCapturedPlayer(Vector2I coord, string archmageId)
+    {
+        if (RunComplete || _ambushPending)
+            return;
+        if (!_grid.Hexes.TryGetValue(coord, out var hex))
+            return;
+
+        _ambushPending = true;
+        ShowInfo($"A patrol has intercepted you!");
+
+        // Skirmish-tier ambush — no retreat option (CommitCombat bypasses scout panel)
+        var encounterDef = EncounterPoolLoader.Pick(
+            _region?.Id ?? "frontier_wilds",
+            EncounterTier.Skirmish,
+            hex.Terrain.ToString(),
+            _scaledDifficultyMult);
+
+        CommitCombat(coord, encounterDef, hex.Terrain.ToString());
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -552,8 +594,18 @@ public partial class OverworldRunManager : Node2D
 
         router.HasPendingReturn = false;
 
+        // Restore patrol positions to where they were before combat.
+        if (_factionManager != null && router.SavedPatrolPositions.Count > 0)
+        {
+            _factionManager.RestorePatrolPositions(router.SavedPatrolPositions);
+            router.SavedPatrolPositions.Clear();
+        }
+
         GD.Print($"RunManager: Restored. Party at {router.SavedPartyCoord}, " +
                  $"Steps: {StepsRemaining}, HP: {CurrentHP}, Gold: {GoldEarned}");
+
+        // Combat took time — advance the clock by the step debt.
+        CampaignManager.TickCorruption(CampaignManager.CombatStepDebt);
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -628,6 +680,18 @@ public partial class OverworldRunManager : Node2D
             }
         }
 
+        // Tick faction tokens — one patrol step per player step.
+        // Do this BEFORE the corruption clock so capture is detected
+        // before the clock advances
+        if (_factionManager != null && !RunComplete)
+        {
+            _factionManager.Tick(_party.CurrentCoord);
+            // Capture is handled via signal → OnPatrolCapturedPlayer
+        }
+
+        // Advance the Astrologer's clock.
+        CampaignManager.TickCorruption(stepCost);
+
         CenterCamera();
         UpdateUI();
     }
@@ -643,6 +707,9 @@ public partial class OverworldRunManager : Node2D
     {
         if (RunComplete)
             return;
+
+        if (_ambushPending)
+            return; // patrol capture takes priority over POI
 
         if (!_grid.Hexes.TryGetValue(coord, out var hex))
             return;
