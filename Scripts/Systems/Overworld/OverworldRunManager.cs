@@ -48,6 +48,7 @@ public partial class OverworldRunManager : Node2D
     // Set when the scout panel is open; cleared on engage or retreat.
     private Vector2I? _pendingCombatHexCoord = null;
     private EncounterDefinition _pendingEncounter = null;
+    private string _pendingTerrain = null;
 
     // ── UI ───────────────────────────────────────────────────────────────
     private Label _stepLabel;
@@ -348,7 +349,8 @@ public partial class OverworldRunManager : Node2D
         int total = WizardBaseHP;
 
         var save = SaveManager.ActiveSave;
-        if (save == null) return total;
+        if (save == null)
+            return total;
 
         foreach (var companionId in save.ActivePartyCompanionIds)
         {
@@ -381,13 +383,15 @@ public partial class OverworldRunManager : Node2D
 
         _pendingCombatHexCoord = coord;
         _pendingEncounter = encounterDef;
+        _pendingTerrain = terrainType;
 
         _scoutPanel.OnEngage = () =>
         {
             if (_pendingCombatHexCoord.HasValue && _pendingEncounter != null)
-                CommitCombat(_pendingCombatHexCoord.Value, _pendingEncounter);
+                CommitCombat(_pendingCombatHexCoord.Value, _pendingEncounter, _pendingTerrain);
             _pendingCombatHexCoord = null;
             _pendingEncounter = null;
+            _pendingTerrain = null;               // ← add
         };
 
         _scoutPanel.OnRetreat = () =>
@@ -395,6 +399,7 @@ public partial class OverworldRunManager : Node2D
             ShowInfo("You fall back. The encounter remains.");
             _pendingCombatHexCoord = null;
             _pendingEncounter = null;
+            _pendingTerrain = null;               // ← add
         };
 
         int stepCost = GetTerrainStepCost(hex.Terrain);
@@ -406,7 +411,7 @@ public partial class OverworldRunManager : Node2D
     /// scene, using the pre-built EncounterDefinition from the scout panel.
     /// Bypasses EncounterRouter.StartCombat() to avoid a second Pick() call.
     /// </summary>
-    private void CommitCombat(Vector2I hexCoord, EncounterDefinition encounterDef)
+    private void CommitCombat(Vector2I hexCoord, EncounterDefinition encounterDef, string terrainType)
     {
         var router = EncounterRouter.Instance;
         if (router == null)
@@ -436,8 +441,9 @@ public partial class OverworldRunManager : Node2D
         router.HasSavedSeed = true;
         router.SavedRunSeed = _grid.Seed;
 
-        // ── Hand off the pre-built definition and tier ──────────────────
+        // ── Hand off the pre-built definition, terrain, and tier ────────
         EncounterContextCarrier.Set(encounterDef);
+        EncounterContextCarrier.SetContext(terrainType, encounterDef.Tier);
         router.SetCurrentTier(encounterDef.Tier);
 
         GD.Print($"RunManager: Committing combat — {encounterDef.DisplayName} " +
@@ -462,10 +468,12 @@ public partial class OverworldRunManager : Node2D
         EncountersWon = router.SavedEncountersWon;
 
         foreach (var kvp in router.SavedFogStates)
-            if (_grid.Hexes.TryGetValue(kvp.Key, out var h)) h.Fog = kvp.Value;
+            if (_grid.Hexes.TryGetValue(kvp.Key, out var h))
+                h.Fog = kvp.Value;
 
         foreach (var kvp in router.SavedPOIConsumed)
-            if (_grid.Hexes.TryGetValue(kvp.Key, out var h)) h.POIConsumed = kvp.Value;
+            if (_grid.Hexes.TryGetValue(kvp.Key, out var h))
+                h.POIConsumed = kvp.Value;
 
         foreach (var hex in _grid.Hexes.Values)
             hex.RefreshVisuals();
@@ -533,7 +541,8 @@ public partial class OverworldRunManager : Node2D
 
     private void EnsureEncounterRouter()
     {
-        if (EncounterRouter.Instance != null) return;
+        if (EncounterRouter.Instance != null)
+            return;
 
         var router = new EncounterRouter { Name = "EncounterRouter" };
         router.CombatScenePath = "res://Scenes/Combat/Battlefield.tscn";
@@ -546,7 +555,8 @@ public partial class OverworldRunManager : Node2D
     private void BuildEquipmentLoadouts()
     {
         var save = SaveManager.ActiveSave;
-        if (save == null) return;
+        if (save == null)
+            return;
 
         var companionIds = save.ActivePartyCompanionIds ?? new List<string>();
         EquipmentLoadout.BuildForRun(save.Armory, "wizard", companionIds);
@@ -603,15 +613,18 @@ public partial class OverworldRunManager : Node2D
 
     private void OnHexClicked(Vector2I axial)
     {
-        if (RunComplete) return;
+        if (RunComplete)
+            return;
         _party.TryMoveTo(axial);
     }
 
     private void OnPartyArrived(Vector2I coord)
     {
-        if (RunComplete) return;
+        if (RunComplete)
+            return;
 
-        if (!_grid.Hexes.TryGetValue(coord, out var hex)) return;
+        if (!_grid.Hexes.TryGetValue(coord, out var hex))
+            return;
 
         if (hex.POI == OverworldHex.POIType.None || hex.POIConsumed)
         {
@@ -725,7 +738,8 @@ public partial class OverworldRunManager : Node2D
 
     private void OnNarrativeCompleted(NarrativeEncounterData encounter, EncounterChoice choice)
     {
-        if (choice == null) return;
+        if (choice == null)
+            return;
 
         if (choice.GoldDelta != 0)
             GoldEarned = Mathf.Max(0, GoldEarned + choice.GoldDelta);
@@ -848,7 +862,8 @@ public partial class OverworldRunManager : Node2D
 
     public override void _Process(double delta)
     {
-        if (RunComplete || _camera == null) return;
+        if (RunComplete || _camera == null)
+            return;
         HandleCameraPan((float)delta);
     }
 
@@ -895,8 +910,10 @@ public partial class OverworldRunManager : Node2D
             save.Gold += GoldEarned;
             save.ArcaneSplinters += SplinterEarned;
 
-            if (reachedObjective) save.RunsWon++;
-            else save.RunsLost++;
+            if (reachedObjective)
+                save.RunsWon++;
+            else
+                save.RunsLost++;
 
             // Persist region map state (fog, POIs, seed, objective status)
             string endRegionId = _region?.Id ?? save.CurrentRegionId ?? "frontier_wilds";
@@ -941,7 +958,8 @@ public partial class OverworldRunManager : Node2D
         int revealed = 0;
         foreach (var coord in candidates)
         {
-            if (revealed >= count) break;
+            if (revealed >= count)
+                break;
             if (_grid.Hexes.TryGetValue(coord, out var hex))
             {
                 hex.Fog = OverworldHex.FogState.Revealed;

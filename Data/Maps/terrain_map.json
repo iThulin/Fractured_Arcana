@@ -1,0 +1,14 @@
+{
+	"fallback": "heathland",
+	"terrain": {
+		"Grassland": "heathland",
+		"Forest": "verdant_woods",
+		"Road": "heathland",
+		"Ruins": "overgrown_ruins",
+		"Mountain": "highland_crags",
+		"Swamp": "wetlands",
+		"ArcaneGround": "arcane_meadow",
+		"Volcanic": "volcanic_scar",
+		"Water": "coastal_shallows"
+	}
+}

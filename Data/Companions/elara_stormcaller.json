@@ -9,8 +9,8 @@
 	"isAvailable": true,
 	"unlockCondition": "",
 	"contributedCardIds": [
-		"generic_chain_lightning",
-		"generic_frost_nova"
+		"elementalist_chain_lightning",
+		"elementalist_frost_nova"
 	],
 	"baseHP": 15,
 	"baseSpeed": 2,

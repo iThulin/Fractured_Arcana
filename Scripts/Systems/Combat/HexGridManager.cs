@@ -211,8 +211,20 @@ public partial class HexGridManager : Node3D
 
     public override void _Ready()
     {
+        // Generation is normally driven by CombatManager, which sets the recipe /
+        // density / seed first, then calls GenerateMap(). As a fallback for opening
+        // a grid-only scene on its own, self-generate after the frame settles — but
+        // only if nothing has already generated the grid.
+        CallDeferred(nameof(AutoGenerateIfEmpty));
+    }
+
+    private void AutoGenerateIfEmpty()
+    {
+        if (Tiles.Count > 0)
+            return;
+
         GenerateMap();
-        CallDeferred(nameof(CenterCameraOverGrid));
+        CenterCameraOverGrid();
     }
 
     public TileData GetTile(Vector2I axial) =>
@@ -1452,7 +1464,6 @@ public partial class HexGridManager : Node3D
             tile.IsHazardous = false;
             tile.MoveCost = 1;
             tile.ObstacleKind = "";
-            tile.Height = 0; // flatten spawn zones so units don't deploy on slopes
         }
     }
 

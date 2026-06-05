@@ -95,6 +95,7 @@ public partial class EncounterRouter : Node
 
         var encounterDef = EncounterPoolLoader.Pick(regionId, tier, terrainType, diffMult);
         EncounterContextCarrier.Set(encounterDef);
+        EncounterContextCarrier.SetContext(terrainType, tier);
 
         GD.Print($"EncounterRouter: Encounter set — {encounterDef.DisplayName} " +
                  $"({encounterDef.Tier}, {encounterDef.Enemies.Count} enemies)");
@@ -147,5 +148,13 @@ public partial class EncounterRouter : Node
         EncounterTier.Battle => (int)GD.RandRange(18, 30),
         EncounterTier.Siege => (int)GD.RandRange(40, 60),
         _ => (int)GD.RandRange(15, 25),
+    };
+
+    public static HexGridManager.MapDensityPreset DensityForTier(EncounterTier tier) => tier switch
+    {
+        EncounterTier.Skirmish => HexGridManager.MapDensityPreset.Sparse,
+        EncounterTier.Battle => HexGridManager.MapDensityPreset.Standard,
+        EncounterTier.Siege => HexGridManager.MapDensityPreset.Dense,
+        _ => HexGridManager.MapDensityPreset.Standard,
     };
 }

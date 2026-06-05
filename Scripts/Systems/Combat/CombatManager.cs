@@ -2619,6 +2619,8 @@ public partial class CombatManager : Node3D
             return;
         }
 
+        ConfigureAndGenerateMap();
+
         originalDeployCoords.Clear();
         playerUnits.Clear();
         enemyUnits.Clear();
@@ -2829,6 +2831,46 @@ public partial class CombatManager : Node3D
             }
         }
     }
+
+    /// <summary>
+    /// Resolves the combat arena from the overworld encounter context (terrain that
+    /// spawned this fight + tier), applies recipe/density/seed to the grid, then
+    /// generates. Standalone/test launches with no encounter fall through to the
+    /// grid's inspector defaults (enum theme path).
+    /// </summary>
+    private void ConfigureAndGenerateMap()
+    {
+        if (grid == null)
+            return;
+
+        string terrain = EncounterContextCarrier.SourceTerrain;
+        if (!string.IsNullOrEmpty(terrain))
+        {
+            grid.MapRecipeId = TerrainRecipeMap.Resolve(terrain);
+            grid.DensityControlMode = HexGridManager.DensityMode.Preset;
+            grid.DensityPreset = DensityForTier(EncounterContextCarrier.Tier);
+
+            if (EncounterRouter.Instance != null && EncounterRouter.Instance.HasSavedSeed)
+                grid.MapSeed = EncounterRouter.Instance.SavedRunSeed;
+
+            GD.Print($"[CombatMap] terrain='{terrain}' → recipe='{grid.MapRecipeId}', " +
+                     $"density={grid.DensityPreset}, seed={grid.MapSeed}");
+        }
+        else
+        {
+            GD.Print("[CombatMap] No encounter terrain — using grid inspector defaults.");
+        }
+
+        grid.GenerateMap();
+    }
+
+    private static HexGridManager.MapDensityPreset DensityForTier(EncounterTier tier) => tier switch
+    {
+        EncounterTier.Skirmish => HexGridManager.MapDensityPreset.Sparse,
+        EncounterTier.Battle => HexGridManager.MapDensityPreset.Standard,
+        EncounterTier.Siege => HexGridManager.MapDensityPreset.Dense,
+        _ => HexGridManager.MapDensityPreset.Standard,
+    };
 
     private List<EnemyIntelEntry> BuildEnemyIntel()
     {

@@ -42,6 +42,22 @@ public static class EncounterContextCarrier
     public static EncounterDefinition Current { get; private set; } = null;
     public static bool HasEncounter => Current != null;
 
+    // Overworld source context, routed through to combat-map generation.
+    public static string SourceTerrain { get; private set; } = "";
+    public static EncounterTier Tier { get; private set; } = EncounterTier.Battle;
+
     public static void Set(EncounterDefinition def) => Current = def;
-    public static void Clear() => Current = null;
+
+    public static void SetContext(string sourceTerrain, EncounterTier tier)
+    {
+        SourceTerrain = sourceTerrain ?? "";
+        Tier = tier;
+    }
+
+    public static void Clear()
+    {
+        Current = null;
+        SourceTerrain = "";
+        Tier = EncounterTier.Battle;
+    }
 }
