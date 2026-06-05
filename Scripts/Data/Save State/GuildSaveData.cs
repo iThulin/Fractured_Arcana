@@ -33,6 +33,14 @@ public class GuildSaveData
     public string CreatedAt = "";
     public string LastPlayedAt = "";
 
+    // ── Campaign state ───────────────────────────────────────────────────
+    /// <summary>
+    /// Persistent campaign-level state: archmage placements, dispositions,
+    /// corruption levels, and the Chronomancer's clock. Generated once at
+    /// new game from a seeded RNG; never regenerated.
+    /// </summary>
+    public CampaignState Campaign = new();
+
     // ── Wizard ──────────────────────────────────────────────────────────
     public string SelectedSchool = "Elementalist";
     public string WizardName = "Wizard";

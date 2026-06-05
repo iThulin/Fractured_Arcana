@@ -1,0 +1,164 @@
+{
+	"id": "namer",
+	"displayName": "The Namer",
+	"title": "Of the Seventh Layer",
+	"school": "Enchanter",
+	"description": "An Enchanter does not stop you from doing things. An Enchanter makes sure that whatever you do, the next thing you have to do is worse. Cael Morn has seven layers in every working they have ever built, and at various conferences other wizards have suggested that four is sufficient. Cael was present at these conferences and did not respond. The papers were withdrawn. They have been the head of the Enchanter school long enough that their students have students now, none of whom are certain which layer they are currently operating in. Neither is Cael. They consider this a sign of progress.",
+	"personalityTrait": "Layered",
+	"isVillainFaction": false,
+	"factionName": "The Seventh Layer",
+	"corruptedFactionName": "The Unwritten",
+	"factionColorHex": "#2A4A7A",
+	"basePatrolCount": 3,
+	"archmageFactionChance": 0.40,
+	"maxCorruptionForUnite": 1,
+	"maxCorruptionForCoerce": 2,
+	"standardBossHealthMult": 1.0,
+	"betrayalBossHealthMult": 1.5,
+	"betrayalHasSecondPhase": true,
+	"allyAbilityDescription": "The Namer names one enemy each round. Named enemies deal half damage and cannot move. The naming is permanent for that combat.",
+	"shardInvocationDescription": "Invoke the Seventh Layer Shard: all enemies are bound simultaneously for one round, unable to act or move, while all allies act freely.",
+	"alliedStrength": 1.0,
+	"coercedStrength": 0.6,
+	"coercedCanFlip": true,
+	"weaknessHints": [
+		"They do not stop you. They make the next thing worse. If you find yourself doing what they want, you started doing it several steps ago — try to identify when.",
+		"They value precision. Say exactly what you mean. They will know if you don't.",
+		"The Astrologer offered them a name for something they have been trying to name for years. That is how they fell. Find out what it was."
+	],
+	"personalityNotes": [
+		"'I'm not finished. Sit.' — this is the whole personality in four words.",
+		"They have been watching you since before you entered their region. They know what layer you're on.",
+		"They are not cruel. They are systematic. Whatever they are doing to you, it is not personal. It is architectural."
+	],
+	"postUniteDialogue": [
+		"Cael said: 'You're not finished either.' I take that as approval.",
+		"The Seventh Layer is with us. The Astrologer is going to find that certain of his bindings have... additional clauses."
+	],
+	"postCorruptedDialogue": [
+		"Cael has fallen. The Unwritten are whatever remains when someone who builds things is told to unmake them instead.",
+		"The Astrologer gave Cael a name for the thing they couldn't name. I don't know what it was. I don't want to."
+	],
+	"factionEncounters": {
+		"skirmish": [
+			{
+				"name": "first_layer",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "bound_watch",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "three_layers",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "the_named",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "fifth_working",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "six_layers",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "seventh_layer",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "the_next_thing",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		]
+	}
+}

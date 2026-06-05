@@ -1,0 +1,164 @@
+{
+	"id": "conductor",
+	"displayName": "The Conductor",
+	"title": "Hostess of the Long Table",
+	"school": "Necromancer",
+	"description": "She runs a bar. The bar is also a funeral home, depending on what you need. Most of her regulars are dead, which she finds restful — they listen better, drink less, and never ask her to weigh in on whose fault it was. She has been the head of the Necromancer school for twenty years because she is the only practitioner who has never lost a patient in either direction. The dead do not leave her establishment without her knowing where they are going. She heals the living by asking the dead to chip in, and they do, because she is the kind of person you want to be on good terms with on both sides of the door.",
+	"personalityTrait": "Hospitable",
+	"isVillainFaction": false,
+	"factionName": "The Long Table",
+	"corruptedFactionName": "The Silent Table",
+	"factionColorHex": "#5B3A7A",
+	"basePatrolCount": 2,
+	"archmageFactionChance": 0.45,
+	"maxCorruptionForUnite": 1,
+	"maxCorruptionForCoerce": 2,
+	"standardBossHealthMult": 1.0,
+	"betrayalBossHealthMult": 1.5,
+	"betrayalHasSecondPhase": true,
+	"allyAbilityDescription": "Each round, Ondria raises one fallen enemy as a spirit under the player's control. She also maintains a tally — units she raises remember who freed them.",
+	"shardInvocationDescription": "Invoke the Long Table's Shard: every enemy currently on the field takes damage equal to the total damage they have dealt this combat.",
+	"alliedStrength": 1.0,
+	"coercedStrength": 0.65,
+	"coercedCanFlip": true,
+	"weaknessHints": [
+		"Someone owes her something. She is patient about collecting. The Astrologer is trying to close her bar permanently — she takes that personally.",
+		"She is not sentimental. She is fair. There is a difference, and she will explain it to you if you have time.",
+		"The dead trust her. If you want her trust, ask someone she has buried what kind of person she is."
+	],
+	"personalityNotes": [
+		"Warm in the way of someone who has spent a long time around people who no longer have anything to lose.",
+		"She will offer you something to drink. Accept it. This matters more than it should.",
+		"She says 'he still owes me eighty silver' about someone she will not name. Do not ask who."
+	],
+	"postUniteDialogue": [
+		"She said: 'I'll add you to the tab. Don't worry about it.' I'm not entirely sure what that means.",
+		"The Long Table is with us. The Astrologer is going to find that certain of his allies have already settled their accounts."
+	],
+	"postCorruptedDialogue": [
+		"Ondria has fallen. The Silent Table serves nothing now — not the living, not the dead. The Astrologer has closed the bar.",
+		"She owed the dead her hospitality. He offered her certainty instead. I understand why she took it. I don't forgive it."
+	],
+	"factionEncounters": {
+		"skirmish": [
+			{
+				"name": "long_table_watch",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "table_runners",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "the_honored_dead",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "table_wardens",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "final_service",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "the_last_round",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "full_house",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "closing_time",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		]
+	}
+}

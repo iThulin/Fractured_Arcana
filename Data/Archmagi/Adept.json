@@ -1,0 +1,164 @@
+{
+	"id": "wenna",
+	"displayName": "The Scholar",
+	"title": "Wenna Aldric, Founder of the Academy",
+	"school": "Adept",
+	"description": "She wrote the curriculum. She knows this because everyone calls it 'the Aldric curriculum' and she has been correcting people's pronunciation for forty years. Wenna Aldric founded the Academy not because she had mastered magic but because she had identified, with rigorous precision, the seventeen ways in which magical education was failing its students. She fixed fourteen of them. The other three are on a list on her desk. She has been working on number fifteen for eleven years. She knows the proper name of every spell, the eight classical schools, and the seventeen permitted variant pronunciations — and she knows, better than anyone alive, the precise distance between knowing something and understanding it.",
+	"personalityTrait": "Meticulous",
+	"isVillainFaction": false,
+	"factionName": "The Aldric Academy",
+	"corruptedFactionName": "The Severed Curriculum",
+	"factionColorHex": "#C4A35A",
+	"basePatrolCount": 2,
+	"archmageFactionChance": 0.35,
+	"maxCorruptionForUnite": 1,
+	"maxCorruptionForCoerce": 2,
+	"standardBossHealthMult": 1.0,
+	"betrayalBossHealthMult": 1.5,
+	"betrayalHasSecondPhase": false,
+	"allyAbilityDescription": "Wenna draws one card from a random school at the start of each round and adds it to the player's hand. Her curriculum has no gaps.",
+	"shardInvocationDescription": "Invoke the Aldric Shard: draw five cards from any school of the player's choice immediately.",
+	"alliedStrength": 1.0,
+	"coercedStrength": 0.6,
+	"coercedCanFlip": false,
+	"weaknessHints": [
+		"She knows everything formally. She is still working on the gap between knowing and understanding. Show her something her curriculum did not cover.",
+		"She trained most of the other archmagi. She knows them better than they know themselves. Ask her about them.",
+		"Number fifteen on her list. She will not say what it is. She has been avoiding it for eleven years. It is the thing the Astrologer used."
+	],
+	"personalityNotes": [
+		"She will test whether you know the proper name of what you are doing. She will not tell you whether you passed.",
+		"She is patient with students. She is considerably less patient with people who should know better by now.",
+		"She has a list. Everything is on the list. The list will outlast her, which she considers appropriate."
+	],
+	"postUniteDialogue": [
+		"She said your understanding is 'promising.' For her, that is the same as exceptional. I have known her for thirty years.",
+		"Wenna has joined. She immediately began taking notes. She will have recommendations before the final battle. Listen to them."
+	],
+	"postCorruptedDialogue": [
+		"Wenna has fallen. The Severed Curriculum teaches everything her Academy taught — except how to stop.",
+		"The Astrologer showed her number fifteen. Whatever it was, it was enough. Forty years of patience, and that was the thing that broke it."
+	],
+	"factionEncounters": {
+		"skirmish": [
+			{
+				"name": "academy_patrol",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "graduate_watch",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "academy_warband",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "curriculum_host",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "the_assessed",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "full_faculty",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "academy_ascendant",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "field_examination",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		]
+	}
+}

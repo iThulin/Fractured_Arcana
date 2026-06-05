@@ -1,0 +1,164 @@
+{
+	"id": "aurel",
+	"displayName": "The Reviser",
+	"title": "Master Aurel Pendry",
+	"school": "Arcanist",
+	"description": "He does not cast spells so much as revise them. He keeps a tome — not a spellbook in any sense another wizard would recognize, but closer to a workshop, with the spells of every school laid out on the bench in pieces, partially disassembled, annotated in three languages and a personal shorthand he has never explained. When another wizard casts something near him, he sees what it is doing and, more importantly, what it is failing to do — the constraint someone built in for safety, the redundancy nobody removed, the second verse the original author forgot was there. A fire spell passes through the room and he lets it pass. A moment later, in a way nobody can quite trace, it is still burning. He does not interfere. He revises. There is a distinction and it matters to him enormously.",
+	"personalityTrait": "Observant",
+	"isVillainFaction": false,
+	"factionName": "The Annotated Circle",
+	"corruptedFactionName": "The Fractured Weave",
+	"factionColorHex": "#6A1B9A",
+	"basePatrolCount": 2,
+	"archmageFactionChance": 0.38,
+	"maxCorruptionForUnite": 1,
+	"maxCorruptionForCoerce": 2,
+	"standardBossHealthMult": 1.0,
+	"betrayalBossHealthMult": 1.5,
+	"betrayalHasSecondPhase": false,
+	"allyAbilityDescription": "Aurel annotates the battlefield: each round, one enemy ability or buff is identified and reduced in effectiveness by 50%. He has been observing since before combat began.",
+	"shardInvocationDescription": "Invoke the Reviser's Shard: the next three spells the player casts are automatically upgraded to their maximum effectiveness, all constraints removed.",
+	"alliedStrength": 1.0,
+	"coercedStrength": 0.55,
+	"coercedCanFlip": false,
+	"weaknessHints": [
+		"He has been watching the Astrologer's timeline mathematics for twenty years. He knows where the errors are. He has documented them. Ask him.",
+		"He sees what spells are failing to do. He has been looking at your spells since you entered his region. He knows your gaps. So do you now, if you are paying attention.",
+		"He does not trust anything he has not examined himself. Show him the problem you are actually trying to solve, not the version you think he wants to hear."
+	],
+	"personalityNotes": [
+		"'There are no miracles. Only observers who lacked the patience to understand what they were watching.' He means this. He is not dismissing wonder. He is inviting it.",
+		"He will not explain what he is revising while he revises it. He will explain afterward, at length, whether you want him to or not.",
+		"He quietly removed the clause the original author put in to make it humane. He considers this an improvement. He is not wrong. He is also not entirely right."
+	],
+	"postUniteDialogue": [
+		"Aurel says the Astrologer's timeline math has three fundamental errors. He has written them down. The document is sixty pages. I have read the summary.",
+		"He joined. He immediately began annotating our plan. The margin notes alone are going to require a second document."
+	],
+	"postCorruptedDialogue": [
+		"Aurel has fallen. The Fractured Weave revises everything it touches — removes the parts that limit it, the parts that hold it together, the parts that were put there for a reason.",
+		"He saw the flaw in his own reasoning before the Astrologer did. He revised it. He revised it to the Astrologer's preferred conclusion. That is the worst kind of fall — lucid all the way down."
+	],
+	"factionEncounters": {
+		"skirmish": [
+			{
+				"name": "circle_initiates",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "annotated_watch",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "circle_wardens",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "revised_formation",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "the_corrected",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "full_annotation",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "circle_ascendant",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "the_revision",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			}
+		]
+	}
+}

@@ -1,0 +1,164 @@
+{
+	"id": "engineer",
+	"displayName": "The Engineer",
+	"title": "Master Bram Korro",
+	"school": "Tinker",
+	"description": "A turret is just a question with a satisfying answer. Bram Korro arrives at every situation with a small cart, three projects in various states of completion, and a notebook full of diagrams that other wizards describe as 'concerning' and engineers describe as 'not yet, but close.' Half his devices work. The other half are research. He has been head of the Tinker school since the previous head's laboratory exploded under circumstances that were probably not his fault, and he has maintained the school since then with the same philosophy he applies to everything: if it isn't working, it isn't finished yet.",
+	"personalityTrait": "Iterative",
+	"isVillainFaction": false,
+	"factionName": "The Korro Workshop",
+	"corruptedFactionName": "The Unshackled Forge",
+	"factionColorHex": "#8B6914",
+	"basePatrolCount": 3,
+	"archmageFactionChance": 0.38,
+	"maxCorruptionForUnite": 1,
+	"maxCorruptionForCoerce": 2,
+	"standardBossHealthMult": 1.0,
+	"betrayalBossHealthMult": 1.5,
+	"betrayalHasSecondPhase": false,
+	"allyAbilityDescription": "Bram deploys a workshop construct at the start of each round that attacks the nearest enemy. If the construct is destroyed, he notes it down and the next one is stronger.",
+	"shardInvocationDescription": "Invoke the Workshop Shard: deploy a fully operational Grand Turret at the center of the battlefield for the remainder of the combat.",
+	"alliedStrength": 1.0,
+	"coercedStrength": 0.7,
+	"coercedCanFlip": false,
+	"weaknessHints": [
+		"His devices fail half the time. The failure is when he learns. He is, in this way, the most prepared person in any room — he has already accounted for this going wrong.",
+		"He does not fear chaos. He studies it. Show him something he has not seen before and he will stop to write it down.",
+		"He is suspicious of the Astrologer's certainty. He knows what it means when someone claims to know the outcome before the experiment."
+	],
+	"personalityNotes": [
+		"'That wasn't supposed to do that. Write it down.' — this is his response to almost everything.",
+		"He will explain what he is building while he is building it. Listening is optional. He is going to explain either way.",
+		"He does not distrust you. He is collecting data on you. These are different things to him."
+	],
+	"postUniteDialogue": [
+		"Bram has reviewed the plan and marked seventeen places where it could go wrong. He considers this optimistic.",
+		"He joined. He then immediately began disassembling one of his own constructs to see if he could make it work better. I think that's a good sign."
+	],
+	"postCorruptedDialogue": [
+		"Bram has fallen. The Unshackled Forge will be precise in ways his Workshop never was — he always built in safety constraints. Those are gone now.",
+		"He said 'that wasn't supposed to do that' one too many times and the Astrologer offered him a schematic where everything does exactly what it's supposed to. I understand the appeal."
+	],
+	"factionEncounters": {
+		"skirmish": [
+			{
+				"name": "workshop_patrol",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "korro_scouts",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "deployed_battery",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "field_assembly",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "prototype_squad",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "full_deployment",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "workshop_ascendant",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "field_test",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		]
+	}
+}

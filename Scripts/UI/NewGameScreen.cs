@@ -678,6 +678,14 @@ public partial class NewGameScreen : Control
 
         // Store wizard name on save
         save.WizardName = wizardName;
+        // Generate the campaign world from a new seed
+        int campaignSeed = (int)GD.Randi();
+        SaveManager.ActiveSave.Campaign = CampaignGenerator.Generate(
+            campaignSeed,
+            SaveManager.ActiveSave.SelectedSchool);
+
+        GD.Print($"[Campaign] Generated. Seed={campaignSeed}, " +
+                 $"CoConspirator='{SaveManager.ActiveSave.Campaign.CoConspirator}'");
         SaveManager.Save();
 
         GD.Print($"[NewGame] Guild '{guildName}' / Wizard '{wizardName}' founded as {_selectedSchool}");

@@ -1,0 +1,141 @@
+{
+	"id": "astrologer",
+	"displayName": "The Astrologer",
+	"title": "Kassian Vor-Aleth, Who Read the Sky",
+	"school": "Chronomancer",
+	"description": "He is not bending time. He will correct you on this. What he is doing is reading — the sky writes the outcome of every event before the event happens, and he has spent a long time learning the script. He knows who wins. He knows who loses. He knows, with some precision, the moment at which each of you stopped having a real choice. He has been generous with this knowledge in places. In others, less so. He did not break the magisphere out of malice. He broke it because he read what was coming and decided this outcome was preferable to the alternative. The alternate Chronomancer — the one who saved you — is a version of him who read the same passage and drew a different conclusion. He finds that more troubling than he lets on.",
+	"personalityTrait": "Inevitable",
+	"isVillainFaction": true,
+	"factionName": "Keepers of the Broken Seal",
+	"corruptedFactionName": "Keepers of the Broken Seal",
+	"factionColorHex": "#1A3A5C",
+	"basePatrolCount": 0,
+	"archmageFactionChance": 0.0,
+	"maxCorruptionForUnite": 0,
+	"maxCorruptionForCoerce": 0,
+	"standardBossHealthMult": 2.0,
+	"betrayalBossHealthMult": 2.0,
+	"betrayalHasSecondPhase": true,
+	"allyAbilityDescription": "N/A — The Astrologer is the final enemy.",
+	"shardInvocationDescription": "N/A — The Astrologer has no shard to invoke.",
+	"alliedStrength": 0.0,
+	"coercedStrength": 0.0,
+	"coercedCanFlip": false,
+	"weaknessHints": [
+		"He has read every future. He has not read yours — you came from outside his timeline. You are the variable he could not account for.",
+		"He knows who wins. That certainty is also his blindness. He has stopped asking what he might have missed.",
+		"The good Chronomancer troubles him more than you do. Ask yourself why a man who knows everything is still afraid of one specific version of himself."
+	],
+	"personalityNotes": [
+		"'I am not changing what happens. I am changing where you are standing when it does.' He believes this. He is not wrong, exactly.",
+		"He will offer you a deal. He has read your answer already. Do not give him the answer he expects.",
+		"He is not cruel. He is patient. He has been waiting for this conclusion for a very long time and he would like it to proceed without unnecessary drama."
+	],
+	"postUniteDialogue": [],
+	"postCorruptedDialogue": [],
+	"factionEncounters": {
+		"skirmish": [
+			{
+				"name": "seal_watchers",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "time_scouts",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "keeper_warband",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "temporal_hunters",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "shard_enforcers",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "keeper_ascendant",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "the_expected",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			}
+		]
+	}
+}

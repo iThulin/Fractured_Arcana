@@ -1,0 +1,164 @@
+{
+	"id": "joren",
+	"displayName": "The Vessel",
+	"title": "Joren Kall, Who Answered the Storm",
+	"school": "Elementalist",
+	"description": "The elements are older than language and have been arguing for longer than that. Joren Kall is what happens when one person agrees to host the argument. He was standing in a field during a storm that had been escalating for three days, and instead of sheltering or fleeing he stayed and asked the storm what it wanted. The storm, apparently surprised to be asked, told him. He has been translating ever since. Fire wants to spread. Ice wants to hold. Storm wants to move. Earth wants to stay. They reach no conclusion through him, but they reach it loudly, and the landscape around him tends to reflect whichever of them was making the better point that morning. He is not winning a fight. He is the place a much older fight is presently occurring.",
+	"personalityTrait": "Contested",
+	"isVillainFaction": false,
+	"factionName": "The Elemental Covenant",
+	"corruptedFactionName": "The Scoured",
+	"factionColorHex": "#4A7A3A",
+	"basePatrolCount": 2,
+	"archmageFactionChance": 0.42,
+	"maxCorruptionForUnite": 1,
+	"maxCorruptionForCoerce": 2,
+	"standardBossHealthMult": 1.0,
+	"betrayalBossHealthMult": 1.5,
+	"betrayalHasSecondPhase": true,
+	"allyAbilityDescription": "Joren imbues the battlefield at the start of each round — fire, ice, storm, or earth, whichever was winning the argument that morning. The imbuement affects all tiles in a radius.",
+	"shardInvocationDescription": "Invoke the Vessel Shard: all four elements answer simultaneously — every tile on the field is imbued, every enemy takes elemental damage based on the tile they are standing on.",
+	"alliedStrength": 1.0,
+	"coercedStrength": 0.6,
+	"coercedCanFlip": true,
+	"weaknessHints": [
+		"He speaks in four voices. Find the one that is actually him — not the storm, not the earth, not the fire. The one that answered first.",
+		"The elements have been arguing through him for thirty years. He is exhausted. He did not want to be the vessel. He just could not think of a reason to refuse.",
+		"Ask him what he told the storm. He has never told anyone. He will tell you, if you ask correctly — which means asking once, and then waiting."
+	],
+	"personalityNotes": [
+		"He does not always speak in complete sentences. Sometimes the wrong element interrupts.",
+		"He is not unkind. He is very tired. These things look similar from a distance.",
+		"He trained every Elementalist who matters. He knows your technique, if you are one of his students, better than you do. He will use that."
+	],
+	"postUniteDialogue": [
+		"Joren said something I didn't quite catch — it was in at least two languages simultaneously. The ground shook slightly, which I'm taking as agreement.",
+		"The Covenant is with us. The storm has a preference now. It prefers that the Astrologer does not win."
+	],
+	"postCorruptedDialogue": [
+		"Joren has fallen. The Scoured is what the argument looks like when one side wins. The landscape will not recover quickly.",
+		"They told him the storm could be contained. He asked who told them. The Astrologer had an answer. It was the wrong answer, and Joren was too tired to keep arguing."
+	],
+	"factionEncounters": {
+		"skirmish": [
+			{
+				"name": "covenant_watch",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "elemental_scouts",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "storm_covenant",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "covenant_warband",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			},
+			{
+				"name": "answering_host",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "the_argument",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "four_elements",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "elemental_surge",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		]
+	}
+}

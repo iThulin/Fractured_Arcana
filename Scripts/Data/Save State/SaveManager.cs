@@ -67,7 +67,8 @@ public static class SaveManager
 
     public static void SaveIfDirty()
     {
-        if (_isDirty) Save();
+        if (_isDirty)
+            Save();
     }
 
     public static bool SaveToSlot(int slot, GuildSaveData data)
@@ -112,7 +113,8 @@ public static class SaveManager
     public static bool Load(int slot)
     {
         var data = LoadFromSlot(slot);
-        if (data == null) return false;
+        if (data == null)
+            return false;
 
         ActiveSave = data;
         ActiveSlot = slot;
@@ -122,20 +124,24 @@ public static class SaveManager
 
     public static GuildSaveData LoadFromSlot(int slot)
     {
-        if (slot < 0 || slot >= MAX_SLOTS) return null;
+        if (slot < 0 || slot >= MAX_SLOTS)
+            return null;
 
         string path = GetSlotPath(slot);
-        if (!FileAccess.FileExists(path)) return null;
+        if (!FileAccess.FileExists(path))
+            return null;
 
         try
         {
             using var file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
-            if (file == null) return null;
+            if (file == null)
+                return null;
 
             string json = file.GetAsText();
             var data = JsonSerializer.Deserialize<GuildSaveData>(json, JsonOptions);
 
-            if (data == null) return null;
+            if (data == null)
+                return null;
 
             data = MigrateIfNeeded(data);
             return data;
@@ -318,6 +324,11 @@ public static class SaveManager
                 GD.Print("[SaveMigration] v6 → v7: HonoredDead list added.");
                 break;
             case 7:
+                data.Campaign ??= new CampaignState();
+                data.SaveVersion = 8;
+                GD.Print("[SaveMigration] v7 → v8: Campaign state initialised (empty — generate on next new game).");
+                break;
+            case 8:
                 data.SaveVersion = CURRENT_VERSION;
                 break;
         }
@@ -329,13 +340,15 @@ public static class SaveManager
     private static string RewriteBlueprintId(string oldId)
     {
         // Already in new format (lowercase, underscores, no colon)
-        if (!oldId.Contains(':')) return oldId;
+        if (!oldId.Contains(':'))
+            return oldId;
 
         // Match against the composite key that RegisterPrebuiltCard would have built
         foreach (var bp in CardDatabase.Blueprints)
         {
             var prebuilt = bp.Prebuilt;
-            if (prebuilt == null) continue;
+            if (prebuilt == null)
+                continue;
 
             var school = prebuilt.TopHalf?.School ?? prebuilt.BottomHalf?.School ?? CardSchool.Tinker;
             var topName = prebuilt.TopHalf?.Name ?? "";

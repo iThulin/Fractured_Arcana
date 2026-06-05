@@ -1,0 +1,164 @@
+{
+	"id": "hess",
+	"displayName": "The Witness",
+	"title": "Hess, Who Does Not Intervene",
+	"school": "Druid",
+	"description": "She sleeps where she falls and eats what is in front of her. She has been doing this for a long time. The land does what she asks not because she commands it, but because what she asks is generally what the land was going to do anyway. She does not heal so much as decide which wounds are permitted to close. She has not had a permanent address for forty years and has been present at nine significant historical events without being noticed at any of them. She does not lead the Druid school so much as embody the principle it teaches, which is that leadership is a story things tell about themselves to feel important. The animals that follow her are not pets. They are present for the same reason the carrion birds are present: something is about to happen, and they would like to be there when it does. Hess does not usually intervene. She has decided that this situation qualifies.",
+	"personalityTrait": "Patient",
+	"isVillainFaction": false,
+	"factionName": "The Living Compact",
+	"corruptedFactionName": "The Severed Root",
+	"factionColorHex": "#5A7A2A",
+	"basePatrolCount": 3,
+	"archmageFactionChance": 0.40,
+	"maxCorruptionForUnite": 1,
+	"maxCorruptionForCoerce": 2,
+	"standardBossHealthMult": 1.0,
+	"betrayalBossHealthMult": 1.5,
+	"betrayalHasSecondPhase": false,
+	"allyAbilityDescription": "The Compact keeps watch: at the end of each enemy turn, Hess reveals any hidden effects or buffs on enemies. Additionally, the land heals all allied units for a small amount.",
+	"shardInvocationDescription": "Invoke the Living Compact Shard: summon three animal allies to the field — they act immediately on the round they appear.",
+	"alliedStrength": 1.0,
+	"coercedStrength": 0.65,
+	"coercedCanFlip": true,
+	"weaknessHints": [
+		"She does not intervene. That is her rule. She is breaking it now. Whatever made her decide this exceeds her threshold — honor that, and she will honor you.",
+		"She knows where the river is going. She has known for years. She was hoping someone else would act. Ask her what she saw.",
+		"The Astrologer has been changing things in the land. She has been watching the changes. She is the only one who knows the full scale of it."
+	],
+	"personalityNotes": [
+		"'The river goes where it wants. I happen to know where that is.' — this is not a boast. It is a description.",
+		"She will not come to you. She is where she is going to be, and you will find her there or you will not.",
+		"She has already decided whether to trust you. She decided before you entered the region. You are not negotiating. You are confirming."
+	],
+	"postUniteDialogue": [
+		"Hess did not say anything. She looked at me for a long moment and then the crow on her shoulder flew north. I think that was a yes.",
+		"The Living Compact is with us. The land knows. Something has been different since she decided — I can't say exactly what."
+	],
+	"postCorruptedDialogue": [
+		"Hess has fallen. The Severed Root does not kill — it severs. Things stop being connected to each other. It is quieter than the other corruptions, and somehow worse.",
+		"She did not intervene for forty years. The one time she decided to, she was too late. I think she knew she might be. She came anyway."
+	],
+	"factionEncounters": {
+		"skirmish": [
+			{
+				"name": "compact_scouts",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "warden_watch",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "living_warband",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "compact_host",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "old_growth",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "the_compact_tide",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "witness_host",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "the_land_decides",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		]
+	}
+}
