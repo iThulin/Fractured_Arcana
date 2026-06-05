@@ -110,9 +110,11 @@ public partial class OverworldFactionManager : Node2D
                 bool tooClose = false;
                 foreach (var placed in placedCoords)
                 {
-                    if (_grid.Distance(c, placed) < 4) { tooClose = true; break; }
+                    if (_grid.Distance(c, placed) < 4)
+                    { tooClose = true; break; }
                 }
-                if (!tooClose) valid.Add(c);
+                if (!tooClose)
+                    valid.Add(c);
             }
 
             if (valid.Count == 0)
@@ -199,7 +201,8 @@ public partial class OverworldFactionManager : Node2D
     /// </summary>
     public void Tick(Vector2I playerCoord)
     {
-        if (!_initialized || _patrols.Count == 0) return;
+        if (!_initialized || _patrols.Count == 0)
+            return;
 
         foreach (var patrol in _patrols)
             patrol.Tick(playerCoord);
@@ -207,12 +210,14 @@ public partial class OverworldFactionManager : Node2D
         // Check for capture after all patrols have moved
         foreach (var patrol in _patrols)
         {
+            if (patrol.IsDisengaged)
+                continue; // recovering from a fight — no re-capture
             if (patrol.IsOnSameHex(playerCoord))
             {
                 GD.Print($"[FactionManager] Patrol '{patrol.ArchmageId}' captured player " +
                          $"at {playerCoord}.");
                 EmitSignal(SignalName.PatrolCapturedPlayer, playerCoord, patrol.ArchmageId);
-                return; // one capture event per tick is sufficient
+                return;
             }
         }
     }
@@ -220,6 +225,9 @@ public partial class OverworldFactionManager : Node2D
     // ═══════════════════════════════════════════════════════════════════════
     // Save / restore across combat scene swaps
     // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>Returns the id of the resident archmage (for router persistence).</summary>
+    public string GetArchmageId() => _archmageId;
 
     /// <summary>Returns the current coord of every patrol, in spawn order. Save this to EncounterRouter before entering combat.</summary>
     public List<Vector2I> GetPatrolPositions()
@@ -230,9 +238,6 @@ public partial class OverworldFactionManager : Node2D
         return result;
     }
 
-    /// <summary>Returns the id of the resident archmage (for router persistence).</summary>
-    public string GetArchmageId() => _archmageId;
-
     /// <summary>
     /// Teleports existing patrol tokens to the saved positions.
     /// Call in OverworldRunManager.RestoreFromCombat() to skip the
@@ -240,12 +245,46 @@ public partial class OverworldFactionManager : Node2D
     /// </summary>
     public void RestorePatrolPositions(List<Vector2I> positions)
     {
-        if (positions == null || positions.Count == 0) return;
+        if (positions == null || positions.Count == 0)
+            return;
 
         for (int i = 0; i < _patrols.Count && i < positions.Count; i++)
             _patrols[i].TeleportTo(positions[i]);
 
         GD.Print($"[FactionManager] Restored {System.Math.Min(_patrols.Count, positions.Count)} patrol position(s).");
+    }
+
+    /// <summary>Remaining recovery cooldown for every patrol, in spawn order. Save before combat.</summary>
+    public List<int> GetPatrolCooldowns()
+    {
+        var result = new List<int>(_patrols.Count);
+        foreach (var p in _patrols)
+            result.Add(p.RecoveryCooldown);
+        return result;
+    }
+
+    /// <summary>Restore remaining cooldowns after a scene swap. Call after RestorePatrolPositions.</summary>
+    public void RestorePatrolCooldowns(List<int> cooldowns)
+    {
+        if (cooldowns == null)
+            return;
+        for (int i = 0; i < _patrols.Count && i < cooldowns.Count; i++)
+            _patrols[i].SetRecoveryCooldown(cooldowns[i]);
+    }
+
+    /// <summary>
+    /// Routs every patrol sitting on <paramref name="coord"/> (the ambush hex):
+    /// each retreats home and won't hunt/capture for <paramref name="cooldownSteps"/> steps.
+    /// </summary>
+    public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
+    {
+        foreach (var p in _patrols)
+            if (p.IsOnSameHex(coord))
+            {
+                p.Disengage(cooldownSteps);
+                GD.Print($"[FactionManager] Patrol '{p.ArchmageId}' routed home, " +
+                         $"recovering for {cooldownSteps} step(s).");
+            }
     }
 
     // ═══════════════════════════════════════════════════════════════════════

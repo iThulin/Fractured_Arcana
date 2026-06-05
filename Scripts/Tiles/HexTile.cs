@@ -154,7 +154,7 @@ public partial class HexTile : Node3D
         }
 
         // ── Tooltip ──────────────────────────────────────────────
-        GD.Print($"[HexTile] Mouse entered {Axial}. TooltipManager: {TooltipManager.Instance != null}, Data: {Data != null}");
+        //GD.Print($"[HexTile] Mouse entered {Axial}. TooltipManager: {TooltipManager.Instance != null}, Data: {Data != null}");
         TooltipManager.Instance?.HideTileTooltip();
     }
 

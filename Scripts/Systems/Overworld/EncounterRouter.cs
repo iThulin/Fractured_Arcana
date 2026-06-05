@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 // ============================================================
 // EncounterRouter.cs
@@ -50,6 +51,7 @@ public partial class EncounterRouter : Node
 
     // Patrol positions saved before entering combat; restored on return.
     public System.Collections.Generic.List<Vector2I> SavedPatrolPositions = new();
+    public List<int> SavedPatrolCooldowns = new();
     public string SavedPatrolArchmageId = "";
 
     public override void _Ready()

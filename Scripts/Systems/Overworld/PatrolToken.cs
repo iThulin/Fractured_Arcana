@@ -58,6 +58,19 @@ public partial class PatrolToken : Node2D
     private RandomNumberGenerator _rng;
     private Color _factionColor;
 
+    // ── Disengagement after capture ─────────────────────────────────────────
+
+    private int _recoveryCooldown; // steps during which the patrol stays home and won't hunt/capture
+
+    /// <summary>True while routed and recovering — will not hunt or capture.</summary>
+    public bool IsDisengaged => _recoveryCooldown > 0;
+
+    /// <summary>Remaining recovery steps. Saved/restored across combat scene swaps.</summary>
+    public int RecoveryCooldown => _recoveryCooldown;
+
+    /// <summary>Restore a remaining cooldown without moving the token (position is restored separately).</summary>
+    public void SetRecoveryCooldown(int steps) => _recoveryCooldown = Mathf.Max(0, steps);
+
     // ═══════════════════════════════════════════════════════════════════════
     // Setup
     // ═══════════════════════════════════════════════════════════════════════
@@ -186,35 +199,46 @@ public partial class PatrolToken : Node2D
     // World tick
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    /// Called by OverworldFactionManager on every player step. Moves one hex.
-    /// </summary>
     public void Tick(Vector2I playerCoord)
     {
         if (_grid == null)
             return;
 
+        // Routed and recovering: hold at home, ignore the player.
+        if (_recoveryCooldown > 0)
+        {
+            _recoveryCooldown--;
+            Vector2I home = _grid.Distance(CurrentCoord, _homeCoord) > 0
+                ? StepToward(CurrentCoord, _homeCoord)
+                : Wander();
+            if (home != CurrentCoord)
+                MoveTo(home);
+            return;
+        }
+
         int distToPlayer = _grid.Distance(CurrentCoord, playerCoord);
 
         Vector2I next;
         if (distToPlayer <= DetectionRange)
-        {
-            // Hunting — step toward player as directly as possible
-            next = StepToward(CurrentCoord, playerCoord);
-        }
+            next = StepToward(CurrentCoord, playerCoord);   // hunt
         else if (_grid.Distance(CurrentCoord, _homeCoord) > HomeRange)
-        {
-            // Drifted too far from home territory — return
-            next = StepToward(CurrentCoord, _homeCoord);
-        }
+            next = StepToward(CurrentCoord, _homeCoord);    // return to territory
         else
-        {
-            // Wander seeded territory around home
             next = Wander();
-        }
 
         if (next != CurrentCoord)
             MoveTo(next);
+    }
+
+    /// <summary>
+    /// Routs the patrol after a fight: teleports it home (its archmage's
+    /// territory) and suppresses hunting/capture for <paramref name="cooldownSteps"/>
+    /// player steps. After that it resumes patrolling automatically.
+    /// </summary>
+    public void Disengage(int cooldownSteps)
+    {
+        _recoveryCooldown = cooldownSteps;
+        TeleportTo(_homeCoord); // ← swap _homeCoord for an archmage-seat coord if you add one
     }
 
     /// <summary>Force the token to a specific coord (used when restoring from combat).</summary>

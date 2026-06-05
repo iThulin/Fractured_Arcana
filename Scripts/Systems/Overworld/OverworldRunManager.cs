@@ -52,6 +52,9 @@ public partial class OverworldRunManager : Node2D
     private float _scaledDifficultyMult = 1.0f;
     private OverworldFactionManager _factionManager;
     private bool _ambushPending = false;
+    private const int AmbushCooldownSteps = 5; // > PatrolToken.DetectionRange so the player can break contact
+    private const int PatrolRecoverySteps = 8; // after a kill: routed home, gone this long, then resumes
+    private const int PatrolShakeSteps = 5; // after a survived loss: just enough to break contact (> DetectionRange = 4)
 
     // ── UI ───────────────────────────────────────────────────────────────
     private Label _stepLabel;
@@ -476,6 +479,7 @@ public partial class OverworldRunManager : Node2D
         if (_factionManager != null)
         {
             router.SavedPatrolPositions = _factionManager.GetPatrolPositions();
+            router.SavedPatrolCooldowns = _factionManager.GetPatrolCooldowns();
             router.SavedPatrolArchmageId = _factionManager.GetArchmageId();
         }
 
@@ -598,7 +602,22 @@ public partial class OverworldRunManager : Node2D
         if (_factionManager != null && router.SavedPatrolPositions.Count > 0)
         {
             _factionManager.RestorePatrolPositions(router.SavedPatrolPositions);
+            _factionManager.RestorePatrolCooldowns(router.SavedPatrolCooldowns);
+
+            if (router.CombatWon)
+            {
+                // Killed the patrol → it routs home to the archmage and recovers.
+                _factionManager.DisengagePatrolsAt(router.SavedCombatHexCoord, PatrolRecoverySteps);
+            }
+            else
+            {
+                // Survived a loss → break contact so it can't re-capture next step.
+                // Delete this branch if you want patrols to keep hounding you after a loss.
+                _factionManager.DisengagePatrolsAt(router.SavedCombatHexCoord, PatrolShakeSteps);
+            }
+
             router.SavedPatrolPositions.Clear();
+            router.SavedPatrolCooldowns.Clear();
         }
 
         GD.Print($"RunManager: Restored. Party at {router.SavedPartyCoord}, " +
