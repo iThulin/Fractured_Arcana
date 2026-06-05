@@ -1,0 +1,240 @@
+{
+	"id": "tidewrack_coast",
+	"displayName": "Tidewrack Coast",
+	"description": "A shipwreck-littered coastline where tidal surges reshape the land twice a day. Smugglers, stranded crews, and something older that came in with the last storm. The water is never the same place twice.",
+	"schoolAffinity": "Ranger",
+	"atmosphere": "Neutral",
+	"baseDifficultyTier": 1,
+	"displayTier": "The Borderlands",
+	"gridWidth": 19,
+	"gridHeight": 17,
+	"stepBudget": 34,
+	"combatPOICount": 12,
+	"restPOICount": 5,
+	"outpostPOICount": 2,
+	"narrativePOICount": 5,
+	"negotiationPOICount": 4,
+	"hasRiver": true,
+	"hasMountainRange": false,
+	"hasRoads": true,
+	"riverCrossingCount": 2,
+	"enemyDifficultyMult": 0.95,
+	"goldRewardMult": 1.2,
+	"baseTerrain": {
+		"elevationFrequency": 0.11,
+		"moistureFrequency": 0.09,
+		"detailWeight": 0.20,
+		"palette": [
+			{
+				"terrainName": "Water",
+				"maxElevation": 0.25
+			},
+			{
+				"terrainName": "Swamp",
+				"maxElevation": 0.38,
+				"minMoisture": 0.65
+			},
+			{
+				"terrainName": "Mountain",
+				"minElevation": 0.84
+			},
+			{
+				"terrainName": "ArcaneGround",
+				"minElevation": 0.50,
+				"maxElevation": 0.70,
+				"minMoisture": 0.72
+			},
+			{
+				"terrainName": "Ruins",
+				"minElevation": 0.42,
+				"maxElevation": 0.68,
+				"maxMoisture": 0.38
+			},
+			{
+				"terrainName": "Forest",
+				"minMoisture": 0.52
+			},
+			{
+				"terrainName": "Grassland"
+			}
+		]
+	},
+	"encounterPools": {
+		"skirmish": [
+			{
+				"name": "beach_watch",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "smugglers",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "stranded_crew",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "shore_raiders",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "storm_cult",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "wreckers",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "tidal_ambush",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "fleet_landing",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			},
+			{
+				"name": "cult_ritual",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "harbour_siege",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "tidal_surge",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "fog_attack",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		]
+	}
+}

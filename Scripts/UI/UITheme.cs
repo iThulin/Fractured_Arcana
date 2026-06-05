@@ -137,7 +137,7 @@ public static class UITheme
     public static readonly Color ShieldPurple = new Color(0.50f, 0.25f, 0.85f, 0.80f);
     public const float HealthBarWidth = 1.6f;
     public static readonly Color APPipFull = new Color(0.9f, 0.8f, 0.2f);
-	public static readonly Color APPipEmpty = new Color(0.25f, 0.25f, 0.25f);
+    public static readonly Color APPipEmpty = new Color(0.25f, 0.25f, 0.25f);
 
     // ════════════════════════════════════════════════════════════
     // TILE HIGHLIGHTS
@@ -223,6 +223,7 @@ public static class UITheme
     public static readonly Color POIObjective = new Color(1.00f, 0.85f, 0.20f, 1f);
     public static readonly Color POINarrative = new Color(0.70f, 0.40f, 1.00f, 1f);
     public static readonly Color POINegotiation = new Color(0.20f, 0.80f, 0.58f, 1f);
+    public static readonly Color POIOutpost = new Color(0.90f, 0.60f, 0.12f, 1f);
 
     public static readonly Color HexBorderColor = new Color(0.18f, 0.14f, 0.22f, 0.70f);
     public const float HexBorderWidth = 1.5f;

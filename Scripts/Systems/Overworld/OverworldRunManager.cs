@@ -49,6 +49,7 @@ public partial class OverworldRunManager : Node2D
     private Vector2I? _pendingCombatHexCoord = null;
     private EncounterDefinition _pendingEncounter = null;
     private string _pendingTerrain = null;
+    private float _scaledDifficultyMult = 1.0f;
 
     // ── UI ───────────────────────────────────────────────────────────────
     private Label _stepLabel;
@@ -114,10 +115,28 @@ public partial class OverworldRunManager : Node2D
         if (_region != null)
         {
             StepBudget = _region.StepBudget;
-            GD.Print($"RunManager: Loaded region '{_region.DisplayName}' " +
-                    $"(StepBudget={StepBudget}, POIs: {_region.CombatPOICount}/" +
-                    $"{_region.RestPOICount}/{_region.NarrativePOICount}/" +
-                    $"{_region.NegotiationPOICount})");
+
+            // ── Scale difficulty by progression ─────────────────────────────
+            // Count how many regions the player has cleared so far (not counting
+            // the current one — it's the challenge, not the reward).
+            int completedRegions = 0;
+            if (SaveManager.ActiveSave != null)
+            {
+                foreach (var mem in SaveManager.ActiveSave.RegionMemory.Values)
+                {
+                    if (mem.ObjectiveReached && mem.RegionId != regionId)
+                        completedRegions++;
+                }
+            }
+
+            float progression = completedRegions * 0.05f * _region.BaseDifficultyTier;
+            _scaledDifficultyMult = _region.EnemyDifficultyMult * (1f + progression);
+
+            GD.Print($"[Difficulty] Region='{_region.DisplayName}' " +
+                     $"Tier={_region.BaseDifficultyTier} " +
+                     $"BaseMult={_region.EnemyDifficultyMult:F2} " +
+                     $"Completed={completedRegions} " +
+                     $"ScaledMult={_scaledDifficultyMult:F2}");
         }
 
         // ── Build the grid with that seed ───────────────────────────────────
@@ -130,7 +149,9 @@ public partial class OverworldRunManager : Node2D
         int restCount = _region?.RestPOICount ?? 4;
         int narrativeCount = _region?.NarrativePOICount ?? 3;
         int negotiationCount = _region?.NegotiationPOICount ?? 2;
-        POIGenerator.Generate(_grid, combatCount, restCount, narrativeCount, negotiationCount, seed);
+        int outpostCount = _region?.OutpostPOICount ?? 0;
+        POIGenerator.Generate(_grid, combatCount, restCount, narrativeCount,
+                              negotiationCount, seed, outpostCount);
 
         // Stash the seed on the router
         if (router != null)
@@ -376,7 +397,7 @@ public partial class OverworldRunManager : Node2D
     {
         string terrainType = hex.Terrain.ToString();
         string regionId = _region?.Id ?? "frontier_wilds";
-        float diffMult = _region?.EnemyDifficultyMult ?? 1.0f;
+        float diffMult = _scaledDifficultyMult;
         var tier = EncounterTier.Battle; // expand when POI stores sub-type
 
         var encounterDef = EncounterPoolLoader.Pick(regionId, tier, terrainType, diffMult);
@@ -672,6 +693,29 @@ public partial class OverworldRunManager : Node2D
 
             case OverworldHex.POIType.Negotiation:
                 TriggerNegotiationEncounter(hex, coord);
+                break;
+
+            case OverworldHex.POIType.Outpost:
+                // Full-heal checkpoint — heavier than Rest's quarter-heal.
+                CurrentHP = MaxHP;
+                hex.POIConsumed = true;
+                hex.RefreshVisuals();
+                int outpostSplinters = SplinterDropTable.RestSite();
+                SplinterEarned += outpostSplinters;
+                GoldEarned += 25;
+                // Checkpoint: persist current map + position immediately so the
+                // outpost survives an app close mid-run. RegionMemoryService already
+                // knows how to round-trip fog/POI/seed.
+                if (SaveManager.ActiveSave != null)
+                {
+                    string outpostRegionId = _region?.Id
+                        ?? SaveManager.ActiveSave.CurrentRegionId ?? "frontier_wilds";
+                    RegionMemoryService.Save(outpostRegionId, _grid,
+                        _party.CurrentCoord, objectiveReached: false);
+                    SaveManager.Save();
+                }
+                ShowInfo($"Outpost secured. Fully rested. +{outpostSplinters} Arcane Splinters. Checkpoint saved.");
+                UpdateUI();
                 break;
         }
     }

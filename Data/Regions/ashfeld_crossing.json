@@ -1,62 +1,53 @@
 {
-	"id": "frontier_wilds",
-	"displayName": "Frontier Wilds",
-	"description": "Dense wilderness beyond the guild's reach. Ancient ruins dot the landscape, half-swallowed by forest. Where the road ends, your run begins.",
-	"schoolAffinity": "Elementalist",
+	"id": "ashfeld_crossing",
+	"displayName": "Ashfeld Crossing",
+	"description": "A contested river crossing where two armies bled into the mud and neither won. Broken fortifications, mass graves, and scavengers picking through the aftermath. The roads still run, but nothing friendly walks them.",
+	"schoolAffinity": "Fighter",
 	"atmosphere": "Hostile",
 	"baseDifficultyTier": 1,
 	"displayTier": "The Borderlands",
-	"gridWidth": 21,
-	"gridHeight": 21,
-	"stepBudget": 40,
-	"combatPOICount": 16,
+	"gridWidth": 19,
+	"gridHeight": 19,
+	"stepBudget": 36,
+	"combatPOICount": 14,
 	"restPOICount": 5,
-	"outpostPOICount": 3,
+	"outpostPOICount": 2,
 	"narrativePOICount": 5,
-	"negotiationPOICount": 3,
+	"negotiationPOICount": 4,
 	"hasRiver": true,
 	"hasMountainRange": false,
 	"hasRoads": true,
-	"riverCrossingCount": 3,
+	"riverCrossingCount": 4,
 	"enemyDifficultyMult": 1.0,
-	"goldRewardMult": 1.0,
+	"goldRewardMult": 1.1,
 	"baseTerrain": {
-		"elevationFrequency": 0.10,
-		"moistureFrequency": 0.075,
-		"detailWeight": 0.16,
+		"elevationFrequency": 0.09,
+		"moistureFrequency": 0.07,
+		"detailWeight": 0.12,
 		"palette": [
 			{
 				"terrainName": "Water",
-				"maxElevation": 0.18
-			},
-			{
-				"terrainName": "Volcanic",
-				"minElevation": 0.88,
-				"maxMoisture": 0.28
+				"maxElevation": 0.16
 			},
 			{
 				"terrainName": "Mountain",
-				"minElevation": 0.82
+				"minElevation": 0.85
 			},
 			{
 				"terrainName": "Swamp",
-				"maxElevation": 0.30,
-				"minMoisture": 0.60
+				"maxElevation": 0.28,
+				"minMoisture": 0.58
 			},
 			{
 				"terrainName": "Ruins",
-				"minElevation": 0.55,
-				"maxElevation": 0.72,
-				"maxMoisture": 0.35
-			},
-			{
-				"terrainName": "ArcaneGround",
-				"minElevation": 0.62,
-				"minMoisture": 0.70
+				"minElevation": 0.45,
+				"maxElevation": 0.70,
+				"maxMoisture": 0.40
 			},
 			{
 				"terrainName": "Forest",
-				"minMoisture": 0.50
+				"minMoisture": 0.55,
+				"maxElevation": 0.65
 			},
 			{
 				"terrainName": "Grassland"
@@ -66,70 +57,56 @@
 	"encounterPools": {
 		"skirmish": [
 			{
-				"name": "patrol",
+				"name": "deserters",
 				"enemies": [
 					{
 						"archetype": "Soldier"
 					},
 					{
-						"archetype": "Ranger"
+						"archetype": "Soldier"
 					}
 				]
 			},
 			{
-				"name": "scouts",
+				"name": "scavengers",
 				"enemies": [
 					{
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Ranger"
+						"archetype": "Soldier"
 					}
 				]
 			},
 			{
-				"name": "vanguard",
+				"name": "advance_scouts",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "Ranger"
 					}
 				]
 			}
 		],
 		"battle": [
 			{
-				"name": "war_band",
+				"name": "rear_guard",
 				"enemies": [
+					{
+						"archetype": "Defender"
+					},
 					{
 						"archetype": "Soldier"
 					},
 					{
 						"archetype": "Soldier"
-					},
-					{
-						"archetype": "Ranger"
 					}
 				]
 			},
 			{
-				"name": "ambush_hunters",
-				"enemies": [
-					{
-						"archetype": "Ranger"
-					},
-					{
-						"archetype": "Ranger"
-					},
-					{
-						"archetype": "Wizard"
-					}
-				]
-			},
-			{
-				"name": "war_coven",
+				"name": "river_raiders",
 				"enemies": [
 					{
 						"archetype": "Soldier"
@@ -138,18 +115,32 @@
 						"archetype": "Brute"
 					},
 					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "mercenary_band",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
 						"archetype": "Wizard"
 					}
 				]
 			},
 			{
-				"name": "fortified_patrol",
+				"name": "siege_remnants",
 				"enemies": [
 					{
 						"archetype": "Defender"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "Defender"
 					},
 					{
 						"archetype": "Ranger"
@@ -159,47 +150,47 @@
 		],
 		"siege": [
 			{
-				"name": "warlord_retinue",
+				"name": "war_machine",
 				"enemies": [
 					{
 						"archetype": "Brute"
 					},
 					{
+						"archetype": "Brute"
+					},
+					{
 						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "officer_retinue",
+				"enemies": [
+					{
+						"archetype": "Soldier"
 					},
 					{
 						"archetype": "Soldier"
 					},
 					{
 						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
 					}
 				]
 			},
 			{
-				"name": "arcane_host",
+				"name": "fortified_stand",
 				"enemies": [
-					{
-						"archetype": "Soldier"
-					},
 					{
 						"archetype": "Defender"
 					},
 					{
-						"archetype": "Wizard"
-					},
-					{
-						"archetype": "Wizard"
-					}
-				]
-			},
-			{
-				"name": "overwhelming_force",
-				"enemies": [
-					{
-						"archetype": "Brute"
-					},
-					{
-						"archetype": "Soldier"
+						"archetype": "Defender"
 					},
 					{
 						"archetype": "Soldier"
@@ -212,13 +203,13 @@
 		],
 		"ambush": [
 			{
-				"name": "forest_ambush",
+				"name": "river_crossing",
 				"enemies": [
 					{
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "Ranger"
 					},
 					{
 						"archetype": "Soldier"
@@ -226,16 +217,16 @@
 				]
 			},
 			{
-				"name": "ruins_trap",
+				"name": "ruins_holdout",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "Defender"
 					},
 					{
 						"archetype": "Soldier"
 					},
 					{
-						"archetype": "Ranger"
+						"archetype": "Wizard"
 					}
 				]
 			}

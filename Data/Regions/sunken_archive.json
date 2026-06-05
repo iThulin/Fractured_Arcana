@@ -1,0 +1,238 @@
+{
+	"id": "sunken_archive",
+	"displayName": "The Sunken Archive",
+	"description": "A pre-Collapse library complex that sank into an aquifer centuries ago and has been slowly re-emerging ever since. The knowledge inside is still intact. So are the things that were locked in with it.",
+	"schoolAffinity": "Arcanist",
+	"atmosphere": "Hostile",
+	"baseDifficultyTier": 2,
+	"displayTier": "The Interior",
+	"gridWidth": 21,
+	"gridHeight": 19,
+	"stepBudget": 40,
+	"combatPOICount": 15,
+	"restPOICount": 4,
+	"outpostPOICount": 3,
+	"narrativePOICount": 8,
+	"negotiationPOICount": 2,
+	"hasRiver": true,
+	"hasMountainRange": false,
+	"hasRoads": false,
+	"riverCrossingCount": 3,
+	"enemyDifficultyMult": 1.3,
+	"goldRewardMult": 1.25,
+	"baseTerrain": {
+		"elevationFrequency": 0.10,
+		"moistureFrequency": 0.08,
+		"detailWeight": 0.18,
+		"palette": [
+			{
+				"terrainName": "Water",
+				"maxElevation": 0.24
+			},
+			{
+				"terrainName": "ArcaneGround",
+				"minElevation": 0.55,
+				"minMoisture": 0.60
+			},
+			{
+				"terrainName": "Ruins",
+				"minElevation": 0.40,
+				"maxElevation": 0.82
+			},
+			{
+				"terrainName": "Mountain",
+				"minElevation": 0.86
+			},
+			{
+				"terrainName": "Swamp",
+				"maxElevation": 0.38,
+				"minMoisture": 0.62
+			},
+			{
+				"terrainName": "Forest",
+				"minMoisture": 0.55
+			},
+			{
+				"terrainName": "Grassland"
+			}
+		]
+	},
+	"encounterPools": {
+		"skirmish": [
+			{
+				"name": "archive_guards",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "relic_hunters",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "ward_constructs",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "arcane_wardens",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "salvage_crew",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "bound_sentinels",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "resonance_cult",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "archive_ascendant",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			},
+			{
+				"name": "deep_vault",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "unshackled",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "ward_activation",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "resonance_surge",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		]
+	}
+}

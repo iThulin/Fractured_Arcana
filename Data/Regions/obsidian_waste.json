@@ -1,0 +1,238 @@
+{
+	"id": "obsidian_waste",
+	"displayName": "The Obsidian Waste",
+	"description": "A volcanic plateau where the last eruption cycle ended three hundred years ago and the land still hasn't forgiven it. Obsidian fields, lava channels that run warm even in winter, and the ruins of a civilization that thought they could build here. They were wrong. So is everyone who comes after them.",
+	"schoolAffinity": "Elementalist",
+	"atmosphere": "Hostile",
+	"baseDifficultyTier": 3,
+	"displayTier": "The Reaches",
+	"gridWidth": 23,
+	"gridHeight": 23,
+	"stepBudget": 50,
+	"combatPOICount": 20,
+	"restPOICount": 4,
+	"outpostPOICount": 4,
+	"narrativePOICount": 5,
+	"negotiationPOICount": 1,
+	"hasRiver": false,
+	"hasMountainRange": true,
+	"hasRoads": false,
+	"riverCrossingCount": 0,
+	"enemyDifficultyMult": 1.7,
+	"goldRewardMult": 1.5,
+	"baseTerrain": {
+		"elevationFrequency": 0.13,
+		"moistureFrequency": 0.06,
+		"detailWeight": 0.24,
+		"palette": [
+			{
+				"terrainName": "Volcanic",
+				"maxElevation": 0.28
+			},
+			{
+				"terrainName": "Volcanic",
+				"minElevation": 0.82,
+				"maxMoisture": 0.35
+			},
+			{
+				"terrainName": "Mountain",
+				"minElevation": 0.76
+			},
+			{
+				"terrainName": "Ruins",
+				"minElevation": 0.42,
+				"maxElevation": 0.76,
+				"maxMoisture": 0.30
+			},
+			{
+				"terrainName": "ArcaneGround",
+				"minElevation": 0.55,
+				"minMoisture": 0.60
+			},
+			{
+				"terrainName": "Grassland"
+			}
+		]
+	},
+	"encounterPools": {
+		"skirmish": [
+			{
+				"name": "ash_patrol",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			},
+			{
+				"name": "lava_scouts",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "waste_wardens",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "obsidian_guard",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "lava_cult",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			},
+			{
+				"name": "ash_warband",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "caldera_host",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "eruption_vanguard",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "ashen_tide",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "plateau_lord",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "lava_channel",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "ash_cloud",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			}
+		]
+	}
+}

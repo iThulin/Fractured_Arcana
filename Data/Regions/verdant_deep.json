@@ -1,0 +1,239 @@
+{
+	"id": "verdant_deep",
+	"displayName": "The Verdant Deep",
+	"description": "An old-growth forest so dense the canopy blocks the sky for days at a time. The trees here predate the Collapse. They have opinions about visitors. The elemental storms roll in from the west without warning and leave the ground changed behind them.",
+	"schoolAffinity": "Elementalist",
+	"atmosphere": "Hostile",
+	"baseDifficultyTier": 2,
+	"displayTier": "The Interior",
+	"gridWidth": 21,
+	"gridHeight": 21,
+	"stepBudget": 42,
+	"combatPOICount": 15,
+	"restPOICount": 5,
+	"outpostPOICount": 3,
+	"narrativePOICount": 6,
+	"negotiationPOICount": 2,
+	"hasRiver": true,
+	"hasMountainRange": false,
+	"hasRoads": false,
+	"riverCrossingCount": 3,
+	"enemyDifficultyMult": 1.35,
+	"goldRewardMult": 1.15,
+	"baseTerrain": {
+		"elevationFrequency": 0.09,
+		"moistureFrequency": 0.065,
+		"detailWeight": 0.15,
+		"palette": [
+			{
+				"terrainName": "Water",
+				"maxElevation": 0.16
+			},
+			{
+				"terrainName": "Swamp",
+				"maxElevation": 0.32,
+				"minMoisture": 0.65
+			},
+			{
+				"terrainName": "ArcaneGround",
+				"minElevation": 0.60,
+				"minMoisture": 0.72
+			},
+			{
+				"terrainName": "Mountain",
+				"minElevation": 0.84
+			},
+			{
+				"terrainName": "Ruins",
+				"minElevation": 0.52,
+				"maxElevation": 0.75,
+				"maxMoisture": 0.40
+			},
+			{
+				"terrainName": "Forest",
+				"minMoisture": 0.42
+			},
+			{
+				"terrainName": "Grassland"
+			}
+		]
+	},
+	"encounterPools": {
+		"skirmish": [
+			{
+				"name": "forest_watch",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "deep_hunters",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "grove_patrol",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "storm_wardens",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "deep_grove",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "elemental_cult",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "verdant_host",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "storm_convergence",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "grove_ancient",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "deep_rising",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "canopy_strike",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "grove_awakened",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		]
+	}
+}

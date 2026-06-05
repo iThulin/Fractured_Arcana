@@ -5,10 +5,10 @@ using System.Collections.Generic;
 // POIGenerator.cs
 //
 // Purpose:        Static helper that scatters points of interest
-//                 (combat / rest / narrative / negotiation)
-//                 across an OverworldHexGrid using region POI
-//                 counts and a seeded RNG. Avoids entry/objective
-//                 tiles and respects spacing rules.
+//                 (combat / outpost / rest / narrative /
+//                 negotiation) across an OverworldHexGrid using
+//                 region POI counts and a seeded RNG. Avoids
+//                 entry/objective tiles and respects spacing rules.
 // Layer:          System
 // Collaborators:  OverworldHexGrid.cs (mutates per-tile POI),
 //                 OverworldHex.cs (POIType enum),
@@ -16,19 +16,26 @@ using System.Collections.Generic;
 // See:            README §4.2 (Adding a Region)
 // ============================================================
 
-/// <summary>Static seeded POI scatterer. Phase 1 implementation is uniform random over candidate hexes with spacing rules; Phase 2+ will add terrain-affinity weighting and biome-specific POI types.</summary>
+/// <summary>Static seeded POI scatterer. Outposts are placed first and spaced widely as
+/// full-heal checkpoints for large regions; combat / rest / narrative / negotiation follow
+/// with their own spacing and terrain-affinity rules.</summary>
 public static class POIGenerator
 {
     /// <summary>
     /// Scatter POIs across the grid. Call after grid generation, before fog init.
+    /// outpostCount defaults to 0 so existing call sites compile unchanged; pass the
+    /// region's OutpostPOICount to enable checkpoint nodes on larger maps.
     /// </summary>
     public static void Generate(OverworldHexGrid grid, int combatCount,
                                 int restCount, int narrativeCount = 3,
-                                int negotiationCount = 0, int seed = 0)
+                                int negotiationCount = 0, int seed = 0,
+                                int outpostCount = 0)
     {
         var rng = new RandomNumberGenerator();
-        if (seed != 0) rng.Seed = (ulong)seed;
-        else rng.Randomize();
+        if (seed != 0)
+            rng.Seed = (ulong)seed;
+        else
+            rng.Randomize();
 
         var candidates = new List<Vector2I>();
         var placed = new List<Vector2I>();
@@ -38,23 +45,71 @@ public static class POIGenerator
             var coord = kvp.Key;
             var hex = kvp.Value;
 
-            if (coord == grid.EntryCoord) continue;
-            if (coord == grid.ObjectiveCoord) continue;
-            if (hex.Terrain == OverworldHex.TerrainType.Water) continue;
-            if (grid.Distance(coord, grid.EntryCoord) < 3) continue;
-            if (grid.Distance(coord, grid.ObjectiveCoord) < 2) continue;
+            if (coord == grid.EntryCoord)
+                continue;
+            if (coord == grid.ObjectiveCoord)
+                continue;
+            if (hex.Terrain == OverworldHex.TerrainType.Water)
+                continue;
+            if (grid.Distance(coord, grid.EntryCoord) < 3)
+                continue;
+            if (grid.Distance(coord, grid.ObjectiveCoord) < 2)
+                continue;
 
             candidates.Add(coord);
         }
 
         Shuffle(candidates, rng);
 
+        // Place outpost POIs FIRST — full-heal checkpoints spaced widely across the
+        // map so they break a large region into legible legs. Prefer Road/Grassland.
+        int outpostPlaced = 0;
+        // First pass: terrain-appropriate, wide spacing from each other and from entry.
+        foreach (var coord in candidates)
+        {
+            if (outpostPlaced >= outpostCount)
+                break;
+            if (!IsSpacedEnough(coord, placed, grid, 5))
+                continue;
+            if (grid.Distance(coord, grid.EntryCoord) < 5)
+                continue;
+
+            var terrain = grid.Hexes[coord].Terrain;
+            if (terrain == OverworldHex.TerrainType.Road ||
+                terrain == OverworldHex.TerrainType.Grassland)
+            {
+                grid.Hexes[coord].POI = OverworldHex.POIType.Outpost;
+                placed.Add(coord);
+                outpostPlaced++;
+            }
+        }
+        // Second pass: any non-water hex, slightly relaxed spacing, still away from entry.
+        foreach (var coord in candidates)
+        {
+            if (outpostPlaced >= outpostCount)
+                break;
+            if (placed.Contains(coord))
+                continue;
+            if (!IsSpacedEnough(coord, placed, grid, 4))
+                continue;
+            if (grid.Distance(coord, grid.EntryCoord) < 4)
+                continue;
+
+            grid.Hexes[coord].POI = OverworldHex.POIType.Outpost;
+            placed.Add(coord);
+            outpostPlaced++;
+        }
+
         // Place combat POIs
         int combatPlaced = 0;
         foreach (var coord in candidates)
         {
-            if (combatPlaced >= combatCount) break;
-            if (!IsSpacedEnough(coord, placed, grid, 2)) continue;
+            if (combatPlaced >= combatCount)
+                break;
+            if (placed.Contains(coord))
+                continue;
+            if (!IsSpacedEnough(coord, placed, grid, 2))
+                continue;
 
             grid.Hexes[coord].POI = OverworldHex.POIType.Combat;
             placed.Add(coord);
@@ -65,9 +120,12 @@ public static class POIGenerator
         int restPlaced = 0;
         foreach (var coord in candidates)
         {
-            if (restPlaced >= restCount) break;
-            if (placed.Contains(coord)) continue;
-            if (!IsSpacedEnough(coord, placed, grid, 2)) continue;
+            if (restPlaced >= restCount)
+                break;
+            if (placed.Contains(coord))
+                continue;
+            if (!IsSpacedEnough(coord, placed, grid, 2))
+                continue;
 
             grid.Hexes[coord].POI = OverworldHex.POIType.Rest;
             placed.Add(coord);
@@ -79,9 +137,12 @@ public static class POIGenerator
         // First pass: try terrain-appropriate hexes
         foreach (var coord in candidates)
         {
-            if (narrativePlaced >= narrativeCount) break;
-            if (placed.Contains(coord)) continue;
-            if (!IsSpacedEnough(coord, placed, grid, 2)) continue;
+            if (narrativePlaced >= narrativeCount)
+                break;
+            if (placed.Contains(coord))
+                continue;
+            if (!IsSpacedEnough(coord, placed, grid, 2))
+                continue;
 
             var terrain = grid.Hexes[coord].Terrain;
             if (terrain == OverworldHex.TerrainType.Ruins ||
@@ -97,9 +158,12 @@ public static class POIGenerator
         // Second pass: place remaining narrative POIs anywhere
         foreach (var coord in candidates)
         {
-            if (narrativePlaced >= narrativeCount) break;
-            if (placed.Contains(coord)) continue;
-            if (!IsSpacedEnough(coord, placed, grid, 2)) continue;
+            if (narrativePlaced >= narrativeCount)
+                break;
+            if (placed.Contains(coord))
+                continue;
+            if (!IsSpacedEnough(coord, placed, grid, 2))
+                continue;
 
             grid.Hexes[coord].POI = OverworldHex.POIType.Narrative;
             placed.Add(coord);
@@ -110,9 +174,12 @@ public static class POIGenerator
         int negPlaced = 0;
         foreach (var coord in candidates)
         {
-            if (negPlaced >= negotiationCount) break;
-            if (placed.Contains(coord)) continue;
-            if (!IsSpacedEnough(coord, placed, grid, 3)) continue;
+            if (negPlaced >= negotiationCount)
+                break;
+            if (placed.Contains(coord))
+                continue;
+            if (!IsSpacedEnough(coord, placed, grid, 3))
+                continue;
 
             var terrain = grid.Hexes[coord].Terrain;
             if (terrain == OverworldHex.TerrainType.Road ||
@@ -126,19 +193,22 @@ public static class POIGenerator
         // Second pass anywhere
         foreach (var coord in candidates)
         {
-            if (negPlaced >= negotiationCount) break;
-            if (placed.Contains(coord)) continue;
-            if (!IsSpacedEnough(coord, placed, grid, 3)) continue;
+            if (negPlaced >= negotiationCount)
+                break;
+            if (placed.Contains(coord))
+                continue;
+            if (!IsSpacedEnough(coord, placed, grid, 3))
+                continue;
             grid.Hexes[coord].POI = OverworldHex.POIType.Negotiation;
             placed.Add(coord);
             negPlaced++;
         }
 
-        GD.Print($"POIs placed: {combatPlaced} combat, {restPlaced} rest, " +
-            $"{narrativePlaced} narrative, {negPlaced} negotiation");
+        GD.Print($"POIs placed: {combatPlaced} combat, {outpostPlaced} outpost, " +
+            $"{restPlaced} rest, {narrativePlaced} narrative, {negPlaced} negotiation");
     }
 
-        private static void Shuffle<T>(List<T> list, RandomNumberGenerator rng)
+    private static void Shuffle<T>(List<T> list, RandomNumberGenerator rng)
     {
         for (int i = list.Count - 1; i > 0; i--)
         {
@@ -147,7 +217,7 @@ public static class POIGenerator
         }
     }
 
-    private static bool IsSpacedEnough(Vector2I coord, List<Vector2I> existing, 
+    private static bool IsSpacedEnough(Vector2I coord, List<Vector2I> existing,
                                         OverworldHexGrid grid, int minDist)
     {
         foreach (var other in existing)

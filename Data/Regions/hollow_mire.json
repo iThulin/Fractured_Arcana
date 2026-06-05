@@ -1,0 +1,239 @@
+{
+	"id": "hollow_mire",
+	"displayName": "The Hollow Mire",
+	"description": "A vast, lightless swamp where the dead accumulate faster than the living can account for them. Mass graves from three forgotten wars have seeped into the water table. Every memorial here has been here before you arrived.",
+	"schoolAffinity": "Necromancer",
+	"atmosphere": "Hostile",
+	"baseDifficultyTier": 2,
+	"displayTier": "The Interior",
+	"gridWidth": 21,
+	"gridHeight": 21,
+	"stepBudget": 42,
+	"combatPOICount": 16,
+	"restPOICount": 4,
+	"outpostPOICount": 3,
+	"narrativePOICount": 7,
+	"negotiationPOICount": 1,
+	"hasRiver": true,
+	"hasMountainRange": false,
+	"hasRoads": false,
+	"riverCrossingCount": 2,
+	"enemyDifficultyMult": 1.3,
+	"goldRewardMult": 1.15,
+	"baseTerrain": {
+		"elevationFrequency": 0.09,
+		"moistureFrequency": 0.065,
+		"detailWeight": 0.14,
+		"palette": [
+			{
+				"terrainName": "Water",
+				"maxElevation": 0.22
+			},
+			{
+				"terrainName": "Swamp",
+				"maxElevation": 0.48,
+				"minMoisture": 0.55
+			},
+			{
+				"terrainName": "Ruins",
+				"minElevation": 0.48,
+				"maxElevation": 0.72,
+				"maxMoisture": 0.45
+			},
+			{
+				"terrainName": "ArcaneGround",
+				"minElevation": 0.55,
+				"minMoisture": 0.68
+			},
+			{
+				"terrainName": "Mountain",
+				"minElevation": 0.85
+			},
+			{
+				"terrainName": "Forest",
+				"minMoisture": 0.48
+			},
+			{
+				"terrainName": "Grassland"
+			}
+		]
+	},
+	"encounterPools": {
+		"skirmish": [
+			{
+				"name": "grave_robbers",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "bog_patrol",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "cult_initiates",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "death_cult",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "mire_wardens",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "risen_remnants",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "hollow_hunters",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "necromancer_cell",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "grave_host",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "mire_ascendant",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "bog_trap",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "swamp_rising",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		]
+	}
+}

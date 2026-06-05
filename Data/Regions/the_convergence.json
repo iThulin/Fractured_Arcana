@@ -1,0 +1,253 @@
+{
+	"id": "the_convergence",
+	"displayName": "The Convergence",
+	"description": "Where the ley lines cross. Every school of magic has ruins here. Every faction has had a claim here and lost it. The terrain is a record of every war ever fought for this ground — volcanic scars from one age, frozen rubble from another, drowned archives from a third. The guild wants what's at the center. So does everyone else.",
+	"schoolAffinity": "Adept",
+	"atmosphere": "Hostile",
+	"baseDifficultyTier": 3,
+	"displayTier": "The Reaches",
+	"gridWidth": 25,
+	"gridHeight": 25,
+	"stepBudget": 56,
+	"combatPOICount": 24,
+	"restPOICount": 5,
+	"outpostPOICount": 5,
+	"narrativePOICount": 8,
+	"negotiationPOICount": 3,
+	"hasRiver": true,
+	"hasMountainRange": true,
+	"hasRoads": true,
+	"riverCrossingCount": 4,
+	"enemyDifficultyMult": 1.9,
+	"goldRewardMult": 1.8,
+	"baseTerrain": {
+		"elevationFrequency": 0.11,
+		"moistureFrequency": 0.08,
+		"detailWeight": 0.20,
+		"palette": [
+			{
+				"terrainName": "Water",
+				"maxElevation": 0.16
+			},
+			{
+				"terrainName": "Volcanic",
+				"minElevation": 0.86,
+				"maxMoisture": 0.28
+			},
+			{
+				"terrainName": "Mountain",
+				"minElevation": 0.80
+			},
+			{
+				"terrainName": "Swamp",
+				"maxElevation": 0.30,
+				"minMoisture": 0.68
+			},
+			{
+				"terrainName": "ArcaneGround",
+				"minElevation": 0.58,
+				"minMoisture": 0.65
+			},
+			{
+				"terrainName": "Ruins",
+				"minElevation": 0.48,
+				"maxElevation": 0.78,
+				"maxMoisture": 0.42
+			},
+			{
+				"terrainName": "Forest",
+				"minMoisture": 0.50
+			},
+			{
+				"terrainName": "Grassland"
+			}
+		]
+	},
+	"encounterPools": {
+		"skirmish": [
+			{
+				"name": "convergence_vanguard",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "ley_hunters",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "rival_scouts",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "multi_school_cell",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "convergence_guard",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "rival_expedition",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "ley_warband",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "convergence_host",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "all_schools_war",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "nexus_ascendant",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "ley_surge",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			},
+			{
+				"name": "convergence_trap",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		]
+	}
+}

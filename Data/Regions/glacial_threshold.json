@@ -1,0 +1,239 @@
+{
+	"id": "glacial_threshold",
+	"displayName": "The Glacial Threshold",
+	"description": "The spine of the world — a mountain range so high that clouds form below the passes and frostbite is a constant companion. The ice here is ancient and has things preserved inside it. Some of them are still alive. The cold doesn't kill you if you're prepared. Being unprepared does.",
+	"schoolAffinity": "Arcanist",
+	"atmosphere": "Hostile",
+	"baseDifficultyTier": 3,
+	"displayTier": "The Reaches",
+	"gridWidth": 23,
+	"gridHeight": 23,
+	"stepBudget": 48,
+	"combatPOICount": 18,
+	"restPOICount": 4,
+	"outpostPOICount": 4,
+	"narrativePOICount": 5,
+	"negotiationPOICount": 1,
+	"hasRiver": true,
+	"hasMountainRange": true,
+	"hasRoads": false,
+	"riverCrossingCount": 2,
+	"enemyDifficultyMult": 1.7,
+	"goldRewardMult": 1.45,
+	"baseTerrain": {
+		"elevationFrequency": 0.13,
+		"moistureFrequency": 0.07,
+		"detailWeight": 0.26,
+		"palette": [
+			{
+				"terrainName": "Water",
+				"maxElevation": 0.14
+			},
+			{
+				"terrainName": "Mountain",
+				"minElevation": 0.68
+			},
+			{
+				"terrainName": "ArcaneGround",
+				"minElevation": 0.52,
+				"maxElevation": 0.68,
+				"minMoisture": 0.65
+			},
+			{
+				"terrainName": "Ruins",
+				"minElevation": 0.44,
+				"maxElevation": 0.68,
+				"maxMoisture": 0.35
+			},
+			{
+				"terrainName": "Forest",
+				"minMoisture": 0.55,
+				"maxElevation": 0.62
+			},
+			{
+				"terrainName": "Grassland"
+			}
+		]
+	},
+	"encounterPools": {
+		"skirmish": [
+			{
+				"name": "frost_patrol",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "ice_hunters",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "peak_wardens",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "glacier_guard",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "frost_cult",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "ice_warband",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
+				"name": "preserved_host",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "avalanche_tide",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "frozen_ascendant",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "threshold_lords",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "whiteout",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			},
+			{
+				"name": "crevasse_trap",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			}
+		]
+	}
+}

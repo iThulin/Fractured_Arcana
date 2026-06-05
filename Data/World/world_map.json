@@ -5,50 +5,187 @@
 		{
 			"regionId": "frontier_wilds",
 			"displayName": "Frontier Wilds",
-			"description": "Dense wilderness beyond the guild's reach. Your first expedition.",
+			"description": "Dense wilderness beyond the guild's reach. Ancient ruins dot the landscape, half-swallowed by forest. Where the road ends, your run begins.",
 			"col": 1,
-			"row": 1,
+			"row": 0,
 			"adjacentTo": [
-				"haunted_ruins",
-				"trade_city"
+				"ashfeld_crossing",
+				"tidewrack_coast",
+				"hollow_mire",
+				"verdant_deep"
 			],
 			"unlockedByDefault": true,
+			"requiresRegionCleared": "",
 			"deploymentCost": 0,
 			"schoolAffinity": "Elementalist",
 			"atmosphere": "Hostile",
 			"terrainFlavor": "Dense Forest"
 		},
 		{
-			"regionId": "haunted_ruins",
-			"displayName": "Haunted Ruins",
-			"description": "The bones of an ancient city. The dead do not rest here.",
-			"col": 0,
-			"row": 2,
+			"regionId": "ashfeld_crossing",
+			"displayName": "Ashfeld Crossing",
+			"description": "A contested river crossing where two armies bled into the mud and neither won. Broken fortifications, scavengers, and the long aftermath of war.",
+			"col": 2,
+			"row": 0,
 			"adjacentTo": [
-				"frontier_wilds"
+				"frontier_wilds",
+				"tidewrack_coast",
+				"the_crags",
+				"sunken_archive"
+			],
+			"unlockedByDefault": true,
+			"requiresRegionCleared": "",
+			"deploymentCost": 0,
+			"schoolAffinity": "Fighter",
+			"atmosphere": "Hostile",
+			"terrainFlavor": "War-Scarred Plains"
+		},
+		{
+			"regionId": "tidewrack_coast",
+			"displayName": "Tidewrack Coast",
+			"description": "A shipwreck-littered coastline where tidal surges reshape the land twice a day. Smugglers, stranded crews, and something older that came in with the last storm.",
+			"col": 3,
+			"row": 0,
+			"adjacentTo": [
+				"ashfeld_crossing",
+				"the_crags"
+			],
+			"unlockedByDefault": true,
+			"requiresRegionCleared": "",
+			"deploymentCost": 0,
+			"schoolAffinity": "Ranger",
+			"atmosphere": "Neutral",
+			"terrainFlavor": "Storm-Battered Coast"
+		},
+		{
+			"regionId": "hollow_mire",
+			"displayName": "The Hollow Mire",
+			"description": "A vast lightless swamp where the dead accumulate faster than the living can account for them. Every memorial here has been here before you arrived.",
+			"col": 0,
+			"row": 1,
+			"adjacentTo": [
+				"frontier_wilds",
+				"verdant_deep",
+				"obsidian_waste"
+			],
+			"unlockedByDefault": false,
+			"requiresRegionCleared": "frontier_wilds",
+			"deploymentCost": 40,
+			"schoolAffinity": "Necromancer",
+			"atmosphere": "Hostile",
+			"terrainFlavor": "Death-Soaked Swamp"
+		},
+		{
+			"regionId": "verdant_deep",
+			"displayName": "The Verdant Deep",
+			"description": "An old-growth forest so dense the canopy blocks the sky for days at a time. The trees predate the Collapse. They have opinions about visitors.",
+			"col": 1,
+			"row": 1,
+			"adjacentTo": [
+				"frontier_wilds",
+				"hollow_mire",
+				"sunken_archive",
+				"obsidian_waste"
 			],
 			"unlockedByDefault": false,
 			"requiresRegionCleared": "frontier_wilds",
 			"deploymentCost": 50,
-			"schoolAffinity": "Necromancer",
+			"schoolAffinity": "Elementalist",
 			"atmosphere": "Hostile",
-			"terrainFlavor": "Ancient Ruins"
+			"terrainFlavor": "Ancient Forest"
 		},
 		{
-			"regionId": "trade_city",
-			"displayName": "Trade City Outskirts",
-			"description": "Where deals are struck and information flows freely.",
+			"regionId": "sunken_archive",
+			"displayName": "The Sunken Archive",
+			"description": "A pre-Collapse library complex that sank into an aquifer and has been slowly re-emerging ever since. The knowledge is still intact. So are the things locked in with it.",
+			"col": 2,
+			"row": 1,
+			"adjacentTo": [
+				"ashfeld_crossing",
+				"verdant_deep",
+				"the_crags",
+				"glacial_threshold"
+			],
+			"unlockedByDefault": false,
+			"requiresRegionCleared": "ashfeld_crossing",
+			"deploymentCost": 60,
+			"schoolAffinity": "Arcanist",
+			"atmosphere": "Hostile",
+			"terrainFlavor": "Flooded Ruins"
+		},
+		{
+			"regionId": "the_crags",
+			"displayName": "The Crags",
+			"description": "A broken highland where the passes are narrow and every ridgeline hides someone watching you. Ranger country \u2014 both the kind that guides travelers and the kind that prefers they don't arrive.",
+			"col": 3,
+			"row": 1,
+			"adjacentTo": [
+				"ashfeld_crossing",
+				"tidewrack_coast",
+				"sunken_archive",
+				"glacial_threshold",
+				"the_convergence"
+			],
+			"unlockedByDefault": false,
+			"requiresRegionCleared": "ashfeld_crossing",
+			"deploymentCost": 50,
+			"schoolAffinity": "Ranger",
+			"atmosphere": "Hostile",
+			"terrainFlavor": "Highland Passes"
+		},
+		{
+			"regionId": "obsidian_waste",
+			"displayName": "The Obsidian Waste",
+			"description": "A volcanic plateau where the last eruption cycle ended three centuries ago and the land still hasn't forgiven it. The ruins here thought they could survive. They were wrong.",
+			"col": 1,
+			"row": 2,
+			"adjacentTo": [
+				"hollow_mire",
+				"verdant_deep",
+				"the_convergence"
+			],
+			"unlockedByDefault": false,
+			"requiresRegionCleared": "hollow_mire",
+			"deploymentCost": 80,
+			"schoolAffinity": "Elementalist",
+			"atmosphere": "Hostile",
+			"terrainFlavor": "Volcanic Badlands"
+		},
+		{
+			"regionId": "glacial_threshold",
+			"displayName": "The Glacial Threshold",
+			"description": "The spine of the world \u2014 a mountain range so high that clouds form below the passes. The ice here is ancient and has things preserved inside it. Some of them are still alive.",
 			"col": 2,
 			"row": 2,
 			"adjacentTo": [
-				"frontier_wilds"
+				"sunken_archive",
+				"the_crags",
+				"the_convergence"
 			],
 			"unlockedByDefault": false,
-			"requiresRegionCleared": "frontier_wilds",
-			"deploymentCost": 30,
-			"schoolAffinity": "Enchanter",
-			"atmosphere": "Neutral",
-			"terrainFlavor": "Settled Roads"
+			"requiresRegionCleared": "sunken_archive",
+			"deploymentCost": 80,
+			"schoolAffinity": "Arcanist",
+			"atmosphere": "Hostile",
+			"terrainFlavor": "Frozen Peaks"
+		},
+		{
+			"regionId": "the_convergence",
+			"displayName": "The Convergence",
+			"description": "Where the ley lines cross. Every school has ruins here. Every faction has lost a claim here. The guild wants what's at the center. So does everyone else.",
+			"col": 3,
+			"row": 2,
+			"adjacentTo": [
+				"the_crags",
+				"obsidian_waste",
+				"glacial_threshold"
+			],
+			"unlockedByDefault": false,
+			"requiresRegionCleared": "obsidian_waste",
+			"deploymentCost": 120,
+			"schoolAffinity": "Adept",
+			"atmosphere": "Hostile",
+			"terrainFlavor": "Ley Line Nexus"
 		}
 	]
 }

@@ -14,13 +14,33 @@ using System.Collections.Generic;
 //                 (combat grid).
 // Layer:          System
 // Collaborators:  OverworldHex.cs (child tiles),
-//                 RegionDefinition.cs (input parameters),
+//                 OverworldField.cs (seeded terrain field),
+//                 RegionDefinition.cs (palette + feature inputs),
 //                 FogOfWarManager.cs, POIGenerator.cs (modify the
 //                 grid post-construction)
 // See:            README §3 — overworld layer
+//
+// Generation rewrite (substrate pass — mirrors the combat MapField
+// rewrite of HexGridManager):
+//   - Seeded OverworldField produces coherent elevation + moisture;
+//     terrain is DERIVED from a region palette (water in lows,
+//     mountains on ridges, forest in the wet band) instead of being
+//     painted from hardcoded biome centres.
+//   - Adjacency constraints smooth illegal terrain transitions
+//     (e.g. Volcanic next to Swamp) and force Mountain/Volcanic to
+//     read as contiguous ranges rather than speckle.
+//   - The river now traces the DESCENDING elevation gradient from a
+//     high edge to a low edge, rather than running down the middle
+//     column; roads branch toward POIs.
+//   - A connectivity guarantee carves a corridor when entry→objective
+//     would otherwise be walled off by Water/Mountain — a failure the
+//     previous generator could silently produce and never checked.
+//   - All randomness draws from the seeded RNG / field, so the map
+//     regenerates identically on return from combat (invariant relied
+//     on by EncounterRouter + OverworldRunManager).
 // ============================================================
 
-/// <summary>2D flat-top hex grid for the overworld map. Owns the per-tile <see cref="OverworldHex"/> children and exposes axial-coord helpers. Seeded RNG ensures the same map regenerates on return from combat.</summary>
+/// <summary>2D flat-top hex grid for the overworld map. Owns the per-tile <see cref="OverworldHex"/> children and exposes axial-coord helpers. Seeded field + RNG ensure the same map regenerates on return from combat.</summary>
 public partial class OverworldHexGrid : Node2D
 {
     [Export] public int Seed = 0;  // 0 = random
@@ -32,6 +52,7 @@ public partial class OverworldHexGrid : Node2D
 
     // ── Runtime data ────────────────────────────────────────────────────
     private RandomNumberGenerator _rng;
+    private OverworldField _field;
     public Dictionary<Vector2I, OverworldHex> Hexes { get; private set; } = new();
     public Vector2I EntryCoord { get; private set; }
     public Vector2I ObjectiveCoord { get; private set; }
@@ -74,7 +95,6 @@ public partial class OverworldHexGrid : Node2D
     /// </summary>
     public void GenerateGrid()
     {
-        GD.Print($"GenerateGrid called from:\n{System.Environment.StackTrace}");
         foreach (var hex in Hexes.Values)
             hex.QueueFree();
         Hexes.Clear();
@@ -96,9 +116,15 @@ public partial class OverworldHexGrid : Node2D
             }
         }
 
-        // ── Generate terrain with biomes ────────────────────────────────
-        GenerateBiomes();
+        // ── Seeded coherent field → palette classification ──────────────
+        BuildField();
+        GenerateTerrainFromField();
 
+        // ── Adjacency + contiguity smoothing ────────────────────────────
+        ApplyAdjacencyConstraints();
+        ConsolidateRanges();
+
+        // ── Feature layers (toggled per-region) ─────────────────────────
         if (Region == null || Region.HasRiver)
             GenerateRiver();
 
@@ -130,194 +156,274 @@ public partial class OverworldHexGrid : Node2D
         }
         ClearTerrainAround(ObjectiveCoord, 1, OverworldHex.TerrainType.ArcaneGround);
 
+        // ── Guarantee the objective is reachable from entry ─────────────
+        EnsureEntryToObjectiveConnectivity();
+
         GD.Print($"Overworld grid generated: {GridWidth}x{GridHeight}, " +
-                 $"Entry={EntryCoord}, Objective={ObjectiveCoord}");
+                 $"Entry={EntryCoord}, Objective={ObjectiveCoord}, Seed={Seed}");
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Biome generation
+    // Field-based terrain generation
     // ═══════════════════════════════════════════════════════════════════════
 
-    private struct BiomeSeed
+    private void BuildField()
     {
-        public Vector2I Center;
-        public OverworldHex.TerrainType Primary;
-        public OverworldHex.TerrainType Secondary;
-        public int Radius;
-    }
+        _field = new OverworldField(Seed);
 
-    private void GenerateBiomes()
-    {
-        // Start everything as grassland
-        foreach (var hex in Hexes.Values)
-            hex.Terrain = OverworldHex.TerrainType.Grassland;
-
-        // Build biome list — from region if set, otherwise the hardcoded defaults
-        var biomes = (Region != null && Region.Biomes != null && Region.Biomes.Count > 0)
-            ? BuildBiomesFromRegion()
-            : BuildDefaultBiomes();
-
-        foreach (var biome in biomes)
-            PaintBiome(biome);
-    }
-
-    private List<BiomeSeed> BuildBiomesFromRegion()
-    {
-        var biomes = new List<BiomeSeed>();
-        foreach (var bd in Region.Biomes)
+        var bt = Region?.BaseTerrain;
+        if (bt != null)
         {
-            biomes.Add(new BiomeSeed
-            {
-                Center = new Vector2I(bd.CenterQ, bd.CenterR),
-                Primary = ParseTerrain(bd.PrimaryTerrain),
-                Secondary = ParseTerrain(bd.SecondaryTerrain),
-                Radius = bd.Radius
-            });
+            if (bt.ElevationFrequency > 0f)
+                _field.ElevationFrequency = bt.ElevationFrequency;
+            if (bt.MoistureFrequency > 0f)
+                _field.MoistureFrequency = bt.MoistureFrequency;
+            if (bt.DetailWeight >= 0f)
+                _field.DetailWeight = bt.DetailWeight;
+            _field.ApplyFrequencies();
         }
-        return biomes;
     }
 
-    private List<BiomeSeed> BuildDefaultBiomes()
+    /// <summary>
+    /// Classifies every hex from the seeded field using the region palette, falling
+    /// back to a built-in default palette when the region authors none.
+    /// </summary>
+    private void GenerateTerrainFromField()
     {
-        // The same hardcoded biomes you have now, just extracted into a method.
-        var biomes = new List<BiomeSeed>();
+        var palette = (Region?.BaseTerrain != null && Region.BaseTerrain.HasPalette)
+            ? Region.BaseTerrain.Palette
+            : DefaultPalette();
 
-        biomes.Add(new BiomeSeed
-        {
-            Center = new Vector2I(3, 3),
-            Primary = OverworldHex.TerrainType.Forest,
-            Secondary = OverworldHex.TerrainType.Swamp,
-            Radius = 4
-        });
-        biomes.Add(new BiomeSeed
-        {
-            Center = new Vector2I(8, 2),
-            Primary = OverworldHex.TerrainType.Ruins,
-            Secondary = OverworldHex.TerrainType.ArcaneGround,
-            Radius = 3
-        });
-        biomes.Add(new BiomeSeed
-        {
-            Center = new Vector2I(12, 11),
-            Primary = OverworldHex.TerrainType.Volcanic,
-            Secondary = OverworldHex.TerrainType.Mountain,
-            Radius = 3
-        });
-        biomes.Add(new BiomeSeed
-        {
-            Center = new Vector2I(3, 11),
-            Primary = OverworldHex.TerrainType.Swamp,
-            Secondary = OverworldHex.TerrainType.Forest,
-            Radius = 3
-        });
-        biomes.Add(new BiomeSeed
-        {
-            Center = new Vector2I(12, 5),
-            Primary = OverworldHex.TerrainType.ArcaneGround,
-            Secondary = OverworldHex.TerrainType.Ruins,
-            Radius = 3
-        });
-        biomes.Add(new BiomeSeed
-        {
-            Center = new Vector2I(11, 1),
-            Primary = OverworldHex.TerrainType.Mountain,
-            Secondary = OverworldHex.TerrainType.Grassland,
-            Radius = 3
-        });
-
-        return biomes;
-    }
-
-    private OverworldHex.TerrainType ParseTerrain(string name)
-    {
-        return Enum.TryParse<OverworldHex.TerrainType>(name, out var result)
-            ? result : OverworldHex.TerrainType.Grassland;
-    }
-
-    private void PaintBiome(BiomeSeed biome)
-    {
         foreach (var kvp in Hexes)
         {
-            int dist = Distance(kvp.Key, biome.Center);
-            if (dist > biome.Radius + 1) continue;
+            float elevation = _field.SampleElevation01(kvp.Key);
+            float moisture = _field.SampleMoisture01(kvp.Key);
+            kvp.Value.Terrain = _field.ClassifyByPalette(palette, elevation, moisture);
+        }
+    }
 
-            var hex = kvp.Value;
-            int hash = HashCoord(kvp.Key.X, kvp.Key.Y);
+    /// <summary>
+    /// Sensible default palette used when a region authors no base-terrain block.
+    /// Ordered specific → general; ends with an unbounded Grassland catch-all.
+    /// Low ground = water, high ground = mountain, dry highs = volcanic ridges,
+    /// the wet mid-band = forest, the dry mid = grassland.
+    /// </summary>
+    private static List<OverworldPaletteRule> DefaultPalette()
+    {
+        return new List<OverworldPaletteRule>
+        {
+            new() { TerrainName = "Water",    MaxElevation = 0.18f },
+            new() { TerrainName = "Volcanic", MinElevation = 0.86f, MaxMoisture = 0.30f },
+            new() { TerrainName = "Mountain", MinElevation = 0.82f },
+            new() { TerrainName = "Swamp",    MaxElevation = 0.30f, MinMoisture = 0.62f },
+            new() { TerrainName = "Forest",   MinMoisture = 0.52f },
+            new() { TerrainName = "Grassland" } // unbounded catch-all
+        };
+    }
 
-            if (dist <= biome.Radius - 1)
+    // ═══════════════════════════════════════════════════════════════════════
+    // Adjacency constraints — smooth illegal terrain transitions
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Pairs that should never sit edge-to-edge. When found, the "softer" tile of
+    // the pair is replaced with a buffer terrain so the transition reads naturally.
+    private static readonly (OverworldHex.TerrainType a, OverworldHex.TerrainType b, OverworldHex.TerrainType buffer)[] ForbiddenPairs =
+    {
+        // Volcanic should never bleed straight into wet terrain.
+        (OverworldHex.TerrainType.Volcanic, OverworldHex.TerrainType.Swamp,  OverworldHex.TerrainType.Mountain),
+        (OverworldHex.TerrainType.Volcanic, OverworldHex.TerrainType.Water,  OverworldHex.TerrainType.Mountain),
+        (OverworldHex.TerrainType.Volcanic, OverworldHex.TerrainType.Forest, OverworldHex.TerrainType.Grassland),
+        // Swamp shouldn't touch bare mountain — insert grassland/forest fringe.
+        (OverworldHex.TerrainType.Swamp,    OverworldHex.TerrainType.Mountain, OverworldHex.TerrainType.Grassland),
+    };
+
+    /// <summary>
+    /// Single pass that replaces the softer side of any forbidden adjacency with a buffer
+    /// terrain. Order-independent enough for a single sweep at overworld scale; the buffer
+    /// itself is always a "neutral" terrain so it can't create a new forbidden pair.
+    /// </summary>
+    private void ApplyAdjacencyConstraints()
+    {
+        // Snapshot terrain so edits within the sweep don't cascade unpredictably.
+        var snapshot = new Dictionary<Vector2I, OverworldHex.TerrainType>(Hexes.Count);
+        foreach (var kvp in Hexes)
+            snapshot[kvp.Key] = kvp.Value.Terrain;
+
+        foreach (var kvp in Hexes)
+        {
+            var coord = kvp.Key;
+            var terrain = snapshot[coord];
+
+            foreach (var neighbor in GetNeighbors(coord))
             {
-                // Core — solid primary terrain
-                hex.Terrain = biome.Primary;
-            }
-            else if (dist == biome.Radius)
-            {
-                // Edge — mix of primary and secondary
-                hex.Terrain = (hash % 3 < 2) ? biome.Primary : biome.Secondary;
-            }
-            else if (dist == biome.Radius + 1)
-            {
-                // Fringe — mostly stays as-is, occasional secondary bleed
-                if (hash % 5 == 0)
-                    hex.Terrain = biome.Secondary;
+                var nTerrain = snapshot[neighbor];
+
+                foreach (var rule in ForbiddenPairs)
+                {
+                    // Replace whichever side of the pair is the second member (the
+                    // "softer" terrain) with the buffer. Check both orderings.
+                    if (terrain == rule.a && nTerrain == rule.b)
+                    {
+                        Hexes[neighbor].Terrain = rule.buffer;
+                    }
+                    else if (terrain == rule.b && nTerrain == rule.a)
+                    {
+                        Hexes[coord].Terrain = rule.buffer;
+                    }
+                }
             }
         }
     }
 
+    /// <summary>
+    /// Removes isolated single-hex Mountain / Volcanic specks so those terrains read as
+    /// contiguous ranges. A peak with no same-terrain neighbour is demoted to the most
+    /// common neighbouring terrain (or Grassland as a last resort).
+    /// </summary>
+    private void ConsolidateRanges()
+    {
+        var toDemote = new List<(Vector2I coord, OverworldHex.TerrainType to)>();
+
+        foreach (var kvp in Hexes)
+        {
+            var terrain = kvp.Value.Terrain;
+            if (terrain != OverworldHex.TerrainType.Mountain &&
+                terrain != OverworldHex.TerrainType.Volcanic)
+                continue;
+
+            var neighbors = GetNeighbors(kvp.Key);
+            bool hasSameNeighbor = false;
+            var counts = new Dictionary<OverworldHex.TerrainType, int>();
+
+            foreach (var n in neighbors)
+            {
+                var nt = Hexes[n].Terrain;
+                if (nt == terrain)
+                { hasSameNeighbor = true; break; }
+                counts[nt] = counts.TryGetValue(nt, out var c) ? c + 1 : 1;
+            }
+
+            if (hasSameNeighbor)
+                continue;
+
+            // Demote the speck to its most common neighbour terrain.
+            var best = OverworldHex.TerrainType.Grassland;
+            int bestCount = -1;
+            foreach (var pair in counts)
+            {
+                if (pair.Value > bestCount)
+                {
+                    bestCount = pair.Value;
+                    best = pair.Key;
+                }
+            }
+            toDemote.Add((kvp.Key, best));
+        }
+
+        foreach (var (coord, to) in toDemote)
+            Hexes[coord].Terrain = to;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
-    // River generation — snakes vertically through the map
+    // River generation — traces the descending elevation gradient
     // ═══════════════════════════════════════════════════════════════════════
 
     private void GenerateRiver()
     {
-        // River flows from top to bottom, snaking left and right
-        int q = GridWidth / 2; // start in the middle
+        if (_field == null || Hexes.Count == 0)
+            return;
+
+        // Source: the highest-elevation hex on the top or left edge.
+        // Mouth: flow is driven entirely by following the descending gradient.
+        Vector2I source = FindRiverSource();
         var riverHexes = new List<Vector2I>();
+        var visited = new HashSet<Vector2I>();
 
-        for (int r = 0; r < GridHeight; r++)
+        Vector2I current = source;
+        int safety = GridWidth * GridHeight; // hard cap against loops
+
+        while (safety-- > 0 && Hexes.ContainsKey(current) && visited.Add(current))
         {
-            var coord = new Vector2I(q, r);
-            if (Hexes.ContainsKey(coord))
-            {
-                riverHexes.Add(coord);
-                Hexes[coord].Terrain = OverworldHex.TerrainType.Water;
+            riverHexes.Add(current);
+            Hexes[current].Terrain = OverworldHex.TerrainType.Water;
 
-                // Widen the river occasionally
-                int hash = HashCoord(q, r);
-                if (hash % 4 == 0)
+            // Occasional widening for a more natural channel (seeded).
+            if ((HashCoord(current.X, current.Y) & 3) == 0)
+            {
+                foreach (var n in GetNeighbors(current))
                 {
-                    var wide = new Vector2I(q - 1, r);
-                    if (Hexes.ContainsKey(wide))
+                    if (Hexes[n].Terrain != OverworldHex.TerrainType.Water &&
+                        _rng.Randf() < 0.5f)
                     {
-                        riverHexes.Add(wide);
-                        Hexes[wide].Terrain = OverworldHex.TerrainType.Water;
+                        Hexes[n].Terrain = OverworldHex.TerrainType.Water;
+                        riverHexes.Add(n);
+                        break; // widen by at most one hex per step
                     }
                 }
             }
 
-            // Snake left or right
-            int drift = HashCoord(q + r * 7, r) % 5;
-            if (drift == 0 && q > 2) q--;
-            else if (drift == 1 && q < GridWidth - 3) q++;
-            // else stay straight
-        }
+            // Step to the lowest-elevation unvisited neighbour (downhill flow).
+            Vector2I next = current;
+            float lowest = _field.SampleElevation01(current);
+            bool found = false;
 
-        // Create 2-3 crossing points (bridges / fords)
-        int crossingSpacing = GridHeight / 4;
-        for (int i = 1; i <= 3; i++)
-        {
-            int crossingR = i * crossingSpacing;
-            if (crossingR >= GridHeight) continue;
-
-            // Find the river hex at this row
-            foreach (var rc in riverHexes)
+            foreach (var n in GetNeighbors(current))
             {
-                if (rc.Y == crossingR)
+                if (visited.Contains(n))
+                    continue;
+                float e = _field.SampleElevation01(n);
+                if (e < lowest)
                 {
-                    Hexes[rc].Terrain = OverworldHex.TerrainType.Road;
-                    break;
+                    lowest = e;
+                    next = n;
+                    found = true;
                 }
             }
+
+            // Local minimum reached (a basin / lake) — stop the river here.
+            if (!found || next == current)
+                break;
+
+            current = next;
         }
+
+        // Carve crossings (fords / bridges) so roads and the party can cross.
+        int crossingCount = Region?.RiverCrossingCount ?? 2;
+        if (crossingCount > 0 && riverHexes.Count > 0)
+        {
+            int spacing = Mathf.Max(1, riverHexes.Count / (crossingCount + 1));
+            for (int i = 1; i <= crossingCount; i++)
+            {
+                int idx = i * spacing;
+                if (idx >= riverHexes.Count)
+                    break;
+                Hexes[riverHexes[idx]].Terrain = OverworldHex.TerrainType.Road;
+            }
+        }
+    }
+
+    /// <summary>Highest-elevation hex along the top or left edge — the river's headwater.</summary>
+    private Vector2I FindRiverSource()
+    {
+        Vector2I best = new(0, 0);
+        float bestElev = -1f;
+
+        foreach (var kvp in Hexes)
+        {
+            var c = kvp.Key;
+            bool onEdge = c.X == 0 || c.Y == 0;
+            if (!onEdge)
+                continue;
+
+            float e = _field.SampleElevation01(c);
+            if (e > bestElev)
+            {
+                bestElev = e;
+                best = c;
+            }
+        }
+
+        return best;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -326,7 +432,7 @@ public partial class OverworldHexGrid : Node2D
 
     private void GenerateRoads()
     {
-        // Main road: roughly horizontal from entry area to objective area
+        // Main road: roughly horizontal mid-map spine from entry side to objective side.
         int roadR = GridHeight / 2;
 
         for (int q = 0; q < GridWidth; q++)
@@ -334,18 +440,20 @@ public partial class OverworldHexGrid : Node2D
             var coord = new Vector2I(q, roadR);
             if (Hexes.TryGetValue(coord, out var hex))
             {
-                // Don't overwrite water (road uses the bridge crossings)
+                // Don't overwrite water — roads use the carved crossings instead.
                 if (hex.Terrain != OverworldHex.TerrainType.Water)
                     hex.Terrain = OverworldHex.TerrainType.Road;
             }
 
-            // Slight vertical wobble
+            // Slight vertical wobble, seeded.
             int hash = HashCoord(q * 13, roadR);
-            if (hash % 6 == 0 && roadR > GridHeight / 2 - 2) roadR--;
-            else if (hash % 6 == 1 && roadR < GridHeight / 2 + 2) roadR++;
+            if (hash % 6 == 0 && roadR > GridHeight / 2 - 2)
+                roadR--;
+            else if (hash % 6 == 1 && roadR < GridHeight / 2 + 2)
+                roadR++;
         }
 
-        // Branch road going north from the middle
+        // Branch road going north from the first third.
         int branchQ = GridWidth / 3;
         for (int r = GridHeight / 2; r >= 2; r--)
         {
@@ -356,12 +464,12 @@ public partial class OverworldHexGrid : Node2D
                     hex.Terrain = OverworldHex.TerrainType.Road;
             }
 
-            // Drift
             int hash = HashCoord(branchQ, r * 11);
-            if (hash % 4 == 0) branchQ++;
+            if (hash % 4 == 0)
+                branchQ++;
         }
 
-        // Branch road going south from 2/3 mark
+        // Branch road going south from the second third.
         branchQ = (GridWidth * 2) / 3;
         for (int r = GridHeight / 2; r < GridHeight - 1; r++)
         {
@@ -373,18 +481,18 @@ public partial class OverworldHexGrid : Node2D
             }
 
             int hash = HashCoord(branchQ, r * 13);
-            if (hash % 4 == 0) branchQ--;
+            if (hash % 4 == 0)
+                branchQ--;
         }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Mountain range — creates a natural barrier to navigate around
+    // Mountain range — optional explicit barrier (region toggle)
     // ═══════════════════════════════════════════════════════════════════════
 
     private void GenerateMountainRange()
     {
-        // Diagonal range from upper-center to lower-right
-        // Creates a wall the player has to route around or pay 3 steps to cross
+        // Diagonal range from upper-center toward lower-right, with periodic passes.
         int q = GridWidth / 2 + 2;
         int r = 1;
 
@@ -393,7 +501,6 @@ public partial class OverworldHexGrid : Node2D
             var coord = new Vector2I(q, r);
             if (Hexes.TryGetValue(coord, out var hex))
             {
-                // Don't overwrite water or roads
                 if (hex.Terrain != OverworldHex.TerrainType.Water &&
                     hex.Terrain != OverworldHex.TerrainType.Road)
                 {
@@ -401,7 +508,7 @@ public partial class OverworldHexGrid : Node2D
                 }
             }
 
-            // Also paint one neighbor for thickness
+            // Thicken with one seeded neighbour.
             foreach (var dir in HexDirs)
             {
                 var neighbor = coord + dir;
@@ -416,18 +523,124 @@ public partial class OverworldHexGrid : Node2D
                 }
             }
 
-            // Leave a pass every ~3 hexes
+            // Leave a pass every ~3 hexes so the range is navigable.
             if (i % 3 == 2)
             {
-                // Skip painting this hex — creates a gap
                 r++;
                 continue;
             }
 
-            // Move diagonally
             q++;
             r++;
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Connectivity guarantee
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// BFS from entry to objective across passable terrain. Water and Mountain block the
+    /// path. If the objective is unreachable, carve a Grassland corridor along the
+    /// straightest hex line between them so a run can always be completed. Deterministic:
+    /// the carve only depends on coordinates, so it reproduces with the seed.
+    /// </summary>
+    private void EnsureEntryToObjectiveConnectivity()
+    {
+        if (IsReachable(EntryCoord, ObjectiveCoord))
+            return;
+
+        GD.Print("Overworld: objective unreachable — carving guaranteed corridor.");
+
+        foreach (var coord in HexLine(EntryCoord, ObjectiveCoord))
+        {
+            if (!Hexes.TryGetValue(coord, out var hex))
+                continue;
+            if (coord == ObjectiveCoord) // keep the objective's ArcaneGround tile
+                continue;
+
+            if (hex.Terrain == OverworldHex.TerrainType.Water ||
+                hex.Terrain == OverworldHex.TerrainType.Mountain)
+            {
+                hex.Terrain = OverworldHex.TerrainType.Grassland;
+            }
+        }
+    }
+
+    /// <summary>True when a passable path exists between two coords (Water/Mountain block).</summary>
+    private bool IsReachable(Vector2I start, Vector2I goal)
+    {
+        if (!Hexes.ContainsKey(start) || !Hexes.ContainsKey(goal))
+            return false;
+
+        var visited = new HashSet<Vector2I> { start };
+        var queue = new Queue<Vector2I>();
+        queue.Enqueue(start);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            if (current == goal)
+                return true;
+
+            foreach (var n in GetNeighbors(current))
+            {
+                if (visited.Contains(n))
+                    continue;
+                if (IsBlockingTerrain(Hexes[n].Terrain) && n != goal)
+                    continue;
+                visited.Add(n);
+                queue.Enqueue(n);
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsBlockingTerrain(OverworldHex.TerrainType t) =>
+        t == OverworldHex.TerrainType.Water || t == OverworldHex.TerrainType.Mountain;
+
+    /// <summary>Cube-rounded line of axial coords between two hexes (inclusive of both ends).</summary>
+    private List<Vector2I> HexLine(Vector2I a, Vector2I b)
+    {
+        var result = new List<Vector2I>();
+        int n = Distance(a, b);
+        if (n == 0)
+        {
+            result.Add(a);
+            return result;
+        }
+
+        // Cube coords for endpoints.
+        float ax = a.X, az = a.Y, ay = -ax - az;
+        float bx = b.X, bz = b.Y, by = -bx - bz;
+
+        for (int i = 0; i <= n; i++)
+        {
+            float t = (float)i / n;
+            float lx = Mathf.Lerp(ax, bx, t);
+            float ly = Mathf.Lerp(ay, by, t);
+            float lz = Mathf.Lerp(az, bz, t);
+
+            int rx = Mathf.RoundToInt(lx);
+            int ry = Mathf.RoundToInt(ly);
+            int rz = Mathf.RoundToInt(lz);
+
+            float dx = Mathf.Abs(rx - lx);
+            float dy = Mathf.Abs(ry - ly);
+            float dz = Mathf.Abs(rz - lz);
+
+            if (dx > dy && dx > dz)
+                rx = -ry - rz;
+            else if (dy > dz)
+                ry = -rx - rz;
+            else
+                rz = -rx - ry;
+
+            result.Add(new Vector2I(rx, rz));
+        }
+
+        return result;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
