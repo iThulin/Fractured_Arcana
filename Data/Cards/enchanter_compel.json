@@ -1,14 +1,14 @@
 {
-	"id": "enchanter_charm_drift",
+	"id": "enchanter_compel",
 	"status": "wip",
-	"name": "Charm Drift",
+	"name": "Compel",
 	"school": "Enchanter",
 	"rarity": "Common",
 	"top": {
-		"name": "Charm Drift",
+		"name": "Compel",
 		"mana": 1,
 		"speed": "Instant",
-		"rules_text": "Push an enemy 2 tiles in a direction you choose. If it lands on one of your glyphs, trigger it.",
+		"rules_text": "Pull an enemy 2 tiles toward you. If it lands on one of your glyphs, trigger it.",
 		"tags": [
 			"enchantment",
 			"charm"
@@ -20,18 +20,18 @@
 			"enemies_only": true
 		},
 		"effect": {
-			"type": "push_to_glyph",
+			"type": "pull_to_glyph",
 			"tiles": 2
 		}
 	},
 	"bottom": {
-		"name": "Ward Stone",
+		"name": "Sigil of Focus",
 		"mana": 1,
-		"speed": "Instant",
-		"rules_text": "Prepare a glyph on a tile within 4. Allies on this tile gain +4 armor. Lasts 3 turns. Gain 1 Weave.",
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less. Draw 1 card.",
 		"tags": [
 			"enchantment",
-			"ward"
+			"glyph"
 		],
 		"targeting": {
 			"type": "tile",
@@ -42,14 +42,14 @@
 			"steps": [
 				{
 					"type": "prepare_glyph",
-					"trigger": "ally_enter",
-					"ally_armor": 4,
+					"trigger": "self_stand",
+					"caster_cost_reduction": 1,
 					"duration": 3,
 					"reusable": true
 				},
 				{
-					"type": "gain_weave",
-					"amount": 1
+					"type": "draw",
+					"count": 1
 				}
 			]
 		}
@@ -58,9 +58,9 @@
 		{
 			"tier": 1,
 			"half": "both",
-			"top_name": "Charm Drift+",
-			"bottom_name": "Ward Stone+",
-			"description": "Drift pushes further. The ward holds more.",
+			"top_name": "Compel+",
+			"bottom_name": "Sigil of Focus+",
+			"description": "Pull harder. The focus sigil lasts longer.",
 			"changes": [
 				{
 					"half": "top",
@@ -70,25 +70,25 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push an enemy 3 tiles in a direction you choose. If it lands on one of your glyphs, trigger it."
+					"value": "Pull an enemy 3 tiles toward you. If it lands on a glyph, trigger it."
 				},
 				{
 					"half": "bottom",
-					"field": "effect.steps[0].ally_armor",
-					"value": 6
+					"field": "effect.steps[0].duration",
+					"value": 4
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 4. Allies on it gain +6 armor. Lasts 3 turns. Gain 1 Weave."
+					"value": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less (4 turns). Draw 1 card."
 				}
 			]
 		},
 		{
 			"tier": 2,
 			"half": "top",
-			"top_name": "Compelling Drift",
-			"description": "Compelling Drift: collisions deal damage.",
+			"top_name": "Dominate Step",
+			"description": "Dominate Step: collisions deal damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -98,33 +98,33 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push an enemy 3 tiles. If it collides, deal 5. If it lands on a glyph, trigger it."
+					"value": "Pull an enemy 3 tiles toward you. Collision deals 5. Glyph landings trigger."
 				}
 			]
 		},
 		{
 			"tier": 2,
 			"half": "bottom",
-			"bottom_name": "Bulwark Stone",
-			"description": "Bulwark Stone: also grants shield.",
+			"bottom_name": "Sigil of Power",
+			"description": "Sigil of Power: also grants +2 damage while you stand on it.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.steps[0].ally_shield",
+					"field": "effect.steps[0].caster_damage",
 					"value": 2
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 4. Allies on it gain +6 armor and 2 shield. Lasts 3 turns. Gain 1 Weave."
+					"value": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less and deal +2. Draw 1."
 				}
 			]
 		},
 		{
 			"tier": 3,
 			"half": "top",
-			"top_name": "Mass Charm",
-			"description": "Mass Charm: push all enemies in a small area.",
+			"top_name": "Mass Compel",
+			"description": "Mass Compel: drag several enemies in.",
 			"changes": [
 				{
 					"half": "top",
@@ -137,7 +137,7 @@
 							"enemies_only": true
 						},
 						"do": {
-							"type": "push_to_glyph",
+							"type": "pull_to_glyph",
 							"tiles": 3,
 							"collision_damage": 5
 						}
@@ -154,33 +154,33 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push all enemies within 2 of the target 3 tiles. Collisions deal 5; glyph landings trigger."
+					"value": "Pull all enemies within 2 of the target 3 tiles toward you. Collisions deal 5; glyph landings trigger."
 				}
 			]
 		},
 		{
 			"tier": 3,
 			"half": "bottom",
-			"bottom_name": "Aegis Stone",
-			"description": "Aegis Stone: also empowers allies' damage.",
+			"bottom_name": "Throne Sigil",
+			"description": "Throne Sigil: also banks Weave each turn you hold it.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.steps[0].ally_damage",
-					"value": 2
+					"field": "effect.steps[0].caster_weave_per_turn",
+					"value": 1
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 4. Allies on it gain +6 armor, 2 shield, +2 damage. Lasts 3 turns. Gain 1 Weave."
+					"value": "Prepare a glyph within 4. While on it: spells cost 1 less, deal +2, and gain 1 Weave/turn. Draw 1."
 				}
 			]
 		},
 		{
 			"tier": 4,
 			"half": "top",
-			"top_name": "Irresistible Pull",
-			"description": "Irresistible Pull: drag enemies onto your glyphs and Name them.",
+			"top_name": "Absolute Compulsion",
+			"description": "Absolute Compulsion: drag them in and Name them.",
 			"changes": [
 				{
 					"half": "top",
@@ -196,7 +196,7 @@
 							"type": "sequence",
 							"steps": [
 								{
-									"type": "push_to_glyph",
+									"type": "pull_to_glyph",
 									"tiles": 3,
 									"collision_damage": 6
 								},
@@ -220,15 +220,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push all enemies within 2 onto your glyphs (6 collision) and Name each for 1 turn."
+					"value": "Pull all enemies within 2 toward you (6 collision) and Name each for 1 turn."
 				}
 			]
 		},
 		{
 			"tier": 4,
 			"half": "bottom",
-			"bottom_name": "Bastion",
-			"description": "Bastion: a fortress ward for the whole party.",
+			"bottom_name": "Seat of Power",
+			"description": "Seat of Power: the ultimate caster throne.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -237,18 +237,17 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "prepare_glyph_area",
-								"trigger": "ally_enter",
-								"ally_armor": 8,
-								"ally_shield": 4,
-								"ally_damage": 2,
-								"radius": 1,
-								"duration": 3,
+								"type": "prepare_glyph",
+								"trigger": "self_stand",
+								"caster_cost_reduction": 2,
+								"caster_damage": 3,
+								"caster_weave_per_turn": 1,
+								"duration": 99,
 								"reusable": true
 							},
 							{
-								"type": "gain_weave",
-								"amount": 2
+								"type": "draw",
+								"count": 2
 							}
 						]
 					}
@@ -256,7 +255,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare wards on a 1-tile radius within 4. Allies on them gain +8 armor, 4 shield, +2 damage. Lasts 3 turns. Gain 2 Weave."
+					"value": "Prepare a permanent glyph within 4. While on it: spells cost 2 less, deal +3, gain 1 Weave/turn. Draw 2."
 				}
 			]
 		}

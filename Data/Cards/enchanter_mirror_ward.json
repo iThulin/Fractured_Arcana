@@ -1,79 +1,195 @@
 {
-  "id": "enchanter_mirror_ward",
-  "status": "stub",
-  "name": "Mirror Ward",
-  "school": "Enchanter",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Mirror Ward",
-    "mana": 2,
-    "speed": "Reaction",
-    "rules_text": "Prepare on tile: next spell targeting a unit on this tile is reflected back at caster.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Mirror Ward (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Ward persists for 2 triggers instead of 1",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Phase Shift",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Swap positions of any 2 units within range 3. If either lands on prepared tile trigger it.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": false,
-      "enemies_only": false
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Phase Shift (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Swap 3 units in chain",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": false
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "enchanter_mirror_ward",
+	"status": "wip",
+	"name": "Mirror Ward",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Mirror Ward",
+		"mana": 2,
+		"speed": "Reaction",
+		"rules_text": "Prepare a glyph within 4. The next spell targeting a unit on this tile is reflected back at its caster.",
+		"tags": [
+			"enchantment",
+			"ward"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "reflect_ward",
+			"triggers": 1
+		}
+	},
+	"bottom": {
+		"name": "Phase Shift",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Swap the positions of any 2 units within range 3. If either lands on a glyph, trigger it.",
+		"tags": [
+			"enchantment",
+			"charm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": false
+		},
+		"effect": {
+			"type": "swap_units",
+			"trigger_glyph": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Mirror Ward+",
+			"bottom_name": "Phase Shift+",
+			"description": "The ward persists for two reflections. The shift reaches further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.triggers",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4. The next 2 spells targeting a unit on this tile are reflected at their casters."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.range",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Swap any 2 units within range 5. If either lands on a glyph, trigger it."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Mirror Field",
+			"description": "Mirror Field: covers the tile and its neighbors.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare reflecting glyphs on a 1-tile radius within 4. Each reflects the next 2 spells on units there."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Chain Shift",
+			"description": "Chain Shift: swap 3 units in a chain.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.chain",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Cycle the positions of any 3 units within range 5. Glyph landings trigger."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Hall of Reflection",
+			"description": "Hall of Reflection: reflected spells deal +50%.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.reflect_bonus",
+					"value": 0.5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare reflecting glyphs (radius 1) within 4. Reflected spells deal +50% and hit their casters."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Banish Shift",
+			"description": "Banish Shift: also Names the swapped enemy.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.name_enemy",
+					"value": true
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Swap 2 units within range 5; any enemy moved is Named for 1 turn. Glyph landings trigger."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Aegis of Mirrors",
+			"description": "Aegis of Mirrors: a reusable reflecting fortress.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "reflect_ward",
+						"triggers": 99,
+						"radius": 1,
+						"reflect_bonus": 0.5,
+						"duration": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare reflecting glyphs (radius 1) for 3 turns. Every spell targeting units there is reflected for +50%."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Grand Displacement",
+			"description": "Grand Displacement: rearrange the battlefield.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "swap_units",
+						"chain": 99,
+						"trigger_glyph": true,
+						"name_enemy": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Reposition every unit within range 5 as you choose. Enemies moved are Named 1 turn; glyph landings trigger."
+				}
+			]
+		}
+	]
 }

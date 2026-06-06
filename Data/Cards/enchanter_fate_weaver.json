@@ -1,80 +1,217 @@
 {
-  "id": "enchanter_fate_weaver",
-  "status": "stub",
-  "name": "Fate Weaver",
-  "school": "Enchanter",
-  "rarity": "Rare",
-  "top": {
-    "name": "Fate Weaver",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Prepare on tile: whenever any spell is cast within 3 tiles of this glyph you draw 1 card. Lasts 3 turns.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "draw",
-          "count": 1
-        }
-      ]
-    },
-    "channel": {
-      "name": "Fate Weaver (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also gain 1 mana per trigger",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Glyph Storm",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Create a prepared glyph on every unoccupied tile within 2 of your wizard. Each glyph deals 2 damage when triggered.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "damage",
-          "amount": 2
-        }
-      ]
-    },
-    "channel": {
-      "name": "Glyph Storm (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Damage is 2 per glyph",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 4
-      }
-    }
-  }
+	"id": "enchanter_fate_weaver",
+	"status": "wip",
+	"name": "Fate Weaver",
+	"school": "Enchanter",
+	"rarity": "Rare",
+	"top": {
+		"name": "Fate Weaver",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph within 4. Whenever any spell is cast within 3 tiles of it, draw 1 card. Lasts 3 turns.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "prepare_glyph",
+			"trigger": "spell_cast_near",
+			"radius": 3,
+			"on_trigger_draw": 1,
+			"duration": 3,
+			"reusable": true
+		}
+	},
+	"bottom": {
+		"name": "Glyph Storm",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph on every unoccupied tile within 2 of you. Each deals 2 damage when an enemy enters.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "prepare_glyph_area",
+			"trigger": "enter",
+			"damage": 2,
+			"radius": 2,
+			"empty_only": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Fate Weaver+",
+			"bottom_name": "Glyph Storm+",
+			"description": "The weaver also pays mana. The storm bites harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.on_trigger_mana",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4. When any spell is cast within 3 of it, draw 1 and gain 1 mana. Lasts 3 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a glyph on every unoccupied tile within 2 of you. Each deals 3 when an enemy enters."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Destiny Weaver",
+			"description": "Destiny Weaver: also banks Weave on each trigger.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.on_trigger_weave",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4. When any spell casts within 3, draw 1, gain 1 mana, gain 1 Weave. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Glyph Tempest",
+			"description": "Glyph Tempest: also slows.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.status",
+					"value": "slowed"
+				},
+				{
+					"half": "bottom",
+					"field": "effect.status_duration",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare glyphs on every unoccupied tile within 2. Each deals 3 and slows when an enemy enters."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Loom of Fate",
+			"description": "Loom of Fate: triggers on ally spells too, and is permanent.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.duration",
+					"value": 99
+				},
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a permanent glyph. When any spell casts within 4, draw 1, gain 1 mana, gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Glyph Hurricane",
+			"description": "Glyph Hurricane: radius 3.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare glyphs on every unoccupied tile within 3. Each deals 3 and slows when an enemy enters."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Great Loom",
+			"description": "The Great Loom: every nearby spell weaves a new glyph.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph",
+						"trigger": "spell_cast_near",
+						"radius": 4,
+						"on_trigger_draw": 1,
+						"on_trigger_mana": 1,
+						"on_trigger_weave": 1,
+						"on_trigger_spawn_glyph": true,
+						"duration": 99,
+						"reusable": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Permanent glyph. When any spell casts within 4: draw 1, gain 1 mana, 1 Weave, and spawn a 3-damage glyph nearby."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Glyph Cataclysm",
+			"description": "Glyph Cataclysm: a board-filling, Naming storm.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph_area",
+						"trigger": "enter",
+						"damage": 5,
+						"status": "named",
+						"status_duration": 1,
+						"radius": 3,
+						"empty_only": true,
+						"reusable": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare reusable glyphs on every unoccupied tile within 3. Each deals 5 and Names for 1 turn on entry."
+				}
+			]
+		}
+	]
 }

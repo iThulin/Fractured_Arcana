@@ -1,59 +1,245 @@
 {
-  "id": "enchanter_dispel_walk",
-  "status": "stub",
-  "name": "Dispel Walk",
-  "school": "Enchanter",
-  "rarity": "Common",
-  "top": {
-    "name": "Dispel Walk",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Move 2. Remove 1 buff from each enemy you pass adjacent to.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "move",
-          "tiles": 2
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Dispel Walk (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also steal 1 buff (applies to you)",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Glyph Bolt",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Deal 4 damage. If you have 2+ prepared tiles on the board deal 4 instead.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "damage",
-      "amount": 4
-    }
-  }
+	"id": "enchanter_dispel_walk",
+	"status": "wip",
+	"name": "Dispel Walk",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Dispel Walk",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Move 2. Remove 1 buff from each enemy you pass adjacent to.",
+		"tags": [
+			"enchantment",
+			"charm"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 2
+				},
+				{
+					"type": "dispel",
+					"count": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Glyph Bolt",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 4 damage per prepared glyph you control (minimum 4).",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage_per_glyph",
+			"amount": 4,
+			"min": 4
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Dispel Walk+",
+			"bottom_name": "Glyph Bolt+",
+			"description": "Walk further, dispel more. Bolt scales harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].tiles",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 3. Remove 1 buff from each enemy you pass adjacent to."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage per prepared glyph you control (minimum 5)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Thieving Walk",
+			"description": "Thieving Walk: steal the dispelled buffs instead.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].steal",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 3. Steal 1 buff from each enemy you pass adjacent to (you gain it)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Glyph Lance",
+			"description": "Glyph Lance: higher floor.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.min",
+					"value": 8
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage per prepared glyph (minimum 8)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Unmaking Walk",
+			"description": "Unmaking Walk: also weakens dispelled enemies.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move",
+								"tiles": 3
+							},
+							{
+								"type": "dispel",
+								"count": 2,
+								"steal": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 3. Steal up to 2 buffs from enemies you pass adjacent to. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Glyph Cannon",
+			"description": "Glyph Cannon: 6 per glyph.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage per prepared glyph (minimum 8)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Null Walk",
+			"description": "Null Walk: strip every buff and Name those left bare.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move",
+								"tiles": 3
+							},
+							{
+								"type": "dispel",
+								"count": 99,
+								"steal": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 3. Steal ALL buffs from enemies you pass adjacent to. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Glyph Barrage",
+			"description": "Glyph Barrage: hit all enemies for glyph-count damage.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "global",
+							"enemies_only": true
+						},
+						"do": {
+							"type": "damage_per_glyph",
+							"amount": 4,
+							"min": 4
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 4 damage per prepared glyph to ALL enemies (minimum 4)."
+				}
+			]
+		}
+	]
 }

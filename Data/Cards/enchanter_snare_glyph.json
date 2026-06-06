@@ -1,77 +1,246 @@
 {
-  "id": "enchanter_snare_glyph",
-  "status": "stub",
-  "name": "Snare Glyph",
-  "school": "Enchanter",
-  "rarity": "Common",
-  "top": {
-    "name": "Snare Glyph",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Prepare on tile within 3: When enemy enters immobilize 1 turn and deal 4 damage.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Snare Glyph (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also applies Hex (-3 damage) for 2 turns",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Rune Step",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Teleport to any tile with your prepared spell on it. Draw 1 card.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "draw",
-          "count": 1
-        }
-      ]
-    },
-    "channel": {
-      "name": "Rune Step (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also trigger the prepared spell when you arrive",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "enchanter_snare_glyph",
+	"status": "wip",
+	"name": "Snare Glyph",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Snare Glyph",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters, root it 1 turn and deal 4 damage.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "prepare_glyph",
+			"trigger": "enter",
+			"damage": 4,
+			"status": "rooted",
+			"status_duration": 1
+		}
+	},
+	"bottom": {
+		"name": "Rune Step",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Teleport to any tile that has one of your glyphs on it. Draw 1 card.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "teleport_to_glyph",
+					"trigger_on_arrive": false
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Snare Glyph+",
+			"bottom_name": "Rune Step+",
+			"description": "The snare hits harder. Rune Step triggers the glyph on arrival.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 3. When an enemy enters, root it 1 turn and deal 6 damage."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].trigger_on_arrive",
+					"value": true
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport to any tile with one of your glyphs, triggering it. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Hexing Snare",
+			"description": "Hexing Snare: also weakens the enemy (Hex).",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.status",
+					"value": "weakened"
+				},
+				{
+					"half": "top",
+					"field": "effect.status_duration",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 3. When an enemy enters, deal 6 and apply Hex (weakened) for 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Rune Dash",
+			"description": "Rune Dash: also gain 1 Weave on arrival.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1]",
+					"value": {
+						"type": "gain_weave",
+						"amount": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport to a glyph, triggering it. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Crippling Snare",
+			"description": "Crippling Snare: roots for 2 turns and is reusable.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.status_duration",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "effect.reusable",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a reusable glyph. Each enemy entering is rooted 2 turns, takes 6, and is Hexed 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Rune Blink",
+			"description": "Rune Blink: draw and gain Weave on arrival.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport_to_glyph",
+								"trigger_on_arrive": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport to a glyph, triggering it. Draw 1 card. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Maw",
+			"description": "Maw: anything that enters is Named.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph",
+						"trigger": "enter",
+						"damage": 8,
+						"status": "named",
+						"status_duration": 1,
+						"reusable": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a reusable glyph. Each enemy entering takes 8 and is Named (half damage, cannot move) for 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Translocate",
+			"description": "Translocate: blink, trigger, draw 2, and refresh the glyph.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport_to_glyph",
+								"trigger_on_arrive": true,
+								"refresh": true
+							},
+							{
+								"type": "draw",
+								"count": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport to a glyph, triggering it, then refresh it. Draw 2 cards. Gain 1 Weave."
+				}
+			]
+		}
+	]
 }

@@ -1,0 +1,238 @@
+{
+	"id": "enchanter_geas",
+	"status": "wip",
+	"name": "Geas",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Geas",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Lay a compulsion on an enemy for 2 turns: if it moves, it takes 6 damage. Gain 1 Weave.",
+		"tags": [
+			"enchantment",
+			"charm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "geas",
+					"damage": 6,
+					"duration": 2
+				},
+				{
+					"type": "gain_weave",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Empowerment Field",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Prepare wards on a 1-tile radius within 4. Allies on them deal +2 damage. Lasts 3 turns.",
+		"tags": [
+			"enchantment",
+			"ward"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "prepare_glyph_area",
+			"trigger": "ally_enter",
+			"ally_damage": 2,
+			"radius": 1,
+			"duration": 3,
+			"reusable": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Geas+",
+			"bottom_name": "Empowerment Field+",
+			"description": "The compulsion bites harder. The field empowers more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].damage",
+					"value": 8
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Lay a compulsion on an enemy for 2 turns: if it moves, it takes 8. Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.ally_damage",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare wards (radius 1) within 4. Allies on them deal +3. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Twin Geas",
+			"description": "Twin Geas: the punishment also triggers if it casts.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].punish_cast",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Compulsion for 2 turns: the enemy takes 8 if it moves OR casts. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Rallying Field",
+			"description": "Rallying Field: also grants shield.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.ally_shield",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare wards (radius 1) within 4. Allies on them deal +3 and gain 3 shield. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Greater Geas",
+			"description": "Greater Geas: rooted while the compulsion holds.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].root_while_active",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Compulsion for 2 turns: the enemy is rooted, and takes 8 if it casts. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Hallowed Field",
+			"description": "Hallowed Field: radius 2.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare wards (radius 2) within 4. Allies on them deal +3 and gain 3 shield. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Inescapable Geas",
+			"description": "Inescapable Geas: punish everything around the target.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "geas",
+									"damage": 8,
+									"duration": 3,
+									"punish_cast": true,
+									"root_while_active": true
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Compulsion (3 turns) on all enemies within 2: rooted, and 8 damage if they cast. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Field of Glory",
+			"description": "Field of Glory: a sweeping empowerment.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph_area",
+						"trigger": "ally_enter",
+						"ally_damage": 4,
+						"ally_shield": 4,
+						"ally_armor": 4,
+						"radius": 2,
+						"duration": 3,
+						"reusable": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare wards (radius 2) within 4. Allies on them deal +4 and gain 4 shield and 4 armor. Lasts 3 turns."
+				}
+			]
+		}
+	]
+}

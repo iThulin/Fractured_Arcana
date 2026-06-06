@@ -1,43 +1,212 @@
 {
-  "id": "enchanter_maze_of_mirrors",
-  "status": "stub",
-  "name": "Maze of Mirrors",
-  "school": "Enchanter",
-  "rarity": "Legendary",
-  "top": {
-    "name": "Maze of Mirrors",
-    "mana": 4,
-    "speed": "Sorcery",
-    "rules_text": "Create 4 illusory copies of your wizard on prepared tiles. Enemies must guess which is real (random targeting). Copies have 2HP and trigger their tile's glyph when destroyed. Lasts 3 turns.",
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Maze of Mirrors (Channel)",
-      "mana": 4,
-      "speed": "Reaction",
-      "rules_text": "Channel: Copies have 6HP and dealing damage to a copy reflects it back",
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Web of Fate",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Link ALL prepared tiles on the board into a network. Triggering any one tile triggers ALL of them in sequence with +1 cumulative damage each.",
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Web of Fate (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Network persists after triggering (can be triggered again next turn)",
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "enchanter_maze_of_mirrors",
+	"status": "wip",
+	"name": "Maze of Mirrors",
+	"school": "Enchanter",
+	"rarity": "Rare",
+	"top": {
+		"name": "Maze of Mirrors",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Create 4 illusory copies of yourself on nearby tiles (2 HP each). Enemies target you and the copies at random. A destroyed copy triggers its tile's glyph. Lasts 3 turns.",
+		"tags": [
+			"enchantment",
+			"charm"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "summon_illusion",
+			"count": 4,
+			"hp": 2,
+			"duration": 3,
+			"trigger_glyph_on_death": true
+		}
+	},
+	"bottom": {
+		"name": "Web of Fate",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Link all prepared glyphs on the board into a network. Triggering any one triggers them all in sequence, each with +1 cumulative damage.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "link_glyphs",
+			"count": 99,
+			"cumulative_bonus": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Maze of Mirrors+",
+			"bottom_name": "Web of Fate+",
+			"description": "The copies are sturdier. The web hits harder per link.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Create 4 illusory copies (4 HP each). Enemies target you and them at random. Destroyed copies trigger their glyph. Lasts 3 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.cumulative_bonus",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Link all prepared glyphs. Triggering one triggers all, each +2 cumulative damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Hall of Mirrors",
+			"description": "Hall of Mirrors: damage to a copy reflects back at the attacker.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.reflect_on_hit",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Create 4 illusory copies (4 HP). Damaging a copy reflects it at the attacker. Destroyed copies trigger their glyph. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Web of Destiny",
+			"description": "Web of Destiny: the network persists after triggering.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.persist",
+					"value": true
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Link all prepared glyphs permanently. Triggering one triggers all, each +2 cumulative damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Legion of Mirrors",
+			"description": "Legion of Mirrors: six copies that also attack.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "effect.copies_attack",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Create 6 illusory copies (4 HP) that attack for 3. Damaging one reflects it. Destroyed copies trigger their glyph. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Web of Souls",
+			"description": "Web of Souls: each glyph triggered banks Weave.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.on_trigger_weave",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Link all glyphs permanently. Triggering one triggers all (+2 cumulative); gain 1 Weave per glyph."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Infinite Reflection",
+			"description": "Infinite Reflection: a swarm that the enemy cannot read.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "summon_illusion",
+						"count": 8,
+						"hp": 6,
+						"duration": 99,
+						"trigger_glyph_on_death": true,
+						"reflect_on_hit": true,
+						"copies_attack": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Create 8 permanent illusory copies (6 HP) that attack for 4 and reflect damage. Destroyed copies trigger their glyph."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Final Weave",
+			"description": "The Final Weave: link and detonate the entire board.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "link_glyphs",
+								"count": 99,
+								"cumulative_bonus": 2,
+								"persist": true,
+								"on_trigger_weave": 1
+							},
+							{
+								"type": "trigger_all_glyphs",
+								"consume": false
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Link all glyphs permanently, then trigger them all (each +2 cumulative). Gain 1 Weave per glyph."
+				}
+			]
+		}
+	]
 }

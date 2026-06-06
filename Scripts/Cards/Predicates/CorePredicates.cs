@@ -24,7 +24,10 @@ using System.Collections.Generic;
 // branch, but they need to be wired up before those cards work
 // as designed. Each stub has a TODO showing exactly what to wire.
 
-/// <summary>Always returns true. Useful default for the predicate slot and as a sentinel during card authoring.</summary>
+/// <summary>
+/// Always returns true. Useful default for the predicate slot and
+/// as a sentinel during card authoring.
+/// </summary>
 public sealed class AlwaysTrue : IPredicate
 {
     public bool Evaluate(PredicateContext ctx) => true;
@@ -32,31 +35,43 @@ public sealed class AlwaysTrue : IPredicate
 
 // ── Logical combinators ─────────────────────────────────────────────────
 
-/// <summary>Logical AND across multiple predicates. Empty array is vacuously true. Short-circuits on first false.</summary>
+/// <summary>
+/// Logical AND across multiple predicates. Empty array is vacuously
+///  true. Short-circuits on first false.
+/// </summary>
 public sealed class AndPredicate : IPredicate
 {
     public IPredicate[] Parts;
     public AndPredicate(params IPredicate[] parts) { Parts = parts; }
     public bool Evaluate(PredicateContext ctx)
     {
-        foreach (var p in Parts) if (!p.Evaluate(ctx)) return false;
+        foreach (var p in Parts)
+            if (!p.Evaluate(ctx))
+                return false;
         return true;
     }
 }
 
-/// <summary>Logical OR across multiple predicates. Empty array is vacuously false. Short-circuits on first true.</summary>
+/// <summary>
+/// Logical OR across multiple predicates. Empty array is vacuously
+///  false. Short-circuits on first true.
+/// </summary>
 public sealed class OrPredicate : IPredicate
 {
     public IPredicate[] Parts;
     public OrPredicate(params IPredicate[] parts) { Parts = parts; }
     public bool Evaluate(PredicateContext ctx)
     {
-        foreach (var p in Parts) if (p.Evaluate(ctx)) return true;
+        foreach (var p in Parts)
+            if (p.Evaluate(ctx))
+                return true;
         return false;
     }
 }
 
-/// <summary>Logical NOT — inverts the wrapped predicate's result.</summary>
+/// <summary>
+/// Logical NOT — inverts the wrapped predicate's result.
+/// </summary>
 public sealed class NotPredicate : IPredicate
 {
     public IPredicate Inner;
@@ -66,7 +81,10 @@ public sealed class NotPredicate : IPredicate
 
 // ── Result-inspection predicates ────────────────────────────────────────
 
-/// <summary>True when the previous sibling effect in a SequenceEffect reported a lethal hit via its <see cref="EffectResult"/>.</summary>
+/// <summary>
+/// True when the previous sibling effect in a SequenceEffect reported 
+/// a lethal hit via its <see cref="EffectResult"/>.
+/// </summary>
 public sealed class LastEffectWasLethal : IPredicate
 {
     public bool Evaluate(PredicateContext ctx) => ctx.LastResult?.WasLethal ?? false;
@@ -74,7 +92,11 @@ public sealed class LastEffectWasLethal : IPredicate
 
 // ── Tile / position predicates ──────────────────────────────────────────
 
-/// <summary>STUB. Intended: true when the first target is adjacent to a tile of the given type. Currently always returns false — wire up grid lookup before relying on it. TODO: read tile.TileType or tile.HasImbue(kind) once the per-tile classification system lands.</summary>
+/// <summary>
+/// Intended: true when the first target is adjacent to a tile
+///  of the given type. Currently always returns false — wire up grid lookup 
+/// before relying on it.
+/// </summary>
 public sealed class TargetAdjacentToTile : IPredicate
 {
     public string TileType;
@@ -82,7 +104,8 @@ public sealed class TargetAdjacentToTile : IPredicate
 
     public bool Evaluate(PredicateContext ctx)
     {
-        if (ctx.Targets == null || ctx.Targets.Items.Count == 0) return false;
+        if (ctx.Targets == null || ctx.Targets.Items.Count == 0)
+            return false;
         // TODO: replace with real grid lookup
         // var firstTarget = ctx.Targets.Items[0];
         // var pos = GetPositionOf(firstTarget);
@@ -92,7 +115,11 @@ public sealed class TargetAdjacentToTile : IPredicate
     }
 }
 
-/// <summary>STUB. Intended: true when the first target is standing on a tile of the given type. Currently always returns false — wire up grid lookup before relying on it.</summary>
+/// <summary>
+/// Intended: true when the first target is standing on a tile
+/// of the given type. Currently always returns false — wire up grid lookup 
+/// before relying on it.
+/// </summary>
 public sealed class TargetOnTile : IPredicate
 {
     public string TileType;
@@ -100,7 +127,8 @@ public sealed class TargetOnTile : IPredicate
 
     public bool Evaluate(PredicateContext ctx)
     {
-        if (ctx.Targets == null || ctx.Targets.Items.Count == 0) return false;
+        if (ctx.Targets == null || ctx.Targets.Items.Count == 0)
+            return false;
         // TODO: replace with real grid lookup.
         // var pos = GetPositionOf(ctx.Targets.Items[0]);
         // var tile = ctx.Game.Grid.GetTile(pos);
@@ -109,7 +137,10 @@ public sealed class TargetOnTile : IPredicate
     }
 }
 
-/// <summary>True when the first target is within hex distance 1 of the caster's current tile.</summary>
+/// <summary>
+/// True when the first target is within hex distance 1 of the
+/// caster's current tile.
+/// </summary>
 public sealed class TargetAdjacentToCaster : IPredicate
 {
     public bool Evaluate(PredicateContext ctx)
@@ -118,28 +149,37 @@ public sealed class TargetAdjacentToCaster : IPredicate
             return false;
 
         var casterUnit = ctx.Game.ActiveCasterUnit;
-        if (casterUnit?.CurrentTile == null) return false;
+        if (casterUnit?.CurrentTile == null)
+            return false;
 
         var firstTarget = ctx.Targets.Items[0];
         TileData targetTile = null;
 
-        if (firstTarget is Unit u) targetTile = u.CurrentTile;
-        else if (firstTarget is TileData td) targetTile = td;
+        if (firstTarget is Unit u)
+            targetTile = u.CurrentTile;
+        else if (firstTarget is TileData td)
+            targetTile = td;
 
-        if (targetTile == null) return false;
+        if (targetTile == null)
+            return false;
 
         return ctx.Game.Grid.Distance(casterUnit.CurrentTile.Axial, targetTile.Axial) <= 1;
     }
 }
 
-/// <summary>STUB. Intended: true when at least <see cref="AtLeast"/> tiles of the given type exist on the board. Targets cards like Marrow Shield ("gain armor equal to corpses"). Currently always returns false — wire up <c>GameState.Grid.CountTilesOfType</c>.</summary>
+/// <summary> 
+/// Intended: true when at least <see cref="AtLeast"/> tiles of 
+/// the given type exist on the board. Targets cards like Marrow Shield 
+/// ("gain armor equal to corpses"). Currently always returns false.
+/// </summary>
 public sealed class CountOfTileAtLeast : IPredicate
 {
     public string TileType;
     public int AtLeast;
     public CountOfTileAtLeast(string tileType, int atLeast)
     {
-        TileType = tileType; AtLeast = atLeast;
+        TileType = tileType;
+        AtLeast = atLeast;
     }
 
     public bool Evaluate(PredicateContext ctx)
@@ -149,7 +189,12 @@ public sealed class CountOfTileAtLeast : IPredicate
     }
 }
 
-/// <summary>STUB. Intended: true when the current cast is the channel variant of its parent half. Currently always returns false — wire up a channel flag in <see cref="PredicateContext"/> before relying on this. Could replace the standalone ChannelVariant system, or coexist with it.</summary>
+/// <summary>
+/// Intended: true when the current cast is the channel variant of its parent half. 
+/// Currently always returns false — wire up a channel flag in 
+/// <see cref="PredicateContext"/> before relying on this. Could replace the 
+/// standalone ChannelVariant system, or coexist with it.
+/// </summary>
 public sealed class IsChanneled : IPredicate
 {
     public bool Evaluate(PredicateContext ctx)
@@ -159,7 +204,13 @@ public sealed class IsChanneled : IPredicate
     }
 }
 
-/// <summary>True when the caster's current tile matches the named terrain or element type. Checks both <c>TerrainType</c> and <c>ElementType</c> with aliases — "stone" matches Stone terrain or Earth imbuement, "ice" matches Ice terrain or Frost imbuement, "fire"/"storm"/"arcane" match the corresponding imbuements.</summary>
+/// <summary>
+/// True when the caster's current tile matches the named terrain 
+/// or element type. Checks both <c>TerrainType</c> and <c>ElementType</c>
+///  with aliases — "stone" matches Stone terrain or Earth imbuement, 
+/// "ice" matches Ice terrain or Frost imbuement, "fire"/"storm"/"arcane" 
+/// match the corresponding imbuements.
+/// </summary>
 public sealed class CasterOnTerrain : IPredicate
 {
     public string TileType;
@@ -171,16 +222,20 @@ public sealed class CasterOnTerrain : IPredicate
         Unit casterUnit = null;
         if (ctx.Game != null)
         {
-            if (ctx.Caster == ctx.Game.PlayerA) casterUnit = ctx.Game.PlayerUnit;
-            else if (ctx.Caster == ctx.Game.PlayerB) casterUnit = ctx.Game.EnemyUnit;
+            if (ctx.Caster == ctx.Game.PlayerA)
+                casterUnit = ctx.Game.PlayerUnit;
+            else if (ctx.Caster == ctx.Game.PlayerB)
+                casterUnit = ctx.Game.EnemyUnit;
             else
             {
                 foreach (var u in ctx.Game.UnitsInPlay)
-                    if (u != null && u.Name == ctx.Caster?.Name) { casterUnit = u; break; }
+                    if (u != null && u.Name == ctx.Caster?.Name)
+                    { casterUnit = u; break; }
             }
         }
 
-        if (casterUnit?.CurrentTile == null) return false;
+        if (casterUnit?.CurrentTile == null)
+            return false;
 
         var tile = casterUnit.CurrentTile;
         string check = TileType.ToLowerInvariant();
@@ -191,23 +246,36 @@ public sealed class CasterOnTerrain : IPredicate
 
         // Check ElementType (map design names to enum values)
         string elementName = tile.ElementType.ToString().ToLowerInvariant();
-        if (check == elementName) return true;
+        if (check == elementName)
+            return true;
 
         // Handle common aliases: "stone" matches Earth, "ice" matches Frost
-        if (check == "stone" && tile.TerrainType == TileTerrainType.Stone) return true;
-        if (check == "stone" && tile.ElementType == TileElementType.Earth) return true;
-        if (check == "ice" && tile.TerrainType == TileTerrainType.Ice) return true;
-        if (check == "ice" && tile.ElementType == TileElementType.Frost) return true;
-        if (check == "fire" && tile.ElementType == TileElementType.Fire) return true;
-        if (check == "storm" && tile.ElementType == TileElementType.Lightning) return true;
-        if (check == "arcane" && tile.TerrainType == TileTerrainType.Arcane) return true;
-        if (check == "arcane" && tile.ElementType == TileElementType.Arcane) return true;
+        if (check == "stone" && tile.TerrainType == TileTerrainType.Stone)
+            return true;
+        if (check == "stone" && tile.ElementType == TileElementType.Earth)
+            return true;
+        if (check == "ice" && tile.TerrainType == TileTerrainType.Ice)
+            return true;
+        if (check == "ice" && tile.ElementType == TileElementType.Frost)
+            return true;
+        if (check == "fire" && tile.ElementType == TileElementType.Fire)
+            return true;
+        if (check == "storm" && tile.ElementType == TileElementType.Lightning)
+            return true;
+        if (check == "arcane" && tile.TerrainType == TileTerrainType.Arcane)
+            return true;
+        if (check == "arcane" && tile.ElementType == TileElementType.Arcane)
+            return true;
 
         return false;
     }
 }
 
-/// <summary>True when every element in <see cref="RequiredElements"/> is present on at least one tile within <see cref="Range"/> hexes of the caster. ALL must be present — partial matches return false. Element name aliases match those of CasterOnTerrain.</summary>
+/// <summary>
+/// True when every element in <see cref="RequiredElements"/> is 
+/// present on at least one tile within <see cref="Range"/> hexes of the 
+/// caster. ALL must be present — partial matches return false. Element name 
+/// aliases match those of CasterOnTerrain.</summary>
 public sealed class HasElementsNearCaster : IPredicate
 {
     public string[] RequiredElements;
@@ -221,19 +289,24 @@ public sealed class HasElementsNearCaster : IPredicate
 
     public bool Evaluate(PredicateContext ctx)
     {
-        if (ctx.Game?.Grid == null) return false;
+        if (ctx.Game?.Grid == null)
+            return false;
 
         Unit casterUnit = null;
-        if (ctx.Caster == ctx.Game.PlayerA) casterUnit = ctx.Game.PlayerUnit;
-        else if (ctx.Caster == ctx.Game.PlayerB) casterUnit = ctx.Game.EnemyUnit;
-        if (casterUnit?.CurrentTile == null) return false;
+        if (ctx.Caster == ctx.Game.PlayerA)
+            casterUnit = ctx.Game.PlayerUnit;
+        else if (ctx.Caster == ctx.Game.PlayerB)
+            casterUnit = ctx.Game.EnemyUnit;
+        if (casterUnit?.CurrentTile == null)
+            return false;
 
         var center = casterUnit.CurrentTile.Axial;
         var foundElements = new HashSet<TileElementType>();
 
         foreach (var kvp in ctx.Game.Grid.Tiles)
         {
-            if (ctx.Game.Grid.Distance(center, kvp.Key) > Range) continue;
+            if (ctx.Game.Grid.Distance(center, kvp.Key) > Range)
+                continue;
             var tile = kvp.Value;
             if (tile?.ElementType != TileElementType.None)
                 foundElements.Add(tile.ElementType);
@@ -250,9 +323,73 @@ public sealed class HasElementsNearCaster : IPredicate
                 "stone" => TileElementType.Earth,
                 _ => TileElementType.None
             };
-            if (!foundElements.Contains(needed)) return false;
+            if (!foundElements.Contains(needed))
+                return false;
         }
 
         return true;
+    }
+}
+
+/// <summary>
+/// True when the caster's banked Charge is at least <see cref="Value"/>. Used by
+/// threshold cards ("if 3+ charges this chains…").
+/// </summary>
+public sealed class ChargeAtLeastPredicate : IPredicate
+{
+    public int Value;
+    public ChargeAtLeastPredicate(int value) { Value = value; }
+
+    public bool Evaluate(PredicateContext ctx)
+    {
+        var unit = ctx.Game?.ActiveCasterUnit;
+        return unit?.Attunement is ArcaneAttunement arc && arc.Charge >= Value;
+    }
+}
+
+/// <summary>
+/// True when the caster has already cast at least one spell earlier this turn
+/// (i.e. this is not the turn's first spell). Reads the Grimoire's spell count;
+/// because "AbilityCast" fires at push, the current card is already counted, so
+/// the test is &gt;= 2.
+/// </summary>
+public sealed class HasCastSpellThisTurnPredicate : IPredicate
+{
+    public bool Evaluate(PredicateContext ctx)
+    {
+        var unit = ctx.Game?.ActiveCasterUnit;
+        return unit?.Attunement is ArcaneAttunement arc && arc.SpellsCastThisTurn >= 2;
+    }
+}
+
+/// <summary>
+/// True when the caster's Weave is at least <see cref="Value"/>.
+/// </summary>
+public sealed class WeaveAtLeastPredicate : IPredicate
+{
+    public int Value;
+    public WeaveAtLeastPredicate(int value) { Value = value; }
+
+    public bool Evaluate(PredicateContext ctx)
+    {
+        var unit = ctx.Game?.ActiveCasterUnit;
+        return unit?.Attunement is WeaveAttunement w && w.Weave >= Value;
+    }
+}
+
+/// <summary>
+/// True when the caster's team has at least <see cref="Value"/> prepared glyphs on the board.
+/// Used by "if 2+ prepared tiles…" cards (Glyph Bolt).
+/// JSON: { "type": "glyph_count_at_least", "value": n }
+/// </summary>
+public sealed class GlyphCountAtLeastPredicate : IPredicate
+{
+    public int Value;
+    public GlyphCountAtLeastPredicate(int value) { Value = value; }
+
+    public bool Evaluate(PredicateContext ctx)
+    {
+        var unit = ctx.Game?.ActiveCasterUnit;
+        return DamagePerGlyphEffect.CountFriendlyGlyphs(ctx.Game, unit) >= Value;
     }
 }

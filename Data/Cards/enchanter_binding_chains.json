@@ -1,0 +1,275 @@
+{
+	"id": "enchanter_binding_chains",
+	"status": "wip",
+	"name": "Binding Chains",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Binding Chains",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Name an enemy for 2 turns: it deals half damage and cannot move. Gain 1 Weave.",
+		"tags": [
+			"enchantment",
+			"charm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "apply_status",
+					"status": "named",
+					"duration": 2
+				},
+				{
+					"type": "gain_weave",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Drain Glyph",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph within 4. When an enemy enters, deal 5 and heal you for 5.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "prepare_glyph",
+			"trigger": "enter",
+			"damage": 5,
+			"heal_caster": 5
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Binding Chains+",
+			"bottom_name": "Drain Glyph+",
+			"description": "The chains also damage. The glyph drains more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0]",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "apply_status",
+								"status": "named",
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 and Name an enemy for 2 turns (half damage, cannot move). Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "effect.heal_caster",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4. When an enemy enters, deal 7 and heal you 7."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Heavy Chains",
+			"description": "Heavy Chains: the Naming lasts 3 turns.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].steps[1].duration",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 and Name an enemy for 3 turns. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Leech Glyph",
+			"description": "Leech Glyph: reusable.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.reusable",
+					"value": true
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a reusable glyph within 4. Each enemy entering takes 7 and heals you 7."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Chains of the Seventh Layer",
+			"description": "Chains of the Seventh Layer: Name the target and the nearest other enemy.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "apply_status",
+								"status": "named",
+								"duration": 3
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "unit",
+									"range": 3,
+									"los": false,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "apply_status",
+									"status": "named",
+									"duration": 2
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 and Name the target (3t) and the nearest other enemy (2t). Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Vampiric Glyph",
+			"description": "Vampiric Glyph: also weakens the victim.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.status",
+					"value": "weakened"
+				},
+				{
+					"half": "bottom",
+					"field": "effect.status_duration",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a reusable glyph within 4. Each enemy entering takes 7, is Hexed 2t, and heals you 7."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Eternal Bondage",
+			"description": "Eternal Bondage: the Naming is permanent for this combat.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "apply_status",
+								"status": "named",
+								"duration": 99
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 6 and Name an enemy permanently (half damage, cannot move) for this combat. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Soul Cage",
+			"description": "Soul Cage: a reusable trap that Names and drains.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph",
+						"trigger": "enter",
+						"damage": 9,
+						"heal_caster": 9,
+						"status": "named",
+						"status_duration": 1,
+						"reusable": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a reusable glyph. Each enemy entering takes 9, is Named 1t, and heals you 9."
+				}
+			]
+		}
+	]
+}

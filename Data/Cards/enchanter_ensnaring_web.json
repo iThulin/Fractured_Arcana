@@ -1,0 +1,231 @@
+{
+	"id": "enchanter_ensnaring_web",
+	"status": "wip",
+	"name": "Ensnaring Web",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Ensnaring Web",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a web of glyphs on a 2-tile radius within 4. Enemies that enter are slowed 1 turn. Lasts 3 turns.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "prepare_glyph_area",
+			"trigger": "enter",
+			"status": "slowed",
+			"status_duration": 1,
+			"radius": 2,
+			"duration": 3,
+			"reusable": true
+		}
+	},
+	"bottom": {
+		"name": "Rearm",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Refresh all of your triggered glyphs (they become active again). Gain 2 Weave.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "rearm_glyphs"
+				},
+				{
+					"type": "gain_weave",
+					"amount": 2
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Ensnaring Web+",
+			"bottom_name": "Rearm+",
+			"description": "The web also bites. Rearm banks more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a web (radius 2) within 4. Enemies entering take 3 and are slowed 1 turn. Lasts 3 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Refresh all of your triggered glyphs. Gain 3 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Choking Web",
+			"description": "Choking Web: roots instead of slowing.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.status",
+					"value": "rooted"
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a web (radius 2) within 4. Enemies entering take 3 and are rooted 1 turn. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Rearm & Reload",
+			"description": "Rearm & Reload: also draw a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[2]",
+					"value": {
+						"type": "draw",
+						"count": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Refresh all of your triggered glyphs. Draw 1 card. Gain 3 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Widow's Web",
+			"description": "Widow's Web: radius 3 and heavier damage.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a web (radius 3) within 4. Enemies entering take 5 and are rooted 1 turn. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Overcharge Glyphs",
+			"description": "Overcharge Glyphs: refreshed glyphs deal +2 until end of turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].empower",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Refresh all triggered glyphs; they deal +2 this turn. Draw 1 card. Gain 3 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Tangle",
+			"description": "The Tangle: anything caught in the web is Named.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph_area",
+						"trigger": "enter",
+						"damage": 6,
+						"status": "named",
+						"status_duration": 1,
+						"radius": 3,
+						"duration": 99,
+						"reusable": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a permanent web (radius 3). Enemies entering take 6 and are Named (half damage, cannot move) 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Total Rearm",
+			"description": "Total Rearm: refresh, empower, trigger the whole web.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "rearm_glyphs",
+								"empower": 3
+							},
+							{
+								"type": "trigger_all_glyphs",
+								"consume": false
+							},
+							{
+								"type": "draw",
+								"count": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Refresh all glyphs (+3 this turn) and trigger them all without consuming. Draw 1. Gain 3 Weave."
+				}
+			]
+		}
+	]
+}

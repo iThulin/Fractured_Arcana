@@ -1,0 +1,201 @@
+{
+	"id": "enchanter_sovereign_will",
+	"status": "wip",
+	"name": "Sovereign Will",
+	"school": "Enchanter",
+	"rarity": "Legendary",
+	"top": {
+		"name": "Sovereign Pillars",
+		"mana": 4,
+		"speed": "Sorcery",
+		"rules_text": "Permanently enchant 3 tiles as Sovereign Pillars: allies on them gain +2 to all stats, enemies adjacent deal 2 less and are Hexed if they end their turn there. Pillars cannot be destroyed.",
+		"tags": [
+			"enchantment",
+			"ward"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "enchant_pillar",
+			"count": 3,
+			"ally_all_stats": 2,
+			"enemy_damage_reduction": 2,
+			"aura_status": "weakened"
+		}
+	},
+	"bottom": {
+		"name": "Puppeteer",
+		"mana": 3,
+		"speed": "Instant",
+		"rules_text": "For 2 turns: at the start of each enemy turn, you choose where each enemy moves (up to 2 tiles). Enemies moved onto your glyphs trigger them.",
+		"tags": [
+			"enchantment",
+			"charm"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "dominate",
+			"turns": 2,
+			"move_tiles": 2,
+			"trigger_glyphs": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Sovereign Pillars+",
+			"bottom_name": "Puppeteer+",
+			"description": "Stronger pillars. Longer domination.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.ally_all_stats",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Permanently enchant 3 Sovereign Pillars: allies on them gain +3 to all stats, adjacent enemies deal 2 less and are Hexed. Indestructible."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.turns",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "For 3 turns: choose where each enemy moves (up to 2 tiles) at the start of their turn. Glyph landings trigger."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Sovereign Bastion",
+			"description": "Sovereign Bastion: enchant 4 pillars.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Permanently enchant 4 Sovereign Pillars: allies gain +3 to all stats, adjacent enemies deal 2 less and are Hexed. Indestructible."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Marionette",
+			"description": "Marionette: drag enemies up to 3 tiles.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.move_tiles",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "For 3 turns: choose where each enemy moves (up to 3 tiles). Glyph landings trigger."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Throne of Pillars",
+			"description": "Throne of Pillars: pillars also bank Weave each turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.weave_per_turn",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Enchant 4 indestructible pillars: allies +3 stats; adjacent enemies deal 2 less and are Hexed; gain 1 Weave/turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Grand Puppeteer",
+			"description": "Grand Puppeteer: controlled enemies are also Named.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.name_controlled",
+					"value": true
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "For 3 turns: choose each enemy's movement (up to 3 tiles); they are Named while controlled. Glyph landings trigger."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Sovereign Dominion",
+			"description": "Sovereign Dominion: five pillars and a punishing aura.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "enchant_pillar",
+						"count": 5,
+						"ally_all_stats": 4,
+						"enemy_damage_reduction": 3,
+						"aura_status": "named",
+						"aura_damage": 3,
+						"weave_per_turn": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Enchant 5 indestructible pillars: allies +4 stats; adjacent enemies deal 3 less, take 3, and are Named; gain 1 Weave/turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Unwritten Hand",
+			"description": "The Unwritten Hand: total, lasting control of the field.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "dominate",
+						"turns": 4,
+						"move_tiles": 3,
+						"trigger_glyphs": true,
+						"name_controlled": true,
+						"also_act": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "For 4 turns: choose each enemy's movement AND whether it acts; they are Named while controlled. Glyph landings trigger."
+				}
+			]
+		}
+	]
+}

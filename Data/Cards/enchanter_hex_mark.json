@@ -1,0 +1,275 @@
+{
+	"id": "enchanter_hex_mark",
+	"status": "wip",
+	"name": "Hex Mark",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Hex Mark",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Apply Hex to an enemy (weakened, -damage) for 2 turns. Gain 1 Weave.",
+		"tags": [
+			"enchantment",
+			"charm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "apply_status",
+					"status": "weakened",
+					"duration": 2
+				},
+				{
+					"type": "gain_weave",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Empower Rune",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph within 4. Allies on it deal +2 damage. Lasts 3 turns.",
+		"tags": [
+			"enchantment",
+			"ward"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "prepare_glyph",
+			"trigger": "ally_enter",
+			"ally_damage": 2,
+			"duration": 3,
+			"reusable": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Hex Mark+",
+			"bottom_name": "Empower Rune+",
+			"description": "The hex bites harder. The rune empowers more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].duration",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Apply Hex to an enemy for 3 turns. Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.ally_damage",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4. Allies on it deal +3 damage. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Double Hex",
+			"description": "Double Hex: also marks the nearest other enemy.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "weakened",
+								"duration": 3
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "unit",
+									"range": 3,
+									"los": false,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "apply_status",
+									"status": "weakened",
+									"duration": 3
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Hex the target and the nearest other enemy for 3 turns. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Empower Sigil",
+			"description": "Empower Sigil: also grants shield.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.ally_shield",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4. Allies on it deal +3 damage and gain 3 shield. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Curse",
+			"description": "Curse: also deals damage and banks more Weave.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "apply_status",
+								"status": "weakened",
+								"duration": 3
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 and Hex an enemy for 3 turns. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Banner",
+			"description": "Banner: a wide empowerment zone.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph_area",
+						"trigger": "ally_enter",
+						"ally_damage": 3,
+						"ally_shield": 3,
+						"radius": 1,
+						"duration": 3,
+						"reusable": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare wards on a 1-tile radius within 4. Allies on them deal +3 and gain 3 shield. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Mark of the Namer",
+			"description": "Mark of the Namer: the hex becomes a Naming.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "apply_status",
+								"status": "named",
+								"duration": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 and Name an enemy (half damage, cannot move) for 2 turns. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "War Standard",
+			"description": "War Standard: a commanding aura of power.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph_area",
+						"trigger": "ally_enter",
+						"ally_damage": 4,
+						"ally_shield": 4,
+						"ally_armor": 4,
+						"radius": 2,
+						"duration": 3,
+						"reusable": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare wards on a 2-tile radius within 4. Allies on them deal +4 and gain 4 shield and 4 armor. Lasts 3 turns."
+				}
+			]
+		}
+	]
+}

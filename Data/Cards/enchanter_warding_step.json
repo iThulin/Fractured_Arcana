@@ -1,0 +1,250 @@
+{
+	"id": "enchanter_warding_step",
+	"status": "wip",
+	"name": "Warding Step",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Warding Step",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Move 2. Gain 3 shield. Gain 1 Weave.",
+		"tags": [
+			"enchantment",
+			"ward"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 2
+				},
+				{
+					"type": "shield",
+					"amount": 3
+				},
+				{
+					"type": "gain_weave",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Tripwire",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph within 3. When an enemy enters, deal 4 and slow it 1 turn.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "prepare_glyph",
+			"trigger": "enter",
+			"damage": 4,
+			"status": "slowed",
+			"status_duration": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Warding Step+",
+			"bottom_name": "Tripwire+",
+			"description": "The step wards more. The tripwire bites harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].amount",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 2. Gain 5 shield. Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 3. When an enemy enters, deal 6 and slow it 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Phasing Step",
+			"description": "Phasing Step: teleport instead of walking.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0]",
+					"value": {
+						"type": "teleport"
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Teleport within range 4. Gain 5 shield. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Snapwire",
+			"description": "Snapwire: roots instead of slowing.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.status",
+					"value": "rooted"
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 3. When an enemy enters, deal 6 and root it 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Aegis Step",
+			"description": "Aegis Step: also gain armor.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "shield",
+								"amount": 5
+							},
+							{
+								"type": "armor",
+								"amount": 4
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Teleport within range 4. Gain 5 shield and 4 armor. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Twin Tripwire",
+			"description": "Twin Tripwire: lay two glyphs.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.count",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare 2 glyphs within 3. When an enemy enters one, deal 6 and root 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Sanctuary Step",
+			"description": "Sanctuary Step: become briefly untargetable.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "armor",
+								"amount": 4
+							},
+							{
+								"type": "apply_status",
+								"status": "shrouded",
+								"duration": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Teleport within range 4. Gain 6 shield, 4 armor, and Shrouded this turn (max 5 damage per hit). Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Killing Wire",
+			"description": "Killing Wire: a reusable, Naming snare.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph",
+						"trigger": "enter",
+						"damage": 8,
+						"status": "named",
+						"status_duration": 1,
+						"reusable": true,
+						"count": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare 2 reusable glyphs within 3. Each enemy entering takes 8 and is Named for 1 turn."
+				}
+			]
+		}
+	]
+}

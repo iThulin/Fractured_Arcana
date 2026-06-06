@@ -1,0 +1,263 @@
+{
+	"id": "enchanter_dominion",
+	"status": "wip",
+	"name": "Dominion",
+	"school": "Enchanter",
+	"rarity": "Rare",
+	"top": {
+		"name": "Dominion",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Name every enemy within 2 of the target for 1 turn (half damage, cannot move). Gain 2 Weave.",
+		"tags": [
+			"enchantment",
+			"charm"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 6
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "aoe",
+						"radius": 2,
+						"enemies_only": true
+					},
+					"do": {
+						"type": "apply_status",
+						"status": "named",
+						"duration": 1
+					}
+				},
+				{
+					"type": "gain_weave",
+					"amount": 2
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Sanctuary",
+		"mana": 3,
+		"speed": "Instant",
+		"rules_text": "Prepare wards on a 2-tile radius around you. Allies on them gain 4 armor and 3 shield. Lasts 3 turns.",
+		"tags": [
+			"enchantment",
+			"ward"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "prepare_glyph_area",
+			"trigger": "ally_enter",
+			"ally_armor": 4,
+			"ally_shield": 3,
+			"radius": 2,
+			"duration": 3,
+			"reusable": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Dominion+",
+			"bottom_name": "Sanctuary+",
+			"description": "The Naming lingers. The sanctuary wards more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].do.duration",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every enemy within 2 of the target for 2 turns. Gain 2 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.ally_armor",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare wards (radius 2) around you. Allies gain 6 armor and 3 shield. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Subjugation",
+			"description": "Subjugation: also deals damage in the area.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].do",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "apply_status",
+								"status": "named",
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 and Name every enemy within 2 of the target for 2 turns. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Bastion of Sanctuary",
+			"description": "Bastion: also grants +2 damage to allies on it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.ally_damage",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare wards (radius 2). Allies gain 6 armor, 3 shield, +2 damage. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Mass Dominion",
+			"description": "Mass Dominion: radius 3.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].targeting.radius",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 and Name every enemy within 3 of the target for 2 turns. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Hallowed Ground",
+			"description": "Hallowed Ground: allies also heal each turn on it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.ally_heal_per_turn",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare wards (radius 2). Allies gain 6 armor, 3 shield, +2 damage, and heal 3/turn. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Absolute Dominion",
+			"description": "Absolute Dominion: Name the whole board, permanently.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "global",
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "damage",
+											"amount": 5
+										},
+										{
+											"type": "apply_status",
+											"status": "named",
+											"duration": 3
+										}
+									]
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 to and Name EVERY enemy on the board for 3 turns. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Last Redoubt",
+			"description": "The Last Redoubt: a permanent fortress sanctuary.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph_area",
+						"trigger": "ally_enter",
+						"ally_armor": 8,
+						"ally_shield": 6,
+						"ally_damage": 3,
+						"ally_heal_per_turn": 4,
+						"radius": 3,
+						"duration": 99,
+						"reusable": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare permanent wards (radius 3). Allies gain 8 armor, 6 shield, +3 damage, heal 4/turn."
+				}
+			]
+		}
+	]
+}

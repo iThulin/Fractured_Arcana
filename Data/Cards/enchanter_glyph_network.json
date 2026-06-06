@@ -1,75 +1,195 @@
 {
-  "id": "enchanter_glyph_network",
-  "status": "stub",
-  "name": "Glyph Network",
-  "school": "Enchanter",
-  "rarity": "Rare",
-  "top": {
-    "name": "Glyph Network",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "All prepared tiles trigger simultaneously. Each deals its effect plus 1 bonus per other tile triggered.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "damage",
-          "amount": 2
-        }
-      ]
-    },
-    "channel": {
-      "name": "Glyph Network (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Prepared glyphs not consumed when triggered this way",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Spell Anchor",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Prepare on tile: the next spell you cast while standing on this tile is cast twice.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Spell Anchor (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: The copy spell costs 0 mana",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "enchanter_glyph_network",
+	"status": "wip",
+	"name": "Glyph Network",
+	"school": "Enchanter",
+	"rarity": "Rare",
+	"top": {
+		"name": "Glyph Network",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Trigger all of your prepared glyphs at once. Each deals its effect plus 1 bonus damage per other glyph triggered.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "trigger_all_glyphs",
+			"bonus_per_other": 1,
+			"consume": true
+		}
+	},
+	"bottom": {
+		"name": "Spell Anchor",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph within 4. The next spell you cast while standing on it is cast twice.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "spell_anchor",
+			"casts": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Glyph Network+",
+			"bottom_name": "Spell Anchor+",
+			"description": "The network adds more per glyph. The anchor banks Weave.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.bonus_per_other",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Trigger all your glyphs at once. Each deals its effect plus 2 per other glyph triggered."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.on_use_weave",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4. The next spell cast while standing on it is cast twice. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Living Network",
+			"description": "Living Network: the glyphs are not consumed.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.consume",
+					"value": false
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Trigger all your glyphs at once (not consumed). Each deals +2 per other glyph triggered."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Echo Anchor",
+			"description": "Echo Anchor: also reduces the doubled spell's cost.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.cost_reduction",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4. The next spell cast on it is cast twice and costs 1 less. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Overload Network",
+			"description": "Overload Network: also banks Weave per glyph.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.on_trigger_weave",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Trigger all your glyphs (not consumed). Each deals +2 per other; gain 1 Weave per glyph."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Triple Anchor",
+			"description": "Triple Anchor: the spell is cast three times.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.casts",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4. The next spell cast on it is cast 3 times and costs 1 less. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Whole Cloth",
+			"description": "The Whole Cloth: a devastating, reusable detonation.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "trigger_all_glyphs",
+						"bonus_per_other": 3,
+						"consume": false,
+						"on_trigger_weave": 1,
+						"repeat": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Trigger all your glyphs twice (not consumed). Each deals +3 per other glyph; gain 1 Weave per glyph."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Eternal Anchor",
+			"description": "Eternal Anchor: a permanent doubling throne.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "spell_anchor",
+						"casts": 3,
+						"cost_reduction": 1,
+						"duration": 99,
+						"reusable": true,
+						"on_use_weave": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare a permanent glyph. Every spell cast while standing on it is cast 3 times and costs 1 less. Gain 1 Weave/use."
+				}
+			]
+		}
+	]
 }

@@ -1,0 +1,272 @@
+{
+	"id": "enchanter_mana_tithe",
+	"status": "wip",
+	"name": "Mana Tithe",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Mana Tithe",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Bind an enemy for 3 turns: its spells cost 1 more, and you gain 1 mana each time it casts. Gain 1 Weave.",
+		"tags": [
+			"enchantment",
+			"binding"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "mana_tithe",
+					"amount": 1,
+					"refund": 1,
+					"duration": 3
+				},
+				{
+					"type": "gain_weave",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Sap",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 5 damage and steal 1 buff from the target.",
+		"tags": [
+			"enchantment",
+			"charm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 5
+				},
+				{
+					"type": "dispel",
+					"count": 1,
+					"steal": true
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Mana Tithe+",
+			"bottom_name": "Sap+",
+			"description": "The tithe is heavier. Sap hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Bind an enemy for 3 turns: its spells cost 2 more, and you gain 1 mana when it casts. Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage and steal 1 buff from the target."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Greater Tithe",
+			"description": "Greater Tithe: you gain 2 mana per cast.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].refund",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Bind an enemy 3 turns: spells cost 2 more; you gain 2 mana when it casts. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Greater Sap",
+			"description": "Greater Sap: steal up to 2 buffs.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].count",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage and steal up to 2 buffs from the target."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Tithe of Silence",
+			"description": "Tithe of Silence: a cast also banks Weave.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].weave_on_cast",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Bind an enemy 3 turns: spells cost 2 more; you gain 2 mana and 1 Weave when it casts. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Drain",
+			"description": "Drain: also Hex the target.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "dispel",
+								"count": 2,
+								"steal": true
+							},
+							{
+								"type": "apply_status",
+								"status": "weakened",
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7, steal up to 2 buffs, and Hex the target for 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Crushing Tithe",
+			"description": "Crushing Tithe: bind every enemy on the board.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "global",
+									"enemies_only": true
+								},
+								"do": {
+									"type": "mana_tithe",
+									"amount": 2,
+									"refund": 2,
+									"weave_on_cast": 1,
+									"duration": 3
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Bind ALL enemies 3 turns: spells cost 2 more; you gain 2 mana and 1 Weave per enemy cast. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Exsanguinate",
+			"description": "Exsanguinate: strip the target bare and Name it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 9
+							},
+							{
+								"type": "dispel",
+								"count": 99,
+								"steal": true
+							},
+							{
+								"type": "apply_status",
+								"status": "named",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 9, steal ALL buffs, and Name the target for 1 turn."
+				}
+			]
+		}
+	]
+}

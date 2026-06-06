@@ -1,67 +1,211 @@
 {
-  "id": "enchanter_runic_cascade",
-  "status": "stub",
-  "name": "Runic Cascade",
-  "school": "Enchanter",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Runic Cascade",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Prepare on tile: when triggered it also prepares a copy of itself on 2 adjacent tiles.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Runic Cascade (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Copies trigger immediately on creation",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Glyph Warp",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Swap positions of 2 prepared tiles (effects move with them).",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Glyph Warp (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also trigger both tiles after swap",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "enchanter_runic_cascade",
+	"status": "wip",
+	"name": "Runic Cascade",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Runic Cascade",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph within 4. When it triggers, it prepares a copy of itself on 2 adjacent tiles.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "cascade_glyph",
+			"trigger": "enter",
+			"damage": 4,
+			"spread": 2
+		}
+	},
+	"bottom": {
+		"name": "Glyph Warp",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Swap the positions of 2 of your prepared glyphs (their effects move with them).",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "swap_glyphs"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Runic Cascade+",
+			"bottom_name": "Glyph Warp+",
+			"description": "The cascade hits harder. The warp triggers on arrival.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4 (6 damage). When it triggers, it copies onto 2 adjacent tiles."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.trigger_after",
+					"value": true
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Swap 2 of your prepared glyphs, then trigger both."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Chain Cascade",
+			"description": "Chain Cascade: copies trigger immediately on creation.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.instant_copies",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4 (6). On trigger, copies onto 2 adjacent tiles which trigger at once."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Glyph Shift",
+			"description": "Glyph Shift: swap 3 glyphs in a chain.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.count",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Rotate the positions of 3 of your glyphs, then trigger all 3."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Spreading Cascade",
+			"description": "Spreading Cascade: copies to 3 tiles and slows.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.spread",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.status",
+					"value": "slowed"
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4 (6, slow). On trigger, copies onto 3 adjacent tiles which trigger at once."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Glyph Storm Warp",
+			"description": "Glyph Warp: also banks Weave per glyph triggered.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.on_trigger_weave",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Rotate 3 of your glyphs, then trigger all 3. Gain 1 Weave per glyph triggered."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Wildfire Runes",
+			"description": "Wildfire Runes: an unstoppable, self-perpetuating chain.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "cascade_glyph",
+						"trigger": "enter",
+						"damage": 7,
+						"spread": 3,
+						"instant_copies": true,
+						"status": "rooted",
+						"status_duration": 1,
+						"reusable": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a reusable glyph (7, root). On trigger it copies onto 3 adjacent tiles which trigger at once."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Reweave",
+			"description": "Reweave: rearrange the whole web and detonate it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "swap_glyphs",
+								"count": 99,
+								"trigger_after": true,
+								"on_trigger_weave": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Rearrange all your glyphs, then trigger every one. Gain 1 Weave per glyph, plus 1."
+				}
+			]
+		}
+	]
 }

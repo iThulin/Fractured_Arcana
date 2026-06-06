@@ -2724,42 +2724,109 @@ public sealed class StealManaEffect : EffectBase
 	}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  PREDICATES
-// ─────────────────────────────────────────────────────────────────────────────
+// ============================================================================
+// Enchanter Effects
+// ============================================================================
 
 /// <summary>
-/// True when the caster's banked Charge is at least <see cref="Value"/>. Used by
-/// threshold cards ("if 3+ charges this chains…").
-/// JSON: { "type": "charge_at_least", "value": n }
+/// Adds <see cref="Amount"/> Weave to the caster's working. If this reaches the cap the
+/// attunement fires its Seventh Layer burst on its own.
+/// JSON: { "type": "gain_weave", "amount": n }
 /// </summary>
-public sealed class ChargeAtLeastPredicate : IPredicate
+public sealed class GainWeaveEffect : EffectBase
 {
-	public int Value;
-	public ChargeAtLeastPredicate(int value) { Value = value; }
+	public int Amount;
+	public GainWeaveEffect(int amount) { Amount = amount; }
 
-	public bool Evaluate(PredicateContext ctx)
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		var unit = ctx.Game?.ActiveCasterUnit;
-		return unit?.Attunement is ArcaneAttunement arc && arc.Charge >= Value;
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit?.Attunement is not WeaveAttunement weave)
+		{
+			s.Log("[GainWeave] Caster has no Weave attunement — ignored.");
+			return;
+		}
+		weave.Add(Amount);
+		s.Log($"[GainWeave] +{Amount} Weave (now {weave.Weave}/{WeaveAttunement.MaxWeave}).");
 	}
 }
 
 /// <summary>
-/// True when the caster has already cast at least one spell earlier this turn
-/// (i.e. this is not the turn's first spell). Reads the Grimoire's spell count;
-/// because "AbilityCast" fires at push, the current card is already counted, so
-/// the test is &gt;= 2.
-/// JSON: { "type": "has_cast_spell_this_turn" }
+/// Deals <see cref="DamagePer"/> per prepared glyph the caster's team has on the board,
+/// floored at <see cref="Minimum"/>, to each target. Counts the existing tile.Glyph field.
+/// JSON: { "type": "damage_per_glyph", "amount": n, "min": m }
 /// </summary>
-public sealed class HasCastSpellThisTurnPredicate : IPredicate
+public sealed class DamagePerGlyphEffect : EffectBase
 {
-	public bool Evaluate(PredicateContext ctx)
+	public int DamagePer;
+	public int Minimum;
+
+	public DamagePerGlyphEffect(int damagePer, int minimum = 0)
 	{
-		var unit = ctx.Game?.ActiveCasterUnit;
-		return unit?.Attunement is ArcaneAttunement arc && arc.SpellsCastThisTurn >= 2;
+		DamagePer = damagePer;
+		Minimum = minimum;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		int count = CountFriendlyGlyphs(s, casterUnit);
+
+		int dmg = Math.Max(Minimum, DamagePer * count);
+		int hits = 0;
+
+		if (targets != null)
+		{
+			foreach (var obj in targets.Items)
+			{
+				var unit = ResolveTargetUnit(s, obj);
+				if (unit == null || !unit.Stats.IsAlive)
+					continue;
+				unit.ApplyDamage(dmg);
+				hits++;
+			}
+		}
+
+		s.LastDamageDealt = dmg;
+		s.Log($"[DamagePerGlyph] {count} glyph(s) → {dmg} dmg to {hits} target(s) (min {Minimum}).");
+	}
+
+	/// <summary>Counts prepared glyphs owned by the caster's team across the grid.</summary>
+	internal static int CountFriendlyGlyphs(GameState s, Unit casterUnit)
+	{
+		if (s?.Grid?.Tiles == null)
+			return 0;
+		int teamId = casterUnit?.TeamId ?? 0;
+		int count = 0;
+		foreach (var kvp in s.Grid.Tiles)
+		{
+			var tile = kvp.Value;
+			if (tile?.Glyph == null)
+				continue;
+			if (casterUnit == null || tile.Glyph.OwnerTeam == teamId)
+				count++;
+		}
+		return count;
 	}
 }
+
+// ============================================================================
+// Chronomancer Effects
+// ============================================================================
+
+
+
+
+// ============================================================================
+// Tinker Effects
+// ============================================================================
+
+
+
+// ============================================================================
+// Druid Effects
+// ============================================================================
+
 
 // ── No-Op Effect ────────────────────────────────────────────────────────
 

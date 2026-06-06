@@ -1,75 +1,210 @@
 {
-  "id": "enchanter_binding_rune",
-  "status": "stub",
-  "name": "Binding Rune",
-  "school": "Enchanter",
-  "rarity": "Common",
-  "top": {
-    "name": "Binding Rune",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Prepare on tile within 3: enemy here at start of turn is immobilized and takes 3 damage. Lasts 2 turns.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Binding Rune (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also prevents Reaction casting",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Sigil Link",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Link 2 prepared tiles. When one triggers the other triggers simultaneously.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Sigil Link (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Link 3 tiles instead",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "enchanter_binding_rune",
+	"status": "wip",
+	"name": "Binding Rune",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Binding Rune",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph on a tile within 3. An enemy here at the start of its turn is rooted and takes 3 damage. Lasts 2 turns.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "prepare_glyph",
+			"trigger": "start_of_turn",
+			"damage": 3,
+			"status": "rooted",
+			"status_duration": 1,
+			"duration": 2
+		}
+	},
+	"bottom": {
+		"name": "Sigil Link",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Link 2 of your prepared glyphs. When one triggers, the other triggers too.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "link_glyphs",
+			"count": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Binding Rune+",
+			"bottom_name": "Sigil Link+",
+			"description": "The rune holds longer. The link binds more glyphs.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.duration",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 3. An enemy here at the start of its turn is rooted and takes 3 damage. Lasts 3 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.count",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Link 3 of your prepared glyphs. When one triggers, the others trigger too."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Greater Binding",
+			"description": "Greater Binding: the root lasts 2 turns and hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.status_duration",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 3. An enemy here at the start of its turn is rooted (2 turns) and takes 5 damage. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Sigil Web",
+			"description": "Sigil Web: each linked trigger also banks Weave.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.on_trigger_weave",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Link 3 prepared glyphs. When one triggers, the others trigger too; gain 1 Weave per link."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Imprison",
+			"description": "Imprison: the glyph is reusable and silences while the Weave is high.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.reusable",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a reusable glyph within 3. Each turn an enemy here is rooted (2t) and takes 5; silenced if Weave is 3+. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Sigil Nexus",
+			"description": "Sigil Nexus: triggering one glyph triggers all linked, each +1 damage per other.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.count",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.cumulative_bonus",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Link 4 glyphs. Triggering one triggers all, each dealing +1 per other glyph. Gain 1 Weave per link."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Oubliette",
+			"description": "Oubliette: an enemy caught here is Named.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph",
+						"trigger": "start_of_turn",
+						"damage": 7,
+						"status": "named",
+						"status_duration": 1,
+						"duration": 99,
+						"reusable": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a permanent reusable glyph. Each turn an enemy here takes 7 and is Named (half damage, cannot move) for 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Lattice",
+			"description": "The Lattice: link every glyph on the board, permanently.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "link_glyphs",
+						"count": 99,
+						"cumulative_bonus": 1,
+						"on_trigger_weave": 1,
+						"persist": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Link ALL your prepared glyphs permanently. Triggering one triggers all (+1 per other). Gain 1 Weave per link."
+				}
+			]
+		}
+	]
 }

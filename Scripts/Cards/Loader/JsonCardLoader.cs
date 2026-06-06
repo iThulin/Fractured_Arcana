@@ -903,6 +903,36 @@ public static class CardScriptRegistry
             new StealManaEffect(n.TryGetProperty("amount", out var a) ? a.GetInt32() : 1).WithTag("Mana"));
 
         // ═══════════════════════════════════════════════════════════
+        // ENCHANTER EFFECTS
+        // ═══════════════════════════════════════════════════════════
+
+        // Gain Weave charges
+        // { "type": "gain_weave", "amount": n }
+        RegisterEffect("gain_weave", n =>
+            new GainWeaveEffect(n.GetProperty("amount").GetInt32()).WithTag("Weave"));
+
+        // Spend Weave charges to deal damage
+        // { "type": "spend_weave_damage", "damage_per_weave": n, "min_spend": n, "max_spend": n }
+        RegisterEffect("damage_per_glyph", n =>
+        {
+            int amt = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 3;
+            int min = n.TryGetProperty("min", out var m) ? m.GetInt32() : 0;
+            return new DamagePerGlyphEffect(amt, min).WithTag("Damage");
+        });
+
+        // ═══════════════════════════════════════════════════════════
+        // CHRONOMANCER EFFECTS
+        // ═══════════════════════════════════════════════════════════
+
+
+
+        // ═══════════════════════════════════════════════════════════
+        // TINKER EFFECTS
+        // ═══════════════════════════════════════════════════════════
+
+
+
+        // ═══════════════════════════════════════════════════════════
         // PREDICATES
         // ═══════════════════════════════════════════════════════════
 
@@ -953,6 +983,14 @@ public static class CardScriptRegistry
 
         // Has cast a spell this turn: { "type": "has_cast_spell_this_turn" }
         RegisterPredicate("has_cast_spell_this_turn", _ => new HasCastSpellThisTurnPredicate());
+
+        // Weave at least: { "type": "weave_at_least", "value": n }
+        RegisterPredicate("weave_at_least", n =>
+            new WeaveAtLeastPredicate(n.TryGetProperty("value", out var v) ? v.GetInt32() : 1));
+
+        // Glyph at least: { "type": "glyph_at_least", "value": n }
+        RegisterPredicate("glyph_count_at_least", n =>
+            new GlyphCountAtLeastPredicate(n.TryGetProperty("value", out var v) ? v.GetInt32() : 1));
 
         // ═══════════════════════════════════════════════════════════
         // TARGETERS

@@ -1,59 +1,195 @@
 {
-  "id": "enchanter_the_grand_design",
-  "status": "stub",
-  "name": "The Grand Design",
-  "school": "Enchanter",
-  "rarity": "Legendary",
-  "top": {
-    "name": "The Grand Design",
-    "mana": 4,
-    "speed": "Sorcery",
-    "rules_text": "For the rest of the fight: whenever you Prepare a glyph it also automatically Prepares on all tiles within 1 of the target. All your glyphs trigger twice.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "The Grand Design (Channel)",
-      "mana": 4,
-      "speed": "Reaction",
-      "rules_text": "Channel: Glyphs cost 1 less to prepare",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Absolute Territory",
-    "mana": 3,
-    "speed": "Instant",
-    "rules_text": "Prepare on every tile within 3 of your wizard: your prepared effects. Enemies in this zone deal half damage take 2 damage per tile moved and cannot teleport. Lasts 2 turns.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 3,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Absolute Territory (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Lasts 3 turns and zone extends to range 4",
-      "targeting": {
-        "type": "aoe",
-        "radius": 4,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "enchanter_the_grand_design",
+	"status": "wip",
+	"name": "The Grand Design",
+	"school": "Enchanter",
+	"rarity": "Legendary",
+	"top": {
+		"name": "The Grand Design",
+		"mana": 4,
+		"speed": "Sorcery",
+		"rules_text": "For the rest of the fight: whenever you prepare a glyph it is also prepared on all tiles within 1, and all your glyphs trigger twice.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "grand_design_passive",
+			"spread_radius": 1,
+			"trigger_count": 2
+		}
+	},
+	"bottom": {
+		"name": "Absolute Territory",
+		"mana": 3,
+		"speed": "Instant",
+		"rules_text": "Prepare your glyph effects on every tile within 3 of you. Enemies in this zone deal half damage, take 2 per tile moved, and cannot teleport. Lasts 2 turns.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "absolute_territory",
+			"radius": 3,
+			"damage_per_tile": 2,
+			"duration": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Grand Design+",
+			"bottom_name": "Absolute Territory+",
+			"description": "Cheaper glyphs. A harsher zone.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.glyph_cost_reduction",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Rest of fight: glyphs you prepare also prepare on all tiles within 1, cost 1 less, and trigger twice."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare your effects within 3. Enemies deal half, take 3 per tile moved, cannot teleport. Lasts 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "The Greater Design",
+			"description": "The Greater Design: each prepare also banks Weave.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.weave_per_prepare",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Rest of fight: glyphs spread to radius 1, cost 1 less, trigger twice, and bank 1 Weave on prepare."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Absolute Territory (Wide)",
+			"description": "Absolute Territory (Wide): the zone lasts 3 turns.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.duration",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare your effects within 3. Enemies deal half, take 3 per tile moved, cannot teleport. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Master Design",
+			"description": "The Master Design: glyphs spread to radius 2.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.spread_radius",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Rest of fight: glyphs spread to radius 2, cost 1 less, trigger twice, bank 1 Weave on prepare."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Absolute Territory (Total)",
+			"description": "Absolute Territory (Total): enemies inside are also Named.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.name_enemies",
+					"value": true
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare your effects within 3. Enemies are Named, take 3 per tile moved, cannot teleport. Lasts 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Seventh Layer",
+			"description": "The Seventh Layer: glyphs trigger three times and spread to radius 2.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "grand_design_passive",
+						"spread_radius": 2,
+						"trigger_count": 3,
+						"glyph_cost_reduction": 1,
+						"weave_per_prepare": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Rest of fight: glyphs spread to radius 2, cost 1 less, trigger THREE times, and bank 1 Weave on prepare."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Unwritten Law",
+			"description": "The Unwritten Law: a permanent, total domain.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "absolute_territory",
+						"radius": 4,
+						"damage_per_tile": 4,
+						"duration": 99,
+						"name_enemies": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Prepare your effects permanently within 4. Enemies are Named, take 4 per tile moved, cannot teleport."
+				}
+			]
+		}
+	]
 }

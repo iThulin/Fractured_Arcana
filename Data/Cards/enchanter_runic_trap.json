@@ -1,75 +1,250 @@
 {
-  "id": "enchanter_runic_trap",
-  "status": "stub",
-  "name": "Runic Trap",
-  "school": "Enchanter",
-  "rarity": "Common",
-  "top": {
-    "name": "Runic Trap",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Prepare on tile within 2: when enemy enters deal 5 damage.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "damage",
-          "amount": 5
-        }
-      ]
-    },
-    "channel": {
-      "name": "Runic Trap (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Trap is invisible to opponent",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Arcane Slide",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Move 2. Leave a prepared glyph on origin: next ally to step on it gains 2 shield.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "move",
-          "tiles": 2
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Arcane Slide (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Glyph also grants +2 damage for 1 turn",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "enchanter_runic_trap",
+	"status": "wip",
+	"name": "Runic Trap",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Runic Trap",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters, deal 5 damage.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "prepare_glyph",
+			"trigger": "enter",
+			"damage": 5
+		}
+	},
+	"bottom": {
+		"name": "Sigil Slide",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Move 2. Leave a glyph on your origin tile: the next ally to step on it gains 2 shield.",
+		"tags": [
+			"enchantment",
+			"glyph"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 2
+				},
+				{
+					"type": "prepare_glyph",
+					"trigger": "ally_enter",
+					"ally_shield": 2,
+					"at_origin": true
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Runic Trap+",
+			"bottom_name": "Sigil Slide+",
+			"description": "The trap bites harder. The slide wards more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 7
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 3. When an enemy enters, deal 7 damage."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].ally_shield",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 2. Leave a glyph: the next ally to step on it gains 4 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Spring Trap",
+			"description": "Spring Trap: also slows whoever triggers it.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.status",
+					"value": "slowed"
+				},
+				{
+					"half": "top",
+					"field": "effect.status_duration",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 3. When an enemy enters, deal 7 damage and slow them 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Sigil Step",
+			"description": "Sigil Step: the glyph also grants the ally +2 damage.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].ally_damage",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 2. Leave a glyph: the next ally to step on it gains 4 shield and +2 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Concealed Trap",
+			"description": "Concealed Trap: invisible to the opponent.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.invisible",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a hidden glyph within 3. When an enemy enters, deal 9 damage and slow them 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Phase Slide",
+			"description": "Phase Slide: teleport instead of walking, and draw.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "prepare_glyph",
+								"trigger": "ally_enter",
+								"ally_shield": 4,
+								"ally_damage": 2,
+								"at_origin": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport within range 4. Leave a glyph (ally: 4 shield, +2 damage). Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Killing Field",
+			"description": "Killing Field: a reusable hidden trap that Names on a second trigger.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph",
+						"trigger": "enter",
+						"damage": 9,
+						"status": "named",
+						"status_duration": 1,
+						"invisible": true,
+						"reusable": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a hidden reusable glyph. Each enemy that enters takes 9 and is Named (half damage, cannot move) for 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Sanctuary Step",
+			"description": "Sanctuary Step: leave a powerful ward for the whole party.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "prepare_glyph",
+								"trigger": "ally_enter",
+								"ally_shield": 6,
+								"ally_armor": 4,
+								"ally_damage": 2,
+								"reusable": true,
+								"duration": 3,
+								"at_origin": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport within range 4. Leave a 3-turn reusable ward (allies: 6 shield, 4 armor, +2 damage). Draw 1."
+				}
+			]
+		}
+	]
 }
