@@ -1,0 +1,242 @@
+{
+	"id": "arcanist_mana_conduit",
+	"status": "wip",
+	"name": "Mana Conduit",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Mana Conduit",
+		"mana": 0,
+		"speed": "Sorcery",
+		"rules_text": "Gain 2 mana this turn. Gain 1 charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "mana_gain",
+					"amount": 2
+				},
+				{
+					"type": "gain_charge",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Surge Bolt",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 3 damage per spell you have cast this turn (including this). Minimum 3.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage_per_spell_cast",
+			"amount": 3,
+			"min": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Mana Conduit+",
+			"bottom_name": "Surge Bolt+",
+			"description": "Conduit channels more. Surge Bolt scales harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 3 mana this turn. Gain 1 charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 4 damage per spell cast this turn (including this). Minimum 4."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Ley Tap",
+			"description": "Ley Tap: also banks a second charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].amount",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 3 mana this turn. Gain 2 charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Surge Lance",
+			"description": "Surge Lance: minimum damage floor rises.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.min",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 4 damage per spell cast this turn. Minimum 6."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Overflow Tap",
+			"description": "Overflow Tap: drawing power from the ley line itself.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 4
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 4 mana this turn. Gain 2 charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Surge Cannon",
+			"description": "Surge Cannon: 5 damage per spell.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage per spell cast this turn. Minimum 6."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Wellspring",
+			"description": "Wellspring: mana, charge, and a card.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 4
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 4 mana this turn. Gain 2 charge. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Annihilation Surge",
+			"description": "Annihilation Surge: also splashes the nearest enemy.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage_per_spell_cast",
+								"amount": 5,
+								"min": 6
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "unit",
+									"range": 3,
+									"los": false,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage_per_spell_cast",
+									"amount": 3,
+									"min": 0
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 per spell cast this turn (min 6) to target, and 3 per spell to the nearest other enemy."
+				}
+			]
+		}
+	]
+}

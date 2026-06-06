@@ -1,63 +1,224 @@
 {
-  "id": "arcanist_disintegrate",
-  "status": "stub",
-  "name": "Disintegrate",
-  "school": "Arcanist",
-  "rarity": "Rare",
-  "top": {
-    "name": "Disintegrate",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Spend 3 charges. Deal 14 damage. If lethal exile the card (cant be resurrected).",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Disintegrate (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Deal 10 instead",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": true,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 18
-      }
-    }
-  },
-  "bottom": {
-    "name": "Arcane Nexus",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Create Nexus on tile (10HP). While Nexus exists you gain 1 charge at start of each turn and your spells within range 2 of Nexus cost 1 less.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Arcane Nexus (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Nexus has 16HP and range is 3",
-      "targeting": {
-        "type": "aoe",
-        "radius": 3,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_disintegrate",
+	"status": "wip",
+	"name": "Disintegrate",
+	"school": "Arcanist",
+	"rarity": "Rare",
+	"top": {
+		"name": "Disintegrate",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Spend 3 charge. Deal 14 damage. If this is lethal, exile the target (it cannot be resurrected).",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "disintegrate",
+			"damage": 14,
+			"charge_cost": 3,
+			"exile_on_lethal": true
+		}
+	},
+	"bottom": {
+		"name": "Arcane Nexus",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Create a Nexus on a tile (10 HP). While it exists, gain 1 charge at the start of each turn and your spells within 2 of it cost 1 less.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "create_arcane_construct",
+			"kind": "nexus",
+			"hp": 10,
+			"radius": 2,
+			"charge_per_turn": 1,
+			"cost_reduction": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Disintegrate+",
+			"bottom_name": "Arcane Nexus+",
+			"description": "Disintegrate hits harder. Nexus is sturdier.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 18
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend 3 charge. Deal 18 damage. If lethal, exile the target."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.hp",
+					"value": 14
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create a Nexus on a tile (14 HP). Gain 1 charge each turn; spells within 2 of it cost 1 less."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Efficient Disintegrate",
+			"description": "Efficient Disintegrate: costs only 2 charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.charge_cost",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend 2 charge. Deal 18 damage. If lethal, exile the target."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Ley Nexus",
+			"description": "Ley Nexus: banks 2 charge per turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.charge_per_turn",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create a Nexus (14 HP). Gain 2 charge each turn; spells within 2 of it cost 1 less."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Annihilate",
+			"description": "Annihilate: refund the charge if the target is destroyed.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.refund_on_lethal",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend 2 charge. Deal 18 damage. If lethal, exile the target and refund the charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Grand Nexus",
+			"description": "Grand Nexus: discount widens to 2 mana within range 3.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.cost_reduction",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create a Nexus (14 HP). Gain 2 charge each turn; spells within 3 cost 2 less."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Unmake",
+			"description": "Unmake: obliterates the target and everything adjacent.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "disintegrate",
+								"damage": 22,
+								"charge_cost": 2,
+								"exile_on_lethal": true,
+								"refund_on_lethal": true
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 1,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage",
+									"amount": 10
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend 2 charge. Deal 22 damage; exile on lethal and refund charge. Deal 10 to adjacent enemies."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Great Nexus",
+			"description": "The Great Nexus: a fortified engine that also damages nearby enemies.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "create_arcane_construct",
+						"kind": "nexus",
+						"hp": 20,
+						"radius": 3,
+						"charge_per_turn": 2,
+						"cost_reduction": 2,
+						"enemy_damage_per_turn": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create a Nexus (20 HP). Gain 2 charge/turn; spells within 3 cost 2 less; enemies within 3 take 3/turn."
+				}
+			]
+		}
+	]
 }

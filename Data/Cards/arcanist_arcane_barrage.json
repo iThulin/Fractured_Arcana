@@ -1,83 +1,241 @@
 {
-  "id": "arcanist_arcane_barrage",
-  "status": "stub",
-  "name": "Arcane Barrage",
-  "school": "Arcanist",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Arcane Barrage",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Spend X charges. Deal 4 damage X times to targets of your choice (may split between enemies).",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "damage",
-          "amount": 4
-        }
-      ]
-    },
-    "channel": {
-      "name": "Arcane Barrage (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Deal 5 damage per charge instead",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": true,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 5
-      }
-    }
-  },
-  "bottom": {
-    "name": "Power Siphon",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 5 damage. Steal 1 mana from target. Gain 1 charge.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 5
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Power Siphon (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Steal 2 mana",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_arcane_barrage",
+	"status": "wip",
+	"name": "Arcane Barrage",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Arcane Barrage",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Spend all charge (min 1). Deal 4 damage per charge spent, split freely among enemies in range.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "spend_charge_damage",
+			"damage_per_charge": 4,
+			"min_spend": 1,
+			"max_spend": 0,
+			"split": true
+		}
+	},
+	"bottom": {
+		"name": "Power Siphon",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 5 damage. Steal 1 mana from the target. Gain 1 charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 5
+				},
+				{
+					"type": "steal_mana",
+					"amount": 1
+				},
+				{
+					"type": "gain_charge",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Arcane Barrage+",
+			"bottom_name": "Power Siphon+",
+			"description": "Barrage hits harder per charge. Siphon hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_charge",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend all charge (min 1). Deal 5 damage per charge, split freely among enemies in range."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Steal 1 mana. Gain 1 charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Focused Barrage",
+			"description": "Focused Barrage: keep 2 charge instead of spending all.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.keep",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend all but 2 charge (min 1). Deal 5 damage per charge, split among enemies."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Greater Siphon",
+			"description": "Greater Siphon: steal 2 mana.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Steal 2 mana. Gain 1 charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Storm Barrage",
+			"description": "Storm Barrage: 6 damage per charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_charge",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend all but 2 charge (min 1). Deal 6 damage per charge, split among enemies."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Mana Leech",
+			"description": "Mana Leech: stolen mana also becomes charge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "steal_mana",
+								"amount": 2
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Steal 2 mana. Gain 2 charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Apocalypse Barrage",
+			"description": "Apocalypse Barrage: each split bolt deals 7.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_charge",
+					"value": 7
+				},
+				{
+					"half": "top",
+					"field": "effect.keep",
+					"value": 0
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend all charge (min 1). Deal 7 damage per charge, split freely among enemies in range."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Soul Drain",
+			"description": "Soul Drain: drain mana, heal, and bank charge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 9
+							},
+							{
+								"type": "steal_mana",
+								"amount": 2
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "heal_fraction_of_damage",
+								"fraction": 0.5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 9 damage. Steal 2 mana. Gain 2 charge. Heal for half the damage dealt."
+				}
+			]
+		}
+	]
 }

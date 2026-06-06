@@ -1,0 +1,282 @@
+{
+	"id": "arcanist_warding_glyph",
+	"status": "wip",
+	"name": "Warding Glyph",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Warding Glyph",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 4 shield. Gain 1 charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "shield",
+					"amount": 4
+				},
+				{
+					"type": "gain_charge",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Arcane Bolt",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 6 damage. If you have already cast a spell this turn, deal 2 more.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 6
+				},
+				{
+					"type": "conditional",
+					"if": {
+						"type": "has_cast_spell_this_turn"
+					},
+					"then": {
+						"type": "damage",
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Warding Glyph+",
+			"bottom_name": "Arcane Bolt+",
+			"description": "Glyph wards harder. Bolt hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Gain 1 charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 8
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 8 damage. If you have already cast a spell this turn, deal 2 more."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Mirror Glyph",
+			"description": "Mirror Glyph: convert shield to armor at end of turn instead of losing it.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].persist_as_armor",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 shield (becomes armor at end of turn). Gain 1 charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Resonant Bolt",
+			"description": "Resonant Bolt: the follow-up bonus grows to +4.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].then.amount",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 8 damage. If you have already cast a spell this turn, deal 4 more."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Aegis Glyph",
+			"description": "Aegis Glyph: also wards the nearest ally.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6,
+								"persist_as_armor": true
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "unit",
+									"range": 3,
+									"los": false,
+									"allies_only": true
+								},
+								"do": {
+									"type": "grant_armor",
+									"amount": 4
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 shield (becomes armor). Grant 4 armor to nearest ally. Gain 1 charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Cascading Bolt",
+			"description": "Cascading Bolt: scales with the number of spells cast this turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "damage_per_spell_cast",
+								"amount": 2,
+								"min": 0
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage, plus 2 per spell already cast this turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Sanctuary",
+			"description": "Sanctuary: a fortress of wards.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 9,
+								"persist_as_armor": true
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"allies_only": true
+								},
+								"do": {
+									"type": "grant_armor",
+									"amount": 4
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 9 shield (becomes armor). Grant 4 armor to all allies within 2. Gain 2 charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Resonance Cascade",
+			"description": "Resonance Cascade: a true spell-count finisher.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 8
+							},
+							{
+								"type": "damage_per_spell_cast",
+								"amount": 3,
+								"min": 0
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 8 damage, plus 3 per spell already cast this turn."
+				}
+			]
+		}
+	]
+}

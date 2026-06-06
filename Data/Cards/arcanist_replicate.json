@@ -1,63 +1,235 @@
 {
-  "id": "arcanist_replicate",
-  "status": "stub",
-  "name": "Replicate",
-  "school": "Arcanist",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Replicate",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Copy the last spell you cast this turn. Cast copy immediately with new targets. Costs 0.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Replicate (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Copy retains +damage buffs from this turn",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Spell Surge",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Deal 4 damage per spell cast this turn (including this). Minimum 2.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "damage",
-      "amount": 4
-    },
-    "channel": {
-      "name": "Spell Surge (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Each hit also pushes target 1 tile",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "move",
-        "tiles": 1
-      }
-    }
-  }
+	"id": "arcanist_replicate",
+	"status": "wip",
+	"name": "Replicate",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Replicate",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Copy the last spell you cast this turn and cast the copy immediately with new targets. Costs 0.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "replicate_last_spell",
+			"retain_buffs": false
+		}
+	},
+	"bottom": {
+		"name": "Spell Surge",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Deal 4 damage per spell you have cast this turn (including this). Minimum 2.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage_per_spell_cast",
+			"amount": 4,
+			"min": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Replicate+",
+			"bottom_name": "Spell Surge+",
+			"description": "Replicate keeps this turn's buffs. Surge scales harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.retain_buffs",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Copy the last spell you cast this turn (keeping its buffs) and cast it with new targets. Costs 0."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage per spell cast this turn. Minimum 2."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Mirror Image",
+			"description": "Mirror Image: the copy also banks a charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "replicate_last_spell",
+								"retain_buffs": true
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Copy the last spell you cast (keeping buffs) and cast it with new targets. Gain 1 charge. Costs 0."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Spell Surge (Wide)",
+			"description": "Spell Surge (Wide): also hits the nearest other enemy for half.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage_per_spell_cast",
+								"amount": 5,
+								"min": 2
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "unit",
+									"range": 3,
+									"los": false,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage_per_spell_cast",
+									"amount": 2,
+									"min": 0
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 per spell to target, 2 per spell to the nearest other enemy."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Twinned Spell",
+			"description": "Twinned Spell: copy the last TWO spells you cast.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Copy each of the last 2 spells you cast this turn (keeping buffs) and recast them with new targets. Gain 1 charge. Costs 0."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Spell Detonation",
+			"description": "Spell Detonation: 6 per spell.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 per spell to target, 2 per spell to the nearest other enemy."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Perfect Duplicate",
+			"description": "Perfect Duplicate: the copies cast both halves.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.both_halves",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Copy the last 2 spells you cast (both halves, keeping buffs) and recast with new targets. Gain 1 charge. Costs 0."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Cataclysmic Surge",
+			"description": "Cataclysmic Surge: hits ALL enemies for spell-count damage.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "global",
+							"enemies_only": true
+						},
+						"do": {
+							"type": "damage_per_spell_cast",
+							"amount": 4,
+							"min": 2
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 4 damage per spell cast this turn to ALL enemies. Minimum 2."
+				}
+			]
+		}
+	]
 }

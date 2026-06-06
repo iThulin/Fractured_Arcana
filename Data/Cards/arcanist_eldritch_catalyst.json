@@ -1,70 +1,223 @@
 {
-  "id": "arcanist_eldritch_catalyst",
-  "status": "stub",
-  "name": "Eldritch Catalyst",
-  "school": "Arcanist",
-  "rarity": "Common",
-  "top": {
-    "name": "Eldritch Catalyst",
-    "mana": 0,
-    "speed": "Sorcery",
-    "rules_text": "Next spell targets 1 additional enemy (closest within 2 tiles).",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Eldritch Catalyst (Channel)",
-      "mana": 0,
-      "speed": "Reaction",
-      "rules_text": "Channel: Additional target takes full damage instead of half",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Charge Siphon",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Deal 4 damage. Gain charges equal to buffs on target (min 1).",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 4
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Charge Siphon (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also remove 1 buff",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_eldritch_catalyst",
+	"status": "wip",
+	"name": "Eldritch Catalyst",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Eldritch Catalyst",
+		"mana": 0,
+		"speed": "Sorcery",
+		"rules_text": "Your next spell this turn also hits 1 additional enemy (nearest within 2).",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "queue_next_spell_modifier",
+			"extra_targets": 1,
+			"extra_target_range": 2,
+			"extra_target_fraction": 0.5
+		}
+	},
+	"bottom": {
+		"name": "Charge Siphon",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 4 damage. Gain 1 charge per buff on the target (min 1).",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 4
+				},
+				{
+					"type": "gain_charge_per_buff",
+					"min": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Eldritch Catalyst+",
+			"bottom_name": "Charge Siphon+",
+			"description": "Catalyst's splash reaches further. Siphon hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.extra_target_range",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn also hits 1 additional enemy (nearest within 3)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Gain 1 charge per buff on the target (min 1)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Forking Catalyst",
+			"description": "Forking Catalyst: the splash deals full damage, not half.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.extra_target_fraction",
+					"value": 1.0
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn also hits 1 additional enemy at full damage (nearest within 3)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Greedy Siphon",
+			"description": "Greedy Siphon: floors at 2 charge regardless of buffs.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].min",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Gain 1 charge per buff on the target (min 2)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Chain Catalyst",
+			"description": "Chain Catalyst: the next spell hits 2 additional enemies.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.extra_targets",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn also hits 2 additional enemies at full damage (within 3)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Mind Siphon",
+			"description": "Mind Siphon: also strips a buff from the target.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "gain_charge_per_buff",
+								"min": 2
+							},
+							{
+								"type": "remove_status"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Gain 1 charge per buff (min 2). Remove a buff from the target."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Eldritch Cascade",
+			"description": "Eldritch Cascade: the next spell hits 3 additional enemies and the catalyst is free.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.extra_targets",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn also hits 3 additional enemies at full damage (within 3)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Soul Siphon",
+			"description": "Soul Siphon: drains harder and refunds mana.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 8
+							},
+							{
+								"type": "gain_charge_per_buff",
+								"min": 3
+							},
+							{
+								"type": "steal_mana",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 8 damage. Gain 1 charge per buff (min 3). Steal 1 mana."
+				}
+			]
+		}
+	]
 }

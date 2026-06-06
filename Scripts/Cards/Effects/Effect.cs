@@ -61,21 +61,27 @@ public abstract class EffectBase : IEffect
 	// ── Shared helper: find the caster's Unit in the game ───────────
 	protected static Unit FindCasterUnit(GameState s, Entity caster)
 	{
-		if (s == null) return null;
+		if (s == null)
+			return null;
 		// PlayerA maps to PlayerUnit
-		if (caster == s.PlayerA) return s.PlayerUnit;
-		if (caster == s.PlayerB) return s.EnemyUnit;
+		if (caster == s.PlayerA)
+			return s.PlayerUnit;
+		if (caster == s.PlayerB)
+			return s.EnemyUnit;
 		// Fallback: search UnitsInPlay by name
 		foreach (var u in s.UnitsInPlay)
-			if (u != null && u.Name == caster.Name) return u;
+			if (u != null && u.Name == caster.Name)
+				return u;
 		return s.PlayerUnit; // last resort
 	}
 
 	// ── Shared helper: resolve any target type to a Unit ────────────
 	protected static Unit ResolveTargetUnit(GameState s, object obj)
 	{
-		if (obj is Unit u) return u;
-		if (obj is TileData td) return td.Occupant;
+		if (obj is Unit u)
+			return u;
+		if (obj is TileData td)
+			return td.Occupant;
 		if (obj is HexTile tv)
 		{
 			var tileData = s?.Grid?.GetTile(tv.Axial);
@@ -96,7 +102,8 @@ public sealed class DealDamageEffect : EffectBase
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		int hit = 0;
-		if (targets == null) { s?.Log($"[DealDamage] No targets."); return; }
+		if (targets == null)
+		{ s?.Log($"[DealDamage] No targets."); return; }
 
 		var casterUnit = FindCasterUnit(s, caster);
 
@@ -182,13 +189,15 @@ public sealed class DealDamageEffect : EffectBase
 
 		if (chainCount > 0 && hit > 0)
 		{
-			if (s?.Grid == null) { s?.Log("[Chain] No grid for chain bounce."); return; }
+			if (s?.Grid == null)
+			{ s?.Log("[Chain] No grid for chain bounce."); return; }
 
 			var alreadyHit = new HashSet<Unit>();
 			foreach (var obj in targets.Items)
 			{
 				var victim = ResolveTargetUnit(s, obj);
-				if (victim != null) alreadyHit.Add(victim);
+				if (victim != null)
+					alreadyHit.Add(victim);
 			}
 			alreadyHit.Add(casterUnit);
 
@@ -196,20 +205,25 @@ public sealed class DealDamageEffect : EffectBase
 			foreach (var obj in targets.Items)
 			{
 				var v = ResolveTargetUnit(s, obj);
-				if (v != null) { chainOrigin = v; break; }
+				if (v != null)
+				{ chainOrigin = v; break; }
 			}
 
 			for (int chain = 0; chain < chainCount; chain++)
 			{
-				if (chainOrigin?.CurrentTile == null) break;
+				if (chainOrigin?.CurrentTile == null)
+					break;
 
 				Unit nearest = null;
 				int nearestDist = int.MaxValue;
 				foreach (var unit in s.UnitsInPlay)
 				{
-					if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-					if (casterUnit != null && unit.TeamId == casterUnit.TeamId) continue;
-					if (alreadyHit.Contains(unit)) continue;
+					if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+						continue;
+					if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
+						continue;
+					if (alreadyHit.Contains(unit))
+						continue;
 
 					int dist = s.Grid.Distance(chainOrigin.CurrentTile.Axial, unit.CurrentTile.Axial);
 					if (dist <= 3 && dist < nearestDist)
@@ -226,7 +240,8 @@ public sealed class DealDamageEffect : EffectBase
 					chainOrigin = nearest;
 					s.Log($"[Chain] Bounced to {nearest.Name} for {totalDamage} damage.");
 				}
-				else break;
+				else
+					break;
 			}
 
 			casterUnit.Stats.StatusEffects.Remove("chaining");
@@ -240,7 +255,8 @@ public sealed class DealDamageEffect : EffectBase
 		bool lethal = false;
 		int hit = 0;
 
-		if (ctx.Targets == null) return new EffectResult();
+		if (ctx.Targets == null)
+			return new EffectResult();
 
 		var casterUnit = FindCasterUnit(ctx.Game, ctx.Caster);
 		int bonus = 0;
@@ -253,12 +269,15 @@ public sealed class DealDamageEffect : EffectBase
 		foreach (var obj in ctx.Targets.Items)
 		{
 			Unit victim = null;
-			if (obj is Unit u) victim = u;
-			else if (obj is TileData td && td.Occupant != null) victim = td.Occupant;
+			if (obj is Unit u)
+				victim = u;
+			else if (obj is TileData td && td.Occupant != null)
+				victim = td.Occupant;
 			else if (obj is HexTile tileView)
 			{
 				var tileData = ResolveTileDataFromView(ctx.Game, tileView);
-				if (tileData != null) victim = tileData.Occupant;
+				if (tileData != null)
+					victim = tileData.Occupant;
 			}
 
 			if (victim != null)
@@ -267,7 +286,8 @@ public sealed class DealDamageEffect : EffectBase
 				victim.ApplyDamage(total);
 				totalDamage += total;
 				hit++;
-				if (hpBefore > 0 && victim.Stats.Health <= 0) lethal = true;
+				if (hpBefore > 0 && victim.Stats.Health <= 0)
+					lethal = true;
 			}
 		}
 
@@ -277,7 +297,8 @@ public sealed class DealDamageEffect : EffectBase
 
 	private TileData ResolveTileDataFromView(GameState s, HexTile tileView)
 	{
-		if (tileView == null) return null;
+		if (tileView == null)
+			return null;
 		var grid = s?.Grid;
 		if (grid == null)
 		{
@@ -304,7 +325,8 @@ public sealed class DistanceDamageEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null || s?.Grid == null) return;
+		if (targets == null || s?.Grid == null)
+			return;
 
 		var casterUnit = FindCasterUnit(s, caster);
 		if (casterUnit?.CurrentTile == null)
@@ -318,7 +340,8 @@ public sealed class DistanceDamageEffect : EffectBase
 		foreach (var obj in targets.Items)
 		{
 			var victim = ResolveTargetUnit(s, obj);
-			if (victim?.CurrentTile == null) continue;
+			if (victim?.CurrentTile == null)
+				continue;
 
 			int dist = s.Grid.Distance(casterUnit.CurrentTile.Axial, victim.CurrentTile.Axial);
 			int damage = Math.Clamp(dist * BonusPerTile, MinDamage, MaxDamage) + bonusSpellDmg;
@@ -345,10 +368,12 @@ public sealed class AoeAllEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (s?.Grid == null) return;
+		if (s?.Grid == null)
+			return;
 
 		var casterUnit = FindCasterUnit(s, caster);
-		if (casterUnit?.CurrentTile == null) return;
+		if (casterUnit?.CurrentTile == null)
+			return;
 
 		int bonusSpellDmg = casterUnit?.BonusSpellDamage ?? 0;
 		int totalDamage = Damage + bonusSpellDmg;
@@ -358,8 +383,10 @@ public sealed class AoeAllEffect : EffectBase
 
 		foreach (var unit in s.UnitsInPlay)
 		{
-			if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-			if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius) continue;
+			if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+				continue;
+			if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius)
+				continue;
 
 			unit.ApplyDamage(totalDamage);
 			s.Log($"[AoeAll] {unit.Name} takes {totalDamage} damage.");
@@ -380,7 +407,8 @@ public sealed class DamageByHandSizeEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null) return;
+		if (targets == null)
+			return;
 
 		var casterUnit = FindCasterUnit(s, caster);
 		var hand = casterUnit?.DeckData?.Hand ?? new System.Collections.Generic.List<Card>();
@@ -396,7 +424,8 @@ public sealed class DamageByHandSizeEffect : EffectBase
 		foreach (var obj in targets.Items)
 		{
 			var victim = ResolveTargetUnit(s, obj);
-			if (victim == null) continue;
+			if (victim == null)
+				continue;
 			victim.ApplyDamage(damage);
 			s.Log($"[HandSizeDamage] {victim.Name} takes {damage} damage ({hand.Count} cards x {Multiplier} +{bonusSpellDmg} spell).");
 		}
@@ -428,12 +457,15 @@ public sealed class DashEffect : EffectBase
 			foreach (var obj in targets.Items)
 			{
 				var victim = ResolveTargetUnit(s, obj);
-				if (victim == null || victim.CurrentTile == null) continue;
-				if (casterUnit == null || casterUnit.CurrentTile == null) continue;
+				if (victim == null || victim.CurrentTile == null)
+					continue;
+				if (casterUnit == null || casterUnit.CurrentTile == null)
+					continue;
 
 				// Calculate push direction: away from caster
 				var grid = s.Grid;
-				if (grid == null) { s.Log("[Push] No grid."); continue; }
+				if (grid == null)
+				{ s.Log("[Push] No grid."); continue; }
 
 				var from = victim.CurrentTile.Axial;
 				var casterPos = casterUnit.CurrentTile.Axial;
@@ -452,7 +484,8 @@ public sealed class DashEffect : EffectBase
 					foreach (var neighbor in grid.GetNeighborCoords(current))
 					{
 						var td = grid.GetTile(neighbor);
-						if (td == null || !td.CanEnter(victim)) continue;
+						if (td == null || !td.CanEnter(victim))
+							continue;
 
 						int distFromCaster = grid.Distance(casterPos, neighbor);
 						if (distFromCaster > bestDist)
@@ -488,20 +521,26 @@ public sealed class TeleportEffect : EffectBase
 {
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null || s?.Grid == null) return;
+		if (targets == null || s?.Grid == null)
+			return;
 
 		var casterUnit = FindCasterUnit(s, caster);
-		if (casterUnit?.CurrentTile == null) return;
+		if (casterUnit?.CurrentTile == null)
+			return;
 
 		foreach (var obj in targets.Items)
 		{
 			TileData destTile = null;
 
-			if (obj is TileData td) destTile = td;
-			else if (obj is HexTile tv) destTile = s.Grid.GetTile(tv.Axial);
-			else if (obj is Unit u && u.CurrentTile != null) destTile = u.CurrentTile;
+			if (obj is TileData td)
+				destTile = td;
+			else if (obj is HexTile tv)
+				destTile = s.Grid.GetTile(tv.Axial);
+			else if (obj is Unit u && u.CurrentTile != null)
+				destTile = u.CurrentTile;
 
-			if (destTile == null || destTile.Occupant != null) continue;
+			if (destTile == null || destTile.Occupant != null)
+				continue;
 
 			casterUnit.CurrentTile.ClearOccupant(casterUnit);
 			casterUnit.PlaceOnTile(destTile);
@@ -528,14 +567,16 @@ public sealed class PushEffect : EffectBase
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var casterUnit = FindCasterUnit(s, caster);
-		if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null) return;
+		if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null)
+			return;
 
 		var casterPos = casterUnit.CurrentTile.Axial;
 
 		foreach (var obj in targets.Items)
 		{
 			var victim = ResolveTargetUnit(s, obj);
-			if (victim == null || victim.CurrentTile == null) continue;
+			if (victim == null || victim.CurrentTile == null)
+				continue;
 
 			int pushed = 0;
 			bool collided = false;
@@ -549,7 +590,8 @@ public sealed class PushEffect : EffectBase
 				foreach (var neighbor in s.Grid.GetNeighbors(current))
 				{
 					var td = s.Grid.GetTile(neighbor);
-					if (td == null || !td.CanEnter(victim)) continue;
+					if (td == null || !td.CanEnter(victim))
+						continue;
 
 					int distFromCaster = s.Grid.Distance(casterPos, neighbor);
 					if (distFromCaster > bestDist)
@@ -605,17 +647,20 @@ public sealed class PullEffect : EffectBase
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var casterUnit = FindCasterUnit(s, caster);
-		if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null) return;
+		if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null)
+			return;
 
 		var casterPos = casterUnit.CurrentTile.Axial;
 
 		foreach (var obj in targets.Items)
 		{
 			var victim = ResolveTargetUnit(s, obj);
-			if (victim == null || victim.CurrentTile == null) continue;
+			if (victim == null || victim.CurrentTile == null)
+				continue;
 
 			// Don't pull the caster toward themselves
-			if (victim == casterUnit) continue;
+			if (victim == casterUnit)
+				continue;
 
 			int pulled = 0;
 
@@ -624,7 +669,8 @@ public sealed class PullEffect : EffectBase
 				var current = victim.CurrentTile.Axial;
 
 				// Already adjacent to caster — nowhere closer to go
-				if (s.Grid.Distance(casterPos, current) <= 1) break;
+				if (s.Grid.Distance(casterPos, current) <= 1)
+					break;
 
 				TileData bestTile = null;
 				int bestDist = int.MaxValue;
@@ -632,7 +678,8 @@ public sealed class PullEffect : EffectBase
 				foreach (var neighbor in s.Grid.GetNeighbors(current))
 				{
 					var td = s.Grid.GetTile(neighbor);
-					if (td == null || !td.CanEnter(victim)) continue;
+					if (td == null || !td.CanEnter(victim))
+						continue;
 
 					int distFromCaster = s.Grid.Distance(casterPos, neighbor);
 					if (distFromCaster < bestDist)
@@ -714,16 +761,19 @@ public sealed class GiveTargetArmorEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null) return;
+		if (targets == null)
+			return;
 		var casterUnit = FindCasterUnit(s, caster);
 
 		foreach (var obj in targets.Items)
 		{
 			var unit = ResolveTargetUnit(s, obj);
-			if (unit == null) continue;
+			if (unit == null)
+				continue;
 
 			// Only buff allies
-			if (casterUnit != null && unit.TeamId != casterUnit.TeamId) continue;
+			if (casterUnit != null && unit.TeamId != casterUnit.TeamId)
+				continue;
 
 			unit.Stats.Armor += Amount;
 			unit.RefreshHealthBar();
@@ -767,7 +817,8 @@ public sealed class ArmorPerTargetEffect : EffectBase
 	private void ApplyArmor(GameState s, Entity caster, TargetSet targets)
 	{
 		var casterUnit = FindCasterUnit(s, caster);
-		if (casterUnit == null) return;
+		if (casterUnit == null)
+			return;
 
 		int targetCount = 0;
 		if (targets != null)
@@ -775,7 +826,8 @@ public sealed class ArmorPerTargetEffect : EffectBase
 			foreach (var obj in targets.Items)
 			{
 				var unit = ResolveTargetUnit(s, obj);
-				if (unit != null) targetCount++;
+				if (unit != null)
+					targetCount++;
 			}
 		}
 
@@ -812,12 +864,14 @@ public sealed class RemoveStatusEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null) return;
+		if (targets == null)
+			return;
 
 		foreach (var obj in targets.Items)
 		{
 			var unit = ResolveTargetUnit(s, obj);
-			if (unit == null) continue;
+			if (unit == null)
+				continue;
 
 			if (StatusName == null && !unit.CanBeFreed)
 			{
@@ -912,7 +966,8 @@ public sealed class ManaPerNearbyElementEffect : EffectBase
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var casterUnit = FindCasterUnit(s, caster);
-		if (casterUnit?.CurrentTile == null || s?.Grid == null) return;
+		if (casterUnit?.CurrentTile == null || s?.Grid == null)
+			return;
 
 		var center = casterUnit.CurrentTile.Axial;
 		var uniqueElements = new HashSet<TileElementType>();
@@ -920,9 +975,12 @@ public sealed class ManaPerNearbyElementEffect : EffectBase
 		foreach (var kvp in s.Grid.Tiles)
 		{
 			var tile = kvp.Value;
-			if (tile == null) continue;
-			if (tile.ElementType == TileElementType.None) continue;
-			if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
+			if (tile == null)
+				continue;
+			if (tile.ElementType == TileElementType.None)
+				continue;
+			if (s.Grid.Distance(center, kvp.Key) > Radius)
+				continue;
 
 			uniqueElements.Add(tile.ElementType);
 		}
@@ -994,7 +1052,8 @@ public sealed class ImbueTileEffect : EffectBase
 	}
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (s?.Grid == null) { s?.Log("[ImbueTile] No grid."); return; }
+		if (s?.Grid == null)
+		{ s?.Log("[ImbueTile] No grid."); return; }
 
 		TileElementType elementType = Element.ToLowerInvariant() switch
 		{
@@ -1007,17 +1066,22 @@ public sealed class ImbueTileEffect : EffectBase
 			_ => TileElementType.None
 		};
 
-		if (targets == null) return;
+		if (targets == null)
+			return;
 
 		foreach (var obj in targets.Items)
 		{
 			TileData tile = null;
 
-			if (obj is TileData td) tile = td;
-			else if (obj is HexTile tv) tile = s.Grid.GetTile(tv.Axial);
-			else if (obj is Unit u && u.CurrentTile != null) tile = u.CurrentTile;
+			if (obj is TileData td)
+				tile = td;
+			else if (obj is HexTile tv)
+				tile = s.Grid.GetTile(tv.Axial);
+			else if (obj is Unit u && u.CurrentTile != null)
+				tile = u.CurrentTile;
 
-			if (tile == null) continue;
+			if (tile == null)
+				continue;
 
 			tile.ElementType = elementType;
 			tile.ElementStrength = 1.0f;
@@ -1061,13 +1125,15 @@ public sealed class ImbueAllTilesRandomEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (s?.Grid == null) return;
+		if (s?.Grid == null)
+			return;
 
 		int imbued = 0;
 		foreach (var kvp in s.Grid.Tiles)
 		{
 			var tile = kvp.Value;
-			if (tile == null) continue;
+			if (tile == null)
+				continue;
 
 			var element = Elements[_rng.Next(Elements.Length)];
 			tile.ElementType = element;
@@ -1098,10 +1164,12 @@ public sealed class PlaceGlyphEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null || s?.Grid == null) return;
+		if (targets == null || s?.Grid == null)
+			return;
 
 		var casterUnit = FindCasterUnit(s, caster);
-		if (casterUnit == null) return;
+		if (casterUnit == null)
+			return;
 
 		int bonusSpellDmg = casterUnit?.BonusSpellDamage ?? 0;
 		int totalGlyphDmg = Damage + bonusSpellDmg; // captured at placement
@@ -1109,11 +1177,15 @@ public sealed class PlaceGlyphEffect : EffectBase
 		foreach (var obj in targets.Items)
 		{
 			TileData tile = null;
-			if (obj is TileData td) tile = td;
-			else if (obj is HexTile tv) tile = s.Grid.GetTile(tv.Axial);
+			if (obj is TileData td)
+				tile = td;
+			else if (obj is HexTile tv)
+				tile = s.Grid.GetTile(tv.Axial);
 
-			if (tile == null || tile.IsBlocked) continue;
-			if (tile.Glyph != null) continue; // tile already has a glyph
+			if (tile == null || tile.IsBlocked)
+				continue;
+			if (tile.Glyph != null)
+				continue; // tile already has a glyph
 
 			int dmg = totalGlyphDmg; // use captured value in closure
 			string status = Status;
@@ -1158,7 +1230,8 @@ public sealed class ApplyStatusEffect : EffectBase
 	}
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null) return;
+		if (targets == null)
+			return;
 		foreach (var obj in targets.Items)
 		{
 			var victim = ResolveTargetUnit(s, obj);
@@ -1199,7 +1272,8 @@ public sealed class CleanseDebuffsEffect : EffectBase
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var casterUnit = FindCasterUnit(s, caster);
-		if (casterUnit == null) return;
+		if (casterUnit == null)
+			return;
 
 		if (!casterUnit.CanBeFreed)
 		{
@@ -1251,11 +1325,13 @@ public sealed class SummonEffect : EffectBase
 		{
 			foreach (var obj in targets.Items)
 			{
-				if (obj is TileData td && td.Occupant == null) { spawnTile = td; break; }
+				if (obj is TileData td && td.Occupant == null)
+				{ spawnTile = td; break; }
 				if (obj is HexTile tv)
 				{
 					var tileData = s.Grid?.GetTile(tv.Axial);
-					if (tileData != null && tileData.Occupant == null) { spawnTile = tileData; break; }
+					if (tileData != null && tileData.Occupant == null)
+					{ spawnTile = tileData; break; }
 				}
 			}
 		}
@@ -1300,9 +1376,11 @@ public sealed class SummonEffect : EffectBase
 				foreach (var neighbor in s.Grid.GetNeighbors(casterUnit.CurrentTile.Axial))
 				{
 					var td = s.Grid.GetTile(neighbor);
-					if (td != null && td.Occupant == null) { spawnTile = td; break; }
+					if (td != null && td.Occupant == null)
+					{ spawnTile = td; break; }
 				}
-				if (spawnTile == null) break;
+				if (spawnTile == null)
+					break;
 			}
 		}
 	}
@@ -1320,12 +1398,14 @@ public sealed class RemoveArmorEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null) return;
+		if (targets == null)
+			return;
 
 		foreach (var obj in targets.Items)
 		{
 			var victim = ResolveTargetUnit(s, obj);
-			if (victim == null) continue;
+			if (victim == null)
+				continue;
 
 			int removed;
 			if (Amount <= 0)
@@ -1353,16 +1433,21 @@ public sealed class CreateRubbleEffect : EffectBase
 {
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null || s?.Grid == null) return;
+		if (targets == null || s?.Grid == null)
+			return;
 
 		foreach (var obj in targets.Items)
 		{
 			TileData tile = null;
-			if (obj is TileData td) tile = td;
-			else if (obj is HexTile tv) tile = s.Grid.GetTile(tv.Axial);
-			else if (obj is Unit u && u.CurrentTile != null) tile = u.CurrentTile;
+			if (obj is TileData td)
+				tile = td;
+			else if (obj is HexTile tv)
+				tile = s.Grid.GetTile(tv.Axial);
+			else if (obj is Unit u && u.CurrentTile != null)
+				tile = u.CurrentTile;
 
-			if (tile == null || tile.IsBlocked) continue;
+			if (tile == null || tile.IsBlocked)
+				continue;
 
 			tile.ApplyTerrainModifier("rubble");
 			s.Grid.ApplyVisualToTile(tile);
@@ -1383,16 +1468,21 @@ public sealed class RaiseTerrainEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null || s?.Grid == null) return;
+		if (targets == null || s?.Grid == null)
+			return;
 
 		foreach (var obj in targets.Items)
 		{
 			TileData tile = null;
-			if (obj is TileData td) tile = td;
-			else if (obj is HexTile tv) tile = s.Grid.GetTile(tv.Axial);
-			else if (obj is Unit u && u.CurrentTile != null) tile = u.CurrentTile;
+			if (obj is TileData td)
+				tile = td;
+			else if (obj is HexTile tv)
+				tile = s.Grid.GetTile(tv.Axial);
+			else if (obj is Unit u && u.CurrentTile != null)
+				tile = u.CurrentTile;
 
-			if (tile == null) continue;
+			if (tile == null)
+				continue;
 
 			// Raise height
 			tile.Height += HeightIncrease;
@@ -1429,20 +1519,20 @@ public sealed class RaiseTerrainEffect : EffectBase
 /// </summary>
 public sealed class SummonSpiritEffect : EffectBase
 {
-    public string UnitKind;
-    public int HP, Damage, Speed;
-    public bool OnDeathMemorial;
+	public string UnitKind;
+	public int HP, Damage, Speed;
+	public bool OnDeathMemorial;
 
-    public SummonSpiritEffect(string kind, int hp, int damage, int speed, bool onDeathMemorial = false)
-    {
-        UnitKind = kind;
-        HP = hp;
-        Damage = damage;
-        Speed = speed;
-        OnDeathMemorial = onDeathMemorial;
-    }
+	public SummonSpiritEffect(string kind, int hp, int damage, int speed, bool onDeathMemorial = false)
+	{
+		UnitKind = kind;
+		HP = hp;
+		Damage = damage;
+		Speed = speed;
+		OnDeathMemorial = onDeathMemorial;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		if (s.OnSummonRequested == null)
 		{
@@ -1497,7 +1587,8 @@ public sealed class SummonSpiritEffect : EffectBase
 			string sourceName = tile.Memorial?.SourceName ?? "Unknown";
 
 			var spirit = s.OnSummonRequested(UnitKind, spawnTile, ownerTeam);
-			if (spirit == null) continue;
+			if (spirit == null)
+				continue;
 
 			spirit.IsSpirit = true;
 			spirit.SummonerTeamId = ownerTeam;
@@ -1523,66 +1614,69 @@ public sealed class SummonSpiritEffect : EffectBase
 /// </summary>
 public sealed class SummonSpiritFromAllMemorialsEffect : EffectBase
 {
-    public string UnitKind;
-    public int BaseHP, Damage, Speed;
-    public bool HpPerSpirit;
-    public int AdvanceOnArrive;
-    public bool InheritMemorialName;
-    public int BonusDamagePerStrength;
+	public string UnitKind;
+	public int BaseHP, Damage, Speed;
+	public bool HpPerSpirit;
+	public int AdvanceOnArrive;
+	public bool InheritMemorialName;
+	public int BonusDamagePerStrength;
 
-    public SummonSpiritFromAllMemorialsEffect(string kind, int baseHp, int damage, int speed,
-        bool hpPerSpirit = false, int advanceOnArrive = 0,
-        bool inheritMemorialName = false, int bonusDamagePerStrength = 0)
-    {
-        UnitKind = kind;
-        BaseHP = baseHp;
-        Damage = damage;
-        Speed = speed;
-        HpPerSpirit = hpPerSpirit;
-        AdvanceOnArrive = advanceOnArrive;
-        InheritMemorialName = inheritMemorialName;
-        BonusDamagePerStrength = bonusDamagePerStrength;
-    }
+	public SummonSpiritFromAllMemorialsEffect(string kind, int baseHp, int damage, int speed,
+		bool hpPerSpirit = false, int advanceOnArrive = 0,
+		bool inheritMemorialName = false, int bonusDamagePerStrength = 0)
+	{
+		UnitKind = kind;
+		BaseHP = baseHp;
+		Damage = damage;
+		Speed = speed;
+		HpPerSpirit = hpPerSpirit;
+		AdvanceOnArrive = advanceOnArrive;
+		InheritMemorialName = inheritMemorialName;
+		BonusDamagePerStrength = bonusDamagePerStrength;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s.OnSummonRequested == null || s.Memorials == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s.OnSummonRequested == null || s.Memorials == null)
+			return;
 
-        var casterUnit = s.ActiveCasterUnit;
-        int ownerTeam = casterUnit?.TeamId ?? 0;
+		var casterUnit = s.ActiveCasterUnit;
+		int ownerTeam = casterUnit?.TeamId ?? 0;
 
-        var memorials = s.Memorials.GetAllMemorials();
-        int existingSpirits = s.UnitsInPlay.Count(u => u != null && u.IsSpirit && u.SummonerTeamId == ownerTeam);
+		var memorials = s.Memorials.GetAllMemorials();
+		int existingSpirits = s.UnitsInPlay.Count(u => u != null && u.IsSpirit && u.SummonerTeamId == ownerTeam);
 
-        foreach (var tile in memorials)
-        {
-            if (!tile.HasMemorial) continue;
+		foreach (var tile in memorials)
+		{
+			if (!tile.HasMemorial)
+				continue;
 
-            int hp = HpPerSpirit ? Math.Max(1, BaseHP + existingSpirits) : BaseHP;
-            int dmg = Damage + (BonusDamagePerStrength > 0
-                ? tile.Memorial.StrengthValue * BonusDamagePerStrength : 0);
+			int hp = HpPerSpirit ? Math.Max(1, BaseHP + existingSpirits) : BaseHP;
+			int dmg = Damage + (BonusDamagePerStrength > 0
+				? tile.Memorial.StrengthValue * BonusDamagePerStrength : 0);
 
-            string sourceName = InheritMemorialName
-                ? (tile.Memorial?.SourceName ?? UnitKind)
-                : UnitKind;
+			string sourceName = InheritMemorialName
+				? (tile.Memorial?.SourceName ?? UnitKind)
+				: UnitKind;
 
-            var spirit = s.OnSummonRequested(UnitKind, tile, ownerTeam);
-            if (spirit == null) continue;
+			var spirit = s.OnSummonRequested(UnitKind, tile, ownerTeam);
+			if (spirit == null)
+				continue;
 
-            spirit.IsSpirit = true;
-            spirit.SummonerTeamId = ownerTeam;
-            spirit.Stats.MaxHealth = hp;
-            spirit.Stats.Health = hp;
-            spirit.Stats.BaseSpeed = Speed;
-            spirit.AttackDamage = dmg;
-            spirit.ApplySpiritAppearance();
+			spirit.IsSpirit = true;
+			spirit.SummonerTeamId = ownerTeam;
+			spirit.Stats.MaxHealth = hp;
+			spirit.Stats.Health = hp;
+			spirit.Stats.BaseSpeed = Speed;
+			spirit.AttackDamage = dmg;
+			spirit.ApplySpiritAppearance();
 
-            s.Memorials.ConsumeMemorial(tile);
-            existingSpirits++;
+			s.Memorials.ConsumeMemorial(tile);
+			existingSpirits++;
 
-            s.Log($"[SummonFromAllMemorials] {sourceName} rises at {tile.Axial} ({hp}HP {dmg}DMG).");
-        }
-    }
+			s.Log($"[SummonFromAllMemorials] {sourceName} rises at {tile.Axial} ({hp}HP {dmg}DMG).");
+		}
+	}
 }
 
 // ── Create Memorial ────────────────────────────────────────────────────────────
@@ -1594,39 +1688,41 @@ public sealed class SummonSpiritFromAllMemorialsEffect : EffectBase
 /// </summary>
 public sealed class CreateMemorialEffect : EffectBase
 {
-    public MemorialStrength Strength;
+	public MemorialStrength Strength;
 
-    public CreateMemorialEffect(MemorialStrength strength = MemorialStrength.Solid)
-    {
-        Strength = strength;
-    }
+	public CreateMemorialEffect(MemorialStrength strength = MemorialStrength.Solid)
+	{
+		Strength = strength;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Memorials == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null)
+			return;
 
-        var casterUnit = s.ActiveCasterUnit;
-        int ownerTeam = casterUnit?.TeamId ?? 0;
-        string casterName = casterUnit?.DisplayName ?? casterUnit?.Name ?? "Unknown";
+		var casterUnit = s.ActiveCasterUnit;
+		int ownerTeam = casterUnit?.TeamId ?? 0;
+		string casterName = casterUnit?.DisplayName ?? casterUnit?.Name ?? "Unknown";
 
-        // Use target tile if available, otherwise caster tile
-        TileData tile = null;
-        if (targets?.Items?.Count > 0)
-        {
-            tile = targets.Items[0] switch
-            {
-                TileData td => td,
-                Unit u => u.CurrentTile,
-                _ => null
-            };
-        }
-        tile ??= casterUnit?.CurrentTile;
+		// Use target tile if available, otherwise caster tile
+		TileData tile = null;
+		if (targets?.Items?.Count > 0)
+		{
+			tile = targets.Items[0] switch
+			{
+				TileData td => td,
+				Unit u => u.CurrentTile,
+				_ => null
+			};
+		}
+		tile ??= casterUnit?.CurrentTile;
 
-        if (tile == null) return;
+		if (tile == null)
+			return;
 
-        s.Memorials.CreateMemorial(tile, casterName, false, Strength, ownerTeam);
-        s.Log($"[CreateMemorial] {Strength} memorial at {tile.Axial}.");
-    }
+		s.Memorials.CreateMemorial(tile, casterName, false, Strength, ownerTeam);
+		s.Log($"[CreateMemorial] {Strength} memorial at {tile.Axial}.");
+	}
 }
 
 // ── Consume Memorial ───────────────────────────────────────────────────────────
@@ -1637,25 +1733,27 @@ public sealed class CreateMemorialEffect : EffectBase
 /// </summary>
 public sealed class ConsumeMemorialEffect : EffectBase
 {
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Memorials == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null)
+			return;
 
-        foreach (var obj in targets?.Items ?? new List<object>())
-        {
-            TileData tile = obj switch
-            {
-                TileData td => td,
-                Unit u => u.CurrentTile,
-                _ => null
-            };
+		foreach (var obj in targets?.Items ?? new List<object>())
+		{
+			TileData tile = obj switch
+			{
+				TileData td => td,
+				Unit u => u.CurrentTile,
+				_ => null
+			};
 
-            if (tile == null || !tile.HasMemorial) continue;
+			if (tile == null || !tile.HasMemorial)
+				continue;
 
-            s.Memorials.ConsumeMemorial(tile);
-            s.Log($"[ConsumeMemorial] Memorial released at {tile.Axial}.");
-        }
-    }
+			s.Memorials.ConsumeMemorial(tile);
+			s.Log($"[ConsumeMemorial] Memorial released at {tile.Axial}.");
+		}
+	}
 }
 
 // ── Consume Memorial or Dismiss Spirit ────────────────────────────────────────
@@ -1666,37 +1764,39 @@ public sealed class ConsumeMemorialEffect : EffectBase
 /// </summary>
 public sealed class ConsumeMemorialOrDismissSpiritEffect : EffectBase
 {
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s == null)
+			return;
 
-        foreach (var obj in targets?.Items ?? new List<object>())
-        {
-            TileData tile = obj switch
-            {
-                TileData td => td,
-                Unit u => u.CurrentTile,
-                _ => null
-            };
+		foreach (var obj in targets?.Items ?? new List<object>())
+		{
+			TileData tile = obj switch
+			{
+				TileData td => td,
+				Unit u => u.CurrentTile,
+				_ => null
+			};
 
-            if (tile == null) continue;
+			if (tile == null)
+				continue;
 
-            // Prefer spirit dismissal if a spirit occupies the tile
-            if (tile.Occupant is Unit occupant && occupant.IsSpirit)
-            {
-                occupant.Die();
-                s.Log($"[DismissSpirit] {occupant.Name} dismissed from {tile.Axial}.");
-                continue;
-            }
+			// Prefer spirit dismissal if a spirit occupies the tile
+			if (tile.Occupant is Unit occupant && occupant.IsSpirit)
+			{
+				occupant.Die();
+				s.Log($"[DismissSpirit] {occupant.Name} dismissed from {tile.Axial}.");
+				continue;
+			}
 
-            // Fall back to consuming the memorial
-            if (tile.HasMemorial && s.Memorials != null)
-            {
-                s.Memorials.ConsumeMemorial(tile);
-                s.Log($"[ConsumeMemorial] Memorial released at {tile.Axial}.");
-            }
-        }
-    }
+			// Fall back to consuming the memorial
+			if (tile.HasMemorial && s.Memorials != null)
+			{
+				s.Memorials.ConsumeMemorial(tile);
+				s.Log($"[ConsumeMemorial] Memorial released at {tile.Axial}.");
+			}
+		}
+	}
 }
 
 // ── Gain Grief ─────────────────────────────────────────────────────────────────
@@ -1707,18 +1807,18 @@ public sealed class ConsumeMemorialOrDismissSpiritEffect : EffectBase
 /// </summary>
 public sealed class GainGriefEffect : EffectBase
 {
-    public int Amount;
-    public GainGriefEffect(int amount) { Amount = amount; }
+	public int Amount;
+	public GainGriefEffect(int amount) { Amount = amount; }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit?.Attunement is GriefAttunement grief)
-        {
-            grief.GainCharges(Amount);
-            s.Log($"[GainGrief] +{Amount} Grief (now {grief.Charges}).");
-        }
-    }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit?.Attunement is GriefAttunement grief)
+		{
+			grief.GainCharges(Amount);
+			s.Log($"[GainGrief] +{Amount} Grief (now {grief.Charges}).");
+		}
+	}
 }
 
 // ── Advance All Spirits ────────────────────────────────────────────────────────
@@ -1729,58 +1829,64 @@ public sealed class GainGriefEffect : EffectBase
 /// </summary>
 public sealed class AdvanceAllSpiritsEffect : EffectBase
 {
-    public int Tiles;
-    public bool AttackIfAdjacent;
-    public bool GrantAttackIfReached;
+	public int Tiles;
+	public bool AttackIfAdjacent;
+	public bool GrantAttackIfReached;
 
-    public AdvanceAllSpiritsEffect(int tiles, bool attackIfAdjacent = true, bool grantAttackIfReached = false)
-    {
-        Tiles = tiles;
-        AttackIfAdjacent = attackIfAdjacent;
-        GrantAttackIfReached = grantAttackIfReached;
-    }
+	public AdvanceAllSpiritsEffect(int tiles, bool attackIfAdjacent = true, bool grantAttackIfReached = false)
+	{
+		Tiles = tiles;
+		AttackIfAdjacent = attackIfAdjacent;
+		GrantAttackIfReached = grantAttackIfReached;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null || s.Grid == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null || s.Grid == null)
+			return;
 
-        var spirits = s.UnitsInPlay
-            .Where(u => u != null && u.IsSpirit && u.Stats.IsAlive && u.SummonerTeamId == casterUnit.TeamId)
-            .ToList();
+		var spirits = s.UnitsInPlay
+			.Where(u => u != null && u.IsSpirit && u.Stats.IsAlive && u.SummonerTeamId == casterUnit.TeamId)
+			.ToList();
 
-        foreach (var spirit in spirits)
-        {
-            if (spirit.CurrentTile == null) continue;
+		foreach (var spirit in spirits)
+		{
+			if (spirit.CurrentTile == null)
+				continue;
 
-            // Find nearest enemy
-            Unit nearestEnemy = null;
-            int bestDist = int.MaxValue;
-            foreach (var unit in s.UnitsInPlay)
-            {
-                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-                if (unit.TeamId == spirit.TeamId) continue;
-                int dist = s.Grid.Distance(spirit.CurrentTile.Axial, unit.CurrentTile.Axial);
-                if (dist < bestDist) { bestDist = dist; nearestEnemy = unit; }
-            }
+			// Find nearest enemy
+			Unit nearestEnemy = null;
+			int bestDist = int.MaxValue;
+			foreach (var unit in s.UnitsInPlay)
+			{
+				if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+					continue;
+				if (unit.TeamId == spirit.TeamId)
+					continue;
+				int dist = s.Grid.Distance(spirit.CurrentTile.Axial, unit.CurrentTile.Axial);
+				if (dist < bestDist)
+				{ bestDist = dist; nearestEnemy = unit; }
+			}
 
-            if (nearestEnemy == null) continue;
+			if (nearestEnemy == null)
+				continue;
 
-            if (AttackIfAdjacent && bestDist <= 1)
-            {
-                // Already adjacent — attack
-                nearestEnemy.ApplyDamage(spirit.AttackDamage);
-                s.Log($"[AdvanceSpirits] {spirit.Name} attacks {nearestEnemy.Name} for {spirit.AttackDamage}.");
-            }
-            else
-            {
-                // Move toward enemy
-                spirit.Stats.MovePoints = Tiles;
-                s.Log($"[AdvanceSpirits] {spirit.Name} advances {Tiles} toward {nearestEnemy.Name}.");
-                // Actual pathfinding movement is handled by the movement system — we set move points here
-            }
-        }
-    }
+			if (AttackIfAdjacent && bestDist <= 1)
+			{
+				// Already adjacent — attack
+				nearestEnemy.ApplyDamage(spirit.AttackDamage);
+				s.Log($"[AdvanceSpirits] {spirit.Name} attacks {nearestEnemy.Name} for {spirit.AttackDamage}.");
+			}
+			else
+			{
+				// Move toward enemy
+				spirit.Stats.MovePoints = Tiles;
+				s.Log($"[AdvanceSpirits] {spirit.Name} advances {Tiles} toward {nearestEnemy.Name}.");
+				// Actual pathfinding movement is handled by the movement system — we set move points here
+			}
+		}
+	}
 }
 
 // ── Buff All Spirits ───────────────────────────────────────────────────────────
@@ -1792,47 +1898,48 @@ public sealed class AdvanceAllSpiritsEffect : EffectBase
 /// </summary>
 public sealed class BuffAllSpiritsEffect : EffectBase
 {
-    public string Stat;
-    public int Amount;
-    public int Duration;
+	public string Stat;
+	public int Amount;
+	public int Duration;
 
-    public BuffAllSpiritsEffect(string stat, int amount, int duration = 1)
-    {
-        Stat = stat;
-        Amount = amount;
-        Duration = duration;
-    }
+	public BuffAllSpiritsEffect(string stat, int amount, int duration = 1)
+	{
+		Stat = stat;
+		Amount = amount;
+		Duration = duration;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
 
-        var spirits = s.UnitsInPlay
-            .Where(u => u != null && u.IsSpirit && u.Stats.IsAlive && u.SummonerTeamId == casterUnit.TeamId)
-            .ToList();
+		var spirits = s.UnitsInPlay
+			.Where(u => u != null && u.IsSpirit && u.Stats.IsAlive && u.SummonerTeamId == casterUnit.TeamId)
+			.ToList();
 
-        foreach (var spirit in spirits)
-        {
-            switch (Stat.ToLower())
-            {
-                case "damage":
-                    spirit.AttackDamage += Amount;
-                    spirit.SpiritDamageBuff += Amount;
-                    spirit.SpiritDamageBuffTurns = Duration;
-                    break;
-                case "armor":
-                    spirit.Stats.Armor += Amount;
-                    break;
-                case "undying":
-                    spirit.IsUndying = true;
-                    spirit.UndyingTurns = Duration;
-                    break;
-            }
-        }
+		foreach (var spirit in spirits)
+		{
+			switch (Stat.ToLower())
+			{
+				case "damage":
+					spirit.AttackDamage += Amount;
+					spirit.SpiritDamageBuff += Amount;
+					spirit.SpiritDamageBuffTurns = Duration;
+					break;
+				case "armor":
+					spirit.Stats.Armor += Amount;
+					break;
+				case "undying":
+					spirit.IsUndying = true;
+					spirit.UndyingTurns = Duration;
+					break;
+			}
+		}
 
-        s.Log($"[BuffAllSpirits] {spirits.Count} spirit(s) buffed: +{Amount} {Stat} for {Duration} turn(s).");
-    }
+		s.Log($"[BuffAllSpirits] {spirits.Count} spirit(s) buffed: +{Amount} {Stat} for {Duration} turn(s).");
+	}
 }
 
 // ── Mark Spirits Memorial On Kill ─────────────────────────────────────────────
@@ -1843,20 +1950,21 @@ public sealed class BuffAllSpiritsEffect : EffectBase
 /// </summary>
 public sealed class MarkSpiritsMemorialOnKillEffect : EffectBase
 {
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
 
-        var spirits = s.UnitsInPlay
-            .Where(u => u != null && u.IsSpirit && u.Stats.IsAlive && u.SummonerTeamId == casterUnit.TeamId)
-            .ToList();
+		var spirits = s.UnitsInPlay
+			.Where(u => u != null && u.IsSpirit && u.Stats.IsAlive && u.SummonerTeamId == casterUnit.TeamId)
+			.ToList();
 
-        foreach (var spirit in spirits)
-            spirit.CreateMemorialOnKill = true;
+		foreach (var spirit in spirits)
+			spirit.CreateMemorialOnKill = true;
 
-        s.Log($"[MarkSpirits] {spirits.Count} spirit(s) will leave memorials on kill.");
-    }
+		s.Log($"[MarkSpirits] {spirits.Count} spirit(s) will leave memorials on kill.");
+	}
 }
 
 // ── Armor Per Memorial ─────────────────────────────────────────────────────────
@@ -1867,24 +1975,26 @@ public sealed class MarkSpiritsMemorialOnKillEffect : EffectBase
 /// </summary>
 public sealed class ArmorPerMemorialEffect : EffectBase
 {
-    public int AmountPer;
-    public ArmorPerMemorialEffect(int amountPer) { AmountPer = amountPer; }
+	public int AmountPer;
+	public ArmorPerMemorialEffect(int amountPer) { AmountPer = amountPer; }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Memorials == null) return;
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null)
+			return;
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
 
-        int count = s.Memorials.CountMemorials();
-        int armor = count * AmountPer;
-        if (armor > 0)
-        {
-            casterUnit.Stats.Armor += armor;
-            casterUnit.RefreshHealthBar();
-        }
-        s.Log($"[ArmorPerMemorial] {count} memorial(s) × {AmountPer} = {armor} armor.");
-    }
+		int count = s.Memorials.CountMemorials();
+		int armor = count * AmountPer;
+		if (armor > 0)
+		{
+			casterUnit.Stats.Armor += armor;
+			casterUnit.RefreshHealthBar();
+		}
+		s.Log($"[ArmorPerMemorial] {count} memorial(s) × {AmountPer} = {armor} armor.");
+	}
 }
 
 // ── Armor Per Grief ────────────────────────────────────────────────────────────
@@ -1895,22 +2005,23 @@ public sealed class ArmorPerMemorialEffect : EffectBase
 /// </summary>
 public sealed class ArmorPerGriefEffect : EffectBase
 {
-    public int AmountPer;
-    public ArmorPerGriefEffect(int amountPer) { AmountPer = amountPer; }
+	public int AmountPer;
+	public ArmorPerGriefEffect(int amountPer) { AmountPer = amountPer; }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit?.Attunement is not GriefAttunement grief) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit?.Attunement is not GriefAttunement grief)
+			return;
 
-        int armor = grief.Charges * AmountPer;
-        if (armor > 0)
-        {
-            casterUnit.Stats.Armor += armor;
-            casterUnit.RefreshHealthBar();
-        }
-        s.Log($"[ArmorPerGrief] {grief.Charges} Grief × {AmountPer} = {armor} armor.");
-    }
+		int armor = grief.Charges * AmountPer;
+		if (armor > 0)
+		{
+			casterUnit.Stats.Armor += armor;
+			casterUnit.RefreshHealthBar();
+		}
+		s.Log($"[ArmorPerGrief] {grief.Charges} Grief × {AmountPer} = {armor} armor.");
+	}
 }
 
 // ── Heal Fraction of Damage ────────────────────────────────────────────────────
@@ -1922,23 +2033,24 @@ public sealed class ArmorPerGriefEffect : EffectBase
 /// </summary>
 public sealed class HealFractionOfDamageEffect : EffectBase
 {
-    public float Fraction;
-    public HealFractionOfDamageEffect(float fraction) { Fraction = fraction; }
+	public float Fraction;
+	public HealFractionOfDamageEffect(float fraction) { Fraction = fraction; }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
 
-        int damage = s.LastDamageDealt;
-        int heal = (int)(damage * Fraction);
-        if (heal > 0)
-        {
-            casterUnit.Stats.Health = Math.Min(casterUnit.Stats.MaxHealth, casterUnit.Stats.Health + heal);
-            casterUnit.RefreshHealthBar();
-        }
-        s.Log($"[HealFraction] Healed {heal} ({Fraction:P0} of {damage} damage).");
-    }
+		int damage = s.LastDamageDealt;
+		int heal = (int)(damage * Fraction);
+		if (heal > 0)
+		{
+			casterUnit.Stats.Health = Math.Min(casterUnit.Stats.MaxHealth, casterUnit.Stats.Health + heal);
+			casterUnit.RefreshHealthBar();
+		}
+		s.Log($"[HealFraction] Healed {heal} ({Fraction:P0} of {damage} damage).");
+	}
 }
 
 // ── Gain Mana (alias) ──────────────────────────────────────────────────────────
@@ -1949,18 +2061,19 @@ public sealed class HealFractionOfDamageEffect : EffectBase
 /// </summary>
 public sealed class GainManaEffect : EffectBase
 {
-    public int Amount;
-    public GainManaEffect(int amount) { Amount = amount; }
+	public int Amount;
+	public GainManaEffect(int amount) { Amount = amount; }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null) return;
-        casterUnit.GainMana(Amount);
-        if (s.Mana.ContainsKey(caster))
-            s.Mana[caster] = casterUnit.Stats.Mana;
-        s.Log($"[GainMana] {casterUnit.Name} gains {Amount} mana (now {casterUnit.Stats.Mana}/{casterUnit.Stats.MaxMana}).");
-    }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
+		casterUnit.GainMana(Amount);
+		if (s.Mana.ContainsKey(caster))
+			s.Mana[caster] = casterUnit.Stats.Mana;
+		s.Log($"[GainMana] {casterUnit.Name} gains {Amount} mana (now {casterUnit.Stats.Mana}/{casterUnit.Stats.MaxMana}).");
+	}
 }
 
 // ── Dirge Pulse ────────────────────────────────────────────────────────────────
@@ -1971,68 +2084,74 @@ public sealed class GainManaEffect : EffectBase
 /// </summary>
 public sealed class DirgePulseEffect : EffectBase
 {
-    public int Damage;
-    public int Push;
-    public int CollisionDamage;
+	public int Damage;
+	public int Push;
+	public int CollisionDamage;
 
-    public DirgePulseEffect(int damage, int push, int collisionDamage = 0)
-    {
-        Damage = damage;
-        Push = push;
-        CollisionDamage = collisionDamage;
-    }
+	public DirgePulseEffect(int damage, int push, int collisionDamage = 0)
+	{
+		Damage = damage;
+		Push = push;
+		CollisionDamage = collisionDamage;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Grid == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Grid == null)
+			return;
 
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null) return;
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
 
-        // Collect pulse origins — all spirit tiles and memorial tiles
-        var pulseOrigins = new HashSet<Vector2I>();
+		// Collect pulse origins — all spirit tiles and memorial tiles
+		var pulseOrigins = new HashSet<Vector2I>();
 
-        foreach (var unit in s.UnitsInPlay)
-        {
-            if (unit == null || !unit.IsSpirit || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-            if (unit.SummonerTeamId != casterUnit.TeamId) continue;
-            pulseOrigins.Add(unit.CurrentTile.Axial);
-        }
+		foreach (var unit in s.UnitsInPlay)
+		{
+			if (unit == null || !unit.IsSpirit || !unit.Stats.IsAlive || unit.CurrentTile == null)
+				continue;
+			if (unit.SummonerTeamId != casterUnit.TeamId)
+				continue;
+			pulseOrigins.Add(unit.CurrentTile.Axial);
+		}
 
-        if (s.Memorials != null)
-            foreach (var tile in s.Memorials.GetAllMemorials())
-                pulseOrigins.Add(tile.Axial);
+		if (s.Memorials != null)
+			foreach (var tile in s.Memorials.GetAllMemorials())
+				pulseOrigins.Add(tile.Axial);
 
-        if (pulseOrigins.Count == 0)
-        {
-            s.Log("[Dirge] No spirits or memorials on board — no effect.");
-            return;
-        }
+		if (pulseOrigins.Count == 0)
+		{
+			s.Log("[Dirge] No spirits or memorials on board — no effect.");
+			return;
+		}
 
-        // Find all enemies within 2 of any origin
-        var affected = new HashSet<Unit>();
-        foreach (var unit in s.UnitsInPlay)
-        {
-            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-            if (unit.TeamId == casterUnit.TeamId) continue;
+		// Find all enemies within 2 of any origin
+		var affected = new HashSet<Unit>();
+		foreach (var unit in s.UnitsInPlay)
+		{
+			if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+				continue;
+			if (unit.TeamId == casterUnit.TeamId)
+				continue;
 
-            foreach (var origin in pulseOrigins)
-            {
-                if (s.Grid.Distance(origin, unit.CurrentTile.Axial) <= 2)
-                {
-                    affected.Add(unit);
-                    break;
-                }
-            }
-        }
+			foreach (var origin in pulseOrigins)
+			{
+				if (s.Grid.Distance(origin, unit.CurrentTile.Axial) <= 2)
+				{
+					affected.Add(unit);
+					break;
+				}
+			}
+		}
 
-        foreach (var unit in affected)
-        {
-            unit.ApplyDamage(Damage);
-            s.Log($"[Dirge] {unit.Name} takes {Damage} from the dirge.");
-            // Push is handled by the movement system when push tiles > 0
-        }
-    }
+		foreach (var unit in affected)
+		{
+			unit.ApplyDamage(Damage);
+			s.Log($"[Dirge] {unit.Name} takes {Damage} from the dirge.");
+			// Push is handled by the movement system when push tiles > 0
+		}
+	}
 }
 
 // ── Hallow Tile ────────────────────────────────────────────────────────────────
@@ -2043,34 +2162,36 @@ public sealed class DirgePulseEffect : EffectBase
 /// </summary>
 public sealed class HallowTileEffect : EffectBase
 {
-    public int Duration;
-    public int AutoRiseRange;
+	public int Duration;
+	public int AutoRiseRange;
 
-    public HallowTileEffect(int duration = 99, int autoRiseRange = 0)
-    {
-        Duration = duration;
-        AutoRiseRange = autoRiseRange;
-    }
+	public HallowTileEffect(int duration = 99, int autoRiseRange = 0)
+	{
+		Duration = duration;
+		AutoRiseRange = autoRiseRange;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Memorials == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null)
+			return;
 
-        foreach (var obj in targets?.Items ?? new List<object>())
-        {
-            TileData tile = obj switch
-            {
-                TileData td => td,
-                Unit u => u.CurrentTile,
-                _ => null
-            };
+		foreach (var obj in targets?.Items ?? new List<object>())
+		{
+			TileData tile = obj switch
+			{
+				TileData td => td,
+				Unit u => u.CurrentTile,
+				_ => null
+			};
 
-            if (tile == null) continue;
+			if (tile == null)
+				continue;
 
-            s.Memorials.HallowTile(tile);
-            s.Log($"[HallowTile] Tile {tile.Axial} hallowed.");
-        }
-    }
+			s.Memorials.HallowTile(tile);
+			s.Log($"[HallowTile] Tile {tile.Axial} hallowed.");
+		}
+	}
 }
 
 // ── Hallow Area ────────────────────────────────────────────────────────────────
@@ -2081,32 +2202,35 @@ public sealed class HallowTileEffect : EffectBase
 /// </summary>
 public sealed class HallowAreaEffect : EffectBase
 {
-    public int Radius;
+	public int Radius;
 
-    public HallowAreaEffect(int radius = 2)
-    {
-        Radius = radius;
-    }
+	public HallowAreaEffect(int radius = 2)
+	{
+		Radius = radius;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Memorials == null || s.Grid == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null || s.Grid == null)
+			return;
 
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit?.CurrentTile == null) return;
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit?.CurrentTile == null)
+			return;
 
-        var center = casterUnit.CurrentTile.Axial;
-        int count = 0;
+		var center = casterUnit.CurrentTile.Axial;
+		int count = 0;
 
-        foreach (var kvp in s.Grid.Tiles)
-        {
-            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
-            s.Memorials.HallowTile(kvp.Value);
-            count++;
-        }
+		foreach (var kvp in s.Grid.Tiles)
+		{
+			if (s.Grid.Distance(center, kvp.Key) > Radius)
+				continue;
+			s.Memorials.HallowTile(kvp.Value);
+			count++;
+		}
 
-        s.Log($"[HallowArea] Hallowed {count} tile(s) within radius {Radius}.");
-    }
+		s.Log($"[HallowArea] Hallowed {count} tile(s) within radius {Radius}.");
+	}
 }
 
 // ── Memorial Strike All ────────────────────────────────────────────────────────
@@ -2118,52 +2242,56 @@ public sealed class HallowAreaEffect : EffectBase
 /// </summary>
 public sealed class MemorialStrikeAllEffect : EffectBase
 {
-    public int Damage;
-    public int Push;
-    public bool LeaveMemorial;
-    public int Strikes;
+	public int Damage;
+	public int Push;
+	public bool LeaveMemorial;
+	public int Strikes;
 
-    public MemorialStrikeAllEffect(int damage, int push = 0, bool leaveMemorial = false, int strikes = 1)
-    {
-        Damage = damage;
-        Push = push;
-        LeaveMemorial = leaveMemorial;
-        Strikes = strikes;
-    }
+	public MemorialStrikeAllEffect(int damage, int push = 0, bool leaveMemorial = false, int strikes = 1)
+	{
+		Damage = damage;
+		Push = push;
+		LeaveMemorial = leaveMemorial;
+		Strikes = strikes;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Memorials == null || s.Grid == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null || s.Grid == null)
+			return;
 
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null) return;
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
 
-        var memorials = s.Memorials.GetAllMemorials();
-        int totalDamage = 0;
+		var memorials = s.Memorials.GetAllMemorials();
+		int totalDamage = 0;
 
-        foreach (var tile in memorials)
-        {
-            for (int strike = 0; strike < Strikes; strike++)
-            {
-                foreach (var neighbor in s.Grid.GetNeighbors(tile.Axial))
-                {
-                    var neighborTile = s.Grid.GetTile(neighbor);
-                    if (neighborTile?.Occupant == null) continue;
-                    var unit = neighborTile.Occupant;
-                    if (unit.TeamId == casterUnit.TeamId) continue;
+		foreach (var tile in memorials)
+		{
+			for (int strike = 0; strike < Strikes; strike++)
+			{
+				foreach (var neighbor in s.Grid.GetNeighbors(tile.Axial))
+				{
+					var neighborTile = s.Grid.GetTile(neighbor);
+					if (neighborTile?.Occupant == null)
+						continue;
+					var unit = neighborTile.Occupant;
+					if (unit.TeamId == casterUnit.TeamId)
+						continue;
 
-                    unit.ApplyDamage(Damage);
-                    totalDamage += Damage;
-                    s.Log($"[MemorialStrike] Memorial at {tile.Axial} strikes {unit.Name} for {Damage}.");
-                }
-            }
+					unit.ApplyDamage(Damage);
+					totalDamage += Damage;
+					s.Log($"[MemorialStrike] Memorial at {tile.Axial} strikes {unit.Name} for {Damage}.");
+				}
+			}
 
-            if (!LeaveMemorial)
-                s.Memorials.ConsumeMemorial(tile);
-        }
+			if (!LeaveMemorial)
+				s.Memorials.ConsumeMemorial(tile);
+		}
 
-        s.Log($"[MemorialStrikeAll] {memorials.Count} memorial(s) fired. Total damage: {totalDamage}.");
-    }
+		s.Log($"[MemorialStrikeAll] {memorials.Count} memorial(s) fired. Total damage: {totalDamage}.");
+	}
 }
 
 // ── Create Memorial Ground ─────────────────────────────────────────────────────
@@ -2174,39 +2302,41 @@ public sealed class MemorialStrikeAllEffect : EffectBase
 /// </summary>
 public sealed class CreateMemorialGroundEffect : EffectBase
 {
-    public int Duration;
-    public int SummonDiscount;
-    public int SpiritRegen;
+	public int Duration;
+	public int SummonDiscount;
+	public int SpiritRegen;
 
-    public CreateMemorialGroundEffect(int duration = 3, int summonDiscount = 2, int spiritRegen = 0)
-    {
-        Duration = duration;
-        SummonDiscount = summonDiscount;
-        SpiritRegen = spiritRegen;
-    }
+	public CreateMemorialGroundEffect(int duration = 3, int summonDiscount = 2, int spiritRegen = 0)
+	{
+		Duration = duration;
+		SummonDiscount = summonDiscount;
+		SpiritRegen = spiritRegen;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Memorials == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null)
+			return;
 
-        foreach (var obj in targets?.Items ?? new List<object>())
-        {
-            TileData tile = obj switch
-            {
-                TileData td => td,
-                Unit u => u.CurrentTile,
-                _ => null
-            };
+		foreach (var obj in targets?.Items ?? new List<object>())
+		{
+			TileData tile = obj switch
+			{
+				TileData td => td,
+				Unit u => u.CurrentTile,
+				_ => null
+			};
 
-            if (tile == null) continue;
+			if (tile == null)
+				continue;
 
-            // Hallow the tile and track discount via persistent effect
-            s.Memorials.HallowTile(tile);
-            tile.SummonDiscount = SummonDiscount;
-            tile.SummonDiscountTurns = Duration;
-            s.Log($"[MemorialGround] Tile {tile.Axial} is Memorial Ground (discount {SummonDiscount}, {Duration} turns).");
-        }
-    }
+			// Hallow the tile and track discount via persistent effect
+			s.Memorials.HallowTile(tile);
+			tile.SummonDiscount = SummonDiscount;
+			tile.SummonDiscountTurns = Duration;
+			s.Log($"[MemorialGround] Tile {tile.Axial} is Memorial Ground (discount {SummonDiscount}, {Duration} turns).");
+		}
+	}
 }
 
 // ── Grief Discharge Damage ─────────────────────────────────────────────────────
@@ -2218,40 +2348,42 @@ public sealed class CreateMemorialGroundEffect : EffectBase
 /// </summary>
 public sealed class GriefDischargeDamageEffect : EffectBase
 {
-    public int DamagePerGrief;
+	public int DamagePerGrief;
 
-    public GriefDischargeDamageEffect(int damagePerGrief)
-    {
-        DamagePerGrief = damagePerGrief;
-    }
+	public GriefDischargeDamageEffect(int damagePerGrief)
+	{
+		DamagePerGrief = damagePerGrief;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit?.Attunement is not GriefAttunement grief) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit?.Attunement is not GriefAttunement grief)
+			return;
 
-        int charges = grief.Charges;
-        if (charges <= 0)
-        {
-            s.Log("[GriefDischarge] No Grief to spend.");
-            return;
-        }
+		int charges = grief.Charges;
+		if (charges <= 0)
+		{
+			s.Log("[GriefDischarge] No Grief to spend.");
+			return;
+		}
 
-        int totalDamage = charges * DamagePerGrief;
-        s.LastGriefSpent = charges;
+		int totalDamage = charges * DamagePerGrief;
+		s.LastGriefSpent = charges;
 
-        // Deal damage to all enemies
-        foreach (var unit in s.UnitsInPlay)
-        {
-            if (unit == null || !unit.Stats.IsAlive || unit.TeamId == casterUnit.TeamId) continue;
-            unit.ApplyDamage(totalDamage);
-        }
+		// Deal damage to all enemies
+		foreach (var unit in s.UnitsInPlay)
+		{
+			if (unit == null || !unit.Stats.IsAlive || unit.TeamId == casterUnit.TeamId)
+				continue;
+			unit.ApplyDamage(totalDamage);
+		}
 
-        // Reset grief
-        grief.SetChargesDirectly(0);
+		// Reset grief
+		grief.SetChargesDirectly(0);
 
-        s.Log($"[GriefDischarge] Spent {charges} Grief — dealt {totalDamage} to all enemies.");
-    }
+		s.Log($"[GriefDischarge] Spent {charges} Grief — dealt {totalDamage} to all enemies.");
+	}
 }
 
 // ── Apply Status To All Spirits ────────────────────────────────────────────────
@@ -2262,56 +2394,57 @@ public sealed class GriefDischargeDamageEffect : EffectBase
 /// </summary>
 public sealed class ApplyStatusToAllSpiritsEffect : EffectBase
 {
-    public string Status;
-    public int Duration;
-    public int ReviveHP;
+	public string Status;
+	public int Duration;
+	public int ReviveHP;
 
-    public ApplyStatusToAllSpiritsEffect(string status, int duration = 1, int reviveHP = 8)
-    {
-        Status = status;
-        Duration = duration;
-        ReviveHP = reviveHP;
-    }
+	public ApplyStatusToAllSpiritsEffect(string status, int duration = 1, int reviveHP = 8)
+	{
+		Status = status;
+		Duration = duration;
+		ReviveHP = reviveHP;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
 
-        var spirits = s.UnitsInPlay
-            .Where(u => u != null && u.IsSpirit && u.Stats.IsAlive && u.SummonerTeamId == casterUnit.TeamId)
-            .ToList();
+		var spirits = s.UnitsInPlay
+			.Where(u => u != null && u.IsSpirit && u.Stats.IsAlive && u.SummonerTeamId == casterUnit.TeamId)
+			.ToList();
 
-        foreach (var spirit in spirits)
-        {
-            switch (Status)
-            {
-                case "undying_turn":
-                    spirit.IsUndying = true;
-                    spirit.UndyingReviveHP = ReviveHP;
-                    spirit.UndyingTurns = Duration;
-                    break;
-                case "undying_full_restore":
-                    spirit.IsUndying = true;
-                    spirit.UndyingFullRestore = true;
-                    spirit.UndyingTurns = Duration;
-                    break;
-                case "invulnerable":
-                    spirit.IsInvulnerable = true;
-                    spirit.InvulnerableTurns = Duration;
-                    break;
-                case "vigil":
-                    spirit.IsVigil = true;
-                    spirit.VigilTurns = Duration;
-                    break;
-                default:
-                    spirit.ApplyStatus(Status, Duration);
-                    break;
-            }
-        }
+		foreach (var spirit in spirits)
+		{
+			switch (Status)
+			{
+				case "undying_turn":
+					spirit.IsUndying = true;
+					spirit.UndyingReviveHP = ReviveHP;
+					spirit.UndyingTurns = Duration;
+					break;
+				case "undying_full_restore":
+					spirit.IsUndying = true;
+					spirit.UndyingFullRestore = true;
+					spirit.UndyingTurns = Duration;
+					break;
+				case "invulnerable":
+					spirit.IsInvulnerable = true;
+					spirit.InvulnerableTurns = Duration;
+					break;
+				case "vigil":
+					spirit.IsVigil = true;
+					spirit.VigilTurns = Duration;
+					break;
+				default:
+					spirit.ApplyStatus(Status, Duration);
+					break;
+			}
+		}
 
-        s.Log($"[StatusAllSpirits] Applied '{Status}' to {spirits.Count} spirit(s).");
-    }
+		s.Log($"[StatusAllSpirits] Applied '{Status}' to {spirits.Count} spirit(s).");
+	}
 }
 
 // ── Consume All Memorials Global ───────────────────────────────────────────────
@@ -2322,40 +2455,41 @@ public sealed class ApplyStatusToAllSpiritsEffect : EffectBase
 /// </summary>
 public sealed class ConsumeAllMemorialsGlobalEffect : EffectBase
 {
-    public int ManaPerMemorial;
-    public int DrawPerMemorial;
+	public int ManaPerMemorial;
+	public int DrawPerMemorial;
 
-    public ConsumeAllMemorialsGlobalEffect(int manaPerMemorial = 0, int drawPerMemorial = 0)
-    {
-        ManaPerMemorial = manaPerMemorial;
-        DrawPerMemorial = drawPerMemorial;
-    }
+	public ConsumeAllMemorialsGlobalEffect(int manaPerMemorial = 0, int drawPerMemorial = 0)
+	{
+		ManaPerMemorial = manaPerMemorial;
+		DrawPerMemorial = drawPerMemorial;
+	}
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Memorials == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null)
+			return;
 
-        var casterUnit = s.ActiveCasterUnit;
-        var memorials = s.Memorials.GetAllMemorials().ToList();
+		var casterUnit = s.ActiveCasterUnit;
+		var memorials = s.Memorials.GetAllMemorials().ToList();
 
-        foreach (var tile in memorials)
-        {
-            s.Memorials.ConsumeMemorial(tile);
+		foreach (var tile in memorials)
+		{
+			s.Memorials.ConsumeMemorial(tile);
 
-            if (ManaPerMemorial > 0 && casterUnit != null)
-            {
-                casterUnit.GainMana(ManaPerMemorial);
-                if (s.Mana.ContainsKey(caster))
-                    s.Mana[caster] = casterUnit.Stats.Mana;
-            }
+			if (ManaPerMemorial > 0 && casterUnit != null)
+			{
+				casterUnit.GainMana(ManaPerMemorial);
+				if (s.Mana.ContainsKey(caster))
+					s.Mana[caster] = casterUnit.Stats.Mana;
+			}
 
-            if (DrawPerMemorial > 0 && casterUnit?.DeckData != null)
-                casterUnit.DeckData.Draw(DrawPerMemorial);
-        }
+			if (DrawPerMemorial > 0 && casterUnit?.DeckData != null)
+				casterUnit.DeckData.Draw(DrawPerMemorial);
+		}
 
-        s.Log($"[ConsumeAllMemorials] Released {memorials.Count} memorial(s). " +
-              $"+{memorials.Count * ManaPerMemorial} mana, drew {memorials.Count * DrawPerMemorial} card(s).");
-    }
+		s.Log($"[ConsumeAllMemorials] Released {memorials.Count} memorial(s). " +
+			  $"+{memorials.Count * ManaPerMemorial} mana, drew {memorials.Count * DrawPerMemorial} card(s).");
+	}
 }
 
 // ── Damage Per Memorial Global ─────────────────────────────────────────────────
@@ -2366,36 +2500,266 @@ public sealed class ConsumeAllMemorialsGlobalEffect : EffectBase
 /// </summary>
 public sealed class DamagePerMemorialGlobalEffect : EffectBase
 {
-    public int DamagePer;
-    public DamagePerMemorialGlobalEffect(int damagePer) { DamagePer = damagePer; }
+	public int DamagePer;
+	public DamagePerMemorialGlobalEffect(int damagePer) { DamagePer = damagePer; }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        if (s?.Memorials == null) return;
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null)
+			return;
 
-        var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null) return;
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
 
-        int count = s.Memorials.CountMemorials();
-        int damage = count * DamagePer;
+		int count = s.Memorials.CountMemorials();
+		int damage = count * DamagePer;
 
-        if (damage <= 0)
-        {
-            s.Log("[DamagePerMemorial] No memorials — no damage.");
-            return;
-        }
+		if (damage <= 0)
+		{
+			s.Log("[DamagePerMemorial] No memorials — no damage.");
+			return;
+		}
 
-        foreach (var unit in s.UnitsInPlay)
-        {
-            if (unit == null || !unit.Stats.IsAlive || unit.TeamId == casterUnit.TeamId) continue;
-            unit.ApplyDamage(damage);
-        }
+		foreach (var unit in s.UnitsInPlay)
+		{
+			if (unit == null || !unit.Stats.IsAlive || unit.TeamId == casterUnit.TeamId)
+				continue;
+			unit.ApplyDamage(damage);
+		}
 
-        s.LastDamageDealt = damage;
-        s.Log($"[DamagePerMemorial] {count} memorials × {DamagePer} = {damage} damage to all enemies.");
-    }
+		s.LastDamageDealt = damage;
+		s.Log($"[DamagePerMemorial] {count} memorials × {DamagePer} = {damage} damage to all enemies.");
+	}
 }
 
+
+
+// ============================================================================
+// Arcanist Effects
+// ============================================================================
+
+/// <summary>
+/// Adds <see cref="Amount"/> Charge to the caster's Grimoire. Overflow past the cap
+/// is reported by the attunement (CombatManager turns it into card draw).
+/// JSON: { "type": "gain_charge", "amount": n }
+/// </summary>
+public sealed class GainChargeEffect : EffectBase
+{
+	public int Amount;
+	public GainChargeEffect(int amount) { Amount = amount; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit?.Attunement is not ArcaneAttunement arc)
+		{
+			s.Log("[GainCharge] Caster has no Arcane attunement — ignored.");
+			return;
+		}
+
+		int banked = arc.Add(Amount);
+		s.Log($"[GainCharge] +{banked} charge (now {arc.Charge}/{ArcaneAttunement.MaxCharge}).");
+	}
+}
+
+/// <summary>
+/// Spends banked Charge as ammo, dealing <see cref="DamagePerCharge"/> per charge spent
+/// to each target in the current set. Optionally costs the caster
+/// <see cref="SelfDamagePerCharge"/> HP per charge spent (Overcharge). Spends between
+/// <see cref="MinSpend"/> and <see cref="MaxSpend"/> charge (MaxSpend &lt;= 0 means "all").
+/// JSON: { "type": "spend_charge_damage", "damage_per_charge": n,
+///         "min_spend": 1, "max_spend": 0, "self_damage_per_charge": 0 }
+/// NOTE: This deals the full per-charge total to every target. The "may split between
+/// enemies" variant (Arcane Barrage) needs per-instance target selection and is handled
+/// by the heavier barrage effect — see Arcanist_Design.md.
+/// </summary>
+public sealed class SpendChargeDamageEffect : EffectBase
+{
+	public int DamagePerCharge;
+	public int MinSpend;
+	public int MaxSpend;            // <= 0 means "spend all available"
+	public int SelfDamagePerCharge;
+
+	public SpendChargeDamageEffect(int damagePerCharge, int minSpend = 1, int maxSpend = 0, int selfDamagePerCharge = 0)
+	{
+		DamagePerCharge = damagePerCharge;
+		MinSpend = Math.Max(0, minSpend);
+		MaxSpend = maxSpend;
+		SelfDamagePerCharge = Math.Max(0, selfDamagePerCharge);
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit?.Attunement is not ArcaneAttunement arc)
+		{
+			s.Log("[SpendChargeDamage] Caster has no Arcane attunement — ignored.");
+			return;
+		}
+
+		if (arc.Charge < MinSpend)
+		{
+			s.Log($"[SpendChargeDamage] Not enough charge ({arc.Charge} < {MinSpend}) — nothing spent.");
+			return;
+		}
+
+		int want = MaxSpend > 0 ? Math.Min(MaxSpend, arc.Charge) : arc.Charge;
+		int spent = arc.Spend(want);
+		if (spent <= 0)
+			return;
+
+		int dmg = spent * DamagePerCharge;
+		int hits = 0;
+
+		if (targets != null)
+		{
+			foreach (var obj in targets.Items)
+			{
+				var unit = ResolveTargetUnit(s, obj);
+				if (unit == null || !unit.Stats.IsAlive)
+					continue;
+				unit.ApplyDamage(dmg);
+				hits++;
+			}
+		}
+
+		s.LastDamageDealt = dmg;
+
+		if (SelfDamagePerCharge > 0)
+		{
+			int recoil = spent * SelfDamagePerCharge;
+			casterUnit.ApplyDamage(recoil);
+			s.Log($"[SpendChargeDamage] Spent {spent} charge → {dmg} dmg to {hits} target(s); recoil {recoil} HP.");
+		}
+		else
+		{
+			s.Log($"[SpendChargeDamage] Spent {spent} charge → {dmg} dmg to {hits} target(s).");
+		}
+	}
+}
+
+/// <summary>
+/// Deals <see cref="DamagePerSpell"/> per spell the Arcanist has cast this turn (read from
+/// the Grimoire), with a floor of <see cref="Minimum"/>, to each target in the set.
+/// The triggering card counts itself because "AbilityCast" fires when the card is pushed.
+/// JSON: { "type": "damage_per_spell_cast", "amount": n, "min": m }
+/// </summary>
+public sealed class DamagePerSpellCastEffect : EffectBase
+{
+	public int DamagePerSpell;
+	public int Minimum;
+
+	public DamagePerSpellCastEffect(int damagePerSpell, int minimum = 0)
+	{
+		DamagePerSpell = damagePerSpell;
+		Minimum = minimum;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		int count = (casterUnit?.Attunement as ArcaneAttunement)?.SpellsCastThisTurn ?? 0;
+
+		int dmg = Math.Max(Minimum, DamagePerSpell * count);
+		int hits = 0;
+
+		if (targets != null)
+		{
+			foreach (var obj in targets.Items)
+			{
+				var unit = ResolveTargetUnit(s, obj);
+				if (unit == null || !unit.Stats.IsAlive)
+					continue;
+				unit.ApplyDamage(dmg);
+				hits++;
+			}
+		}
+
+		s.LastDamageDealt = dmg;
+		s.Log($"[DamagePerSpellCast] {count} spell(s) → {dmg} dmg to {hits} target(s) (min {Minimum}).");
+	}
+}
+
+/// <summary>
+/// Drains up to <see cref="Amount"/> mana from each target and gives the total to the caster.
+/// JSON: { "type": "steal_mana", "amount": n }
+/// NOTE: Reads/writes Unit.Stats.Mana directly. If your Unit exposes a dedicated
+/// TrySpendMana / SetMana API, route through it instead of the raw field.
+/// </summary>
+public sealed class StealManaEffect : EffectBase
+{
+	public int Amount;
+	public StealManaEffect(int amount) { Amount = amount; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit == null || targets == null)
+			return;
+
+		int stolen = 0;
+		foreach (var obj in targets.Items)
+		{
+			var unit = ResolveTargetUnit(s, obj);
+			if (unit == null)
+				continue;
+
+			int take = Math.Min(Amount, unit.Stats.Mana);
+			if (take <= 0)
+				continue;
+
+			unit.Stats.Mana -= take;
+			stolen += take;
+		}
+
+		if (stolen > 0)
+		{
+			casterUnit.GainMana(stolen);
+			if (s.Mana.ContainsKey(caster))
+				s.Mana[caster] = casterUnit.Stats.Mana;
+		}
+
+		s.Log($"[StealMana] Drained {stolen} mana to {casterUnit.Name}.");
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PREDICATES
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// True when the caster's banked Charge is at least <see cref="Value"/>. Used by
+/// threshold cards ("if 3+ charges this chains…").
+/// JSON: { "type": "charge_at_least", "value": n }
+/// </summary>
+public sealed class ChargeAtLeastPredicate : IPredicate
+{
+	public int Value;
+	public ChargeAtLeastPredicate(int value) { Value = value; }
+
+	public bool Evaluate(PredicateContext ctx)
+	{
+		var unit = ctx.Game?.ActiveCasterUnit;
+		return unit?.Attunement is ArcaneAttunement arc && arc.Charge >= Value;
+	}
+}
+
+/// <summary>
+/// True when the caster has already cast at least one spell earlier this turn
+/// (i.e. this is not the turn's first spell). Reads the Grimoire's spell count;
+/// because "AbilityCast" fires at push, the current card is already counted, so
+/// the test is &gt;= 2.
+/// JSON: { "type": "has_cast_spell_this_turn" }
+/// </summary>
+public sealed class HasCastSpellThisTurnPredicate : IPredicate
+{
+	public bool Evaluate(PredicateContext ctx)
+	{
+		var unit = ctx.Game?.ActiveCasterUnit;
+		return unit?.Attunement is ArcaneAttunement arc && arc.SpellsCastThisTurn >= 2;
+	}
+}
 
 // ── No-Op Effect ────────────────────────────────────────────────────────
 

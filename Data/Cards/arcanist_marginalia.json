@@ -1,0 +1,226 @@
+{
+	"id": "arcanist_marginalia",
+	"status": "wip",
+	"name": "Marginalia",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Marginalia",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Look at the top 2 cards of your deck. Draw 1, put the other on the bottom. Gain 1 charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "scry",
+					"look": 2,
+					"draw": 1
+				},
+				{
+					"type": "gain_charge",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Arcane Lash",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 4 damage. Spend 1 charge to deal 4 more.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 4
+				},
+				{
+					"type": "conditional",
+					"if": {
+						"type": "charge_at_least",
+						"value": 1
+					},
+					"then": {
+						"type": "spend_charge_damage",
+						"damage_per_charge": 4,
+						"min_spend": 1,
+						"max_spend": 1
+					}
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Marginalia+",
+			"bottom_name": "Arcane Lash+",
+			"description": "Marginalia digs deeper. Lash hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].look",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Look at the top 3 cards of your deck. Draw 1, the rest to the bottom. Gain 1 charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Spend 1 charge to deal 4 more."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Annotated Tome",
+			"description": "Annotated Tome: draw 2 of the looked-at cards.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].draw",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Look at the top 3 cards. Draw 2, the rest to the bottom. Gain 1 charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Greater Lash",
+			"description": "Greater Lash: spend up to 2 charge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].then.max_spend",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Spend up to 2 charge to deal 4 more each."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Footnotes",
+			"description": "Footnotes: also banks an extra charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].amount",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Look at the top 3 cards. Draw 2, the rest to the bottom. Gain 2 charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Whip of Power",
+			"description": "Whip of Power: each spent charge deals 6.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].then.damage_per_charge",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Spend up to 2 charge to deal 6 more each."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Marginal Codex",
+			"description": "The Marginal Codex: deep selection and free recasting.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "scry",
+								"look": 4,
+								"draw": 2
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "queue_next_spell_modifier",
+								"cost_reduction": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Look at top 4, draw 2. Gain 2 charge. Your next spell costs 1 less."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Annihilating Lash",
+			"description": "Annihilating Lash: spend up to 3 charge for 6 each.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].then.max_spend",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Spend up to 3 charge to deal 6 more each."
+				}
+			]
+		}
+	]
+}

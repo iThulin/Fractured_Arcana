@@ -1,64 +1,210 @@
 {
-  "id": "arcanist_omniscience",
-  "status": "stub",
-  "name": "Omniscience",
-  "school": "Arcanist",
-  "rarity": "Legendary",
-  "top": {
-    "name": "Omniscience",
-    "mana": 5,
-    "speed": "Sorcery",
-    "rules_text": "Draw your entire deck. For this turn all spells cost 0. At end of turn discard your hand and exile 3 random cards from your discard.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "draw",
-          "count": 99
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Omniscience (Channel)",
-      "mana": 5,
-      "speed": "Reaction",
-      "rules_text": "Channel: Exile 1 card instead of 3",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Arcane Apotheosis",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Permanent: gain +1 charge per spell cast. Your Replicate copies now also copy the bottom half. Spells that cost 3+ gain Reaction speed.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Arcane Apotheosis (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: All spells gain Reaction speed",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_omniscience",
+	"status": "wip",
+	"name": "Omniscience",
+	"school": "Arcanist",
+	"rarity": "Legendary",
+	"top": {
+		"name": "Omniscience",
+		"mana": 5,
+		"speed": "Sorcery",
+		"rules_text": "Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile 3 random cards from your discard.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "omniscience",
+			"exile_count": 3
+		}
+	},
+	"bottom": {
+		"name": "Arcane Apotheosis",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Permanent: gain +1 charge per spell cast. Your Replicate copies also copy the bottom half. Spells that cost 3+ gain Reaction speed.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "arcane_apotheosis",
+			"charge_per_cast": 1,
+			"replicate_both_halves": true,
+			"reaction_threshold": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Omniscience+",
+			"bottom_name": "Arcane Apotheosis+",
+			"description": "Omniscience exiles fewer cards. Apotheosis lowers the Reaction threshold.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.exile_count",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile 2 random cards from your discard."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.reaction_threshold",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Permanent: +1 charge per spell cast. Replicate copies the bottom half too. Spells costing 2+ gain Reaction speed."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Total Recall",
+			"description": "Total Recall: exile only 1 card at end of turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.exile_count",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile 1 random card from your discard."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Ascension",
+			"description": "Ascension: gain 2 charge per spell cast.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.charge_per_cast",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Permanent: +2 charge per spell cast. Replicate copies the bottom half too. Spells costing 2+ gain Reaction speed."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Foreknowledge",
+			"description": "Foreknowledge: also bank 5 charge when cast.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_charge",
+								"amount": 5
+							},
+							{
+								"type": "omniscience",
+								"exile_count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 5 charge. Draw your entire deck. This turn, all spells cost 0. End of turn: discard hand, exile 1 random card from discard."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Transcendent Mind",
+			"description": "Transcendent Mind: all spells gain Reaction speed.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.reaction_threshold",
+					"value": 0
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Permanent: +2 charge per spell cast. Replicate copies the bottom half too. ALL your spells gain Reaction speed."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The All-Knowing",
+			"description": "The All-Knowing: no end-of-turn exile at all.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_charge",
+								"amount": 6
+							},
+							{
+								"type": "omniscience",
+								"exile_count": 0
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 charge. Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand (no exile)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Godhead",
+			"description": "Godhead: complete arcane mastery.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "arcane_apotheosis",
+						"charge_per_cast": 2,
+						"replicate_both_halves": true,
+						"reaction_threshold": 0,
+						"free_first_spell_each_turn": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Permanent: +2 charge per spell cast. Replicate copies both halves. All spells gain Reaction speed. Your first spell each turn is free."
+				}
+			]
+		}
+	]
 }

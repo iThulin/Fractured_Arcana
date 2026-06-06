@@ -1,76 +1,226 @@
 {
-  "id": "arcanist_spell_weave",
-  "status": "stub",
-  "name": "Spell Weave",
-  "school": "Arcanist",
-  "rarity": "Common",
-  "top": {
-    "name": "Spell Weave",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 5 damage. Next spell this turn costs 1 less and gains +2 damage.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 5
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Spell Weave (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: +3 damage instead",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Arcane Slide",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Move 2. Gain 1 charge.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "move",
-          "tiles": 2
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Arcane Slide (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Gain 2 charges instead",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_spell_weave",
+	"status": "wip",
+	"name": "Spell Weave",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Spell Weave",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 5 damage. Your next spell this turn costs 1 less and deals +2.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 5
+				},
+				{
+					"type": "queue_next_spell_modifier",
+					"cost_reduction": 1,
+					"bonus_damage": 2
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Arcane Slide",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Move 2. Gain 1 charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 2
+				},
+				{
+					"type": "gain_charge",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Spell Weave+",
+			"bottom_name": "Arcane Slide+",
+			"description": "Spell Weave hits harder. Arcane Slide banks more charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 7
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Your next spell this turn costs 1 less and deals +2."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 2. Gain 2 charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Weave Master",
+			"description": "Weave Master: the woven discount deepens to 2 mana.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].cost_reduction",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Your next spell this turn costs 2 less and deals +2."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Phase Slide",
+			"description": "Phase Slide: glide a tile further.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].tiles",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 3. Gain 2 charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Spellbinder",
+			"description": "Spellbinder: the woven spell now strikes for +4.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].bonus_damage",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Your next spell this turn costs 2 less and deals +4."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Blink Step",
+			"description": "Blink Step: teleport instead of walking, and bank more charge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport to any tile in range 4. Gain 2 charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Grand Weave",
+			"description": "Grand Weave: the weave carries onto your next TWO spells.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].applies_to",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Your next 2 spells this turn cost 2 less and deal +4."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Slipstream",
+			"description": "Slipstream: teleport, bank charge, and draw.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport to any tile in range 4. Gain 2 charge. Draw 1 card."
+				}
+			]
+		}
+	]
 }

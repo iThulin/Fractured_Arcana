@@ -1,59 +1,196 @@
 {
-  "id": "arcanist_magnum_opus",
-  "status": "stub",
-  "name": "Magnum Opus",
-  "school": "Arcanist",
-  "rarity": "Legendary",
-  "top": {
-    "name": "Magnum Opus",
-    "mana": 4,
-    "speed": "Sorcery",
-    "rules_text": "Choose a card in your hand. It becomes Perfected for the rest of the fight: both halves cost 0 and gain +3 to all damage/healing values. Perfected cards are not discarded after use.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Magnum Opus (Channel)",
-      "mana": 4,
-      "speed": "Reaction",
-      "rules_text": "Channel: Perfect 2 cards instead",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Arcane Singularity",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Create Singularity Crystal on tile (20HP). All spells by any player within range 3 also resolve on the Singularity's tile. You gain 1 charge per spell that hits it.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Arcane Singularity (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Range is 5 and gain 2 charges per hit",
-      "targeting": {
-        "type": "aoe",
-        "radius": 5,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_magnum_opus",
+	"status": "wip",
+	"name": "Magnum Opus",
+	"school": "Arcanist",
+	"rarity": "Legendary",
+	"top": {
+		"name": "Magnum Opus",
+		"mana": 4,
+		"speed": "Sorcery",
+		"rules_text": "Choose a card in your hand. It becomes Perfected for the rest of the fight: both halves cost 0 and gain +3 to all damage and healing. Perfected cards are not discarded after use.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "perfect_card",
+			"count": 1,
+			"bonus": 3
+		}
+	},
+	"bottom": {
+		"name": "Arcane Singularity",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Create a Singularity Crystal on a tile (20 HP). All spells cast by anyone within 3 also resolve on the Singularity's tile. You gain 1 charge per spell that hits it.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "create_arcane_construct",
+			"kind": "singularity",
+			"hp": 20,
+			"radius": 3,
+			"charge_per_hit": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Magnum Opus+",
+			"bottom_name": "Arcane Singularity+",
+			"description": "Opus perfects harder. Singularity is sturdier.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.bonus",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Choose a card. It becomes Perfected: both halves cost 0 and gain +5 to all damage and healing. Not discarded after use."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.hp",
+					"value": 28
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create a Singularity Crystal (28 HP). Spells within 3 also resolve on its tile. Gain 1 charge per spell that hits it."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Masterwork",
+			"description": "Masterwork: Perfect 2 cards.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Choose 2 cards. They become Perfected: both halves cost 0 and gain +5 to all damage and healing. Not discarded."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Greater Singularity",
+			"description": "Greater Singularity: range grows to 5.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create a Singularity Crystal (28 HP). Spells within 5 also resolve on its tile. Gain 1 charge per spell that hits it."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Magnum Opus (Refined)",
+			"description": "Magnum Opus (Refined): Perfected cards also draw a card when played.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.perfected_draws",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Choose 2 cards. They become Perfected: cost 0, +5 to all values, not discarded, and draw 1 when played."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Devouring Singularity",
+			"description": "Devouring Singularity: banks 2 charge per hit.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.charge_per_hit",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create a Singularity Crystal (28 HP). Spells within 5 also resolve on it. Gain 2 charge per spell that hits it."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Great Work",
+			"description": "The Great Work: a masterpiece beyond cost.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "perfect_card",
+						"count": 3,
+						"bonus": 7,
+						"perfected_draws": true,
+						"perfected_reaction": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Choose 3 cards. They become Perfected: cost 0, +7 to all values, Reaction speed, draw 1 when played, never discarded."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Heart of Magic",
+			"description": "The Heart of Magic: a permanent engine that pulses damage.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "create_arcane_construct",
+						"kind": "singularity",
+						"hp": 40,
+						"radius": 5,
+						"charge_per_hit": 2,
+						"pulse_damage": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create a Singularity Crystal (40 HP). Spells within 5 also resolve on it. Gain 2 charge per hit; it deals 4 to all enemies within 5 each turn."
+				}
+			]
+		}
+	]
 }

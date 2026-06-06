@@ -1,80 +1,273 @@
 {
-  "id": "arcanist_cascade_bolt",
-  "status": "stub",
-  "name": "Cascade Bolt",
-  "school": "Arcanist",
-  "rarity": "Common",
-  "top": {
-    "name": "Cascade Bolt",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 7 damage. Gain 1 charge. If 3+ charges this chains to second target for 3 damage.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 7
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Cascade Bolt (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Chains at 2+ charges",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": true,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 5
-      }
-    }
-  },
-  "bottom": {
-    "name": "Arcane Recall",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Spend 1 charge. Return card from discard to hand.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Arcane Recall (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also draw 1 card",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "draw",
-        "count": 1
-      }
-    }
-  }
+	"id": "arcanist_cascade_bolt",
+	"status": "wip",
+	"name": "Cascade Bolt",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Cascade Bolt",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 7 damage. Gain 1 charge. If you have 3+ charge, chain 3 damage to the nearest other enemy.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 7
+				},
+				{
+					"type": "gain_charge",
+					"amount": 1
+				},
+				{
+					"type": "conditional",
+					"if": {
+						"type": "charge_at_least",
+						"value": 3
+					},
+					"then": {
+						"type": "retarget",
+						"targeting": {
+							"type": "unit",
+							"range": 3,
+							"los": false,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "damage",
+							"amount": 3
+						}
+					}
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Arcane Recall",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Spend 1 charge. Return a card from your discard to your hand.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "return_from_discard",
+			"count": 1,
+			"charge_cost": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Cascade Bolt+",
+			"bottom_name": "Arcane Recall+",
+			"description": "Cascade Bolt's chain hits harder. Recall costs no charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[2].then.do.amount",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Gain 1 charge. If you have 3+ charge, chain 5 damage to the nearest other enemy."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.charge_cost",
+					"value": 0
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Return a card from your discard to your hand."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Forked Bolt",
+			"description": "Forked Bolt: the chain triggers at only 2+ charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[2].if.value",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Gain 1 charge. If you have 2+ charge, chain 5 damage to the nearest other enemy."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Arcane Recall (Deep)",
+			"description": "Deep Recall: also draw a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_from_discard",
+								"count": 1,
+								"charge_cost": 0
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Return a card from your discard to your hand. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Chain Lightning",
+			"description": "Chain Lightning: the bolt chains twice.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[2].then.do",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "unit",
+							"range": 3,
+							"los": false,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "damage",
+							"amount": 5
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[2].then.chains",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Gain 1 charge. If you have 2+ charge, chain 5 damage to the 2 nearest other enemies."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Recall Tome",
+			"description": "Recall Tome: return two cards.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_from_discard",
+								"count": 2,
+								"charge_cost": 0
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Return 2 cards from your discard to your hand. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Storm of Bolts",
+			"description": "Storm of Bolts: bigger hit, bigger chain.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[2].then.do.do.amount",
+					"value": 7
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 9 damage. Gain 1 charge. If you have 2+ charge, chain 7 damage to the 2 nearest other enemies."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Eternal Recall",
+			"description": "Eternal Recall: return a card and make its next cast free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_from_discard",
+								"count": 1,
+								"charge_cost": 0,
+								"next_cast_free": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Return a card from your discard. Its next cast this turn is free. Draw 1 card."
+				}
+			]
+		}
+	]
 }

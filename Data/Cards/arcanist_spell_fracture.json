@@ -1,82 +1,229 @@
 {
-  "id": "arcanist_spell_fracture",
-  "status": "stub",
-  "name": "Spell Fracture",
-  "school": "Arcanist",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Spell Fracture",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 5 damage. Gain 1 charge per unique keyword on this card's other half (check bottom half keywords).",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 5
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Spell Fracture (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also gain 1 charge per keyword on any spell in your discard",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Arcane Trap",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Create an Arcane Trap on tile within 2: when enemy enters spend 1 charge to deal 7 damage.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "damage",
-          "amount": 7
-        }
-      ]
-    },
-    "channel": {
-      "name": "Arcane Trap (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Deals 10 damage",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 10
-      }
-    }
-  }
+	"id": "arcanist_spell_fracture",
+	"status": "wip",
+	"name": "Spell Fracture",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Spell Fracture",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 5 damage. Gain 1 charge per unique keyword on this card's other half.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 5
+				},
+				{
+					"type": "gain_charge_per_keyword",
+					"source": "other_half"
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Arcane Trap",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Create an Arcane Trap on a tile within 2. When an enemy enters, spend 1 charge to deal 7 damage.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "create_arcane_construct",
+			"kind": "trap",
+			"radius": 2,
+			"charge_cost": 1,
+			"damage": 7
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Spell Fracture+",
+			"bottom_name": "Arcane Trap+",
+			"description": "Fracture hits harder. Trap deals more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 7
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Gain 1 charge per unique keyword on this card's other half."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 9
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create an Arcane Trap within 2. When an enemy enters, spend 1 charge to deal 9 damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Shattered Spell",
+			"description": "Shattered Spell: also count keywords in your discard.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].source",
+					"value": "other_half_and_discard"
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Gain 1 charge per unique keyword on this card's other half and in your discard."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Snare Trap",
+			"description": "Snare Trap: also roots the enemy that triggers it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.on_trigger_status",
+					"value": "rooted"
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create an Arcane Trap within 2. On enter: spend 1 charge to deal 9 damage and root."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Prismatic Fracture",
+			"description": "Prismatic Fracture: keyword charge is doubled.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].multiplier",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Gain 2 charge per unique keyword on this card's other half and in your discard."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Glyph Field",
+			"description": "Glyph Field: the trap arms a 2-tile radius.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.trigger_radius",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create an Arcane Trap. Any enemy entering it or an adjacent tile takes 9 damage and is rooted (spend 1 charge)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Total Fracture",
+			"description": "Total Fracture: shatter into a second strike.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 9
+							},
+							{
+								"type": "gain_charge_per_keyword",
+								"source": "other_half_and_discard",
+								"multiplier": 2
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "unit",
+									"range": 3,
+									"los": false,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage",
+									"amount": 5
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 9 to target and 5 to the nearest other enemy. Gain 2 charge per unique keyword (other half + discard)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Annihilation Trap",
+			"description": "Annihilation Trap: a devastating, rearming snare.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "create_arcane_construct",
+						"kind": "trap",
+						"radius": 2,
+						"charge_cost": 1,
+						"damage": 14,
+						"on_trigger_status": "stunned",
+						"trigger_radius": 1,
+						"rearm": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create an Arcane Trap (2-tile radius). On trigger: spend 1 charge to deal 14 and stun, then rearm."
+				}
+			]
+		}
+	]
 }

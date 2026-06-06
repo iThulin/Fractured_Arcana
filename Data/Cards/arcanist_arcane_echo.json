@@ -1,65 +1,241 @@
 {
-  "id": "arcanist_arcane_echo",
-  "status": "stub",
-  "name": "Arcane Echo",
-  "school": "Arcanist",
-  "rarity": "Common",
-  "top": {
-    "name": "Arcane Echo",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 7 damage. If you cast a spell last turn that dealt 4+ damage this costs 0.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "damage",
-      "amount": 7
-    },
-    "channel": {
-      "name": "Arcane Echo (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Threshold is 3+ instead",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": true,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 7
-      }
-    }
-  },
-  "bottom": {
-    "name": "Resonance Field",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Imbue tile: spells cast by allies here gain +2 damage and cost 1 less. Lasts 2 turns.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Resonance Field (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Lasts 3 turns",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_arcane_echo",
+	"status": "wip",
+	"name": "Arcane Echo",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Arcane Echo",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Your next spell this turn also resolves on the nearest other enemy within 3 (the echo deals half).",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "queue_next_spell_modifier",
+			"echo_nearest": true,
+			"echo_range": 3,
+			"echo_fraction": 0.5
+		}
+	},
+	"bottom": {
+		"name": "Disrupt",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 5 damage. The target's spells cost 1 more for 2 turns.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 5
+				},
+				{
+					"type": "apply_status",
+					"status": "mana_taxed",
+					"amount": 1,
+					"duration": 2
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Arcane Echo+",
+			"bottom_name": "Disrupt+",
+			"description": "Echo carries further. Disrupt hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.echo_range",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn also resolves on the nearest other enemy within 4 (the echo deals half)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage. The target's spells cost 1 more for 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Resonant Echo",
+			"description": "Resonant Echo: the echo deals full damage.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.echo_fraction",
+					"value": 1.0
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn also resolves on the nearest other enemy within 4 at full damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Heavy Disrupt",
+			"description": "Heavy Disrupt: the tax rises to 2.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage. The target's spells cost 2 more for 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Double Echo",
+			"description": "Double Echo: the spell echoes to the 2 nearest enemies.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.echo_count",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn also resolves on the 2 nearest other enemies within 4 at full damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Silence",
+			"description": "Silence: also stuns the target for a turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "apply_status",
+								"status": "mana_taxed",
+								"amount": 2,
+								"duration": 2
+							},
+							{
+								"type": "apply_status",
+								"status": "stunned",
+								"amount": 1,
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Stun the target for 1 turn. Its spells cost 2 more for 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Infinite Echo",
+			"description": "Infinite Echo: the spell hits ALL enemies in range at full damage.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "queue_next_spell_modifier",
+						"echo_all": true,
+						"echo_range": 4,
+						"echo_fraction": 1.0
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn also resolves on every other enemy within 4 at full damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Null Field",
+			"description": "Null Field: tax and stun all enemies near the target.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 9
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "apply_status",
+									"status": "mana_taxed",
+									"amount": 2,
+									"duration": 2
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 9 damage. All enemies within 2 of the target pay 2 more mana for spells for 2 turns."
+				}
+			]
+		}
+	]
 }

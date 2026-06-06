@@ -1,49 +1,191 @@
 {
-  "id": "arcanist_spell_storm",
-  "status": "stub",
-  "name": "Spell Storm",
-  "school": "Arcanist",
-  "rarity": "Rare",
-  "top": {
-    "name": "Spell Storm",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Cast the top 3 cards of your deck (top halves only) for free targeting enemies of your choice. Then discard them.",
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Spell Storm (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Cast top 5 instead",
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Arcane Convergence",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "For this turn only: every spell you cast also casts the top half of the next card in your deck for free.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Arcane Convergence (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also casts bottom half",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_spell_storm",
+	"status": "wip",
+	"name": "Spell Storm",
+	"school": "Arcanist",
+	"rarity": "Rare",
+	"top": {
+		"name": "Spell Storm",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Cast the top halves of the top 3 cards of your deck for free, targeting enemies of your choice. Then discard them.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "cast_deck_top",
+			"count": 3,
+			"half": "top"
+		}
+	},
+	"bottom": {
+		"name": "Arcane Convergence",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "This turn: each spell you cast also casts the top half of the next card in your deck for free.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "convergence",
+			"half": "top",
+			"duration": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Spell Storm+",
+			"bottom_name": "Arcane Convergence+",
+			"description": "Storm casts more. Convergence also banks charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Cast the top halves of the top 4 cards of your deck for free. Then discard them."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.charge_per_trigger",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "This turn: each spell you cast also casts the top half of the next card for free, and banks 1 charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Tempest",
+			"description": "Tempest: cast 5 cards.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Cast the top halves of the top 5 cards of your deck for free. Then discard them."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Cascade Convergence",
+			"description": "Cascade Convergence: triggered casts can use either half.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.half",
+					"value": "either"
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "This turn: each spell you cast also casts a half of the next card for free, and banks 1 charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Maelstrom of Spells",
+			"description": "Maelstrom of Spells: the cast cards return to your hand instead of discarding.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.return_to_hand",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Cast the top halves of the top 5 cards of your deck for free. They return to your hand."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Chain Convergence",
+			"description": "Chain Convergence: triggered casts can themselves trigger (one extra link).",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.chain_depth",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "This turn: each spell casts a half of the next card free (which may trigger once more). Bank 1 charge per trigger."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Eye of the Storm",
+			"description": "The Eye of the Storm: cast both halves of the top 5 cards.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "cast_deck_top",
+						"count": 5,
+						"half": "both",
+						"return_to_hand": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Cast both halves of the top 5 cards of your deck for free. They return to your hand."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Perfect Convergence",
+			"description": "Perfect Convergence: every cast also casts both halves of the next card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "convergence",
+						"half": "both",
+						"duration": 1,
+						"charge_per_trigger": 1,
+						"chain_depth": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "This turn: each spell you cast also casts both halves of the next card free (which may chain once). Bank 1 charge per trigger."
+				}
+			]
+		}
+	]
 }

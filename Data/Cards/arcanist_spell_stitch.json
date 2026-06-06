@@ -1,66 +1,179 @@
 {
-  "id": "arcanist_spell_stitch",
-  "status": "stub",
-  "name": "Spell Stitch",
-  "school": "Arcanist",
-  "rarity": "Common",
-  "top": {
-    "name": "Spell Stitch",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Bind: play both halves of the next card. Top resolves then bottom immediately after.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Spell Stitch (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Bottom half costs 0 when bound",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Arcane Drift",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Move 1 tile per spell cast this turn (max 4). Gain 2 armor per tile moved.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "move",
-          "tiles": 1
-        },
-        {
-          "type": "shield",
-          "amount": 2
-        }
-      ]
-    },
-    "channel": {
-      "name": "Arcane Drift (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also gain 2 shield per tile",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "shield",
-        "amount": 2
-      }
-    }
-  }
+	"id": "arcanist_spell_stitch",
+	"status": "wip",
+	"name": "Spell Stitch",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Spell Stitch",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Bind: play both halves of your next card this turn. The top resolves, then the bottom.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "queue_next_spell_modifier",
+			"both_halves": true
+		}
+	},
+	"bottom": {
+		"name": "Arcane Drift",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Move 1 tile per spell cast this turn (max 4). Gain 2 armor per tile moved.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "move_per_spell_cast",
+			"max": 4,
+			"armor_per": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Spell Stitch+",
+			"bottom_name": "Arcane Drift+",
+			"description": "Stitch discounts the bottom half. Drift grants more armor per tile.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.bottom_half_cost_reduction",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Bind: play both halves of your next card this turn. The bottom half costs 1 less."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.armor_per",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 1 tile per spell cast this turn (max 4). Gain 3 armor per tile moved."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Double Stitch",
+			"description": "Double Stitch: the bottom half is free when bound.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.bottom_half_cost_reduction",
+					"value": 99
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Bind: play both halves of your next card this turn. The bottom half is free."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Aether Drift",
+			"description": "Aether Drift: also gain shield per tile moved.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.shield_per",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 1 tile per spell cast this turn (max 4). Gain 3 armor and 2 shield per tile."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Seamless",
+			"description": "Seamless: the bound card is not discarded — it returns to hand.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.return_to_hand",
+					"value": true
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Bind: play both halves of your next card this turn (bottom free). It returns to your hand instead of discarding."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Tide Drift",
+			"description": "Tide Drift: the move cap rises to 6.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.max",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 1 tile per spell cast this turn (max 6). Gain 3 armor and 2 shield per tile."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Master Stitch",
+			"description": "Master Stitch: binds your next TWO cards.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.applies_to",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Bind: play both halves of your next 2 cards this turn (bottoms free). They return to hand."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Riptide",
+			"description": "Riptide: each tile moved also banks charge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.charge_per",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 1 tile per spell cast this turn (max 6). Per tile: 3 armor, 2 shield, 1 charge."
+				}
+			]
+		}
+	]
 }

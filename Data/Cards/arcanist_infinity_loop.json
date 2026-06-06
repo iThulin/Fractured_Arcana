@@ -1,73 +1,236 @@
 {
-  "id": "arcanist_infinity_loop",
-  "status": "stub",
-  "name": "Infinity Loop",
-  "school": "Arcanist",
-  "rarity": "Rare",
-  "top": {
-    "name": "Infinity Loop",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Gain 5 charges. For the rest of this turn your charge costs are halved (round up).",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Infinity Loop (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Charge costs are 0 for this turn",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Living Spell",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Exile a spell from hand. Summon a Living Spell on target tile (HP = spell's mana cost x5DMG = mana cost x2). Living Spell casts the exiled spell on nearest enemy each turn.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "summon",
-          "unit": "Living_Spell",
-          "count": 1
-        }
-      ]
-    },
-    "channel": {
-      "name": "Living Spell (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Living Spell also has +2 speed",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_infinity_loop",
+	"status": "wip",
+	"name": "Infinity Loop",
+	"school": "Arcanist",
+	"rarity": "Rare",
+	"top": {
+		"name": "Infinity Loop",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Gain 5 charge. For the rest of this turn, charge costs are halved (round up).",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "gain_charge",
+					"amount": 5
+				},
+				{
+					"type": "charge_cost_modifier",
+					"mode": "halved",
+					"duration": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Living Spell",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Exile a spell from your hand. Summon a Living Spell on target tile (HP = mana x5, DMG = mana x2) that casts the exiled spell on the nearest enemy each turn.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "summon_living_spell",
+			"hp_per_mana": 5,
+			"damage_per_mana": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Infinity Loop+",
+			"bottom_name": "Living Spell+",
+			"description": "Loop banks more. Living Spell is sturdier.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 charge. For the rest of this turn, charge costs are halved (round up)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.hp_per_mana",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Exile a spell. Summon a Living Spell (HP = mana x6, DMG = mana x2) that casts it on the nearest enemy each turn."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Closed Loop",
+			"description": "Closed Loop: charge costs drop to zero this turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].mode",
+					"value": "zero"
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 charge. For the rest of this turn, charge costs are 0."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Animate Spell",
+			"description": "Animate Spell: the construct hits harder.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_mana",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Exile a spell. Summon a Living Spell (HP = mana x6, DMG = mana x3) that casts it on the nearest enemy each turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Recursion",
+			"description": "Recursion: also makes all spells Reaction speed this turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_charge",
+								"amount": 6
+							},
+							{
+								"type": "charge_cost_modifier",
+								"mode": "zero",
+								"duration": 1
+							},
+							{
+								"type": "queue_next_spell_modifier",
+								"all_reaction": true,
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 charge. This turn: charge costs are 0 and all your spells gain Reaction speed."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Greater Living Spell",
+			"description": "Greater Living Spell: the construct acts twice per turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.actions_per_turn",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Exile a spell. Summon a Living Spell (HP = mana x6, DMG = mana x3) that casts it on the nearest enemy twice each turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Eternal Loop",
+			"description": "Eternal Loop: bank to the cap and gain a free recast.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_charge",
+								"amount": 6
+							},
+							{
+								"type": "charge_cost_modifier",
+								"mode": "zero",
+								"duration": 1
+							},
+							{
+								"type": "queue_next_spell_modifier",
+								"all_reaction": true,
+								"duration": 1
+							},
+							{
+								"type": "replicate_last_spell",
+								"retain_buffs": true
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 charge. This turn: charge costs 0, all spells Reaction speed. Recast your last spell for free."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Avatar of Magic",
+			"description": "Avatar of Magic: a towering construct that casts both halves.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "summon_living_spell",
+						"hp_per_mana": 8,
+						"damage_per_mana": 3,
+						"actions_per_turn": 2,
+						"both_halves": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Exile a spell. Summon a Living Spell (HP = mana x8, DMG = mana x3) that casts both halves on the nearest enemy twice each turn."
+				}
+			]
+		}
+	]
 }

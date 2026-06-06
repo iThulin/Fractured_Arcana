@@ -60,7 +60,8 @@ public static class CardScriptRegistry
     /// </summary>
     public static IEffect BuildEffect(JsonElement node)
     {
-        if (node.ValueKind == JsonValueKind.Null) return new EmptyEffect();
+        if (node.ValueKind == JsonValueKind.Null)
+            return new EmptyEffect();
         var type = node.GetProperty("type").GetString()?.ToLowerInvariant();
         if (type == null || !_effects.TryGetValue(type, out var factory))
         {
@@ -77,7 +78,8 @@ public static class CardScriptRegistry
     /// </summary>
     public static IPredicate BuildPredicate(JsonElement node)
     {
-        if (node.ValueKind == JsonValueKind.Null) return new AlwaysTrue();
+        if (node.ValueKind == JsonValueKind.Null)
+            return new AlwaysTrue();
         var type = node.GetProperty("type").GetString()?.ToLowerInvariant();
         if (type == null || !_predicates.TryGetValue(type, out var factory))
         {
@@ -94,7 +96,8 @@ public static class CardScriptRegistry
     /// </summary>
     public static ITargetSelector BuildTargeter(JsonElement node)
     {
-        if (node.ValueKind == JsonValueKind.Null) return null;
+        if (node.ValueKind == JsonValueKind.Null)
+            return null;
         var type = node.GetProperty("type").GetString()?.ToLowerInvariant();
         if (type == null || !_targeters.TryGetValue(type, out var factory))
         {
@@ -458,9 +461,9 @@ public static class CardScriptRegistry
         RegisterEffect("summon_spirit", n =>
         {
             string unit = n.TryGetProperty("unit", out var u) ? u.GetString() : "Spirit";
-            int hp      = n.TryGetProperty("hp", out var h) ? h.GetInt32() : 10;
-            int damage  = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 5;
-            int speed   = n.TryGetProperty("speed", out var sp) ? sp.GetInt32() : 1;
+            int hp = n.TryGetProperty("hp", out var h) ? h.GetInt32() : 10;
+            int damage = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 5;
+            int speed = n.TryGetProperty("speed", out var sp) ? sp.GetInt32() : 1;
             bool onDeath = n.TryGetProperty("on_death_memorial", out var od) && od.GetBoolean();
             return new SummonSpiritEffect(unit, hp, damage, speed, onDeath).WithTag("Summon");
         });
@@ -469,14 +472,14 @@ public static class CardScriptRegistry
         // { "type": "summon_spirit_from_all_memorials", "unit": "Spirit", "hp": 10, ... }
         RegisterEffect("summon_spirit_from_all_memorials", n =>
         {
-            string unit       = n.TryGetProperty("unit", out var u) ? u.GetString() : "Spirit";
-            int baseHp        = n.TryGetProperty("hp", out var h) ? h.GetInt32() : 10;
-            int damage        = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 5;
-            int speed         = n.TryGetProperty("speed", out var sp) ? sp.GetInt32() : 1;
-            bool hpPerSpirit  = n.TryGetProperty("hp_per_spirit", out var hps) && hps.GetBoolean();
-            int advance       = n.TryGetProperty("on_arrive_advance", out var oa) ? oa.GetInt32() : 0;
-            bool inheritName  = n.TryGetProperty("inherit_memorial_name", out var im) && im.GetBoolean();
-            int bonusDmg      = n.TryGetProperty("bonus_damage_per_strength", out var bd) ? bd.GetInt32() : 0;
+            string unit = n.TryGetProperty("unit", out var u) ? u.GetString() : "Spirit";
+            int baseHp = n.TryGetProperty("hp", out var h) ? h.GetInt32() : 10;
+            int damage = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 5;
+            int speed = n.TryGetProperty("speed", out var sp) ? sp.GetInt32() : 1;
+            bool hpPerSpirit = n.TryGetProperty("hp_per_spirit", out var hps) && hps.GetBoolean();
+            int advance = n.TryGetProperty("on_arrive_advance", out var oa) ? oa.GetInt32() : 0;
+            bool inheritName = n.TryGetProperty("inherit_memorial_name", out var im) && im.GetBoolean();
+            int bonusDmg = n.TryGetProperty("bonus_damage_per_strength", out var bd) ? bd.GetInt32() : 0;
             return new SummonSpiritFromAllMemorialsEffect(unit, baseHp, damage, speed,
                 hpPerSpirit, advance, inheritName, bonusDmg).WithTag("Summon");
         });
@@ -488,9 +491,9 @@ public static class CardScriptRegistry
             string strengthStr = n.TryGetProperty("strength", out var sv) ? sv.GetString() : "solid";
             var strength = strengthStr switch
             {
-                "faint"  => MemorialStrength.Faint,
+                "faint" => MemorialStrength.Faint,
                 "strong" => MemorialStrength.Strong,
-                _        => MemorialStrength.Solid
+                _ => MemorialStrength.Solid
             };
             return new CreateMemorialEffect(strength).WithTag("Terrain");
         });
@@ -514,8 +517,8 @@ public static class CardScriptRegistry
         // { "type": "advance_all_spirits", "tiles": n, "attack_if_adjacent": true }
         RegisterEffect("advance_all_spirits", n =>
         {
-            int tiles  = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 1;
-            bool atk   = !n.TryGetProperty("attack_if_adjacent", out var a) || a.GetBoolean();
+            int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 1;
+            bool atk = !n.TryGetProperty("attack_if_adjacent", out var a) || a.GetBoolean();
             bool grant = n.TryGetProperty("grant_attack_if_reached", out var g) && g.GetBoolean();
             return new AdvanceAllSpiritsEffect(tiles, atk, grant).WithTag("Movement");
         });
@@ -525,8 +528,8 @@ public static class CardScriptRegistry
         RegisterEffect("buff_all_spirits", n =>
         {
             string stat = n.TryGetProperty("stat", out var s) ? s.GetString() : "damage";
-            int amount  = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 2;
-            int dur     = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 1;
+            int amount = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 2;
+            int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 1;
             return new BuffAllSpiritsEffect(stat, amount, dur).WithTag("Buff");
         });
 
@@ -563,9 +566,9 @@ public static class CardScriptRegistry
         // { "type": "dirge_pulse", "damage": n, "push": n }
         RegisterEffect("dirge_pulse", n =>
         {
-            int dmg  = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 3;
+            int dmg = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 3;
             int push = n.TryGetProperty("push", out var p) ? p.GetInt32() : 1;
-            int col  = n.TryGetProperty("collision_damage", out var c) ? c.GetInt32() : 0;
+            int col = n.TryGetProperty("collision_damage", out var c) ? c.GetInt32() : 0;
             return new DirgePulseEffect(dmg, push, col).WithTag("Damage");
         });
 
@@ -573,7 +576,7 @@ public static class CardScriptRegistry
         // { "type": "hallow_tile", "duration": n, "auto_rise_range": n }
         RegisterEffect("hallow_tile", n =>
         {
-            int dur   = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 99;
+            int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 99;
             int range = n.TryGetProperty("auto_rise_range", out var r) ? r.GetInt32() : 0;
             return new HallowTileEffect(dur, range).WithTag("Terrain");
         });
@@ -590,9 +593,9 @@ public static class CardScriptRegistry
         // { "type": "memorial_strike_all", "damage": n }
         RegisterEffect("memorial_strike_all", n =>
         {
-            int dmg     = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 4;
-            int push    = n.TryGetProperty("push", out var p) ? p.GetInt32() : 0;
-            bool leave  = n.TryGetProperty("leave_memorial", out var l) && l.GetBoolean();
+            int dmg = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 4;
+            int push = n.TryGetProperty("push", out var p) ? p.GetInt32() : 0;
+            bool leave = n.TryGetProperty("leave_memorial", out var l) && l.GetBoolean();
             int strikes = n.TryGetProperty("strikes", out var s) ? s.GetInt32() : 1;
             return new MemorialStrikeAllEffect(dmg, push, leave, strikes).WithTag("Damage");
         });
@@ -612,9 +615,9 @@ public static class CardScriptRegistry
         // { "type": "create_memorial_ground", "duration": n, "summon_discount": n }
         RegisterEffect("create_memorial_ground", n =>
         {
-            int dur      = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 3;
+            int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 3;
             int discount = n.TryGetProperty("summon_discount", out var s) ? s.GetInt32() : 2;
-            int regen    = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 0;
+            int regen = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 0;
             return new CreateMemorialGroundEffect(dur, discount, regen).WithTag("Terrain");
         });
 
@@ -631,8 +634,8 @@ public static class CardScriptRegistry
         RegisterEffect("apply_status_to_all_spirits", n =>
         {
             string status = n.TryGetProperty("status", out var sv) ? sv.GetString() : "undying_turn";
-            int duration  = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 1;
-            int reviveHp  = n.TryGetProperty("revive_hp", out var r) ? r.GetInt32() : 8;
+            int duration = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 1;
+            int reviveHp = n.TryGetProperty("revive_hp", out var r) ? r.GetInt32() : 8;
             return new ApplyStatusToAllSpiritsEffect(status, duration, reviveHp).WithTag("Spirit");
         });
 
@@ -714,12 +717,12 @@ public static class CardScriptRegistry
         // { "type": "ossuary_aura", "spirit_regen": n, "spirit_regen_range": n }
         RegisterEffect("ossuary_aura", n =>
         {
-            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
-            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 2;
-            int range  = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 2;
-            int mdr    = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 0;
-            int arr    = n.TryGetProperty("auto_rise_range", out var ar) ? ar.GetInt32() : 0;
-            int grief  = n.TryGetProperty("grief_per_turn", out var g) ? g.GetInt32() : 0;
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int regen = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 2;
+            int range = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 2;
+            int mdr = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 0;
+            int arr = n.TryGetProperty("auto_rise_range", out var ar) ? ar.GetInt32() : 0;
+            int grief = n.TryGetProperty("grief_per_turn", out var g) ? g.GetInt32() : 0;
             return new OssUaryAuraLeafEffect(turns, regen, range, mdr, arr, grief).WithTag("Persistent");
         });
 
@@ -727,10 +730,10 @@ public static class CardScriptRegistry
         // { "type": "ossuary_aura_shrine", "spirit_regen": n, "spirit_regen_range": n, "memorial_on_spirit_death_range": n }
         RegisterEffect("ossuary_aura_shrine", n =>
         {
-            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
-            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 3;
-            int range  = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 2;
-            int mdr    = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 2;
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int regen = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 3;
+            int range = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 2;
+            int mdr = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 2;
             return new OssUaryAuraLeafEffect(turns, regen, range, mdr).WithTag("Persistent");
         });
 
@@ -738,11 +741,11 @@ public static class CardScriptRegistry
         // { "type": "ossuary_aura_garden", "spirit_regen": n, "spirit_regen_range": n, "memorial_on_spirit_death_range": n, "auto_rise_range": n }
         RegisterEffect("ossuary_aura_garden", n =>
         {
-            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
-            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 3;
-            int range  = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 2;
-            int mdr    = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 2;
-            int arr    = n.TryGetProperty("auto_rise_range", out var ar) ? ar.GetInt32() : 1;
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int regen = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 3;
+            int range = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 2;
+            int mdr = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 2;
+            int arr = n.TryGetProperty("auto_rise_range", out var ar) ? ar.GetInt32() : 1;
             return new OssUaryAuraLeafEffect(turns, regen, range, mdr, arr).WithTag("Persistent");
         });
 
@@ -750,11 +753,11 @@ public static class CardScriptRegistry
         // { "type": "soul_well_aura", "spirit_regen": n, "spirit_regen_range": n, "memorial_on_spirit_death_range": n, "auto_rise_range": n, "grief_per_turn": n }
         RegisterEffect("soul_well_aura", n =>
         {
-            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 3;
-            int range  = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 4;
-            int mdr    = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 4;
-            int arr    = n.TryGetProperty("auto_rise_range", out var ar) ? ar.GetInt32() : 2;
-            int grief  = n.TryGetProperty("grief_per_turn", out var g) ? g.GetInt32() : 1;
+            int regen = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 3;
+            int range = n.TryGetProperty("spirit_regen_range", out var rr) ? rr.GetInt32() : 4;
+            int mdr = n.TryGetProperty("memorial_on_spirit_death_range", out var m) ? m.GetInt32() : 4;
+            int arr = n.TryGetProperty("auto_rise_range", out var ar) ? ar.GetInt32() : 2;
+            int grief = n.TryGetProperty("grief_per_turn", out var g) ? g.GetInt32() : 1;
             return new OssUaryAuraLeafEffect(99, regen, range, mdr, arr, grief).WithTag("Persistent");
         });
 
@@ -762,9 +765,9 @@ public static class CardScriptRegistry
         // { "type": "memorial_seat_aura" }
         RegisterEffect("memorial_seat_aura", n =>
         {
-            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
-            int dmg    = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
-            int armor  = n.TryGetProperty("spirit_buff_armor", out var a) ? a.GetInt32() : 2;
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int dmg = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
+            int armor = n.TryGetProperty("spirit_buff_armor", out var a) ? a.GetInt32() : 2;
             return new MemorialSeatAuraLeafEffect(turns, dmg, armor).WithTag("Persistent");
         });
 
@@ -772,10 +775,10 @@ public static class CardScriptRegistry
         // { "type": "memorial_seat_aura_healing", "turns": n, "spirit_buff_damage": n, "spirit_buff_armor": n, "spirit_regen": n }
         RegisterEffect("memorial_seat_aura_healing", n =>
         {
-            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
-            int dmg    = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
-            int armor  = n.TryGetProperty("spirit_buff_armor", out var a) ? a.GetInt32() : 2;
-            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 2;
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int dmg = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
+            int armor = n.TryGetProperty("spirit_buff_armor", out var a) ? a.GetInt32() : 2;
+            int regen = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 2;
             return new MemorialSeatAuraLeafEffect(turns, dmg, armor, regenRange: 2, regen: regen).WithTag("Persistent");
         });
 
@@ -783,10 +786,10 @@ public static class CardScriptRegistry
         // { "type": "memorial_seat_aura_counsel", "turns": n, "spirit_buff_damage": n, "spirit_regen": n, "draw_per_turn": n }
         RegisterEffect("memorial_seat_aura_counsel", n =>
         {
-            int turns  = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
-            int dmg    = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
-            int regen  = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 2;
-            int draw   = n.TryGetProperty("draw_per_turn", out var dr) ? dr.GetInt32() : 1;
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int dmg = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
+            int regen = n.TryGetProperty("spirit_regen", out var r) ? r.GetInt32() : 2;
+            int draw = n.TryGetProperty("draw_per_turn", out var dr) ? dr.GetInt32() : 1;
             return new MemorialSeatAuraLeafEffect(turns, dmg, 2, regenRange: 2, regen: regen, drawPerTurn: draw).WithTag("Persistent");
         });
 
@@ -803,10 +806,10 @@ public static class CardScriptRegistry
         // { "type": "elder_aura", "spirit_buff_damage": n, "spirit_buff_range": n }
         RegisterEffect("elder_aura", n =>
         {
-            int turns   = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
-            int dmg     = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
-            int range   = n.TryGetProperty("spirit_buff_range", out var r) ? r.GetInt32() : 3;
-            bool prot   = n.TryGetProperty("protect_memorials", out var p) && p.GetBoolean();
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int dmg = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 2;
+            int range = n.TryGetProperty("spirit_buff_range", out var r) ? r.GetInt32() : 3;
+            bool prot = n.TryGetProperty("protect_memorials", out var p) && p.GetBoolean();
             return new ElderAuraLeafEffect(turns, dmg, range, prot).WithTag("Persistent");
         });
 
@@ -814,9 +817,9 @@ public static class CardScriptRegistry
         // { "type": "elder_aura_keeper", "spirit_buff_damage": n, "spirit_buff_range": n }
         RegisterEffect("elder_aura_keeper", n =>
         {
-            int turns   = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
-            int dmg     = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 3;
-            int range   = n.TryGetProperty("spirit_buff_range", out var r) ? r.GetInt32() : 3;
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 99;
+            int dmg = n.TryGetProperty("spirit_buff_damage", out var d) ? d.GetInt32() : 3;
+            int range = n.TryGetProperty("spirit_buff_range", out var r) ? r.GetInt32() : 3;
             return new ElderAuraLeafEffect(turns, dmg, range, protectMemorials: true).WithTag("Persistent");
         });
 
@@ -865,10 +868,48 @@ public static class CardScriptRegistry
         });
 
         // ═══════════════════════════════════════════════════════════
+        // ARCANIST EFFECTS
+        // ═══════════════════════════════════════════════════════════
+
+        // Gain Arcane Charges
+        // { "type": "gain_charge", "amount": n }
+
+        RegisterEffect("gain_charge", n =>
+            new GainChargeEffect(n.GetProperty("amount").GetInt32()).WithTag("Charge"));
+
+        // Spend Arcane Charges to deal damage
+        // { "type": "spend_charge_damage", "damage_per_charge": n, "min_spend": n, "max_spend": n, "self_damage_per_charge": n }
+        RegisterEffect("spend_charge_damage", n =>
+        {
+            int per = n.TryGetProperty("damage_per_charge", out var d) ? d.GetInt32() : 5;
+            int min = n.TryGetProperty("min_spend", out var mn) ? mn.GetInt32() : 1;
+            int max = n.TryGetProperty("max_spend", out var mx) ? mx.GetInt32() : 0;
+            int self = n.TryGetProperty("self_damage_per_charge", out var sd) ? sd.GetInt32() : 0;
+            return new SpendChargeDamageEffect(per, min, max, self).WithTag("Damage");
+        });
+
+        // Spend Arcane Charges to buff damage
+        // { "type": "spend_charge_buff", "damage_per_charge": n, "min_spend": n, "max_spend": n }
+        RegisterEffect("damage_per_spell_cast", n =>
+        {
+            int amt = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 4;
+            int min = n.TryGetProperty("min", out var m) ? m.GetInt32() : 0;
+            return new DamagePerSpellCastEffect(amt, min).WithTag("Damage");
+        });
+
+        // Steal mana from target
+        // { "type": "steal_mana", "amount": n }
+        RegisterEffect("steal_mana", n =>
+            new StealManaEffect(n.TryGetProperty("amount", out var a) ? a.GetInt32() : 1).WithTag("Mana"));
+
+        // ═══════════════════════════════════════════════════════════
         // PREDICATES
         // ═══════════════════════════════════════════════════════════
 
+        // Always true (for effects that don't require a condition): { "type": "always_true" }
         RegisterPredicate("always_true", _ => new AlwaysTrue());
+
+        // Last effect was lethal: { "type": "was_lethal" }
         RegisterPredicate("was_lethal", _ => new LastEffectWasLethal());
 
         // Target on tile: { "type": "target_on_tile", "tile": "ice" }
@@ -905,6 +946,13 @@ public static class CardScriptRegistry
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 2;
             return new HasElementsNearCaster(elements.ToArray(), range);
         });
+
+        // Charge at least: { "type": "charge_at_least", "value": n }
+        RegisterPredicate("charge_at_least", n =>
+            new ChargeAtLeastPredicate(n.TryGetProperty("value", out var v) ? v.GetInt32() : 1));
+
+        // Has cast a spell this turn: { "type": "has_cast_spell_this_turn" }
+        RegisterPredicate("has_cast_spell_this_turn", _ => new HasCastSpellThisTurnPredicate());
 
         // ═══════════════════════════════════════════════════════════
         // TARGETERS
@@ -1052,7 +1100,8 @@ public static class JsonCardLoader
 
             string path = $"{directory}/{file}";
             string json = ReadGodotFile(path);
-            if (json == null) continue;
+            if (json == null)
+                continue;
 
             try
             {
@@ -1133,8 +1182,8 @@ public static class JsonCardLoader
         var card = new Card
         {
             CardName = root.GetProperty("name").GetString() ?? "Unnamed",
-            BlueprintId = root.TryGetProperty("id", out var idEl) 
-                ? idEl.GetString() ?? "" 
+            BlueprintId = root.TryGetProperty("id", out var idEl)
+                ? idEl.GetString() ?? ""
                 : ""  // fallback to empty — RegisterPrebuiltCard will warn
         };
 
@@ -1193,7 +1242,8 @@ public static class JsonCardLoader
             foreach (var r2 in reqElement.EnumerateArray())
             {
                 var rs = r2.GetString();
-                if (!string.IsNullOrEmpty(rs)) reqList.Add(rs);
+                if (!string.IsNullOrEmpty(rs))
+                    reqList.Add(rs);
             }
             half.Requirements = reqList.ToArray();
         }

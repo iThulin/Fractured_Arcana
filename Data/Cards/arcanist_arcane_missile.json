@@ -1,0 +1,275 @@
+{
+	"id": "arcanist_arcane_missile",
+	"status": "wip",
+	"name": "Arcane Missile",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Arcane Missile",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 3 damage to target. Gain 1 charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 3
+				},
+				{
+					"type": "gain_charge",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Focus",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 2 charge. Draw 1 card.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "gain_charge",
+					"amount": 2
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Arcane Missile+",
+			"bottom_name": "Focus+",
+			"description": "Missile hits harder. Focus banks more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage to target. Gain 1 charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 3 charge. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Twin Missile",
+			"description": "Twin Missile: splits to a second enemy within 2.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "unit",
+									"range": 2,
+									"los": false,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage",
+									"amount": 5
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage to target and a second enemy within 2. Gain 1 charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Deep Focus",
+			"description": "Deep Focus: draw an extra card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].count",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 3 charge. Draw 2 cards."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Volley",
+			"description": "Volley: more charge per cast.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].amount",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage to target and a second enemy within 2. Gain 2 charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Clarity",
+			"description": "Clarity: Focus also scries.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_charge",
+								"amount": 3
+							},
+							{
+								"type": "scry",
+								"look": 3,
+								"draw": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 3 charge. Look at top 3, draw 2."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Magic Missile Barrage",
+			"description": "Magic Missile Barrage: three missiles.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "unit",
+									"range": 3,
+									"los": false,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage",
+									"amount": 6
+								},
+								"chains": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 6 damage to target and the 2 nearest enemies within 3. Gain 2 charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Perfect Focus",
+			"description": "Perfect Focus: banks to the cap and refills the hand.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_charge",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 charge. Draw 2 cards."
+				}
+			]
+		}
+	]
+}

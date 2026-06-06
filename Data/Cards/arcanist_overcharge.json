@@ -1,64 +1,212 @@
 {
-  "id": "arcanist_overcharge",
-  "status": "stub",
-  "name": "Overcharge",
-  "school": "Arcanist",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Overcharge",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Spend all charges (min 2). Deal 5 damage per charge to target. Lose 4HP per charge.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "damage",
-          "amount": 5
-        }
-      ]
-    },
-    "channel": {
-      "name": "Overcharge (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: No self damage",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Tome Bind",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Exile a card from hand face up. Cast its top half for free once per turn while exiled.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Tome Bind (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: May cast either half",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_overcharge",
+	"status": "wip",
+	"name": "Overcharge",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Overcharge",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Spend all charge (min 2). Deal 5 damage per charge spent to target. Lose 4 HP per charge spent.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "spend_charge_damage",
+			"damage_per_charge": 5,
+			"min_spend": 2,
+			"max_spend": 0,
+			"self_damage_per_charge": 4
+		}
+	},
+	"bottom": {
+		"name": "Tome Bind",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Exile a card from your hand face up. Cast its top half for free once per turn while exiled.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "bind_card",
+			"half": "top"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Overcharge+",
+			"bottom_name": "Tome Bind+",
+			"description": "Overcharge recoils less. Tome Bind binds cheaper casts.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.self_damage_per_charge",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend all charge (min 2). Deal 5 damage per charge to target. Lose 3 HP per charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.cast_cost_reduction",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Exile a card face up. Cast its top half for 1 less, once per turn, while exiled."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Power Overwhelming",
+			"description": "Power Overwhelming: 6 damage per charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage_per_charge",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend all charge (min 2). Deal 6 damage per charge. Lose 3 HP per charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Spellbook Bind",
+			"description": "Spellbook Bind: cast the bound half for free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.cast_cost_reduction",
+					"value": 99
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Exile a card face up. Cast its top half for free once per turn while exiled."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Controlled Burn",
+			"description": "Controlled Burn: no self-damage on the first 3 charge spent.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.self_damage_free_charges",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend all charge (min 2). Deal 6 per charge. Lose 3 HP per charge beyond the first 3."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Grand Tome",
+			"description": "Grand Tome: cast either half of the bound card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.half",
+					"value": "either"
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Exile a card face up. Cast either half for free once per turn while exiled."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Singularity Blast",
+			"description": "Singularity Blast: splash the overcharge to all nearby enemies.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "spend_charge_damage",
+								"damage_per_charge": 6,
+								"min_spend": 2,
+								"max_spend": 0,
+								"self_damage_per_charge": 0
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage",
+									"amount": 6
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend all charge (min 2). Deal 6 per charge to target. Deal 6 to all enemies within 2. No self-damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Living Library",
+			"description": "The Living Library: bind two cards at once.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "bind_card",
+						"half": "either",
+						"count": 2,
+						"cast_cost_reduction": 99
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Exile 2 cards face up. Cast either half of each for free once per turn while exiled."
+				}
+			]
+		}
+	]
 }

@@ -1,69 +1,201 @@
 {
-  "id": "arcanist_spell_prism",
-  "status": "stub",
-  "name": "Spell Prism",
-  "school": "Arcanist",
-  "rarity": "Rare",
-  "top": {
-    "name": "Spell Prism",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Create a Prism on target tile within 2 (8HP). When a spell passes through Prism's LOS it splits: resolve once on original target and once on nearest enemy within 2 of Prism.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Spell Prism (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Prism has 12HP and split range is 3",
-      "targeting": {
-        "type": "aoe",
-        "radius": 2,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Charged Conduit",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Imbue tile: the next spell cast from this tile gains +2 damage per charge you have (then consume all charges).",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Charged Conduit (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Only consume half charges (round up)",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "arcanist_spell_prism",
+	"status": "wip",
+	"name": "Spell Prism",
+	"school": "Arcanist",
+	"rarity": "Rare",
+	"top": {
+		"name": "Spell Prism",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Create a Prism on a tile within 2 (8 HP). When a spell passes through its line of sight it splits: resolve once on the original target and once on the nearest enemy within 2 of the Prism.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "create_arcane_construct",
+			"kind": "prism",
+			"hp": 8,
+			"split_range": 2
+		}
+	},
+	"bottom": {
+		"name": "Charged Conduit",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Imbue a tile: the next spell cast from this tile gains +2 damage per charge you have, then consumes all charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "create_arcane_construct",
+			"kind": "conduit",
+			"bonus_per_charge": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Spell Prism+",
+			"bottom_name": "Charged Conduit+",
+			"description": "Prism is sturdier and reaches further. Conduit converts harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp",
+					"value": 12
+				},
+				{
+					"half": "top",
+					"field": "effect.split_range",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Create a Prism within 2 (12 HP). Spells passing through it split to the nearest enemy within 3."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.bonus_per_charge",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a tile: the next spell cast from it gains +3 damage per charge, then consumes all charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Refracting Prism",
+			"description": "Refracting Prism: the split copy deals full damage.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.split_fraction",
+					"value": 1.0
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Create a Prism within 2 (12 HP). Spells passing through it copy at full damage to the nearest enemy within 3."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Overcharged Conduit",
+			"description": "Overcharged Conduit: keep half your charge instead of consuming all.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.consume_fraction",
+					"value": 0.5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a tile: the next spell from it gains +3 per charge, then consumes half your charge (round up)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Hall of Mirrors",
+			"description": "Hall of Mirrors: split to the 2 nearest enemies.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.split_targets",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Create a Prism within 2 (12 HP). Spells passing through copy at full damage to the 2 nearest enemies within 3."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Resonant Conduit",
+			"description": "Resonant Conduit: the empowered spell also banks charge equal to half spent.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.refund_fraction",
+					"value": 0.5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a tile: next spell from it gains +3 per charge, consumes half (round up), then refunds half of that."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Kaleidoscope",
+			"description": "Kaleidoscope: an indestructible prism that splits to all nearby enemies.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "create_arcane_construct",
+						"kind": "prism",
+						"hp": 20,
+						"split_range": 3,
+						"split_fraction": 1.0,
+						"split_all": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Create a Prism within 2 (20 HP). Spells passing through copy at full damage to ALL enemies within 3."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Singular Conduit",
+			"description": "Singular Conduit: massive payoff with no net charge loss.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "create_arcane_construct",
+						"kind": "conduit",
+						"bonus_per_charge": 4,
+						"consume_fraction": 0.5,
+						"refund_fraction": 1.0
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a tile: next spell from it gains +4 per charge, consumes half your charge, then refunds all of that."
+				}
+			]
+		}
+	]
 }
