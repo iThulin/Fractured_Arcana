@@ -1,0 +1,37 @@
+{
+	"school": "Enchanter",
+	"cards": [
+		{
+			"id": "enchanter_runic_trap",
+			"count": 2
+		},
+		{
+			"id": "enchanter_snare_glyph",
+			"count": 2
+		},
+		{
+			"id": "enchanter_warding_step",
+			"count": 1
+		},
+		{
+			"id": "enchanter_hex_mark",
+			"count": 1
+		},
+		{
+			"id": "enchanter_charm_drift",
+			"count": 1
+		},
+		{
+			"id": "enchanter_dispel_walk",
+			"count": 1
+		},
+		{
+			"id": "enchanter_compel",
+			"count": 1
+		},
+		{
+			"id": "enchanter_binding_rune",
+			"count": 1
+		}
+	]
+}

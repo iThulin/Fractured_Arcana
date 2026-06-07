@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 // ============================================================
 // PersistentEffect.cs
@@ -38,6 +39,11 @@ public abstract class PersistentEffect
 
     /// <summary>Called once per player turn at start-of-turn. Implementation must decrement <see cref="TurnsRemaining"/>.</summary>
     public abstract void Tick(GameState s);
+
+    /// <summary>Called after a spell is pushed to the stack but before its effects resolve. Use to set BonusDamage etc. Override in subclasses.</summary>
+    public virtual void OnSpellCast(GameState s, Unit casterUnit, TargetSet targets) { }
+    /// <summary>Called after a spell's effects have fully resolved. Use for echoes, mana refunds, charge spending. Override in subclasses.</summary>
+    public virtual void OnSpellResolved(GameState s, Unit casterUnit, TargetSet targets) { }
 
     /// <summary>True once <see cref="TurnsRemaining"/> reaches 0. The combat loop garbage-collects expired entries.</summary>
     public bool IsExpired => TurnsRemaining <= 0;
@@ -80,11 +86,14 @@ public class MaelstromEffect : PersistentEffect
 
     public override void Tick(GameState s)
     {
-        if (s?.Grid == null) return;
+        if (s?.Grid == null)
+            return;
 
         Unit ownerUnit = null;
-        if (Owner == s.PlayerA) ownerUnit = s.PlayerUnit;
-        else if (Owner == s.PlayerB) ownerUnit = s.EnemyUnit;
+        if (Owner == s.PlayerA)
+            ownerUnit = s.PlayerUnit;
+        else if (Owner == s.PlayerB)
+            ownerUnit = s.EnemyUnit;
 
         // Get current rotation direction
         var rotDir = HexDirs[_rotationStep % 6];
@@ -92,9 +101,11 @@ public class MaelstromEffect : PersistentEffect
         // Imbue all tiles in radius with storm
         foreach (var kvp in s.Grid.Tiles)
         {
-            if (s.Grid.Distance(Center, kvp.Key) > Radius) continue;
+            if (s.Grid.Distance(Center, kvp.Key) > Radius)
+                continue;
             var tile = kvp.Value;
-            if (tile == null) continue;
+            if (tile == null)
+                continue;
             tile.ElementType = TileElementType.Lightning;
             tile.ElementStrength = 1.0f;
             s.Grid.ApplyVisualToTile(tile);
@@ -107,10 +118,12 @@ public class MaelstromEffect : PersistentEffect
                 continue;
             if (!unit.Stats.IsAlive || unit.CurrentTile == null)
                 continue;
-            if (ownerUnit != null && unit.TeamId == ownerUnit.TeamId) continue;
+            if (ownerUnit != null && unit.TeamId == ownerUnit.TeamId)
+                continue;
 
             int dist = s.Grid.Distance(Center, unit.CurrentTile.Axial);
-            if (dist > Radius) continue;
+            if (dist > Radius)
+                continue;
 
             // Deal damage
             unit.ApplyDamage(Damage);
@@ -181,9 +194,10 @@ public class AvatarAuraEffect : PersistentEffect
     }
 
     /// <summary>Hook invoked by the combat runner after every successful spell resolution by the owner. Random-imbues each target tile and logs the bonus damage application.</summary>
-    public void OnSpellCast(GameState s, Unit casterUnit, TargetSet targets)
+    public override void OnSpellCast(GameState s, Unit casterUnit, TargetSet targets)
     {
-        if (s?.Grid == null || targets == null) return;
+        if (s?.Grid == null || targets == null)
+            return;
 
         // Random element imbue on target tile
         var element = Elements[_rng.Next(Elements.Length)];
@@ -191,15 +205,19 @@ public class AvatarAuraEffect : PersistentEffect
         foreach (var obj in targets.Items)
         {
             TileData tile = null;
-            if (obj is TileData td) tile = td;
-            else if (obj is HexTile tv) tile = s.Grid.GetTile(tv.Axial);
-            else if (obj is Unit u && u.CurrentTile != null) tile = u.CurrentTile;
+            if (obj is TileData td)
+                tile = td;
+            else if (obj is HexTile tv)
+                tile = s.Grid.GetTile(tv.Axial);
+            else if (obj is Unit u && u.CurrentTile != null)
+                tile = u.CurrentTile;
 
             if (tile != null)
             {
                 tile.ElementType = element;
                 tile.ElementStrength = 1.0f;
-                if (element == TileElementType.Fire) tile.IsHazardous = true;
+                if (element == TileElementType.Fire)
+                    tile.IsHazardous = true;
                 tile.TileView?.SetElement(element);
                 s.Log($"[Avatar] Imbued {tile.Axial} with {element}.");
             }
@@ -208,8 +226,6 @@ public class AvatarAuraEffect : PersistentEffect
         s.Log($"[Avatar] Spell deals +{BonusDamage} bonus damage.");
     }
 }
-
-// In PersistentEffect.cs — add after AvatarAuraEffect
 
 // ── Hollow Mantle ────────────────────────────────────────────
 
@@ -240,7 +256,8 @@ public class HollowMantleEffect : PersistentEffect
     /// </summary>
     public int ClampDamage(Unit target, int incomingDamage)
     {
-        if (target.Stats.Health <= 1) return incomingDamage;
+        if (target.Stats.Health <= 1)
+            return incomingDamage;
         return Math.Min(incomingDamage, target.Stats.Health - 1);
     }
 }
@@ -301,16 +318,20 @@ public class OssUaryAuraEffect : PersistentEffect
 
     public override void Tick(GameState s)
     {
-        if (s == null) { TurnsRemaining--; return; }
+        if (s == null)
+        { TurnsRemaining--; return; }
 
         // Heal spirits within range
         if (SpiritRegen > 0)
         {
             foreach (var unit in s.UnitsInPlay)
             {
-                if (unit == null || !unit.IsSpirit || !unit.Stats.IsAlive) continue;
-                if (unit.CurrentTile == null) continue;
-                if (s.Grid?.Distance(Center, unit.CurrentTile.Axial) > SpiritRegenRange) continue;
+                if (unit == null || !unit.IsSpirit || !unit.Stats.IsAlive)
+                    continue;
+                if (unit.CurrentTile == null)
+                    continue;
+                if (s.Grid?.Distance(Center, unit.CurrentTile.Axial) > SpiritRegenRange)
+                    continue;
 
                 unit.Stats.Health = Math.Min(unit.Stats.MaxHealth,
                     unit.Stats.Health + SpiritRegen);
@@ -369,7 +390,8 @@ public class MemorialSeatAuraEffect : PersistentEffect
 
     public override void Tick(GameState s)
     {
-        if (s == null) { TurnsRemaining--; return; }
+        if (s == null)
+        { TurnsRemaining--; return; }
 
         // Regen spirits if configured
         if (SpiritRegen > 0 && SpiritRegenRange > 0)
@@ -379,10 +401,13 @@ public class MemorialSeatAuraEffect : PersistentEffect
 
             foreach (var unit in s.UnitsInPlay)
             {
-                if (unit == null || !unit.IsSpirit || !unit.Stats.IsAlive) continue;
-                if (ownerUnit?.CurrentTile == null || unit.CurrentTile == null) continue;
+                if (unit == null || !unit.IsSpirit || !unit.Stats.IsAlive)
+                    continue;
+                if (ownerUnit?.CurrentTile == null || unit.CurrentTile == null)
+                    continue;
                 if (s.Grid?.Distance(ownerUnit.CurrentTile.Axial,
-                    unit.CurrentTile.Axial) > SpiritRegenRange) continue;
+                    unit.CurrentTile.Axial) > SpiritRegenRange)
+                    continue;
 
                 unit.Stats.Health = Math.Min(unit.Stats.MaxHealth,
                     unit.Stats.Health + SpiritRegen);
@@ -412,8 +437,10 @@ public class MemorialSeatAuraEffect : PersistentEffect
     {
         foreach (var unit in s.UnitsInPlay)
         {
-            if (unit == null || !unit.IsSpirit || !unit.Stats.IsAlive) continue;
-            if (unit.SummonerTeamId != ownerTeam) continue;
+            if (unit == null || !unit.IsSpirit || !unit.Stats.IsAlive)
+                continue;
+            if (unit.SummonerTeamId != ownerTeam)
+                continue;
             unit.AttackDamage += SpiritDmgBonus;
             unit.Stats.Armor += SpiritArmorBonus;
         }
@@ -478,169 +505,440 @@ public class ElderAuraEffect : PersistentEffect
     }
 }
 
-
-// ════════════════════════════════════════════════════════════════════════
-// LEAF EFFECT CLASSES — paste into CompositeEffects.cs
-// ════════════════════════════════════════════════════════════════════════
-
-// ── Open Gate Leaf ──────────────────────────────────────────────────────
-
-/// <summary>
-/// Registers an OpenGateEffect on GameState.ActiveEffects.
-/// CombatManager.HandleUnitDeath checks for this effect and creates
-/// a memorial + summons a spirit when it is active.
-/// JSON: { "type": "open_gate", "turns": n }
-/// </summary>
-public sealed class OpenGateLeafEffect : EffectBase
+/// <summary>Active modifier that applies a bonus to the next N spells the owner casts.
+/// Fires via OnSpellCast (sets BonusDamage) and OnSpellResolved (clears it, draws, counts down).</summary>
+public sealed class QueuedSpellModifier : PersistentEffect
 {
-    public int Turns;
-    public OpenGateLeafEffect(int turns) { Turns = turns; }
+    public int BonusDamage;
+    public int ExtraDraw;
+    public int AppliesTo;
+    public string GrantStatus;
+    public int GrantStatusDuration;
+    public Unit OwnerUnit;
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    public QueuedSpellModifier(int bonusDmg, int extraDraw, int appliesTo,
+        string grantStatus, int statusDur, Entity owner, Unit ownerUnit)
     {
-        s.ActiveEffects ??= new List<PersistentEffect>();
-        s.ActiveEffects.Add(new OpenGateEffect(Turns, caster));
-        s.Log($"[OpenGate] Gate opened for {Turns} turns.");
+        BonusDamage = bonusDmg;
+        ExtraDraw = extraDraw;
+        AppliesTo = Math.Max(1, appliesTo);
+        GrantStatus = grantStatus;
+        GrantStatusDuration = statusDur;
+        Owner = owner;
+        OwnerUnit = ownerUnit;
+        TurnsRemaining = appliesTo + 4; // safety expiry even if never triggered
+    }
+
+    public override void Tick(GameState s) { TurnsRemaining--; }
+
+    public override void OnSpellCast(GameState s, Unit casterUnit, TargetSet targets)
+    {
+        if (casterUnit != OwnerUnit || AppliesTo <= 0)
+            return;
+        if (BonusDamage > 0)
+            casterUnit.BonusSpellDamage += BonusDamage;
+        if (!string.IsNullOrEmpty(GrantStatus))
+            casterUnit.ApplyStatus(GrantStatus, GrantStatusDuration);
+        s.Log($"[QueuedModifier] Applied +{BonusDamage} dmg to this spell.");
+    }
+
+    public override void OnSpellResolved(GameState s, Unit casterUnit, TargetSet targets)
+    {
+        if (casterUnit != OwnerUnit || AppliesTo <= 0)
+            return;
+        // Remove the bonus so it does not carry to the next spell
+        if (BonusDamage > 0)
+            casterUnit.BonusSpellDamage -= BonusDamage;
+        if (ExtraDraw > 0)
+            casterUnit.DeckData?.Draw(ExtraDraw);
+        AppliesTo--;
+        if (AppliesTo <= 0)
+            TurnsRemaining = 0;
     }
 }
 
-// ── Ossuary Aura Leaf ────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  CHARGE COST MODIFIER
+//  While active: after each spell resolves, refund its mana cost and spend
+//  an equivalent amount of Arcane Charge instead.
+// ─────────────────────────────────────────────────────────────────────────────
 
-/// <summary>
-/// Reads the position of the most recently summoned spirit/ossuary unit
-/// and registers an OssUaryAuraEffect centered on it.
-/// JSON: { "type": "ossuary_aura", "spirit_regen": n, "spirit_regen_range": n }
-/// </summary>
-public sealed class OssUaryAuraLeafEffect : EffectBase
+public sealed class ChargeCostModifierAura : PersistentEffect
 {
-    public int Turns;
-    public int SpiritRegen;
-    public int SpiritRegenRange;
-    public int MemorialOnDeathRange;
-    public int AutoRiseRange;
-    public int GriefPerTurn;
+    public int ChargePerMana;
+    public Unit OwnerUnit;
 
-    public OssUaryAuraLeafEffect(int turns, int regen, int regenRange,
-        int memorialOnDeathRange = 0, int autoRiseRange = 0, int griefPerTurn = 0)
+    public ChargeCostModifierAura(int chargePerMana, int turns, Entity owner, Unit ownerUnit)
     {
-        Turns = turns;
-        SpiritRegen = regen;
-        SpiritRegenRange = regenRange;
-        MemorialOnDeathRange = memorialOnDeathRange;
-        AutoRiseRange = autoRiseRange;
-        GriefPerTurn = griefPerTurn;
+        ChargePerMana = Math.Max(1, chargePerMana);
+        TurnsRemaining = turns;
+        Owner = owner;
+        OwnerUnit = ownerUnit;
     }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        var casterUnit = s.ActiveCasterUnit;
-        Vector2I center = casterUnit?.CurrentTile?.Axial ?? default;
+    public override void Tick(GameState s) { TurnsRemaining--; }
 
-        // Use the target tile if available (the ossuary was just placed there)
-        if (targets?.Items?.Count > 0)
+    public override void OnSpellResolved(GameState s, Unit casterUnit, TargetSet targets)
+    {
+        if (casterUnit != OwnerUnit)
+            return;
+        if (casterUnit.Attunement is not ArcaneAttunement arc)
+            return;
+
+        int manaCost = CastModifierHelpers.ReadManaCost(s.LastResolvedItem);
+        if (manaCost <= 0)
+            return;
+
+        int chargesNeeded = manaCost * ChargePerMana;
+        if (arc.Charge < chargesNeeded)
         {
-            foreach (var obj in targets.Items)
-            {
-                if (obj is TileData td) { center = td.Axial; break; }
-                if (obj is Unit u && u.CurrentTile != null) { center = u.CurrentTile.Axial; break; }
-            }
+            s.Log($"[ChargeCostModifier] Not enough charge ({arc.Charge} < {chargesNeeded}) — mana stays spent.");
+            return;
         }
 
-        s.ActiveEffects ??= new List<PersistentEffect>();
-        s.ActiveEffects.Add(new OssUaryAuraEffect(
-            Turns, caster, center,
-            SpiritRegenRange, SpiritRegen,
-            MemorialOnDeathRange, AutoRiseRange, GriefPerTurn));
-
-        s.Log($"[OssUaryAura] Ossuary aura active at {center} for {Turns} turns.");
+        casterUnit.GainMana(manaCost);
+        if (s.Mana.ContainsKey(Owner))
+            s.Mana[Owner] = casterUnit.Stats.Mana;
+        arc.Spend(chargesNeeded);
+        s.Log($"[ChargeCostModifier] Refunded {manaCost} mana; spent {chargesNeeded} charge.");
     }
 }
 
-// ── Memorial Seat Aura Leaf ──────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  OMNISCIENCE
+//  All your spells are free for N turns. When it expires, exile cards from hand.
+// ─────────────────────────────────────────────────────────────────────────────
+
+public sealed class OmniscienceEffect : PersistentEffect
+{
+    public int ExileOnExpire;
+    public Unit OwnerUnit;
+
+    public OmniscienceEffect(int turns, int exileOnExpire, Entity owner, Unit ownerUnit)
+    {
+        TurnsRemaining = turns;
+        ExileOnExpire = exileOnExpire;
+        Owner = owner;
+        OwnerUnit = ownerUnit;
+    }
+
+    public override void Tick(GameState s)
+    {
+        TurnsRemaining--;
+        if (TurnsRemaining <= 0)
+            ExileHand(s);
+    }
+
+    public override void OnSpellResolved(GameState s, Unit casterUnit, TargetSet targets)
+    {
+        if (casterUnit != OwnerUnit)
+            return;
+        int manaCost = CastModifierHelpers.ReadManaCost(s.LastResolvedItem);
+        if (manaCost <= 0)
+            return;
+        casterUnit.GainMana(manaCost);
+        if (s.Mana.ContainsKey(Owner))
+            s.Mana[Owner] = casterUnit.Stats.Mana;
+        s.Log($"[Omniscience] Refunded {manaCost} mana — spell was free.");
+    }
+
+    private void ExileHand(GameState s)
+    {
+        if (OwnerUnit?.DeckData == null || ExileOnExpire <= 0)
+            return;
+        int n = Math.Min(ExileOnExpire, OwnerUnit.DeckData.Hand.Count);
+        if (n > 0)
+            OwnerUnit.DeckData.Hand.RemoveRange(0, n);
+        s.Log($"[Omniscience] Expired — {n} card(s) exiled as the price of godhood.");
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ARCANE APOTHEOSIS
+//  Permanent passive — every spell cast generates Arcane Charge.
+// ─────────────────────────────────────────────────────────────────────────────
+
+public sealed class ArcaneApotheosisAura : PersistentEffect
+{
+    public int ChargePerSpell;
+    public Unit OwnerUnit;
+
+    public ArcaneApotheosisAura(int chargePerSpell, Entity owner, Unit ownerUnit)
+    {
+        ChargePerSpell = Math.Max(1, chargePerSpell);
+        Owner = owner;
+        OwnerUnit = ownerUnit;
+        TurnsRemaining = int.MaxValue; // never expires — legendary passive
+    }
+
+    public override void Tick(GameState s) { /* permanent — intentionally no decrement */ }
+
+    public override void OnSpellCast(GameState s, Unit casterUnit, TargetSet targets)
+    {
+        if (casterUnit != OwnerUnit)
+            return;
+        if (casterUnit.Attunement is ArcaneAttunement arc)
+        {
+            arc.Add(ChargePerSpell);
+            s.Log($"[ArcaneApotheosis] +{ChargePerSpell} charge from apotheosis (now {arc.Charge}).");
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  BIND CARD
+//  Exile a card from hand — it auto-casts its top half at the start of each turn.
+// ─────────────────────────────────────────────────────────────────────────────
+
+public sealed class BoundCardAura : PersistentEffect
+{
+    public Card BoundCard;
+    public Unit OwnerUnit;
+
+    public BoundCardAura(Card card, int turns, Entity owner, Unit ownerUnit)
+    {
+        BoundCard = card;
+        TurnsRemaining = turns;
+        Owner = owner;
+        OwnerUnit = ownerUnit;
+    }
+
+    public override void Tick(GameState s)
+    {
+        TurnsRemaining--;
+        if (BoundCard?.TopHalf?.Effects == null || OwnerUnit == null)
+            return;
+
+        // Auto-cast the bound card's top half against the owner (self-cast; no targeting)
+        var selfTargets = new TargetSet();
+        if (selfTargets.Items == null)
+            selfTargets.Items = new List<object>();
+        selfTargets.Items.Add(OwnerUnit);
+
+        foreach (var eff in BoundCard.TopHalf.Effects)
+            eff.Resolve(s, Owner, selfTargets, null);
+
+        s.Log($"[BindCard] Bound '{BoundCard.CardName}' auto-casts. ({TurnsRemaining} turn(s) remaining)");
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  REPLICATE LAST SPELL
+//  After your next spell fully resolves, replay all its effects once more.
+// ─────────────────────────────────────────────────────────────────────────────
+
+public sealed class ReplicateSpellAura : PersistentEffect
+{
+    public Unit OwnerUnit;
+    private bool _triggered;
+
+    public ReplicateSpellAura(Entity owner, Unit ownerUnit)
+    {
+        Owner = owner;
+        OwnerUnit = ownerUnit;
+        TurnsRemaining = 4; // safety — expires even if never triggered
+    }
+
+    public override void Tick(GameState s) { TurnsRemaining--; }
+
+    public override void OnSpellResolved(GameState s, Unit casterUnit, TargetSet targets)
+    {
+        if (_triggered || casterUnit != OwnerUnit)
+            return;
+
+        var item = s.LastResolvedItem;
+        if (item == null || item.Caster != Owner)
+            return;
+
+        _triggered = true;
+        TurnsRemaining = 0; // consume
+
+        s.Log("[ReplicateSpell] Echoing last spell...");
+        foreach (var eff in item.Ability.Effects)
+            eff.Resolve(s, item.Caster, item.Targets, item.Snapshot);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CONVERGENCE
+//  Each spell cast pulses bonus damage to the nearest enemy within range.
+// ─────────────────────────────────────────────────────────────────────────────
+
+public sealed class ConvergenceAura : PersistentEffect
+{
+    public int Damage, Range;
+    public Unit OwnerUnit;
+
+    public ConvergenceAura(int damage, int range, int turns, Entity owner, Unit ownerUnit)
+    {
+        Damage = damage;
+        Range = range;
+        TurnsRemaining = turns;
+        Owner = owner;
+        OwnerUnit = ownerUnit;
+    }
+
+    public override void Tick(GameState s) { TurnsRemaining--; }
+
+    public override void OnSpellResolved(GameState s, Unit casterUnit, TargetSet targets)
+    {
+        if (casterUnit != OwnerUnit || s?.Grid == null || casterUnit.CurrentTile == null)
+            return;
+
+        Unit nearest = null;
+        int bestD = int.MaxValue;
+        foreach (var u in s.UnitsInPlay)
+        {
+            if (u == null || !u.Stats.IsAlive || u.TeamId == casterUnit.TeamId || u.CurrentTile == null)
+                continue;
+            int d = s.Grid.Distance(casterUnit.CurrentTile.Axial, u.CurrentTile.Axial);
+            if (d <= Range && d < bestD)
+            { bestD = d; nearest = u; }
+        }
+
+        if (nearest != null)
+        {
+            nearest.ApplyDamage(Damage);
+            s.Log($"[Convergence] {nearest.Name} takes {Damage} from convergence pulse.");
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  DOMINATE
+//  Dominated enemies attack their own allies each turn.
+// ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>
-/// Registers a MemorialSeatAuraEffect on GameState.ActiveEffects.
-/// JSON: { "type": "memorial_seat_aura" }
+/// While active, finds all enemies with "dominated" status and forces each to
+/// deal its AttackDamage to its nearest ally at start of turn.
+/// Full AI control (commanding the dominated unit's actions from the player UI)
+/// is a deeper engine feature — this implements the "hurts own team" half.
 /// </summary>
-public sealed class MemorialSeatAuraLeafEffect : EffectBase
+public sealed class DominateAura : PersistentEffect
 {
-    public int Turns;
-    public int SpiritDmg;
-    public int SpiritArmor;
-    public int RegenRange;
-    public int Regen;
-    public int DrawPerTurn;
+    public Unit OwnerUnit;
 
-    public MemorialSeatAuraLeafEffect(int turns, int spiritDmg = 2, int spiritArmor = 2,
-        int regenRange = 0, int regen = 0, int drawPerTurn = 0)
+    public DominateAura(int turns, Entity owner, Unit ownerUnit)
     {
-        Turns = turns;
-        SpiritDmg = spiritDmg;
-        SpiritArmor = spiritArmor;
-        RegenRange = regenRange;
-        Regen = regen;
-        DrawPerTurn = drawPerTurn;
+        TurnsRemaining = turns;
+        Owner = owner;
+        OwnerUnit = ownerUnit;
     }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    public override void Tick(GameState s)
     {
-        s.ActiveEffects ??= new List<PersistentEffect>();
-        s.ActiveEffects.Add(new MemorialSeatAuraEffect(
-            Turns, caster, SpiritDmg, SpiritArmor, RegenRange, Regen, DrawPerTurn));
-        s.Log($"[MemorialSeatAura] Active for {Turns} turns.");
+        TurnsRemaining--;
+        if (s?.Grid == null || OwnerUnit == null)
+            return;
+
+        foreach (var unit in s.UnitsInPlay.ToList())
+        {
+            if (unit == null || !unit.Stats.IsAlive || !unit.HasStatus("dominated"))
+                continue;
+            if (unit.TeamId == OwnerUnit.TeamId)
+                continue; // already on our side — skip
+
+            // Find the nearest unit on the dominated unit's OWN team to attack
+            Unit target = null;
+            int bestD = int.MaxValue;
+            foreach (var ally in s.UnitsInPlay)
+            {
+                if (ally == null || !ally.Stats.IsAlive || ally.CurrentTile == null)
+                    continue;
+                if (ally.TeamId != unit.TeamId || ally == unit)
+                    continue;
+                int d = s.Grid.Distance(unit.CurrentTile?.Axial ?? default, ally.CurrentTile.Axial);
+                if (d < bestD)
+                { bestD = d; target = ally; }
+            }
+
+            if (target != null)
+            {
+                target.ApplyDamage(unit.AttackDamage);
+                s.Log($"[Dominate] {unit.Name} attacks own ally {target.Name} for {unit.AttackDamage}.");
+            }
+        }
     }
 }
 
-// ── Hallowed Double Rise Leaf ────────────────────────────────────────────
-
-/// <summary>
-/// Registers a HallowedDoubleRiseEffect on GameState.ActiveEffects.
-/// JSON: { "type": "hallowed_double_rise" }
-/// </summary>
-public sealed class HallowedDoubleRiseLeafEffect : EffectBase
+public sealed class GrandDesignPersistentEffect : PersistentEffect
 {
-    public bool EmpowerOnKill;
-    public HallowedDoubleRiseLeafEffect(bool empowerOnKill = false)
+    public Unit OwnerUnit;
+
+    public GrandDesignPersistentEffect(int turns, Entity owner, Unit ownerUnit)
     {
-        EmpowerOnKill = empowerOnKill;
+        TurnsRemaining = turns;
+        Owner = owner;
+        OwnerUnit = ownerUnit;
     }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-    {
-        s.ActiveEffects ??= new List<PersistentEffect>();
-        s.ActiveEffects.Add(new HallowedDoubleRiseEffect(caster, EmpowerOnKill));
-        s.Log($"[HallowedDoubleRise] Active — deaths on hallowed ground summon 2 spirits.");
-    }
+    public override void Tick(GameState s) { TurnsRemaining--; }
 }
 
-// ── Elder Aura Leaf ──────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  ABSOLUTE TERRITORY
+//  A persistent zone centred on the caster's position at cast time.
+//  Each turn: all enemies in the zone take damage.
+//  Movement gating (enemies cannot exit) needs a CanMove hook in the movement
+//  system — that is a separate feature noted here.
+// ─────────────────────────────────────────────────────────────────────────────
 
-/// <summary>
-/// Registers an ElderAuraEffect on GameState.ActiveEffects.
-/// JSON: { "type": "elder_aura", "spirit_buff_damage": n, "spirit_buff_range": n }
-/// </summary>
-public sealed class ElderAuraLeafEffect : EffectBase
+public sealed class AbsoluteTerritoryZone : PersistentEffect
 {
-    public int Turns;
-    public int SpiritDmg;
-    public int SpiritRange;
-    public bool ProtectMemorials;
+    public Vector2I Center;
+    public int Radius, DamagePerTurn;
+    public Unit OwnerUnit;
 
-    public ElderAuraLeafEffect(int turns, int spiritDmg = 2,
-        int spiritRange = 3, bool protectMemorials = false)
+    public AbsoluteTerritoryZone(Vector2I center, int radius, int dpt, int turns,
+        Entity owner, Unit ownerUnit)
     {
-        Turns = turns;
-        SpiritDmg = spiritDmg;
-        SpiritRange = spiritRange;
-        ProtectMemorials = protectMemorials;
+        Center = center;
+        Radius = radius;
+        DamagePerTurn = dpt;
+        TurnsRemaining = turns;
+        Owner = owner;
+        OwnerUnit = ownerUnit;
     }
 
-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    public override void Tick(GameState s)
     {
-        s.ActiveEffects ??= new List<PersistentEffect>();
-        s.ActiveEffects.Add(new ElderAuraEffect(
-            Turns, caster, SpiritDmg, SpiritRange, ProtectMemorials));
-        s.Log($"[ElderAura] Active for {Turns} turns. Spirits +{SpiritDmg} DMG within range {SpiritRange}.");
+        TurnsRemaining--;
+        if (s?.Grid == null || OwnerUnit == null)
+            return;
+
+        foreach (var unit in s.UnitsInPlay)
+        {
+            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                continue;
+            if (unit.TeamId == OwnerUnit.TeamId)
+                continue; // spare allies
+            if (s.Grid.Distance(Center, unit.CurrentTile.Axial) > Radius)
+                continue;
+
+            unit.ApplyDamage(DamagePerTurn);
+            s.Log($"[AbsoluteTerritory] {unit.Name} takes {DamagePerTurn} inside the zone.");
+        }
     }
 }
+// ─────────────────────────────────────────────────────────────────────────────
+//  SHARED HELPER
+// ─────────────────────────────────────────────────────────────────────────────
 
+internal static class CastModifierHelpers
+{
+    /// <summary>Reads the mana cost from a resolved StackItem's cost list. Returns 0 on failure.</summary>
+    internal static int ReadManaCost(StackItem item)
+    {
+        if (item?.Ability?.Costs == null)
+            return 0;
+        int total = 0;
+        foreach (var c in item.Ability.Costs)
+            if (c is ManaCost mc)
+                total += mc.Amount;
+        return total;
+    }
+}

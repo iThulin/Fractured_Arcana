@@ -1,0 +1,33 @@
+{
+	"school": "Arcanist",
+	"cards": [
+		{
+			"id": "arcanist_spell_weave",
+			"count": 2
+		},
+		{
+			"id": "arcanist_arcane_missile",
+			"count": 2
+		},
+		{
+			"id": "arcanist_mana_conduit",
+			"count": 2
+		},
+		{
+			"id": "arcanist_cascade_bolt",
+			"count": 1
+		},
+		{
+			"id": "arcanist_marginalia",
+			"count": 1
+		},
+		{
+			"id": "arcanist_eldritch_catalyst",
+			"count": 1
+		},
+		{
+			"id": "arcanist_arcane_echo",
+			"count": 1
+		}
+	]
+}

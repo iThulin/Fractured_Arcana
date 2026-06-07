@@ -28,7 +28,10 @@ public sealed class GameState
 
     public List<PersistentEffect> ActiveEffects = new();
     public MemorialManager Memorials;
+    public GlyphManager Glyphs;
 
+    /// <summary>The most recently resolved StackItem. Set by Resolver.ResolveTop; read by replicate/echo/mana-refund effects.</summary>
+    public StackItem LastResolvedItem;
     public int LastDamageDealt = 0;   // set by DealDamageEffect after each hit
     public int LastGriefSpent = 0;    // set by GriefDischargeDamageEffect
 
@@ -52,9 +55,12 @@ public sealed class GameState
     public GameState()
     {
         Resolver = new Resolver(Bus, Stack);
-        Mana[PlayerA] = 5; Mana[PlayerB] = 5;
+        Mana[PlayerA] = 5;
+        Mana[PlayerB] = 5;
         Priority.ResetForNewStep(PlayerA);
         Memorials = new MemorialManager(Grid);
+        Glyphs = new GlyphManager(Grid);
+        Glyphs.SetState(this);
     }
 
     public void OpenPriorityWindow() { Bus.Emit("PriorityOpened"); }

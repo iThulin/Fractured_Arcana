@@ -64,7 +64,8 @@ public sealed class PriorityManager
     {
         _passes++;
         PriorityHolder = (PriorityHolder == s.PlayerA) ? s.PlayerB : s.PlayerA;
-        if (_passes >= 2 && s.Stack.IsEmpty) { s.AdvanceStep(); _passes = 0; return true; }
+        if (_passes >= 2 && s.Stack.IsEmpty)
+        { s.AdvanceStep(); _passes = 0; return true; }
         return false;
     }
 }
@@ -75,8 +76,10 @@ public sealed class Resolver
     public Resolver(EventBus bus, GameStack stack) { _bus = bus; _stack = stack; }
     public void ResolveTop(GameState s)
     {
-        if (_stack.IsEmpty) return;
+        if (_stack.IsEmpty)
+            return;
         var item = _stack.Pop();
+        s.LastResolvedItem = item;
 
         foreach (var eff in item.Ability.Effects)
             eff.Resolve(s, item.Caster, item.Targets, item.Snapshot);
@@ -93,18 +96,23 @@ public static class Rules
 
     public static bool CanCast(Ability a, GameState s, Entity caster)
     {
-        if (a.Speed == PlaySpeed.Sorcery && s.Step != "Main") return false;
-        if (!a.CanPlay(s, caster)) return false;
+        if (a.Speed == PlaySpeed.Sorcery && s.Step != "Main")
+            return false;
+        if (!a.CanPlay(s, caster))
+            return false;
         return true;
     }
     public static bool TryCast(Ability a, GameState s, Entity caster)
     {
-        if (!CanCast(a, s, caster)) { s.Log("Cast failed (timing/conditions/cost)."); return false; }
+        if (!CanCast(a, s, caster))
+        { s.Log("Cast failed (timing/conditions/cost)."); return false; }
 
         TargetSet targets = null;
-        if (a.Targeting != null && !a.Targeting.Select(s, caster, out targets)) return false;
+        if (a.Targeting != null && !a.Targeting.Select(s, caster, out targets))
+            return false;
 
-        foreach (var c in a.Costs) c.Pay(s, caster);
+        foreach (var c in a.Costs)
+            c.Pay(s, caster);
 
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
         var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap };
@@ -139,7 +147,8 @@ public static class Rules
             }
 
             // For area spells, ensure targets is at least non-null
-            if (targets == null) targets = new TargetSet();
+            if (targets == null)
+                targets = new TargetSet();
         }
         else
         {
@@ -160,7 +169,8 @@ public static class Rules
         // Pass manaDiscount into cost payment — requires ManaCost to accept a discount.
         // Simplest approach: temporarily reduce the mana cost amount before Pay().
 
-        foreach (var c in a.Costs) c.Pay(s, caster);
+        foreach (var c in a.Costs)
+            c.Pay(s, caster);
 
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
         var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap, SourceCard = sourceCard };

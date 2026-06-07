@@ -102,7 +102,8 @@ public partial class Unit : Node3D
 
     public bool TrySpendAP(int cost)
     {
-        if (CurrentActionPoints < cost) return false;
+        if (CurrentActionPoints < cost)
+            return false;
         CurrentActionPoints -= cost;
         return true;
     }
@@ -169,7 +170,7 @@ public partial class Unit : Node3D
         _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
 
-        //InitializeAttunement();
+        InitializeAttunement();
 
         CreateSelectionRing();
         SetSelected(false);
@@ -183,7 +184,8 @@ public partial class Unit : Node3D
 
     public void StartTurn()
     {
-        if (!IsInstanceValid(this)) return;
+        if (!IsInstanceValid(this))
+            return;
 
         CurrentActionPoints = MaxActionPoints;
         Stats.HasActed = false;
@@ -224,8 +226,10 @@ public partial class Unit : Node3D
 
     public void PlaceOnTile(TileData tile)
     {
-        if (tile == null) return;
-        if (tile.IsOccupied && tile.Occupant != this) return;
+        if (tile == null)
+            return;
+        if (tile.IsOccupied && tile.Occupant != this)
+            return;
 
         var previousTile = CurrentTile;
         CurrentTile?.ClearOccupant(this);
@@ -240,25 +244,75 @@ public partial class Unit : Node3D
             OnTileLeft?.Invoke(previousTile);
 
         // Check for glyph
-        if (tile?.Glyph != null && !tile.Glyph.Consumed && tile.Glyph.OwnerTeam != this.TeamId)
+        if (tile?.Glyph != null && !tile.Glyph.Consumed)
         {
             var glyph = tile.Glyph;
-            glyph.Consumed = true;
-            tile.Glyph = null;
-            tile.TileView?.ClearGlyph();
-            glyph.OnTrigger?.Invoke(this, glyph.GameState);
+            var state = glyph.GameState;
+            bool enemyOfOwner = glyph.OwnerTeam != this.TeamId;
+
+            bool shouldFire =
+                (enemyOfOwner && glyph.Trigger == GlyphTrigger.Enter) ||
+                (!enemyOfOwner && glyph.Trigger == GlyphTrigger.AllyEnter);
+
+            if (shouldFire)
+            {
+                glyph.Fire(this, state);
+                bool keep = state?.Glyphs?.OnGlyphFired(state, tile, this)
+                            ?? glyph.Reusable;
+                if (!keep)
+                {
+                    glyph.Consumed = true;
+                    tile.Glyph = null;
+                    tile.TileView?.ClearGlyph();
+                }
+            }
+        }
+
+        // Colossus tile absorption
+        if (HasStatus("colossus_absorb") && CurrentTile?.ElementType != TileElementType.None)
+        {
+            var element = CurrentTile.ElementType;
+            switch (element)
+            {
+                case TileElementType.Fire:
+                    AttackDamage += 2;
+                    GD.Print($"[Colossus] {Name} absorbs fire — +2 DMG (now {AttackDamage}).");
+                    break;
+                case TileElementType.Earth:
+                    Stats.Armor += 2;
+                    RefreshHealthBar();
+                    GD.Print($"[Colossus] {Name} absorbs earth — +2 Armor (now {Stats.Armor}).");
+                    break;
+                case TileElementType.Lightning:
+                    Stats.BaseSpeed = Math.Min(Stats.BaseSpeed + 1, 4);
+                    GD.Print($"[Colossus] {Name} absorbs storm — +1 Speed (now {Stats.BaseSpeed}).");
+                    break;
+                case TileElementType.Frost:
+                    Stats.Shield += 4;
+                    RefreshHealthBar();
+                    GD.Print($"[Colossus] {Name} absorbs frost — +4 Shield.");
+                    break;
+            }
+            CurrentTile.ElementType = TileElementType.None;
+            CurrentTile.ElementStrength = 0f;
+            CurrentTile.TileView?.SetElement(TileElementType.None);
         }
     }
 
     public bool TryMoveTo(HexGridManager grid, TileData dest)
     {
-        if (grid == null || dest == null || CurrentTile == null) return false;
-        if (!dest.CanEnter(this)) return false;
-        if (dest.Axial == CurrentTile.Axial) return false;
-        if (!CanSpendAP(1)) return false;
+        if (grid == null || dest == null || CurrentTile == null)
+            return false;
+        if (!dest.CanEnter(this))
+            return false;
+        if (dest.Axial == CurrentTile.Axial)
+            return false;
+        if (!CanSpendAP(1))
+            return false;
 
         int pathCost = grid.GetMoveCostTo(this, dest);
-        if (pathCost < 0 || pathCost > MoveRange) return false;
+        if (pathCost < 0 || pathCost > MoveRange)
+            return false;
 
 
         TrySpendAP(1);
@@ -268,7 +322,8 @@ public partial class Unit : Node3D
 
     public void ApplyDamage(int amount)
     {
-        if (amount <= 0 || IsDeathQueued) return;
+        if (amount <= 0 || IsDeathQueued)
+            return;
         int remaining = amount;
 
         if (Stats.Shield > 0)
@@ -300,7 +355,8 @@ public partial class Unit : Node3D
 
     public void Die()
     {
-        if (IsDeathQueued) return;   // idempotent — calling twice does nothing
+        if (IsDeathQueued)
+            return;   // idempotent — calling twice does nothing
         IsDeathQueued = true;
 
         // Free the tile immediately so other units can move/spawn there
@@ -321,7 +377,8 @@ public partial class Unit : Node3D
     /// </summary>
     public void KillFromEffect()
     {
-        if (IsDeathQueued || !Stats.IsAlive) return;
+        if (IsDeathQueued || !Stats.IsAlive)
+            return;
         Stats.Health = 0;
         OnDied?.Invoke(this);
         Die();
@@ -329,15 +386,18 @@ public partial class Unit : Node3D
 
     public void GainMana(int amount)
     {
-        if (amount <= 0) return;
+        if (amount <= 0)
+            return;
         Stats.Mana += amount; // no cap — overflow allowed this turn
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
     }
 
     public bool TrySpendMana(int amount)
     {
-        if (amount <= 0) return true;
-        if (Stats.Mana < amount) return false;
+        if (amount <= 0)
+            return true;
+        if (Stats.Mana < amount)
+            return false;
         Stats.Mana -= amount;
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
         return true;
@@ -417,7 +477,8 @@ public partial class Unit : Node3D
         var expired = new List<string>();
         foreach (var kvp in Stats.StatusEffects)
         {
-            if (kvp.Key == "poisoned") continue;
+            if (kvp.Key == "poisoned")
+                continue;
 
             Stats.StatusEffects[kvp.Key] = kvp.Value - 1;
             if (Stats.StatusEffects[kvp.Key] <= 0)
@@ -456,9 +517,12 @@ public partial class Unit : Node3D
     public bool CanAct()
     {
         // Frozen = can't do anything (move or cast)
-        if (HasStatus("frozen")) return false;
-        if (HasStatus("bound")) return false; // can't act or be freed until next player turn
-        if (HasStatus("stunned")) return false; // can't act but can still move
+        if (HasStatus("frozen"))
+            return false;
+        if (HasStatus("bound"))
+            return false; // can't act or be freed until next player turn
+        if (HasStatus("stunned"))
+            return false; // can't act but can still move
         return true;
     }
 
@@ -497,8 +561,10 @@ public partial class Unit : Node3D
     {
         _isSelected = selected;
 
-        if (_selectionRing == null) CreateSelectionRing();
-        if (_selectionRing != null) _selectionRing.Visible = selected;
+        if (_selectionRing == null)
+            CreateSelectionRing();
+        if (_selectionRing != null)
+            _selectionRing.Visible = selected;
 
         // Hide hover ring while selected to avoid visual overlap
         if (_hoverRing != null && selected)
@@ -556,7 +622,8 @@ public partial class Unit : Node3D
     public void SetBodyColor(Color color)
     {
         var mesh = GetNodeOrNull<MeshInstance3D>("MeshInstance3D");
-        if (mesh == null) return;
+        if (mesh == null)
+            return;
         var mat = new StandardMaterial3D { AlbedoColor = color };
         mesh.SetSurfaceOverrideMaterial(0, mat);
     }
@@ -564,7 +631,8 @@ public partial class Unit : Node3D
     public void ApplySpiritAppearance()
     {
         var meshNode = GetNodeOrNull<MeshInstance3D>("MeshInstance3D");
-        if (meshNode == null) return;
+        if (meshNode == null)
+            return;
 
         // ── Inherit mesh from guild death records ────────────────────────
         var record = HonoredDeadService.Claim();
@@ -594,7 +662,7 @@ public partial class Unit : Node3D
         // ── Tint: warm gold for allies, cool blue for enemies ────────────
         Color baseAlbedo = record?.WasAlly == true
             ? new Color(1.0f, 0.92f, 0.72f, 0.45f)   // ally — warm gold-white
-            : new Color(0.72f, 0.88f, 1.0f,  0.45f);  // enemy — cool blue-white
+            : new Color(0.72f, 0.88f, 1.0f, 0.45f);  // enemy — cool blue-white
 
         Color emission = record?.WasAlly == true
             ? new Color(1.0f, 0.85f, 0.55f)
@@ -603,15 +671,15 @@ public partial class Unit : Node3D
         // ── Ethereal material ────────────────────────────────────────────
         var etherealMat = new StandardMaterial3D
         {
-            AlbedoColor              = baseAlbedo,
-            Transparency             = BaseMaterial3D.TransparencyEnum.Alpha,
-            EmissionEnabled          = true,
-            Emission                 = emission,
+            AlbedoColor = baseAlbedo,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            EmissionEnabled = true,
+            Emission = emission,
             EmissionEnergyMultiplier = 0.8f,
-            ShadingMode              = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            RimEnabled               = true,
-            Rim                      = 0.6f,
-            RimTint                  = 0.3f,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            RimEnabled = true,
+            Rim = 0.6f,
+            RimTint = 0.3f,
         };
 
         meshNode.SetSurfaceOverrideMaterial(0, etherealMat);
@@ -633,9 +701,9 @@ public partial class Unit : Node3D
         Attunement = School switch
         {
             CardSchool.Elementalist => new ElementalAttunement(),
-            // Future schools:
             CardSchool.Necromancer => new GriefAttunement(),
-            // CardSchool.Arcanist   => new ArcaneFocus(),
+            CardSchool.Arcanist => new ArcaneAttunement(),
+            CardSchool.Enchanter => new WeaveAttunement(),
             _ => null
         };
     }
@@ -646,7 +714,8 @@ public partial class Unit : Node3D
     {
         get
         {
-            if (Attunement is not ElementalAttunement att) return ElementTag.Fire;
+            if (Attunement is not ElementalAttunement att)
+                return ElementTag.Fire;
             ElementTag best = ElementTag.Fire;
             int bestCount = -1;
             foreach (var kvp in att.Charges)

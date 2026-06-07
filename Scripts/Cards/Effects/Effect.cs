@@ -22,6 +22,88 @@ using System.Linq;
 //                 README §7 — "Effect Types Must Be Registered"
 // ============================================================
 
+
+internal static class InterfaceHelpers
+{
+	/// <summary>
+	/// Status names treated as debuffs. Anything on a unit NOT in this set is counted as a "buff".
+	/// </summary>
+	internal static readonly HashSet<string> Debuffs = new()
+	{
+		"frozen", "rooted", "slowed", "stunned", "burn", "poisoned", "weakened",
+		"blinded", "silenced", "cursed", "bound", "named", "mana_taxed", "geas", "hexed"
+	};
+
+	internal static TileData ResolveTile(GameState s, object obj)
+	{
+		if (obj is TileData td)
+			return td;
+		if (obj is HexTile hv && s?.Grid != null)
+			return s.Grid.GetTile(hv.Axial);
+		if (obj is Unit u)
+			return u.CurrentTile;
+		return null;
+	}
+
+	internal static IEnumerable<TileData> FriendlyGlyphTiles(GameState s, int team)
+	{
+		if (s?.Grid?.Tiles == null)
+			yield break;
+		foreach (var t in s.Grid.Tiles.Values)
+			if (t?.Glyph != null && t.Glyph.OwnerTeam == team)
+				yield return t;
+	}
+
+	internal static TileData NearestFriendlyGlyph(GameState s, int team, Vector2I from)
+	{
+		TileData best = null;
+		int bestD = int.MaxValue;
+		foreach (var t in FriendlyGlyphTiles(s, team))
+		{
+			int d = s.Grid.Distance(from, t.Axial);
+			if (d < bestD)
+			{ bestD = d; best = t; }
+		}
+		return best;
+	}
+
+	/// <summary>
+	/// Places a standard enemy-enter glyph (damage + optional status) on a tile, mirroring PlaceGlyphEffect, and feeds the Weave attunement.
+	/// </summary>
+	internal static bool PlaceEnterGlyph(GameState s, Unit caster, TileData tile, int damage, string status, int statusDuration, bool reusable)
+	{
+		if (tile == null || tile.IsBlocked || tile.Glyph != null)
+			return false;
+
+		int dmg = damage + (caster?.BonusSpellDamage ?? 0);
+		string st = status;
+		int dur = statusDuration;
+		bool reuse = reusable;
+
+		tile.Glyph = new GlyphData
+		{
+			OwnerId = caster?.Name ?? "Enchanter",
+			OwnerTeam = caster?.TeamId ?? 0,
+			GameState = s,
+			OnTrigger = (victim, state) =>
+			{
+				if (dmg > 0)
+					victim.ApplyDamage(dmg);
+				if (!string.IsNullOrEmpty(st))
+					victim.ApplyStatus(st, dur);
+				state.Log($"[Glyph] {victim.Name} triggers glyph: {dmg} dmg" + (st != null ? $", {st} {dur}t" : ""));
+				// Reusable glyphs are re-armed by re-placing; Unit.PlaceOnTile clears on trigger.
+				// Full reusable/duration handling needs the GlyphManager tick (see writeup).
+			}
+		};
+		tile.TileView?.ShowGlyph();
+
+		if (caster?.Attunement is WeaveAttunement w)
+			w.OnGlyphPrepared();
+		return true;
+	}
+}
+
 /// <summary>
 /// Abstract base for every leaf and composite effect in the project. Leaf effects
 /// override <see cref="Resolve"/>; effects that need to report data back to a
@@ -2724,6 +2806,482 @@ public sealed class StealManaEffect : EffectBase
 	}
 }
 
+/// <summary>
+/// Look at the top N cards, draw M of them, send the rest to the bottom. 
+/// JSON: { "type":"scry","look":n,"draw":m }
+/// </summary>
+public sealed class ScryEffect : EffectBase
+{
+	public int Look, DrawN;
+	public ScryEffect(int look, int draw) { Look = look; DrawN = draw; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var d = FindCasterUnit(s, caster)?.DeckData;
+		if (d == null)
+			return;
+		int look = Math.Min(Look, d.DrawPile.Count);
+		var drawn = d.Draw(Math.Min(DrawN, look));
+		int bottomed = 0;
+		for (int i = 0; i < look - drawn.Count; i++)
+		{
+			if (d.DrawPile.Count == 0)
+				break;
+			var c = d.DrawPile[0];
+			d.DrawPile.RemoveAt(0);
+			d.DrawPile.Add(c);
+			bottomed++;
+		}
+		s.Log($"[Scry] looked {look}, drew {drawn.Count}, bottomed {bottomed}.");
+	}
+}
+
+/// <summary>
+/// Return N cards from discard to hand (most recent first), then optionally draw. 
+/// JSON: { "type":"return_from_discard","count":n,"draw":m }
+/// </summary>
+public sealed class ReturnFromDiscardEffect : EffectBase
+{
+	public int Count, DrawN;
+	public ReturnFromDiscardEffect(int count, int draw) { Count = count; DrawN = draw; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var d = FindCasterUnit(s, caster)?.DeckData;
+		if (d == null)
+			return;
+		int n = Math.Min(Count, d.DiscardPile.Count), returned = 0;
+		for (int i = 0; i < n; i++)
+		{
+			var c = d.DiscardPile[d.DiscardPile.Count - 1];
+			d.DiscardPile.RemoveAt(d.DiscardPile.Count - 1);
+			d.Hand.Add(c);
+			returned++;
+		}
+		if (DrawN > 0)
+			d.Draw(DrawN);
+		s.Log($"[ReturnFromDiscard] returned {returned}, drew {DrawN}.");
+	}
+}
+
+/// <summary>
+/// Deal damage to each target, then gain Charge equal to the buffs on the (first) target, floored at min. 
+/// JSON: { "type":"gain_charge_per_buff","min":n }
+/// </summary>
+public sealed class GainChargePerBuffEffect : EffectBase
+{
+	public int Minimum;
+	public GainChargePerBuffEffect(int minimum) { Minimum = minimum; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var caster2 = FindCasterUnit(s, caster);
+		int buffs = 0;
+		if (targets?.Items != null)
+			foreach (var o in targets.Items)
+			{
+				var u = ResolveTargetUnit(s, o);
+				if (u?.Stats?.StatusEffects == null)
+					continue;
+				buffs = Math.Max(buffs, u.Stats.StatusEffects.Keys.Count(k => !InterfaceHelpers.Debuffs.Contains(k)));
+			}
+		int gain = Math.Max(Minimum, buffs);
+		if (caster2?.Attunement is ArcaneAttunement a)
+		{ a.Add(gain); s.Log($"[GainChargePerBuff] +{gain} charge."); }
+	}
+}
+
+/// <summary>
+/// Gain Charge scaled by keyword count. Card-context keyword introspection is pending; grants `multiplier` (min 1) as a stable stand-in. 
+/// JSON: { "type":"gain_charge_per_keyword","multiplier":n }
+/// </summary>
+public sealed class GainChargePerKeywordEffect : EffectBase
+{
+	public int Multiplier;
+	public GainChargePerKeywordEffect(int multiplier) { Multiplier = Math.Max(1, multiplier); }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var u = FindCasterUnit(s, caster);
+		if (u?.Attunement is ArcaneAttunement a)
+		{
+			a.Add(Multiplier);
+			s.Log($"[GainChargePerKeyword] +{Multiplier} charge (flat stand-in until card keyword context is threaded).");
+		}
+	}
+}
+
+/// <summary>
+/// Grant armor/shield per spell cast this turn (read from ArcaneAttunement), capped at max. Auto-move portion pending a movement helper.
+/// JSON: { "type":"move_per_spell_cast","max":n,"armor_per":n,"shield_per":n }
+/// </summary>
+public sealed class MovePerSpellCastEffect : EffectBase
+{
+	public int Max, ArmorPer, ShieldPer;
+	public MovePerSpellCastEffect(int max, int armorPer, int shieldPer) { Max = max; ArmorPer = armorPer; ShieldPer = shieldPer; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var u = FindCasterUnit(s, caster);
+		if (u == null)
+			return;
+		int spells = (u.Attunement is ArcaneAttunement a) ? a.SpellsCastThisTurn : 0;
+		int n = Math.Min(Max, spells);
+		if (ArmorPer > 0)
+			u.Stats.Armor += ArmorPer * n;
+		if (ShieldPer > 0)
+			u.Stats.Shield += ShieldPer * n;
+		u.RefreshHealthBar();
+		s.Log($"[MovePerSpellCast] {spells} spells → +{ArmorPer * n} armor, +{ShieldPer * n} shield. (movement step pending move helper)");
+	}
+}
+
+/// <summary>
+/// Spend charge, deal flat damage; if lethal, mark the target exiled.
+/// JSON: { "type":"disintegrate","damage":n,"charge_cost":n,"exile_on_lethal":bool }
+/// </summary>
+public sealed class DisintegrateEffect : EffectBase
+{
+	public int Damage, ChargeCost; public bool ExileOnLethal;
+	public DisintegrateEffect(int damage, int chargeCost, bool exile) { Damage = damage; ChargeCost = chargeCost; ExileOnLethal = exile; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var c = FindCasterUnit(s, caster);
+		if (c?.Attunement is ArcaneAttunement a)
+		{
+			if (a.Charge < ChargeCost)
+			{ s.Log($"[Disintegrate] not enough charge ({a.Charge}/{ChargeCost})."); return; }
+			a.SetChargesDirectly(a.Charge - ChargeCost);
+		}
+		if (targets?.Items == null)
+			return;
+		foreach (var o in targets.Items)
+		{
+			var u = ResolveTargetUnit(s, o);
+			if (u == null)
+				continue;
+			if (ExileOnLethal && u.Stats.Health + u.Stats.Shield + u.Stats.Armor <= Damage)
+				u.ApplyStatus("exiled", 99); // necromancer resurrect should check "exiled"
+			u.ApplyDamage(Damage);
+			s.Log($"[Disintegrate] {Damage} to {u.Name}" + (ExileOnLethal ? " (exile on lethal)" : ""));
+		}
+	}
+}
+
+/// <summary>
+/// Summons an Arcane Construct adjacent to the caster or on the targeted tile.
+/// Constructs are autonomous units (HP/ATK/Speed from JSON) that persist until
+/// killed or their duration expires. Duration is stored as a "construct" status
+/// whose countdown needs a per-turn status hook (standard status processing).
+/// JSON: { "type": "create_arcane_construct", "unit": "ArcaneConstruct",
+///         "hp": n, "damage": n, "speed": n, "duration": n }
+/// </summary>
+public sealed class CreateArcaneConstructEffect : EffectBase
+{
+	public string UnitKind;
+	public int HP, Damage, Speed, Duration;
+
+	public CreateArcaneConstructEffect(string kind, int hp, int damage, int speed, int duration)
+	{
+		UnitKind = kind;
+		HP = hp;
+		Damage = damage;
+		Speed = speed;
+		Duration = duration;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s.OnSummonRequested == null)
+		{ s.Log("[CreateConstruct] No summon handler — cannot spawn."); return; }
+
+		var casterUnit = FindCasterUnit(s, caster);
+		int team = casterUnit?.TeamId ?? 0;
+		int bonusDmg = casterUnit?.BonusSpellDamage ?? 0;
+
+		var spawnTile = FindSpawnTile(s, casterUnit, targets);
+		if (spawnTile == null)
+		{ s.Log("[CreateConstruct] No valid spawn tile."); return; }
+
+		var construct = s.OnSummonRequested(UnitKind, spawnTile, team);
+		if (construct == null)
+		{ s.Log("[CreateConstruct] Summon handler returned null."); return; }
+
+		construct.Stats.MaxHealth = HP;
+		construct.Stats.Health = HP;
+		construct.Stats.BaseSpeed = Speed;
+		construct.AttackDamage = Damage + bonusDmg;
+
+		// Duration tracked as a status; status-system per-turn processing decrements it.
+		// When "construct" reaches 0, the unit AI / status handler should kill the unit.
+		if (Duration > 0)
+			construct.ApplyStatus("construct", Duration);
+
+		s.UnitsInPlay?.Add(construct);
+		s.Log($"[CreateConstruct] {UnitKind} at {spawnTile.Axial} — {HP}HP / {construct.AttackDamage}ATK.");
+	}
+
+	private static TileData FindSpawnTile(GameState s, Unit caster, TargetSet targets)
+	{
+		// Prefer explicit target tile
+		if (targets?.Items != null)
+			foreach (var o in targets.Items)
+			{
+				var t = InterfaceHelpers.ResolveTile(s, o);
+				if (t != null && !t.IsBlocked && !t.IsOccupied)
+					return t;
+			}
+		// Fall back to first empty neighbour of the caster
+		if (caster?.CurrentTile != null && s.Grid != null)
+			foreach (var coord in s.Grid.GetNeighbors(caster.CurrentTile.Axial))
+			{
+				var t = s.Grid.GetTile(coord);
+				if (t != null && !t.IsBlocked && !t.IsOccupied)
+					return t;
+			}
+		return null;
+	}
+}
+
+/// <summary>
+/// Summons a Living Spell — a unit that embodies a spell and auto-casts it each
+/// turn against the nearest enemy. The auto-cast AI lives on the unit side (not
+/// in this effect); the effect handles the summoning and initial stats.
+/// JSON: { "type": "summon_living_spell", "unit": "LivingSpell",
+///         "hp": n, "damage": n, "duration": n }
+/// </summary>
+public sealed class SummonLivingSpellEffect : EffectBase
+{
+	public string UnitKind;
+	public int HP, Damage, Duration;
+
+	public SummonLivingSpellEffect(string kind, int hp, int damage, int duration)
+	{
+		UnitKind = kind;
+		HP = hp;
+		Damage = damage;
+		Duration = duration;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s.OnSummonRequested == null)
+		{ s.Log("[SummonLivingSpell] No summon handler."); return; }
+
+		var casterUnit = FindCasterUnit(s, caster);
+		int team = casterUnit?.TeamId ?? 0;
+		int bonusDmg = casterUnit?.BonusSpellDamage ?? 0;
+
+		TileData spawnTile = null;
+		if (casterUnit?.CurrentTile != null && s.Grid != null)
+			foreach (var coord in s.Grid.GetNeighbors(casterUnit.CurrentTile.Axial))
+			{
+				var t = s.Grid.GetTile(coord);
+				if (t != null && !t.IsBlocked && !t.IsOccupied)
+				{ spawnTile = t; break; }
+			}
+
+		if (spawnTile == null)
+		{ s.Log("[SummonLivingSpell] No spawn tile."); return; }
+
+		var spell = s.OnSummonRequested(UnitKind, spawnTile, team);
+		if (spell == null)
+			return;
+
+		spell.Stats.MaxHealth = HP;
+		spell.Stats.Health = HP;
+		spell.AttackDamage = Damage + bonusDmg;
+
+		if (Duration > 0)
+			spell.ApplyStatus("living_spell", Duration);
+
+		s.UnitsInPlay?.Add(spell);
+		s.Log($"[SummonLivingSpell] {UnitKind} manifested at {spawnTile.Axial} ({HP}HP / {spell.AttackDamage}ATK). Auto-cast AI needs unit-side integration.");
+	}
+}
+
+/// <summary>
+/// Queues a spell modifier effect that will apply to the next N spells cast by the caster.
+/// The modifier grants flat bonus damage, extra draw, and/or a status effect on hit.
+/// </summary>
+public sealed class QueueNextSpellModifierLeafEffect : EffectBase
+{
+	public int BonusDamage, ExtraDraw, AppliesTo, StatusDuration;
+	public string GrantStatus;
+
+	public QueueNextSpellModifierLeafEffect(int bd, int ed, int at, string gs, int sd)
+	{
+		BonusDamage = bd;
+		ExtraDraw = ed;
+		AppliesTo = Math.Max(1, at);
+		GrantStatus = gs;
+		StatusDuration = sd;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var unit = FindCasterUnit(s, caster);
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new QueuedSpellModifier(
+			BonusDamage, ExtraDraw, AppliesTo, GrantStatus, StatusDuration, caster, unit));
+		s.Log($"[QueueNextSpell] Queued +{BonusDamage} dmg / draw {ExtraDraw} on next {AppliesTo} spell(s).");
+	}
+}
+
+public sealed class ChargeCostModifierLeafEffect : EffectBase
+{
+	public int ChargePerMana, Turns;
+	public ChargeCostModifierLeafEffect(int cpm, int turns) { ChargePerMana = cpm; Turns = turns; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var unit = FindCasterUnit(s, caster);
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new ChargeCostModifierAura(ChargePerMana, Turns, caster, unit));
+		s.Log($"[ChargeCostModifier] Spells cost charge instead of mana for {Turns} turn(s).");
+	}
+}
+
+public sealed class OmniscienceLeafEffect : EffectBase
+{
+	public int Turns, ExileOnExpire;
+	public OmniscienceLeafEffect(int turns, int exile) { Turns = turns; ExileOnExpire = exile; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s.HasActiveEffect<OmniscienceEffect>(caster))
+			return;
+		var unit = FindCasterUnit(s, caster);
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new OmniscienceEffect(Turns, ExileOnExpire, caster, unit));
+		s.Log($"[Omniscience] All spells free for {Turns} turn(s). {ExileOnExpire} exiled on expire.");
+	}
+}
+
+public sealed class ArcaneApotheosisLeafEffect : EffectBase
+{
+	public int ChargePerSpell;
+	public ArcaneApotheosisLeafEffect(int cps) { ChargePerSpell = Math.Max(1, cps); }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s.HasActiveEffect<ArcaneApotheosisAura>(caster))
+			return; // idempotent
+		var unit = FindCasterUnit(s, caster);
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new ArcaneApotheosisAura(ChargePerSpell, caster, unit));
+		s.Log("[ArcaneApotheosis] Permanent: every spell you cast generates charge.");
+	}
+}
+
+public sealed class BindCardLeafEffect : EffectBase
+{
+	public int Turns;
+	public BindCardLeafEffect(int turns) { Turns = Math.Max(1, turns); }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var unit = FindCasterUnit(s, caster);
+		if (unit?.DeckData == null)
+			return;
+
+		// Bind the first card in hand (card-selection UI is a future feature)
+		var hand = unit.DeckData.Hand;
+		if (hand.Count == 0)
+		{ s.Log("[BindCard] Hand is empty — nothing to bind."); return; }
+
+		var card = hand[0];
+		hand.RemoveAt(0);
+
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new BoundCardAura(card, Turns, caster, unit));
+		s.Log($"[BindCard] '{card.CardName}' bound for {Turns} turns; auto-casts each turn start.");
+	}
+}
+
+public sealed class ReplicateLastSpellLeafEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var unit = FindCasterUnit(s, caster);
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new ReplicateSpellAura(caster, unit));
+		s.Log("[ReplicateLastSpell] Your next spell will echo once.");
+	}
+}
+
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CAST DECK TOP
+//  Immediately resolve the top card of the deck against the current targets.
+// ─────────────────────────────────────────────────────────────────────────────
+
+public sealed class CastDeckTopEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var unit = FindCasterUnit(s, caster);
+		if (unit?.DeckData == null)
+			return;
+
+		var pile = unit.DeckData.DrawPile;
+		if (pile.Count == 0 && unit.DeckData.DiscardPile.Count > 0)
+			unit.DeckData.Reshuffle();
+		if (pile.Count == 0)
+		{ s.Log("[CastDeckTop] Deck is empty."); return; }
+
+		var card = pile[0];
+		pile.RemoveAt(0);
+		if (card.TopHalf?.Effects == null || card.TopHalf.Effects.Length == 0)
+		{
+			unit.DeckData.DiscardPile.Add(card);
+			s.Log($"[CastDeckTop] Top card '{card.CardName}' has no effects.");
+			return;
+		}
+
+		s.Log($"[CastDeckTop] Auto-casting '{card.CardName}' from deck top.");
+		foreach (var eff in card.TopHalf.Effects)
+			eff.Resolve(s, caster, targets, snap);
+
+		unit.DeckData.DiscardPile.Add(card);
+	}
+}
+
+public sealed class ConvergenceLeafEffect : EffectBase
+{
+	public int Damage, Range, Turns;
+	public ConvergenceLeafEffect(int dmg, int range, int turns) { Damage = dmg; Range = range; Turns = turns; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var unit = FindCasterUnit(s, caster);
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new ConvergenceAura(Damage, Range, Turns, caster, unit));
+		s.Log($"[Convergence] Each spell pulses {Damage} dmg to nearest enemy for {Turns} turn(s).");
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PERFECT CARD
+//  Permanently enhance a card's power. Full per-card selection needs a
+//  card-choice UI step that is a separate feature; this grants a permanent
+//  spell-damage boost to the caster for this combat as a stand-in.
+// ─────────────────────────────────────────────────────────────────────────────
+
+public sealed class PerfectCardEffect : EffectBase
+{
+	public int BonusDamage, Draw;
+	public PerfectCardEffect(int bd, int draw) { BonusDamage = bd; Draw = draw; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var unit = FindCasterUnit(s, caster);
+		if (unit == null)
+			return;
+		if (BonusDamage > 0)
+			unit.BonusSpellDamage += BonusDamage;
+		if (Draw > 0)
+			unit.DeckData?.Draw(Draw);
+		s.Log($"[PerfectCard] +{BonusDamage} permanent spell damage this combat, drew {Draw}. (per-card selection pending UI)");
+	}
+}
+
 // ============================================================================
 // Enchanter Effects
 // ============================================================================
@@ -2809,6 +3367,516 @@ public sealed class DamagePerGlyphEffect : EffectBase
 		return count;
 	}
 }
+
+/// <summary>
+/// Place enemy-enter glyphs on every tile within radius of the (first) target tile. 
+/// JSON: { "type":"prepare_glyph_area","damage":n,"radius":n,"empty_only":bool }
+/// </summary>
+public sealed class PrepareGlyphAreaEffect : EffectBase
+{
+	public int Damage, Radius, StatusDuration; public string Status; public bool EmptyOnly, Reusable;
+	public PrepareGlyphAreaEffect(int damage, int radius, string status, int statusDuration, bool emptyOnly, bool reusable)
+	{ Damage = damage; Radius = radius; Status = status; StatusDuration = statusDuration; EmptyOnly = emptyOnly; Reusable = reusable; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var c = FindCasterUnit(s, caster);
+		TileData center = null;
+		if (targets?.Items != null && targets.Items.Count > 0)
+			center = InterfaceHelpers.ResolveTile(s, targets.Items[0]);
+		center ??= c?.CurrentTile;
+		if (center == null || s?.Grid?.Tiles == null)
+			return;
+		int placed = 0;
+		foreach (var t in s.Grid.Tiles.Values)
+		{
+			if (s.Grid.Distance(center.Axial, t.Axial) > Radius)
+				continue;
+			if (EmptyOnly && t.Occupant != null)
+				continue;
+			if (InterfaceHelpers.PlaceEnterGlyph(s, c, t, Damage, Status, StatusDuration, Reusable))
+				placed++;
+		}
+		s.Log($"[PrepareGlyphArea] placed {placed} glyph(s) in radius {Radius}.");
+	}
+}
+
+/// <summary>
+/// Relocate the target enemy onto the nearest friendly glyph (Unit.PlaceOnTile fires the glyph). 
+/// Simplified from directional push; refine once hex-step helpers are confirmed.
+/// JSON: { "type":"push_to_glyph","tiles":n } / "pull_to_glyph"
+/// </summary>
+public sealed class MoveToGlyphEffect : EffectBase
+{
+	private readonly string _label;
+	public MoveToGlyphEffect(string label) { _label = label; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var c = FindCasterUnit(s, caster);
+		int team = c?.TeamId ?? 0;
+		if (targets?.Items == null)
+			return;
+		foreach (var o in targets.Items)
+		{
+			var u = ResolveTargetUnit(s, o);
+			if (u == null)
+				continue;
+			var glyph = InterfaceHelpers.NearestFriendlyGlyph(s, team, u.CurrentTile?.Axial ?? default);
+			if (glyph != null && glyph.Occupant == null)
+			{ u.PlaceOnTile(glyph); s.Log($"[{_label}] moved {u.Name} onto a glyph."); }
+			else
+				s.Log($"[{_label}] no reachable friendly glyph for {u.Name}.");
+		}
+	}
+}
+
+/// <summary>
+/// Remove up to Count buff statuses from each target; if Steal, the caster gains them. 
+/// JSON: { "type":"dispel","count":n,"steal":bool }
+/// </summary>
+public sealed class DispelEffect : EffectBase
+{
+	public int Count; public bool Steal;
+	public DispelEffect(int count, bool steal) { Count = count; Steal = steal; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var c = FindCasterUnit(s, caster);
+		if (targets?.Items == null)
+			return;
+		foreach (var o in targets.Items)
+		{
+			var u = ResolveTargetUnit(s, o);
+			if (u?.Stats?.StatusEffects == null)
+				continue;
+			var buffs = u.Stats.StatusEffects.Where(kv => !InterfaceHelpers.Debuffs.Contains(kv.Key))
+											 .Select(kv => (kv.Key, kv.Value)).Take(Count).ToList();
+			foreach (var (name, dur) in buffs)
+			{
+				u.RemoveStatus(name);
+				if (Steal && c != null)
+					c.ApplyStatus(name, dur);
+			}
+			s.Log($"[Dispel] removed {buffs.Count} buff(s) from {u.Name}" + (Steal ? " (stolen)." : "."));
+		}
+	}
+}
+
+/// <summary>
+/// Swap the positions of two targeted units. 
+/// JSON: { "type":"swap_units" }
+/// </summary>
+public sealed class SwapUnitsEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var units = new List<Unit>();
+		if (targets?.Items != null)
+			foreach (var o in targets.Items)
+			{ var u = ResolveTargetUnit(s, o); if (u != null) units.Add(u); }
+		if (units.Count < 2)
+		{ s.Log("[SwapUnits] need two units."); return; }
+		var a = units[0];
+		var b = units[1];
+		var ta = a.CurrentTile;
+		var tb = b.CurrentTile;
+		if (ta == null || tb == null)
+			return;
+		a.PlaceOnTile(tb);
+		b.PlaceOnTile(ta);
+		s.Log($"[SwapUnits] swapped {a.Name} and {b.Name}.");
+	}
+}
+
+/// <summary>
+/// Apply a status to each target (used for geas / mana_tithe — the on-move and on-cast hooks live in the status system). 
+/// JSON: { "type":"geas",... } / "mana_tithe"
+/// </summary>
+public sealed class StatusApplyEffect : EffectBase
+{
+	private readonly string _status; private readonly int _duration; private readonly string _note;
+	public StatusApplyEffect(string status, int duration, string note) { _status = status; _duration = duration; _note = note; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets?.Items == null)
+			return;
+		foreach (var o in targets.Items)
+		{
+			var u = ResolveTargetUnit(s, o);
+			if (u == null)
+				continue;
+			u.ApplyStatus(_status, _duration);
+			s.Log($"[{_status}] applied to {u.Name} {_duration}t. {_note}");
+		}
+	}
+}
+
+/// <summary>
+/// Prepares glyph(s). Backs three JSON types: "prepare_glyph" (one or `count` tiles),
+/// "prepare_glyph_area" (every tile in `radius`), and "cascade_glyph" (an enter glyph with
+/// `spread`). All glyph properties are read from JSON and written onto the GlyphData.
+/// </summary>
+public sealed class PrepareGlyphEffect : EffectBase
+{
+	public GlyphTrigger Trigger = GlyphTrigger.Enter;
+	public int Damage, StatusDuration = 1, Duration = -1, Radius, Count = 1, CascadeSpread;
+	public string Status;
+	public bool Reusable, Invisible, EmptyOnly, AtOrigin, Area;
+	public int AllyArmor, AllyShield, AllyDamage, AllyMana;
+	public int OwnerDraw, OwnerMana, OwnerWeave, OwnerHeal;
+
+	private void Configure(GlyphData g)
+	{
+		g.Trigger = Trigger;
+		g.Damage = Damage;
+		g.Status = Status;
+		g.StatusDuration = StatusDuration;
+		g.DurationTurns = Duration;
+		g.Reusable = Reusable;
+		g.Invisible = Invisible;
+		g.Radius = Radius;
+		g.CascadeSpread = CascadeSpread;
+		g.AllyArmor = AllyArmor;
+		g.AllyShield = AllyShield;
+		g.AllyDamage = AllyDamage;
+		g.AllyMana = AllyMana;
+		g.OwnerDraw = OwnerDraw;
+		g.OwnerMana = OwnerMana;
+		g.OwnerWeave = OwnerWeave;
+		g.OwnerHeal = OwnerHeal;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+		if (s?.Glyphs == null)
+		{ s?.Log("[PrepareGlyph] no GlyphManager on GameState."); return; }
+
+		int placed = 0;
+		if (Area)
+		{
+			TileData center = (targets?.Items?.Count > 0 ? InterfaceHelpers.ResolveTile(s, targets.Items[0]) : null) ?? owner?.CurrentTile;
+			if (center == null || s.Grid?.Tiles == null)
+				return;
+			foreach (var t in s.Grid.Tiles.Values)
+			{
+				if (s.Grid.Distance(center.Axial, t.Axial) > Radius)
+					continue;
+				if (EmptyOnly && t.Occupant != null)
+					continue;
+				if (s.Glyphs.Prepare(t, owner, Configure) != null)
+					placed++;
+			}
+		}
+		else
+		{
+			if (AtOrigin && owner?.CurrentTile != null)
+			{
+				if (s.Glyphs.Prepare(owner.CurrentTile, owner, Configure) != null)
+					placed++;
+			}
+			else if (targets?.Items != null)
+			{
+				foreach (var o in targets.Items)
+				{
+					if (placed >= Count)
+						break;
+					var tile = InterfaceHelpers.ResolveTile(s, o);
+					if (tile != null && s.Glyphs.Prepare(tile, owner, Configure) != null)
+						placed++;
+				}
+			}
+		}
+		s.Log($"[PrepareGlyph] placed {placed} glyph(s) [{Trigger}].");
+	}
+}
+
+/// <summary>Link up to N friendly glyphs so triggering one triggers the group. { "type":"link_glyphs","count":n,"cumulative_bonus":n }</summary>
+public sealed class LinkGlyphsEffect : EffectBase
+{
+	public int Count, CumulativeBonus;
+	public LinkGlyphsEffect(int count, int bonus) { Count = count; CumulativeBonus = bonus; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+		if (s?.Glyphs == null || owner == null)
+			return;
+		int id = s.Glyphs.Link(owner.TeamId, Count, CumulativeBonus);
+		s.Log($"[LinkGlyphs] linked up to {Count} glyph(s) (id {id}).");
+	}
+}
+
+/// <summary>Re-arm consumed friendly glyphs; optional empower. { "type":"rearm_glyphs","empower":n }</summary>
+public sealed class RearmGlyphsEffect : EffectBase
+{
+	public int Empower;
+	public RearmGlyphsEffect(int empower) { Empower = empower; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+		if (s?.Glyphs == null || owner == null)
+			return;
+		int n = s.Glyphs.Rearm(owner.TeamId, Empower);
+		s.Log($"[RearmGlyphs] re-armed {n} glyph(s)" + (Empower > 0 ? $" (+{Empower} dmg)." : "."));
+	}
+}
+
+/// <summary>Fire all friendly glyphs at once. { "type":"trigger_all_glyphs","bonus_per_other":n,"consume":bool }</summary>
+public sealed class TriggerAllGlyphsEffect : EffectBase
+{
+	public int BonusPerOther; public bool Consume;
+	public TriggerAllGlyphsEffect(int bonus, bool consume) { BonusPerOther = bonus; Consume = consume; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+		if (s?.Glyphs == null || owner == null)
+			return;
+		s.Glyphs.TriggerAll(s, owner.TeamId, BonusPerOther, Consume);
+	}
+}
+
+/// <summary>Swap two glyph tiles. { "type":"swap_glyphs" }</summary>
+public sealed class SwapGlyphsEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Glyphs == null || targets?.Items == null)
+			return;
+		var tiles = targets.Items.Select(o => InterfaceHelpers.ResolveTile(s, o)).Where(t => t != null).ToList();
+		if (tiles.Count < 2)
+		{ s.Log("[SwapGlyphs] need two tiles."); return; }
+		s.Glyphs.Swap(tiles[0], tiles[1]);
+		s.Log("[SwapGlyphs] swapped two glyph tiles.");
+	}
+}
+
+/// <summary>Teleport caster onto the nearest friendly glyph. { "type":"teleport_to_glyph","trigger_on_arrive":bool }</summary>
+public sealed class TeleportToGlyphEffect : EffectBase
+{
+	public bool TriggerOnArrive;
+	public TeleportToGlyphEffect(bool trigger) { TriggerOnArrive = trigger; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var c = FindCasterUnit(s, caster);
+		if (s?.Glyphs == null || c == null)
+			return;
+		var tile = s.Glyphs.NearestFriendly(c.TeamId, c.CurrentTile?.Axial ?? default);
+		if (tile == null)
+		{ s.Log("[TeleportToGlyph] no friendly glyph."); return; }
+		c.PlaceOnTile(tile);
+		s.Log($"[TeleportToGlyph] {c.Name} teleported to a glyph.");
+		if (TriggerOnArrive && tile.Glyph != null)
+		{
+			tile.Glyph.Fire(c, s);                 // caster is friendly → ally payload / payoffs
+			s.Glyphs.OnGlyphFired(s, tile, c);
+			if (!tile.Glyph.Reusable)
+				s.Glyphs.Remove(tile);
+		}
+	}
+}
+
+/// <summary>Permanent reusable ally-buff tiles (Sovereign Pillars). Enemy-adjacent aura is logged as pending. { "type":"enchant_pillar","count":n,"ally_all_stats":n,... }</summary>
+public sealed class EnchantPillarEffect : EffectBase
+{
+	public int Count, AllyAll, EnemyDamageReduction; public string AuraStatus;
+	public EnchantPillarEffect(int count, int allyAll, int enemyDr, string aura)
+	{ Count = count; AllyAll = allyAll; EnemyDamageReduction = enemyDr; AuraStatus = aura; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+		if (s?.Glyphs == null || owner == null || targets?.Items == null)
+			return;
+		int placed = 0;
+		foreach (var o in targets.Items)
+		{
+			if (placed >= Count)
+				break;
+			var tile = InterfaceHelpers.ResolveTile(s, o);
+			if (tile == null)
+				continue;
+			if (s.Glyphs.Prepare(tile, owner, g =>
+			{
+				g.Trigger = GlyphTrigger.AllyEnter;
+				g.Reusable = true;
+				g.DurationTurns = -1;
+				g.AllyArmor = AllyAll;
+				g.AllyDamage = AllyAll;
+				g.AllyShield = AllyAll;
+			}) != null)
+				placed++;
+		}
+		s.Log($"[EnchantPillar] raised {placed} permanent pillar(s). (enemy-adjacent aura pending per-turn aura hook)");
+	}
+}
+
+/// <summary>A glyph that reflects the next spell on a unit standing on it. Placement works; reflection resolution needs a hook in the cast/targeting pipeline. { "type":"reflect_ward","triggers":n }</summary>
+public sealed class ReflectWardEffect : EffectBase
+{
+	public int Triggers, Radius;
+	public ReflectWardEffect(int triggers, int radius) { Triggers = triggers; Radius = radius; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+		if (s?.Glyphs == null || targets?.Items == null)
+			return;
+		var tile = InterfaceHelpers.ResolveTile(s, targets.Items[0]);
+		if (tile == null)
+			return;
+		s.Glyphs.Prepare(tile, owner, g => { g.Trigger = GlyphTrigger.Manual; g.Status = "reflect"; g.StatusDuration = Triggers; g.DurationTurns = 3; });
+		s.Log("[ReflectWard] placed. (spell-reflection resolution needs a cast-pipeline hook — see writeup)");
+	}
+}
+
+/// <summary>A glyph that doubles the next spell cast while standing on it. Placement works; the cast-twice resolution needs the cast pipeline. { "type":"spell_anchor","casts":n }</summary>
+public sealed class SpellAnchorEffect : EffectBase
+{
+	public int Casts;
+	public SpellAnchorEffect(int casts) { Casts = casts; }
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+		if (s?.Glyphs == null || targets?.Items == null)
+			return;
+		var tile = InterfaceHelpers.ResolveTile(s, targets.Items[0]);
+		if (tile == null)
+			return;
+		s.Glyphs.Prepare(tile, owner, g => { g.Trigger = GlyphTrigger.SelfStand; g.Status = "anchor"; g.StatusDuration = Casts; g.DurationTurns = 3; });
+		s.Log("[SpellAnchor] placed. (cast-twice resolution needs the cast pipeline — see writeup)");
+	}
+}
+
+/// <summary>
+/// Applies "dominated" status to each target enemy and spawns a DominateAura
+/// to enforce the forced-attack each turn.
+/// JSON: { "type": "dominate", "turns": n }
+/// </summary>
+public sealed class DominateEffect : EffectBase
+{
+	public int Turns;
+	public DominateEffect(int turns) { Turns = Math.Max(1, turns); }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		if (targets?.Items == null)
+			return;
+
+		bool dominated = false;
+		foreach (var o in targets.Items)
+		{
+			var u = ResolveTargetUnit(s, o);
+			if (u == null || u.TeamId == casterUnit?.TeamId)
+				continue;
+			u.ApplyStatus("dominated", Turns);
+			s.Log($"[Dominate] {u.Name} is dominated for {Turns} turn(s).");
+			dominated = true;
+		}
+
+		if (dominated && !s.HasActiveEffect<DominateAura>(caster))
+		{
+			s.ActiveEffects ??= new List<PersistentEffect>();
+			s.ActiveEffects.Add(new DominateAura(Turns, caster, casterUnit));
+		}
+	}
+}
+
+/// <summary>
+/// Summons a phantom duplicate of the caster with HpFraction of the caster's
+/// max HP. The illusion unit carries an "illusion" status; apply one-hit-break
+/// behaviour in Unit.ApplyDamage by checking HasStatus("illusion") and calling
+/// Die() if any damage lands — that is a unit-side hook this effect cannot set.
+/// JSON: { "type": "summon_illusion", "hp_fraction": 0.5, "duration": n }
+/// </summary>
+public sealed class SummonIllusionEffect : EffectBase
+{
+	public float HpFraction;
+	public int Duration;
+
+	public SummonIllusionEffect(float hpFrac, int dur)
+	{
+		HpFraction = Math.Clamp(hpFrac, 0.1f, 1f);
+		Duration = Math.Max(1, dur);
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s.OnSummonRequested == null)
+		{ s.Log("[SummonIllusion] No summon handler."); return; }
+
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit == null)
+			return;
+
+		TileData spawnTile = null;
+		if (casterUnit.CurrentTile != null && s.Grid != null)
+			foreach (var coord in s.Grid.GetNeighbors(casterUnit.CurrentTile.Axial))
+			{
+				var t = s.Grid.GetTile(coord);
+				if (t != null && !t.IsBlocked && !t.IsOccupied)
+				{ spawnTile = t; break; }
+			}
+
+		if (spawnTile == null)
+		{ s.Log("[SummonIllusion] No spawn tile."); return; }
+
+		var illusion = s.OnSummonRequested("Illusion", spawnTile, casterUnit.TeamId);
+		if (illusion == null)
+			return;
+
+		illusion.Stats.MaxHealth = Math.Max(1, (int)(casterUnit.Stats.MaxHealth * HpFraction));
+		illusion.Stats.Health = illusion.Stats.MaxHealth;
+		illusion.AttackDamage = casterUnit.AttackDamage;
+		illusion.ApplyStatus("illusion", Duration);
+
+		s.UnitsInPlay?.Add(illusion);
+		s.Log($"[SummonIllusion] Phantom at {spawnTile.Axial} ({illusion.Stats.MaxHealth}HP). One-hit-break: add to Unit.ApplyDamage.");
+	}
+}
+
+/// <summary>
+/// Spawns a GrandDesignPersistentEffect. Glyph doubling is enforced in GlyphData.Fire
+/// — add the 7-line check shown in the integration note above.
+/// JSON: { "type": "grand_design_passive", "turns": n }
+/// </summary>
+public sealed class GrandDesignPassiveLeafEffect : EffectBase
+{
+	public int Turns;
+	public GrandDesignPassiveLeafEffect(int turns) { Turns = Math.Max(1, turns); }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s.HasActiveEffect<GrandDesignPersistentEffect>(caster))
+			return;
+		var unit = FindCasterUnit(s, caster);
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new GrandDesignPersistentEffect(Turns, caster, unit));
+		s.Log($"[GrandDesign] Glyphs doubled for {Turns} turn(s). (add check to GlyphData.Fire — see note)");
+	}
+}
+
+/// <summary>
+/// Creates a persistent damage zone centred on the caster's current position.
+/// JSON: { "type": "absolute_territory", "radius": n, "damage_per_turn": n, "turns": n }
+/// </summary>
+public sealed class AbsoluteTerritoryLeafEffect : EffectBase
+{
+	public int Radius, DamagePerTurn, Turns;
+
+	public AbsoluteTerritoryLeafEffect(int r, int dpt, int t)
+	{
+		Radius = r;
+		DamagePerTurn = dpt;
+		Turns = t;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var unit = FindCasterUnit(s, caster);
+		var center = unit?.CurrentTile?.Axial ?? default;
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new AbsoluteTerritoryZone(center, Radius, DamagePerTurn, Turns, caster, unit));
+		s.Log($"[AbsoluteTerritory] Zone r={Radius} / {DamagePerTurn}dpt / {Turns} turns centred on {center}.");
+	}
+}
+
 
 // ============================================================================
 // Chronomancer Effects

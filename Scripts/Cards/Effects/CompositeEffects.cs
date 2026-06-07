@@ -73,7 +73,9 @@ public sealed class ConditionalEffect : EffectBase
 
     public ConditionalEffect(IPredicate pred, IEffect thenEff, IEffect elseEff = null)
     {
-        If = pred; Then = thenEff; Else = elseEff;
+        If = pred;
+        Then = thenEff;
+        Else = elseEff;
     }
 
     public override IEnumerable<IEffect> Children
@@ -81,7 +83,8 @@ public sealed class ConditionalEffect : EffectBase
         get
         {
             yield return Then;
-            if (Else != null) yield return Else;
+            if (Else != null)
+                yield return Else;
         }
     }
 
@@ -97,9 +100,11 @@ public sealed class ConditionalEffect : EffectBase
         s_LogBranch(ctx, branch);
 
         var chosen = branch ? Then : Else;
-        if (chosen == null) return new EffectResult();
+        if (chosen == null)
+            return new EffectResult();
 
-        if (chosen is EffectBase eb) return eb.ResolveWithResult(ctx);
+        if (chosen is EffectBase eb)
+            return eb.ResolveWithResult(ctx);
         chosen.Resolve(ctx.Game, ctx.Caster, ctx.Targets, ctx.Snapshot);
         return new EffectResult();
     }
@@ -130,8 +135,10 @@ public sealed class ForEachTargetEffect : EffectBase
             ctx.Targets = single;
             ctx.Caster = caster;
 
-            if (PerTarget is EffectBase eb) eb.ResolveWithResult(ctx);
-            else PerTarget.Resolve(s, caster, single, snap);
+            if (PerTarget is EffectBase eb)
+                eb.ResolveWithResult(ctx);
+            else
+                PerTarget.Resolve(s, caster, single, snap);
         }
     }
 }
@@ -151,15 +158,18 @@ public sealed class PushDamageEffect : EffectBase
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null || s?.Grid == null) return;
-        if (targets == null) return;
+        if (casterUnit?.CurrentTile == null || s?.Grid == null)
+            return;
+        if (targets == null)
+            return;
 
         var casterPos = casterUnit.CurrentTile.Axial;
 
         foreach (var obj in targets.Items)
         {
             var victim = ResolveTargetUnit(s, obj);
-            if (victim == null || victim.CurrentTile == null) continue;
+            if (victim == null || victim.CurrentTile == null)
+                continue;
 
             int pushed = 0;
             for (int i = 0; i < PushTiles; i++)
@@ -171,7 +181,8 @@ public sealed class PushDamageEffect : EffectBase
                 foreach (var neighbor in s.Grid.GetNeighbors(current))
                 {
                     var td = s.Grid.GetTile(neighbor);
-                    if (td == null || !td.CanEnter(victim)) continue;
+                    if (td == null || !td.CanEnter(victim))
+                        continue;
 
                     int distFromCaster = s.Grid.Distance(casterPos, neighbor);
                     if (distFromCaster > bestDist)
@@ -230,15 +241,18 @@ public sealed class PullDamageEffect : EffectBase
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null) return;
+        if (casterUnit?.CurrentTile == null || s?.Grid == null || targets == null)
+            return;
 
         var casterPos = casterUnit.CurrentTile.Axial;
 
         foreach (var obj in targets.Items)
         {
             var victim = ResolveTargetUnit(s, obj);
-            if (victim == null || victim.CurrentTile == null) continue;
-            if (victim == casterUnit) continue;
+            if (victim == null || victim.CurrentTile == null)
+                continue;
+            if (victim == casterUnit)
+                continue;
 
             int pulled = 0;
 
@@ -246,7 +260,8 @@ public sealed class PullDamageEffect : EffectBase
             {
                 var current = victim.CurrentTile.Axial;
 
-                if (s.Grid.Distance(casterPos, current) <= 1) break;
+                if (s.Grid.Distance(casterPos, current) <= 1)
+                    break;
 
                 TileData bestTile = null;
                 int bestDist = int.MaxValue;
@@ -254,7 +269,8 @@ public sealed class PullDamageEffect : EffectBase
                 foreach (var neighbor in s.Grid.GetNeighbors(current))
                 {
                     var td = s.Grid.GetTile(neighbor);
-                    if (td == null || !td.CanEnter(victim)) continue;
+                    if (td == null || !td.CanEnter(victim))
+                        continue;
 
                     int distFromCaster = s.Grid.Distance(casterPos, neighbor);
                     if (distFromCaster < bestDist)
@@ -386,7 +402,8 @@ public sealed class ImbuePathEffect : EffectBase
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit == null || s?.Grid == null) return;
+        if (casterUnit == null || s?.Grid == null)
+            return;
 
         TileElementType elementType = Element.ToLowerInvariant() switch
         {
@@ -404,7 +421,8 @@ public sealed class ImbuePathEffect : EffectBase
         Action<TileData> onLeave = null;
         onLeave = (leftTile) =>
         {
-            if (leftTile == null) return;
+            if (leftTile == null)
+                return;
             leftTile.ElementType = elementType;
             leftTile.ElementStrength = 1.0f;
             if (Element.ToLowerInvariant() == "fire")
@@ -466,9 +484,11 @@ public sealed class PrimordialSurgeEffect : EffectBase
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
-        if (s?.Grid == null) return;
+        if (s?.Grid == null)
+            return;
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null) return;
+        if (casterUnit?.CurrentTile == null)
+            return;
 
         var center = casterUnit.CurrentTile.Axial;
 
@@ -477,8 +497,10 @@ public sealed class PrimordialSurgeEffect : EffectBase
         foreach (var kvp in s.Grid.Tiles)
         {
             var tile = kvp.Value;
-            if (tile == null) continue;
-            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
+            if (tile == null)
+                continue;
+            if (s.Grid.Distance(center, kvp.Key) > Radius)
+                continue;
 
             var element = Elements[_rng.Next(Elements.Length)];
             tile.ElementType = element;
@@ -494,8 +516,10 @@ public sealed class PrimordialSurgeEffect : EffectBase
         // Damage enemies based on unique adjacent elements
         foreach (var unit in s.UnitsInPlay)
         {
-            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-            if (casterUnit != null && unit.TeamId == casterUnit.TeamId) continue;
+            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                continue;
+            if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
+                continue;
 
             var adjacentElements = new HashSet<TileElementType>();
 
@@ -536,9 +560,11 @@ public sealed class CataclysmEffect : EffectBase
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
-        if (s?.Grid == null) return;
+        if (s?.Grid == null)
+            return;
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null) return;
+        if (casterUnit?.CurrentTile == null)
+            return;
 
         var center = casterUnit.CurrentTile.Axial;
 
@@ -547,9 +573,12 @@ public sealed class CataclysmEffect : EffectBase
         foreach (var kvp in s.Grid.Tiles)
         {
             var tile = kvp.Value;
-            if (tile == null) continue;
-            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
-            if (tile.ElementType == TileElementType.None) continue;
+            if (tile == null)
+                continue;
+            if (s.Grid.Distance(center, kvp.Key) > Radius)
+                continue;
+            if (tile.ElementType == TileElementType.None)
+                continue;
 
             tile.ElementType = TileElementType.None;
             tile.ElementStrength = 0f;
@@ -560,15 +589,19 @@ public sealed class CataclysmEffect : EffectBase
 
         s.Log($"[Cataclysm] Destroyed {destroyed} imbued tile(s) within {Radius} range.");
 
-        if (destroyed == 0) return;
+        if (destroyed == 0)
+            return;
 
         // Damage enemies in radius
         int totalDmg = destroyed * DamagePerTile;
         foreach (var unit in s.UnitsInPlay)
         {
-            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-            if (casterUnit != null && unit.TeamId == casterUnit.TeamId) continue;
-            if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius) continue;
+            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                continue;
+            if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
+                continue;
+            if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius)
+                continue;
 
             unit.ApplyDamage(totalDmg);
             s.Log($"[Cataclysm] {unit.Name} takes {totalDmg} damage ({destroyed} x {DamagePerTile}).");
@@ -603,7 +636,8 @@ public sealed class RagnarokEffect : EffectBase
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
-        if (s?.Grid == null) return;
+        if (s?.Grid == null)
+            return;
         var casterUnit = FindCasterUnit(s, caster);
 
         // Count unique elements on the board
@@ -630,7 +664,8 @@ public sealed class RagnarokEffect : EffectBase
         foreach (var kvp in s.Grid.Tiles)
         {
             var tile = kvp.Value;
-            if (tile == null || tile.ElementType == TileElementType.None) continue;
+            if (tile == null || tile.ElementType == TileElementType.None)
+                continue;
             tile.ElementType = TileElementType.None;
             tile.ElementStrength = 0f;
             tile.IsHazardous = false;
@@ -642,7 +677,8 @@ public sealed class RagnarokEffect : EffectBase
         // Deal damage to ALL units
         foreach (var unit in s.UnitsInPlay)
         {
-            if (unit == null || !unit.Stats.IsAlive) continue;
+            if (unit == null || !unit.Stats.IsAlive)
+                continue;
 
             int dmg = totalDmg;
             if (HalfToAllies && casterUnit != null && unit.TeamId == casterUnit.TeamId)
@@ -675,9 +711,11 @@ public sealed class ElementalConvergenceEffect : EffectBase
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
-        if (s?.Grid == null) return;
+        if (s?.Grid == null)
+            return;
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null) return;
+        if (casterUnit?.CurrentTile == null)
+            return;
 
         var center = casterUnit.CurrentTile.Axial;
 
@@ -686,8 +724,10 @@ public sealed class ElementalConvergenceEffect : EffectBase
         foreach (var kvp in s.Grid.Tiles)
         {
             var tile = kvp.Value;
-            if (tile == null) continue;
-            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
+            if (tile == null)
+                continue;
+            if (s.Grid.Distance(center, kvp.Key) > Radius)
+                continue;
 
             var element = Elements[_rng.Next(Elements.Length)];
             tile.ElementType = element;
@@ -726,9 +766,11 @@ public sealed class ImbueAreaEffect : EffectBase
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
-        if (s?.Grid == null) return;
+        if (s?.Grid == null)
+            return;
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null) return;
+        if (casterUnit?.CurrentTile == null)
+            return;
 
         var center = casterUnit.CurrentTile.Axial;
 
@@ -744,9 +786,11 @@ public sealed class ImbueAreaEffect : EffectBase
         int imbued = 0;
         foreach (var kvp in s.Grid.Tiles)
         {
-            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
+            if (s.Grid.Distance(center, kvp.Key) > Radius)
+                continue;
             var tile = kvp.Value;
-            if (tile == null) continue;
+            if (tile == null)
+                continue;
 
             tile.ElementType = elementType;
             tile.ElementStrength = 1.0f;
@@ -774,9 +818,11 @@ public sealed class TectonicShatterEffect : EffectBase
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
-        if (s?.Grid == null) return;
+        if (s?.Grid == null)
+            return;
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null) return;
+        if (casterUnit?.CurrentTile == null)
+            return;
 
         // Center on the target, not the caster
         Vector2I center = casterUnit.CurrentTile.Axial;
@@ -784,9 +830,12 @@ public sealed class TectonicShatterEffect : EffectBase
         {
             foreach (var obj in targets.Items)
             {
-                if (obj is Unit u && u.CurrentTile != null) { center = u.CurrentTile.Axial; break; }
-                if (obj is TileData td) { center = td.Axial; break; }
-                if (obj is HexTile tv) { center = tv.Axial; break; }
+                if (obj is Unit u && u.CurrentTile != null)
+                { center = u.CurrentTile.Axial; break; }
+                if (obj is TileData td)
+                { center = td.Axial; break; }
+                if (obj is HexTile tv)
+                { center = tv.Axial; break; }
             }
         }
 
@@ -796,9 +845,11 @@ public sealed class TectonicShatterEffect : EffectBase
 
         foreach (var kvp in s.Grid.Tiles)
         {
-            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
+            if (s.Grid.Distance(center, kvp.Key) > Radius)
+                continue;
             var tile = kvp.Value;
-            if (tile == null) continue;
+            if (tile == null)
+                continue;
 
             bool isStone = tile.TerrainType == TileTerrainType.Stone ||
                            tile.ElementType == TileElementType.Earth ||
@@ -808,7 +859,8 @@ public sealed class TectonicShatterEffect : EffectBase
                             tile.ObstacleKind == "boulder" ||
                             tile.ObstacleKind == "stone_pillar"));
 
-            if (!isStone) continue;
+            if (!isStone)
+                continue;
 
             // Destroy it — clear obstacle, set to difficult terrain
             tile.IsBlocked = false;
@@ -856,7 +908,8 @@ public sealed class TectonicShatterEffect : EffectBase
 
         s.Log($"[TectonicShatter] Destroyed {destroyed} stone feature(s) in radius {Radius}.");
 
-        if (destroyed == 0) return;
+        if (destroyed == 0)
+            return;
 
         // For each destroyed tile, deal damage to nearest enemy
         int totalDmg = destroyed * DamagePerTile;
@@ -866,10 +919,13 @@ public sealed class TectonicShatterEffect : EffectBase
         int nearestDist = int.MaxValue;
         foreach (var unit in s.UnitsInPlay)
         {
-            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-            if (casterUnit != null && unit.TeamId == casterUnit.TeamId) continue;
+            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                continue;
+            if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
+                continue;
             int dist = s.Grid.Distance(center, unit.CurrentTile.Axial);
-            if (dist < nearestDist) { nearest = unit; nearestDist = dist; }
+            if (dist < nearestDist)
+            { nearest = unit; nearestDist = dist; }
         }
 
         if (nearest != null)
@@ -894,9 +950,11 @@ public sealed class TerraformEffect : EffectBase
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
-        if (s?.Grid == null) return;
+        if (s?.Grid == null)
+            return;
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null) return;
+        if (casterUnit?.CurrentTile == null)
+            return;
 
         // Find center from targets or use caster
         Vector2I center = casterUnit.CurrentTile.Axial;
@@ -904,9 +962,12 @@ public sealed class TerraformEffect : EffectBase
         {
             foreach (var obj in targets.Items)
             {
-                if (obj is Unit u && u.CurrentTile != null) { center = u.CurrentTile.Axial; break; }
-                if (obj is TileData td) { center = td.Axial; break; }
-                if (obj is HexTile tv) { center = tv.Axial; break; }
+                if (obj is Unit u && u.CurrentTile != null)
+                { center = u.CurrentTile.Axial; break; }
+                if (obj is TileData td)
+                { center = td.Axial; break; }
+                if (obj is HexTile tv)
+                { center = tv.Axial; break; }
             }
         }
 
@@ -934,9 +995,11 @@ public sealed class TerraformEffect : EffectBase
         // Reshape all tiles in radius
         foreach (var kvp in s.Grid.Tiles)
         {
-            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
+            if (s.Grid.Distance(center, kvp.Key) > Radius)
+                continue;
             var tile = kvp.Value;
-            if (tile == null) continue;
+            if (tile == null)
+                continue;
 
             tile.TerrainType = newTerrain;
             tile.ElementType = newElement;
@@ -965,11 +1028,14 @@ public sealed class TerraformEffect : EffectBase
         // Push enemies outward then damage them
         foreach (var unit in s.UnitsInPlay)
         {
-            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-            if (casterUnit != null && unit.TeamId == casterUnit.TeamId) continue;
+            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                continue;
+            if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
+                continue;
 
             int dist = s.Grid.Distance(center, unit.CurrentTile.Axial);
-            if (dist > Radius) continue;
+            if (dist > Radius)
+                continue;
 
             // Push to edge: push (Radius - dist + 1) tiles away
             int pushTiles = Radius - dist + 1;
@@ -984,7 +1050,8 @@ public sealed class TerraformEffect : EffectBase
                 foreach (var neighbor in s.Grid.GetNeighbors(current))
                 {
                     var td = s.Grid.GetTile(neighbor);
-                    if (td == null || !td.CanEnter(unit)) continue;
+                    if (td == null || !td.CanEnter(unit))
+                        continue;
                     int distFromCenter = s.Grid.Distance(center, neighbor);
                     if (distFromCenter > bestDist)
                     {
@@ -999,7 +1066,8 @@ public sealed class TerraformEffect : EffectBase
                     unit.PlaceOnTile(bestTile);
                     pushed++;
                 }
-                else break;
+                else
+                    break;
             }
 
             // Damage
@@ -1025,7 +1093,8 @@ public sealed class ConsumeElementTileEffect : EffectBase
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
-        if (s?.Grid == null || targets == null) return;
+        if (s?.Grid == null || targets == null)
+            return;
         var casterUnit = FindCasterUnit(s, caster);
 
         TileElementType needed = Element.ToLowerInvariant() switch
@@ -1041,9 +1110,12 @@ public sealed class ConsumeElementTileEffect : EffectBase
         TileData targetTile = null;
         foreach (var obj in targets.Items)
         {
-            if (obj is TileData td) { targetTile = td; break; }
-            else if (obj is HexTile tv) { targetTile = s.Grid.GetTile(tv.Axial); break; }
-            else if (obj is Unit u && u.CurrentTile != null) { targetTile = u.CurrentTile; break; }
+            if (obj is TileData td)
+            { targetTile = td; break; }
+            else if (obj is HexTile tv)
+            { targetTile = s.Grid.GetTile(tv.Axial); break; }
+            else if (obj is Unit u && u.CurrentTile != null)
+            { targetTile = u.CurrentTile; break; }
         }
 
         if (targetTile == null)
@@ -1069,9 +1141,12 @@ public sealed class ConsumeElementTileEffect : EffectBase
         // Deal damage to enemies within radius
         foreach (var unit in s.UnitsInPlay)
         {
-            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-            if (casterUnit != null && unit.TeamId == casterUnit.TeamId) continue;
-            if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius) continue;
+            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                continue;
+            if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
+                continue;
+            if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius)
+                continue;
 
             unit.ApplyDamage(Damage);
             s.Log($"[ConsumeTile] {unit.Name} takes {Damage} damage from {Element} explosion.");
@@ -1099,7 +1174,8 @@ public sealed class AvatarTransformEffect : EffectBase
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit == null) return;
+        if (casterUnit == null)
+            return;
 
         // Apply immediate armor
         casterUnit.Stats.Armor += Armor;
@@ -1125,7 +1201,8 @@ public sealed class AvatarTransformEffect : EffectBase
 
         onLeave = (leftTile) =>
         {
-            if (leftTile == null || s?.Grid == null) return;
+            if (leftTile == null || s?.Grid == null)
+                return;
             leftTile.ElementType = elements[rng.Next(elements.Length)];
             leftTile.ElementStrength = 1.0f;
             leftTile.TileView?.SetElement(leftTile.ElementType);
@@ -1198,7 +1275,8 @@ public sealed class CreateMaelstromEffect : EffectBase
             { center = casterUnit.CurrentTile.Axial; found = true; }
         }
 
-        if (!found) { s.Log("[Maelstrom] No center found."); return; }
+        if (!found)
+        { s.Log("[Maelstrom] No center found."); return; }
 
         s.ActiveEffects ??= new List<PersistentEffect>();
         s.ActiveEffects.Add(new MaelstromEffect(center, Radius, Damage, Turns, caster, Freezes));
@@ -1233,9 +1311,11 @@ public sealed class WorldshaperEffect : EffectBase
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
-        if (s?.Grid == null) return;
+        if (s?.Grid == null)
+            return;
         var casterUnit = FindCasterUnit(s, caster);
-        if (casterUnit?.CurrentTile == null) return;
+        if (casterUnit?.CurrentTile == null)
+            return;
 
         var attunement = casterUnit.Attunement as ElementalAttunement;
         var elements = GetTopElements(attunement, ElementCount);
@@ -1246,9 +1326,11 @@ public sealed class WorldshaperEffect : EffectBase
 
         foreach (var kvp in s.Grid.Tiles)
         {
-            if (s.Grid.Distance(center, kvp.Key) > Radius) continue;
+            if (s.Grid.Distance(center, kvp.Key) > Radius)
+                continue;
             var tile = kvp.Value;
-            if (tile == null) continue;
+            if (tile == null)
+                continue;
 
             // Cycle through the chosen elements when ElementCount > 1
             var element = elements[tileIndex % elements.Count];
@@ -1266,14 +1348,18 @@ public sealed class WorldshaperEffect : EffectBase
         s.Log($"[Worldshaper] Imbued {imbued} tiles within {Radius} " +
               $"with {string.Join(", ", elements)}.");
 
-        if (DamagePerTile <= 0 || imbued == 0) return;
+        if (DamagePerTile <= 0 || imbued == 0)
+            return;
 
         int totalDmg = imbued * DamagePerTile;
         foreach (var unit in s.UnitsInPlay)
         {
-            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
-            if (unit.TeamId == casterUnit.TeamId) continue;
-            if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius) continue;
+            if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
+                continue;
+            if (unit.TeamId == casterUnit.TeamId)
+                continue;
+            if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius)
+                continue;
 
             unit.ApplyDamage(totalDmg);
             s.Log($"[Worldshaper] {unit.Name} takes {totalDmg} damage ({imbued} tiles × {DamagePerTile}).");
@@ -1300,7 +1386,8 @@ public sealed class WorldshaperEffect : EffectBase
         for (int i = 0; i < Math.Min(count, sorted.Count); i++)
         {
             // Skip elements with 0 charges when picking second element
-            if (i > 0 && sorted[i].charges == 0) break;
+            if (i > 0 && sorted[i].charges == 0)
+                break;
             result.Add(sorted[i].element);
         }
 
@@ -1313,11 +1400,11 @@ public sealed class WorldshaperEffect : EffectBase
 
     private static TileElementType MapToTileElement(ElementTag element) => element switch
     {
-        ElementTag.Fire  => TileElementType.Fire,
-        ElementTag.Ice   => TileElementType.Frost,
+        ElementTag.Fire => TileElementType.Fire,
+        ElementTag.Ice => TileElementType.Frost,
         ElementTag.Storm => TileElementType.Lightning,
         ElementTag.Earth => TileElementType.Earth,
-        _                => TileElementType.None
+        _ => TileElementType.None
     };
 }
 
@@ -1335,7 +1422,8 @@ public sealed class HollowMantleLeafEffect : EffectBase
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
         var casterUnit = s.ActiveCasterUnit;
-        if (casterUnit == null) return;
+        if (casterUnit == null)
+            return;
 
         casterUnit.Stats.Armor += Armor;
         casterUnit.RefreshHealthBar();
@@ -1346,6 +1434,170 @@ public sealed class HollowMantleLeafEffect : EffectBase
         s.Log($"[HollowMantle] Activated — {Armor} armor, {Turns} turns.");
     }
 }
+
+// ── Open Gate Leaf ──────────────────────────────────────────────────────
+
+/// <summary>
+/// Registers an OpenGateEffect on GameState.ActiveEffects.
+/// CombatManager.HandleUnitDeath checks for this effect and creates
+/// a memorial + summons a spirit when it is active.
+/// JSON: { "type": "open_gate", "turns": n }
+/// </summary>
+public sealed class OpenGateLeafEffect : EffectBase
+{
+    public int Turns;
+    public OpenGateLeafEffect(int turns) { Turns = turns; }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        s.ActiveEffects ??= new List<PersistentEffect>();
+        s.ActiveEffects.Add(new OpenGateEffect(Turns, caster));
+        s.Log($"[OpenGate] Gate opened for {Turns} turns.");
+    }
+}
+
+// ── Ossuary Aura Leaf ────────────────────────────────────────────────────
+
+/// <summary>
+/// Reads the position of the most recently summoned spirit/ossuary unit
+/// and registers an OssUaryAuraEffect centered on it.
+/// JSON: { "type": "ossuary_aura", "spirit_regen": n, "spirit_regen_range": n }
+/// </summary>
+public sealed class OssUaryAuraLeafEffect : EffectBase
+{
+    public int Turns;
+    public int SpiritRegen;
+    public int SpiritRegenRange;
+    public int MemorialOnDeathRange;
+    public int AutoRiseRange;
+    public int GriefPerTurn;
+
+    public OssUaryAuraLeafEffect(int turns, int regen, int regenRange,
+        int memorialOnDeathRange = 0, int autoRiseRange = 0, int griefPerTurn = 0)
+    {
+        Turns = turns;
+        SpiritRegen = regen;
+        SpiritRegenRange = regenRange;
+        MemorialOnDeathRange = memorialOnDeathRange;
+        AutoRiseRange = autoRiseRange;
+        GriefPerTurn = griefPerTurn;
+    }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        var casterUnit = s.ActiveCasterUnit;
+        Vector2I center = casterUnit?.CurrentTile?.Axial ?? default;
+
+        // Use the target tile if available (the ossuary was just placed there)
+        if (targets?.Items?.Count > 0)
+        {
+            foreach (var obj in targets.Items)
+            {
+                if (obj is TileData td)
+                { center = td.Axial; break; }
+                if (obj is Unit u && u.CurrentTile != null)
+                { center = u.CurrentTile.Axial; break; }
+            }
+        }
+
+        s.ActiveEffects ??= new List<PersistentEffect>();
+        s.ActiveEffects.Add(new OssUaryAuraEffect(
+            Turns, caster, center,
+            SpiritRegenRange, SpiritRegen,
+            MemorialOnDeathRange, AutoRiseRange, GriefPerTurn));
+
+        s.Log($"[OssUaryAura] Ossuary aura active at {center} for {Turns} turns.");
+    }
+}
+
+// ── Memorial Seat Aura Leaf ──────────────────────────────────────────────
+
+/// <summary>
+/// Registers a MemorialSeatAuraEffect on GameState.ActiveEffects.
+/// JSON: { "type": "memorial_seat_aura" }
+/// </summary>
+public sealed class MemorialSeatAuraLeafEffect : EffectBase
+{
+    public int Turns;
+    public int SpiritDmg;
+    public int SpiritArmor;
+    public int RegenRange;
+    public int Regen;
+    public int DrawPerTurn;
+
+    public MemorialSeatAuraLeafEffect(int turns, int spiritDmg = 2, int spiritArmor = 2,
+        int regenRange = 0, int regen = 0, int drawPerTurn = 0)
+    {
+        Turns = turns;
+        SpiritDmg = spiritDmg;
+        SpiritArmor = spiritArmor;
+        RegenRange = regenRange;
+        Regen = regen;
+        DrawPerTurn = drawPerTurn;
+    }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        s.ActiveEffects ??= new List<PersistentEffect>();
+        s.ActiveEffects.Add(new MemorialSeatAuraEffect(
+            Turns, caster, SpiritDmg, SpiritArmor, RegenRange, Regen, DrawPerTurn));
+        s.Log($"[MemorialSeatAura] Active for {Turns} turns.");
+    }
+}
+
+// ── Hallowed Double Rise Leaf ────────────────────────────────────────────
+
+/// <summary>
+/// Registers a HallowedDoubleRiseEffect on GameState.ActiveEffects.
+/// JSON: { "type": "hallowed_double_rise" }
+/// </summary>
+public sealed class HallowedDoubleRiseLeafEffect : EffectBase
+{
+    public bool EmpowerOnKill;
+    public HallowedDoubleRiseLeafEffect(bool empowerOnKill = false)
+    {
+        EmpowerOnKill = empowerOnKill;
+    }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        s.ActiveEffects ??= new List<PersistentEffect>();
+        s.ActiveEffects.Add(new HallowedDoubleRiseEffect(caster, EmpowerOnKill));
+        s.Log($"[HallowedDoubleRise] Active — deaths on hallowed ground summon 2 spirits.");
+    }
+}
+
+// ── Elder Aura Leaf ──────────────────────────────────────────────────────
+
+/// <summary>
+/// Registers an ElderAuraEffect on GameState.ActiveEffects.
+/// JSON: { "type": "elder_aura", "spirit_buff_damage": n, "spirit_buff_range": n }
+/// </summary>
+public sealed class ElderAuraLeafEffect : EffectBase
+{
+    public int Turns;
+    public int SpiritDmg;
+    public int SpiritRange;
+    public bool ProtectMemorials;
+
+    public ElderAuraLeafEffect(int turns, int spiritDmg = 2,
+        int spiritRange = 3, bool protectMemorials = false)
+    {
+        Turns = turns;
+        SpiritDmg = spiritDmg;
+        SpiritRange = spiritRange;
+        ProtectMemorials = protectMemorials;
+    }
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        s.ActiveEffects ??= new List<PersistentEffect>();
+        s.ActiveEffects.Add(new ElderAuraEffect(
+            Turns, caster, SpiritDmg, SpiritRange, ProtectMemorials));
+        s.Log($"[ElderAura] Active for {Turns} turns. Spirits +{SpiritDmg} DMG within range {SpiritRange}.");
+    }
+}
+
 
 /// <summary>Does nothing. Used by the registry's `empty` factory as a placeholder while a card is being sketched, and as the fallback for unknown effect types so unknown JSON never crashes the loader.</summary>
 public sealed class EmptyEffect : EffectBase

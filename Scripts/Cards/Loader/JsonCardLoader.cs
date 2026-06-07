@@ -90,6 +90,56 @@ public static class CardScriptRegistry
     }
 
     /// <summary>
+    /// Shared builder for prepare_glyph / prepare_glyph_area / cascade_glyph.
+    /// </summary>
+    private static PrepareGlyphEffect BuildPrepareGlyph(JsonElement n, bool area, int cascade)
+    {
+        int Geti(string k, int d = 0) => n.TryGetProperty(k, out var v) ? v.GetInt32() : d;
+        bool Getb(string k) => n.TryGetProperty(k, out var v) && v.GetBoolean();
+        string Gets(string k) => n.TryGetProperty(k, out var v) ? v.GetString() : null;
+
+        int dmg = Geti("damage");
+        bool hasAlly = n.TryGetProperty("ally_armor", out _) || n.TryGetProperty("ally_shield", out _)
+                    || n.TryGetProperty("ally_damage", out _) || n.TryGetProperty("ally_mana", out _);
+
+        GlyphTrigger trigger = Gets("trigger") switch
+        {
+            "start_of_turn" => GlyphTrigger.StartOfTurn,
+            "ally_enter" => GlyphTrigger.AllyEnter,
+            "spell_cast_near" => GlyphTrigger.SpellCastNear,
+            "self_stand" => GlyphTrigger.SelfStand,
+            "manual" => GlyphTrigger.Manual,
+            "enter" => GlyphTrigger.Enter,
+            _ => (hasAlly && dmg == 0) ? GlyphTrigger.AllyEnter : GlyphTrigger.Enter
+        };
+
+        return new PrepareGlyphEffect
+        {
+            Trigger = trigger,
+            Damage = dmg,
+            Status = Gets("status"),
+            StatusDuration = Geti("status_duration", 1),
+            Duration = Geti("duration", -1),
+            Reusable = Getb("reusable"),
+            Invisible = Getb("invisible"),
+            Radius = Geti("radius"),
+            Count = Geti("count", 1),
+            CascadeSpread = cascade,
+            EmptyOnly = Getb("empty_only"),
+            AtOrigin = Getb("at_origin"),
+            Area = area,
+            AllyArmor = Geti("ally_armor"),
+            AllyShield = Geti("ally_shield"),
+            AllyDamage = Geti("ally_damage"),
+            AllyMana = Geti("ally_mana"),
+            OwnerDraw = Geti("on_trigger_draw"),
+            OwnerMana = Geti("on_trigger_mana"),
+            OwnerWeave = Geti("on_trigger_weave"),
+            OwnerHeal = Geti("heal_caster")
+        };
+    }
+
+    /// <summary>
     /// Resolves a JSON targeting node to a concrete <see cref="ITargetSelector"/>.
     /// Returns null (no targeting) for missing or unknown types — the caller is
     /// expected to handle a null targeter as "global / no target".
@@ -902,6 +952,162 @@ public static class CardScriptRegistry
         RegisterEffect("steal_mana", n =>
             new StealManaEffect(n.TryGetProperty("amount", out var a) ? a.GetInt32() : 1).WithTag("Mana"));
 
+        // Scry: look at top N, draw M, bottom the rest
+        // { "type": "scry", "look": n, "draw": m }
+        RegisterEffect("scry", n =>
+        {
+            int look = n.TryGetProperty("look", out var l) ? l.GetInt32() : 2;
+            int draw = n.TryGetProperty("draw", out var d) ? d.GetInt32() : 1;
+            return new ScryEffect(look, draw).WithTag("CardDraw");
+        });
+
+        // Return cards from discard to hand, then optionally draw
+        // { "type": "return_from_discard", "count": n, "draw": m }
+        RegisterEffect("return_from_discard", n =>
+        {
+            int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 1;
+            int draw = n.TryGetProperty("draw", out var d) ? d.GetInt32() : 0;
+            return new ReturnFromDiscardEffect(count, draw).WithTag("CardDraw");
+        });
+
+        // Gain Charge equal to buffs on the target (min floor)
+        // { "type": "gain_charge_per_buff", "min": n }
+        RegisterEffect("gain_charge_per_buff", n =>
+        {
+            int min = n.TryGetProperty("min", out var m) ? m.GetInt32() : 1;
+            return new GainChargePerBuffEffect(min).WithTag("Charge");
+        });
+
+        // Gain Charge scaled by keyword count (flat stand-in for now)
+        // { "type": "gain_charge_per_keyword", "multiplier": n }
+        RegisterEffect("gain_charge_per_keyword", n =>
+        {
+            int mult = n.TryGetProperty("multiplier", out var m) ? m.GetInt32() : 1;
+            return new GainChargePerKeywordEffect(mult).WithTag("Charge");
+        });
+
+        // Grant armor/shield per spell cast this turn
+        // { "type": "move_per_spell_cast", "max": n, "armor_per": n, "shield_per": n }
+        RegisterEffect("move_per_spell_cast", n =>
+        {
+            int max = n.TryGetProperty("max", out var mx) ? mx.GetInt32() : 4;
+            int armorPer = n.TryGetProperty("armor_per", out var a) ? a.GetInt32() : 0;
+            int shieldPer = n.TryGetProperty("shield_per", out var sh) ? sh.GetInt32() : 0;
+            return new MovePerSpellCastEffect(max, armorPer, shieldPer).WithTag("Movement");
+        });
+
+        // Spend charge, deal flat damage, exile on lethal
+        // { "type": "disintegrate", "damage": n, "charge_cost": n, "exile_on_lethal": bool }
+        RegisterEffect("disintegrate", n =>
+        {
+            int damage = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 14;
+            int cost = n.TryGetProperty("charge_cost", out var c) ? c.GetInt32() : 3;
+            bool exile = !n.TryGetProperty("exile_on_lethal", out var e) || e.GetBoolean();
+            return new DisintegrateEffect(damage, cost, exile).WithTag("Damage");
+        });
+
+        // Queue bonus damage/draw/status onto the next N spells
+        // { "type": "queue_next_spell_modifier", "bonus_damage": n, "extra_draw": n, "applies_to": 1 }
+        RegisterEffect("queue_next_spell_modifier", n =>
+        {
+            int bd = n.TryGetProperty("bonus_damage", out var b) ? b.GetInt32() : 3;
+            int ed = n.TryGetProperty("extra_draw", out var e) ? e.GetInt32() : 0;
+            int at = n.TryGetProperty("applies_to", out var a) ? a.GetInt32() : 1;
+            string gs = n.TryGetProperty("grant_status", out var g) ? g.GetString() : null;
+            int sd = n.TryGetProperty("grant_status_duration", out var gsd) ? gsd.GetInt32() : 1;
+            return new QueueNextSpellModifierLeafEffect(bd, ed, at, gs, sd).WithTag("Charge");
+        });
+
+        // Spells cost charge instead of mana for N turns
+        // { "type": "charge_cost_modifier", "charge_per_mana": 1, "turns": n }
+        RegisterEffect("charge_cost_modifier", n =>
+        {
+            int cpm = n.TryGetProperty("charge_per_mana", out var c) ? c.GetInt32() : 1;
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 2;
+            return new ChargeCostModifierLeafEffect(cpm, turns).WithTag("Charge");
+        });
+
+        // Permanent spell-damage boost (full card-selection UI pending)
+        // { "type": "perfect_card", "bonus_damage": n, "draw": n }
+        RegisterEffect("perfect_card", n =>
+        {
+            int bd = n.TryGetProperty("bonus_damage", out var b) ? b.GetInt32() : 3;
+            int draw = n.TryGetProperty("draw", out var d) ? d.GetInt32() : 0;
+            return new PerfectCardEffect(bd, draw).WithTag("Charge");
+        });
+
+        // All spells free for N turns; exile cards on expire
+        // { "type": "omniscience", "turns": 1, "exile_on_expire": 3 }
+        RegisterEffect("omniscience", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 1;
+            int exile = n.TryGetProperty("exile_on_expire", out var e) ? e.GetInt32() : 3;
+            return new OmniscienceLeafEffect(turns, exile).WithTag("Charge");
+        });
+
+        // Permanent: every spell cast generates charge
+        // { "type": "arcane_apotheosis", "charge_per_spell": 1 }
+        RegisterEffect("arcane_apotheosis", n =>
+        {
+            int cps = n.TryGetProperty("charge_per_spell", out var c) ? c.GetInt32() : 1;
+            return new ArcaneApotheosisLeafEffect(cps).WithTag("Charge");
+        });
+
+        // Exile a card from hand; it auto-casts at start of each turn
+        // { "type": "bind_card", "turns": n }
+        RegisterEffect("bind_card", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 3;
+            return new BindCardLeafEffect(turns).WithTag("Charge");
+        });
+
+        // Echo the next spell once after it resolves
+        // { "type": "replicate_last_spell" }
+        RegisterEffect("replicate_last_spell", _ =>
+            new ReplicateLastSpellLeafEffect().WithTag("Charge"));
+
+        // Immediately resolve the top card of the deck
+        // { "type": "cast_deck_top" }
+        RegisterEffect("cast_deck_top", _ =>
+            new CastDeckTopEffect().WithTag("CardDraw"));
+
+        // Each spell pulses damage to nearest enemy for N turns
+        // { "type": "convergence", "damage": n, "range": n, "turns": n }
+        RegisterEffect("convergence", n =>
+        {
+            int dmg = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 3;
+            int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 6;
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 3;
+            return new ConvergenceLeafEffect(dmg, range, turns).WithTag("Damage");
+        });
+
+        // ═══════════════════════════════════════════════════════════
+        // ARCANIST — CONSTRUCTS
+        // ═══════════════════════════════════════════════════════════
+
+        // Summon an autonomous arcane construct
+        // { "type": "create_arcane_construct", "unit": "ArcaneConstruct", "hp": n, "damage": n, "speed": n, "duration": n }
+        RegisterEffect("create_arcane_construct", n =>
+        {
+            string kind = n.TryGetProperty("unit", out var u) ? u.GetString() : "ArcaneConstruct";
+            int hp = n.TryGetProperty("hp", out var h) ? h.GetInt32() : 12;
+            int dmg = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 4;
+            int spd = n.TryGetProperty("speed", out var sp) ? sp.GetInt32() : 2;
+            int dur = n.TryGetProperty("duration", out var du) ? du.GetInt32() : 0;
+            return new CreateArcaneConstructEffect(kind, hp, dmg, spd, dur).WithTag("Summon");
+        });
+
+        // Summon a unit that embodies a spell (auto-cast AI needs unit integration)
+        // { "type": "summon_living_spell", "unit": "LivingSpell", "hp": n, "damage": n, "duration": n }
+        RegisterEffect("summon_living_spell", n =>
+        {
+            string kind = n.TryGetProperty("unit", out var u) ? u.GetString() : "LivingSpell";
+            int hp = n.TryGetProperty("hp", out var h) ? h.GetInt32() : 8;
+            int dmg = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 5;
+            int dur = n.TryGetProperty("duration", out var du) ? du.GetInt32() : 3;
+            return new SummonLivingSpellEffect(kind, hp, dmg, dur).WithTag("Summon");
+        });
+
         // ═══════════════════════════════════════════════════════════
         // ENCHANTER EFFECTS
         // ═══════════════════════════════════════════════════════════
@@ -918,6 +1124,162 @@ public static class CardScriptRegistry
             int amt = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 3;
             int min = n.TryGetProperty("min", out var m) ? m.GetInt32() : 0;
             return new DamagePerGlyphEffect(amt, min).WithTag("Damage");
+        });
+
+        // Prepare glyph: one or `count` tiles
+        // { "type": "prepare_glyph", "trigger": "enter", "damage": n, "status": s, ... }
+        RegisterEffect("prepare_glyph", n => BuildPrepareGlyph(n, area: false, cascade: 0).WithTag("Glyph"));
+
+        // Prepare glyphs across a radius
+        // { "type": "prepare_glyph_area", "damage": n, "radius": n, "empty_only": bool }
+        RegisterEffect("prepare_glyph_area", n => BuildPrepareGlyph(n, area: true, cascade: 0).WithTag("Glyph"));
+
+        // Cascade glyph: an enter glyph that spreads on trigger
+        // { "type": "cascade_glyph", "damage": n, "spread": n }
+        RegisterEffect("cascade_glyph", n =>
+        {
+            int spread = n.TryGetProperty("spread", out var sp) ? sp.GetInt32() : 2;
+            return BuildPrepareGlyph(n, area: false, cascade: spread).WithTag("Glyph");
+        });
+
+        // Link friendly glyphs so triggering one triggers the group
+        // { "type": "link_glyphs", "count": n, "cumulative_bonus": n }
+        RegisterEffect("link_glyphs", n =>
+        {
+            int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 2;
+            int bonus = n.TryGetProperty("cumulative_bonus", out var b) ? b.GetInt32() : 0;
+            return new LinkGlyphsEffect(count, bonus).WithTag("Glyph");
+        });
+
+        // Re-arm consumed friendly glyphs, optional empower
+        // { "type": "rearm_glyphs", "empower": n }
+        RegisterEffect("rearm_glyphs", n =>
+        {
+            int empower = n.TryGetProperty("empower", out var e) ? e.GetInt32() : 0;
+            return new RearmGlyphsEffect(empower).WithTag("Glyph");
+        });
+
+        // Fire all friendly glyphs at once
+        // { "type": "trigger_all_glyphs", "bonus_per_other": n, "consume": bool }
+        RegisterEffect("trigger_all_glyphs", n =>
+        {
+            int bonus = n.TryGetProperty("bonus_per_other", out var b) ? b.GetInt32() : 0;
+            bool consume = !n.TryGetProperty("consume", out var c) || c.GetBoolean();
+            return new TriggerAllGlyphsEffect(bonus, consume).WithTag("Glyph");
+        });
+
+        // Swap two glyph tiles
+        // { "type": "swap_glyphs" }
+        RegisterEffect("swap_glyphs", _ => new SwapGlyphsEffect().WithTag("Glyph"));
+
+        // Teleport caster onto nearest friendly glyph
+        // { "type": "teleport_to_glyph", "trigger_on_arrive": bool }
+        RegisterEffect("teleport_to_glyph", n =>
+        {
+            bool trigger = n.TryGetProperty("trigger_on_arrive", out var t) && t.GetBoolean();
+            return new TeleportToGlyphEffect(trigger).WithTag("Movement");
+        });
+
+        // Permanent reusable ally-buff pillars
+        // { "type": "enchant_pillar", "count": n, "ally_all_stats": n, ... }
+        RegisterEffect("enchant_pillar", n =>
+        {
+            int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 3;
+            int allyAll = n.TryGetProperty("ally_all_stats", out var a) ? a.GetInt32() : 2;
+            int enemyDr = n.TryGetProperty("enemy_damage_reduction", out var e) ? e.GetInt32() : 0;
+            string aura = n.TryGetProperty("aura_status", out var au) ? au.GetString() : null;
+            return new EnchantPillarEffect(count, allyAll, enemyDr, aura).WithTag("Glyph");
+        });
+
+        // Reflect-ward glyph (placement only; reflection needs the cast pipeline)
+        // { "type": "reflect_ward", "triggers": n, "radius": n }
+        RegisterEffect("reflect_ward", n =>
+        {
+            int triggers = n.TryGetProperty("triggers", out var t) ? t.GetInt32() : 1;
+            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 0;
+            return new ReflectWardEffect(triggers, radius).WithTag("Glyph");
+        });
+
+        // Spell-anchor glyph (placement only; cast-twice needs the cast pipeline)
+        // { "type": "spell_anchor", "casts": n }
+        RegisterEffect("spell_anchor", n =>
+        {
+            int casts = n.TryGetProperty("casts", out var c) ? c.GetInt32() : 2;
+            return new SpellAnchorEffect(casts).WithTag("Glyph");
+        });
+
+        // Push/pull a target onto the nearest friendly glyph
+        // { "type": "push_to_glyph" } / { "type": "pull_to_glyph" }
+        RegisterEffect("push_to_glyph", _ => new MoveToGlyphEffect("PushToGlyph").WithTag("Movement"));
+        RegisterEffect("pull_to_glyph", _ => new MoveToGlyphEffect("PullToGlyph").WithTag("Movement"));
+
+        // Dispel buffs from target, optionally steal
+        // { "type": "dispel", "count": n, "steal": bool }
+        RegisterEffect("dispel", n =>
+        {
+            int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 1;
+            bool steal = n.TryGetProperty("steal", out var st) && st.GetBoolean();
+            return new DispelEffect(count, steal).WithTag("Control");
+        });
+
+        // Swap positions of two targeted units
+        // { "type": "swap_units" }
+        RegisterEffect("swap_units", _ => new SwapUnitsEffect().WithTag("Movement"));
+
+        // Geas: status whose on-move punish lives in the status system
+        // { "type": "geas", "duration": n }
+        RegisterEffect("geas", n =>
+        {
+            int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 2;
+            return new StatusApplyEffect("geas", dur, "(on-move punish needs status hook)").WithTag("Control");
+        });
+
+        // Mana tithe: status whose cost-up/refund lives in the status system
+        // { "type": "mana_tithe", "duration": n }
+        RegisterEffect("mana_tithe", n =>
+        {
+            int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 3;
+            return new StatusApplyEffect("mana_taxed", dur, "(cost-up / mana-refund needs status hook)").WithTag("Control");
+        });
+
+
+        // ═══════════════════════════════════════════════════════════
+        // ENCHANTER — CONTROL / ZONE
+        // ═══════════════════════════════════════════════════════════
+
+        // Dominated enemies attack their own allies each turn
+        // { "type": "dominate", "turns": n }
+        RegisterEffect("dominate", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 2;
+            return new DominateEffect(turns).WithTag("Control");
+        });
+
+        // Summon a phantom copy of the caster with halved stats
+        // { "type": "summon_illusion", "hp_fraction": 0.5, "duration": n }
+        RegisterEffect("summon_illusion", n =>
+        {
+            float frac = n.TryGetProperty("hp_fraction", out var f) ? (float)f.GetDouble() : 0.5f;
+            int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 3;
+            return new SummonIllusionEffect(frac, dur).WithTag("Summon");
+        });
+
+        // Glyphs deal double effects while active (add check to GlyphData.Fire)
+        // { "type": "grand_design_passive", "turns": n }
+        RegisterEffect("grand_design_passive", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 3;
+            return new GrandDesignPassiveLeafEffect(turns).WithTag("Glyph");
+        });
+
+        // Persistent zone — damages enemies in range each turn
+        // { "type": "absolute_territory", "radius": n, "damage_per_turn": n, "turns": n }
+        RegisterEffect("absolute_territory", n =>
+        {
+            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 3;
+            int dpt = n.TryGetProperty("damage_per_turn", out var d) ? d.GetInt32() : 2;
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 3;
+            return new AbsoluteTerritoryLeafEffect(radius, dpt, turns).WithTag("Control");
         });
 
         // ═══════════════════════════════════════════════════════════

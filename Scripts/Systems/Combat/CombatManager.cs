@@ -1389,6 +1389,7 @@ public partial class CombatManager : Node3D
 
             unit.Attunement?.Decay();
             State.Memorials.Tick();
+            State.Glyphs?.Tick(State);
 
             if (unit.DeckData != null)
             {
@@ -1458,11 +1459,15 @@ public partial class CombatManager : Node3D
     {
         _zoneRenderer?.Clear();
 
-        foreach (var unit in playerUnits)
-            DiscardOverflowCards(unit);
+
 
         foreach (var unit in playerUnits)
         {
+            if (unit.Attunement is WeaveAttunement w)
+                w.OnTurnEnd(State.Glyphs.CountFriendly(unit.TeamId) > 0);
+
+            DiscardOverflowCards(unit);
+
             unit.Stats.Shield = 0;
             unit.RefreshHealthBar();
         }
@@ -3205,11 +3210,11 @@ public partial class CombatManager : Node3D
                     // Requires OnTileLeft callback and a ColossusBehavior component.
                     break;
 
-                case "colossus_empowered": // channel version
+                case "colossus_empowered":
                     scene = DummyUnitScene;
                     hp = 30;
                     speed = 1;
-                    armor = 8; // pre-charged with more armor
+                    armor = unitKind == "colossus_empowered" ? 8 : 5;
                     break;
 
                 case "shield_wall":
@@ -3244,6 +3249,29 @@ public partial class CombatManager : Node3D
                     armor = 0;
                     break;
 
+                case "arcaneconstruct":
+                case "arcane_construct":
+                    scene = DummyUnitScene;
+                    hp = 12;
+                    speed = 2;
+                    armor = 2;
+                    break;
+
+                case "livingspell":
+                case "living_spell":
+                    scene = DummyUnitScene;
+                    hp = 8;
+                    speed = 3;
+                    armor = 0;
+                    break;
+
+                case "illusion":
+                    scene = DummyUnitScene;
+                    hp = 10;
+                    speed = 2;
+                    armor = 0;
+                    break;
+
                 default:
                     GD.PrintErr($"[Summon] Unknown unit kind: {unitKind}");
                     return null;
@@ -3274,6 +3302,9 @@ public partial class CombatManager : Node3D
             unit.Name = suffix;
             unit.RefreshNameLabel();
 
+            if (unitKind is "colossus" or "colossus_empowered")
+                unit.ApplyStatus("colossus_absorb", 999);
+
             // Color: friendly summons are blue-ish, pillars are grey
             // Spirits skip this — ApplySpiritAppearance handles their visuals
             if (unitKind.Contains("pillar") || unitKind.Contains("boulder"))
@@ -3283,7 +3314,14 @@ public partial class CombatManager : Node3D
                 or "ossuary" or "ossuary_shrine" or "ossuary_garden"
                 or "soul_well" or "memorial_seat" or "covenant_seat")
             {
-                // No color set here — SummonSpiritEffect calls ApplySpiritAppearance after spawn
+                // skip — spirit visuals are handled by ApplySpiritAppearance
+            }
+            // After the spirit block, add:
+            else if (unitKind is "arcaneconstruct" or "arcane_construct"
+                or "livingspell" or "living_spell" or "illusion")
+            {
+                unit.SetBodyColor(UITheme.SummonColorFriendly);
+                // TODO: swap to a distinct arcane/purple color once added to UITheme
             }
             else if (isPlayerControlled)
                 unit.SetBodyColor(UITheme.SummonColorFriendly);
@@ -3729,13 +3767,9 @@ public partial class CombatManager : Node3D
                 selectedUnit.Stats.HasPlayedCardThisTurn = true;
 
             if (State.ActiveEffects != null && selectedUnit != null)
-            {
-                foreach (var effect in State.ActiveEffects)
-                {
-                    if (effect is AvatarAuraEffect aura && effect.Owner == Me && !effect.IsExpired)
-                        aura.OnSpellCast(State, selectedUnit, targets);
-                }
-            }
+                foreach (var effect in State.ActiveEffects.ToList())
+                    if (effect.Owner == Me && !effect.IsExpired)
+                        effect.OnSpellCast(State, selectedUnit, targets);
 
             // Use resolvedHalf tags for attunement so channeled element tags are read correctly
             if (selectedUnit != null &&
@@ -3781,6 +3815,11 @@ public partial class CombatManager : Node3D
 
             while (!State.Stack.IsEmpty)
                 State.Resolver.ResolveTop(State);
+
+            if (State.ActiveEffects != null && selectedUnit != null)
+                foreach (var effect in State.ActiveEffects.ToList())
+                    if (effect.Owner == Me && !effect.IsExpired)
+                        effect.OnSpellResolved(State, selectedUnit, targets);
 
             RefreshEnemyRoster();
 
