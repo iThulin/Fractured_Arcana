@@ -704,6 +704,7 @@ public partial class Unit : Node3D
             CardSchool.Necromancer => new GriefAttunement(),
             CardSchool.Arcanist => new ArcaneAttunement(),
             CardSchool.Enchanter => new WeaveAttunement(),
+            CardSchool.Chronomancer => new FateAttunement(),
             _ => null
         };
     }

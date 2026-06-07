@@ -1,0 +1,272 @@
+{
+	"id": "chronomancer_borrowed_time",
+	"status": "wip",
+	"name": "Borrowed Time",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Stutter Step",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Move 3 tiles. If 2nd+ action this turn, draw a card.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 3
+				},
+				{
+					"type": "conditional",
+					"if": {
+						"type": "spells_cast_this_turn",
+						"threshold": 2
+					},
+					"then": {
+						"type": "draw",
+						"count": 1
+					},
+					"else": {
+						"type": "empty"
+					}
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Borrowed Seconds",
+		"mana": 1,
+		"speed": "Reaction",
+		"rules_text": "When an enemy casts: that enemy is Slowed and you gain 1 Foresight.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 8,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "apply_status",
+					"status": "slowed",
+					"duration": 1
+				},
+				{
+					"type": "gain_foresight",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Stutter Step+",
+			"bottom_name": "Borrowed Seconds+",
+			"description": "Move further; react harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].tiles",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 4 tiles. If 2nd+ action this turn, draw."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].duration",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When an enemy casts: Slow (2), gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Phase Step",
+			"description": "Phase Step: teleport.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0]",
+					"value": {
+						"type": "teleport"
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Teleport to any tile within 4. If 2nd+ action, draw."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Skipped Beat",
+			"description": "Also postpone the spell.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 2
+							},
+							{
+								"type": "postpone",
+								"turns": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When an enemy casts: Slow (2), postpone that spell 1 turn, +1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Sidestep Fate",
+			"description": "Drawn card costs 1 less.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "spells_cast_this_turn",
+									"threshold": 2
+								},
+								"then": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "draw",
+											"count": 1
+										},
+										{
+											"type": "cost_modify",
+											"amount": 1,
+											"scope": "self_next"
+										}
+									]
+								},
+								"else": {
+									"type": "empty"
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Teleport within 4. If 2nd+ action, draw a card costing 1 less."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Stolen Moment",
+			"description": "+2 Foresight.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[2].amount",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When an enemy casts: Slow (2), postpone 1 turn, +2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Unstuck",
+			"description": "Free; refunds on a busy turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 0
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "(Free) Teleport within 5. If 2nd+ action, draw a discounted card and return this to hand."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Misfire",
+			"description": "Redirect the spell to a random other enemy.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "redirect",
+								"to": "random_enemy"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When an enemy casts: redirect that spell to a random other enemy. Gain 2 Foresight."
+				}
+			]
+		}
+	]
+}

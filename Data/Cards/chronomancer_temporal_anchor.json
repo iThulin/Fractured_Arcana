@@ -1,71 +1,247 @@
 {
-  "id": "chronomancer_temporal_anchor",
-  "status": "stub",
-  "name": "Temporal Anchor",
-  "school": "Chronomancer",
-  "rarity": "Common",
-  "top": {
-    "name": "Temporal Anchor",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Mark your current tile. For 2 turns you may teleport back here as a free Reaction.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Temporal Anchor (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also heal 3 when you snap back",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Paradox Bolt",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 5 damage. If 2nd+ spell this turn deal 5 instead. If 3rd+ also draw a card.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "damage",
-      "amount": 5
-    },
-    "channel": {
-      "name": "Paradox Bolt (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Counts opponent's spells too",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": true,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 9
-      }
-    }
-  }
+	"id": "chronomancer_temporal_anchor",
+	"status": "wip",
+	"name": "Temporal Anchor",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Temporal Anchor",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Mark your tile. For 2 turns you may snap back here as a free Reaction.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "set_anchor",
+			"turns": 2
+		}
+	},
+	"bottom": {
+		"name": "Paradox Bolt",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 4. If 2nd+ spell this turn, deal 8. If 3rd+, also draw a card.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "spells_cast_this_turn",
+				"threshold": 3
+			},
+			"then": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 8
+					},
+					{
+						"type": "draw",
+						"count": 1
+					}
+				]
+			},
+			"else": {
+				"type": "conditional",
+				"if": {
+					"type": "spells_cast_this_turn",
+					"threshold": 2
+				},
+				"then": {
+					"type": "damage",
+					"amount": 8
+				},
+				"else": {
+					"type": "damage",
+					"amount": 4
+				}
+			}
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Temporal Anchor+",
+			"bottom_name": "Paradox Bolt+",
+			"description": "Anchor lasts longer; bolt hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Mark your tile. For 3 turns snap back as a free Reaction."
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5. If 2nd+ spell, deal 9. If 3rd+, draw."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Tether",
+			"description": "Tether: snap-back heals + Foresight.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Mark your tile (3 turns). Snap back (free Reaction): heal 3, gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Compounding Error",
+			"description": "Thresholds drop.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "spells_cast_this_turn",
+							"threshold": 2
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 9
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 5
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5. If 2nd+ spell, deal 9 and draw."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Two-Point Anchor",
+			"description": "Two anchors.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "set_anchor",
+								"turns": 3
+							},
+							{
+								"type": "create_phase_tiles",
+								"count": 1,
+								"turns": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Mark two tiles (3 turns); snap to either. Snap-back heals 3, +1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Grandfather Bolt",
+			"description": "3rd+ returns to hand.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 (9 if 2nd+; draw). If 3rd+, return this to hand."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Fixed Point",
+			"description": "Permanent; cheats death once.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 99
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Mark your tile for the fight. Snap back any time (free; heal 3, +1 Foresight). First lethal hit: snap back at 1 HP."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Causality Cascade",
+			"description": "Scales with tempo.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage_by_distance",
+								"min": 5,
+								"max": 25,
+								"per_tile": 5
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 +5 per spell already cast this turn (max 25). Draw."
+				}
+			]
+		}
+	]
 }

@@ -1,0 +1,225 @@
+{
+	"id": "chronomancer_prophecy",
+	"status": "wip",
+	"name": "Prophecy",
+	"school": "Chronomancer",
+	"rarity": "Rare",
+	"top": {
+		"name": "Written in the Stars",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Schedule: end of your 2nd turn from now, deal 14 to all enemies. Spend 1 Foresight to Fast-Forward.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "schedule",
+			"turns": 2,
+			"do": {
+				"type": "aoe_all",
+				"radius": 99,
+				"damage": 14
+			}
+		}
+	},
+	"bottom": {
+		"name": "Borrowed Future",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Look at top 4; set 2 aside. Next turn they're in hand and cost 1 less.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "scry",
+			"look": 4,
+			"keep": 2,
+			"discount": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Written in the Stars+",
+			"bottom_name": "Borrowed Future+",
+			"description": "Bigger prophecy; deeper draw.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.do.damage",
+					"value": 18
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "End of your 2nd turn: deal 18 to all enemies. Fast-Forward for 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.look",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Look at top 5; set 2 aside. Next turn in hand, cost 1 less."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Comet's Herald",
+			"description": "One turn sooner.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "End of your next turn: deal 18 to all enemies. Fast-Forward for 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Stolen Pages",
+			"description": "Set 3 aside.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.keep",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Look at top 5; set 3 aside. Next turn in hand, cost 1 less."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Doomsaying",
+			"description": "Burns enemies until it lands.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 99,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "apply_status",
+									"status": "burn",
+									"duration": 2
+								}
+							},
+							{
+								"type": "schedule",
+								"turns": 1,
+								"do": {
+									"type": "aoe_all",
+									"radius": 99,
+									"damage": 18
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Burn all enemies (2). End of next turn: 18 to all. Fast-Forward for 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Anthology",
+			"description": "Set-aside cards cost 2 less.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.discount",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Look at top 5; set 3 aside. Next turn in hand, cost 2 less."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Conjunction",
+			"description": "Scales with Foresight.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.do.damage",
+					"value": 22
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "End of next turn: 22 +3 per Foresight, to all enemies. Burn (2) meanwhile. Fast-Forward for 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Akashic Record",
+			"description": "Deeper, +Foresight.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "scry",
+								"look": 6,
+								"keep": 3,
+								"discount": 2
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Look at top 6; set 3 aside (cost 2 less next turn). Gain 1 Foresight."
+				}
+			]
+		}
+	]
+}

@@ -1,72 +1,265 @@
 {
-  "id": "chronomancer_time_walk",
-  "status": "stub",
-  "name": "Time Walk",
-  "school": "Chronomancer",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Time Walk",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Choose a target tile within range 3. At the end of each of the next 3 turns deal 4 damage to whatever unit is on that tile.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "damage",
-      "amount": 4
-    },
-    "channel": {
-      "name": "Time Walk (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also slow the target each time",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Chrono Anchor Field",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Imbue 3 tiles in range 2: enemies that enter are slowed and their next spell is delayed 1 turn.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Chrono Anchor Field (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Field lasts 3 turns instead of 2",
-      "targeting": {
-        "type": "aoe",
-        "radius": 2,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "chronomancer_time_walk",
+	"status": "wip",
+	"name": "Time Walk",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Time Walk",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Choose a tile within 4. End of each of the next 3 turns: deal 4 to whatever stands there.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "delayed_damage",
+			"amount": 4,
+			"turns": 3
+		}
+	},
+	"bottom": {
+		"name": "Chrono Anchor Field",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Imbue tiles in range 2: enemies entering are Slowed and their next spell is Delayed.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "aoe",
+			"radius": 2,
+			"enemies_only": false
+		},
+		"effect": {
+			"type": "schedule",
+			"turns": 0,
+			"do": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "apply_status",
+						"status": "slowed",
+						"duration": 1
+					},
+					{
+						"type": "apply_status",
+						"status": "delayed",
+						"duration": 1
+					}
+				]
+			}
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Time Walk+",
+			"bottom_name": "Chrono Anchor Field+",
+			"description": "More ticks; bigger field.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.amount",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Tile within 4. End of next 3 turns: deal 5 there."
+				},
+				{
+					"half": "bottom",
+					"field": "targeting.radius",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Tiles in range 3: enemies entering Slowed + Delayed."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Recurring Nightmare",
+			"description": "4 turns.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "End of next 4 turns: deal 5 to whatever stands on the tile."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Quicksand Hours",
+			"description": "Cost +1 in field.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "schedule",
+						"turns": 0,
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "apply_status",
+									"status": "temporal_drag",
+									"duration": 1
+								},
+								{
+									"type": "apply_status",
+									"status": "delayed",
+									"duration": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Tiles in range 3: entering enemies get Temporal Drag + Delayed."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Predestination",
+			"description": "Ticks follow the unit.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 6,
+						"los": false,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "schedule",
+						"turns": 4,
+						"do": {
+							"type": "damage",
+							"amount": 5
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Mark an enemy. End of next 4 turns: deal 5 wherever it stands."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Event Horizon",
+			"description": "Entering enemies Rooted.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "schedule",
+						"turns": 0,
+						"do": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "apply_status",
+									"status": "rooted",
+									"duration": 1
+								},
+								{
+									"type": "apply_status",
+									"status": "temporal_drag",
+									"duration": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Tiles in range 3: entering enemies Rooted + Temporal Drag."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Hour of the Wolf",
+			"description": "Fast-Forward all ticks for 1 Foresight.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "schedule",
+						"turns": 5,
+						"do": {
+							"type": "damage",
+							"amount": 6
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Mark an enemy. 5 ticks of 6. Spend 1 Foresight to Fast-Forward all remaining ticks."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Frozen Moment",
+			"description": "Entering enemies Frozen.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "schedule",
+						"turns": 0,
+						"do": {
+							"type": "apply_status",
+							"status": "frozen",
+							"duration": 1
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Tiles in range 3: entering enemies Frozen 1 turn."
+				}
+			]
+		}
+	]
 }

@@ -1,0 +1,217 @@
+{
+	"id": "chronomancer_temporal_sovereign",
+	"status": "wip",
+	"name": "Temporal Sovereign",
+	"school": "Chronomancer",
+	"rarity": "Legendary",
+	"top": {
+		"name": "Temporal Sovereign",
+		"mana": 4,
+		"speed": "Sorcery",
+		"rules_text": "Rest of fight: take a 2nd turn each round with 2 mana and 1 draw. Spend 2 Foresight.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "extra_turn",
+			"mana": 2,
+			"draw": 1
+		}
+	},
+	"bottom": {
+		"name": "Chronostasis",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "All enemies skip their next turn; their stacked spells are suspended. You act normally.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "skip_enemy_turn",
+			"turns": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Temporal Sovereign+",
+			"bottom_name": "Chronostasis+",
+			"description": "Stronger extra turn; cheaper freeze.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.mana",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Rest of fight: 2nd turn each round, 3 mana, 1 draw. Spend 2 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All enemies skip their next turn; stacked spells suspended."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Regent of Hours",
+			"description": "Draw 2.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.draw",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Rest of fight: 2nd turn each round, 3 mana, draw 2. Spend 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Stillness",
+			"description": "Deal 5 to frozen enemies.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "skip_enemy_turn",
+								"turns": 1
+							},
+							{
+								"type": "aoe_all",
+								"radius": 99,
+								"damage": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All enemies skip their next turn and take 5. Spells suspended."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Lord of Ages",
+			"description": "+1 Foresight each extra turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Rest of fight: 2nd turn each round, 3 mana, draw 2, +1 Foresight. Spend 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Deep Freeze",
+			"description": "2 turns.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "skip_enemy_turn",
+								"turns": 2
+							},
+							{
+								"type": "aoe_all",
+								"radius": 99,
+								"damage": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All enemies skip their next two turns and take 5. Spells suspended."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Master of Eternity",
+			"description": "Full second turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "extra_turn",
+						"mana": 4,
+						"draw": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Rest of fight: a full 2nd turn each round (4 mana, draw 2, +1 Foresight). Spend 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The World Stands Still",
+			"description": "Immediate extra turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "skip_enemy_turn",
+								"turns": 2
+							},
+							{
+								"type": "aoe_all",
+								"radius": 99,
+								"damage": 5
+							},
+							{
+								"type": "extra_turn",
+								"mana": 2,
+								"draw": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Enemies skip their next two turns and take 5. Take an immediate extra turn now."
+				}
+			]
+		}
+	]
+}

@@ -1,56 +1,203 @@
 {
-  "id": "chronomancer_temporal_inversion",
-  "status": "stub",
-  "name": "Temporal Inversion",
-  "school": "Chronomancer",
-  "rarity": "Rare",
-  "top": {
-    "name": "Temporal Inversion",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Reverse the order of all spells on the stack. The spell that was going to resolve last now resolves first.",
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Temporal Inversion (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also add a copy of your last cast spell to the top of the stack",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Phase Anchor",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Create 2 Phase tiles within range 2. You may teleport between them as a free action once per turn. Lasts 3 turns.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Phase Anchor (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Create 3 Phase tiles and lasts 4 turns",
-      "targeting": {
-        "type": "aoe",
-        "radius": 2,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "chronomancer_temporal_inversion",
+	"status": "wip",
+	"name": "Temporal Inversion",
+	"school": "Chronomancer",
+	"rarity": "Rare",
+	"top": {
+		"name": "Temporal Inversion",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Reverse the order of all spells on the stack. The last to resolve now resolves first.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "reverse_stack"
+		}
+	},
+	"bottom": {
+		"name": "Phase Anchor",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Create 2 Phase tiles within 2. Teleport between them as a free action once/turn for 3 turns.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "create_phase_tiles",
+			"count": 2,
+			"turns": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Temporal Inversion+",
+			"bottom_name": "Phase Anchor+",
+			"description": "Inversion grants Foresight; more nodes.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "reverse_stack"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reverse the stack order. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.count",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create 3 Phase tiles within 2. Free teleport once/turn, 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Retrograde",
+			"description": "Reversed enemy spells re-pick targets.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reverse the stack. Enemy spells must re-pick targets. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Way Station",
+			"description": "Phase tiles Slow enemies on them.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create 3 Phase tiles. Enemies standing on them are Slowed. Free teleport once/turn, 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Crossed Wires",
+			"description": "Redirect the top enemy spell instead.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "redirect",
+								"to": "chosen"
+							},
+							{
+								"type": "reverse_stack"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Redirect the top enemy spell to a target you choose, then reverse the rest. +1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Network of Doors",
+			"description": "Allies use the tiles too.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.count",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create 4 Phase tiles. You and allies teleport freely once/turn, 4 turns."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Palindrome",
+			"description": "Your stacked spells resolve twice.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Redirect the top enemy spell; reverse the rest; your spells on the stack resolve twice. +1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Crossroads",
+			"description": "Teleporting grants Foresight.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "create_phase_tiles",
+								"count": 4,
+								"turns": 99
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Create 4 Phase tiles for the fight. Teleporting between them grants 1 Foresight (once/turn)."
+				}
+			]
+		}
+	]
 }

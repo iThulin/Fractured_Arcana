@@ -1,0 +1,227 @@
+{
+	"id": "chronomancer_glimpse",
+	"status": "wip",
+	"name": "Glimpse",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Glimpse",
+		"mana": 0,
+		"speed": "Instant",
+		"rules_text": "Reveal the next action of all enemies within 6. Gain 1 Foresight.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "peek_intent"
+				},
+				{
+					"type": "gain_foresight",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Ward of Hours",
+		"mana": 1,
+		"speed": "Reaction",
+		"rules_text": "When you would be hit: gain 6 shield until your next turn.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "shield",
+			"amount": 6
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Glimpse+",
+			"bottom_name": "Ward of Hours+",
+			"description": "More Foresight; sturdier ward.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].amount",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reveal enemy intent within 6. Gain 2 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 8
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When you would be hit: gain 8 shield until your next turn."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Far Sight",
+			"description": "Reveal the whole board, draw 1.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "peek_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reveal ALL enemy intent. Gain 2 Foresight. Draw a card."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Aegis of Hours",
+			"description": "Ward reflects 3.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 8
+							},
+							{
+								"type": "damage",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When you would be hit: gain 8 shield and deal 3 back to the attacker."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Oracle",
+			"description": "Revealed enemies have their actions postponed if you choose.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reveal all enemy intent; postpone one revealed action 1 turn. Gain 2 Foresight, draw 1."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Hourglass Shell",
+			"description": "Ward refreshes once.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 10
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 10 shield; the first time it breaks, re-apply 10 and deal 3 back."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The All-Seeing Eye",
+			"description": "See and rewrite one revealed action.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "peek_intent"
+							},
+							{
+								"type": "redirect",
+								"to": "chosen"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reveal all enemy intent; redirect one revealed action to a target you choose. +2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Timeless Bulwark",
+			"description": "Ward applies to all allies.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 99,
+						"enemies_only": false
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When any ally would be hit: it gains 10 shield and reflects 3."
+				}
+			]
+		}
+	]
+}

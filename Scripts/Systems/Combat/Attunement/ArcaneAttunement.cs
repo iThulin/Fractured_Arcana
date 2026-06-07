@@ -122,23 +122,27 @@ public class ArcaneAttunement : ISchoolAttunement
     /// <summary>Adds <paramref name="amount"/> Charge, clamped to the cap. Any amount lost to the cap is reported via <see cref="OnChargeOverflow"/>. Returns the amount actually banked.</summary>
     public int Add(int amount)
     {
-        if (amount <= 0) return 0;
-
+        if (amount <= 0)
+            return 0;
         int before = Charge;
         int target = before + amount;
         int banked = Math.Min(target, MaxCharge) - before;
         int overflow = target - MaxCharge;
 
-        if (banked > 0) SetCharges(before + banked);
-        if (overflow > 0) OnChargeOverflow?.Invoke(overflow);
+        GD.Print($"[ArcaneAttunement] Add({amount}): before={before} target={target} banked={banked} overflow={overflow}");
 
+        if (banked > 0)
+            SetCharges(before + banked);
+        if (overflow > 0)
+            OnChargeOverflow?.Invoke(overflow);
         return banked;
     }
 
     /// <summary>Spends up to <paramref name="amount"/> Charge and returns how much was actually spent (never more than the current reserve).</summary>
     public int Spend(int amount)
     {
-        if (amount <= 0 || Charge <= 0) return 0;
+        if (amount <= 0 || Charge <= 0)
+            return 0;
         int spent = Math.Min(amount, Charge);
         SetCharges(Charge - spent);
         return spent;
@@ -161,9 +165,12 @@ public class ArcaneAttunement : ISchoolAttunement
     /// <summary>Maps a raw Charge value to its <see cref="ChargeTier"/> band.</summary>
     public static ChargeTier TierFor(int charge)
     {
-        if (charge >= MaxCharge) return ChargeTier.Overflowing;
-        if (charge >= 4) return ChargeTier.Charged;
-        if (charge >= 2) return ChargeTier.Resonant;
+        if (charge >= MaxCharge)
+            return ChargeTier.Overflowing;
+        if (charge >= 4)
+            return ChargeTier.Charged;
+        if (charge >= 2)
+            return ChargeTier.Resonant;
         return ChargeTier.Latent;
     }
 
@@ -171,13 +178,15 @@ public class ArcaneAttunement : ISchoolAttunement
     private void SetCharges(int value)
     {
         int clamped = Math.Clamp(value, 0, MaxCharge);
-        if (clamped == Charge) return;
+        if (clamped == Charge)
+            return;
 
         ChargeTier before = TierFor(Charge);
         Charge = clamped;
         OnChargeChanged?.Invoke(Charge);
 
         ChargeTier after = TierFor(Charge);
-        if (after > before) OnTierReached?.Invoke(after);
+        if (after > before)
+            OnTierReached?.Invoke(after);
     }
 }

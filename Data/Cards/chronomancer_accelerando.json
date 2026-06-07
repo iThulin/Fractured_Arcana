@@ -1,0 +1,255 @@
+{
+	"id": "chronomancer_accelerando",
+	"status": "wip",
+	"name": "Accelerando",
+	"school": "Chronomancer",
+	"rarity": "Rare",
+	"top": {
+		"name": "Accelerando",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Until end of turn: each spell you cast costs 1 less and grants 1 Foresight.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "cost_modify",
+			"amount": 1,
+			"scope": "self_next"
+		}
+	},
+	"bottom": {
+		"name": "Ritardando",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "All enemies are Slowed and their spells cost +1 this round.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "aoe",
+			"radius": 99,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "apply_status",
+					"status": "temporal_drag",
+					"duration": 1
+				},
+				{
+					"type": "cost_modify",
+					"amount": 1,
+					"scope": "enemy"
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Accelerando+",
+			"bottom_name": "Ritardando+",
+			"description": "Cheaper engine; longer drag.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].duration",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All enemies Slowed (2); spells cost +1."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Crescendo",
+			"description": "+1 damage too.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "cost_modify",
+								"amount": 1,
+								"scope": "self_next"
+							},
+							{
+								"type": "temp_buff",
+								"stat": "damage",
+								"amount": 1,
+								"turns": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "This turn: spells cost 1 less, deal +1, grant 1 Foresight each."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Dirge",
+			"description": "Enemies postpone an action.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "temporal_drag",
+								"duration": 2
+							},
+							{
+								"type": "postpone",
+								"turns": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All enemies Slowed (2); each postpones its next action 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Presto",
+			"description": "First spell each turn is free.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "cost_modify",
+								"amount": 99,
+								"scope": "self_next"
+							},
+							{
+								"type": "temp_buff",
+								"stat": "damage",
+								"amount": 1,
+								"turns": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "This turn: first spell costs 0, rest cost 1 less. +1 damage; 1 Foresight each."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Grave",
+			"description": "Also deals 3 to all enemies.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 3
+							},
+							{
+								"type": "apply_status",
+								"status": "temporal_drag",
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 3 to all enemies; Slow (2); spells cost +1."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Stretto",
+			"description": "Echo every spell this turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "This turn: spells cost 1 less, grant 1 Foresight, and are Echoed at half value."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Funeral March",
+			"description": "Still-Slowed enemies skip a turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "temporal_drag",
+								"duration": 2
+							},
+							{
+								"type": "schedule",
+								"turns": 1,
+								"do": {
+									"type": "skip_enemy_turn",
+									"turns": 1
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All enemies Slowed (2). Any still Slowed at end of round skip their next turn."
+				}
+			]
+		}
+	]
+}

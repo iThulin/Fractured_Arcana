@@ -1,0 +1,242 @@
+{
+	"id": "chronomancer_decoy_of_hours",
+	"status": "wip",
+	"name": "Decoy of Hours",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Echo Decoy",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Summon a temporal Decoy (10HP) on a tile within 3. Enemy single-target actions within 2 of it must target it. Lasts 3 turns.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "summon_decoy",
+					"hp": 10,
+					"turns": 3
+				},
+				{
+					"type": "redirect_aura",
+					"radius": 2,
+					"turns": 3
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Gravity of Ages",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Pull all enemies within 3 one tile toward your Decoy (or you if none).",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "push",
+			"tiles": 1,
+			"collision_damage": 0
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Echo Decoy+",
+			"bottom_name": "Gravity of Ages+",
+			"description": "Tougher decoy; stronger pull.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].hp",
+					"value": 14
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Decoy (14HP). Enemy single-target actions within 2 must target it. 3 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.tiles",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pull all enemies within 3 two tiles toward your Decoy."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Mirror Sentry",
+			"description": "Decoy reflects 3 when hit.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Decoy (14HP) reflects 3 damage when struck. Forces targeting within 2. 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Event Gravity",
+			"description": "Also Slows pulled enemies.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "push",
+								"tiles": 2,
+								"collision_damage": 0
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pull enemies within 3 two tiles toward your Decoy; Slow them."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Decoy Network",
+			"description": "Summons two decoys.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_decoy",
+								"hp": 14,
+								"turns": 3
+							},
+							{
+								"type": "summon_decoy",
+								"hp": 14,
+								"turns": 3
+							},
+							{
+								"type": "redirect_aura",
+								"radius": 2,
+								"turns": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Summon two Decoys (14HP). Enemy single-target actions near either must target it. 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Singularity",
+			"description": "Pull radius 5, collision damage.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "push",
+								"tiles": 3,
+								"collision_damage": 3
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pull all enemies within 5 three tiles toward the Decoy; collisions deal 3; Slow."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Effigy",
+			"description": "Decoy detonates for stored damage.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Decoy (20HP). Enemy single-target actions within 3 must hit it. When it dies or expires, it deals all damage absorbed to enemies within 2."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Collapse the Hour",
+			"description": "Pull the whole board.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "push",
+								"tiles": 4,
+								"collision_damage": 4
+							},
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pull EVERY enemy toward the Decoy; collisions deal 4; Root them 1 turn."
+				}
+			]
+		}
+	]
+}

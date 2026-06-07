@@ -1,0 +1,215 @@
+{
+	"id": "chronomancer_undertow",
+	"status": "wip",
+	"name": "Undertow",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Undertow",
+		"mana": 2,
+		"speed": "Reaction",
+		"rules_text": "When an enemy casts a spell: redirect it to any enemy you choose.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 8,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "redirect",
+			"to": "chosen"
+		}
+	},
+	"bottom": {
+		"name": "Riptide",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Choose: advance one of your scheduled spells, or postpone an enemy spell 1 turn.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "advance"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Undertow+",
+			"bottom_name": "Riptide+",
+			"description": "Redirect grants Foresight; riptide does both.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "redirect",
+								"to": "chosen"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "When an enemy casts: redirect it to any enemy you choose. +1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance"
+							},
+							{
+								"type": "postpone",
+								"turns": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Advance one of your spells AND postpone an enemy spell 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Riptide Current",
+			"description": "Redirected spell +3 power.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Redirect the spell to any enemy you choose; it gains +3 power. +1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Crosscurrent",
+			"description": "Postpone hits the whole stack.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Advance one of your spells AND postpone ALL enemy spells on the stack 1 turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Drowned Intent",
+			"description": "Redirect to two targets.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Redirect the spell so it hits two enemies you choose. +1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Tidal Lock",
+			"description": "Postpone + Root the caster.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance"
+							},
+							{
+								"type": "postpone",
+								"turns": 2
+							},
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Advance your spell; postpone an enemy spell 2 turns and Root its caster."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Maelstrom's Will",
+			"description": "Redirect, double, keep it yours.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "redirect",
+								"to": "chosen"
+							},
+							{
+								"type": "echo_last",
+								"value_mult": 1.0
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Redirect the enemy spell to a target you choose, then Echo a copy at a second chosen target. +1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Standing Wave",
+			"description": "Advance everything, freeze the enemy stack.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Resolve ALL your scheduled spells now; suspend every enemy spell on the stack until your next turn."
+				}
+			]
+		}
+	]
+}

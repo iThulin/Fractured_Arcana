@@ -1,0 +1,208 @@
+{
+	"id": "chronomancer_afterimage",
+	"status": "wip",
+	"name": "Afterimage",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Afterimage",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Create an Echo of your last-cast spell — it resolves again at half value.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "echo_last",
+			"value_mult": 0.5
+		}
+	},
+	"bottom": {
+		"name": "Recurrence",
+		"mana": 3,
+		"speed": "Reaction",
+		"rules_text": "As you cast another spell: that spell is cast a second time.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "echo_last",
+			"value_mult": 1.0
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Afterimage+",
+			"bottom_name": "Recurrence+",
+			"description": "Brighter echoes.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.value_mult",
+					"value": 0.75
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Echo your last spell at 75% value."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "As you cast another spell, cast it twice."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Mirror Image",
+			"description": "Full value.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.value_mult",
+					"value": 1.0
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Echo your last spell at full value."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Reverberate",
+			"description": "+1 Foresight per echo.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "echo_last",
+								"value_mult": 1.0
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Cast the next spell twice; gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Double Exposure",
+			"description": "Two echoes.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "echo_last",
+								"value_mult": 1.0
+							},
+							{
+								"type": "echo_last",
+								"value_mult": 0.5
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Echo your last spell at full value, then again at half."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Resonance Cascade",
+			"description": "Triple-cast.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "echo_last",
+								"value_mult": 1.0
+							},
+							{
+								"type": "echo_last",
+								"value_mult": 1.0
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Cast the next spell three times; gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Persistence of Memory",
+			"description": "Echo every spell this turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Until end of turn, each spell you cast is Echoed at full value."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Stuck Record",
+			"description": "Copies per Foresight held.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "As you cast a spell, cast one extra copy per Foresight you hold, then reset Foresight to 0."
+				}
+			]
+		}
+	]
+}

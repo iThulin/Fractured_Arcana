@@ -1,55 +1,166 @@
 {
-  "id": "chronomancer_time_lord",
-  "status": "stub",
-  "name": "Time Lord",
-  "school": "Chronomancer",
-  "rarity": "Legendary",
-  "top": {
-    "name": "Time Lord",
-    "mana": 4,
-    "speed": "Instant",
-    "rules_text": "Permanent: at the start of each turn you may rewind OR fast-forward any one event (spell resolution unit death unit movement). Rewind undoes it. Fast-forward makes it resolve immediately.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Time Lord (Channel)",
-      "mana": 4,
-      "speed": "Reaction",
-      "rules_text": "Channel: May rewind OR fast-forward 2 events per turn",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Entropy",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Imbue every tile on the board with Temporal Decay: all units (including allies) lose 4HP per turn. Your spells gain +2 damage for each turn this has been active. Lasts rest of fight.",
-    "targeting": {
-      "type": "none"
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Entropy (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Only enemies take Temporal Decay damage",
-      "targeting": {
-        "type": "none"
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "chronomancer_time_lord",
+	"status": "wip",
+	"name": "Time Lord",
+	"school": "Chronomancer",
+	"rarity": "Legendary",
+	"top": {
+		"name": "Time Lord",
+		"mana": 4,
+		"speed": "Instant",
+		"rules_text": "Permanent: at the start of each turn, Rewind OR Fast-Forward one event (a spell, a death, a move).",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "event_control"
+		}
+	},
+	"bottom": {
+		"name": "Entropy",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Imbue the board with Temporal Decay: all units lose 4 HP/turn. Your spells gain +2 per active turn. Rest of fight.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "temporal_decay_field",
+			"damage": 4,
+			"scaling": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Time Lord+",
+			"bottom_name": "Entropy+",
+			"description": "Sharper control; faster decay.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Permanent: each turn, Rewind OR Fast-Forward one event. Gain 1 Foresight each time."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Temporal Decay: all units lose 5 HP/turn. Your spells gain +2 per active turn."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Master of the Stack",
+			"description": "Rewinds re-target.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Each turn: Rewind (re-target) OR Fast-Forward one event. +1 Foresight each."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Heat Death",
+			"description": "Decay ignores shields.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Temporal Decay: 6 HP/turn, ignores shields. Spells gain +2 per active turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Outside of Time",
+			"description": "Control on enemy turns too.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Each turn (yours and the enemy's): Rewind/Fast-Forward one event. +1 Foresight each."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Second Law",
+			"description": "Allies immune.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "temporal_decay_field",
+						"damage": 6,
+						"scaling": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Only enemies decay (6/turn). Spells gain +3 per active turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Last Hour",
+			"description": "Three events/turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Each turn: control up to three events. +1 Foresight each."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The End of All Things",
+			"description": "Decay escalates.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "temporal_decay_field",
+						"damage": 6,
+						"scaling": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Only enemies decay, +2 to the decay each turn. Spells gain +4 per active turn."
+				}
+			]
+		}
+	]
 }

@@ -1,71 +1,256 @@
 {
-  "id": "chronomancer_precognition",
-  "status": "stub",
-  "name": "Precognition",
-  "school": "Chronomancer",
-  "rarity": "Common",
-  "top": {
-    "name": "Precognition",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Look at top 3 cards of deck. Keep 1 discard rest. Kept card costs 1 less.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "draw",
-          "count": 1
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Precognition (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Keep 2 instead",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "draw",
-        "count": 2
-      }
-    }
-  },
-  "bottom": {
-    "name": "Haste",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Target ally gains +2 movement this turn.",
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": false,
-      "enemies_only": false
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Haste (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also gains +1 action",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": false
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "chronomancer_precognition",
+	"status": "wip",
+	"name": "Precognition",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Precognition",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Look at the top 3 cards. Keep 1 (costs 1 less), discard the rest. Gain 1 Foresight.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "scry",
+			"look": 3,
+			"keep": 1,
+			"discount": 1
+		}
+	},
+	"bottom": {
+		"name": "Haste",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Target ally gains +2 movement this turn.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": false
+		},
+		"effect": {
+			"type": "temp_buff",
+			"stat": "movement",
+			"amount": 2,
+			"turns": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Precognition+",
+			"bottom_name": "Haste+",
+			"description": "See deeper. Push harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.look",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Look at the top 4. Keep 1 (costs 1 less), discard the rest. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Target ally gains +3 movement this turn."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Augury",
+			"description": "Augury: keep 2.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.keep",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Look at top 4. Keep 2 (each costs 1 less). Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Quicken",
+			"description": "Quicken: +1 action.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "temp_buff",
+								"stat": "movement",
+								"amount": 3,
+								"turns": 1
+							},
+							{
+								"type": "apply_status",
+								"status": "hasted",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Target ally gains +3 movement and +1 action this turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Foreknowledge",
+			"description": "Foreknowledge: +2 Foresight.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "scry",
+								"look": 4,
+								"keep": 2,
+								"discount": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Look at top 4. Keep 2 (each costs 1 less). Gain 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Blur",
+			"description": "Blur: two allies.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 6,
+						"enemies_only": false
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Two allies gain +3 movement and +1 action this turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Charted Sky",
+			"description": "Kept cards are free next turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "scry",
+								"look": 5,
+								"keep": 2,
+								"discount": 99
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Look at top 5. Keep 2 — they cost 0 next turn. Gain 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Time Dilation",
+			"description": "All allies hasted.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 99,
+						"enemies_only": false
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "temp_buff",
+								"stat": "movement",
+								"amount": 3,
+								"turns": 1
+							},
+							{
+								"type": "apply_status",
+								"status": "hasted",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All allies gain +3 movement and +1 action this turn."
+				}
+			]
+		}
+	]
 }

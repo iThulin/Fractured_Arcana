@@ -86,6 +86,8 @@ public partial class CombatUI : CanvasLayer
 	private int _pendingMana = 0;
 	private bool _unitPending = false;
 
+	private VBoxContainer _attunementSection;
+
 	// ── Right panel nodes ────────────────────────────────────────────────
 	private PanelContainer _rightPanel;
 	private VBoxContainer _enemyRosterBox;
@@ -228,6 +230,14 @@ public partial class CombatUI : CanvasLayer
 		_statusIconRow.AddThemeConstantOverride("separation", 4);
 		_statusIconRow.Alignment = BoxContainer.AlignmentMode.Center;
 		vbox.AddChild(_statusIconRow);
+
+		// Attunement slot — populated by SchoolAttunementUI.UseExternalContainer()
+		vbox.AddChild(MakeDivider(UITheme.VioletDim));
+		_attunementSection = new VBoxContainer { Name = "AttunementSection" };
+		_attunementSection.AddThemeConstantOverride("separation", 4);
+		_attunementSection.Visible = false;   // hidden until a school with an attunement is selected
+		GD.Print($"[CombatUI] AttunementSection built: {_attunementSection != null}");
+		vbox.AddChild(_attunementSection);
 
 		// ── Action log ───────────────────────────────────────────────
 		vbox.AddChild(MakeDivider());
@@ -835,6 +845,7 @@ public partial class CombatUI : CanvasLayer
 
 	private void OnDeckButtonPressed() => _deckPopup?.PopupCentered();
 	private void OnGraveButtonPressed() => _gravePopup?.PopupCentered();
+	public VBoxContainer AttunementSection => _attunementSection;
 
 	private static StyleBoxFlat MakeFillStyle(Color col)
 	{

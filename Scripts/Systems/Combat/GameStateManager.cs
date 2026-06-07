@@ -32,6 +32,7 @@ public sealed class GameState
 
     /// <summary>The most recently resolved StackItem. Set by Resolver.ResolveTop; read by replicate/echo/mana-refund effects.</summary>
     public StackItem LastResolvedItem;
+    public int SpellsCastThisTurn = 0;
     public int LastDamageDealt = 0;   // set by DealDamageEffect after each hit
     public int LastGriefSpent = 0;    // set by GriefDischargeDamageEffect
 

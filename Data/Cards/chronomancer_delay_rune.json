@@ -1,71 +1,224 @@
 {
-  "id": "chronomancer_delay_rune",
-  "status": "stub",
-  "name": "Delay Rune",
-  "school": "Chronomancer",
-  "rarity": "Common",
-  "top": {
-    "name": "Delay Rune",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Prepare on tile: spell targeting this tile is delayed 1 turn. Caster still pays costs.",
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Delay Rune (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Delayed spells cost caster 1 extra mana when they resolve",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Slow Field",
-    "mana": 2,
-    "speed": "Instant",
-    "rules_text": "Imbue tile and adjacents with Temporal Drag: enemies have half movement and spells cost +1.",
-    "targeting": {
-      "type": "aoe",
-      "radius": 1,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Slow Field (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also prevents Reaction casting in the field",
-      "targeting": {
-        "type": "aoe",
-        "radius": 1,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
-    }
-  }
+	"id": "chronomancer_delay_rune",
+	"status": "wip",
+	"name": "Delay Rune",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Delay Rune",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Target enemy's next action is postponed 1 turn.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "postpone",
+			"turns": 1
+		}
+	},
+	"bottom": {
+		"name": "Slow Field",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Apply Temporal Drag to enemies within 1: half movement, spells cost +1.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "aoe",
+			"radius": 1,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "apply_status",
+			"status": "temporal_drag",
+			"duration": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Delay Rune+",
+			"bottom_name": "Slow Field+",
+			"description": "Longer postpone, wider field.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Target enemy's next action is postponed 2 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "targeting.radius",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Apply Temporal Drag to enemies within 2."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Stutter",
+			"description": "Stutter: also Delayed.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "postpone",
+								"turns": 2
+							},
+							{
+								"type": "apply_status",
+								"status": "delayed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Postpone target's next action 2 turns. Apply Delayed."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Quagmire",
+			"description": "Quagmire: 3 turns.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.duration",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Apply Temporal Drag (3) to enemies within 2."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Time Sink",
+			"description": "Time Sink: hits an area.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "aoe",
+							"radius": 2,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "postpone",
+							"turns": 2
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Postpone the next action of all enemies within 2 of the target by 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Tar Pit",
+			"description": "Tar Pit: no Reactions in field.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting.radius",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Temporal Drag (3) within 2. Enemies cannot Reaction-cast in the field."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Stopped Clock",
+			"description": "Target skips its next turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "skip_enemy_turn",
+						"turns": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Target enemy skips its entire next turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Long Now",
+			"description": "Field follows you.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "schedule",
+						"turns": 0,
+						"do": {
+							"type": "apply_status",
+							"status": "temporal_drag",
+							"duration": 1
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "targeting.radius",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Temporal Drag (3) within 3. Re-applies around you each turn."
+				}
+			]
+		}
+	]
 }

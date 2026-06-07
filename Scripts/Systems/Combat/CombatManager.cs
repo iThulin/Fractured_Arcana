@@ -191,6 +191,9 @@ public partial class CombatManager : Node3D
         if (combatUI != null)
             combatUI.AddChild(schoolAttunementUI);
 
+
+        CallDeferred(nameof(DeferWireAttunement));
+
         if (playerUnit != null)
             State.Mana[Me] = playerUnit.Stats.Mana;
 
@@ -415,6 +418,23 @@ public partial class CombatManager : Node3D
         return result;
     }
 
+    private void DeferWireAttunement()
+    {
+        // One deferred hop lets CombatUI._Ready() queue its BuildUI.
+        // A second hop lets BuildUI actually execute before we wire.
+        CallDeferred(nameof(WireAttunementSection));
+    }
+
+    private void WireAttunementSection()
+    {
+        if (combatUI?.AttunementSection == null || schoolAttunementUI == null)
+        {
+            GD.Print("[CombatManager] WireAttunementSection: slot or UI is null");
+            return;
+        }
+        schoolAttunementUI.UseExternalContainer(combatUI.AttunementSection);
+        GD.Print("[CombatManager] AttunementSection wired.");
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // Central UI refresh – call this whenever state changes
@@ -1388,6 +1408,11 @@ public partial class CombatManager : Node3D
                 ApplyMartialStancePassives(unit);
 
             unit.Attunement?.Decay();
+            State.SpellsCastThisTurn = 0;
+
+            if (unit.Attunement is ArcaneAttunement arcane)
+                arcane.OnTurnStart();
+
             State.Memorials.Tick();
             State.Glyphs?.Tick(State);
 
@@ -2823,6 +2848,68 @@ public partial class CombatManager : Node3D
             unit.InitializeAttunement();
         }
 
+        // ── wire school-specific attunement event subscriptions ─────────
+        foreach (var unit in playerUnits)
+        {
+            if (unit?.Attunement is ArcaneAttunement arcane)
+            {
+                arcane.OnChargeOverflow += overflowAmount =>
+                {
+                    if (unit.DeckData == null)
+                        return;
+                    unit.DeckData.Draw(overflowAmount);
+                    State.OnDrawCards?.Invoke(unit);
+                    GD.Print($"[Arcanist] Overflow — drew {overflowAmount}.");
+                    schoolAttunementUI?.Refresh();
+                };
+            }
+
+            if (unit?.Attunement is GriefAttunement grief)
+            {
+                grief.OnFloodTriggered += () =>
+                {
+                    // Refresh all living friendly spirits — reset their turns
+                    // so they act again this round (the Flood effect).
+                    foreach (var u in State.UnitsInPlay)
+                    {
+                        if (u == null || !u.IsSpirit || !u.Stats.IsAlive)
+                            continue;
+                        if (u.SummonerTeamId != unit.TeamId)
+                            continue;
+                        u.StartTurn();
+                    }
+                    GD.Print("[Necromancer] Flood — all spirits refreshed.");
+                    schoolAttunementUI?.Refresh();
+                };
+            }
+
+            if (unit?.Attunement is WeaveAttunement weave)
+            {
+                weave.OnSeventhLayer += () =>
+                {
+                    // Name the nearest living enemy — apply the "named" status.
+                    Unit target = null;
+                    float closest = float.MaxValue;
+                    foreach (var u in State.UnitsInPlay)
+                    {
+                        if (u == null || !u.Stats.IsAlive || u.TeamId == unit.TeamId)
+                            continue;
+                        float dist = unit.CurrentTile != null && u.CurrentTile != null
+                            ? State.Grid?.Distance(unit.CurrentTile.Axial, u.CurrentTile.Axial) ?? 99
+                            : 99;
+                        if (dist < closest)
+                        { closest = dist; target = u; }
+                    }
+                    if (target != null)
+                    {
+                        target.ApplyStatus("named", 2);
+                        GD.Print($"[Enchanter] Seventh Layer — {target.Name} is Named.");
+                    }
+                    schoolAttunementUI?.Refresh();
+                };
+            }
+        }
+
         if (EnableDeploymentPhase)
         {
             if (PlayerSession.DebugMode && PlayerSession.SkipDeployment)
@@ -3766,12 +3853,30 @@ public partial class CombatManager : Node3D
             if (selectedUnit != null)
                 selectedUnit.Stats.HasPlayedCardThisTurn = true;
 
+            State.SpellsCastThisTurn++;
+
             if (State.ActiveEffects != null && selectedUnit != null)
                 foreach (var effect in State.ActiveEffects.ToList())
                     if (effect.Owner == Me && !effect.IsExpired)
                         effect.OnSpellCast(State, selectedUnit, targets);
 
-            // Use resolvedHalf tags for attunement so channeled element tags are read correctly
+            // Fate attunement
+            if (selectedUnit?.Attunement is FateAttunement fate)
+            {
+                fate.OnSpellCast(resolvedHalf.Speed, State.SpellsCastThisTurn);
+                schoolAttunementUI?.Refresh();
+            }
+
+            // Arcane attunement
+            if (selectedUnit?.Attunement is ArcaneAttunement arcane)
+            {
+                string cardId = cardUi.CardInstance?.BlueprintId ?? "";
+                string cardName = resolvedHalf.Name ?? "";
+                arcane.OnSpellCast(cardId, cardName);
+                schoolAttunementUI?.Refresh();
+            }
+
+            // Elementalist attunement
             if (selectedUnit != null &&
                 selectedUnit.School == CardSchool.Elementalist &&
                 selectedUnit.Attunement is ElementalAttunement elemAtt &&

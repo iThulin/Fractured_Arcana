@@ -98,6 +98,18 @@ public static class Rules
     {
         if (a.Speed == PlaySpeed.Sorcery && s.Step != "Main")
             return false;
+
+        if (a.Speed == PlaySpeed.Reaction)
+        {
+            var casterUnit = s.UnitsInPlay?.Find(u => u != null && u.Name == caster.Name);
+            if (casterUnit?.Attunement is FateAttunement fate && fate.HasFreeReaction)
+            {
+                // Free Reaction — skip the CanPlay cost check for this path only.
+                // ConsumeFreeReaction() is called in TryCastWithTargets after Pay().
+                return true;
+            }
+        }
+
         if (!a.CanPlay(s, caster))
             return false;
         return true;
@@ -114,6 +126,13 @@ public static class Rules
         foreach (var c in a.Costs)
             c.Pay(s, caster);
 
+        if (a.Speed == PlaySpeed.Reaction)
+        {
+            var casterUnit = s.UnitsInPlay?.Find(u => u != null && u.Name == caster.Name);
+            if (casterUnit?.Attunement is FateAttunement fate && fate.HasFreeReaction)
+                fate.ConsumeFreeReaction();
+        }
+
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
         var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap };
 
@@ -121,6 +140,9 @@ public static class Rules
         s.Priority.OnStackItemAdded();
         s.Bus.Emit("AbilityCast", item);
         s.Log($"Cast → {a.Name} [{a.Speed}] (stack size {s.StackCount()})");
+
+        s.SpellsCastThisTurn++;
+
         return true;
     }
 
@@ -155,9 +177,9 @@ public static class Rules
             targets = null;
         }
 
-        // In RulesManager.TryCastWithTargets, before foreach (var c in a.Costs) c.Pay(...):
-        // Apply FirstCardCostReduction passive if applicable
         int manaDiscount = 0;
+
+        // ── Equipment: first-card reduction ────────────────────────────────────────
         if (s.ActiveCasterUnit != null && !s.ActiveCasterUnit.Stats.HasPlayedCardThisTurn)
         {
             foreach (var (tag, value) in s.ActiveCasterUnit.EquipmentPassives)
@@ -166,11 +188,25 @@ public static class Rules
                     manaDiscount += value;
             }
         }
-        // Pass manaDiscount into cost payment — requires ManaCost to accept a discount.
-        // Simplest approach: temporarily reduce the mana cost amount before Pay().
 
+        // ── Foresight: Instant/Reaction cost reduction at Foresight >= 2 ───────────
+        if ((a.Speed == PlaySpeed.Instant || a.Speed == PlaySpeed.Reaction)
+            && s.ActiveCasterUnit?.Attunement is FateAttunement fate)
+        {
+            manaDiscount += fate.GetInstantCostReduction();
+        }
+
+        // Pay at full price, then refund the discount.
+        // This avoids needing to mutate ManaCost internals.
         foreach (var c in a.Costs)
             c.Pay(s, caster);
+
+        if (manaDiscount > 0 && s.Mana.ContainsKey(caster))
+        {
+            int maxMana = s.ActiveCasterUnit?.Stats.MaxMana ?? 5;
+            s.Mana[caster] = Math.Min(s.Mana[caster] + manaDiscount, maxMana);
+            s.Log($"[CostReduction] Refunded {manaDiscount} mana (discount applied).");
+        }
 
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
         var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap, SourceCard = sourceCard };

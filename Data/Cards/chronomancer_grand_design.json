@@ -1,0 +1,189 @@
+{
+	"id": "chronomancer_grand_design",
+	"status": "wip",
+	"name": "Grand Design",
+	"school": "Chronomancer",
+	"rarity": "Rare",
+	"top": {
+		"name": "Grand Design",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Schedule the next two spells you cast this turn to also re-resolve at the end of each of your next 2 turns.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "schedule",
+			"turns": 2,
+			"do": {
+				"type": "echo_last",
+				"value_mult": 1.0
+			}
+		}
+	},
+	"bottom": {
+		"name": "The Strings of Fate",
+		"mana": 4,
+		"speed": "Reaction",
+		"rules_text": "Next enemy turn: every enemy action is redirected to a random other enemy.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "redirect_all",
+			"to": "random_enemy",
+			"turns": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Grand Design+",
+			"bottom_name": "The Strings of Fate+",
+			"description": "Bigger plans; tighter strings.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.do.value_mult",
+					"value": 1.0
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Schedule the next two spells you cast to re-resolve at full value end of each of your next 2 turns. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "redirect_all",
+								"to": "random_enemy",
+								"turns": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Next enemy turn: all enemy actions redirect to a random other enemy. +1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Master Plan",
+			"description": "Lasts 3 turns.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "The next two spells re-resolve end of each of your next 3 turns. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Puppet Strings",
+			"description": "You choose for 2 Foresight.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "redirect_all",
+						"to": "chosen",
+						"turns": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Next enemy turn: redirect every enemy action to targets you choose. Spend 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Long Game",
+			"description": "Plan also Fast-Forwardable.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Next three spells re-resolve end of your next 3 turns; you may Fast-Forward any of them for 1 Foresight. +1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Marionette",
+			"description": "Redirected actions gain +3 power.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Next enemy turn: redirect every enemy action to targets you choose; each gains +3 power. Spend 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Predetermination",
+			"description": "The whole turn replays next turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every spell you cast this turn re-resolves at full value at the start of each of your next 2 turns. Gain 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Weaver's Hand",
+			"description": "Strings persist 2 enemy turns.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "redirect_all",
+						"to": "chosen",
+						"turns": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "For the next two enemy turns: redirect every enemy action to targets you choose; each gains +3 power. Spend 2 Foresight."
+				}
+			]
+		}
+	]
+}

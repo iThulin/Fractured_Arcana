@@ -1,0 +1,248 @@
+{
+	"id": "chronomancer_tempo_shift",
+	"status": "wip",
+	"name": "Tempo Shift",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Quickening",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Target ally takes an extra action this turn. Spend 1 Foresight.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": false
+		},
+		"effect": {
+			"type": "apply_status",
+			"status": "hasted",
+			"duration": 1
+		}
+	},
+	"bottom": {
+		"name": "Lag",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Target enemy loses its next action (postponed 1 turn).",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "postpone",
+			"turns": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Quickening+",
+			"bottom_name": "Lag+",
+			"description": "Free quicken; steal more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Target ally takes an extra action this turn."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.turns",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Target enemy's next action is postponed 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Adrenaline",
+			"description": "+3 movement too.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "hasted",
+								"duration": 1
+							},
+							{
+								"type": "temp_buff",
+								"stat": "movement",
+								"amount": 3,
+								"turns": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Target ally takes an extra action and +3 movement."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Theft of Hours",
+			"description": "You take the action.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "postpone",
+								"turns": 2
+							},
+							{
+								"type": "apply_status",
+								"status": "hasted",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Postpone the enemy's action 2 turns; you gain an extra action."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Second Wind",
+			"description": "All allies within 2.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 2,
+						"enemies_only": false
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "All allies within 2 take an extra action this turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Time Debt",
+			"description": "Steals two actions.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "postpone",
+								"turns": 2
+							},
+							{
+								"type": "apply_status",
+								"status": "delayed",
+								"duration": 2
+							},
+							{
+								"type": "apply_status",
+								"status": "hasted",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Postpone 2 turns + Delayed (2). You gain an extra action."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Overclock",
+			"description": "Two extra actions, Slowed after.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "hasted",
+								"duration": 2
+							},
+							{
+								"type": "temp_buff",
+								"stat": "movement",
+								"amount": 4,
+								"turns": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Target ally takes two extra actions and +4 movement; Slowed next turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Total Standstill",
+			"description": "Enemy skips next turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "skip_enemy_turn",
+						"turns": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Target enemy skips its entire next turn. You gain an extra action."
+				}
+			]
+		}
+	]
+}

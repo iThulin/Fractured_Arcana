@@ -1,0 +1,227 @@
+{
+	"id": "chronomancer_hasten_and_hinder",
+	"status": "wip",
+	"name": "Hasten & Hinder",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Hasten",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "A spell you cast this turn resolves immediately, skipping the stack.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "fast_forward"
+		}
+	},
+	"bottom": {
+		"name": "Hinder",
+		"mana": 2,
+		"speed": "Reaction",
+		"rules_text": "When an enemy casts: their spell drops to the bottom of the stack and resolves last.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "postpone",
+			"turns": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Hasten+",
+			"bottom_name": "Hinder+",
+			"description": "Hasten grants Foresight; hinder slows the caster.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fast_forward"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "A spell you cast this turn resolves immediately. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "postpone",
+								"turns": 1
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Enemy spell resolves last; its caster is Slowed."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Snap Cast",
+			"description": "Make it cost 1 less too.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fast_forward"
+							},
+							{
+								"type": "cost_modify",
+								"amount": 1,
+								"scope": "self_next"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell costs 1 less and resolves immediately. +1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Stonewall",
+			"description": "Postpones 2 turns.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "postpone",
+								"turns": 2
+							},
+							{
+								"type": "apply_status",
+								"status": "temporal_drag",
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Enemy spell resolves 2 turns later; caster gets Temporal Drag (2)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Time Compression",
+			"description": "Resolve two spells now.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "The next two spells you cast resolve immediately. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Gridlock",
+			"description": "Hinders the whole enemy stack.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When enemies cast: ALL their stacked spells resolve last, in reverse order. Casters Slowed."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Outside Time",
+			"description": "Cast a spell from hand at instant speed, free.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Until end of turn, you may cast any spell from hand at Instant speed; the first costs 0 and resolves immediately."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Frozen Stack",
+			"description": "Suspend all enemy spells until your turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "postpone",
+								"turns": 99
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When enemies cast: suspend every enemy spell on the stack until your next turn. Gain 1 Foresight."
+				}
+			]
+		}
+	]
+}

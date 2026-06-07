@@ -1,0 +1,242 @@
+{
+	"id": "chronomancer_sands_of_time",
+	"status": "wip",
+	"name": "Sands of Time",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Hasten the Hour",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Advance one of your scheduled spells — it resolves at the end of this turn.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "advance"
+		}
+	},
+	"bottom": {
+		"name": "Drag",
+		"mana": 1,
+		"speed": "Reaction",
+		"rules_text": "When an enemy casts: that spell resolves one turn later instead of now.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "postpone",
+			"turns": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Hasten the Hour+",
+			"bottom_name": "Drag+",
+			"description": "Advance grants Foresight; drag stings.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance a scheduled spell to end of turn. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "postpone",
+								"turns": 1
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When an enemy casts: resolve 1 turn later; caster Slowed."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Quicksilver",
+			"description": "Resolve it immediately.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fast_forward"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Resolve one scheduled spell immediately. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Molasses",
+			"description": "Also applies Temporal Drag.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "postpone",
+								"turns": 2
+							},
+							{
+								"type": "apply_status",
+								"status": "temporal_drag",
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Enemy spell resolves 2 turns later; caster gets Temporal Drag (2)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Time Skip",
+			"description": "Advance ALL your scheduled spells.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Resolve ALL your scheduled spells immediately. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Sandbag",
+			"description": "Drag affects the whole stack.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When enemies cast: ALL enemy spells on the stack resolve 1 turn later. Casters Slowed."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Seize the Moment",
+			"description": "Advance + copy the resolved spell.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fast_forward"
+							},
+							{
+								"type": "echo_last",
+								"value_mult": 1.0
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Resolve a scheduled spell now, then Echo it. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Lost Hour",
+			"description": "The enemy spell is postponed indefinitely.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "postpone",
+								"turns": 99
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When an enemy casts: that spell is shelved until you allow it. Gain 1 Foresight."
+				}
+			]
+		}
+	]
+}

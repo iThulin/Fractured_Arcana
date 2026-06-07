@@ -1,51 +1,183 @@
 {
-  "id": "chronomancer_rewind",
-  "status": "stub",
-  "name": "Rewind",
-  "school": "Chronomancer",
-  "rarity": "Common",
-  "top": {
-    "name": "Rewind",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Return the last resolved spell to the stack. It resolves again with original targets.",
-    "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Rewind (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: You may choose new targets for the rewound spell",
-      "effect": {
-        "type": "empty"
-      }
-    }
-  },
-  "bottom": {
-    "name": "Temporal Shield",
-    "mana": 2,
-    "speed": "Instant",
-    "rules_text": "Gain 7 shield. When shield breaks rewind: restore HP to what it was when shield was applied.",
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "shield",
-      "amount": 7
-    },
-    "channel": {
-      "name": "Temporal Shield (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also restore mana",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "shield",
-        "amount": 7
-      }
-    }
-  }
+	"id": "chronomancer_rewind",
+	"status": "wip",
+	"name": "Rewind",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Rewind",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Re-cast your last resolved spell with its original targets. Spend 1 Foresight.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "rewind_last",
+			"retarget": false
+		}
+	},
+	"bottom": {
+		"name": "Temporal Shield",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Gain 7 shield. When it breaks, restore your HP to its value at cast.",
+		"tags": [
+			"time"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "shield",
+			"amount": 7
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Rewind+",
+			"bottom_name": "Temporal Shield+",
+			"description": "Free rewind; sturdier shield.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Re-cast your last resolved spell with its original targets."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 10
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 10 shield. On break, restore HP to its value at cast."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Replay",
+			"description": "Replay: +2 damage.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Re-cast your last spell (+2 damage), original targets."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Stasis Ward",
+			"description": "+2 Foresight on break.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 10 shield. On break: restore HP, +2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Double Take",
+			"description": "Rewind the last two spells.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "rewind_last",
+								"retarget": false
+							},
+							{
+								"type": "rewind_last",
+								"retarget": false
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Re-cast your last two resolved spells, original targets."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Causal Loop",
+			"description": "Shield refreshes once.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 12
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 12 shield. First break: restore HP and re-apply 12."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Eternal Return",
+			"description": "Re-target, +2, cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "rewind_last",
+						"retarget": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Re-cast your last spell (+2 damage), new targets."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Anchored to Yesterday",
+			"description": "HP can't drop below cast value.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 15
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 15 shield. While it holds, HP can't fall below its value at cast. On break: restore HP, mana, +2 Foresight."
+				}
+			]
+		}
+	]
 }
