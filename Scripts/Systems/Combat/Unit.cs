@@ -95,6 +95,7 @@ public partial class Unit : Node3D
     public bool HasAttackedThisCombat = false; // Ambush tracking
 
     // ── Chronomancer: action delay ───────────────────────────────
+
     /// <summary>
     /// Number of turns this unit's action is postponed.
     /// Decremented at the start of each enemy turn before ActEnemyUnit runs.
@@ -123,6 +124,55 @@ public partial class Unit : Node3D
     /// RedirectAuraPersistentEffect uses this flag to identify valid decoy targets.
     /// </summary>
     public bool IsDecoy = false;
+
+    // ── Construct identity ──────────────────────────────────────────
+
+    /// <summary>
+    /// True for Tinker constructs. Drives auto-acting in the construct phase and "do I have a construct" queries.
+    /// </summary>
+    public bool IsConstruct = false;
+
+    /// <summary>
+    /// Turns of setup remaining before this construct can act. Decremented (and skipped) by the construct phase. 0 = ready.
+    /// </summary>
+    public int SetupTurnsRemaining = 0;
+
+    /// <summary>
+    /// True for emplacements (turrets, cannons, sentinels) that cannot reposition. They simply skip the activation if no target is in range.
+    /// </summary>
+    public bool IsImmobileConstruct = false;
+
+    /// <summary>
+    /// Set true by Overclock for a single construct phase — the construct fires/acts twice. Consumed and cleared by the phase.
+    /// </summary>
+    public bool ActsTwiceThisTurn = false;
+
+    // ── Heat / burnout (push-your-luck) ─────────────────────────────
+    /// <summary>
+    /// Current Heat. Each point adds +1 to this construct's attack. Raised only by opt-in actions (Overclock, Heat cards) — or passively when <see cref="PassiveHeat"/> is set (corrupted Unshackled Forge).
+    /// </summary>
+    public int Heat = 0;
+
+    /// <summary>
+    /// Heat at which this construct burns out (is destroyed) at the end of its activation. 0 = never burns out.
+    /// </summary>
+    public int BurnoutThreshold = 0;
+
+    /// <summary>
+    /// Corrupted-variant flag. When true the construct gains 1 Heat each time it acts, with no opt-in required — the safety governor is gone.
+    /// </summary>
+    public bool PassiveHeat = false;
+
+    /// <summary>
+    /// Raises Heat. Burnout itself is resolved by the construct phase, not here, so this never kills the unit directly.
+    /// </summary>
+    public void AddHeat(int amount)
+    {
+        if (amount <= 0 || !IsConstruct)
+            return;
+        Heat += amount;
+        GD.Print($"{Name} Heat {Heat}/{BurnoutThreshold}.");
+    }
 
     // ── Action Points ─────────────────────────────────────────────────────────
     public int MaxActionPoints = 0;  // set at spawn from TG tier
@@ -735,6 +785,7 @@ public partial class Unit : Node3D
             CardSchool.Arcanist => new ArcaneAttunement(),
             CardSchool.Enchanter => new WeaveAttunement(),
             CardSchool.Chronomancer => new FateAttunement(),
+            CardSchool.Tinker => new TinkerAttunement(),
             _ => null
         };
     }

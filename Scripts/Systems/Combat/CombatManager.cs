@@ -1536,7 +1536,7 @@ public partial class CombatManager : Node3D
         RefreshAllUI();
     }
 
-    private void EndPlayerTurn()
+    private async void EndPlayerTurn()
     {
         _zoneRenderer?.Clear();
 
@@ -1582,8 +1582,10 @@ public partial class CombatManager : Node3D
 
             GD.Print($"[ExtraTurn] Extra turn: {extraTurn.ExtraMana} mana, draw {extraTurn.ExtraDraw}.");
             StartPlayerTurn();
-            return; // Don't call StartEnemyTurn yet
+            return; // Don't call StartEnemyTurn — constructs hold until the round actually ends
         }
+
+        await RunConstructPhase();   // ← only on the path that hands off to the enemy
 
         StartEnemyTurn();
     }
@@ -2330,6 +2332,8 @@ public partial class CombatManager : Node3D
         combatUI?.AppendActionLog(deathMsg);
 
         HonoredDeadService.RecordDeath(unit);
+        if (unit.IsConstruct)          // ← feed Schematics on any construct loss
+            RegisterConstructLoss(unit);
 
         // ── Memorial creation ─────────────────────────────────────────────
         if (State?.Memorials != null && unit.CurrentTile != null)
@@ -3401,6 +3405,16 @@ public partial class CombatManager : Node3D
             int speed = 0;
             int armor = 0;
             bool isPlayerControlled = (teamId == 0);
+            int schematicBonus = 0;
+            if (IsTinkerConstructKind(unitKind))
+            {
+                if (ConstructRegistry.Count(State, teamId) >= GetConstructCap(teamId))
+                {
+                    GD.Print($"[Summon] Construct cap reached for team {teamId} — {unitKind} not deployed.");
+                    return null;
+                }
+                schematicBonus = GetSchematicBonus(teamId);
+            }
 
             switch (unitKind.ToLowerInvariant())
             {
@@ -3504,6 +3518,26 @@ public partial class CombatManager : Node3D
                     armor = 0;
                     break;
 
+                // Tinker constructs are determined by Combatmanager.Constructs.cs
+                case "drone":
+                case "turret":
+                case "cannon":
+                case "grand_turret":
+                case "siege_engine":
+                case "sentinel":
+                case "lattice_node":
+                case "familiar":
+                case "tinker_barrier":
+                case "tinker_colossus":
+                    {
+                        var st = TinkerConstructStats(unitKind);
+                        scene = DummyUnitScene;
+                        hp = st.Hp + schematicBonus;   // HP bonus folded in pre-_Ready
+                        speed = st.Speed;
+                        armor = st.Armor;
+                    }
+                    break;
+
                 default:
                     GD.PrintErr($"[Summon] Unknown unit kind: {unitKind}");
                     return null;
@@ -3533,6 +3567,9 @@ public partial class CombatManager : Node3D
             suffix = char.ToUpper(suffix[0]) + suffix.Substring(1);
             unit.Name = suffix;
             unit.RefreshNameLabel();
+
+            if (IsTinkerConstructKind(unitKind))
+                ConfigureTinkerConstruct(unit, unitKind, teamId, schematicBonus);
 
             if (unitKind is "colossus" or "colossus_empowered")
                 unit.ApplyStatus("colossus_absorb", 999);
