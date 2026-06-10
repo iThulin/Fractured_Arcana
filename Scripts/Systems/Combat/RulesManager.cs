@@ -51,6 +51,34 @@ public sealed class GameStack
     public void Push(StackItem i) => _stack.Push(i);
     public StackItem Pop() => _stack.Pop();
     public IEnumerable<StackItem> Items => _stack;
+
+    /// <summary>
+    /// Returns the top item without popping it, or null if the stack is empty.
+    /// RedirectEffect mutates Targets on the returned reference directly.
+    /// </summary>
+    public StackItem PeekTop() => !IsEmpty ? _stack.Peek() : null;
+
+    /// <summary>
+    /// Reverses the resolution order of all items on the stack.
+    /// The item that would have resolved last now resolves first.
+    /// Used by ReverseStackEffect.
+    /// </summary>
+    public void Reverse()
+    {
+        if (_stack.Count < 2)
+            return;
+
+        // Collect top → bottom, then re-push bottom → top
+        var items = new List<StackItem>(_stack); // [top ... bottom]
+        _stack.Clear();
+        // Iterate top-to-bottom; push each → last push lands on top
+        // We want original bottom on top, so don't reverse the list:
+        // Push in the same order [top ... bottom] → bottom ends up on top ✓
+        foreach (var item in items)
+            _stack.Push(item);
+
+        GD.Print($"[GameStack] Reversed. Top item is now '{_stack.Peek()?.Ability?.Name}'.");
+    }
 }
 
 public sealed class PriorityManager
@@ -206,6 +234,14 @@ public static class Rules
             int maxMana = s.ActiveCasterUnit?.Stats.MaxMana ?? 5;
             s.Mana[caster] = Math.Min(s.Mana[caster] + manaDiscount, maxMana);
             s.Log($"[CostReduction] Refunded {manaDiscount} mana (discount applied).");
+        }
+
+        // ── Chronomancer: consume queued cost reduction ──────────────────────────
+        if (s.NextSpellCostReduction > 0)
+        {
+            manaDiscount += s.NextSpellCostReduction;
+            s.NextSpellCostReduction = 0; // single-use, consumed here
+            s.Log($"[CostModify] Applied {manaDiscount} mana discount.");
         }
 
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();

@@ -94,6 +94,36 @@ public partial class Unit : Node3D
     public bool HasSwitchedStanceThisTurn = false;
     public bool HasAttackedThisCombat = false; // Ambush tracking
 
+    // ── Chronomancer: action delay ───────────────────────────────
+    /// <summary>
+    /// Number of turns this unit's action is postponed.
+    /// Decremented at the start of each enemy turn before ActEnemyUnit runs.
+    /// </summary>
+    public int PostponedTurns = 0;
+
+    /// <summary>
+    /// Tile the Chronomancer has anchored for snap-back teleport.
+    /// Set by SetAnchorEffect; cleared when AnchorTurnsRemaining reaches 0.
+    /// </summary>
+    public Vector2I? AnchorCoord = null;
+
+    /// <summary>
+    /// Turns remaining before the anchor expires.
+    /// </summary>
+    public int AnchorTurnsRemaining = 0;
+
+    /// <summary>
+    /// Tile this unit has been ordered to charge to via RedirectChargeEffect.
+    /// Consumed by ActSoldier/ActBrute in CombatManager; cleared after use.
+    /// </summary>
+    public Vector2I? RedirectedChargeTile = null;
+
+    /// <summary>
+    /// True for temporal decoy units spawned by SummonDecoyLeafEffect.
+    /// RedirectAuraPersistentEffect uses this flag to identify valid decoy targets.
+    /// </summary>
+    public bool IsDecoy = false;
+
     // ── Action Points ─────────────────────────────────────────────────────────
     public int MaxActionPoints = 0;  // set at spawn from TG tier
     public int CurrentActionPoints = 0;

@@ -1,0 +1,33 @@
+{
+	"school": "Chronomancer",
+	"cards": [
+		{
+			"id": "chronomancer_precognition",
+			"count": 2
+		},
+		{
+			"id": "chronomancer_glimpse",
+			"count": 2
+		},
+		{
+			"id": "chronomancer_time_walk",
+			"count": 2
+		},
+		{
+			"id": "chronomancer_borrowed_time",
+			"count": 1
+		},
+		{
+			"id": "chronomancer_delay_rune",
+			"count": 1
+		},
+		{
+			"id": "chronomancer_hasten_and_hinder",
+			"count": 1
+		},
+		{
+			"id": "chronomancer_misdirection",
+			"count": 1
+		}
+	]
+}

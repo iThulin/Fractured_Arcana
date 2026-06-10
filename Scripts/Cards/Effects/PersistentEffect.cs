@@ -924,6 +924,207 @@ public sealed class AbsoluteTerritoryZone : PersistentEffect
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Temporal Decay Field
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Board-wide persistent effect. Each tick: deals <see cref="DamagePerTick"/>
+/// to every unit on the board (or enemies only when <see cref="EnemiesOnly"/> is set).
+/// Also increments <see cref="CurrentScalingBonus"/> by <see cref="ScalingPerTick"/>
+/// each turn — the caster's DealDamageEffect reads this via
+/// <c>GameState.GetActiveEffect&lt;TemporalDecayFieldPersistentEffect&gt;</c>
+/// and adds it to all spell damage.
+///
+/// Permanent for the fight (TurnsRemaining = 999).
+/// Spawned by <see cref="TemporalDecayFieldLeafEffect"/>.
+/// </summary>
+public class TemporalDecayFieldPersistentEffect : PersistentEffect
+{
+    public int DamagePerTick;
+    public int ScalingPerTick;
+    public bool EnemiesOnly;
+
+    /// <summary>Running total added to all caster spell damage.</summary>
+    public int CurrentScalingBonus = 0;
+
+    private int _ownerTeamId = -1;
+
+    public TemporalDecayFieldPersistentEffect(int damage, int scaling,
+        Entity owner, bool enemiesOnly = false)
+    {
+        DamagePerTick = damage;
+        ScalingPerTick = scaling;
+        Owner = owner;
+        EnemiesOnly = enemiesOnly;
+        TurnsRemaining = 999; // permanent for this combat
+    }
+
+    public void SetOwnerTeamId(int teamId) => _ownerTeamId = teamId;
+
+    public override void Tick(GameState s)
+    {
+        if (s?.UnitsInPlay == null)
+            return;
+
+        foreach (var unit in s.UnitsInPlay.ToList())
+        {
+            if (unit == null || !unit.Stats.IsAlive)
+                continue;
+            if (EnemiesOnly && _ownerTeamId >= 0 && unit.TeamId == _ownerTeamId)
+                continue;
+
+            unit.ApplyDamage(DamagePerTick);
+            s.Log($"[TemporalDecay] {unit.Name} takes {DamagePerTick}.");
+        }
+
+        CurrentScalingBonus += ScalingPerTick;
+        s.Log($"[TemporalDecay] Spell scaling now +{CurrentScalingBonus}.");
+
+        // TurnsRemaining never reaches 0 — effect persists until combat ends.
+        // CombatManager prunes dead-unit effects; this one only expires via
+        // combat end or an explicit removal effect.
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  EXTRA TURN
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Grants the Chronomancer a second turn each round with limited resources.
+/// Stored on <c>GameState.ActiveEffects</c>.
+///
+/// CombatManager reads <see cref="HasExtraTurn"/> in <c>EndPlayerTurn</c>:
+/// if true and the extra turn hasn't fired this round, it runs a second
+/// <c>StartPlayerTurn</c> before the enemy acts.
+///
+/// Set <see cref="ExtraTurnFiredThisRound"/> = true at the top of
+/// <c>StartPlayerTurn</c> when entering the extra turn, and reset it
+/// at the top of each new round (i.e. before every non-extra StartPlayerTurn).
+/// </summary>
+public class ExtraTurnPersistentEffect : PersistentEffect
+{
+    public int ExtraMana;
+    public int ExtraDraw;
+
+    /// <summary>True during the extra-turn window so CombatManager doesn't loop.</summary>
+    public bool ExtraTurnFiredThisRound = false;
+
+    public ExtraTurnPersistentEffect(int mana, int draw, Entity owner)
+    {
+        ExtraMana = mana;
+        ExtraDraw = draw;
+        TurnsRemaining = 999;
+        Owner = owner;
+    }
+
+    public override void Tick(GameState s)
+    {
+        // Permanent — never expire.
+        // ExtraTurnFiredThisRound is reset by CombatManager each new round.
+    }
+
+    /// <summary>True when the extra turn should fire this round.</summary>
+    public bool HasExtraTurn => !ExtraTurnFiredThisRound;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  REDIRECT AURA
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Aura that forces enemy single-target actions within <see cref="Radius"/>
+/// to target the nearest friendly decoy unit instead of their chosen target.
+///
+/// CombatManager reads this in <c>FindNearestPlayerUnit</c>: if a redirect
+/// aura is active and a live decoy exists within <see cref="Radius"/> of the
+/// attacker, return the decoy instead of the actual nearest player unit.
+///
+/// Spawned by <see cref="RedirectAuraLeafEffect"/> alongside a decoy unit.
+/// </summary>
+public class RedirectAuraPersistentEffect : PersistentEffect
+{
+    public int Radius;
+    public Vector2I AuraCenter; // updated each turn to the owning unit's position
+
+    public RedirectAuraPersistentEffect(int radius, int turns, Entity owner, Vector2I center)
+    {
+        Radius = radius;
+        TurnsRemaining = turns;
+        Owner = owner;
+        AuraCenter = center;
+    }
+
+    public override void Tick(GameState s)
+    {
+        // Update center to the owner unit's current position (if it moved)
+        var ownerUnit = s.UnitsInPlay.Find(u => u != null && u.Name == Owner?.Name);
+        if (ownerUnit?.CurrentTile != null)
+            AuraCenter = ownerUnit.CurrentTile.Axial;
+
+        TurnsRemaining--;
+        s.Log($"[RedirectAura] Active. {TurnsRemaining} turn(s) remaining.");
+    }
+
+    /// <summary>
+    /// Returns the closest live decoy unit within range of the attacker's position,
+    /// or null if none qualifies. Call from CombatManager.FindNearestPlayerUnit.
+    /// </summary>
+    public Unit FindDecoyTarget(GameState s, Vector2I attackerCoord)
+    {
+        if (s?.Grid == null)
+            return null;
+
+        Unit best = null;
+        int bestDist = int.MaxValue;
+
+        foreach (var unit in s.UnitsInPlay)
+        {
+            if (unit == null || !unit.Stats.IsAlive || !unit.IsDecoy)
+                continue;
+            if (unit.CurrentTile == null)
+                continue;
+
+            int dist = s.Grid.Distance(attackerCoord, unit.CurrentTile.Axial);
+            if (dist <= Radius && dist < bestDist)
+            {
+                bestDist = dist;
+                best = unit;
+            }
+        }
+
+        return best;
+    }
+}
+
+/// <summary>Multi-turn movement buff, tracked as a PersistentEffect.</summary>
+public class MovementBuffEffect : PersistentEffect
+{
+    private readonly Unit _unit;
+    private readonly int _amount;
+
+    public MovementBuffEffect(Unit unit, int amount, int turns)
+    {
+        _unit = unit;
+        _amount = amount;
+        TurnsRemaining = turns;
+        Owner = null; // not owner-keyed
+    }
+
+    public override void Tick(GameState s)
+    {
+        TurnsRemaining--;
+        if (TurnsRemaining <= 0 && _unit != null && Godot.GodotObject.IsInstanceValid(_unit))
+        {
+            _unit.Stats.MovePoints = Math.Max(0, _unit.Stats.MovePoints - _amount);
+            _unit.RefreshHealthBar();
+            s.Log($"[MovementBuff] Expired on {_unit.Name}.");
+        }
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  SHARED HELPER
 // ─────────────────────────────────────────────────────────────────────────────

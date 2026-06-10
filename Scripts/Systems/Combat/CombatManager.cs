@@ -101,6 +101,7 @@ public partial class CombatManager : Node3D
     private CombatPhase currentPhase = CombatPhase.Deployment;
     private int roundNumber = 1;
     private bool enemyPhaseRunning = false;
+    private bool _isExtraTurn = false; // for Chronomancer's extra turn effect
 
     // ── Run summary data (for post-run screen) ───────────────────────────────
     [Signal] public delegate void CombatCompletedEventHandler(bool playerWon);
@@ -1394,6 +1395,19 @@ public partial class CombatManager : Node3D
 
     private void StartPlayerTurn()
     {
+
+        // Reset extra-turn flag and per-round tracking
+        if (!_isExtraTurn)
+        {
+            // New round — reset ExtraTurnFiredThisRound on active effects
+            if (State.ActiveEffects != null)
+            {
+                foreach (var eff in State.ActiveEffects.OfType<ExtraTurnPersistentEffect>())
+                    eff.ExtraTurnFiredThisRound = false;
+            }
+        }
+        _isExtraTurn = false;
+
         currentPhase = CombatPhase.PlayerTurn;
         enemyPhaseRunning = false;
 
@@ -1449,6 +1463,48 @@ public partial class CombatManager : Node3D
             }
         }
 
+        // ── Tick Almanac entries ──────────────────────────────────────────────────
+        if (State.Almanac != null && State.Almanac.Count > 0)
+        {
+            foreach (var entry in State.Almanac.ToList())
+            {
+                entry.Tick();
+                if (entry.IsReady)
+                {
+                    GD.Print($"[Almanac] Firing scheduled entry: {entry.Label}.");
+                    entry.Child?.Resolve(State, entry.Caster, entry.Targets, entry.Snapshot);
+                    State.Almanac.Remove(entry);
+                }
+            }
+        }
+
+        // ── Tick anchor durations ─────────────────────────────────────────────────
+        foreach (var unit in playerUnits)
+        {
+            if (unit == null || !unit.Stats.IsAlive)
+                continue;
+            if (unit.AnchorTurnsRemaining > 0)
+            {
+                unit.AnchorTurnsRemaining--;
+                if (unit.AnchorTurnsRemaining <= 0)
+                {
+                    unit.AnchorCoord = null;
+                    GD.Print($"[Anchor] {unit.Name}'s anchor expired.");
+                }
+            }
+        }
+
+        // ── Tick phase-tile duration ──────────────────────────────────────────────
+        if (State.PhaseTileTurnsRemaining > 0)
+        {
+            State.PhaseTileTurnsRemaining--;
+            if (State.PhaseTileTurnsRemaining <= 0)
+            {
+                State.PhaseTiles?.Clear();
+                GD.Print("[PhaseTiles] Phase network expired.");
+            }
+        }
+
         ProcessStatusEffects(playerUnits);
         ApplyHazardDamage(playerUnits);
 
@@ -1484,8 +1540,6 @@ public partial class CombatManager : Node3D
     {
         _zoneRenderer?.Clear();
 
-
-
         foreach (var unit in playerUnits)
         {
             if (unit.Attunement is WeaveAttunement w)
@@ -1504,6 +1558,33 @@ public partial class CombatManager : Node3D
         ClearMoveTiles();
         GD.Print("=== Player Turn End ===");
         RefreshPhaseUI();
+
+        // ── Extra turn check ──────────────────────────────────────────────────────
+        var extraTurn = State.ActiveEffects?
+            .OfType<ExtraTurnPersistentEffect>()
+            .FirstOrDefault(e => !e.IsExpired && e.HasExtraTurn);
+
+        if (extraTurn != null)
+        {
+            extraTurn.ExtraTurnFiredThisRound = true;
+            _isExtraTurn = true;
+
+            // Set limited resources for the extra turn
+            State.Mana[Me] = extraTurn.ExtraMana;
+            foreach (var unit in playerUnits)
+            {
+                if (unit == null || !unit.Stats.IsAlive)
+                    continue;
+                unit.DeckData?.Draw(extraTurn.ExtraDraw);
+                unit.Stats.MovePoints = unit.Stats.BaseSpeed;
+                unit.CurrentActionPoints = unit.MaxActionPoints;
+            }
+
+            GD.Print($"[ExtraTurn] Extra turn: {extraTurn.ExtraMana} mana, draw {extraTurn.ExtraDraw}.");
+            StartPlayerTurn();
+            return; // Don't call StartEnemyTurn yet
+        }
+
         StartEnemyTurn();
     }
 
@@ -1591,6 +1672,16 @@ public partial class CombatManager : Node3D
             return;
 
         currentPhase = CombatPhase.EnemyTurn;
+
+        // ── Reset per-round Chronomancer modifiers ────────────────────────────────
+        State.EnemySpellCostIncrease = 0;
+
+        if (State.RedirectAllTurnsRemaining > 0)
+        {
+            State.RedirectAllTurnsRemaining--;
+            GD.Print($"[RedirectAll] {State.RedirectAllTurnsRemaining} turn(s) remaining.");
+        }
+
         enemyPhaseRunning = true;
 
         _zoneRenderer?.Clear();
@@ -1658,6 +1749,30 @@ public partial class CombatManager : Node3D
             var target = FindNearestPlayerUnit(enemy);
             if (target == null)
                 continue;
+
+            // ── Postpone: skip this unit's action if it has pending postpone tokens ──
+            if (enemy.PostponedTurns > 0)
+            {
+                enemy.PostponedTurns--;
+                GD.Print($"{enemy.Name} is postponed — skipping turn ({enemy.PostponedTurns} remaining).");
+                combatUI?.AppendActionLog($"{enemy.Name} is delayed!");
+                continue;
+            }
+
+            // ── Redirect charge: consume redirected-charge override ──────────────────
+            if (enemy.RedirectedChargeTile.HasValue)
+            {
+                var redirectTile = State.Grid?.GetTile(enemy.RedirectedChargeTile.Value);
+                enemy.RedirectedChargeTile = null; // consume
+                if (redirectTile != null && redirectTile.CanEnter(enemy))
+                {
+                    GD.Print($"{enemy.Name} charge redirected to {redirectTile.Axial}.");
+                    enemy.CurrentTile?.ClearOccupant(enemy);
+                    enemy.PlaceOnTile(redirectTile);
+                    await ToSignal(GetTree().CreateTimer(0.3f), "timeout");
+                    continue; // enemy moved; no further action this turn
+                }
+            }
 
             await ActEnemyUnit(enemy, target);
 
@@ -3237,6 +3352,29 @@ public partial class CombatManager : Node3D
         if (enemy == null || !IsInstanceValid(enemy) || enemy.CurrentTile == null)
             return null;
 
+        // ── RedirectAll: enemy attacks another random enemy ───────────────────
+        if (State.RedirectAllTurnsRemaining > 0)
+        {
+            var otherEnemies = enemyUnits
+                .Where(u => u != null && IsInstanceValid(u) && u != enemy && u.Stats.IsAlive)
+                .ToList();
+            if (otherEnemies.Count > 0)
+                return otherEnemies[GD.Randi() % (uint)otherEnemies.Count < (uint)otherEnemies.Count
+                    ? (int)(GD.Randi() % (uint)otherEnemies.Count) : 0];
+        }
+
+        // ── RedirectAura: decoy in range overrides nearest player ─────────────
+        var aura = State.ActiveEffects?
+            .OfType<RedirectAuraPersistentEffect>()
+            .FirstOrDefault(a => !a.IsExpired);
+        if (aura != null)
+        {
+            var decoy = aura.FindDecoyTarget(State, enemy.CurrentTile.Axial);
+            if (decoy != null)
+                return decoy;
+        }
+
+        // ── Normal: nearest living player unit ───────────────────────────────
         Unit best = null;
         int bestDist = int.MaxValue;
         foreach (var player in playerUnits)
@@ -3302,6 +3440,13 @@ public partial class CombatManager : Node3D
                     hp = 30;
                     speed = 1;
                     armor = unitKind == "colossus_empowered" ? 8 : 5;
+                    break;
+
+                case "decoy":
+                    scene = DummyUnitScene;
+                    hp = 10;  // overwritten by SummonDecoyLeafEffect after spawn
+                    speed = 0;
+                    armor = 0;
                     break;
 
                 case "shield_wall":

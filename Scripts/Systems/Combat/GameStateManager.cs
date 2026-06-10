@@ -36,6 +36,37 @@ public sealed class GameState
     public int LastDamageDealt = 0;   // set by DealDamageEffect after each hit
     public int LastGriefSpent = 0;    // set by GriefDischargeDamageEffect
 
+    // ── Chronomancer systems ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Scheduled-spell queue. Entries tick in StartPlayerTurn.
+    /// </summary>
+    public List<AlmanacEntry> Almanac = new();
+
+    /// <summary>
+    /// Mana cost reduction applied to the player's NEXT spell. Cleared after use.
+    /// </summary>
+    public int NextSpellCostReduction = 0;
+
+    /// <summary>
+    /// Extra mana cost applied to enemy spells this round. Reset in StartEnemyTurn.
+    /// </summary>
+    public int EnemySpellCostIncrease = 0;
+
+    /// <summary>
+    /// Turns remaining on the redirect-all effect.
+    /// When > 0, FindNearestPlayerUnit redirects enemies to attack each other.
+    /// </summary>
+    public int RedirectAllTurnsRemaining = 0;
+
+    /// <summary>Phase-tile network registered by CreatePhaseTilesEffect.</summary>
+    public List<Vector2I> PhaseTiles = new();
+
+    /// <summary>Turns remaining before PhaseTiles clear.</summary>
+    public int PhaseTileTurnsRemaining = 0;
+
+    // ── General combat state ─────────────────────────────────────────────────
+
     public string Step = "Main";
     public HexGridManager Grid;
     public Unit PlayerUnit;

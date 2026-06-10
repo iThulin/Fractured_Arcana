@@ -56,7 +56,10 @@ public interface ICondition { bool IsSatisfied(GameState s, Entity caster); }
 public sealed class AlwaysCondition : ICondition { public bool IsSatisfied(GameState s, Entity c) => true; }
 
 public sealed class TargetSet { public List<object> Items = new(); }
-public sealed class EffectSnapshot { }
+public sealed class EffectSnapshot
+{
+    public float DamageMultiplier = 1.0f;
+}
 
 public interface ITargetSelector { bool Select(GameState s, Entity caster, out TargetSet targets); }
 

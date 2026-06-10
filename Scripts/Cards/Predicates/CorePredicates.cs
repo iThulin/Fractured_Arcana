@@ -393,3 +393,21 @@ public sealed class GlyphCountAtLeastPredicate : IPredicate
         return DamagePerGlyphEffect.CountFriendlyGlyphs(ctx.Game, unit) >= Value;
     }
 }
+
+/// <summary>
+/// Returns true when the caster has cast at least <see cref="Threshold"/>
+/// spells this turn. Reads <c>GameState.SpellsCastThisTurn</c> which is
+/// incremented in <c>Rules.TryCast</c>. See wiring doc §2.
+/// JSON predicate: { "type": "spells_cast_this_turn", "threshold": n }
+/// </summary>
+public sealed class SpellsCastThisTurnPredicate : IPredicate
+{
+    public int Threshold;
+    public SpellsCastThisTurnPredicate(int threshold) { Threshold = threshold; }
+
+    public bool Evaluate(PredicateContext ctx) =>
+        ctx?.Game?.SpellsCastThisTurn >= Threshold;
+
+    public bool IsSatisfied(GameState s, Entity caster) =>
+        s?.SpellsCastThisTurn >= Threshold;
+}
