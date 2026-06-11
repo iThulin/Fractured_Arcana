@@ -8,12 +8,9 @@
 		"name": "Old Growth Rises",
 		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Advance all living tiles within 2 of the target by one stage, then root enemies standing on living ground there for 1 turn.",
+		"rules_text": "Advance living tiles within 2 of the target, then root enemies on living ground there for 1 turn.",
 		"tags": [
 			"growth"
-		],
-		"requires": [
-			"any_growth"
 		],
 		"targeting": {
 			"type": "tile",
@@ -32,7 +29,10 @@
 					"duration": 1
 				}
 			]
-		}
+		},
+		"requires": [
+			"any_growth"
+		]
 	},
 	"bottom": {
 		"name": "Something Is Coming",
@@ -43,9 +43,6 @@
 			"growth",
 			"summon"
 		],
-		"requires": [
-			"old_growth_tile"
-		],
 		"targeting": {
 			"type": "tile",
 			"range": 5
@@ -53,6 +50,244 @@
 		"effect": {
 			"type": "summon_wildlife",
 			"unit": "auto"
+		},
+		"requires": [
+			"old_growth_tile"
+		]
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Both reach further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].radius",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[1].radius",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance living tiles within 3, root enemies on living ground there for 1 turn."
+				},
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 7
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "At distant Old Growth, summon the wildlife the land calls for."
+				}
+			],
+			"top_name": "Old Growth Rises+",
+			"bottom_name": "Something Is Coming+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Ironbark: roots hold longer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].duration",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance living tiles within 3, root enemies there for 2 turns."
+				}
+			],
+			"top_name": "Ironbark"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Den-Mother: two beasts answer.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "auto"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "auto"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "At Old Growth, summon two of the wildlife the land calls for."
+				}
+			],
+			"bottom_name": "Den-Mother"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Heartwood Wall: a board-wide surge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_growth",
+								"radius": 4
+							},
+							{
+								"type": "entangle",
+								"radius": 4,
+								"duration": 2
+							},
+							{
+								"type": "gain_wilding",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance living tiles within 4, root foes there for 2. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Heartwood Wall"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "The Wild Answers: no Old Growth needed.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "requires",
+					"value": [
+						"growth_tile"
+					]
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "auto"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "auto"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "At any growth, summon two wildlife."
+				}
+			],
+			"bottom_name": "The Wild Answers"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Primordial Forest: the whole wood rises.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_growth",
+								"radius": 6
+							},
+							{
+								"type": "entangle",
+								"radius": 6,
+								"duration": 2
+							},
+							{
+								"type": "gain_wilding",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance all living tiles within 6, root foes there for 2. Gain 2 Wilding."
+				}
+			],
+			"top_name": "Primordial Forest"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Stampede: the wild floods in.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "requires",
+					"value": [
+						"growth_tile"
+					]
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "auto"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "auto"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "auto"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "At any growth, summon three wildlife."
+				}
+			],
+			"bottom_name": "Stampede"
 		}
-	}
+	]
 }

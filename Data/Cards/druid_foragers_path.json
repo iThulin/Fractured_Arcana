@@ -1,12 +1,12 @@
 {
-	"id": "druid_take_root",
+	"id": "druid_foragers_path",
 	"status": "wip",
-	"name": "Take Root",
+	"name": "Forager's Path",
 	"school": "Druid",
 	"rarity": "Common",
 	"top": {
-		"name": "Take Root",
-		"mana": 2,
+		"name": "Forage",
+		"mana": 1,
 		"speed": "Sorcery",
 		"rules_text": "Seed Sapling growth on target tile and its ring. Gain 1 Wilding.",
 		"tags": [
@@ -24,30 +24,55 @@
 		}
 	},
 	"bottom": {
-		"name": "Quicken the Wood",
+		"name": "Provision",
 		"mana": 1,
-		"speed": "Sorcery",
-		"rules_text": "Force Thickets within 2 of the target to spread now.",
+		"speed": "Instant",
+		"rules_text": "Draw 2 cards.",
 		"tags": [
 			"growth"
 		],
 		"targeting": {
-			"type": "tile",
-			"range": 4
+			"type": "self"
 		},
 		"effect": {
-			"type": "spread_growth",
-			"radius": 2
-		},
-		"requires": [
-			"any_growth"
-		]
+			"type": "draw",
+			"count": 2
+		}
 	},
 	"upgrades": [
 		{
 			"tier": 1,
 			"half": "both",
-			"description": "Take Root seeds wider; Quicken reaches further.",
+			"description": "Forage gives more Wilding; Provision draws more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.wilding",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Sapling growth within 1. Gain 2 Wilding."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.count",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 3 cards."
+				}
+			],
+			"top_name": "Forage+",
+			"bottom_name": "Provision+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Cultivate: seed a wider patch.",
 			"changes": [
 				{
 					"half": "top",
@@ -57,44 +82,15 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Seed Sapling growth within 2. Gain 1 Wilding."
-				},
-				{
-					"half": "bottom",
-					"field": "effect.radius",
-					"value": 3
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Force Thickets within 3 to spread now."
+					"value": "Seed Sapling growth within 2. Gain 2 Wilding."
 				}
 			],
-			"top_name": "Take Root+",
-			"bottom_name": "Quicken the Wood+"
-		},
-		{
-			"tier": 2,
-			"half": "top",
-			"description": "Deep Roots: cheaper to lay down.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "mana",
-					"value": 1
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Seed Sapling growth within 2. Gain 1 Wilding."
-				}
-			],
-			"top_name": "Deep Roots"
+			"top_name": "Cultivate"
 		},
 		{
 			"tier": 2,
 			"half": "bottom",
-			"description": "Surge: also gain a Wilding.",
+			"description": "Store: draw and gain Wilding.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -103,8 +99,8 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "spread_growth",
-								"radius": 3
+								"type": "draw",
+								"count": 3
 							},
 							{
 								"type": "gain_wilding",
@@ -116,15 +112,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Force Thickets within 3 to spread. Gain 1 Wilding."
+					"value": "Draw 3 cards and gain 1 Wilding."
 				}
 			],
-			"bottom_name": "Surge"
+			"bottom_name": "Store"
 		},
 		{
 			"tier": 3,
 			"half": "top",
-			"description": "Rootwork: seeds at Thicket.",
+			"description": "Plant Deep: seed Thickets.",
 			"changes": [
 				{
 					"half": "top",
@@ -133,34 +129,51 @@
 				},
 				{
 					"half": "top",
+					"field": "effect.radius",
+					"value": 2
+				},
+				{
+					"half": "top",
 					"field": "rules_text",
-					"value": "Seed Thicket growth within 2. Gain 1 Wilding."
+					"value": "Seed Thicket growth within 2. Gain 2 Wilding."
 				}
 			],
-			"top_name": "Rootwork"
+			"top_name": "Plant Deep"
 		},
 		{
 			"tier": 3,
 			"half": "bottom",
-			"description": "Wildfire Bloom: spreads across the board.",
+			"description": "Stockpile: draw and ready the wild.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.steps[0].radius",
-					"value": 5
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 4
+							},
+							{
+								"type": "gain_wilding",
+								"amount": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Force Thickets within 5 to spread. Gain 1 Wilding."
+					"value": "Draw 4 cards and gain 1 Wilding."
 				}
 			],
-			"bottom_name": "Wildfire Bloom"
+			"bottom_name": "Stockpile"
 		},
 		{
 			"tier": 4,
 			"half": "top",
-			"description": "Worldroot: an instant grove.",
+			"description": "Seedmother: a thriving grove for a pittance.",
 			"changes": [
 				{
 					"half": "top",
@@ -175,20 +188,20 @@
 				{
 					"half": "top",
 					"field": "effect.wilding",
-					"value": 2
+					"value": 3
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Seed Thicket growth within 3. Gain 2 Wilding."
+					"value": "Seed Thicket growth within 3. Gain 3 Wilding."
 				}
 			],
-			"top_name": "Worldroot"
+			"top_name": "Seedmother"
 		},
 		{
 			"tier": 4,
 			"half": "bottom",
-			"description": "Greentide: the wild floods outward.",
+			"description": "Hoard: the forest's bounty.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -197,16 +210,12 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "spread_growth",
-								"radius": 6
-							},
-							{
-								"type": "advance_growth",
-								"radius": 3
+								"type": "draw",
+								"count": 5
 							},
 							{
 								"type": "gain_wilding",
-								"amount": 1
+								"amount": 2
 							}
 						]
 					}
@@ -214,10 +223,10 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Spread Thickets within 6, advance growth within 3. Gain 1 Wilding."
+					"value": "Draw 5 cards and gain 2 Wilding."
 				}
 			],
-			"bottom_name": "Greentide"
+			"bottom_name": "Hoard"
 		}
 	]
 }

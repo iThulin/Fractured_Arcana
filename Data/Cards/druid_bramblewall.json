@@ -1,0 +1,235 @@
+{
+	"id": "druid_bramblewall",
+	"status": "wip",
+	"name": "Bramblewall",
+	"school": "Druid",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Bramblewall",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Seed Thicket within 1 of the target, then root enemies on living ground there for 1 turn.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "seed_growth",
+					"stage": 2,
+					"radius": 1,
+					"wilding": 1
+				},
+				{
+					"type": "entangle",
+					"radius": 1,
+					"duration": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Lash Out",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Deal 5 damage, +2 per growth stage on the target's tile.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "thornlash",
+			"damage": 5,
+			"per_stage": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Bramblewall reaches further; Lash Out hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].radius",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[1].radius",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 2, root enemies on living ground there for 1 turn."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage, +2 per growth stage on the target's tile."
+				}
+			],
+			"top_name": "Bramblewall+",
+			"bottom_name": "Lash Out+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Hedge: roots hold longer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].duration",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 2, root enemies there for 2 turns."
+				}
+			],
+			"top_name": "Hedge"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Flay: growth bites deeper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.per_stage",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage, +3 per growth stage on the target's tile."
+				}
+			],
+			"bottom_name": "Flay"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Thornkeep: an instant fortress.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 3,
+								"radius": 1,
+								"wilding": 1
+							},
+							{
+								"type": "entangle",
+								"radius": 2,
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Old Growth within 1, root enemies within 2 for 2 turns. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Thornkeep"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Eviscerate: a savage strike.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 9
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 9 damage, +3 per growth stage on the target's tile."
+				}
+			],
+			"bottom_name": "Eviscerate"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The Dead Wall: a living rampart.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 3,
+								"radius": 2,
+								"wilding": 2
+							},
+							{
+								"type": "entangle",
+								"radius": 3,
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Old Growth within 2, root enemies within 3 for 2 turns. Gain 2 Wilding."
+				}
+			],
+			"top_name": "The Dead Wall"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Rend: nothing standing in the wood survives.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 12
+				},
+				{
+					"half": "bottom",
+					"field": "effect.per_stage",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 12 damage, +5 per growth stage on the target's tile."
+				}
+			],
+			"bottom_name": "Rend"
+		}
+	]
+}

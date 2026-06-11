@@ -97,6 +97,7 @@ public class GrowthManager
     public event Action<TileData> OnCarcassLeft;
     public event Action<TileData> OnCarcassExpired;
     public event Action<TileData, string> OnWildlifeSpawned;
+    public event Action<TileData> OnGrowthChanged;   // fired on every stage change (seed/advance/regress/clear) -> drives tile visuals
 
     public GrowthManager(
         HexGridManager grid,
@@ -442,6 +443,8 @@ public class GrowthManager
         // after clearing so terrain-owned flags survive.
         tile.BlocksLineOfSight = false;
         tile.BlocksMovementByHeight = false;
+
+        OnGrowthChanged?.Invoke(tile);
     }
 
     private void RefreshGrowthFlags(TileData tile)
@@ -452,6 +455,8 @@ public class GrowthManager
         tile.BlocksLineOfSight = thicket;          // thicket walls off sightlines
         tile.BlocksMovementByHeight = oldGrowth;   // old growth is a living wall
         // Sapling difficult-terrain is read by pathfinding off GrowthStage.
+
+        OnGrowthChanged?.Invoke(tile);
     }
 
     private void CollectSpread(TileData source, List<(TileData, Unit)> buffer)

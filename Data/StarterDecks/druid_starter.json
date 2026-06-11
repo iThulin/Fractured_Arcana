@@ -1,0 +1,33 @@
+{
+	"school": "Druid",
+	"cards": [
+		{
+			"id": "druid_first_green",
+			"count": 2
+		},
+		{
+			"id": "druid_take_root",
+			"count": 2
+		},
+		{
+			"id": "druid_creeping_thorn",
+			"count": 2
+		},
+		{
+			"id": "druid_foragers_path",
+			"count": 1
+		},
+		{
+			"id": "druid_quiet_grove",
+			"count": 1
+		},
+		{
+			"id": "druid_hexweed",
+			"count": 1
+		},
+		{
+			"id": "druid_bramble_guard",
+			"count": 1
+		}
+	]
+}

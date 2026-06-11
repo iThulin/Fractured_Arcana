@@ -243,7 +243,18 @@ public static class UITheme
     public static readonly Color OverworldHudBorder = new Color(0.32f, 0.22f, 0.52f, 0.80f);
     public static readonly Color OverworldLowResourceWarning = Danger;
     public static readonly Color OverworldInfoLabelTint = Gold;
+
+    // ════════════════════════════════════════════════════════════
+    // DRUID VISUALS
+    // ════════════════════════════════════════════════════════════
+
     public static readonly Color WildingGreen = new Color(0.42f, 0.62f, 0.20f); // ~#6B9E33
+
+    // Druid living-terrain tile tints (low alpha — terrain still reads underneath)
+    public static readonly Color GrowthSapling = new Color(0.45f, 0.70f, 0.30f, 0.30f);
+    public static readonly Color GrowthThicket = new Color(0.30f, 0.60f, 0.20f, 0.45f);
+    public static readonly Color GrowthOldGrowth = new Color(0.18f, 0.45f, 0.14f, 0.60f);
+    public static readonly Color GrowthPip = new Color(0.55f, 0.90f, 0.35f, 1.0f); // floating marker
 
     // ════════════════════════════════════════════════════════════
     // UNIT VISUALS

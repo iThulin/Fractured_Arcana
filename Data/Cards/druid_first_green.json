@@ -27,12 +27,9 @@
 		"name": "Take What's Offered",
 		"mana": 1,
 		"speed": "Instant",
-		"rules_text": "Harvest living tiles within 2: heal 3 for each tile consumed. The spent ground stays fertile.",
+		"rules_text": "Harvest living tiles within 2: heal 3 per tile consumed.",
 		"tags": [
 			"growth"
-		],
-		"requires": [
-			"any_growth"
 		],
 		"targeting": {
 			"type": "self"
@@ -42,6 +39,163 @@
 			"radius": 2,
 			"heal_per": 3,
 			"draw_per": 0
+		},
+		"requires": [
+			"any_growth"
+		]
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "First Green seeds wider; Take What's Offered heals more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Sapling growth on target and tiles within 2. Gain 1 Wilding."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.heal_per",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Harvest living tiles within 2: heal 4 per tile."
+				}
+			],
+			"top_name": "First Green+",
+			"bottom_name": "Take What's Offered+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Seedling: also gain an extra Wilding.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.wilding",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed within 2. Gain 2 Wilding."
+				}
+			],
+			"top_name": "Seedling"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Forage: also draw a card per 2 tiles harvested.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.draw_per",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Harvest within 2: heal 4 and draw 1 per tile."
+				}
+			],
+			"bottom_name": "Forage"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Greenrush: seeds at Thicket stage.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.stage",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket growth within 2. Gain 2 Wilding."
+				}
+			],
+			"top_name": "Greenrush"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Glut: heal scales harder.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.heal_per",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Harvest within 2: heal 6 and draw 1 per tile."
+				}
+			],
+			"bottom_name": "Glut"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Genesis: a whole grove erupts.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.stage",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket growth within 3. Gain 2 Wilding."
+				}
+			],
+			"top_name": "Genesis"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Bounty: the wood gives everything.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.heal_per",
+					"value": 8
+				},
+				{
+					"half": "bottom",
+					"field": "effect.draw_per",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Harvest within 3: heal 8 and draw 1 per tile."
+				}
+			],
+			"bottom_name": "Bounty"
 		}
-	}
+	]
 }

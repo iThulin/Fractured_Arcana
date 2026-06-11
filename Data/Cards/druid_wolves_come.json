@@ -8,14 +8,11 @@
 		"name": "Wolves Come",
 		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Summon a Wolf beside living ground (12HP 5DMG 2SPD). Wolves grow stronger in a pack.",
+		"rules_text": "Summon a Wolf beside living ground (12HP 5DMG 2SPD).",
 		"tags": [
 			"growth",
 			"summon",
 			"beast"
-		],
-		"requires": [
-			"growth_tile"
 		],
 		"targeting": {
 			"type": "tile",
@@ -24,13 +21,16 @@
 		"effect": {
 			"type": "summon_wildlife",
 			"unit": "Wolf"
-		}
+		},
+		"requires": [
+			"growth_tile"
+		]
 	},
 	"bottom": {
 		"name": "Eyes in the Trees",
 		"mana": 2,
 		"speed": "Sorcery",
-		"rules_text": "Summon Crows at the target tile (6HP 2DMG 4SPD). They fly, and reveal what enemies are hiding.",
+		"rules_text": "Summon Crows at the target tile (6HP 2DMG 4SPD).",
 		"tags": [
 			"summon",
 			"flock"
@@ -44,5 +44,231 @@
 			"unit": "Crows"
 		}
 	},
-	"upgrades": []
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Wolves Come is cheaper; Eyes ranges further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Summon a Wolf beside living ground (12HP 5DMG 2SPD)."
+				},
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 8
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Summon Crows anywhere on the field."
+				}
+			],
+			"top_name": "Wolves Come+",
+			"bottom_name": "Eyes in the Trees+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The Pack: two wolves answer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Summon two Wolves beside living ground."
+				}
+			],
+			"top_name": "The Pack"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Murder: a second flock.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Crows"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Crows"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Summon two flocks of Crows."
+				}
+			],
+			"bottom_name": "Murder of Crows"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "War Pack: no living ground required.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "requires",
+					"value": []
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Summon two Wolves at the target tile."
+				}
+			],
+			"top_name": "War Pack"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "All-Seeing: a wide watch.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Crows"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Crows"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Crows"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Summon three flocks of Crows."
+				}
+			],
+			"bottom_name": "All-Seeing"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The Hunt: the whole pack runs.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "requires",
+					"value": []
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "gain_wilding",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Summon three Wolves. Gain 1 Wilding."
+				}
+			],
+			"top_name": "The Hunt"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "The Watching Wood: nothing is hidden.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Crows"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Crows"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Crows"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Crows"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Summon four flocks of Crows."
+				}
+			],
+			"bottom_name": "The Watching Wood"
+		}
+	]
 }

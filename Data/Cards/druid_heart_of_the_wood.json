@@ -8,14 +8,11 @@
 		"name": "Heart of the Wood",
 		"mana": 5,
 		"speed": "Sorcery",
-		"rules_text": "Seed Thicket growth on the target tile and its ring, then a Bear and a Wolf emerge from it. Gain 1 Wilding.",
+		"rules_text": "Seed Thicket within 1, then a Bear and a Wolf emerge. Gain 1 Wilding.",
 		"tags": [
 			"growth",
 			"summon",
 			"beast"
-		],
-		"requires": [
-			"growth_tile"
 		],
 		"targeting": {
 			"type": "tile",
@@ -39,7 +36,10 @@
 					"unit": "Wolf"
 				}
 			]
-		}
+		},
+		"requires": [
+			"growth_tile"
+		]
 	},
 	"bottom": {
 		"name": "The Pack Answers",
@@ -50,9 +50,6 @@
 			"growth",
 			"summon",
 			"beast"
-		],
-		"requires": [
-			"growth_tile"
 		],
 		"targeting": {
 			"type": "tile",
@@ -70,7 +67,286 @@
 					"unit": "Wolf"
 				}
 			]
-		}
+		},
+		"requires": [
+			"growth_tile"
+		]
 	},
-	"upgrades": []
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Heart seeds wider; the Pack runs cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].radius",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 2, then a Bear and a Wolf emerge. Gain 1 Wilding."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Two Wolves emerge beside living ground."
+				}
+			],
+			"top_name": "Heart of the Wood+",
+			"bottom_name": "The Pack Answers+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Wildheart: a Boar joins.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 2,
+								"wilding": 1
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Bear"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 2; a Bear, Wolf and Boar emerge. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Wildheart"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Three Wolves: a fuller pack.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Three Wolves emerge beside living ground."
+				}
+			],
+			"bottom_name": "Three Wolves"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "The Living Forest: beasts and a maturing wood.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 2,
+								"wilding": 1
+							},
+							{
+								"type": "advance_growth",
+								"radius": 2
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Bear"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket and advance within 2; a Bear, Wolf and Boar emerge. Gain 1 Wilding."
+				}
+			],
+			"top_name": "The Living Forest"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "The Whole Pack: wolves and a bear.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Bear"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Three Wolves and a Bear emerge beside living ground."
+				}
+			],
+			"bottom_name": "The Whole Pack"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Heart of the Wild: the forest itself awakens.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 3,
+								"wilding": 2
+							},
+							{
+								"type": "advance_growth",
+								"radius": 3
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Bear"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Bear"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket and advance within 3; two Bears, a Wolf and a Boar emerge. Gain 2 Wilding."
+				}
+			],
+			"top_name": "Heart of the Wild"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "The Great Hunt: the wood empties into war.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Bear"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Three Wolves, a Bear and a Boar emerge beside living ground."
+				}
+			],
+			"bottom_name": "The Great Hunt"
+		}
+	]
 }

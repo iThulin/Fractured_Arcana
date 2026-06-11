@@ -1,0 +1,247 @@
+{
+	"id": "druid_call_the_boar",
+	"status": "wip",
+	"name": "Call the Boar",
+	"school": "Druid",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Call the Boar",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "A Boar charges from living ground (14HP 6DMG 3SPD).",
+		"tags": [
+			"growth",
+			"summon",
+			"beast"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "summon_wildlife",
+			"unit": "Boar"
+		},
+		"requires": [
+			"growth_tile"
+		]
+	},
+	"bottom": {
+		"name": "Gore",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Push target 2 tiles, dealing 4 damage per tile moved.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 4,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "push_damage",
+			"tiles": 2,
+			"damage_per_tile": 4
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The Boar comes cheaper; Gore hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "A Boar charges from living ground (14HP 6DMG 3SPD)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 2 tiles, 5 damage per tile."
+				}
+			],
+			"top_name": "Call the Boar+",
+			"bottom_name": "Gore+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Sounder: two boars.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Two Boars charge from living ground."
+				}
+			],
+			"top_name": "Sounder"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Trample: shove them farther.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.tiles",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 3 tiles, 5 damage per tile."
+				}
+			],
+			"bottom_name": "Trample"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Wild Sounder: no living ground needed.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "requires",
+					"value": []
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Two Boars charge at the target tile."
+				}
+			],
+			"top_name": "Wild Sounder"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Ram: brutal force.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 3 tiles, 7 damage per tile."
+				}
+			],
+			"bottom_name": "Ram"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The Tuskline: the herd thunders in.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "requires",
+					"value": []
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Boar"
+							},
+							{
+								"type": "gain_wilding",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Three Boars charge in. Gain 1 Wilding."
+				}
+			],
+			"top_name": "The Tuskline"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Devastate: hurled across the field.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.tiles",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 7
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 4 tiles, 7 damage per tile."
+				}
+			],
+			"bottom_name": "Devastate"
+		}
+	]
+}

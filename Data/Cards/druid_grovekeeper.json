@@ -1,0 +1,254 @@
+{
+	"id": "druid_grovekeeper",
+	"status": "wip",
+	"name": "Grovekeeper",
+	"school": "Druid",
+	"rarity": "Rare",
+	"top": {
+		"name": "Grovekeeper",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Seed growth around you, heal 4, and draw a card. Gain 1 Wilding.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "seed_growth",
+					"stage": 1,
+					"radius": 1,
+					"wilding": 1
+				},
+				{
+					"type": "heal",
+					"amount": 4
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Replenish",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Harvest living tiles within 2: draw 1 per tile consumed.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "harvest_growth",
+			"radius": 2,
+			"heal_per": 0,
+			"draw_per": 1
+		},
+		"requires": [
+			"any_growth"
+		]
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Grovekeeper heals more; Replenish reaches further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].amount",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed growth around you, heal 6, draw a card. Gain 1 Wilding."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Harvest living tiles within 3: draw 1 per tile."
+				}
+			],
+			"top_name": "Grovekeeper+",
+			"bottom_name": "Replenish+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Warden: seed a wider grove.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].radius",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed growth within 2, heal 6, draw a card. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Warden"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Renew: harvest also heals.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.heal_per",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Harvest within 3: heal 2 and draw 1 per tile."
+				}
+			],
+			"bottom_name": "Renew"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Lifebloom: a healing grove.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 2,
+								"wilding": 1
+							},
+							{
+								"type": "heal",
+								"amount": 10
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 2, heal 10, draw 2. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Lifebloom"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Windfall: a rich harvest.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.heal_per",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.draw_per",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Harvest within 4: heal 4 and draw 1 per tile."
+				}
+			],
+			"bottom_name": "Windfall"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The Heartgrove: the wood keeps you whole.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 3,
+								"wilding": 2
+							},
+							{
+								"type": "heal",
+								"amount": 16
+							},
+							{
+								"type": "draw",
+								"count": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 3, heal 16, draw 3. Gain 2 Wilding."
+				}
+			],
+			"top_name": "The Heartgrove"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Cornucopia: the forest gives all.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.heal_per",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.draw_per",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Harvest within 5: heal 5 and draw 2 per tile."
+				}
+			],
+			"bottom_name": "Cornucopia"
+		}
+	]
+}

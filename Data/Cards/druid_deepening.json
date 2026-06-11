@@ -8,7 +8,7 @@
 		"name": "Deepening",
 		"mana": 3,
 		"speed": "Sorcery",
-		"rules_text": "Seed Sapling growth on the target tile and its ring, then advance living tiles adjacent to the target. Gain 1 Wilding.",
+		"rules_text": "Seed growth within 1 of the target, then advance adjacent living tiles. Gain 1 Wilding.",
 		"tags": [
 			"growth"
 		],
@@ -48,5 +48,198 @@
 			"amount": 2
 		}
 	},
-	"upgrades": []
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Deepening seeds wider; Tend gives more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].radius",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed growth within 2, then advance adjacent living tiles. Gain 1 Wilding."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 3 Wilding."
+				}
+			],
+			"top_name": "Deepening+",
+			"bottom_name": "Tend+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Thicken: advance reaches further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].radius",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed within 2, advance living tiles within 2. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Thicken"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Nurture: gain Wilding and draw.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_wilding",
+								"amount": 3
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 3 Wilding and draw a card."
+				}
+			],
+			"bottom_name": "Nurture"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Old Roots: seed Thickets.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].stage",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[0].wilding",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 2, advance living tiles within 2. Gain 2 Wilding."
+				}
+			],
+			"top_name": "Old Roots"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Devotion: surge the gauge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_wilding",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 Wilding and draw a card."
+				}
+			],
+			"bottom_name": "Devotion"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Primeval: an old forest, now.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 2,
+								"wilding": 2
+							},
+							{
+								"type": "advance_growth",
+								"radius": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 2, advance living tiles within 3. Gain 2 Wilding."
+				}
+			],
+			"top_name": "Primeval"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Zeal: the wild answers at once.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_wilding",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 Wilding and draw 2 cards."
+				}
+			],
+			"bottom_name": "Zeal"
+		}
+	]
 }

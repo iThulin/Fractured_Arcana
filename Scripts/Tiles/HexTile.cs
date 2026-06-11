@@ -59,6 +59,10 @@ public partial class HexTile : Node3D
     private static readonly Color MemorialHallowedColor = new Color(0.95f, 0.92f, 0.7f, 0.65f);
     private static readonly Color MemorialNoneColor = new Color(0f, 0f, 0f, 0f);
 
+    // Growth mechaniscs for duid
+    private int _growthStage = 0;
+    private Label3D _growthLabel;
+
     /// <summary>Axial (q, r) coordinate identifying this tile's grid position.</summary>
     public Vector2I Axial { get; set; }
 
@@ -408,7 +412,75 @@ public partial class HexTile : Node3D
             finalColor = finalColor.Lerp(memColor, memColor.A);
         }
 
+        // ── Growth overlay (Druid living terrain) ─────────────────────
+        if (_growthStage > 0)
+        {
+            Color growthColor = _growthStage switch
+            {
+                1 => UITheme.GrowthSapling,
+                2 => UITheme.GrowthThicket,
+                _ => UITheme.GrowthOldGrowth
+            };
+            finalColor = finalColor.Lerp(growthColor, growthColor.A);
+        }
+
         material.AlbedoColor = finalColor;
+    }
+
+    /// <summary>
+    /// Updates the tile's living-growth visual — ground tint plus a floating green
+    /// pip that grows brighter and larger by stage. Pass 0 to clear. The pip is a
+    /// separate node, so it stays visible even while the tile is highlighted (when
+    /// the ground tint is suppressed by RefreshVisualState).
+    /// 1 = sapling, 2 = thicket, 3 = old growth.
+    /// </summary>
+    public void SetGrowth(int stage)
+    {
+        _growthStage = Mathf.Clamp(stage, 0, 3);
+        RefreshVisualState();
+
+        if (_growthStage <= 0)
+        {
+            if (_growthLabel != null)
+                _growthLabel.Visible = false;
+            return;
+        }
+
+        UpdateGrowthLabel(_growthStage);
+    }
+
+    private void UpdateGrowthLabel(int stage)
+    {
+        // Filled dot, larger/brighter as growth matures. Round shape + green colour
+        // read distinctly from the memorial star.
+        int fontSize = stage switch { 1 => 28, 2 => 38, _ => 52 };
+        float alpha = stage switch { 1 => 0.55f, 2 => 0.80f, _ => 1.0f };
+        string symbol = stage == 1 ? "•" : "●";
+
+        Color tint = UITheme.GrowthPip;
+        tint.A = alpha;
+
+        if (_growthLabel == null)
+        {
+            _growthLabel = new Label3D
+            {
+                Name = "GrowthIndicator",
+                Text = symbol,
+                FontSize = fontSize,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                Position = new Vector3(0f, 0.7f, 0f),
+                Modulate = tint
+            };
+            CallDeferred("add_child", _growthLabel);
+        }
+        else
+        {
+            _growthLabel.Visible = true;
+            _growthLabel.Text = symbol;
+            _growthLabel.FontSize = fontSize;
+            _growthLabel.Modulate = tint;
+        }
     }
 
     /// <summary>

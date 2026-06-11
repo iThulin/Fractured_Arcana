@@ -12,9 +12,6 @@
 		"tags": [
 			"growth"
 		],
-		"requires": [
-			"any_growth"
-		],
 		"targeting": {
 			"type": "tile",
 			"range": 5
@@ -22,13 +19,16 @@
 		"effect": {
 			"type": "advance_growth",
 			"radius": 2
-		}
+		},
+		"requires": [
+			"any_growth"
+		]
 	},
 	"bottom": {
 		"name": "Thrash",
 		"mana": 2,
 		"speed": "Sorcery",
-		"rules_text": "Push target enemy 2 tiles, dealing 3 damage per tile moved.",
+		"rules_text": "Push target 2 tiles, dealing 3 damage per tile moved.",
 		"tags": [
 			"growth"
 		],
@@ -44,5 +44,172 @@
 			"damage_per_tile": 3
 		}
 	},
-	"upgrades": []
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Overgrow reaches further; Thrash hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance all living tiles within 3 by one stage."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 2 tiles, 4 damage per tile."
+				}
+			],
+			"top_name": "Overgrow+",
+			"bottom_name": "Thrash+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Flourish: also gain Wilding.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_growth",
+								"radius": 3
+							},
+							{
+								"type": "gain_wilding",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance living tiles within 3. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Flourish"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Hurl: shove them farther.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.tiles",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 3 tiles, 4 damage per tile."
+				}
+			],
+			"bottom_name": "Hurl"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Verdure: a sweeping advance.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].radius",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance living tiles within 4. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Verdure"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Maul: brutal knockback.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 3 tiles, 6 damage per tile."
+				}
+			],
+			"bottom_name": "Maul"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Apotheosis of Growth: the wood matures at once.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_growth",
+								"radius": 5
+							},
+							{
+								"type": "gain_wilding",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance all living tiles within 5. Gain 2 Wilding."
+				}
+			],
+			"top_name": "Apotheosis of Growth"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Rampage: cast them across the field.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.tiles",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage_per_tile",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 4 tiles, 6 damage per tile."
+				}
+			],
+			"bottom_name": "Rampage"
+		}
+	]
 }

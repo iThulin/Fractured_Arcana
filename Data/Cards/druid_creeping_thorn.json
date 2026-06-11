@@ -8,7 +8,7 @@
 		"name": "Creeping Thorn",
 		"mana": 1,
 		"speed": "Sorcery",
-		"rules_text": "Deal 3 damage to target enemy, +2 for each growth stage on the tile it stands on.",
+		"rules_text": "Deal 3 damage, +2 per growth stage on the target's tile.",
 		"tags": [
 			"growth"
 		],
@@ -28,7 +28,7 @@
 		"name": "Snare",
 		"mana": 1,
 		"speed": "Instant",
-		"rules_text": "Root enemies standing on living ground within 1 of you for 1 turn.",
+		"rules_text": "Root enemies on living ground within 1 of you for 1 turn.",
 		"tags": [
 			"growth"
 		],
@@ -41,5 +41,153 @@
 			"duration": 1
 		}
 	},
-	"upgrades": []
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Thorn hits harder; Snare reaches further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage, +2 per growth stage on the target's tile."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Root enemies on living ground within 2 for 1 turn."
+				}
+			],
+			"top_name": "Creeping Thorn+",
+			"bottom_name": "Snare+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Barbed: growth under the target hurts more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.per_stage",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage, +3 per growth stage under the target."
+				}
+			],
+			"top_name": "Barbed Thorn"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Hold Fast: roots last longer.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.duration",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Root enemies on living ground within 2 for 2 turns."
+				}
+			],
+			"bottom_name": "Hold Fast"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Impale: heavy base damage.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 7
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage, +3 per growth stage under the target."
+				}
+			],
+			"top_name": "Impale"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Thornnet: wide root.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Root enemies on living ground within 3 for 2 turns."
+				}
+			],
+			"bottom_name": "Thornnet"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Bloodthorn: lethal where the wood is oldest.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "effect.per_stage",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 9 damage, +4 per growth stage under the target."
+				}
+			],
+			"top_name": "Bloodthorn"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "The Grip: nothing leaves your wood.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.duration",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Root enemies on living ground within 3 for 3 turns."
+				}
+			],
+			"bottom_name": "The Grip"
+		}
+	]
 }

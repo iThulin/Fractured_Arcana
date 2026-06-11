@@ -8,12 +8,9 @@
 		"name": "The Wild Wakes",
 		"mana": 5,
 		"speed": "Sorcery",
-		"rules_text": "Gain 4 Wilding. The wild breaks into a Riot: all your living tiles advance a stage and Old Growth calls wildlife.",
+		"rules_text": "Gain 4 Wilding, forcing a Riot: all living tiles advance and Old Growth calls wildlife.",
 		"tags": [
 			"growth"
-		],
-		"requires": [
-			"any_growth"
 		],
 		"targeting": {
 			"type": "self"
@@ -21,18 +18,18 @@
 		"effect": {
 			"type": "gain_wilding",
 			"amount": 4
-		}
+		},
+		"requires": [
+			"any_growth"
+		]
 	},
 	"bottom": {
 		"name": "The Whole Wood Turns",
 		"mana": 4,
 		"speed": "Sorcery",
-		"rules_text": "Advance all living tiles within 3 of the target, then root every enemy on living ground there for 2 turns.",
+		"rules_text": "Advance living tiles within 3 of the target, root enemies there for 2 turns.",
 		"tags": [
 			"growth"
-		],
-		"requires": [
-			"any_growth"
 		],
 		"targeting": {
 			"type": "tile",
@@ -51,7 +48,231 @@
 					"duration": 2
 				}
 			]
-		}
+		},
+		"requires": [
+			"any_growth"
+		]
 	},
-	"upgrades": []
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The Wild Wakes costs less; The Whole Wood Turns reaches further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 4 Wilding, forcing a Riot. The wild surges."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].radius",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].radius",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Advance living tiles within 4, root enemies there for 2 turns."
+				}
+			],
+			"top_name": "The Wild Wakes+",
+			"bottom_name": "The Whole Wood Turns+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Rouse: draw as the wild stirs.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_wilding",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 4 Wilding, force a Riot, and draw a card."
+				}
+			],
+			"top_name": "Rouse the Wild"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Tangleturn: roots hold longer.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].duration",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Advance living tiles within 4, root enemies there for 3 turns."
+				}
+			],
+			"bottom_name": "Tangleturn"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Frenzy: the Riot calls more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_wilding",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 2
+							},
+							{
+								"type": "spread_growth",
+								"radius": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 4 Wilding, force a Riot, draw 2, spread Thickets within 4."
+				}
+			],
+			"top_name": "Frenzy"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Cataclysm of Green: a sweeping turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_growth",
+								"radius": 5
+							},
+							{
+								"type": "entangle",
+								"radius": 5,
+								"duration": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Advance living tiles within 5, root enemies there for 3 turns."
+				}
+			],
+			"bottom_name": "Cataclysm of Green"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The Long Spring: the wild never sleeps.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_growth",
+								"radius": 4
+							},
+							{
+								"type": "gain_wilding",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 2
+							},
+							{
+								"type": "spread_growth",
+								"radius": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance growth within 4, force a Riot, draw 2, spread within 5."
+				}
+			],
+			"top_name": "The Long Spring"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "The World Turns: all of it, at once.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_growth",
+								"radius": 8
+							},
+							{
+								"type": "entangle",
+								"radius": 8,
+								"duration": 3
+							},
+							{
+								"type": "gain_wilding",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Advance all living tiles within 8, root foes within 8 for 3. Gain 2 Wilding."
+				}
+			],
+			"bottom_name": "The World Turns"
+		}
+	]
 }

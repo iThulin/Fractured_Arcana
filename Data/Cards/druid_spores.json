@@ -1,16 +1,15 @@
 {
-	"id": "druid_hexweed",
+	"id": "druid_spores",
 	"status": "wip",
-	"name": "Hexweed",
+	"name": "Spores",
 	"school": "Druid",
 	"rarity": "Common",
 	"top": {
-		"name": "Hexweed",
+		"name": "Spores",
 		"mana": 2,
 		"speed": "Sorcery",
-		"rules_text": "Weaken target for 2 turns and seed growth beneath it. Gain 1 Wilding.",
+		"rules_text": "Poison target and adjacent enemies for 2 turns.",
 		"tags": [
-			"growth",
 			"hex"
 		],
 		"targeting": {
@@ -24,23 +23,29 @@
 			"steps": [
 				{
 					"type": "apply_status",
-					"status": "weakened",
+					"status": "poisoned",
 					"duration": 2
 				},
 				{
-					"type": "seed_growth",
-					"stage": 1,
-					"radius": 0,
-					"wilding": 1
+					"type": "retarget",
+					"targeting": {
+						"type": "ring",
+						"radius": 1
+					},
+					"do": {
+						"type": "apply_status",
+						"status": "poisoned",
+						"duration": 2
+					}
 				}
 			]
 		}
 	},
 	"bottom": {
-		"name": "Wither",
+		"name": "Wither Touch",
 		"mana": 1,
 		"speed": "Instant",
-		"rules_text": "Poison target enemy for 2 turns.",
+		"rules_text": "Weaken target enemy for 2 turns.",
 		"tags": [
 			"hex"
 		],
@@ -52,7 +57,7 @@
 		},
 		"effect": {
 			"type": "apply_status",
-			"status": "poisoned",
+			"status": "weakened",
 			"duration": 2
 		}
 	},
@@ -60,7 +65,7 @@
 		{
 			"tier": 1,
 			"half": "both",
-			"description": "Both hexes linger longer.",
+			"description": "Poison and weakness linger longer.",
 			"changes": [
 				{
 					"half": "top",
@@ -69,8 +74,13 @@
 				},
 				{
 					"half": "top",
+					"field": "effect.steps[1].do.duration",
+					"value": 3
+				},
+				{
+					"half": "top",
 					"field": "rules_text",
-					"value": "Weaken target for 3 turns and seed growth beneath it. Gain 1 Wilding."
+					"value": "Poison target and adjacent enemies for 3 turns."
 				},
 				{
 					"half": "bottom",
@@ -80,69 +90,40 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Poison target enemy for 3 turns."
+					"value": "Weaken target enemy for 3 turns."
 				}
 			],
-			"top_name": "Hexweed+",
-			"bottom_name": "Wither+"
+			"top_name": "Spores+",
+			"bottom_name": "Wither Touch+"
 		},
 		{
 			"tier": 2,
 			"half": "top",
-			"description": "Creeping Hex: seeds a wider patch.",
+			"description": "Sporecloud: a wider burst.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.steps[1].radius",
-					"value": 1
+					"field": "effect.steps[1].targeting",
+					"value": {
+						"type": "ring",
+						"radius": 2
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Weaken target for 3 turns and seed growth beneath it and its ring. Gain 1 Wilding."
+					"value": "Poison target and all enemies within 2 for 3 turns."
 				}
 			],
-			"top_name": "Creeping Hex"
+			"top_name": "Sporecloud"
 		},
 		{
 			"tier": 2,
 			"half": "bottom",
-			"description": "Blight: also weakens.",
+			"description": "Enfeeble: weakness that spreads.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "apply_status",
-								"status": "poisoned",
-								"duration": 3
-							},
-							{
-								"type": "apply_status",
-								"status": "weakened",
-								"duration": 2
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Poison target for 3 turns and weaken for 2."
-				}
-			],
-			"bottom_name": "Blight"
-		},
-		{
-			"tier": 3,
-			"half": "top",
-			"description": "Throttlevine: roots as it binds.",
-			"changes": [
-				{
-					"half": "top",
 					"field": "effect",
 					"value": {
 						"type": "sequence",
@@ -150,44 +131,6 @@
 							{
 								"type": "apply_status",
 								"status": "weakened",
-								"duration": 3
-							},
-							{
-								"type": "seed_growth",
-								"stage": 2,
-								"radius": 1,
-								"wilding": 1
-							},
-							{
-								"type": "entangle",
-								"radius": 1,
-								"duration": 1
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Weaken 3, seed Thicket nearby, root foes on it. Gain 1 Wilding."
-				}
-			],
-			"top_name": "Throttlevine"
-		},
-		{
-			"tier": 3,
-			"half": "bottom",
-			"description": "Contagion: poison spreads to neighbors.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "apply_status",
-								"status": "poisoned",
 								"duration": 3
 							},
 							{
@@ -198,7 +141,7 @@
 								},
 								"do": {
 									"type": "apply_status",
-									"status": "poisoned",
+									"status": "weakened",
 									"duration": 2
 								}
 							}
@@ -208,56 +151,18 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Poison target 3 turns; adjacent enemies poisoned 2."
+					"value": "Weaken target 3 turns; adjacent enemies weakened 2."
 				}
 			],
-			"bottom_name": "Contagion"
+			"bottom_name": "Enfeeble"
 		},
 		{
-			"tier": 4,
+			"tier": 3,
 			"half": "top",
-			"description": "Strangleroot: the hex consumes.",
+			"description": "Rotbloom: poison and rooting mire.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "apply_status",
-								"status": "weakened",
-								"duration": 4
-							},
-							{
-								"type": "seed_growth",
-								"stage": 2,
-								"radius": 1,
-								"wilding": 2
-							},
-							{
-								"type": "entangle",
-								"radius": 2,
-								"duration": 2
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Weaken 4, seed Thicket, root foes within 2 for 2. Gain 2 Wilding."
-				}
-			],
-			"top_name": "Strangleroot"
-		},
-		{
-			"tier": 4,
-			"half": "bottom",
-			"description": "Plague: rot sweeps the field.",
-			"changes": [
-				{
-					"half": "bottom",
 					"field": "effect",
 					"value": {
 						"type": "sequence",
@@ -265,7 +170,13 @@
 							{
 								"type": "apply_status",
 								"status": "poisoned",
-								"duration": 4
+								"duration": 3
+							},
+							{
+								"type": "seed_growth",
+								"stage": 1,
+								"radius": 1,
+								"wilding": 1
 							},
 							{
 								"type": "retarget",
@@ -283,12 +194,135 @@
 					}
 				},
 				{
-					"half": "bottom",
+					"half": "top",
 					"field": "rules_text",
-					"value": "Poison target 4; all enemies within 2 poisoned 3."
+					"value": "Poison target and enemies within 2 for 3; seed growth. Gain 1 Wilding."
 				}
 			],
-			"bottom_name": "Plague"
+			"top_name": "Rotbloom"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Sap the Strong: deep weakness.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "weakened",
+								"duration": 4
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 2
+								},
+								"do": {
+									"type": "apply_status",
+									"status": "weakened",
+									"duration": 3
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Weaken target 4; enemies within 2 weakened 3."
+				}
+			],
+			"bottom_name": "Sap the Strong"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Miasma: the whole field rots.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "poisoned",
+								"duration": 4
+							},
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 1,
+								"wilding": 1
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 3
+								},
+								"do": {
+									"type": "apply_status",
+									"status": "poisoned",
+									"duration": 4
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Poison target and enemies within 3 for 4; seed Thicket. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Miasma"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Atrophy: the strong made weak.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "weakened",
+								"duration": 4
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 3
+								},
+								"do": {
+									"type": "apply_status",
+									"status": "weakened",
+									"duration": 4
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Weaken target and all enemies within 3 for 4 turns."
+				}
+			],
+			"bottom_name": "Atrophy"
 		}
 	]
 }

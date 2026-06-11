@@ -8,7 +8,7 @@
 		"name": "Bed Down",
 		"mana": 1,
 		"speed": "Instant",
-		"rules_text": "Seed Sapling growth on your tile and its ring, then gain 4 armor. Gain 1 Wilding.",
+		"rules_text": "Seed Sapling growth on your tile and ring, gain 4 armor. Gain 1 Wilding.",
 		"tags": [
 			"growth"
 		],
@@ -56,5 +56,179 @@
 			]
 		}
 	},
-	"upgrades": []
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Bed Down armors more; Still Watch gives more Wilding.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].amount",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed growth on your tile and ring, gain 6 armor. Gain 1 Wilding."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Wilding and draw a card."
+				}
+			],
+			"top_name": "Bed Down+",
+			"bottom_name": "Still Watch+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Burrow: seeds wider as you settle.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].radius",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed growth within 2, gain 6 armor. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Burrow"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Vigil: draw two.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].count",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Wilding and draw 2 cards."
+				}
+			],
+			"bottom_name": "Vigil"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Den: heavy armor from the thicket.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].stage",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[1].amount",
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 2, gain 9 armor. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Den"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Long Watch: more Wilding, more cards.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].count",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Wilding and draw 2 cards."
+				}
+			],
+			"bottom_name": "Long Watch"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Sanctuary: the grove shelters you.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 2,
+								"wilding": 1
+							},
+							{
+								"type": "armor",
+								"amount": 12
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 2, gain 12 armor. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Sanctuary"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Communion: foresight of the wood.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_wilding",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Wilding and draw 3 cards."
+				}
+			],
+			"bottom_name": "Communion"
+		}
+	]
 }

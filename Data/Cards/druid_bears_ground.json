@@ -8,14 +8,11 @@
 		"name": "The Bear's Ground",
 		"mana": 4,
 		"speed": "Sorcery",
-		"rules_text": "At a patch of Old Growth, a Bear emerges (24HP 7DMG 1SPD). It holds the ground it stands on.",
+		"rules_text": "At a patch of Old Growth, a Bear emerges (24HP 7DMG 1SPD).",
 		"tags": [
 			"growth",
 			"summon",
 			"beast"
-		],
-		"requires": [
-			"old_growth_tile"
 		],
 		"targeting": {
 			"type": "tile",
@@ -24,13 +21,16 @@
 		"effect": {
 			"type": "summon_wildlife",
 			"unit": "Bear"
-		}
+		},
+		"requires": [
+			"old_growth_tile"
+		]
 	},
 	"bottom": {
 		"name": "Hold",
 		"mana": 2,
 		"speed": "Instant",
-		"rules_text": "Root enemies on living ground within 2 of you for 2 turns, then gain 6 armor.",
+		"rules_text": "Root enemies on living ground within 2 for 2 turns, then gain 6 armor.",
 		"tags": [
 			"growth"
 		],
@@ -52,5 +52,205 @@
 			]
 		}
 	},
-	"upgrades": []
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Bear comes cheaper; Hold armors more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "At a patch of Old Growth, a Bear emerges (24HP 7DMG 1SPD)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 9
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Root enemies on living ground within 2 for 2 turns, gain 9 armor."
+				}
+			],
+			"top_name": "The Bear's Ground+",
+			"bottom_name": "Hold+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Mother Bear: no Old Growth needed.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "requires",
+					"value": [
+						"growth_tile"
+					]
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "At any growth, a Bear emerges (24HP 7DMG 1SPD)."
+				}
+			],
+			"top_name": "Mother Bear"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Bulwark: wider root.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].radius",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Root enemies on living ground within 3 for 2 turns, gain 9 armor."
+				}
+			],
+			"bottom_name": "Bulwark"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Two of the Old Wood: a Bear and a Wolf.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "requires",
+					"value": [
+						"growth_tile"
+					]
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Bear"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Wolf"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "At growth, a Bear and a Wolf emerge."
+				}
+			],
+			"top_name": "Two of the Old Wood"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Living Wall: roots and heavy armor.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].duration",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 14
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Root enemies within 3 for 3 turns, gain 14 armor."
+				}
+			],
+			"bottom_name": "Living Wall"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The Great Bear: a guardian rises.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "requires",
+					"value": [
+						"growth_tile"
+					]
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_wildlife",
+								"unit": "Bear"
+							},
+							{
+								"type": "summon_wildlife",
+								"unit": "Bear"
+							},
+							{
+								"type": "gain_wilding",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "At growth, two Bears emerge. Gain 1 Wilding."
+				}
+			],
+			"top_name": "The Great Bear"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Unbreakable: nothing moves you.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "entangle",
+								"radius": 3,
+								"duration": 3
+							},
+							{
+								"type": "armor",
+								"amount": 20
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Root enemies within 3 for 3 turns, gain 20 armor."
+				}
+			],
+			"bottom_name": "Unbreakable"
+		}
+	]
 }

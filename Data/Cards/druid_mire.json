@@ -1,0 +1,268 @@
+{
+	"id": "druid_mire",
+	"status": "wip",
+	"name": "Mire",
+	"school": "Druid",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Mire",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Seed growth within 2 of the target, then root enemies on living ground there for 1 turn.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "seed_growth",
+					"stage": 1,
+					"radius": 2,
+					"wilding": 1
+				},
+				{
+					"type": "entangle",
+					"radius": 2,
+					"duration": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Sink",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Slow target for 2 turns and deal 2 damage, +1 per growth stage under it.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 5,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "apply_status",
+					"status": "slowed",
+					"duration": 2
+				},
+				{
+					"type": "thornlash",
+					"damage": 2,
+					"per_stage": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Mire roots longer; Sink hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].duration",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed growth within 2, root enemies on living ground there for 2 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].damage",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Slow target 2 turns; deal 4 damage, +1 per growth stage under it."
+				}
+			],
+			"top_name": "Mire+",
+			"bottom_name": "Sink+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Quagmire: seed Thickets.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].stage",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 2, root enemies there for 2 turns."
+				}
+			],
+			"top_name": "Quagmire"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Drown: heavier growth scaling.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].per_stage",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Slow target 2 turns; deal 4 damage, +3 per growth stage under it."
+				}
+			],
+			"bottom_name": "Drown"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Sucking Bog: a wide, lasting mire.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 3,
+								"wilding": 1
+							},
+							{
+								"type": "entangle",
+								"radius": 3,
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 3, root enemies there for 2 turns. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Sucking Bog"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Founder: slow and crush.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 3
+							},
+							{
+								"type": "thornlash",
+								"damage": 7,
+								"per_stage": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Slow target 3 turns; deal 7 damage, +3 per growth stage under it."
+				}
+			],
+			"bottom_name": "Founder"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The Drowned Wood: a swallowing marsh.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 4,
+								"wilding": 2
+							},
+							{
+								"type": "entangle",
+								"radius": 4,
+								"duration": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seed Thicket within 4, root enemies there for 3 turns. Gain 2 Wilding."
+				}
+			],
+			"top_name": "The Drowned Wood"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Engulf: dragged under.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 3
+							},
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							},
+							{
+								"type": "thornlash",
+								"damage": 9,
+								"per_stage": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Slow 3 and root 1; deal 9 damage, +4 per growth stage under it."
+				}
+			],
+			"bottom_name": "Engulf"
+		}
+	]
+}

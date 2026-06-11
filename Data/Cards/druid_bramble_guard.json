@@ -1,0 +1,248 @@
+{
+	"id": "druid_bramble_guard",
+	"status": "wip",
+	"name": "Bramble Guard",
+	"school": "Druid",
+	"rarity": "Common",
+	"top": {
+		"name": "Bramble Guard",
+		"mana": 1,
+		"speed": "Reaction",
+		"rules_text": "Gain 6 armor and root enemies on living ground within 1 for 1 turn.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "armor",
+					"amount": 6
+				},
+				{
+					"type": "entangle",
+					"radius": 1,
+					"duration": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Thornskin",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 6 shield.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "shield",
+			"amount": 6
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "More armor; more shield.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 8
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 8 armor and root enemies on living ground within 1 for 1 turn."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 8
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 8 shield."
+				}
+			],
+			"top_name": "Bramble Guard+",
+			"bottom_name": "Thornskin+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Briarward: roots reach further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].radius",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 8 armor and root enemies on living ground within 2 for 1 turn."
+				}
+			],
+			"top_name": "Briarward"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Barkskin: heavier shield.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 12
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 12 shield."
+				}
+			],
+			"bottom_name": "Barkskin"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Thornmail: armor and a lasting grip.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 12
+							},
+							{
+								"type": "entangle",
+								"radius": 2,
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 12 armor and root enemies on living ground within 2 for 2 turns."
+				}
+			],
+			"top_name": "Thornmail"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Ironbark Skin: shield and seed.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 12
+							},
+							{
+								"type": "seed_growth",
+								"stage": 1,
+								"radius": 1,
+								"wilding": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 12 shield and seed growth around you. Gain 1 Wilding."
+				}
+			],
+			"bottom_name": "Ironbark Skin"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Bastion of Thorns: an unyielding hedge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 18
+							},
+							{
+								"type": "entangle",
+								"radius": 3,
+								"duration": 2
+							},
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 1,
+								"wilding": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 18 armor, root foes within 3 for 2, seed Thicket. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Bastion of Thorns"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Heartwood Hide: shield that feeds the wood.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 18
+							},
+							{
+								"type": "seed_growth",
+								"stage": 2,
+								"radius": 1,
+								"wilding": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 18 shield and seed Thicket around you. Gain 1 Wilding."
+				}
+			],
+			"bottom_name": "Heartwood Hide"
+		}
+	]
+}
