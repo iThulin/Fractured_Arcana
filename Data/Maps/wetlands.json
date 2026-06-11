@@ -1,0 +1,85 @@
+{
+	"id": "wetlands",
+	"display_name": "Wetlands",
+	"shape": {
+		"type": "blob",
+		"width": 10,
+		"height": 8,
+		"radius": 5,
+		"erosion": 0.5
+	},
+	"base_terrain": {
+		"elevation_frequency": 0.12,
+		"moisture_frequency": 0.18,
+		"detail_weight": 0.20,
+		"max_height_step": 2,
+		"min_height_step": -3,
+		"palette": [
+			{
+				"terrain": "water",
+				"max_elevation": 0.30
+			},
+			{
+				"terrain": "forest",
+				"min_moisture": 0.55
+			},
+			{
+				"terrain": "grass"
+			}
+		]
+	},
+	"atmosphere": {
+		"sun_color": [
+			0.72,
+			0.80,
+			0.68
+		],
+		"sun_energy": 0.65,
+		"ambient_color": [
+			0.45,
+			0.52,
+			0.42
+		],
+		"ambient_energy": 0.6,
+		"fog_color": [
+			0.55,
+			0.62,
+			0.52
+		],
+		"fog_density": 0.025
+	},
+	"features": [
+		{
+			"feature": "lake",
+			"phase": "skeleton",
+			"at": "center",
+			"radius": 3,
+			"depth": 2
+		},
+		{
+			"feature": "lake",
+			"phase": "skeleton",
+			"at": "random",
+			"radius": 2,
+			"depth": 1
+		},
+		{
+			"feature": "stream",
+			"phase": "accent",
+			"from": "high_tile",
+			"length": 10
+		},
+		{
+			"feature": "scatter_copses",
+			"phase": "accent",
+			"count": [
+				2,
+				3
+			],
+			"radius": [
+				1,
+				2
+			]
+		}
+	]
+}

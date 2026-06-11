@@ -1,0 +1,76 @@
+{
+	"id": "volcanic_scar",
+	"display_name": "Volcanic Scar",
+	"shape": {
+		"type": "hexagon",
+		"radius": 5
+	},
+	"base_terrain": {
+		"elevation_frequency": 0.20,
+		"moisture_frequency": 0.08,
+		"detail_weight": 0.30,
+		"max_height_step": 6,
+		"min_height_step": -3,
+		"palette": [
+			{
+				"terrain": "lava",
+				"max_elevation": 0.20
+			},
+			{
+				"terrain": "lava",
+				"min_elevation": 0.85
+			},
+			{
+				"terrain": "stone"
+			}
+		]
+	},
+	"atmosphere": {
+		"sun_color": [
+			1.00,
+			0.55,
+			0.20
+		],
+		"sun_energy": 1.2,
+		"ambient_color": [
+			0.60,
+			0.28,
+			0.10
+		],
+		"ambient_energy": 0.5,
+		"fog_color": [
+			0.55,
+			0.25,
+			0.10
+		],
+		"fog_density": 0.022
+	},
+	"features": [
+		{
+			"feature": "mountainside",
+			"phase": "skeleton",
+			"peak": 5
+		},
+		{
+			"feature": "crevice",
+			"phase": "skeleton",
+			"at": "random",
+			"dir": 2,
+			"length": 5,
+			"depth": 5
+		},
+		{
+			"feature": "carve_lane",
+			"phase": "skeleton",
+			"from": "player_anchor",
+			"to": "enemy_anchor",
+			"width": 0
+		},
+		{
+			"feature": "rocky_outcrop",
+			"phase": "accent",
+			"at": "random",
+			"radius": 2
+		}
+	]
+}

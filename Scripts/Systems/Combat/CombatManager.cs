@@ -2973,13 +2973,6 @@ public partial class CombatManager : Node3D
 
         State.Grid = grid;
 
-        State.Memorials = new MemorialManager(grid);
-        State.Memorials.OnMemorialCreated += tile => tile.TileView?.SetMemorial(tile.Memorial);
-        State.Memorials.OnMemorialChanged += tile => tile.TileView?.SetMemorial(tile.Memorial);
-        State.Memorials.OnMemorialRemoved += tile => tile.TileView?.SetMemorial(null);
-
-        State.Growth.OnGrowthChanged += tile => tile.TileView?.SetGrowth(tile.GrowthStage);
-
         // ── Druid living-terrain engine ───────────────────────────────────
         State.Growth = new GrowthManager(
             grid: grid,
@@ -2992,6 +2985,14 @@ public partial class CombatManager : Node3D
             },
             rootHandler: (unit, dur) => unit.ApplyStatus("rooted", dur)
         );
+
+        State.Memorials = new MemorialManager(grid);
+        State.Memorials.OnMemorialCreated += tile => tile.TileView?.SetMemorial(tile.Memorial);
+        State.Memorials.OnMemorialChanged += tile => tile.TileView?.SetMemorial(tile.Memorial);
+        State.Memorials.OnMemorialRemoved += tile => tile.TileView?.SetMemorial(null);
+
+        State.Growth.OnGrowthChanged += tile => tile.TileView?.SetGrowth(tile.GrowthStage);
+
         Bestiary.EnsureLoaded();
 
 

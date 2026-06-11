@@ -54,6 +54,8 @@ public static class MapRecipeRegistry
         {
             if (!file.EndsWith(".json"))
                 continue;
+            if (file == "terrain_map.json")
+                continue;
 
             string path = dir.TrimEnd('/') + "/" + file;
 

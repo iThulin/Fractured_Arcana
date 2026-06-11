@@ -1,0 +1,76 @@
+{
+	"id": "coastal_shallows",
+	"display_name": "Coastal Shallows",
+	"shape": {
+		"type": "rectangle",
+		"width": 12,
+		"height": 9
+	},
+	"base_terrain": {
+		"elevation_frequency": 0.13,
+		"moisture_frequency": 0.16,
+		"detail_weight": 0.20,
+		"max_height_step": 3,
+		"min_height_step": -2,
+		"palette": [
+			{
+				"terrain": "water",
+				"max_elevation": 0.35
+			},
+			{
+				"terrain": "stone",
+				"min_elevation": 0.70
+			},
+			{
+				"terrain": "grass"
+			}
+		]
+	},
+	"atmosphere": {
+		"sun_color": [
+			0.95,
+			0.95,
+			0.85
+		],
+		"sun_energy": 1.15,
+		"ambient_color": [
+			0.50,
+			0.58,
+			0.65
+		],
+		"ambient_energy": 0.5,
+		"fog_color": [
+			0.68,
+			0.75,
+			0.80
+		],
+		"fog_density": 0.014
+	},
+	"features": [
+		{
+			"feature": "river",
+			"phase": "skeleton",
+			"from": "low_tile",
+			"length": 14,
+			"width": 1
+		},
+		{
+			"feature": "meadow",
+			"phase": "skeleton",
+			"at": "random",
+			"radius": 2
+		},
+		{
+			"feature": "rocky_outcrop",
+			"phase": "accent",
+			"at": "random",
+			"radius": 2
+		},
+		{
+			"feature": "clearing",
+			"phase": "accent",
+			"at": "center",
+			"radius": 2
+		}
+	]
+}
