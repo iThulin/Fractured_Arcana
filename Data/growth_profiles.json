@@ -3,6 +3,8 @@
 	"advanceAgeThreshold": 2,
 	"carcassFertileTicks": 3,
 	"carcassSpreadBonus": 0.4,
+	"wildingPerTick": 1,
+	"riotWildlifeCap": 2,
 	"profiles": {
 		"Grass": {
 			"affinity": "Fertile",

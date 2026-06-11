@@ -56,6 +56,8 @@ public class GrowthConfig
     public int AdvanceAgeThreshold = 2;
     public int CarcassFertileTicks = 3;
     public float CarcassSpreadBonus = 0.4f;
+    public int WildingPerTick = 1;     // Wilding gained per owner per tick when growth occurs (NOT per tile)
+    public int RiotWildlifeCap = 2;    // max wildlife a single Riot may spawn
     public Dictionary<string, GrowthProfile> Profiles = new();
     public Dictionary<string, GrowthProfile> ImbueOverrides = new();
     public List<string> WildlifeAny = new();
@@ -85,6 +87,8 @@ public class GrowthManager
     private readonly Action<Unit, int> _rootHandler;
 
     private GrowthConfig _config = new();
+    private bool _ticking;
+    private bool _applyingRiot;
     private readonly GrowthProfile _defaultProfile = new() { Affinity = "Fertile", SpreadMult = 1.0f, MaxStage = 3 };
 
     // -- Events for UI / VFX / lore hooks -----------------------------
@@ -145,102 +149,147 @@ public class GrowthManager
 
     public void TickEndOfEnemyTurn()
     {
-        if (_grid == null)
+        if (_grid == null || _ticking)
             return;
 
         var toSeed = new List<(TileData tile, Unit owner)>();
+        var grewOwners = new HashSet<Unit>();
 
-        foreach (TileData tile in _grid.Tiles.Values)
+        _ticking = true;
+        try
         {
-            if (tile.GrowthStage <= StageNone)
+            foreach (TileData tile in _grid.Tiles.Values)
             {
-                DecayCarcass(tile);
-                continue;
-            }
+                if (tile.GrowthStage <= StageNone)
+                {
+                    DecayCarcass(tile);
+                    continue;
+                }
 
-            GrowthProfile p = GetProfile(tile);
+                GrowthProfile p = GetProfile(tile);
 
-            switch (p.Affinity)
-            {
-                case "Hostile":
-                    if (p.DestroysOutright)
-                        KillGrowth(tile);   // fire burns it to nothing
-                    else
-                        RegressGrowth(tile);                   // otherwise it recedes one stage
+                switch (p.Affinity)
+                {
+                    case "Hostile":
+                        if (p.DestroysOutright)
+                            KillGrowth(tile);   // fire burns it to nothing
+                        else
+                            RegressGrowth(tile);                   // otherwise it recedes one stage
+                        continue;
+
+                    case "Cold":
+                        tile.GrowthAge--;
+                        if (tile.GrowthStage > p.MaxStage)
+                        {
+                            tile.GrowthStage = Mathf.Max(p.MaxStage, StageNone);
+                            if (tile.GrowthStage == StageNone)
+                            { ClearGrowth(tile); continue; }
+                            RefreshGrowthFlags(tile);
+                        }
+                        if (tile.GrowthAge < -_config.AdvanceAgeThreshold)
+                            RegressGrowth(tile);
+                        break;
+
+                    default: // Fertile / Sparse / Edge / Aberrant
+                        tile.GrowthAge++;
+                        if (tile.GrowthAge >= _config.AdvanceAgeThreshold && tile.GrowthStage < p.MaxStage)
+                        {
+                            int before = tile.GrowthStage;
+                            Advance(tile);   // NOTE: Advance no longer raises Wilding (see below)
+                            if (tile.GrowthStage > before && tile.GrowthOwner != null)
+                                grewOwners.Add(tile.GrowthOwner);
+                        }
+                        break;
+                }
+
+                if (tile.GrowthStage <= StageNone)
                     continue;
 
-                case "Cold":
-                    tile.GrowthAge--;
-                    if (tile.GrowthStage > p.MaxStage)
-                    {
-                        tile.GrowthStage = Mathf.Max(p.MaxStage, StageNone);
-                        if (tile.GrowthStage == StageNone)
-                        { ClearGrowth(tile); continue; }
-                        RefreshGrowthFlags(tile);
-                    }
-                    if (tile.GrowthAge < -_config.AdvanceAgeThreshold)
-                        RegressGrowth(tile);
-                    break;
+                ApplyTickPassives(tile);
 
-                default: // Fertile / Sparse / Edge / Aberrant
-                    tile.GrowthAge++;
-                    if (tile.GrowthAge >= _config.AdvanceAgeThreshold && tile.GrowthStage < p.MaxStage)
-                        Advance(tile);
-                    break;
+                if (tile.GrowthStage >= StageThicket)
+                    CollectSpread(tile, toSeed);
+
+                DecayCarcass(tile);
             }
 
-            if (tile.GrowthStage <= StageNone)
-                continue;
-
-            ApplyTickPassives(tile);
-
-            if (tile.GrowthStage >= StageThicket)
-                CollectSpread(tile, toSeed);
-
-            DecayCarcass(tile);
+            // buffered spread -- seed only after the whole board has been resolved
+            foreach (var (tile, owner) in toSeed)
+            {
+                int before = tile.GrowthStage;
+                Seed(tile, StageSapling, owner, raiseWilding: false);
+                if (tile.GrowthStage > before && owner != null)
+                    grewOwners.Add(owner);
+            }
+        }
+        finally
+        {
+            _ticking = false;
         }
 
-        // buffered spread -- seed only after the whole board has been resolved
-        foreach (var (tile, owner) in toSeed)
-            Seed(tile, StageSapling, owner, raiseWilding: true);
+        // ONE bounded Wilding gain per owner, AFTER all grid mutation is done.
+        // This is the only place the passive tick feeds Wilding, so a wide tick
+        // can no longer multi-trigger Riot mid-loop. If this tips an owner to 4,
+        // the Riot now fires cleanly after the tick has finished.
+        foreach (Unit owner in grewOwners)
+            RaiseWilding(owner, _config.WildingPerTick);
     }
 
     // -- Riot burst (subscribe per Druid unit's OnRiotTriggered) ------
 
     public void ApplyRiot(Unit owner)
     {
-        if (_grid == null)
+        if (_grid == null || _applyingRiot)
             return;
 
-        var advanced = new List<TileData>();
-
-        foreach (TileData tile in _grid.Tiles.Values)
+        _applyingRiot = true;
+        try
         {
-            if (tile.GrowthStage <= StageNone)
-                continue;
-            if (!SameSide(tile.GrowthOwner, owner))
-                continue;
+            var advanced = new List<TileData>();
+            var oldGrowth = new List<TileData>();
 
-            GrowthProfile p = GetProfile(tile);
-            if (p.Affinity == "Hostile")
-                continue;
-
-            if (tile.GrowthStage < p.MaxStage)
+            foreach (TileData tile in _grid.Tiles.Values)
             {
-                tile.GrowthStage++;
-                tile.GrowthAge = 0;
-                RefreshGrowthFlags(tile);
-                advanced.Add(tile);
+                if (tile.GrowthStage <= StageNone)
+                    continue;
+                if (!SameSide(tile.GrowthOwner, owner))
+                    continue;
+
+                GrowthProfile p = GetProfile(tile);
+                if (p.Affinity == "Hostile")
+                    continue;
+
+                if (tile.GrowthStage < p.MaxStage)
+                {
+                    tile.GrowthStage++;
+                    tile.GrowthAge = 0;
+                    RefreshGrowthFlags(tile);
+                    advanced.Add(tile);
+                }
+
+                if (tile.GrowthStage >= StageOldGrowth)
+                    oldGrowth.Add(tile);
             }
 
-            if (tile.GrowthStage >= StageOldGrowth)
-                RequestWildlife(tile, "auto");
+            foreach (TileData t in advanced)
+                OnGrowthAdvanced?.Invoke(t);
+
+            // Spawn at most RiotWildlifeCap wildlife, spread randomly across the
+            // old-growth tiles (NOT one per tile, which flooded the board).
+            int cap = Math.Min(_config.RiotWildlifeCap, oldGrowth.Count);
+            for (int i = 0; i < cap; i++)
+            {
+                int j = _rng.RandiRange(i, oldGrowth.Count - 1);
+                (oldGrowth[i], oldGrowth[j]) = (oldGrowth[j], oldGrowth[i]);
+                RequestWildlife(oldGrowth[i], "auto");
+            }
+
+            _state?.Log($"[Wilding] Riot -- {advanced.Count} tiles surged, {cap} wildlife answered.");
         }
-
-        foreach (TileData t in advanced)
-            OnGrowthAdvanced?.Invoke(t);
-
-        _state?.Log($"[Wilding] Riot -- {advanced.Count} tiles surged.");
+        finally
+        {
+            _applyingRiot = false;
+        }
     }
 
     // -- Public surface for card effects ------------------------------
@@ -282,7 +331,7 @@ public class GrowthManager
         var buf = new List<(TileData, Unit)>();
         CollectSpread(source, buf);
         foreach (var (t, o) in buf)
-            Seed(t, StageSapling, o, raiseWilding: true);
+            Seed(t, StageSapling, o, raiseWilding: false);
     }
 
     /// <summary>Harvest a living tile: clear it and leave fertile carcass ground. Returns stages consumed so the effect can scale heal/draw.</summary>
@@ -366,7 +415,8 @@ public class GrowthManager
         RefreshGrowthFlags(tile);
 
         OnGrowthAdvanced?.Invoke(tile);
-        RaiseWilding(tile.GrowthOwner, 1);
+        // Wilding is NOT raised here. Per-tile gain caused multi-Riot cascades;
+        // the tick grants a single bounded charge per owner instead.
     }
 
     private void RegressGrowth(TileData tile)
