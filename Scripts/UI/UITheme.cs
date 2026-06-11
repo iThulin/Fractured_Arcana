@@ -243,6 +243,7 @@ public static class UITheme
     public static readonly Color OverworldHudBorder = new Color(0.32f, 0.22f, 0.52f, 0.80f);
     public static readonly Color OverworldLowResourceWarning = Danger;
     public static readonly Color OverworldInfoLabelTint = Gold;
+    public static readonly Color WildingGreen = new Color(0.42f, 0.62f, 0.20f); // ~#6B9E33
 
     // ════════════════════════════════════════════════════════════
     // UNIT VISUALS

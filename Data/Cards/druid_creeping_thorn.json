@@ -1,0 +1,45 @@
+{
+	"id": "druid_creeping_thorn",
+	"status": "wip",
+	"name": "Creeping Thorn",
+	"school": "Druid",
+	"rarity": "Common",
+	"top": {
+		"name": "Creeping Thorn",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 3 damage to target enemy, +2 for each growth stage on the tile it stands on.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "thornlash",
+			"damage": 3,
+			"per_stage": 2
+		}
+	},
+	"bottom": {
+		"name": "Snare",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Root enemies standing on living ground within 1 of you for 1 turn.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "entangle",
+			"radius": 1,
+			"duration": 1
+		}
+	},
+	"upgrades": []
+}

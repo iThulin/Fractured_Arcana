@@ -29,6 +29,7 @@ public sealed class GameState
     public List<PersistentEffect> ActiveEffects = new();
     public MemorialManager Memorials;
     public GlyphManager Glyphs;
+    public GrowthManager Growth;
 
     /// <summary>The most recently resolved StackItem. Set by Resolver.ResolveTop; read by replicate/echo/mana-refund effects.</summary>
     public StackItem LastResolvedItem;

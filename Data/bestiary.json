@@ -1,0 +1,47 @@
+{
+	"Wolf": {
+		"hp": 12,
+		"damage": 5,
+		"speed": 2,
+		"tags": [
+			"wildlife",
+			"beast",
+			"pack"
+		],
+		"notes": "Pack: gains +1 damage for each OTHER living Wolf its side controls. Mobile harasser; weak alone, dangerous in numbers."
+	},
+	"Bear": {
+		"hp": 24,
+		"damage": 7,
+		"speed": 1,
+		"tags": [
+			"wildlife",
+			"beast",
+			"bulwark"
+		],
+		"notes": "Bulwark: high HP living wall that threatens every adjacent enemy. Slow. Emerges from Forest old growth."
+	},
+	"Boar": {
+		"hp": 14,
+		"damage": 6,
+		"speed": 3,
+		"tags": [
+			"wildlife",
+			"beast",
+			"charge"
+		],
+		"notes": "Charge: a straight-line move into an enemy deals damage and pushes 1 tile. Fast line-breaker from grass/bramble."
+	},
+	"Crows": {
+		"hp": 6,
+		"damage": 2,
+		"speed": 4,
+		"tags": [
+			"wildlife",
+			"flock",
+			"flying",
+			"scout"
+		],
+		"notes": "Flying: ignores terrain and line-of-sight blocking. Scout: reveals hidden effects/buffs on enemies in sight — echoes Hess's ally ability and her crow."
+	}
+}

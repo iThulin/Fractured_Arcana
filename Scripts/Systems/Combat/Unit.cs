@@ -786,6 +786,7 @@ public partial class Unit : Node3D
             CardSchool.Enchanter => new WeaveAttunement(),
             CardSchool.Chronomancer => new FateAttunement(),
             CardSchool.Tinker => new TinkerAttunement(),
+            CardSchool.Druid => new WildingAttunement(),
             _ => null
         };
     }

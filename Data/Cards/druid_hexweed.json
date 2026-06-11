@@ -1,0 +1,60 @@
+{
+	"id": "druid_hexweed",
+	"status": "wip",
+	"name": "Hexweed",
+	"school": "Druid",
+	"rarity": "Common",
+	"top": {
+		"name": "Hexweed",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Weaken target enemy for 2 turns and seed Sapling growth beneath it. Gain 1 Wilding.",
+		"tags": [
+			"growth",
+			"hex"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "apply_status",
+					"status": "weakened",
+					"duration": 2
+				},
+				{
+					"type": "seed_growth",
+					"stage": 1,
+					"radius": 0,
+					"wilding": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Wither",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Poison target enemy for 2 turns.",
+		"tags": [
+			"hex"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "apply_status",
+			"status": "poisoned",
+			"duration": 2
+		}
+	},
+	"upgrades": []
+}

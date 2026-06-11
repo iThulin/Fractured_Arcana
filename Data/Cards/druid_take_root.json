@@ -1,0 +1,47 @@
+{
+	"id": "druid_take_root",
+	"status": "wip",
+	"name": "Take Root",
+	"school": "Druid",
+	"rarity": "Common",
+	"top": {
+		"name": "Take Root",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Seed Sapling growth on target tile and its ring. Gain 1 Wilding.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "seed_growth",
+			"stage": 1,
+			"radius": 1,
+			"wilding": 1
+		}
+	},
+	"bottom": {
+		"name": "Quicken the Wood",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Force every Thicket or older within 2 of the target to spread to a neighbor now.",
+		"tags": [
+			"growth"
+		],
+		"requires": [
+			"any_growth"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "spread_growth",
+			"radius": 2
+		}
+	},
+	"upgrades": []
+}

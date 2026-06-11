@@ -1,0 +1,93 @@
+{
+	"baseSpreadChance": 0.35,
+	"advanceAgeThreshold": 2,
+	"carcassFertileTicks": 3,
+	"carcassSpreadBonus": 0.4,
+	"profiles": {
+		"Grass": {
+			"affinity": "Fertile",
+			"spreadMult": 1.0,
+			"maxStage": 3,
+			"destroysOutright": false,
+			"wildlife": [
+				"Wolf",
+				"Boar"
+			]
+		},
+		"Forest": {
+			"affinity": "Fertile",
+			"spreadMult": 1.0,
+			"maxStage": 3,
+			"destroysOutright": false,
+			"wildlife": [
+				"Bear",
+				"Wolf"
+			]
+		},
+		"Stone": {
+			"affinity": "Sparse",
+			"spreadMult": 0.4,
+			"maxStage": 3,
+			"destroysOutright": false,
+			"wildlife": [
+				"Bear"
+			]
+		},
+		"Water": {
+			"affinity": "Edge",
+			"spreadMult": 0.5,
+			"maxStage": 2,
+			"destroysOutright": false,
+			"wildlife": []
+		},
+		"Ice": {
+			"affinity": "Cold",
+			"spreadMult": 0.15,
+			"maxStage": 1,
+			"destroysOutright": false,
+			"wildlife": []
+		},
+		"Lava": {
+			"affinity": "Hostile",
+			"spreadMult": 0.0,
+			"maxStage": 0,
+			"destroysOutright": true,
+			"wildlife": []
+		},
+		"Arcane": {
+			"affinity": "Aberrant",
+			"spreadMult": 0.3,
+			"maxStage": 3,
+			"destroysOutright": false,
+			"wildlife": [
+				"Crows"
+			]
+		}
+	},
+	"imbueOverrides": {
+		"Fire": {
+			"affinity": "Hostile",
+			"spreadMult": 0.0,
+			"maxStage": 0,
+			"destroysOutright": true,
+			"wildlife": []
+		},
+		"Frost": {
+			"affinity": "Cold",
+			"spreadMult": 0.15,
+			"maxStage": 1,
+			"destroysOutright": false,
+			"wildlife": []
+		},
+		"Lightning": {
+			"affinity": "Sparse",
+			"spreadMult": 0.4,
+			"maxStage": 3,
+			"destroysOutright": false,
+			"wildlife": []
+		}
+	},
+	"wildlifeAny": [
+		"Crows"
+	]
+}

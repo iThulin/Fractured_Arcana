@@ -1,0 +1,60 @@
+{
+	"id": "druid_quiet_grove",
+	"status": "wip",
+	"name": "The Quiet Grove",
+	"school": "Druid",
+	"rarity": "Common",
+	"top": {
+		"name": "Bed Down",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Seed Sapling growth on your tile and its ring, then gain 4 armor. Gain 1 Wilding.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "seed_growth",
+					"stage": 1,
+					"radius": 1,
+					"wilding": 1
+				},
+				{
+					"type": "armor",
+					"amount": 4
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Still Watch",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 1 Wilding and draw a card.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "gain_wilding",
+					"amount": 1
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
+		}
+	},
+	"upgrades": []
+}

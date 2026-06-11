@@ -1,0 +1,47 @@
+{
+	"id": "druid_first_green",
+	"status": "wip",
+	"name": "First Green",
+	"school": "Druid",
+	"rarity": "Common",
+	"top": {
+		"name": "First Green",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Seed Sapling growth on target tile and its ring. Gain 1 Wilding.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "seed_growth",
+			"stage": 1,
+			"radius": 1,
+			"wilding": 1
+		}
+	},
+	"bottom": {
+		"name": "Take What's Offered",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Harvest living tiles within 2: heal 3 for each tile consumed. The spent ground stays fertile.",
+		"tags": [
+			"growth"
+		],
+		"requires": [
+			"any_growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "harvest_growth",
+			"radius": 2,
+			"heal_per": 3,
+			"draw_per": 0
+		}
+	}
+}

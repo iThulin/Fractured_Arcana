@@ -1,0 +1,56 @@
+{
+	"id": "druid_bears_ground",
+	"status": "wip",
+	"name": "The Bear's Ground",
+	"school": "Druid",
+	"rarity": "Rare",
+	"top": {
+		"name": "The Bear's Ground",
+		"mana": 4,
+		"speed": "Sorcery",
+		"rules_text": "At a patch of Old Growth, a Bear emerges (24HP 7DMG 1SPD). It holds the ground it stands on.",
+		"tags": [
+			"growth",
+			"summon",
+			"beast"
+		],
+		"requires": [
+			"old_growth_tile"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "summon_wildlife",
+			"unit": "Bear"
+		}
+	},
+	"bottom": {
+		"name": "Hold",
+		"mana": 2,
+		"speed": "Instant",
+		"rules_text": "Root enemies on living ground within 2 of you for 2 turns, then gain 6 armor.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "entangle",
+					"radius": 2,
+					"duration": 2
+				},
+				{
+					"type": "armor",
+					"amount": 6
+				}
+			]
+		}
+	},
+	"upgrades": []
+}

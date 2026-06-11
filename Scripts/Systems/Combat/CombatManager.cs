@@ -1424,6 +1424,13 @@ public partial class CombatManager : Node3D
             unit.Attunement?.Decay();
             State.SpellsCastThisTurn = 0;
 
+            int wildHeal = State.Growth?.GetUpkeepHeal(unit) ?? 0;
+            if (wildHeal > 0)
+            {
+                unit.Stats.Health = Math.Min(unit.Stats.MaxHealth, unit.Stats.Health + wildHeal);
+                unit.RefreshHealthBar();
+            }
+
             if (unit.Attunement is ArcaneAttunement arcane)
                 arcane.OnTurnStart();
 
@@ -1722,6 +1729,8 @@ public partial class CombatManager : Node3D
         await RunEnemyTurn();
 
         PruneDeadUnits();
+
+        State.Growth?.TickEndOfEnemyTurn();
 
         if (CheckCombatEnd())
             return;
@@ -2366,6 +2375,13 @@ public partial class CombatManager : Node3D
         }
         // ─────────────────────────────────────────────────────────────────
 
+        // Wildlife death enriches the ground — circle of life
+        if (State?.Growth != null && unit.CurrentTile != null && unit.HasStatus("wildlife"))
+            State.Growth.LeaveCarcass(unit.CurrentTile, unit);
+
+        if (!unit.IsDeathQueued)
+            unit.Die();
+
         // Make sure the unit's logical death cleanup ran
         if (!unit.IsDeathQueued)
             unit.Die();
@@ -2419,6 +2435,35 @@ public partial class CombatManager : Node3D
                 u.QueueFree();
             }
         }
+    }
+
+    private bool TargetHasGrowth(TargetSet targets, int minStage)
+    {
+        if (targets == null)
+            return false;
+        foreach (var obj in targets.Items)
+        {
+            TileData tile = obj switch
+            {
+                TileData td => td,
+                HexTile tv => grid.GetTile(tv.Axial),
+                Unit u => u.CurrentTile,
+                _ => null
+            };
+            if (tile != null && tile.GrowthStage >= minStage)
+                return true;
+        }
+        return false;
+    }
+
+    private bool AnyGrowthOnBoard()
+    {
+        if (grid == null)
+            return false;
+        foreach (var kvp in grid.Tiles)
+            if (kvp.Value != null && kvp.Value.GrowthStage > 0)
+                return true;
+        return false;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -2933,6 +2978,21 @@ public partial class CombatManager : Node3D
         State.Memorials.OnMemorialChanged += tile => tile.TileView?.SetMemorial(tile.Memorial);
         State.Memorials.OnMemorialRemoved += tile => tile.TileView?.SetMemorial(null);
 
+        // ── Druid living-terrain engine ───────────────────────────────────
+        State.Growth = new GrowthManager(
+            grid: grid,
+            state: State,
+            rng: null,   // self-seeds; pass your combat RNG if you have one for determinism
+            wildlifeSpawner: (tile, key) =>
+            {
+                int team = tile.GrowthOwner?.TeamId ?? 0;   // was: (tile.GrowthOwner is Unit ow) ? ow.TeamId : 0
+                State.OnSummonRequested?.Invoke(key, tile, team);
+            },
+            rootHandler: (unit, dur) => unit.ApplyStatus("rooted", dur)
+        );
+        Bestiary.EnsureLoaded();
+
+
         string regionName = EncounterContextCarrier.HasEncounter
             ? EncounterContextCarrier.Current?.RegionId ?? ""
             : "";
@@ -2965,6 +3025,16 @@ public partial class CombatManager : Node3D
             if (unit.IsMartial)
                 continue;
             unit.InitializeAttunement();
+        }
+
+        // Wilding Riot fires per-unit; the attunement doesn't know its owner, so bind it here.
+        foreach (var unit in playerUnits)
+        {
+            if (unit.Attunement is WildingAttunement w)
+            {
+                Unit owner = unit;   // capture per-iteration
+                w.OnRiotTriggered += () => State.Growth?.ApplyRiot(owner);
+            }
         }
 
         // ── wire school-specific attunement event subscriptions ─────────
@@ -3399,14 +3469,24 @@ public partial class CombatManager : Node3D
     {
         State.OnSummonRequested = (unitKind, tile, teamId) =>
         {
-            // Look up what to spawn based on unitKind
             PackedScene scene = null;
             int hp = 10;
             int speed = 0;
             int armor = 0;
             bool isPlayerControlled = (teamId == 0);
             int schematicBonus = 0;
-            if (IsTinkerConstructKind(unitKind))
+
+            // ── Wildlife (Druid bestiary) — data-driven, checked before the switch ──
+            bool isWildlife = Bestiary.TryGet(unitKind, out WildlifeDef beast);
+            if (isWildlife)
+            {
+                scene = PlayerUnitScene;
+                hp = beast.Hp;
+                speed = beast.Speed;
+                armor = beast.Armor;
+            }
+
+            if (!isWildlife && IsTinkerConstructKind(unitKind))
             {
                 if (ConstructRegistry.Count(State, teamId) >= GetConstructCap(teamId))
                 {
@@ -3416,131 +3496,128 @@ public partial class CombatManager : Node3D
                 schematicBonus = GetSchematicBonus(teamId);
             }
 
-            switch (unitKind.ToLowerInvariant())
+            if (!isWildlife)
             {
-                case "stone_pillar":
-                case "boulder":
-                    scene = DummyUnitScene;
-                    hp = 12;
-                    speed = 0;
-                    armor = 5;
-                    break;
-
-                case "earth_elemental":
-                    scene = DummyUnitScene;
-                    hp = 16;
-                    speed = 1;
-                    armor = 0;
-                    break;
-                case "earth_elemental_armored":
-                    scene = DummyUnitScene;
-                    hp = 16;
-                    speed = 1;
-                    armor = 3;
-                    break;
-
-                case "colossus":
-                    scene = DummyUnitScene;
-                    hp = 30;
-                    speed = 1;
-                    armor = 5;
-                    // TODO Phase 2: Colossus should absorb imbued tiles as it moves,
-                    // gaining +2 DMG per Fire, +2 Armor per Stone, +1 SPD per Storm.
-                    // Requires OnTileLeft callback and a ColossusBehavior component.
-                    break;
-
-                case "colossus_empowered":
-                    scene = DummyUnitScene;
-                    hp = 30;
-                    speed = 1;
-                    armor = unitKind == "colossus_empowered" ? 8 : 5;
-                    break;
-
-                case "decoy":
-                    scene = DummyUnitScene;
-                    hp = 10;  // overwritten by SummonDecoyLeafEffect after spawn
-                    speed = 0;
-                    armor = 0;
-                    break;
-
-                case "shield_wall":
-                    scene = DummyUnitScene;
-                    hp = 20;
-                    speed = 0;
-                    armor = 8;
-                    break;
-
-                case "shield_wall_heavy": // channel version
-                    scene = DummyUnitScene;
-                    hp = 20;
-                    speed = 0;
-                    armor = 12; // pre-charged with more armor
-                    break;
-                // Spirit summons stats are handled by the SummonSpiritEffect
-                case "spirit":
-                case "spirit_wall":
-                case "revenant":
-                case "revenant_champion":
-                case "revenant_elder":
-                case "covenant_elder":
-                case "ossuary":
-                case "ossuary_shrine":
-                case "ossuary_garden":
-                case "soul_well":
-                case "memorial_seat":
-                case "covenant_seat":
-                    scene = PlayerUnitScene;
-                    hp = 10;
-                    speed = 1;
-                    armor = 0;
-                    break;
-
-                case "arcaneconstruct":
-                case "arcane_construct":
-                    scene = DummyUnitScene;
-                    hp = 12;
-                    speed = 2;
-                    armor = 2;
-                    break;
-
-                case "livingspell":
-                case "living_spell":
-                    scene = DummyUnitScene;
-                    hp = 8;
-                    speed = 3;
-                    armor = 0;
-                    break;
-
-                case "illusion":
-                    scene = DummyUnitScene;
-                    hp = 10;
-                    speed = 2;
-                    armor = 0;
-                    break;
-
-                // Tinker constructs are determined by Combatmanager.Constructs.cs
-                case "drone":
-                case "turret":
-                case "cannon":
-                case "grand_turret":
-                case "siege_engine":
-                case "sentinel":
-                case "lattice_node":
-                case "familiar":
-                case "tinker_barrier":
-                case "tinker_colossus":
-                    {
-                        var st = TinkerConstructStats(unitKind);
+                switch (unitKind.ToLowerInvariant())
+                {
+                    case "stone_pillar":
+                    case "boulder":
                         scene = DummyUnitScene;
-                        hp = st.Hp + schematicBonus;   // HP bonus folded in pre-_Ready
-                        speed = st.Speed;
-                        armor = st.Armor;
-                    }
-                    break;
+                        hp = 12;
+                        speed = 0;
+                        armor = 5;
+                        break;
 
-                default:
-                    GD.PrintErr($"[Summon] Unknown unit kind: {unitKind}");
-                    return null;
+                    case "earth_elemental":
+                        scene = DummyUnitScene;
+                        hp = 16;
+                        speed = 1;
+                        armor = 0;
+                        break;
+                    case "earth_elemental_armored":
+                        scene = DummyUnitScene;
+                        hp = 16;
+                        speed = 1;
+                        armor = 3;
+                        break;
+
+                    case "colossus":
+                        scene = DummyUnitScene;
+                        hp = 30;
+                        speed = 1;
+                        armor = 5;
+                        break;
+                    case "colossus_empowered":
+                        scene = DummyUnitScene;
+                        hp = 30;
+                        speed = 1;
+                        armor = unitKind == "colossus_empowered" ? 8 : 5;
+                        break;
+
+                    case "decoy":
+                        scene = DummyUnitScene;
+                        hp = 10;
+                        speed = 0;
+                        armor = 0;
+                        break;
+
+                    case "shield_wall":
+                        scene = DummyUnitScene;
+                        hp = 20;
+                        speed = 0;
+                        armor = 8;
+                        break;
+                    case "shield_wall_heavy":
+                        scene = DummyUnitScene;
+                        hp = 20;
+                        speed = 0;
+                        armor = 12;
+                        break;
+
+                    case "spirit":
+                    case "spirit_wall":
+                    case "revenant":
+                    case "revenant_champion":
+                    case "revenant_elder":
+                    case "covenant_elder":
+                    case "ossuary":
+                    case "ossuary_shrine":
+                    case "ossuary_garden":
+                    case "soul_well":
+                    case "memorial_seat":
+                    case "covenant_seat":
+                        scene = PlayerUnitScene;
+                        hp = 10;
+                        speed = 1;
+                        armor = 0;
+                        break;
+
+                    case "arcaneconstruct":
+                    case "arcane_construct":
+                        scene = DummyUnitScene;
+                        hp = 12;
+                        speed = 2;
+                        armor = 2;
+                        break;
+
+                    case "livingspell":
+                    case "living_spell":
+                        scene = DummyUnitScene;
+                        hp = 8;
+                        speed = 3;
+                        armor = 0;
+                        break;
+
+                    case "illusion":
+                        scene = DummyUnitScene;
+                        hp = 10;
+                        speed = 2;
+                        armor = 0;
+                        break;
+
+                    case "drone":
+                    case "turret":
+                    case "cannon":
+                    case "grand_turret":
+                    case "siege_engine":
+                    case "sentinel":
+                    case "lattice_node":
+                    case "familiar":
+                    case "tinker_barrier":
+                    case "tinker_colossus":
+                        {
+                            var st = TinkerConstructStats(unitKind);
+                            scene = DummyUnitScene;
+                            hp = st.Hp + schematicBonus;
+                            speed = st.Speed;
+                            armor = st.Armor;
+                        }
+                        break;
+
+                    default:
+                        GD.PrintErr($"[Summon] Unknown unit kind: {unitKind}");
+                        return null;
+                }
             }
 
             if (scene == null)
@@ -3562,20 +3639,21 @@ public partial class CombatManager : Node3D
             unit.MaxActionPoints = unit.Stats.BaseSpeed;
             unit.CurrentActionPoints = unit.MaxActionPoints;
 
-            // Name it
             string suffix = unitKind.Replace("_", " ");
             suffix = char.ToUpper(suffix[0]) + suffix.Substring(1);
             unit.Name = suffix;
             unit.RefreshNameLabel();
 
-            if (IsTinkerConstructKind(unitKind))
+            if (!isWildlife && IsTinkerConstructKind(unitKind))
                 ConfigureTinkerConstruct(unit, unitKind, teamId, schematicBonus);
 
             if (unitKind is "colossus" or "colossus_empowered")
                 unit.ApplyStatus("colossus_absorb", 999);
 
-            // Color: friendly summons are blue-ish, pillars are grey
-            // Spirits skip this — ApplySpiritAppearance handles their visuals
+            // Persistent marker so the death hook can leave a carcass (same pattern as colossus_absorb)
+            if (isWildlife)
+                unit.ApplyStatus("wildlife", 999);
+
             if (unitKind.Contains("pillar") || unitKind.Contains("boulder"))
                 unit.SetBodyColor(UITheme.SummonColorPillar);
             else if (unitKind is "spirit" or "spirit_wall" or "revenant"
@@ -3583,21 +3661,18 @@ public partial class CombatManager : Node3D
                 or "ossuary" or "ossuary_shrine" or "ossuary_garden"
                 or "soul_well" or "memorial_seat" or "covenant_seat")
             {
-                // skip — spirit visuals are handled by ApplySpiritAppearance
+                // spirit visuals handled by ApplySpiritAppearance
             }
-            // After the spirit block, add:
+            else if (isWildlife)
+                unit.SetBodyColor(UITheme.SummonColorFriendly); // TODO: add UITheme.SummonColorWildlife (a green)
             else if (unitKind is "arcaneconstruct" or "arcane_construct"
                 or "livingspell" or "living_spell" or "illusion")
-            {
                 unit.SetBodyColor(UITheme.SummonColorFriendly);
-                // TODO: swap to a distinct arcane/purple color once added to UITheme
-            }
             else if (isPlayerControlled)
                 unit.SetBodyColor(UITheme.SummonColorFriendly);
             else
                 unit.SetBodyColor(UITheme.SummonColorEnemy);
 
-            // Add to the appropriate unit list
             if (isPlayerControlled)
                 playerUnits.Add(unit);
             else
@@ -3790,6 +3865,19 @@ public partial class CombatManager : Node3D
                         failReason = "Requires a spirit or memorial on the board!";
                         return false;
                     }
+                    break;
+
+                case "growth_tile":
+                    if (!TargetHasGrowth(targets, 1))
+                        return false;
+                    break;
+                case "old_growth_tile":
+                    if (!TargetHasGrowth(targets, 3))
+                        return false;
+                    break;
+                case "any_growth":
+                    if (!AnyGrowthOnBoard())
+                        return false;
                     break;
             }
         }

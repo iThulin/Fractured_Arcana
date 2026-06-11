@@ -1,0 +1,76 @@
+{
+	"id": "druid_heart_of_the_wood",
+	"status": "wip",
+	"name": "Heart of the Wood",
+	"school": "Druid",
+	"rarity": "Legendary",
+	"top": {
+		"name": "Heart of the Wood",
+		"mana": 5,
+		"speed": "Sorcery",
+		"rules_text": "Seed Thicket growth on the target tile and its ring, then a Bear and a Wolf emerge from it. Gain 1 Wilding.",
+		"tags": [
+			"growth",
+			"summon",
+			"beast"
+		],
+		"requires": [
+			"growth_tile"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "seed_growth",
+					"stage": 2,
+					"radius": 1,
+					"wilding": 1
+				},
+				{
+					"type": "summon_wildlife",
+					"unit": "Bear"
+				},
+				{
+					"type": "summon_wildlife",
+					"unit": "Wolf"
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "The Pack Answers",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Two Wolves emerge beside living ground (12HP 5DMG 2SPD each).",
+		"tags": [
+			"growth",
+			"summon",
+			"beast"
+		],
+		"requires": [
+			"growth_tile"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "summon_wildlife",
+					"unit": "Wolf"
+				},
+				{
+					"type": "summon_wildlife",
+					"unit": "Wolf"
+				}
+			]
+		}
+	},
+	"upgrades": []
+}

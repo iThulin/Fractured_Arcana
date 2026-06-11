@@ -1,0 +1,48 @@
+{
+	"id": "druid_wolves_come",
+	"status": "wip",
+	"name": "Wolves Come",
+	"school": "Druid",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Wolves Come",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Summon a Wolf beside living ground (12HP 5DMG 2SPD). Wolves grow stronger in a pack.",
+		"tags": [
+			"growth",
+			"summon",
+			"beast"
+		],
+		"requires": [
+			"growth_tile"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "summon_wildlife",
+			"unit": "Wolf"
+		}
+	},
+	"bottom": {
+		"name": "Eyes in the Trees",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Summon Crows at the target tile (6HP 2DMG 4SPD). They fly, and reveal what enemies are hiding.",
+		"tags": [
+			"summon",
+			"flock"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 6
+		},
+		"effect": {
+			"type": "summon_wildlife",
+			"unit": "Crows"
+		}
+	},
+	"upgrades": []
+}

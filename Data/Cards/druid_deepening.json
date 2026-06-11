@@ -1,0 +1,52 @@
+{
+	"id": "druid_deepening",
+	"status": "wip",
+	"name": "Deepening",
+	"school": "Druid",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Deepening",
+		"mana": 3,
+		"speed": "Sorcery",
+		"rules_text": "Seed Sapling growth on the target tile and its ring, then advance living tiles adjacent to the target. Gain 1 Wilding.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "seed_growth",
+					"stage": 1,
+					"radius": 1,
+					"wilding": 1
+				},
+				{
+					"type": "advance_growth",
+					"radius": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Tend",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 2 Wilding.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "gain_wilding",
+			"amount": 2
+		}
+	},
+	"upgrades": []
+}

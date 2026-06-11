@@ -121,9 +121,12 @@ public class TileData
     /// <summary>Attempts to claim the tile for the given unit. Returns true on success, false if the tile is already occupied or impassable.</summary>
     public bool TrySetOccupant(Unit unit)
     {
-        if (unit == null) return false;
-        if (Occupant != null) return false;
-        if (!CanEnter(unit)) return false;
+        if (unit == null)
+            return false;
+        if (Occupant != null)
+            return false;
+        if (!CanEnter(unit))
+            return false;
 
         Occupant = unit;
         return true;
@@ -150,6 +153,19 @@ public class TileData
 
     public int SummonDiscount = 0;
     public int SummonDiscountTurns = 0;
+
+    // ── Druid living-terrain (Wilding) ──────────────────────────────────────
+    /// <summary>Growth stage: 0 none, 1 sapling, 2 thicket, 3 old growth. Orthogonal to ElementType — the Druid never writes ElementType.</summary>
+    public int GrowthStage = 0;
+
+    /// <summary>Ticks spent at the current growth stage; drives auto-advance in GrowthManager.</summary>
+    public int GrowthAge = 0;
+
+    /// <summary>Whose side this growth favours (spread bonus, heal, root). May be null.</summary>
+    public Unit GrowthOwner = null;
+
+    /// <summary>Remaining ticks this tile counts as fertile carcass ground (spread bonus + crow draw). 0 = none.</summary>
+    public int CarcassTicks = 0;
 
     /// <summary>
     /// Applies a named persistent terrain modifier ("rubble", "scorched", "frozen") that

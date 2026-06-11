@@ -55,6 +55,24 @@ public partial class SchoolAttunementUI : PanelContainer
 	// Elementalist-specific
 	private readonly Dictionary<ElementTag, ElementBar> _elementBars = new();
 
+	// Wilding (Druid) — single 0–4 gauge
+	private WildingAttunement _boundWilding;
+	private ProgressBar _wildingBar;
+	private Label _wildingTierLabel;
+	private Label _wildingEffectLabel;
+
+	private static readonly string[] WildingTierNames =
+		{ "Still", "Stirring", "Spreading", "Rampant", "Riot" };
+
+	private static readonly string[] WildingTierEffects =
+	{
+	"Dormant",
+	"Growth spreads faster",
+	"You heal on living ground",
+	"Foes on your wood are rooted",
+	"RIOT — the wild surges"
+};
+
 	// ── Colors matching your card element pips ──────────────────────
 	private static Color GetElementColor(ElementTag element) => element switch
 	{
@@ -150,6 +168,9 @@ public partial class SchoolAttunementUI : PanelContainer
 			case WeaveAttunement weaveAtt when weaveAtt != _boundWeave:
 				BindEnchanter(weaveAtt);
 				break;
+			case WildingAttunement wildingAtt when wildingAtt != _boundWilding:
+				BindWilding(wildingAtt);
+				break;
 		}
 
 		if (_container != null)
@@ -170,6 +191,8 @@ public partial class SchoolAttunementUI : PanelContainer
 			RefreshArcanistUI();
 		if (_boundWeave != null)
 			RefreshWeaveBar();
+		if (_boundWilding != null)
+			RefreshWilding();
 	}
 
 	public void UseExternalContainer(VBoxContainer externalContainer)
@@ -196,6 +219,9 @@ public partial class SchoolAttunementUI : PanelContainer
 			child.QueueFree();
 		_elementBars.Clear();
 		_stubLabel = null;
+		_wildingBar = null;
+		_wildingTierLabel = null;
+		_wildingEffectLabel = null;
 
 		// Title — matches UnitNameLabel style (centered, default font)
 		_titleLabel = new Label
@@ -237,6 +263,12 @@ public partial class SchoolAttunementUI : PanelContainer
 				BuildChronomancerUI();
 				if (_currentUnit?.Attunement is FateAttunement fateAtt)  // ← _currentUnit, not unit
 					BindChronomancer(fateAtt);
+				break;
+			case CardSchool.Druid:
+				_titleLabel.Text = "The Wilding";
+				BuildWildingUI();
+				if (_currentUnit?.Attunement is WildingAttunement wildingAtt)
+					BindWilding(wildingAtt);
 				break;
 			default:
 				if (_container != null)
@@ -331,6 +363,14 @@ public partial class SchoolAttunementUI : PanelContainer
 			_boundAttunement.OnBurstTriggered -= OnElementBurst;
 			_boundAttunement = null;
 		}
+
+		if (_boundWilding != null)
+		{
+			_boundWilding.OnChargeChanged -= OnWildingChargeChanged;
+			_boundWilding.OnRiotTriggered -= OnWildingRiot;
+			_boundWilding = null;
+		}
+
 		UnbindChronomancer();
 		UnbindNecromancer();
 		UnbindArcanist();
@@ -867,6 +907,94 @@ public partial class SchoolAttunementUI : PanelContainer
 			return;
 		_weaveBar.Value = _boundWeave.Weave;
 		_weaveTierLabel.Text = WeaveTierLabels[Math.Clamp(_boundWeave.Weave, 0, 4)];
+	}
+
+	// ════════════════════════════════════════════════════════════════
+	// DRUID — single Wilding gauge (reusable single-counter pattern)
+	// ════════════════════════════════════════════════════════════════
+
+	private void BuildWildingUI()
+	{
+		var row = new HBoxContainer();
+		row.AddThemeConstantOverride("separation", 4);
+		_container.AddChild(row);
+
+		var nameLabel = new Label
+		{
+			Text = "Wild:",
+			CustomMinimumSize = new Vector2(48, 0),
+			HorizontalAlignment = HorizontalAlignment.Left
+		};
+		row.AddChild(nameLabel);
+
+		_wildingBar = new ProgressBar
+		{
+			CustomMinimumSize = new Vector2(80, UITheme.AttunementBarHeight),
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			MaxValue = WildingAttunement.MaxCharges,
+			Value = 0,
+			Step = 1,
+			ShowPercentage = false
+		};
+		_wildingBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = UITheme.WildingGreen });
+		row.AddChild(_wildingBar);
+
+		_wildingTierLabel = new Label
+		{
+			Text = WildingTierNames[0],
+			CustomMinimumSize = new Vector2(72, 0),
+			HorizontalAlignment = HorizontalAlignment.Right
+		};
+		row.AddChild(_wildingTierLabel);
+
+		_wildingEffectLabel = new Label
+		{
+			Text = WildingTierEffects[0],
+			HorizontalAlignment = HorizontalAlignment.Center,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart
+		};
+		_container.AddChild(_wildingEffectLabel);
+	}
+
+	private void BindWilding(WildingAttunement att)
+	{
+		_boundWilding = att;
+		att.OnChargeChanged += OnWildingChargeChanged;
+		att.OnRiotTriggered += OnWildingRiot;
+		RefreshWilding();
+	}
+
+	private void RefreshWilding()
+	{
+		if (_boundWilding == null || _wildingBar == null)
+			return;
+
+		int charges = Math.Clamp(_boundWilding.Charges, 0, WildingAttunement.MaxCharges);
+		_wildingBar.Value = charges;
+		_wildingTierLabel.Text = WildingTierNames[charges];
+		if (_wildingEffectLabel != null)
+			_wildingEffectLabel.Text = WildingTierEffects[charges];
+	}
+
+	private void OnWildingChargeChanged(int newValue) => RefreshWilding();
+
+	private void OnWildingRiot()
+	{
+		if (_wildingBar == null)
+			return;
+
+		// Flash white, then settle back to green (mirrors OnElementBurst)
+		_wildingBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = Colors.White });
+		if (_wildingEffectLabel != null)
+			_wildingEffectLabel.Text = WildingTierEffects[4];
+
+		var tween = CreateTween();
+		tween.TweenInterval(0.5f);
+		tween.TweenCallback(Callable.From(() =>
+		{
+			_wildingBar?.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = UITheme.WildingGreen });
+			RefreshWilding();
+		}));
 	}
 
 	// ════════════════════════════════════════════════════════════════
