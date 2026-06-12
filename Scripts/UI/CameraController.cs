@@ -6,18 +6,38 @@ using Godot;
 // Purpose:        Top-down combat camera rig — handles pan, zoom,
 //                 and orbit on a pivot/camera pair, plus left-click
 //                 drop-on-tile forwarding to CardDropHandler.
+//
+//                 Terrain-aware pass:
+//                 - FrameGrid now expects HEIGHT-INCLUSIVE bounds
+//                   (HexGridManager.RecomputeGridBounds) and centres
+//                   the rig at the bounds midpoint including Y.
+//                 - DYNAMIC ZOOM FLOOR: every frame the minimum zoom
+//                   is whatever distance keeps the camera's world Y
+//                   above boundsMax.Y + MinCameraClearance at the
+//                   current pitch. No pan/zoom/orbit combination can
+//                   put the eye inside or below the terrain.
+//                 - Pitch ceiling tightened (-20°) so the floor stays
+//                   finite and the horizon stays unreachable.
+//                 - GLIDE-TO-ACTIVE FOCUS: FocusOn(node) glides the
+//                   rig to a unit and tracks it while it moves. Any
+//                   pan input (keys / edge scroll / right-drag)
+//                   cancels the glide; F re-centres on the last
+//                   focused unit. Deliberately NOT a hard follow —
+//                   a leashed camera fights free card targeting.
 // Layer:          UI
 // Collaborators:  CardDropHandler.cs (forwards left-click drops),
-//                 CombatScene.cs (calls FrameGrid on board build),
-//                 Camera3D / Node3D pivot child in the .tscn.
-// See:            README §8 (Godot 4.6 input + scene-tree quirks)
+//                 HexGridManager.cs (GenerateMap → FrameGrid with
+//                 height-aware bounds), CombatManager (FocusOn at
+//                 turn handoff), Camera3D / Node3D pivot in .tscn.
+// See:            README §8 (make_current via CallDeferred)
 // ============================================================
 
 /// <summary>
 /// Combat camera controller. Owns a pivot Node3D + Camera3D pair: panning moves
 /// the controller, rotation/orbit drives the pivot, zoom slides the camera along
-/// its local Z. All motion is smoothed via lerps toward target values so input
-/// feels weighted rather than instant.
+/// its local Z. All motion is smoothed via lerps toward target values. A dynamic
+/// zoom floor keeps the camera above the terrain at all times, and FocusOn()
+/// provides cancellable glide-to-unit framing for turn handoffs.
 /// </summary>
 public partial class CameraController : Node3D
 {
@@ -25,15 +45,15 @@ public partial class CameraController : Node3D
     /// <summary>Maximum pan speed in world units per second.</summary>
     [Export] public float MoveSpeed = 12f;
     /// <summary>Lerp rate used to ease the rig toward its desired pan target. Higher = snappier.</summary>
-    [Export] public float MoveLerpSpeed = 10f;  // how snappy panning feels
+    [Export] public float MoveLerpSpeed = 10f;
     /// <summary>Distance the zoom target moves per scroll wheel tick.</summary>
-    [Export] public float ZoomSpeed = 4f;   // units per scroll tick
+    [Export] public float ZoomSpeed = 4f;
     /// <summary>Lerp rate used to ease zoom toward its target. Higher = snappier.</summary>
-    [Export] public float ZoomLerpSpeed = 8f;   // how snappy zoom feels
-    /// <summary>Closest the camera can get to the pivot (minimum zoom).</summary>
+    [Export] public float ZoomLerpSpeed = 8f;
+    /// <summary>Closest the camera can get to the pivot (static minimum — the terrain-aware floor can only raise this, never lower it).</summary>
     [Export] public float MinZoom = 3f;
     /// <summary>Farthest the camera can pull out (maximum zoom).</summary>
-    [Export] public float MaxZoom = 30f;  // was 40 — tighter ceiling
+    [Export] public float MaxZoom = 30f;
     /// <summary>Distance from screen edge (in pixels) within which edge-scroll pan activates.</summary>
     [Export] public float EdgeScrollMargin = 20f;
     /// <summary>Speed multiplier for right-click drag pan.</summary>
@@ -42,10 +62,15 @@ public partial class CameraController : Node3D
     [Export] public float RotationSpeed = 0.3f;
     /// <summary>Steepest the camera can tilt (looking straight down is -90).</summary>
     [Export] public float MinPitch = -75f;
-    /// <summary>Shallowest the camera can tilt before clipping into the board plane.</summary>
-    [Export] public float MaxPitch = -15f;
+    /// <summary>Shallowest the camera can tilt. Kept ≤ -20° so the terrain-aware
+    /// zoom floor stays finite and the camera can never reach the horizon.</summary>
+    [Export] public float MaxPitch = -20f;
     /// <summary>Extra slack (world units) added to the clamp bounds so the camera can drift slightly past the arena edge.</summary>
-    [Export] public float BoundsPad = 2f;   // was 4 — less overshoot
+    [Export] public float BoundsPad = 2f;
+    /// <summary>Vertical clearance (world units) the camera keeps above the tallest tile top.</summary>
+    [Export] public float MinCameraClearance = 1.5f;
+    /// <summary>Lerp rate of the glide toward a focused unit. Lower than MoveLerpSpeed so focus feels like a deliberate camera move, not a snap.</summary>
+    [Export] public float FocusLerpSpeed = 5f;
 
     // ── State ────────────────────────────────────────────────────────────────
     private float _yaw = -45f;
@@ -68,6 +93,12 @@ public partial class CameraController : Node3D
     // Smooth pan: lerp the controller position toward a desired position
     private Vector3 _desiredPosition;
 
+    // Glide-to-active focus
+    private bool _focusing = false;
+    private Node3D _focusNode;       // live target while it exists (tracks movement)
+    private Node3D _lastFocusNode;   // recenter target for the F key
+    private Vector3 _focusPoint;     // static fallback target
+
     private const float MouseToKeyboardRotationRatio = 200f;
 
     // ── Init ─────────────────────────────────────────────────────────────────
@@ -85,14 +116,23 @@ public partial class CameraController : Node3D
     }
 
     // ── FrameGrid ─────────────────────────────────────────────────────────────
+    /// <summary>
+    /// Frames the whole arena. Pass HEIGHT-INCLUSIVE bounds
+    /// (HexGridManager.RecomputeGridBounds) — the rig centres at the bounds
+    /// midpoint including Y, and the start zoom respects the terrain-aware
+    /// safety floor so the camera can never spawn inside the mesh.
+    /// </summary>
     public void FrameGrid(Vector3 min, Vector3 max)
     {
         if (!EnsureCameraNodes())
             return;
 
-        _camera.Current = true;
+        _camera.CallDeferred("make_current"); // README §8 — never set Current directly
         _boundsMin = min;
         _boundsMax = max;
+
+        ClearFocus();
+        _lastFocusNode = null;
 
         Vector3 center = (min + max) * 0.5f;
         Vector3 size = max - min;
@@ -102,25 +142,52 @@ public partial class CameraController : Node3D
         Position = center;
         _desiredPosition = center;
         _pivot.Position = Vector3.Zero;
-        _pivot.RotationDegrees = Vector3.Zero;
-        _camera.Position = Vector3.Zero;
         _camera.RotationDegrees = Vector3.Zero;
 
         _yaw = -45f;
         _pitch = -35f;
         _pivot.RotationDegrees = new Vector3(_pitch, _yaw, 0f);
 
-        // Start closer — 0.35 instead of 0.6
-        float startZoom = Mathf.Clamp(boardSpan * 0.35f, MinZoom, MaxZoom);
+        // Start close (0.35 × span is the intended feel) but never closer than
+        // the terrain-aware floor allows at the starting pitch.
+        float startZoom = Mathf.Clamp(
+            Mathf.Max(boardSpan * 0.35f, MinSafeZoom()),
+            MinZoom, MaxZoom);
         _camera.Position = new Vector3(0f, 0f, startZoom);
         _zoomTarget = startZoom;
 
-        GD.Print($"FrameGrid center: {center}");
-        GD.Print($"Controller pos: {Position}");
-        GD.Print($"Pivot rot: {_pivot.RotationDegrees}");
-        GD.Print($"Camera local pos: {_camera.Position}");
-        GD.Print($"Camera global pos: {_camera.GlobalPosition}");
-        GD.Print($"Camera current: {_camera.Current}");
+        GD.Print($"FrameGrid center: {center}  span: {boardSpan:0.0}  startZoom: {startZoom:0.0}  maxY: {max.Y:0.0}");
+    }
+
+    // ── Focus (glide-to-active) ──────────────────────────────────────────────
+    /// <summary>
+    /// Glides the rig to a unit (or any Node3D) and tracks it while it moves.
+    /// Cancelled instantly by any pan input; F re-centres on the last target.
+    /// Call at turn handoff for BOTH player and enemy units.
+    /// </summary>
+    public void FocusOn(Node3D node)
+    {
+        if (node == null)
+            return;
+        _focusNode = node;
+        _lastFocusNode = node;
+        _focusPoint = node.GlobalPosition;
+        _focusing = true;
+    }
+
+    /// <summary>Glides the rig to a static world point (no tracking).</summary>
+    public void FocusOn(Vector3 worldPoint)
+    {
+        _focusNode = null;
+        _focusPoint = worldPoint;
+        _focusing = true;
+    }
+
+    /// <summary>Stops any active glide; the rig stays where it is.</summary>
+    public void ClearFocus()
+    {
+        _focusing = false;
+        _focusNode = null;
     }
 
     // ── Input ────────────────────────────────────────────────────────────────
@@ -143,6 +210,14 @@ public partial class CameraController : Node3D
 
         if (@event is InputEventMouseMotion motion)
             _mouseDelta = motion.Relative;
+
+        // Recenter on the active unit. Direct key check on purpose — no
+        // InputMap action required. Remap here if F conflicts with anything.
+        if (@event is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.F)
+        {
+            if (_lastFocusNode != null && IsInstanceValid(_lastFocusNode))
+                FocusOn(_lastFocusNode);
+        }
     }
 
     // ── Process ──────────────────────────────────────────────────────────────
@@ -201,17 +276,40 @@ public partial class CameraController : Node3D
                 inputDir -= forward;
         }
 
-        if (inputDir != Vector3.Zero)
-            inputDir = inputDir.Normalized();
+        bool userPanning = inputDir != Vector3.Zero || _dragging;
 
-        _desiredPosition += inputDir * MoveSpeed * delta;
+        // Any pan input cancels an active glide — the player always wins.
+        if (userPanning)
+            _focusing = false;
 
-        // Right-click drag pan
-        if (_dragging)
+        if (_focusing)
         {
-            Vector2 dm = GetViewport().GetMousePosition() - _lastMousePos;
-            _desiredPosition += (-right * dm.X
-                               + forward * dm.Y) * DragSpeed * delta;
+            // Track the focus node while it exists (it moves during its turn);
+            // fall back to the captured point if it was freed.
+            if (_focusNode != null && IsInstanceValid(_focusNode))
+                _focusPoint = _focusNode.GlobalPosition;
+            else
+                _focusNode = null;
+
+            _desiredPosition = new Vector3(
+                _focusPoint.X,
+                Mathf.Clamp(_focusPoint.Y, _boundsMin.Y, _boundsMax.Y),
+                _focusPoint.Z);
+        }
+        else
+        {
+            if (inputDir != Vector3.Zero)
+                inputDir = inputDir.Normalized();
+
+            _desiredPosition += inputDir * MoveSpeed * delta;
+
+            // Right-click drag pan
+            if (_dragging)
+            {
+                Vector2 dm = GetViewport().GetMousePosition() - _lastMousePos;
+                _desiredPosition += (-right * dm.X
+                                   + forward * dm.Y) * DragSpeed * delta;
+            }
         }
 
         // Clamp to arena bounds
@@ -220,8 +318,9 @@ public partial class CameraController : Node3D
         _desiredPosition.Z = Mathf.Clamp(_desiredPosition.Z,
             _boundsMin.Z - BoundsPad, _boundsMax.Z + BoundsPad);
 
-        // Smooth lerp toward desired
-        Position = Position.Lerp(_desiredPosition, MoveLerpSpeed * delta);
+        // Smooth lerp toward desired (focus uses its own, gentler rate)
+        float lerpRate = _focusing ? FocusLerpSpeed : MoveLerpSpeed;
+        Position = Position.Lerp(_desiredPosition, lerpRate * delta);
     }
 
     // ── Rotation ─────────────────────────────────────────────────────────────
@@ -245,9 +344,35 @@ public partial class CameraController : Node3D
     // ── Zoom ─────────────────────────────────────────────────────────────────
     private void HandleZoom(float delta)
     {
+        // Terrain-aware floor: at the current pitch, this is the closest zoom
+        // that keeps the camera's world Y above the tallest tile + clearance.
+        float minSafe = MinSafeZoom();
+        _zoomTarget = Mathf.Clamp(_zoomTarget, minSafe, MaxZoom);
+
         Vector3 camPos = _camera.Position;
         camPos.Z = Mathf.Lerp(camPos.Z, _zoomTarget, ZoomLerpSpeed * delta);
+        // Hard floor on the actual value too — a pitch change mid-lerp must
+        // never leave the eye inside the terrain for even one frame.
+        camPos.Z = Mathf.Max(camPos.Z, minSafe);
         _camera.Position = camPos;
+    }
+
+    /// <summary>
+    /// Minimum zoom distance that keeps the camera above boundsMax.Y +
+    /// MinCameraClearance at the current pitch: camera world Y rises by
+    /// zoom · sin(|pitch|) above the rig. Shallower pitch → larger floor.
+    /// </summary>
+    private float MinSafeZoom()
+    {
+        float sin = Mathf.Sin(Mathf.DegToRad(Mathf.Abs(_pitch)));
+        if (sin < 0.05f)
+            return MaxZoom; // defensive — MaxPitch should keep us far from here
+
+        float requiredRise = _boundsMax.Y + MinCameraClearance - Position.Y;
+        if (requiredRise <= 0f)
+            return MinZoom;
+
+        return Mathf.Max(MinZoom, requiredRise / sin);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -272,6 +397,8 @@ public partial class CameraController : Node3D
     {
         if (!EnsureCameraNodes())
             return;
+
+        ClearFocus();
 
         // Pan to player spawn center
         Position = fromCenter;

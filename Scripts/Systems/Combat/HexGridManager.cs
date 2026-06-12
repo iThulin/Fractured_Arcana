@@ -115,6 +115,43 @@ public partial class HexGridManager : Node3D
     [Export] public Material IceMaterial;
     [Export] public Material LavaMaterial;
 
+    [ExportGroup("Blended Terrain Mesh")]
+    [Export] public bool UseBlendedTerrainMesh = true;
+    [Export(PropertyHint.Range, "0.55,0.9,0.01")] public float TerrainSolidFactor = 0.75f;
+    [Export(PropertyHint.Range, "0,4,1")] public int TerrainTerraceSteps = 0;
+
+    /// <summary>
+    /// Height-step difference above which an edge renders as a sheer cliff
+    /// AND (when BlockMovementAtCliffs) movement across it is blocked. One number
+    /// drives both, so the visual and the rules can never disagree.
+    /// </summary>
+    [Export(PropertyHint.Range, "1,5,1")] public int CliffHeightThreshold = 1;
+
+    /// <summary>
+    /// Block unit movement across cliff edges. Leave on — rendering
+    /// impassable-looking cliffs that units can walk up is a readability lie.
+    /// </summary>
+    [Export] public bool BlockMovementAtCliffs = true;
+
+    private float _lastWorldFloor = -1.0f;
+
+    [ExportGroup("Terrain Textures")]
+    /// <summary>Use the splat shader with per-terrain textures. Off = vertex-colour blending (Route A look).</summary>
+    [Export] public bool UseTerrainTextures = true;
+    [Export] public Texture2D GrassTexture;
+    [Export] public Texture2D ForestTexture;
+    [Export] public Texture2D StoneTexture;
+    [Export] public Texture2D WaterTexture;
+    [Export] public Texture2D IceTexture;
+    [Export] public Texture2D LavaTexture;
+    [Export] public Texture2D ArcaneTexture;
+    /// <summary>All source textures are normalised to this square size when packed.</summary>
+    [Export] public int TerrainTextureSize = 512;
+    /// <summary>World units → UV. Lower = bigger texture features.</summary>
+    [Export(PropertyHint.Range, "0.05,1,0.01")] public float TerrainTextureScale = 0.22f;
+
+    private ShaderMaterial _terrainMaterialTemplate;
+
     // Prop import
     [ExportGroup("Tile Props")]
     [Export] public PackedScene GrassTuftScene;
@@ -224,7 +261,6 @@ public partial class HexGridManager : Node3D
             return;
 
         GenerateMap();
-        CenterCameraOverGrid();
     }
 
     public TileData GetTile(Vector2I axial) =>
@@ -379,6 +415,9 @@ public partial class HexGridManager : Node3D
         SpawnObstacleVisuals();
         SpawnTerrainPropsFromManifest();
         RefreshAllTileLabels();
+
+        RecomputeGridBounds();
+        CenterCameraOverGrid();
     }
 
     private void InitRng()
@@ -585,23 +624,142 @@ public partial class HexGridManager : Node3D
         if (Tiles.Count == 0)
             return;
 
-        // Find the lowest tile on this map so we know how deep the floor is.
         int minHeight = int.MaxValue;
         foreach (var tile in Tiles.Values)
             minHeight = Math.Min(minHeight, tile.Height);
 
-        // Drop one step below the lowest tile for visual skirting — prevents
-        // the floor peeking through even at the minimum height tiles.
-        float worldFloor = (minHeight - 1) * HexTile.HeightStep;
+        _lastWorldFloor = (minHeight - 1) * HexTile.HeightStep;
 
         foreach (var tile in Tiles.Values)
-            tile.TileView?.SetHeight(tile.Height, worldFloor);
+        {
+            if (tile.TileView == null)
+                continue;
+            tile.TileView.SetHeight(tile.Height, _lastWorldFloor);
+        }
+
+        if (UseBlendedTerrainMesh)
+        {
+            foreach (var tile in Tiles.Values)
+                RebuildTerrainMesh(tile);
+        }
     }
 
     private void ResetTileHeights()
     {
         foreach (var tile in Tiles.Values)
             tile.Height = 0;
+    }
+
+    /// <summary>True when the height gap between two tiles exceeds the cliff threshold.</summary>
+    public bool IsCliff(TileData a, TileData b) =>
+        a != null && b != null && Math.Abs(a.Height - b.Height) > CliffHeightThreshold;
+
+    /// <summary>Movement legality of one step between adjacent coords, per the cliff rule.</summary>
+    private bool StepAllowed(Vector2I from, Vector2I to)
+    {
+        if (!BlockMovementAtCliffs)
+            return true;
+        if (!Tiles.TryGetValue(from, out var a) || !Tiles.TryGetValue(to, out var b))
+            return true;
+        return Math.Abs(a.Height - b.Height) <= CliffHeightThreshold;
+    }
+
+    /// <summary>Rebuilds the blended mesh for a tile and its six neighbours after a runtime
+    /// Height or TerrainType change (raise_terrain, scorch, freeze, etc.). Corner averages
+    /// depend on neighbours, so the ring must rebuild too. No-op in legacy mode.</summary>
+    public void RebuildTileAndNeighbors(Vector2I coord)
+    {
+        if (!UseBlendedTerrainMesh)
+            return;
+
+        void RebuildOne(Vector2I c)
+        {
+            if (!Tiles.TryGetValue(c, out var t) || t.TileView == null)
+                return;
+            t.TileView.SetHeight(t.Height, _lastWorldFloor);
+            var mesh = HexMeshBuilder.Build(this, t, _lastWorldFloor, TerrainSolidFactor, TerrainTerraceSteps);
+            if (mesh != null)
+                t.TileView.SetGeneratedMesh(mesh);
+        }
+
+        RebuildOne(coord);
+        foreach (var dir in HexDirection.All)
+            RebuildOne(coord + dir);
+    }
+
+    /// <summary>Lazily builds the shared splat material (shader + packed texture array).
+    /// Tiles duplicate it in SetGeneratedMesh so highlight uniforms stay per-tile,
+    /// while the Texture2DArray is shared by reference. Null = shader missing → caller
+    /// falls back to vertex-colour mode.</summary>
+    private ShaderMaterial GetTerrainMaterialTemplate()
+    {
+        if (_terrainMaterialTemplate != null)
+            return _terrainMaterialTemplate;
+
+        var shader = GD.Load<Shader>("res://Assets/Shaders/terrain_splat.gdshader");
+        if (shader == null)
+        {
+            GD.PushWarning("[HexGridManager] terrain_splat.gdshader not found; using vertex-colour terrain.");
+            return null;
+        }
+
+        var texArray = TerrainTextureLibrary.GetOrBuild(this, TerrainTextureSize);
+        if (texArray == null)
+            return null;
+
+        _terrainMaterialTemplate = new ShaderMaterial { Shader = shader };
+        _terrainMaterialTemplate.SetShaderParameter("terrain_textures", texArray);
+        _terrainMaterialTemplate.SetShaderParameter("texture_scale", TerrainTextureScale);
+        return _terrainMaterialTemplate;
+    }
+
+    private void RebuildTerrainMesh(TileData tile)
+    {
+        if (tile.TileView == null)
+            return;
+
+        var template = UseTerrainTextures ? GetTerrainMaterialTemplate() : null;
+        bool splat = template != null;
+
+        var mesh = HexMeshBuilder.Build(this, tile, _lastWorldFloor,
+            TerrainSolidFactor, TerrainTerraceSteps, splat);
+        if (mesh != null)
+            tile.TileView.SetGeneratedMesh(mesh, template);
+    }
+
+    /// <summary>Recomputes GridBoundsMin/Max from actual tile-top positions,
+    /// INCLUDING height. Must run after ApplyTileHeights — GenerateBaseGrid's
+    /// initial bounds are captured before heights exist and sit at Y = 0.</summary>
+    private void RecomputeGridBounds()
+    {
+        bool first = true;
+        Vector3 min = Vector3.Zero, max = Vector3.Zero;
+
+        foreach (var tile in Tiles.Values)
+        {
+            if (tile.TileView == null)
+                continue;
+
+            var p = tile.TileView.GlobalPosition; // tile origin = top surface
+            if (first)
+            {
+                min = p;
+                max = p;
+                first = false;
+            }
+            else
+            {
+                min = new Vector3(Mathf.Min(min.X, p.X), Mathf.Min(min.Y, p.Y), Mathf.Min(min.Z, p.Z));
+                max = new Vector3(Mathf.Max(max.X, p.X), Mathf.Max(max.Y, p.Y), Mathf.Max(max.Z, p.Z));
+            }
+        }
+
+        // Pad XZ by one hex so border tiles sit fully inside the framed volume.
+        min -= new Vector3(HexRadius, 0f, HexRadius);
+        max += new Vector3(HexRadius, 0f, HexRadius);
+
+        GridBoundsMin = min;
+        GridBoundsMax = max;
     }
 
     private void ResetTileStateForGeneration()
@@ -796,6 +954,12 @@ public partial class HexGridManager : Node3D
     {
         if (tile.TileView == null)
             return;
+
+        if (UseBlendedTerrainMesh)
+        {
+            tile.TileView.RefreshVisualState();
+            return;
+        }
 
         // Assign the exported terrain material when one is set. When materials are
         // unassigned (the current project state), this stays null and behaviour is
@@ -1491,6 +1655,8 @@ public partial class HexGridManager : Node3D
                     continue;
                 if (!tile.IsWalkable || tile.IsBlocked)
                     continue;
+                if (!StepAllowed(current, neighbor))
+                    continue;
                 if (tile.IsOccupied && neighbor != start)
                     continue;
 
@@ -1514,7 +1680,7 @@ public partial class HexGridManager : Node3D
 
     private void EnsureConnectivity(Vector2I start, Vector2I goal)
     {
-        // BFS on raw coords — no unit involved, just check walkability
+        // BFS on raw coords — no unit involved, just check walkability + cliffs
         var visited = new HashSet<Vector2I> { start };
         var queue = new Queue<Vector2I>();
         queue.Enqueue(start);
@@ -1534,6 +1700,8 @@ public partial class HexGridManager : Node3D
                     continue;
                 if (!t.IsWalkable || t.IsBlocked)
                     continue;
+                if (!StepAllowed(current, neighbor))
+                    continue;
                 visited.Add(neighbor);
                 queue.Enqueue(neighbor);
             }
@@ -1543,6 +1711,11 @@ public partial class HexGridManager : Node3D
             return;
 
         GD.Print("No valid path found between spawn points. Carving path...");
+
+        // Ramp state: seed from the start tile so the first clamp is a no-op.
+        // Local on purpose — this method runs twice per map and a field would
+        // leak the previous carve's height into this one.
+        int prevHeight = Tiles.TryGetValue(start, out var startTile) ? startTile.Height : 0;
 
         Vector2I current2 = start;
         while (current2 != goal)
@@ -1558,6 +1731,13 @@ public partial class HexGridManager : Node3D
                 tile.IsHazardous = false;
                 tile.MoveCost = 1;
                 tile.ObstacleKind = "";
+
+                // Ramp through any cliff: keep each carved tile within the
+                // traversable height band of the previous one.
+                tile.Height = Math.Clamp(tile.Height,
+                    prevHeight - CliffHeightThreshold,
+                    prevHeight + CliffHeightThreshold);
+                prevHeight = tile.Height;
             }
 
             int dq = goal.X - current2.X;
@@ -1583,6 +1763,12 @@ public partial class HexGridManager : Node3D
             goalTile.IsHazardous = false;
             goalTile.MoveCost = 1;
             goalTile.ObstacleKind = "";
+
+            // The carve loop exits before processing the goal — ramp it too,
+            // or the final step can still be an illegal cliff.
+            goalTile.Height = Math.Clamp(goalTile.Height,
+                prevHeight - CliffHeightThreshold,
+                prevHeight + CliffHeightThreshold);
         }
     }
 
@@ -2310,6 +2496,8 @@ public partial class HexGridManager : Node3D
                     continue;
                 if (!tile.IsWalkable || tile.IsBlocked)
                     continue;
+                if (!StepAllowed(current, neighbor))
+                    continue;
                 if (tile.IsOccupied && neighbor != start)
                     continue;
 
@@ -2362,6 +2550,9 @@ public partial class HexGridManager : Node3D
                     continue;
 
                 if (!tile.IsWalkable || tile.IsBlocked)
+                    continue;
+
+                if (!StepAllowed(current, neighbor))
                     continue;
 
                 // Allow start tile, block other occupied tiles
@@ -2467,7 +2658,11 @@ public partial class HexGridManager : Node3D
 
                 if (!Tiles.TryGetValue(neighbor, out var tile))
                     continue;
+
                 if (!tile.IsWalkable || tile.IsBlocked)
+                    continue;
+
+                if (!StepAllowed(current, neighbor))
                     continue;
 
                 // Allow occupied tiles in pathfinding (unit may move away)
@@ -2529,6 +2724,8 @@ public partial class HexGridManager : Node3D
                     continue;
                 if (!tile.IsWalkable || tile.IsBlocked)
                     continue;
+                if (!StepAllowed(current, neighbor))
+                    continue;
 
                 visited[neighbor] = current;
                 queue.Enqueue(neighbor);
@@ -2583,6 +2780,8 @@ public partial class HexGridManager : Node3D
                 if (!Tiles.TryGetValue(neighbor, out var tile))
                     continue;
                 if (!tile.IsWalkable || tile.IsBlocked)
+                    continue;
+                if (!StepAllowed(current, neighbor))
                     continue;
 
                 visited[neighbor] = current;

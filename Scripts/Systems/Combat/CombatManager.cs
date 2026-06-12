@@ -30,6 +30,7 @@ public partial class CombatManager : Node3D
     [Export] public PackedScene DummyUnitScene;
     [Export] public NodePath GridPath = "../HexGridManager";
     [Export] public NodePath CombatUIPath = "../CombatUI";
+    [Export] public CameraController CombatCamera;
 
     // ── Core state ──────────────────────────────────────────────────────────
     public GameState State;
@@ -988,6 +989,8 @@ public partial class CombatManager : Node3D
         selectedUnit.SetSelected(true);
         selectedUnit.SetDetailedBar(true);
         ClearTargetHighlight();
+
+        CombatCamera?.FocusOn(unit);
 
         ClearMoveTiles();
         ShowMoveTilesWithCost(unit);

@@ -5,8 +5,9 @@ using System;
 // HexTile.cs
 //
 // Purpose:        Visual Node3D for one hex tile on the combat
-//                 grid. Renders the mesh, handles hover/highlight
-//                 colour blending, manages the imbuement overlay
+//                 grid. Renders the mesh (legacy cylinder OR the
+//                 generated blended terrain mesh), handles hover/
+//                 highlight tinting, manages the imbuement overlay
 //                 and glyph indicator, and shows the debug coord
 //                 label. Pure visual layer — game state lives on
 //                 the paired TileData.
@@ -14,21 +15,36 @@ using System;
 // Collaborators:  TileData.cs (1:1 data sibling, via TileView),
 //                 ImbuementOverlay.cs (child scene),
 //                 UITheme.cs (highlight colours),
+//                 HexMeshBuilder.cs (generated blended mesh),
+//                 terrain_splat.gdshader (textured terrain material),
 //                 HexGridManager.cs (instantiates and positions tiles)
 // See:            README §8 — CallDeferred rules apply to glyph
 //                 child addition (see ShowGlyph)
+//
+// Highlight architecture:
+//   ALL highlight/hover/overlay tinting flows through SetTint,
+//   which writes to whichever material is active:
+//   - StandardMaterial3D (legacy cylinder, or vertex-colour
+//     blended mesh): emission channel. Albedo is never tinted —
+//     it would multiply against vertex colours / textures.
+//   - ShaderMaterial (terrain_splat.gdshader): the per-tile
+//     duplicate's highlight_color / highlight_strength uniforms,
+//     which feed EMISSION in the shader.
+//   The flag state machine and the public API are unchanged from
+//   the original albedo-based implementation.
 // ============================================================
 
 /// <summary>
-/// Visual Node3D for one hex tile. Handles mesh duplication for per-tile material,
-/// hover colour blending, the layered highlight state machine
+/// Visual Node3D for one hex tile. Handles per-tile material duplication,
+/// emission-based hover/highlight tinting (StandardMaterial3D or splat
+/// ShaderMaterial), the layered highlight state machine
 /// (deployment / movement / range / target / drag), and ownership of the
 /// <see cref="ImbuementOverlay"/> child plus the optional glyph label. All highlight
 /// colours come from <see cref="UITheme"/>.
 /// </summary>
 public partial class HexTile : Node3D
 {
-    /// <summary>Colour blended onto the tile when the mouse is over it. Defaults to the central UITheme value but is overridable in the inspector for special tiles.</summary>
+    /// <summary>Colour blended onto the tile's tint when the mouse is over it. Defaults to the central UITheme value but is overridable in the inspector for special tiles.</summary>
     [Export] public Color HoverColor = UITheme.TileHover;
 
     /// <summary>When true, the coord/terrain label is shown in 3D space above the tile (debug only).</summary>
@@ -36,6 +52,9 @@ public partial class HexTile : Node3D
 
     /// <summary>Optional override for the imbuement overlay scene. If unset, the default at <see cref="DefaultOverlayScenePath"/> is loaded.</summary>
     [Export] public PackedScene ImbuementOverlayScene;
+
+    /// <summary>Emission energy applied to highlight tints. UITheme colours were tuned as albedo overlays; lower this if highlights glow too hot.</summary>
+    [Export(PropertyHint.Range, "0.1,3,0.05")] public float HighlightEmissionEnergy = 1.0f;
 
     private const string DefaultOverlayScenePath = "res://Scenes/Combat/ImbuementOverlay.tscn";
 
@@ -45,10 +64,17 @@ public partial class HexTile : Node3D
     private float _meshOriginalDepth;
     public const float HeightStep = 0.6f;
     private StandardMaterial3D material;
+    private ShaderMaterial _shaderMaterial;
     private Label3D coordLabel;
     private Label3D _glyphLabel;
     private Label3D _memorialLabel;
     private Color baseColor;
+
+    /// <summary>The current tint (transparent black = none). Tracked here so the state machine never needs to read material state back, regardless of which material type is active.</summary>
+    private Color _currentTint = new Color(0f, 0f, 0f, 0f);
+
+    /// <summary>True once SetGeneratedMesh has installed a blended terrain mesh: SetHeight stops stretching the cylinder and SetBaseColor stops driving albedo.</summary>
+    private bool _generatedMode = false;
 
     private ImbuementOverlay imbuementOverlay;
     private MemorialState? _memorialState = null;
@@ -107,6 +133,90 @@ public partial class HexTile : Node3D
         EnsureImbuementOverlay();
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // Tint plumbing — the single channel all highlights flow through.
+    // ────────────────────────────────────────────────────────────────────────
+
+    /// <summary>True when some material is available to receive highlight tints.</summary>
+    private bool HasTintTarget => material != null || _shaderMaterial != null;
+
+    /// <summary>Current tint, or transparent black when none is applied.</summary>
+    private Color GetTint() => _currentTint;
+
+    /// <summary>Applies a highlight tint via whichever material is active. Near-black clears the highlight (resting state).</summary>
+    private void SetTint(Color c)
+    {
+        _currentTint = c;
+        bool off = c.R + c.G + c.B <= 0.004f;
+
+        if (_shaderMaterial != null)
+        {
+            _shaderMaterial.SetShaderParameter("highlight_color", new Vector3(c.R, c.G, c.B));
+            _shaderMaterial.SetShaderParameter("highlight_strength", off ? 0f : HighlightEmissionEnergy);
+            return;
+        }
+
+        if (material == null)
+            return;
+
+        if (off)
+        {
+            material.EmissionEnabled = false;
+            return;
+        }
+
+        material.EmissionEnabled = true;
+        material.Emission = c;
+        material.EmissionEnergyMultiplier = HighlightEmissionEnergy;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Generated blended mesh
+    // ────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Installs a HexMeshBuilder-generated blended terrain mesh. The mesh is
+    /// authored in tile-local space (top surface at Y = 0), so the MeshInstance
+    /// transform resets to identity — the legacy cylinder's 30° rotation,
+    /// Y-stretch, and -0.5 origin no longer apply.
+    ///
+    /// Pass a ShaderMaterial template (the grid's terrain_splat material) to
+    /// pair with a splat-mode mesh — it is duplicated per tile so highlight
+    /// uniforms stay independent. Pass null to pair with a vertex-colour mesh
+    /// via a white-albedo StandardMaterial3D.
+    /// </summary>
+    public void SetGeneratedMesh(ArrayMesh mesh, Material template = null)
+    {
+        if (meshInstance == null || mesh == null)
+            return;
+
+        _generatedMode = true;
+        meshInstance.Transform = Transform3D.Identity;
+        meshInstance.Mesh = mesh;
+
+        if (template is ShaderMaterial sm)
+        {
+            _shaderMaterial = (ShaderMaterial)sm.Duplicate();
+            material = null;
+            meshInstance.SetSurfaceOverrideMaterial(0, _shaderMaterial);
+        }
+        else
+        {
+            _shaderMaterial = null;
+            material = new StandardMaterial3D
+            {
+                AlbedoColor = Colors.White,
+                VertexColorUseAsAlbedo = true,
+                VertexColorIsSrgb = true,
+                Roughness = 0.85f
+            };
+            meshInstance.SetSurfaceOverrideMaterial(0, material);
+        }
+
+        baseColor = Colors.White;
+        RefreshVisualState();
+    }
+
     private void EnsureImbuementOverlay()
     {
         // Already a child? Use it.
@@ -129,12 +239,10 @@ public partial class HexTile : Node3D
 
     private void OnMouseEntered()
     {
-        if (material == null)
+        if (!HasTintTarget)
             return;
-        // Blend hover on top of current color (highlight override or base)
-        Color c = material.AlbedoColor;
-        c = c.Lerp(HoverColor, 0.5f);
-        material.AlbedoColor = c;
+        // Blend hover on top of the current tint (highlight override or resting)
+        SetTint(GetTint().Lerp(HoverColor, 0.5f));
 
         // ── Tooltip ──────────────────────────────────────────────
         if (Data != null)
@@ -146,11 +254,11 @@ public partial class HexTile : Node3D
         if (_isHighlighted)
         {
             if (rangeBorderHighlighted)
-                material.AlbedoColor = UITheme.TileRangeBorder;
+                SetTint(UITheme.TileRangeBorder);
             else if (rangeHighlighted)
-                material.AlbedoColor = UITheme.TileRangeInterior;
+                SetTint(UITheme.TileRangeInterior);
             else if (targetHighlighted)
-                material.AlbedoColor = UITheme.TileTargetHighlight;
+                SetTint(UITheme.TileTargetHighlight);
         }
         else
         {
@@ -158,15 +266,16 @@ public partial class HexTile : Node3D
         }
 
         // ── Tooltip ──────────────────────────────────────────────
-        //GD.Print($"[HexTile] Mouse entered {Axial}. TooltipManager: {TooltipManager.Instance != null}, Data: {Data != null}");
         TooltipManager.Instance?.HideTileTooltip();
     }
 
-    /// <summary>Replaces the tile's material with a per-tile duplicate (so AlbedoColor changes don't bleed to siblings). Pass a StandardMaterial3D for the standard hover/highlight path; other material types disable the colour blending features.</summary>
+    /// <summary>Replaces the tile's material with a per-tile duplicate (legacy path; not used while a generated mesh is installed). Pass a StandardMaterial3D for the standard hover/highlight path; other material types disable the tinting features.</summary>
     public void SetMaterial(Material newMaterial)
     {
         if (meshInstance == null || newMaterial == null)
             return;
+
+        _shaderMaterial = null;
 
         if (newMaterial is StandardMaterial3D stdMat)
         {
@@ -187,6 +296,11 @@ public partial class HexTile : Node3D
 
         // Move the tile's origin to its top surface — units, props, raycasts unaffected.
         Position = new Vector3(Position.X, tileTop, Position.Z);
+
+        // Generated mode: the blended mesh handles its own depth (skirts on
+        // map edges, watertight surface elsewhere) — no cylinder stretch.
+        if (_generatedMode)
+            return;
 
         // How far down the cylinder must reach in local HexTile space.
         // (tileTop - worldFloor) is in world units = local units since HexTile scale = 1.)
@@ -220,10 +334,14 @@ public partial class HexTile : Node3D
         coordLabel.Text = $"({q}, {r})";
     }
 
-    /// <summary>Sets the tile's resting AlbedoColor (under no hover/highlight). Triggers an immediate visual refresh.</summary>
+    /// <summary>Sets the tile's resting albedo (legacy flat-colour path). In generated-mesh mode this is a no-op — terrain colour lives in the mesh's vertex data and textures.</summary>
     public void SetBaseColor(Color color)
     {
         baseColor = color;
+
+        if (!_generatedMode && material != null)
+            material.AlbedoColor = color;
+
         RefreshVisualState();
     }
 
@@ -298,14 +416,14 @@ public partial class HexTile : Node3D
             $"H: {tileData.Height}";
     }
 
-    /// <summary>Toggles the soft deployment-zone tint blended onto the resting colour.</summary>
+    /// <summary>Toggles the soft deployment-zone tint blended into the highlight overlay.</summary>
     public void SetDeploymentHighlight(bool enabled)
     {
         deploymentHighlighted = enabled;
         RefreshVisualState();
     }
 
-    /// <summary>Toggles the movement highlight. When enabled, the movement highlight colour is blended on top of the base/deployment colour. Use <see cref="SetMoveHighlightColored"/> to set a custom colour for this highlight (e.g. to distinguish player vs ally vs dash reachability).</summary>
+    /// <summary>Toggles the movement highlight. When enabled, the movement highlight colour is blended into the highlight overlay. Use <see cref="SetMoveHighlightColored"/> to set a custom colour for this highlight (e.g. to distinguish player vs ally vs dash reachability).</summary>
     public void SetMoveHighlight(bool enabled)
     {
         if (!enabled)
@@ -317,32 +435,32 @@ public partial class HexTile : Node3D
     /// <summary>Sets a custom colour for the movement highlight overlay, then enables it. Used to distinguish player vs ally vs reachable-via-dash highlights at the gameplay level.</summary>
     public void SetMoveHighlightColored(Color color)
     {
-        if (material == null)
+        if (!HasTintTarget)
             return;
         _moveHighlightColor = color;
         moveHighlighted = true;
         RefreshVisualState();
     }
 
-    /// <summary>Toggles the targeting highlight (used when a card is being aimed at this tile). Saves and restores the prior colour so the highlight is non-destructive.</summary>
+    /// <summary>Toggles the targeting highlight (used when a card is being aimed at this tile). Saves and restores the prior tint so the highlight is non-destructive.</summary>
     public void SetTargetHighlight(bool enabled)
     {
         targetHighlighted = enabled;
 
         if (enabled && !_isHighlighted)
         {
-            _preHighlightColor = material.AlbedoColor;
+            _preHighlightColor = GetTint();
             _isHighlighted = true;
         }
         else if (!enabled && _isHighlighted)
         {
             _isHighlighted = false;
-            material.AlbedoColor = _preHighlightColor;
+            SetTint(_preHighlightColor);
             return;
         }
 
         if (enabled)
-            material.AlbedoColor = UITheme.TileTargetHighlight;
+            SetTint(UITheme.TileTargetHighlight);
     }
 
     /// <summary>Toggles the range-preview highlight. Pass <paramref name="border"/> true for the edge of the area, <paramref name="interior"/> true for tiles inside the area. Both false clears the highlight.</summary>
@@ -353,49 +471,50 @@ public partial class HexTile : Node3D
 
         if ((interior || border) && !_isHighlighted)
         {
-            _preHighlightColor = material.AlbedoColor;
+            _preHighlightColor = GetTint();
             _isHighlighted = true;
         }
         else if (!interior && !border && _isHighlighted)
         {
             _isHighlighted = false;
-            material.AlbedoColor = _preHighlightColor;
+            SetTint(_preHighlightColor);
             return;
         }
 
-        if (material == null)
+        if (!HasTintTarget)
             return;
 
         if (border)
-            material.AlbedoColor = UITheme.TileRangeBorder;
+            SetTint(UITheme.TileRangeBorder);
         else if (interior)
-            material.AlbedoColor = UITheme.TileRangeInterior;
+            SetTint(UITheme.TileRangeInterior);
     }
 
-    /// <summary>Applies the drag-hover colour when a card is being dragged over this tile. Restores the prior state when <paramref name="on"/> is false.</summary>
+    /// <summary>Applies the drag-hover tint when a card is being dragged over this tile. Restores the prior state when <paramref name="on"/> is false.</summary>
     public void SetDragHoverHighlight(bool on)
     {
-        if (material == null)
+        if (!HasTintTarget)
             return;
         if (on)
-            material.AlbedoColor = DragHoverColor;
+            SetTint(DragHoverColor);
         else
             RefreshVisualState(); // restore base/range/target state
     }
 
-    /// <summary>Recomputes the current AlbedoColor from the layered highlight flags (base → deployment → move). No-op while a target/range highlight is active — those override.</summary>
+    /// <summary>Recomputes the current highlight tint from the layered flags (deployment → move → memorial → growth). No tint active = highlight off; the terrain (vertex colours, textures, or legacy albedo) shows untouched. No-op while a target/range highlight is active — those override.</summary>
     public void RefreshVisualState()
     {
-        if (material == null)
+        if (!HasTintTarget)
             return;
         if (_isHighlighted)
             return;
 
-        Color finalColor = baseColor;
+        Color tint = new Color(0f, 0f, 0f, 0f);
+
         if (deploymentHighlighted)
-            finalColor = finalColor.Lerp(UITheme.TileDeployHighlight, 0.45f);
+            tint = tint.Lerp(UITheme.TileDeployHighlight, 0.55f);
         if (moveHighlighted)
-            finalColor = finalColor.Lerp(UITheme.TileMoveHighlight, 0.45f);
+            tint = tint.Lerp(_moveHighlightColor, 0.55f);
 
         // ── Memorial overlay ──────────────────────────────────────────
         if (_memorialState.HasValue)
@@ -407,9 +526,9 @@ public partial class HexTile : Node3D
                 MemorialState.Hallowed => MemorialHallowedColor,
                 _ => MemorialNoneColor
             };
-            // Lerp into the terrain color rather than overriding it —
+            // Lerp into the tint rather than overriding it —
             // the ground still reads as grass/stone/etc underneath
-            finalColor = finalColor.Lerp(memColor, memColor.A);
+            tint = tint.Lerp(memColor, memColor.A);
         }
 
         // ── Growth overlay (Druid living terrain) ─────────────────────
@@ -421,10 +540,10 @@ public partial class HexTile : Node3D
                 2 => UITheme.GrowthThicket,
                 _ => UITheme.GrowthOldGrowth
             };
-            finalColor = finalColor.Lerp(growthColor, growthColor.A);
+            tint = tint.Lerp(growthColor, growthColor.A);
         }
 
-        material.AlbedoColor = finalColor;
+        SetTint(tint);
     }
 
     /// <summary>

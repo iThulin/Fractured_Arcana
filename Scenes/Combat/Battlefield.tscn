@@ -10,10 +10,11 @@
 [ext_resource type="PackedScene" uid="uid://dpnt6dp1jietn" path="res://Scenes/Combat/Summons/HexTile_Stone_Blocker.tscn" id="8_qd0yx"]
 [ext_resource type="PackedScene" uid="uid://csb2mcllkxlj6" path="res://Scenes/Combat/Summons/HexTile_Crystal_Blocker.tscn" id="9_uihwe"]
 [ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scripts/UI/CameraController.cs" id="10_cdchv"]
+[ext_resource type="Texture2D" uid="uid://dxlcwtwyiwt55" path="res://Assets/Terrain Asset/Poliigon_GrassPatchyGround_4585_BaseColor.jpg" id="10_pqsji"]
 [ext_resource type="Script" uid="uid://7xc312fm8dtm" path="res://Scripts/Cards/CardDropHandler.cs" id="11_mdga3"]
 [ext_resource type="Script" uid="uid://ba84w4qhnvtux" path="res://Scripts/Systems/Combat/CombatManager.cs" id="12_7b6bt"]
 [ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Combat/Players/Unit.tscn" id="13_golrv"]
-[ext_resource type="Environment" uid="uid://bbtn025ticmfd" path="res://Assets/Combat_Environment.tres" id="13_tfvp6"]
+[ext_resource type="Environment" uid="uid://bbtn025ticmfd" path="res://Assets/Environments/Combat_Environment.tres" id="13_tfvp6"]
 [ext_resource type="PackedScene" uid="uid://chfd280du8r83" path="res://Scenes/Combat/Monsters/TargetDummy.tscn" id="14_jroeh"]
 [ext_resource type="PackedScene" uid="uid://cl1s1lbvr48m" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
 
@@ -94,6 +95,7 @@ HeightVariation = 1.0
 HexTileScene3D = ExtResource("7_vjrxi")
 RockObstacleScene = ExtResource("8_qd0yx")
 CrystalObstacleScene = ExtResource("9_uihwe")
+GrassTexture = ExtResource("10_pqsji")
 
 [node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=1378590758]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
@@ -120,10 +122,11 @@ MaxPitch = 87.5
 [node name="CardDropHandler" type="Node3D" parent="." unique_id=333756922]
 script = ExtResource("11_mdga3")
 
-[node name="GameRunner" type="Node3D" parent="." unique_id=1742499247]
+[node name="GameRunner" type="Node3D" parent="." unique_id=1742499247 node_paths=PackedStringArray("CombatCamera")]
 script = ExtResource("12_7b6bt")
 PlayerUnitScene = ExtResource("13_golrv")
 DummyUnitScene = ExtResource("14_jroeh")
+CombatCamera = NodePath("../CameraController")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=2122826708]
 environment = ExtResource("13_tfvp6")

@@ -5,22 +5,60 @@ using System.Collections.Generic;
 // ============================================================
 // HexGridManager.Props.cs  (partial of HexGridManager)
 //
-// Purpose:        Data-driven terrain prop scattering. Reads a tileset
-//                 manifest (per-terrain weighted prop kit), rolls props
-//                 per tile with density-scaled counts and seeded jitter,
-//                 and batches repeated single-mesh props into one
-//                 MultiMeshInstance3D each to keep draw calls sane.
-//                 Falls back to the legacy SpawnTerrainProps grass-tuft
-//                 behaviour when no manifest resolves.
+// Purpose:        Data-driven terrain prop scattering, v2.
+//                 Replaces centre-clumped jitter with annular
+//                 placement (centre exclusion disc -> outer ring),
+//                 a seeded world-space density noise field so props
+//                 cluster organically ACROSS tiles, and a global
+//                 spatial-hash minimum-spacing rejection so props
+//                 never stack — including across tile boundaries.
+//                 Repeated single-mesh props still batch into one
+//                 MultiMeshInstance3D each. Falls back to the legacy
+//                 SpawnTerrainProps behaviour when no manifest
+//                 resolves.
 // Layer:          System (generation)
 // Collaborators:  TilesetManifest / TilesetRegistry (data),
-//                 HexGridManager.cs (Tiles, _rng, PropParent, DensityPreset)
+//                 HexGridManager.cs (Tiles, _rng, MapSeed,
+//                 HexRadius, PropParent, DensityPreset)
+// Notes:          - PropEntry.Jitter is DEPRECATED and ignored;
+//                   the annulus replaces it. Field kept in the
+//                   schema for backward compatibility.
+//                 - All randomness flows through _rng / a noise
+//                   generator seeded from MapSeed: same seed,
+//                   same prop layout.
+//                 - SamplePropSurfaceY() is the integration hook
+//                   for the blended-hex-mesh pass: today it
+//                   returns the flat tile top; later it samples
+//                   the blended surface so props sit on slopes.
 // ============================================================
 
 public partial class HexGridManager : Node3D
 {
     /// <summary>Tileset manifest id from Data/Tilesets. Empty or not-found = legacy grass-tuft scatter.</summary>
     [Export] public string TilesetId = "default";
+
+    [ExportGroup("Prop Scatter")]
+
+    /// <summary>Exclusion disc around the tile centre (fraction of HexRadius). Keeps the unit's footprint clear.</summary>
+    [Export(PropertyHint.Range, "0,0.6,0.02")] public float PropClearRadiusFrac = 0.32f;
+
+    /// <summary>Outer scatter radius (fraction of HexRadius). Hex inradius is ~0.866; 0.82 stays safely inside the tile.</summary>
+    [Export(PropertyHint.Range, "0.4,0.95,0.01")] public float PropSpreadRadiusFrac = 0.82f;
+
+    /// <summary>Props flagged blocks_los are confined inside this radius so the per-tile LOS flag stays visually honest.</summary>
+    [Export(PropertyHint.Range, "0,0.6,0.02")] public float PropLosMaxRadiusFrac = 0.50f;
+
+    /// <summary>Count compensation: the annulus is ~6x the old jitter square's area and noise rejection eats spawns.</summary>
+    [Export(PropertyHint.Range, "0.5,4,0.1")] public float PropCountMultiplier = 1.8f;
+
+    /// <summary>0 = uniform density everywhere; 1 = density fully driven by the noise field (dense patches + bare gaps).</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float PropDensityNoiseInfluence = 0.55f;
+
+    /// <summary>World-space frequency of the density field. Lower = broader patches spanning several tiles.</summary>
+    [Export] public float PropDensityNoiseFrequency = 0.16f;
+
+    /// <summary>Minimum distance between any two props, map-wide (fraction of HexRadius). 0 disables the check.</summary>
+    [Export(PropertyHint.Range, "0,0.6,0.02")] public float PropMinSpacingFrac = 0.16f;
 
     private readonly Dictionary<string, Mesh> _propMeshCache = new();
 
@@ -54,8 +92,25 @@ public partial class HexGridManager : Node3D
             _ => 1.0f
         };
 
+        // World-space density field. Seeded from MapSeed (xor'd so it never
+        // correlates with the field noise in MapField), deterministic per map.
+        var densityNoise = new FastNoiseLite
+        {
+            Seed = unchecked(MapSeed ^ 0x5F375A86),
+            Frequency = PropDensityNoiseFrequency,
+            NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth
+        };
+
+        // Spatial hash for global min-spacing. Cell size = the spacing itself,
+        // so a 3x3 neighbourhood check covers every possible conflict.
+        float minSpacing = PropMinSpacingFrac * HexRadius;
+        float minSpacingSq = minSpacing * minSpacing;
+        var occupancy = new Dictionary<Vector2I, List<Vector2>>();
+
         Node parent = PropParent ?? this;
         var batched = new Dictionary<string, List<Transform3D>>();
+
+        float clearRadius = PropClearRadiusFrac * HexRadius;
 
         foreach (var tile in Tiles.Values)
         {
@@ -68,7 +123,9 @@ public partial class HexGridManager : Node3D
             if (_rng.Randf() > set.Chance)
                 continue;
 
-            int count = Mathf.RoundToInt(_rng.RandiRange(set.CountMin, set.CountMax) * densityScalar);
+            int count = Mathf.RoundToInt(
+                _rng.RandiRange(set.CountMin, set.CountMax) * densityScalar * PropCountMultiplier);
+
             Vector3 basePos = tile.TileView.GlobalPosition;
 
             for (int i = 0; i < count; i++)
@@ -77,11 +134,40 @@ public partial class HexGridManager : Node3D
                 if (prop == null || string.IsNullOrEmpty(prop.ScenePath))
                     continue;
 
-                Vector3 offset = new Vector3(
-                    _rng.RandfRange(-prop.Jitter, prop.Jitter),
-                    prop.YOffset,
-                    _rng.RandfRange(-prop.Jitter, prop.Jitter));
-                Vector3 worldPos = basePos + offset;
+                // ── Annular placement ─────────────────────────────────────
+                // LOS-blocking props stay near the centre so the tile-level
+                // BlocksLineOfSight flag matches what the player sees.
+                float spreadRadius = (prop.BlocksLos
+                    ? Mathf.Min(PropLosMaxRadiusFrac, PropSpreadRadiusFrac)
+                    : PropSpreadRadiusFrac) * HexRadius;
+
+                float innerRadius = prop.BlocksLos ? 0f : clearRadius;
+                if (spreadRadius <= innerRadius)
+                    spreadRadius = innerRadius + 0.05f;
+
+                // sqrt-lerp of squared radii = uniform distribution by area.
+                float r = Mathf.Sqrt(Mathf.Lerp(
+                    innerRadius * innerRadius, spreadRadius * spreadRadius, _rng.Randf()));
+                float ang = _rng.RandfRange(0f, Mathf.Tau);
+
+                float px = basePos.X + r * Mathf.Cos(ang);
+                float pz = basePos.Z + r * Mathf.Sin(ang);
+                Vector3 worldPos = new Vector3(
+                    px,
+                    SamplePropSurfaceY(tile, px, pz) + prop.YOffset,
+                    pz);
+
+                // ── Density noise acceptance ──────────────────────────────
+                // Sampled in world space, so dense/bare patches flow across
+                // tile boundaries instead of quantising per tile.
+                float n01 = densityNoise.GetNoise2D(worldPos.X, worldPos.Z) * 0.5f + 0.5f;
+                float acceptance = Mathf.Lerp(1f, n01, PropDensityNoiseInfluence);
+                if (_rng.Randf() > acceptance)
+                    continue;
+
+                // ── Global min-spacing rejection ──────────────────────────
+                if (minSpacing > 0f && !TryReservePropSlot(occupancy, worldPos, minSpacing, minSpacingSq))
+                    continue;
 
                 float rotY = _rng.RandfRange(0f, Mathf.Tau);
                 float scale = _rng.RandfRange(prop.ScaleMin, prop.ScaleMax);
@@ -145,6 +231,62 @@ public partial class HexGridManager : Node3D
             mmi.GlobalTransform = Transform3D.Identity;
             mmi.AddToGroup("generated_prop");
         }
+    }
+
+    /// <summary>
+    /// Surface height for prop placement at this world XZ. In blended-mesh
+    /// mode this samples the same bilinear blend the mesh quads use, so
+    /// props sit correctly on slopes and terraces. Legacy mode returns the
+    /// flat tile top.
+    /// </summary>
+    private float SamplePropSurfaceY(TileData tile, float worldX, float worldZ)
+    {
+        if (UseBlendedTerrainMesh && tile.TileView != null)
+            return HexMeshBuilder.SampleSurfaceWorldY(
+                this, tile, worldX, worldZ, TerrainSolidFactor, TerrainTerraceSteps);
+
+        return tile.TileView != null ? tile.TileView.GlobalPosition.Y : 0f;
+    }
+
+    /// <summary>
+    /// Spatial-hash min-spacing check. Returns false if another prop sits
+    /// within minSpacing of pos; otherwise records pos and returns true.
+    /// Cell size equals minSpacing, so checking the 3x3 neighbourhood is
+    /// sufficient and the whole pass stays O(props).
+    /// </summary>
+    private static bool TryReservePropSlot(
+        Dictionary<Vector2I, List<Vector2>> occupancy,
+        Vector3 worldPos, float cellSize, float minDistSq)
+    {
+        var p = new Vector2(worldPos.X, worldPos.Z);
+        var cell = new Vector2I(
+            Mathf.FloorToInt(p.X / cellSize),
+            Mathf.FloorToInt(p.Y / cellSize));
+
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                var key = new Vector2I(cell.X + dx, cell.Y + dy);
+                if (!occupancy.TryGetValue(key, out var list))
+                    continue;
+
+                foreach (var q in list)
+                {
+                    if (p.DistanceSquaredTo(q) < minDistSq)
+                        return false;
+                }
+            }
+        }
+
+        if (!occupancy.TryGetValue(cell, out var own))
+        {
+            own = new List<Vector2>();
+            occupancy[cell] = own;
+        }
+
+        own.Add(p);
+        return true;
     }
 
     private PropEntry WeightedPick(List<PropEntry> props)
