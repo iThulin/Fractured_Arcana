@@ -150,6 +150,7 @@ public static class UITheme
     public static readonly Color TileRangeInterior = new Color(0.70f, 0.48f, 1.00f, 0.70f);
     public static readonly Color TileRangeBorder = new Color(0.55f, 0.38f, 0.90f, 0.25f);
     public static readonly Color TileGlyph = new Color(0.65f, 0.25f, 1.00f, 1f);
+    public static readonly Color TileThreat = new Color(0.85f, 0.25f, 0.20f, 0.45f);
 
     // ════════════════════════════════════════════════════════════
     // COMBAT TILE BASE COLORS

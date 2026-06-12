@@ -94,6 +94,49 @@ public partial class Unit : Node3D
     public bool HasSwitchedStanceThisTurn = false;
     public bool HasAttackedThisCombat = false; // Ambush tracking
 
+    // ── Intent system ────────────────────────────────────────────────
+    /// <summary>This unit's locked plan for the coming enemy phase. Null for player units and unplanned enemies.</summary>
+    public EnemyIntent CurrentIntent;
+
+    /// <summary>Tile locked when a wizard begins channelling; the release lands here regardless of repositioning. Cleared on release or interrupt.</summary>
+    public Vector2I? ChannelTile = null;
+
+    /// <summary>Adept/Namer "true name" hook — once set, every future intent this unit plans starts fully revealed.</summary>
+    public bool IntentPermanentlyRevealed = false;
+
+    private Label3D _intentLabel;
+
+    /// <summary>Shows or updates the floating intent glyph (e.g. "▲ 7", "✦ ?"). Follows the glyph-label pattern: CallDeferred add_child per README §8.</summary>
+    public void SetIntentDisplay(string text, Color color)
+    {
+        if (_intentLabel == null)
+        {
+            _intentLabel = new Label3D
+            {
+                Name = "IntentIndicator",
+                Text = text,
+                FontSize = 40,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                Position = new Vector3(0f, 2.75f, 0f),
+                Modulate = color
+            };
+            CallDeferred("add_child", _intentLabel);
+        }
+        else
+        {
+            _intentLabel.Visible = true;
+            _intentLabel.Text = text;
+            _intentLabel.Modulate = color;
+        }
+    }
+
+    public void ClearIntentDisplay()
+    {
+        if (_intentLabel != null)
+            _intentLabel.Visible = false;
+    }
+
     // ── Chronomancer: action delay ───────────────────────────────
 
     /// <summary>

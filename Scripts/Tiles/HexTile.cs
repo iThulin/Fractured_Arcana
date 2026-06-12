@@ -101,6 +101,7 @@ public partial class HexTile : Node3D
     private bool targetHighlighted = false;
     private bool rangeHighlighted = false;
     private bool rangeBorderHighlighted = false;
+    private bool threatHighlighted = false;
 
     /// <summary>Colour used when a draggable card is hovered over this tile during targeting.</summary>
     [Export] public Color DragHoverColor = UITheme.TileDragHover;
@@ -501,6 +502,13 @@ public partial class HexTile : Node3D
             RefreshVisualState(); // restore base/range/target state
     }
 
+    /// <summary>Toggles the threat-tile tint (revealed enemy intent footprint). Lowest layer in the highlight stack.</summary>
+    public void SetThreatHighlight(bool on)
+    {
+        threatHighlighted = on;
+        RefreshVisualState();
+    }
+
     /// <summary>Recomputes the current highlight tint from the layered flags (deployment → move → memorial → growth). No tint active = highlight off; the terrain (vertex colours, textures, or legacy albedo) shows untouched. No-op while a target/range highlight is active — those override.</summary>
     public void RefreshVisualState()
     {
@@ -510,6 +518,9 @@ public partial class HexTile : Node3D
             return;
 
         Color tint = new Color(0f, 0f, 0f, 0f);
+
+        if (threatHighlighted)
+            tint = tint.Lerp(UITheme.TileThreat, UITheme.TileThreat.A);
 
         if (deploymentHighlighted)
             tint = tint.Lerp(UITheme.TileDeployHighlight, 0.55f);
