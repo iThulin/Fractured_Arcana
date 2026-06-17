@@ -1,46 +1,34 @@
 // ============================================================
-// terrain_splat.gdshader
+// terrain_splat.gdshader  (v2 — normal mapping)
 //
-// Purpose:        Surface shader for the blended hex terrain.
-//                 Blends up to FOUR terrain textures per fragment
-//                 from a single Texture2DArray, driven by splat
-//                 data baked into the mesh by HexMeshBuilder:
-//                   CUSTOM0 = vec4 of terrain layer indices
-//                             (constant across each triangle)
-//                   COLOR   = vec4 of blend weights
-//                             (varies per vertex)
-//                 Sampling is triplanar in WORLD space, so there
-//                 are no UV seams across tiles, and skirts /
-//                 terrace risers don't streak. Steep faces darken
-//                 automatically (replaces the old per-vertex
-//                 skirt AO). Highlights arrive as per-material
-//                 uniforms written by HexTile.SetTint.
-// Layer:          Assets/Shaders
-// Collaborators:  HexMeshBuilder.cs (splat data + geometry),
-//                 TerrainTextureLibrary.cs (the texture array),
-//                 HexTile.cs (highlight uniforms)
-// Notes:          Layer index = (int)TileTerrainType. If the enum
-//                 order ever changes, the array packing in
-//                 TerrainTextureLibrary changes with it — they
-//                 are coupled through that cast.
+// Blends up to FOUR terrain layers per fragment from albedo +
+// normal Texture2DArrays, driven by splat data baked by
+// HexMeshBuilder (CUSTOM0 = layer indices, COLOR = weights).
+// Albedo is triplanar in WORLD space (no UV seams across tiles).
+// Normals are sampled on the dominant (top) projection and handed
+// to Godot's NORMAL_MAP, which applies them in tangent space
+// against the mesh's generated normals + tangents.
+//
+// REQUIRES: HexMeshBuilder calls st.GenerateTangents() after
+// st.GenerateNormals(). Without tangents, NORMAL_MAP is inert.
 // ============================================================
 
 shader_type spatial;
 
 uniform sampler2DArray terrain_textures : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2DArray terrain_normals : filter_linear_mipmap, repeat_enable;
 
-/// World units → UV. Lower = bigger texture features.
 uniform float texture_scale : hint_range(0.02, 1.0) = 0.22;
-
 uniform float roughness_value : hint_range(0.0, 1.0) = 0.85;
-
-/// How much near-vertical faces (skirts, terrace cliffs) darken. Cheap fake AO.
 uniform float wall_darkening : hint_range(0.0, 1.0) = 0.35;
-
-/// Triplanar blend sharpness. Higher = crisper projection boundaries.
 uniform float triplanar_sharpness : hint_range(1.0, 8.0) = 4.0;
 
-/// Highlight tint — written per tile by HexTile.SetTint. strength 0 = no highlight.
+/// Strength of the normal-map perturbation. 0 = flat, 1 = full, 2 = exaggerated.
+uniform float normal_strength : hint_range(0.0, 2.0) = 1.0;
+
+/// Flip green channel if your maps are DirectX (-Y) instead of OpenGL (+Y).
+uniform bool flip_normal_y = false;
+
 uniform vec3 highlight_color = vec3(0.0);
 uniform float highlight_strength : hint_range(0.0, 3.0) = 0.0;
 
@@ -56,33 +44,54 @@ void vertex() {
 	v_weights = COLOR;
 }
 
-// Triplanar sample of one array layer. bw = per-axis projection weights.
-vec3 sample_layer(float layer, vec3 wp, vec3 bw) {
+vec3 sample_albedo(float layer, vec3 wp, vec3 bw) {
 	vec3 cx = texture(terrain_textures, vec3(wp.zy * texture_scale, layer)).rgb;
 	vec3 cy = texture(terrain_textures, vec3(wp.xz * texture_scale, layer)).rgb;
 	vec3 cz = texture(terrain_textures, vec3(wp.xy * texture_scale, layer)).rgb;
 	return cx * bw.x + cy * bw.y + cz * bw.z;
 }
 
+// Decode a tangent-space normal sample to [-1,1]. Strength is applied once,
+// downstream via NORMAL_MAP_DEPTH — do not scale here.
+vec3 decode_n(vec3 s) {
+	vec3 n = s * 2.0 - 1.0;
+	if (flip_normal_y) n.y = -n.y;
+	return n;
+}
+
+// Tangent-space normal sampled on the dominant (top) projection.
+vec3 sample_normal(float layer, vec3 wp) {
+	return decode_n(texture(terrain_normals, vec3(wp.xz * texture_scale, layer)).rgb);
+}
+
 void fragment() {
-	vec3 n = normalize(v_world_normal);
-	vec3 bw = pow(abs(n), vec3(triplanar_sharpness));
+	vec3 geom = normalize(v_world_normal);
+	vec3 bw = pow(abs(geom), vec3(triplanar_sharpness));
 	bw /= (bw.x + bw.y + bw.z);
 
-	// Normalise weights (interpolation can drift the sum slightly off 1).
 	vec4 w = v_weights;
 	w /= max(w.r + w.g + w.b + w.a, 0.0001);
 
-	// All four samples unconditionally — branching around texture() in
-	// non-uniform control flow breaks mip derivatives at the branch seams.
 	vec3 albedo =
-		sample_layer(v_indices.r, v_world_pos, bw) * w.r +
-		sample_layer(v_indices.g, v_world_pos, bw) * w.g +
-		sample_layer(v_indices.b, v_world_pos, bw) * w.b +
-		sample_layer(v_indices.a, v_world_pos, bw) * w.a;
+		sample_albedo(v_indices.r, v_world_pos, bw) * w.r +
+		sample_albedo(v_indices.g, v_world_pos, bw) * w.g +
+		sample_albedo(v_indices.b, v_world_pos, bw) * w.b +
+		sample_albedo(v_indices.a, v_world_pos, bw) * w.a;
 
-	// Darken steep faces: map-edge skirts and terrace risers.
-	float wall = smoothstep(0.45, 0.85, 1.0 - abs(n.y));
+	vec3 tn =
+		sample_normal(v_indices.r, v_world_pos) * w.r +
+		sample_normal(v_indices.g, v_world_pos) * w.g +
+		sample_normal(v_indices.b, v_world_pos) * w.b +
+		sample_normal(v_indices.a, v_world_pos) * w.a;
+	tn = normalize(tn);
+
+	// Re-encode to [0,1]; Godot applies it in tangent space against the
+	// mesh's generated normals/tangents. Strength applied here, once.
+	NORMAL_MAP = tn * 0.5 + 0.5;
+	NORMAL_MAP_DEPTH = normal_strength;
+
+	// Darken steep faces (map-edge skirts, cliffs). Cheap fake AO.
+	float wall = smoothstep(0.45, 0.85, 1.0 - abs(geom.y));
 	albedo *= mix(1.0, 1.0 - wall_darkening, wall);
 
 	ALBEDO = albedo;

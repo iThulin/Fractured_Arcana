@@ -4,83 +4,127 @@ using System;
 // ============================================================
 // TerrainTextureLibrary.cs
 //
-// Purpose:        Builds the Texture2DArray consumed by
+// Purpose:        Builds the Texture2DArrays consumed by
 //                 terrain_splat.gdshader from the per-terrain
-//                 Texture2D exports on HexGridManager. All source
-//                 images are normalised to one size/format
-//                 (decompress → RGBA8 → resize → mipmaps), which
-//                 Texture2DArray.CreateFromImages requires.
-//                 Terrains with no texture assigned get a solid-
-//                 colour layer from HexMeshBuilder.TerrainColor,
-//                 so the system degrades gracefully while textures
-//                 are authored one at a time.
+//                 Texture2D exports on HexGridManager. Packs TWO
+//                 arrays in lockstep:
+//                   - ALBEDO array  (source_color, sRGB)
+//                   - NORMAL array  (linear; flat 128,128,255
+//                                    fallback where unassigned)
+//                 All source images are normalised to one
+//                 size/format. Layer index = (int)TileTerrainType
+//                 for BOTH arrays — they shift together if the
+//                 enum is reordered (don't reorder it).
 // Layer:          System (asset helper)
 // Collaborators:  HexGridManager (texture exports),
 //                 HexMeshBuilder (fallback palette),
 //                 terrain_splat.gdshader (consumer)
-// Notes:          Layer index = (int)TileTerrainType. The enum is
-//                 contiguous from 0 (Grass) to 6 (Ice); if that
-//                 ever changes, this packing and the splat indices
-//                 in HexMeshBuilder shift together (both cast the
-//                 enum) — but any SAVED expectations about which
-//                 layer is which would not. Don't reorder the enum.
 // ============================================================
 
 public static class TerrainTextureLibrary
 {
-    private static Texture2DArray _cached;
+    private static Texture2DArray _cachedAlbedo;
+    private static Texture2DArray _cachedNormal;
 
-    /// <summary>Drops the cached array so the next GetOrBuild repacks (e.g. after swapping a texture in the inspector at runtime).</summary>
-    public static void Invalidate() => _cached = null;
+    /// <summary>Drops both cached arrays so the next build repacks (e.g. after swapping a texture in the inspector at runtime).</summary>
+    public static void Invalidate()
+    {
+        _cachedAlbedo = null;
+        _cachedNormal = null;
+    }
 
     /// <summary>
-    /// Returns the packed terrain texture array, building it on first call.
-    /// Returns null only on a hard packing failure (logged).
+    /// Returns the packed terrain ALBEDO array, building both arrays on first
+    /// call. Returns null only on a hard packing failure (logged).
     /// </summary>
     public static Texture2DArray GetOrBuild(HexGridManager grid, int size)
     {
-        if (_cached != null)
-            return _cached;
+        if (_cachedAlbedo != null)
+            return _cachedAlbedo;
 
+        BuildArrays(grid, size);
+        return _cachedAlbedo;
+    }
+
+    /// <summary>Returns the packed terrain NORMAL array, building both arrays on first call. Null on failure.</summary>
+    public static Texture2DArray GetOrBuildNormals(HexGridManager grid, int size)
+    {
+        if (_cachedNormal != null)
+            return _cachedNormal;
+
+        BuildArrays(grid, size);
+        return _cachedNormal;
+    }
+
+    private static void BuildArrays(HexGridManager grid, int size)
+    {
         size = Mathf.Clamp(size, 64, 2048);
-        var images = new Godot.Collections.Array<Image>();
+
+        var albedoImages = new Godot.Collections.Array<Image>();
+        var normalImages = new Godot.Collections.Array<Image>();
 
         foreach (TileTerrainType terrain in Enum.GetValues<TileTerrainType>())
         {
-            Texture2D src = TextureFor(grid, terrain);
-            Image img = src?.GetImage();
-
-            if (img == null)
+            // ── Albedo layer (sRGB, solid-colour fallback) ──────────────
+            Texture2D albSrc = AlbedoFor(grid, terrain);
+            Image alb = albSrc?.GetImage();
+            if (alb == null)
             {
-                img = SolidLayer(HexMeshBuilder.TerrainColor(grid, terrain), size);
+                alb = SolidLayer(HexMeshBuilder.TerrainColor(grid, terrain), size);
             }
             else
             {
-                if (img.IsCompressed())
-                    img.Decompress();
-                img.Convert(Image.Format.Rgba8);
-                if (img.GetWidth() != size || img.GetHeight() != size)
-                    img.Resize(size, size, Image.Interpolation.Lanczos);
+                NormaliseImage(alb, size);
             }
+            alb.GenerateMipmaps();
+            albedoImages.Add(alb);
 
-            img.GenerateMipmaps();
-            images.Add(img);
+            // ── Normal layer (linear, flat fallback) ────────────────────
+            Texture2D nrmSrc = NormalFor(grid, terrain);
+            Image nrm = nrmSrc?.GetImage();
+            if (nrm == null)
+            {
+                nrm = FlatNormalLayer(size);
+            }
+            else
+            {
+                NormaliseImage(nrm, size);
+            }
+            nrm.GenerateMipmaps();
+            normalImages.Add(nrm);
         }
 
-        var array = new Texture2DArray();
-        Error err = array.CreateFromImages(images);
-        if (err != Error.Ok)
+        var albArray = new Texture2DArray();
+        Error eA = albArray.CreateFromImages(albedoImages);
+        if (eA != Error.Ok)
         {
-            GD.PushError($"[TerrainTextureLibrary] CreateFromImages failed: {err}");
-            return null;
+            GD.PushError($"[TerrainTextureLibrary] Albedo CreateFromImages failed: {eA}");
+            return;
         }
 
-        _cached = array;
-        GD.Print($"[TerrainTextureLibrary] Packed {images.Count} terrain layers at {size}x{size}.");
-        return _cached;
+        var nrmArray = new Texture2DArray();
+        Error eN = nrmArray.CreateFromImages(normalImages);
+        if (eN != Error.Ok)
+        {
+            GD.PushError($"[TerrainTextureLibrary] Normal CreateFromImages failed: {eN}");
+            return;
+        }
+
+        _cachedAlbedo = albArray;
+        _cachedNormal = nrmArray;
+        GD.Print($"[TerrainTextureLibrary] Packed {albedoImages.Count} albedo + {normalImages.Count} normal layers at {size}x{size}.");
     }
 
-    private static Texture2D TextureFor(HexGridManager grid, TileTerrainType terrain) => terrain switch
+    private static void NormaliseImage(Image img, int size)
+    {
+        if (img.IsCompressed())
+            img.Decompress();
+        img.Convert(Image.Format.Rgba8);
+        if (img.GetWidth() != size || img.GetHeight() != size)
+            img.Resize(size, size, Image.Interpolation.Lanczos);
+    }
+
+    private static Texture2D AlbedoFor(HexGridManager grid, TileTerrainType terrain) => terrain switch
     {
         TileTerrainType.Grass => grid.GrassTexture,
         TileTerrainType.Water => grid.WaterTexture,
@@ -92,10 +136,30 @@ public static class TerrainTextureLibrary
         _ => null
     };
 
+    private static Texture2D NormalFor(HexGridManager grid, TileTerrainType terrain) => terrain switch
+    {
+        TileTerrainType.Grass => grid.GrassNormal,
+        TileTerrainType.Water => grid.WaterNormal,
+        TileTerrainType.Lava => grid.LavaNormal,
+        TileTerrainType.Forest => grid.ForestNormal,
+        TileTerrainType.Stone => grid.StoneNormal,
+        TileTerrainType.Arcane => grid.ArcaneNormal,
+        TileTerrainType.Ice => grid.IceNormal,
+        _ => null
+    };
+
     private static Image SolidLayer(Color color, int size)
     {
         var img = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
         img.Fill(color);
+        return img;
+    }
+
+    /// <summary>Flat tangent-space normal (0,0,1) encoded as RGB (0.5, 0.5, 1.0). No perturbation.</summary>
+    private static Image FlatNormalLayer(int size)
+    {
+        var img = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+        img.Fill(new Color(0.5f, 0.5f, 1.0f, 1.0f));
         return img;
     }
 }

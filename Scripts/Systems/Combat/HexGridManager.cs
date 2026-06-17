@@ -119,13 +119,21 @@ public partial class HexGridManager : Node3D
     [Export] public bool UseBlendedTerrainMesh = true;
     [Export(PropertyHint.Range, "0.55,0.9,0.01")] public float TerrainSolidFactor = 0.75f;
     [Export(PropertyHint.Range, "0,4,1")] public int TerrainTerraceSteps = 0;
+    /// <summary>World-unit height of the rolling micro-relief on tile tops. 0 = flat (old behaviour). Start ~0.15.</summary>
+    [Export(PropertyHint.Range, "0,0.6,0.01")] public float TerrainNoiseAmplitude = 0.15f;
+
+    /// <summary>Spatial frequency of the top-surface noise. Higher = tighter, busier bumps. Start ~0.6.</summary>
+    [Export(PropertyHint.Range, "0.05,2,0.05")] public float TerrainNoiseFrequency = 0.6f;
+
+    /// <summary>Inner-hex subdivision. 1 = old flat fan, 3-4 = rolling relief. Higher = smoother bumps but more verts per tile.</summary>
+    [Export(PropertyHint.Range, "1,6,1")] public int TerrainNoiseSubdiv = 4;
 
     /// <summary>
     /// Height-step difference above which an edge renders as a sheer cliff
     /// AND (when BlockMovementAtCliffs) movement across it is blocked. One number
     /// drives both, so the visual and the rules can never disagree.
     /// </summary>
-    [Export(PropertyHint.Range, "1,5,1")] public int CliffHeightThreshold = 1;
+    [Export(PropertyHint.Range, "1,5,1")] public int CliffHeightThreshold = 2;
 
     /// <summary>
     /// Block unit movement across cliff edges. Leave on — rendering
@@ -139,12 +147,19 @@ public partial class HexGridManager : Node3D
     /// <summary>Use the splat shader with per-terrain textures. Off = vertex-colour blending (Route A look).</summary>
     [Export] public bool UseTerrainTextures = true;
     [Export] public Texture2D GrassTexture;
+    [Export] public Texture2D GrassNormal;
     [Export] public Texture2D ForestTexture;
+    [Export] public Texture2D ForestNormal;
     [Export] public Texture2D StoneTexture;
+    [Export] public Texture2D StoneNormal;
     [Export] public Texture2D WaterTexture;
+    [Export] public Texture2D WaterNormal;
     [Export] public Texture2D IceTexture;
+    [Export] public Texture2D IceNormal;
     [Export] public Texture2D LavaTexture;
+    [Export] public Texture2D LavaNormal;
     [Export] public Texture2D ArcaneTexture;
+    [Export] public Texture2D ArcaneNormal;
     /// <summary>All source textures are normalised to this square size when packed.</summary>
     [Export] public int TerrainTextureSize = 512;
     /// <summary>World units → UV. Lower = bigger texture features.</summary>
@@ -707,8 +722,12 @@ public partial class HexGridManager : Node3D
         if (texArray == null)
             return null;
 
+        var nrmArray = TerrainTextureLibrary.GetOrBuildNormals(this, TerrainTextureSize);
+
         _terrainMaterialTemplate = new ShaderMaterial { Shader = shader };
         _terrainMaterialTemplate.SetShaderParameter("terrain_textures", texArray);
+        if (nrmArray != null)
+            _terrainMaterialTemplate.SetShaderParameter("terrain_normals", nrmArray);
         _terrainMaterialTemplate.SetShaderParameter("texture_scale", TerrainTextureScale);
         return _terrainMaterialTemplate;
     }

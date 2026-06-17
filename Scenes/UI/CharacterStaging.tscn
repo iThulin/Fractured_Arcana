@@ -1,0 +1,68 @@
+[gd_scene load_steps=5 format=3]
+
+; ============================================================
+; CharacterStaging.tscn
+;
+; Dev-only character staging preview. Mirrors the grid-relevant
+; node structure of Battlefield.tscn so the production camera and
+; generation pipeline behave identically.
+;
+; YOU MUST WIRE THESE IN THE EDITOR AFTER OPENING THE SCENE:
+;   HexGridManager:
+;     - HexTileScene3D      -> res://Scenes/Combat/HexTile.tscn
+;     - Terrain textures    -> Grass/Forest/Stone/Water/Ice/Lava/Arcane
+;     - GrassTuftScene(Alt) -> your prop scenes (optional)
+;     - RockObstacleScene / CrystalObstacleScene (optional)
+;     - ThemeSun            -> the DirectionalLight3D node below  (REQUIRED for theme lighting)
+;     - ThemeWorldEnvironment -> the WorldEnvironment node below  (REQUIRED for theme atmosphere)
+;   WorldEnvironment:
+;     - Environment -> res://Assets/Combat_Environment.tres
+;       (verify the path — Battlefield.tscn references it ambiguously;
+;        assign the same .tres your combat scene actually uses so the
+;        preview's tonemap/sky/SSAO match production)
+;   CharacterStagingPreview:
+;     - Grid   -> HexGridManager
+;     - Camera -> CameraController
+;     - UnitScene -> res://Scenes/Combat/Players/Unit.tscn (auto-loaded if left null)
+;   StagingControlPanel:
+;     - Preview -> CharacterStagingPreview
+;
+; The grid's own shape/size/seed/theme are set at runtime by the
+; driver, so you do NOT need to configure those in the inspector.
+; ============================================================
+
+[ext_resource type="Script" path="res://Scripts/Systems/Combat/HexGridManager.cs" id="1_grid"]
+[ext_resource type="Script" path="res://Scripts/UI/CameraController.cs" id="2_cam"]
+[ext_resource type="Script" path="res://Scripts/Dev/CharacterStagingPreview.cs" id="3_drv"]
+[ext_resource type="Script" path="res://Scripts/Dev/StagingControlPanel.cs" id="4_panel"]
+
+[node name="CharacterStaging" type="Node3D"]
+
+[node name="HexGridManager" type="Node3D" parent="."]
+script = ExtResource("1_grid")
+
+[node name="ThemeSun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 12, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="CameraController" type="Node3D" parent="."]
+script = ExtResource("2_cam")
+
+[node name="CameraPivot" type="Node3D" parent="CameraController"]
+
+[node name="Camera3D" type="Camera3D" parent="CameraController/CameraPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
+
+[node name="CharacterStagingPreview" type="Node3D" parent="."]
+script = ExtResource("3_drv")
+
+[node name="PanelLayer" type="CanvasLayer" parent="."]
+
+[node name="StagingControlPanel" type="Control" parent="PanelLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 1
+script = ExtResource("4_panel")

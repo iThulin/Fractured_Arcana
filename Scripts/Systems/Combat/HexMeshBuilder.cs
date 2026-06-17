@@ -2,72 +2,57 @@ using Godot;
 using System;
 
 // ============================================================
-// HexMeshBuilder.cs  (v4 — cliffs)
+// HexMeshBuilder.cs  (v5 — subdivided noise tops)
 //
 // Purpose:        Generates the per-tile blended terrain mesh.
 //                 Each tile owns its full hexagon footprint: a
-//                 flat inner hex at the tile's own height, and six
-//                 bridge strips out to the shared boundaries, with
-//                 every boundary edge split at its midpoint.
+//                 SUBDIVIDED inner hex at the tile's own height
+//                 (now displaced by world-space surface noise for
+//                 rolling micro-relief), and six bridge strips out
+//                 to the shared boundaries, with every boundary
+//                 edge split at its midpoint.
 //
-//                 v4 — EDGE CLASSIFICATION:
-//                 - BLEND edge (|Δheight| ≤ grid.CliffHeightThreshold):
-//                   midpoint averages the two edge tiles; smooth
-//                   (or terraced) transition, as in v3.
-//                 - CLIFF edge (|Δheight| > threshold): both tiles
-//                   stay flat at their OWN height to the boundary,
-//                   and the HIGHER tile builds a vertical wall
-//                   sealing the gap down to the lower tile's rim.
-//                 Corner heights average over the BLEND-CONNECTED
-//                 COMPONENT of tiles at that corner (pairwise
-//                 |Δh| ≤ threshold, transitively closed) instead of
-//                 all tiles blindly — tiles across a cliff stop
-//                 pulling each other's corners. The component rule
-//                 is symmetric, so blend seams remain watertight,
-//                 and the wall's top/bottom profiles match both
-//                 rims exactly (both are computed from the same
-//                 height data, available to either tile).
-//                 Where a cliff edge reaches a corner whose tiles
-//                 chain together through blends (e.g. 0–2–4 with
-//                 threshold 2), the wall tapers to zero height
-//                 there — a cliff dying into a ramp. Intended.
+//                 v5 — INNER-HEX SUBDIVISION + NOISE:
+//                 - Each of the six fan triangles (centre, boundary
+//                   point A, boundary point B) is subdivided into a
+//                   uniform barycentric triangle grid of resolution
+//                   grid.TerrainNoiseSubdiv.
+//                 - Interior vertices are displaced in Y by
+//                   SurfaceNoise(worldX, worldZ) * amplitude, scaled
+//                   by a falloff that is 1 at the centre and 0 along
+//                   the boundary edge. Boundary points (corners,
+//                   mids, and the straight edge between them) stay
+//                   EXACTLY flat at their analytic height, so seams
+//                   with bridges/neighbours remain watertight.
+//                 - Noise is a pure function of world XZ, so it is
+//                   continuous across tiles wherever it is nonzero.
+//                 - SampleSurfaceWorldY applies the SAME noise with
+//                   the SAME falloff, so props sit on the bumps.
 //
-//                 The same grid.CliffHeightThreshold must drive the
-//                 movement rule (StepAllowed in HexGridManager) so
-//                 the visual and the gameplay never disagree.
-//
-//                 TWO ATTRIBUTE MODES:
-//                 - Vertex-colour mode (splatMode = false): COLOR
-//                   carries blended terrain albedo.
-//                 - Splat mode (splatMode = true): CUSTOM0 carries
-//                   four terrain layer indices (CONSTANT across
-//                   every triangle) and COLOR carries blend weights.
-//                   Slot layout per edge: [own, edge neighbour,
-//                   corner-e third tile, corner-(e+1) third tile].
-//                   Corner weights distribute over the corner's
-//                   blend component; cliff boundaries don't blend.
-//                   Cliff walls inherit the rim attributes with
-//                   vertical continuity — in splat mode the
-//                   triplanar shader textures the face without
-//                   stretching and darkens it by normal.
+//                 v4 carried forward — EDGE CLASSIFICATION (cliffs),
+//                 corner blend-components, splat data. Sections 2-4
+//                 (bridges, cliff walls, map-edge skirts) are
+//                 unchanged from v4.
 //
 // Layer:          System (generation helper)
 // Collaborators:  HexGridManager (grid, CliffHeightThreshold,
-//                 terrain materials/textures), HexTile (HeightStep,
-//                 SetGeneratedMesh), HexDirection, UITheme,
-//                 TerrainTextureLibrary / terrain_splat.gdshader,
-//                 HexGridManager.Props (surface sampler)
+//                 TerrainNoise* knobs, terrain materials/textures),
+//                 HexTile (HeightStep, SetGeneratedMesh),
+//                 HexDirection, UITheme, TerrainTextureLibrary /
+//                 terrain_splat.gdshader, HexGridManager.Props
 //
 // Geometry conventions (verified against MovementZoneRenderer):
 //   - Flat-top hexes. Corner i at angle 60°·i from +X, CCW.
 //   - Edge e spans corners e and e+1, faces neighbour direction
 //     d = (6 - e) % 6 (the EdgeForDir reflection).
 //   - Corner i is shared with neighbour directions (7 - i) % 6
-//     (slot "A") and (6 - i) % 6 (slot "B").
+//     and (6 - i) % 6.
 //   - Godot front faces wind clockwise; up-facing surfaces are CCW
 //     in the (X, Z) math plane. Walls/skirts face outward.
-//   - FLAT SHADING on purpose: per-tile meshes cannot average
-//     normals with neighbouring meshes.
+//   - SMOOTH shading on the top surface (inner fan + bridges),
+//     FLAT shading on walls/skirts — see Build().
+//   - st.GenerateTangents() is REQUIRED after GenerateNormals()
+//     so the splat shader's NORMAL_MAP path works.
 // ============================================================
 
 public static class HexMeshBuilder
@@ -81,15 +66,43 @@ public static class HexMeshBuilder
     /// <summary>Height delta below which a bridge half is built as a single quad even when terracing is on.</summary>
     private const float FlatEpsilon = 0.01f;
 
+    // Shared noise generator for top-surface displacement. Static so the mesh
+    // builder and the prop sampler evaluate IDENTICAL values for the same world
+    // XZ — if these ever diverge, props float above / sink below the surface.
+    private static FastNoiseLite _surfaceNoise;
+    private static float _surfaceNoiseFreq = -1f;
+
+    /// <summary>
+    /// World-space surface displacement in [-1, 1] at (worldX, worldZ). Pure
+    /// function of position, so continuous across tiles. Caller scales by
+    /// amplitude and a per-vertex falloff. Lazily (re)built when frequency
+    /// changes.
+    /// </summary>
+    public static float SurfaceNoise(float worldX, float worldZ, float frequency)
+    {
+        if (_surfaceNoise == null || Math.Abs(_surfaceNoiseFreq - frequency) > 0.0001f)
+        {
+            _surfaceNoise = new FastNoiseLite
+            {
+                // Fixed seed: the displacement field is the same every run, so a
+                // given map seed still reproduces exactly (heights are deterministic
+                // and the noise is positional, not random per-build).
+                Seed = 1337,
+                Frequency = frequency,
+                NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth,
+                FractalType = FastNoiseLite.FractalTypeEnum.Fbm,
+                FractalOctaves = 3
+            };
+            _surfaceNoiseFreq = frequency;
+        }
+
+        return _surfaceNoise.GetNoise2D(worldX, worldZ);
+    }
+
     // ────────────────────────────────────────────────────────────────────────
     // Public API
     // ────────────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Builds the blended/cliff mesh for one tile, in HexTile-local space
-    /// (origin at the tile's top-surface centre; inner hexagon at local Y = 0).
-    /// Reads grid.CliffHeightThreshold for edge classification.
-    /// </summary>
     public static ArrayMesh Build(
         HexGridManager grid, TileData tile,
         float worldFloor, float solidFactor, int terraceSteps, bool splatMode = false)
@@ -103,9 +116,12 @@ public static class HexMeshBuilder
         Vector2 centerXZ = new Vector2(tile.TileView.GlobalPosition.X, tile.TileView.GlobalPosition.Z);
         int threshold = grid.CliffHeightThreshold;
 
+        float noiseAmp = grid.TerrainNoiseAmplitude;
+        float noiseFreq = grid.TerrainNoiseFrequency;
+        int subdiv = Math.Max(1, grid.TerrainNoiseSubdiv);
+
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
-        st.SetSmoothGroup(uint.MaxValue); // flat shading — see header
         if (splatMode)
             st.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbaFloat);
 
@@ -115,7 +131,6 @@ public static class HexMeshBuilder
         Color ownWeights = new Color(1f, 0f, 0f, 0f);
         Color ownIndices = new Color(ownIdx, ownIdx, ownIdx, ownIdx);
 
-        // Per-corner: component-averaged height (own's component) + colour.
         var cornerY = new float[6];
         var cornerColor = new Color[6];
         for (int i = 0; i < 6; i++)
@@ -125,15 +140,14 @@ public static class HexMeshBuilder
                 cornerColor[i] = CornerColor(grid, tile, i);
         }
 
-        // Per-edge: neighbour, classification, midpoint data, splat data.
         var nbr = new TileData[6];
         var isCliff = new bool[6];
         var midY = new float[6];
         var midColor = new Color[6];
         var edgeIndices = new Color[6];
-        var edgeWeightsA = new Color[6];   // splat weights at corner e (own's component)
-        var edgeWeightsB = new Color[6];   // splat weights at corner e+1 (own's component)
-        var edgeWeightsM = new Color[6];   // splat weights at the edge midpoint
+        var edgeWeightsA = new Color[6];
+        var edgeWeightsB = new Color[6];
+        var edgeWeightsM = new Color[6];
 
         for (int e = 0; e < 6; e++)
         {
@@ -166,24 +180,32 @@ public static class HexMeshBuilder
             }
         }
 
-        // ── 1) Inner hexagon fan: 12 boundary points (corner, mid, corner…)
+        // ── 1) Inner hexagon: SUBDIVIDED + NOISE-DISPLACED ────────────────
+        // Smooth shading so the noisy surface reads as rolling terrain.
+        st.SetSmoothGroup(0);
         Color innerAttr = splatMode ? ownWeights : ownColor;
+
+        // The inner hex boundary is the 12-gon of (corner, mid, corner, ...) at
+        // radius*solidFactor. Build six fan triangles (centre, A, B) where
+        // A/B walk corner→mid and mid→corner, and subdivide each barycentrically.
         for (int e = 0; e < 6; e++)
         {
             Vector2 cA = Corner(e, radius) * solidFactor;
             Vector2 cB = Corner((e + 1) % 6, radius) * solidFactor;
             Vector2 m = (cA + cB) * 0.5f;
 
-            AddVert(st, Vector3.Zero, innerAttr, centerXZ, splatMode, ownIndices);
-            AddVert(st, new Vector3(cA.X, 0f, cA.Y), innerAttr, centerXZ, splatMode, ownIndices);
-            AddVert(st, new Vector3(m.X, 0f, m.Y), innerAttr, centerXZ, splatMode, ownIndices);
-
-            AddVert(st, Vector3.Zero, innerAttr, centerXZ, splatMode, ownIndices);
-            AddVert(st, new Vector3(m.X, 0f, m.Y), innerAttr, centerXZ, splatMode, ownIndices);
-            AddVert(st, new Vector3(cB.X, 0f, cB.Y), innerAttr, centerXZ, splatMode, ownIndices);
+            // Two fan triangles per edge: (centre, cA, m) and (centre, m, cB).
+            // Boundary points cA, m, cB carry their analytic height (flat, 0 here
+            // for the inner ring which sits at local Y=0). Centre carries noise.
+            AddNoisyFanTri(st, Vector3.Zero, cA, m, subdiv,
+                centerXZ, splatMode, innerAttr, ownIndices,
+                noiseAmp, noiseFreq, solidFactor, radius);
+            AddNoisyFanTri(st, Vector3.Zero, m, cB, subdiv,
+                centerXZ, splatMode, innerAttr, ownIndices,
+                noiseAmp, noiseFreq, solidFactor, radius);
         }
 
-        // ── 2) Bridge strips: two halves per edge (corner→mid, mid→corner)
+        // ── 2) Bridge strips: two halves per edge (UNCHANGED) ─────────────
         for (int e = 0; e < 6; e++)
         {
             int e2 = (e + 1) % 6;
@@ -203,8 +225,8 @@ public static class HexMeshBuilder
                 mid, midY[e], attrM, cB, cornerY[e2], attrB, inA);
         }
 
-        // ── 3) Cliff walls: the HIGHER tile seals the gap down to the
-        //       lower tile's rim profile ──────────────────────────────────
+        // ── 3) Cliff walls (UNCHANGED, flat-shaded) ───────────────────────
+        st.SetSmoothGroup(uint.MaxValue);
         for (int e = 0; e < 6; e++)
         {
             if (!isCliff[e] || tile.Height <= nbr[e].Height)
@@ -215,14 +237,10 @@ public static class HexMeshBuilder
             Vector2 cB = Corner(e2, radius);
             Vector2 mid = (cA + cB) * 0.5f;
 
-            // Wall top = own rim profile along this edge.
             float topYA = cornerY[e];
-            float topYM = midY[e];           // 0 for cliff edges
+            float topYM = midY[e];
             float topYB = cornerY[e2];
 
-            // Wall bottom = the LOWER tile's rim profile, computed from the
-            // same corner-component data (neighbour is slot B at corner e,
-            // slot A at corner e+1 — see geometry conventions).
             float botYA = CornerComponentMeanWorldY(grid, tile, e, 2) - ownTop;
             float botYM = nbr[e].Height * HexTile.HeightStep - ownTop;
             float botYB = CornerComponentMeanWorldY(grid, tile, e2, 1) - ownTop;
@@ -251,7 +269,7 @@ public static class HexMeshBuilder
                 botYM, botYB, botM, botB);
         }
 
-        // ── 4) Map-edge skirts down to the floor ─────────────────────────
+        // ── 4) Map-edge skirts (UNCHANGED, flat-shaded) ───────────────────
         for (int e = 0; e < 6; e++)
         {
             if (nbr[e] != null)
@@ -287,15 +305,16 @@ public static class HexMeshBuilder
         }
 
         st.GenerateNormals();
+        st.GenerateTangents();   // required for the splat shader's NORMAL_MAP path
         return st.Commit();
     }
 
     /// <summary>
     /// World-space surface Y of the terrain at (worldX, worldZ), assuming the
-    /// point lies on <paramref name="tile"/>. Mirrors the v4 geometry: cliff
-    /// edges stay flat at the tile's own height; blend edges run piecewise
-    /// corner→mid→corner with component-averaged corners. Used by prop
-    /// scattering. Reads grid.CliffHeightThreshold.
+    /// point lies on <paramref name="tile"/>. Mirrors v4 edge geometry AND the
+    /// v5 inner-surface noise (same noise + same boundary falloff), so props
+    /// sit on the displaced surface. Reads grid.CliffHeightThreshold and the
+    /// grid.TerrainNoise* knobs.
     /// </summary>
     public static float SampleSurfaceWorldY(
         HexGridManager grid, TileData tile,
@@ -311,7 +330,7 @@ public static class HexMeshBuilder
             worldZ - tile.TileView.GlobalPosition.Z);
 
         if (p.LengthSquared() < 0.0001f)
-            return ownTop;
+            return ownTop + InteriorNoiseOffset(grid, worldX, worldZ, 0f, solidFactor);
 
         float angDeg = Mathf.PosMod(Mathf.RadToDeg(Mathf.Atan2(p.Y, p.X)), 360f);
         int e = Mathf.Clamp((int)(angDeg / 60f), 0, 5);
@@ -325,8 +344,14 @@ public static class HexMeshBuilder
         float b = (cE.X * p.Y - p.X * cE.Y) / det;
 
         float rho = a + b;
+
+        // Inside the solid inner hex: flat analytic height + interior noise,
+        // with the SAME radial falloff the mesh uses (1 at centre → 0 at rim).
         if (rho <= solidFactor)
-            return ownTop;
+        {
+            float rNorm = rho / Mathf.Max(0.0001f, solidFactor); // 0 centre .. 1 rim
+            return ownTop + InteriorNoiseOffset(grid, worldX, worldZ, rNorm, solidFactor);
+        }
 
         rho = Mathf.Min(rho, 1f);
         float s = b / rho;
@@ -356,19 +381,81 @@ public static class HexMeshBuilder
         return ownTop + edgeY * Mathf.Lerp(v0, v1, frac);
     }
 
+    /// <summary>Interior noise displacement (world units) at normalized radius rNorm (0 centre .. 1 boundary). Falloff = (1 - rNorm) so it is exactly 0 at the rim, matching the flat boundary ring.</summary>
+    private static float InteriorNoiseOffset(HexGridManager grid, float worldX, float worldZ, float rNorm, float solidFactor)
+    {
+        float amp = grid.TerrainNoiseAmplitude;
+        if (amp <= 0f)
+            return 0f;
+
+        float falloff = Mathf.Clamp(1f - rNorm, 0f, 1f);
+        // Smoothstep the falloff so the transition to the flat rim is gentle.
+        falloff = falloff * falloff * (3f - 2f * falloff);
+        return SurfaceNoise(worldX, worldZ, grid.TerrainNoiseFrequency) * amp * falloff;
+    }
+
     // ────────────────────────────────────────────────────────────────────────
-    // Corner components — the symmetric blend-connectivity rule.
-    // Tiles at corner i: slot 0 = own, slot 1 = dir (7-i)%6, slot 2 = dir (6-i)%6.
-    // Two tiles are blend-connected when |Δheight| ≤ threshold; components are
-    // the transitive closure. Any two tiles sharing a blend edge land in the
-    // same component → identical corner values → watertight blend seams.
+    // Subdivided fan triangle with noise
     // ────────────────────────────────────────────────────────────────────────
 
-    /// <summary>World-space Y of corner <paramref name="cornerIndex"/> as this tile's mesh uses it: mean height of the blend component containing the tile.</summary>
+    /// <summary>
+    /// Subdivides triangle (centre0, boundaryA, boundaryB) into a barycentric
+    /// grid of resolution `n` and emits it. The two boundary vertices sit on
+    /// the inner-hex rim (local Y = 0, no noise — keeps the seam with bridges
+    /// flat). The centre and all interior vertices are displaced by interior
+    /// noise with a falloff keyed to barycentric distance from the boundary
+    /// edge, so displacement is full at the centre and 0 along the rim edge.
+    /// </summary>
+    private static void AddNoisyFanTri(
+        SurfaceTool st, Vector3 centre, Vector2 bA, Vector2 bB, int n,
+        Vector2 centerXZ, bool splat, Color attr, Color idx,
+        float amp, float freq, float solidFactor, float radius)
+    {
+        Vector2 c2 = new Vector2(centre.X, centre.Z);
+
+        Vector3 V(int i, int j)
+        {
+            float fi = i / (float)n;
+            float fj = j / (float)n;
+            float wc = 1f - fi - fj;
+            Vector2 xz = c2 * wc + bA * fi + bB * fj;
+
+            float y = 0f;
+            if (amp > 0f && wc > 0.0001f)
+            {
+                float fall = wc * wc * (3f - 2f * wc);
+                y = SurfaceNoise(centerXZ.X + xz.X, centerXZ.Y + xz.Y, freq) * amp * fall;
+            }
+            return new Vector3(xz.X, y, xz.Y);
+        }
+
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n - i; j++)
+            {
+                // Upright triangle — winding flipped to match the fan (CCW in XZ).
+                AddVert(st, V(i, j), attr, centerXZ, splat, idx);
+                AddVert(st, V(i + 1, j), attr, centerXZ, splat, idx);
+                AddVert(st, V(i, j + 1), attr, centerXZ, splat, idx);
+
+                // Inverted triangle — same flip.
+                if (i + j < n - 1)
+                {
+                    AddVert(st, V(i + 1, j), attr, centerXZ, splat, idx);
+                    AddVert(st, V(i + 1, j + 1), attr, centerXZ, splat, idx);
+                    AddVert(st, V(i, j + 1), attr, centerXZ, splat, idx);
+                }
+            }
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Corner components (UNCHANGED from v4)
+    // ────────────────────────────────────────────────────────────────────────
+
     public static float CornerWorldY(HexGridManager grid, TileData tile, int cornerIndex)
         => CornerComponentMeanWorldY(grid, tile, cornerIndex, 0);
 
-    /// <summary>Mean corner height (world Y) of the blend component containing the tile in <paramref name="startSlot"/> (0 = own, 1 = slot-A neighbour, 2 = slot-B neighbour).</summary>
     public static float CornerComponentMeanWorldY(HexGridManager grid, TileData tile, int cornerIndex, int startSlot)
     {
         var (m0, m1, m2, tA, tB) = CornerComponent(grid, tile, cornerIndex, startSlot);
@@ -383,12 +470,11 @@ public static class HexMeshBuilder
         { sum += tB.Height; n++; }
 
         if (n == 0)
-            return tile.Height * HexTile.HeightStep; // start tile absent — defensive
+            return tile.Height * HexTile.HeightStep;
 
         return (sum / n) * HexTile.HeightStep;
     }
 
-    /// <summary>Blended terrain colour at a corner: mean over the blend component containing this tile.</summary>
     public static Color CornerColor(HexGridManager grid, TileData tile, int cornerIndex)
     {
         var (m0, m1, m2, tA, tB) = CornerComponent(grid, tile, cornerIndex, 0);
@@ -410,10 +496,6 @@ public static class HexMeshBuilder
         return c;
     }
 
-    /// <summary>
-    /// Membership of the blend component containing the tile in startSlot.
-    /// Closure over ≤3 nodes via two relaxation passes.
-    /// </summary>
     private static (bool m0, bool m1, bool m2, TileData tA, TileData tB)
         CornerComponent(HexGridManager grid, TileData tile, int cornerIndex, int startSlot)
     {
@@ -448,23 +530,14 @@ public static class HexMeshBuilder
         return (m0, m1 && p1, m2 && p2, tA, tB);
     }
 
-    /// <summary>
-    /// Splat data for one edge. Index slots: [own, edge-e neighbour,
-    /// corner-e third tile, corner-(e+1) third tile]. Corner weights
-    /// distribute equally over the corner's blend component (containing own),
-    /// matching the geometry's corner heights, so texture blends track the
-    /// surface exactly and stop at cliffs. ALL vertices of the edge's bridge
-    /// halves, walls, and skirts share the index vector — per-triangle index
-    /// constancy keeps GPU interpolation valid.
-    /// </summary>
     private static (Color indices, Color weightsCornerA, Color weightsCornerB)
         SplatForEdge(HexGridManager grid, TileData tile, int e)
     {
         float ownIdx = (int)tile.TerrainType;
 
-        var nE = grid.GetTile(tile.Axial + HexDirection.All[(6 - e) % 6]);     // edge neighbour
-        var nA = grid.GetTile(tile.Axial + HexDirection.All[(7 - e) % 6]);     // third tile at corner e
-        var nB = grid.GetTile(tile.Axial + HexDirection.All[(5 - e) % 6]);     // third tile at corner e+1
+        var nE = grid.GetTile(tile.Axial + HexDirection.All[(6 - e) % 6]);
+        var nA = grid.GetTile(tile.Axial + HexDirection.All[(7 - e) % 6]);
+        var nB = grid.GetTile(tile.Axial + HexDirection.All[(5 - e) % 6]);
 
         var indices = new Color(
             ownIdx,
@@ -472,13 +545,11 @@ public static class HexMeshBuilder
             nA != null ? (int)nA.TerrainType : ownIdx,
             nB != null ? (int)nB.TerrainType : ownIdx);
 
-        // Corner e: corner-slot A = third tile (nA), corner-slot B = nE.
         var (c0, cThird, cNe, _, _) = CornerComponent(grid, tile, e, 0);
         int cntA = (c0 ? 1 : 0) + (cThird ? 1 : 0) + (cNe ? 1 : 0);
         float wA = 1f / Math.Max(1, cntA);
         var weightsCornerA = new Color(c0 ? wA : 0f, cNe ? wA : 0f, cThird ? wA : 0f, 0f);
 
-        // Corner e+1: corner-slot A = nE, corner-slot B = third tile (nB).
         var (d0, dNe, dThird, _, _) = CornerComponent(grid, tile, (e + 1) % 6, 0);
         int cntB = (d0 ? 1 : 0) + (dNe ? 1 : 0) + (dThird ? 1 : 0);
         float wB = 1f / Math.Max(1, cntB);
@@ -487,11 +558,6 @@ public static class HexMeshBuilder
         return (indices, weightsCornerA, weightsCornerB);
     }
 
-    /// <summary>
-    /// Canonical terrain colour: the exported terrain material's albedo when
-    /// one is assigned, otherwise the UITheme.CombatTile* token — the same
-    /// source the legacy flat-colour path uses. No local palette.
-    /// </summary>
     public static Color TerrainColor(HexGridManager grid, TileTerrainType terrain)
     {
         Material m = terrain switch
@@ -523,21 +589,15 @@ public static class HexMeshBuilder
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Internals
+    // Internals (UNCHANGED from v4)
     // ────────────────────────────────────────────────────────────────────────
 
-    /// <summary>XZ offset from hex centre to corner i (flat-top, corner 0 at +X, CCW).</summary>
     private static Vector2 Corner(int i, float radius)
     {
         float a = Mathf.DegToRad(60f * i);
         return new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius;
     }
 
-    /// <summary>
-    /// One half of a bridge strip: boundary point A (outerA, yA) to boundary
-    /// point B (outerB, yB), inner-ring points at outerA·solid / outerB·solid
-    /// (local Y = 0). Terraced when requested and the half changes height.
-    /// </summary>
     private static void AddBridgeHalf(SurfaceTool st, Vector2 centerXZ, bool splat, Color idx,
         float solidFactor, int terraceSteps,
         Vector2 outerA, float yA, Color attrA,
@@ -580,12 +640,6 @@ public static class HexMeshBuilder
         }
     }
 
-    /// <summary>
-    /// One vertical wall quad along boundary segment A→B with per-column top
-    /// AND bottom heights. Used for cliff faces (bottom = lower tile's rim)
-    /// and map-edge skirts (bottom = world floor). Faces outward; winding CW
-    /// viewed from outside: (topA, botA, botB), (topA, botB, topB).
-    /// </summary>
     private static void AddWallQuad(SurfaceTool st, Vector2 centerXZ, bool splat, Color idx,
         Vector2 a, float topYA, Color topAttrA,
         Vector2 b, float topYB, Color topAttrB,
@@ -599,12 +653,6 @@ public static class HexMeshBuilder
             new Vector3(b.X, botYB, b.Y), botAttrB);
     }
 
-    /// <summary>
-    /// One quad as two triangles: (A0, A1, B1) and (A0, B1, B0).
-    /// Top-surface quads: A0/B0 = inner edge, A1/B1 = outer edge (CCW in the
-    /// X/Z math plane = Godot front-face up). Walls: A0=topA, A1=botA,
-    /// B1=botB, B0=topB (clockwise viewed from outside).
-    /// </summary>
     private static void AddQuad(SurfaceTool st, Vector2 centerXZ, bool splat, Color custom,
         Vector3 a0, Color ca0,
         Vector3 b0, Color cb0,
@@ -620,7 +668,6 @@ public static class HexMeshBuilder
         AddVert(st, b0, cb0, centerXZ, splat, custom);
     }
 
-    /// <summary>Adds one vertex. COLOR = albedo (vertex-colour mode) or splat weights (splat mode); CUSTOM0 = layer indices in splat mode. World-planar UV kept for compatibility (the splat shader samples by world position).</summary>
     private static void AddVert(SurfaceTool st, Vector3 local, Color color, Vector2 centerXZ, bool splat, Color custom)
     {
         st.SetColor(color);

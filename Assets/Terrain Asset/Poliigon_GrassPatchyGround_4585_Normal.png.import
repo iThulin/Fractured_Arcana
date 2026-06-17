@@ -15,14 +15,14 @@ dest_files=["res://.godot/imported/Poliigon_GrassPatchyGround_4585_Normal.png-a0
 
 [params]
 
-compress/mode=0
+compress/mode=3
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
-compress/channel_pack=0
+compress/normal_map=1
+compress/channel_pack=1
 mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
