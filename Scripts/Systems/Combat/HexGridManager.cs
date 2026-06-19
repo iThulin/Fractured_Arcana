@@ -165,6 +165,12 @@ public partial class HexGridManager : Node3D
     /// <summary>World units → UV. Lower = bigger texture features.</summary>
     [Export(PropertyHint.Range, "0.05,1,0.01")] public float TerrainTextureScale = 0.22f;
 
+    /// <summary>Optional authored terrain material. When set, it's used as the splat
+    /// template (so pastel/ground-detail uniforms are editable + persistent in a .tres)
+    /// instead of the code-built one. Its terrain_textures/normals/scale are still set
+    /// from the exports below, so you don't hand-wire the texture arrays.</summary>
+    [Export] public ShaderMaterial TerrainMaterialOverride;
+
     private ShaderMaterial _terrainMaterialTemplate;
 
     [ExportSubgroup("Per-Terrain Noise")]
@@ -452,6 +458,7 @@ public partial class HexGridManager : Node3D
         SpawnObstacleVisuals();
         SpawnTerrainPropsFromManifest();
         SpawnPainterlyGrass();
+        SpawnFlowerProps();
         RefreshAllTileLabels();
 
         RecomputeGridBounds();
@@ -746,12 +753,14 @@ public partial class HexGridManager : Node3D
             return null;
 
         var nrmArray = TerrainTextureLibrary.GetOrBuildNormals(this, TerrainTextureSize);
-
-        _terrainMaterialTemplate = new ShaderMaterial { Shader = shader };
+        _terrainMaterialTemplate = TerrainMaterialOverride ?? new ShaderMaterial { Shader = shader };
         _terrainMaterialTemplate.SetShaderParameter("terrain_textures", texArray);
         if (nrmArray != null)
             _terrainMaterialTemplate.SetShaderParameter("terrain_normals", nrmArray);
         _terrainMaterialTemplate.SetShaderParameter("texture_scale", TerrainTextureScale);
+
+        _terrainMaterialTemplate.SetShaderParameter("grid_hex_radius", HexRadius);
+
         return _terrainMaterialTemplate;
     }
 

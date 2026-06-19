@@ -2,17 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cbf1kub3gh1ld"
-path.s3tc="res://.godot/imported/grass_normal_1.png-ee6979174eb23d303843074ae352832c.s3tc.ctex"
+uid="uid://bgyt3wmv4u7ft"
+path.s3tc="res://.godot/imported/Flowers 2,3,5_grassmask.png-671ce73f3908f35d7d6cfb74150cf23f.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
+generator_parameters={
+"md5": "9b0e8aa7c2a3c8793a89777acc866603"
+}
 
 [deps]
 
-source_file="res://Assets/Terrain Asset/Painterly Grass/grass_normal_1.png"
-dest_files=["res://.godot/imported/grass_normal_1.png-ee6979174eb23d303843074ae352832c.s3tc.ctex"]
+source_file="res://Assets/Terrain Asset/Painterly Flowers/Flowers 2,3,5_grassmask.png"
+dest_files=["res://.godot/imported/Flowers 2,3,5_grassmask.png-671ce73f3908f35d7d6cfb74150cf23f.s3tc.ctex"]
 
 [params]
 
@@ -22,7 +25,7 @@ compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=1
+compress/normal_map=0
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

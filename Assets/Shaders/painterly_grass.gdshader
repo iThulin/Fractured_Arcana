@@ -38,6 +38,7 @@ uniform float mid_position : hint_range(0.05, 0.95) = 0.5;
 uniform float tip_bias : hint_range(0.5, 4.0) = 1.5;
 uniform float highlight_start : hint_range(0.0, 1.0) = 0.78;
 uniform float color_variation : hint_range(0.0, 0.3) = 0.07;
+uniform float color_saturation : hint_range(0.0, 2.0) = 1.0; // >1 = richer/more painterly; push to ~1.3-1.5 for Ghibli greens
 
 // ---- Mass clumping (world-space, low frequency) ----
 group_uniforms mass_clumping;
@@ -254,6 +255,13 @@ void fragment()
         col = mix(col, col * mass_tint_color2, darken2);
     }
 
+    // 3.5 Saturation / vibrance — push richness for the painterly look.
+    if (color_saturation != 1.0)
+    {
+        float luma = dot(col, vec3(0.299, 0.587, 0.114));
+        col = mix(vec3(luma), col, color_saturation);
+    }
+
     // 4. AO root-darkening.
     float ao = mix(1.0 - ao_strength, 1.0, smoothstep(0.0, max(ao_height, 0.0001), v_stiffness));
     col *= ao;
@@ -273,7 +281,7 @@ void fragment()
         col = mix(col, depth_color, dt);
     }
 
-    ALBEDO = col;
+    ALBEDO = col * COLOR.rgb;
     ROUGHNESS = 1.0;
     SPECULAR = 0.0;
 

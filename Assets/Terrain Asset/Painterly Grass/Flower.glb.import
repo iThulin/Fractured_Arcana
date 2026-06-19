@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://jthgt4qidacp"
-path="res://.godot/imported/Grass Tuft.glb-314831b307afd65ba96a17621f1478d6.scn"
+uid="uid://cyd1dlyjyvmhf"
+path="res://.godot/imported/Flower.glb-eb4aa03ebff11c7f3c666d5e564e850c.scn"
 
 [deps]
 
-source_file="res://Assets/Terrain Asset/Painterly Grass/Grass Tuft.glb"
-dest_files=["res://.godot/imported/Grass Tuft.glb-314831b307afd65ba96a17621f1478d6.scn"]
+source_file="res://Assets/Terrain Asset/Painterly Grass/Flower.glb"
+dest_files=["res://.godot/imported/Flower.glb-eb4aa03ebff11c7f3c666d5e564e850c.scn"]
 
 [params]
 
@@ -39,14 +39,14 @@ materials/extract_format=0
 materials/extract_path=""
 _subresources={
 "meshes": {
-"Grass Tuft_Cube": {
+"Flower_Linen_wFlower_M_Material #36_0_003": {
 "generate/lightmap_uv": 0,
 "generate/lods": 0,
 "generate/shadow_meshes": 0,
 "lods/normal_merge_angle": 20.0,
 "save_to_file/enabled": true,
-"save_to_file/fallback_path": "res://Assets/Terrain Asset/Grass Tuft.tres",
-"save_to_file/path": "uid://03hk4cssyjrd"
+"save_to_file/fallback_path": "",
+"save_to_file/path": ""
 }
 }
 }

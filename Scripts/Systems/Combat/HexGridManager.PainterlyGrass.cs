@@ -25,7 +25,7 @@ public partial class HexGridManager : Node3D
     [Export] public Mesh PainterlyGrassMesh;
 
     [Export(PropertyHint.Range, "0.05,3.0,0.05")] public float GrassScale = 1.0f;
-    [Export(PropertyHint.Range, "0,400,1")] public int GrassBladesPerTile = 40;
+    [Export(PropertyHint.Range, "0,800,1")] public int GrassBladesPerTile = 40;
     [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float GrassBladeHeight = 0.28f;
 
     /// <summary>How far blades may bleed past an edge toward a grass neighbour (fraction of HexRadius). Hides grass-grass seams; 0 = clip exactly to the hex.</summary>
@@ -34,6 +34,12 @@ public partial class HexGridManager : Node3D
     [Export(PropertyHint.Range, "0,0.6,0.05")] public float GrassHeightJitter = 0.3f;
     [Export(PropertyHint.Range, "0,0.6,0.05")] public float GrassWidthJitter = 0.2f;
     [Export] public bool GrassOnForest = true;
+    /// <summary>0 = even meadow; 1 = grass fully driven by the clump field (dense clumps + thin gaps).</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float GrassClumpInfluence = 0.0f;
+    /// <summary>World-space frequency of the clump field. Lower = bigger clumps and bigger bare patches.</summary>
+    [Export] public float GrassClumpFrequency = 0.35f;
+    /// <summary>Clump-noise value below which ground is left fully bare (hard pockets). 0 = no hard bare spots.</summary>
+    [Export(PropertyHint.Range, "0,1,0.02")] public float GrassBareThreshold = 0.0f;
 
     private const string PainterlyGrassGroup = "painterly_grass";
     private Material _painterlyGrassMaterialCache;
@@ -61,6 +67,13 @@ public partial class HexGridManager : Node3D
         };
 
         var rng = new RandomNumberGenerator { Seed = (ulong)(MapSeed ^ 0x6B61736D) };
+
+        var clumpNoise = new FastNoiseLite
+        {
+            Seed = unchecked(MapSeed ^ 0x13577531),
+            Frequency = GrassClumpFrequency,
+            NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth
+        };
 
         // Regular lattice: neighbour directions + apothem are constant everywhere.
         // AxialToWorld is linear with AxialToWorld(0,0) == origin, so the world
@@ -128,6 +141,18 @@ public partial class HexGridManager : Node3D
                 }
                 if (!ok)
                     continue;
+
+                if (GrassClumpInfluence > 0f)
+                {
+                    float cnx = top.X + p.X;
+                    float cnz = top.Z + p.Y;
+                    float cn = clumpNoise.GetNoise2D(cnx, cnz) * 0.5f + 0.5f; // 0..1
+                    if (cn < GrassBareThreshold)
+                        continue;                                   // hard bare pocket
+                    float accept = Mathf.Lerp(1f, cn, GrassClumpInfluence);
+                    if (rng.Randf() > accept)
+                        continue;                                   // thinned toward the gaps
+                }
 
                 float wx = top.X + p.X;
                 float wz = top.Z + p.Y;

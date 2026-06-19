@@ -39,6 +39,7 @@ public partial class PainterlyGrassTuner : PanelContainer
         ("mid_position",           "Mid Position",       0.05f, 0.95f, 0.50f),
         ("highlight_start",        "Highlight Start",    0f,    1f,    0.78f),
         ("color_variation",        "Colour Variation",   0f,    0.3f,  0.07f),
+        ("color_saturation",       "Saturation",         0f,    2f,    1.00f),
         ("ao_strength",            "AO Strength",        0f,    1f,    0.45f),
         ("ao_height",              "AO Height",          0f,    0.6f,  0.28f),
         ("toon_bands",             "Toon Bands",         1f,    6f,    3.00f),

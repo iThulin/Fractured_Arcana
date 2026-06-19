@@ -1,0 +1,31 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://b8rynssq8te2o"]
+
+[ext_resource type="Shader" uid="uid://bb1wh2vil4smf" path="res://Assets/Shaders/painterly_flower.gdshader" id="1_va631"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_va631")
+shader_parameter/wind_dir = Vector2(1, 0.35)
+shader_parameter/wind_bend = 0.12
+shader_parameter/wind_amplitude = 0.4
+shader_parameter/wave_scale = 0.12
+shader_parameter/wave_speed = 0.5
+shader_parameter/wave_strength = 0.7
+shader_parameter/wave_stretch = 0.35
+shader_parameter/detail_scale = 1.2
+shader_parameter/detail_speed = 0.25
+shader_parameter/detail_strength = 0.25
+shader_parameter/tip_brighten = 0.22
+shader_parameter/petal_variation = 0.1
+shader_parameter/saturation = 1.05
+shader_parameter/fallback_color = Color(0.97, 0.84, 0.3, 1)
+shader_parameter/center_color = Color(0.06, 0.04, 0.02, 1)
+shader_parameter/center_darkness = 0.65
+shader_parameter/center_size = 0.04
+shader_parameter/center_softness = 0.05
+shader_parameter/toon_bands = 3.0
+shader_parameter/toon_softness = 0.2
+shader_parameter/toon_wrap = 0.4
+shader_parameter/ambient_fill = 0.4
+shader_parameter/stiffness_from_model_height = false
+shader_parameter/model_height = 0.4
