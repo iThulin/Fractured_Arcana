@@ -89,8 +89,6 @@ public partial class CharacterStagingPreview : Node3D
 
         // Small blob, deterministic-on-demand. Seed 0 = grid randomises and writes
         // the chosen seed back into Grid.MapSeed, which we then read for the panel.
-        Grid.Shape = MapShape.Blob;
-        Grid.MapRadius = PreviewRadius;
 
         Regenerate(randomizeSeed: true);
     }

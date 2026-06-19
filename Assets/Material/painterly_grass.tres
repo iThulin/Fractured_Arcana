@@ -1,0 +1,67 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://bb6cgw8ypa6eb"]
+
+[ext_resource type="Shader" uid="uid://e3m26c7664p0" path="res://Assets/Shaders/painterly_grass.gdshader" id="1_17omr"]
+[ext_resource type="Texture2D" uid="uid://cbf1kub3gh1ld" path="res://Assets/Terrain Asset/grass_normal_1.png" id="2_2b8cx"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_17omr"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_2b8cx"]
+noise = SubResource("FastNoiseLite_17omr")
+seamless = true
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_17omr")
+shader_parameter/base_color = Color(0.173, 0.173, 0.173, 1)
+shader_parameter/mid_color = Color(0.125, 0.322, 0.259, 1)
+shader_parameter/tip_color = Color(0.78039217, 1, 0.38431373, 1)
+shader_parameter/highlight_color = Color(0.96, 1, 0.78, 1)
+shader_parameter/mid_position = 0.08500000240756
+shader_parameter/tip_bias = 1.9000000665
+shader_parameter/highlight_start = 0.1450000068875
+shader_parameter/color_variation = 0.07
+shader_parameter/use_mass_tint = true
+shader_parameter/mass_tex = ExtResource("2_2b8cx")
+shader_parameter/mass_tint_color = Color(0.31764707, 0.44705883, 0.22745098, 1)
+shader_parameter/mass_strength = 1.0
+shader_parameter/mass_scale = 0.04300000169324
+shader_parameter/ao_strength = 0.45
+shader_parameter/ao_height = 0.28
+shader_parameter/use_albedo_tex = false
+shader_parameter/albedo_tex_strength = 0.5
+shader_parameter/albedo_tex_object_space = false
+shader_parameter/albedo_obj_scale = 2.0
+shader_parameter/use_normal_map = true
+shader_parameter/normal_tex = ExtResource("2_2b8cx")
+shader_parameter/normal_strength = 1.0
+shader_parameter/stiffness_from_model_height = false
+shader_parameter/model_height = 1.0
+shader_parameter/stiffness_from_vertex_color = false
+shader_parameter/wind_noise = SubResource("NoiseTexture2D_2b8cx")
+shader_parameter/wind_dir = Vector2(1, 0.35)
+shader_parameter/wind_bend = 0.090000004275
+shader_parameter/wind_amplitude = 0.0400000019
+shader_parameter/wave_scale = 0.24000001070148
+shader_parameter/wave_speed = 0.030000001425
+shader_parameter/wave_strength = 0.750000035625
+shader_parameter/wave_stretch = 0.19000000739506
+shader_parameter/detail_scale = 1.2
+shader_parameter/detail_speed = 0.25
+shader_parameter/detail_strength = 0.25
+shader_parameter/toon_bands = 3.0
+shader_parameter/toon_softness = 1.0
+shader_parameter/toon_wrap = 0.25
+shader_parameter/use_distance_fade = true
+shader_parameter/use_dither_fade = false
+shader_parameter/fade_start = 18.0
+shader_parameter/fade_end = 40.0
+shader_parameter/use_depth_tint = true
+shader_parameter/depth_color = Color(0.62, 0.68, 0.72, 1)
+shader_parameter/depth_start = 8.0
+shader_parameter/depth_end = 30.0
+shader_parameter/depth_strength = 0.5
+shader_parameter/use_translucency = true
+shader_parameter/translucency_color = Color(0.75, 0.95, 0.4, 1)
+shader_parameter/translucency_strength = 1.0
+shader_parameter/translucency_power = 4.0
+shader_parameter/translucency_distortion = 0.3

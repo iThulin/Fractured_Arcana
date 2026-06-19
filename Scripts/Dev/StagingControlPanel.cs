@@ -67,7 +67,7 @@ public partial class StagingControlPanel : Control
     private void BuildUI()
     {
         if (Preview == null)
-            Preview = GetNodeOrNull<CharacterStagingPreview>("../CharacterStagingPreview");
+            Preview = GetNodeOrNull<CharacterStagingPreview>("../../CharacterStagingPreview");
 
         var panel = new PanelContainer();
         var sb = new StyleBoxFlat
@@ -83,13 +83,23 @@ public partial class StagingControlPanel : Control
             CornerRadiusBottomRight = 6,
         };
         panel.AddThemeStyleboxOverride("panel", sb);
-        panel.SetAnchorsPreset(LayoutPreset.TopLeft);
-        panel.Position = new Vector2(16, 16);
-        panel.CustomMinimumSize = new Vector2(310, 0);
+
+        // Full-height strip pinned to the left edge — mirrors the grass tuner on
+        // the right. Anchored top->bottom so the inner ScrollContainer gets the
+        // whole screen height and only scrolls if controls genuinely overflow.
+        panel.AnchorLeft = 0f;
+        panel.AnchorTop = 0f;
+        panel.AnchorRight = 0f;
+        panel.AnchorBottom = 1f;
+        panel.OffsetLeft = 16f;
+        panel.OffsetTop = 16f;
+        panel.OffsetRight = 356f;   // 340px wide, matches the tuner
+        panel.OffsetBottom = -16f;
         AddChild(panel);
 
         var scroll = new ScrollContainer();
-        scroll.CustomMinimumSize = new Vector2(300, 620);
+        scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
         scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
         panel.AddChild(scroll);
 

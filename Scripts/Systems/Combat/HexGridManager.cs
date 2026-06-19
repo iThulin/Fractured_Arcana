@@ -167,6 +167,28 @@ public partial class HexGridManager : Node3D
 
     private ShaderMaterial _terrainMaterialTemplate;
 
+    [ExportSubgroup("Per-Terrain Noise")]
+    [Export] public float GrassNoiseAmp = 0.18f;
+    [Export] public float GrassNoiseFreq = 0.55f;
+
+    [Export] public float ForestNoiseAmp = 0.22f;
+    [Export] public float ForestNoiseFreq = 0.7f;
+
+    [Export] public float StoneNoiseAmp = 0.40f;
+    [Export] public float StoneNoiseFreq = 1.25f;
+
+    [Export] public float WaterNoiseAmp = 0.03f;
+    [Export] public float WaterNoiseFreq = 0.4f;
+
+    [Export] public float IceNoiseAmp = 0.06f;
+    [Export] public float IceNoiseFreq = 0.5f;
+
+    [Export] public float LavaNoiseAmp = 0.15f;
+    [Export] public float LavaNoiseFreq = 0.9f;
+
+    [Export] public float ArcaneNoiseAmp = 0.20f;
+    [Export] public float ArcaneNoiseFreq = 0.30f;
+
     // Prop import
     [ExportGroup("Tile Props")]
     [Export] public PackedScene GrassTuftScene;
@@ -429,6 +451,7 @@ public partial class HexGridManager : Node3D
 
         SpawnObstacleVisuals();
         SpawnTerrainPropsFromManifest();
+        SpawnPainterlyGrass();
         RefreshAllTileLabels();
 
         RecomputeGridBounds();

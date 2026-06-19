@@ -2,101 +2,146 @@ using Godot;
 using System;
 
 // ============================================================
-// HexMeshBuilder.cs  (v5 — subdivided noise tops)
+// HexMeshBuilder.cs  (v7 — per-terrain noise character)
 //
 // Purpose:        Generates the per-tile blended terrain mesh.
-//                 Each tile owns its full hexagon footprint: a
-//                 SUBDIVIDED inner hex at the tile's own height
-//                 (now displaced by world-space surface noise for
-//                 rolling micro-relief), and six bridge strips out
-//                 to the shared boundaries, with every boundary
-//                 edge split at its midpoint.
 //
-//                 v5 — INNER-HEX SUBDIVISION + NOISE:
-//                 - Each of the six fan triangles (centre, boundary
-//                   point A, boundary point B) is subdivided into a
-//                   uniform barycentric triangle grid of resolution
-//                   grid.TerrainNoiseSubdiv.
-//                 - Interior vertices are displaced in Y by
-//                   SurfaceNoise(worldX, worldZ) * amplitude, scaled
-//                   by a falloff that is 1 at the centre and 0 along
-//                   the boundary edge. Boundary points (corners,
-//                   mids, and the straight edge between them) stay
-//                   EXACTLY flat at their analytic height, so seams
-//                   with bridges/neighbours remain watertight.
-//                 - Noise is a pure function of world XZ, so it is
-//                   continuous across tiles wherever it is nonzero.
-//                 - SampleSurfaceWorldY applies the SAME noise with
-//                   the SAME falloff, so props sit on the bumps.
+//                 v7 — PER-TERRAIN NOISE (amplitude + frequency):
+//                 Each terrain type now has its OWN noise amplitude
+//                 and frequency, so water stays near-flat, stone is
+//                 jagged/high-frequency, grass rolls, arcane swells
+//                 smoothly — instead of every terrain sharing one
+//                 uniform lumpiness.
 //
-//                 v4 carried forward — EDGE CLASSIFICATION (cliffs),
-//                 corner blend-components, splat data. Sections 2-4
-//                 (bridges, cliff walls, map-edge skirts) are
-//                 unchanged from v4.
+//                 WATERTIGHT SEAM RULE: a surface point's
+//                 displacement is noise(worldXZ, freq) * amp, and at
+//                 any SHARED boundary point both/all touching tiles
+//                 must produce the IDENTICAL value. They do, because:
+//                   - INTERIOR points use the tile's OWN terrain
+//                     (amp, freq).
+//                   - MID points (shared by 2 tiles) blend the two
+//                     terrains' params: (amp,freq) = mean of the two,
+//                     then sample ONCE. Both tiles compute the same
+//                     mean → agree.
+//                   - CORNER points (shared by up to 3 tiles) blend
+//                     params over the corner's BLEND COMPONENT (the
+//                     same membership the height blend uses, so a
+//                     corner across a cliff doesn't pull in the wrong
+//                     terrain). Symmetric over the component → every
+//                     tile computes the same mean → agree.
+//                 Blending the PARAMETERS and sampling once (rather
+//                 than blending two separately-sampled noises) is the
+//                 cheap, provably-identical operation for all tiles.
 //
-// Layer:          System (generation helper)
-// Collaborators:  HexGridManager (grid, CliffHeightThreshold,
-//                 TerrainNoise* knobs, terrain materials/textures),
-//                 HexTile (HeightStep, SetGeneratedMesh),
-//                 HexDirection, UITheme, TerrainTextureLibrary /
-//                 terrain_splat.gdshader, HexGridManager.Props
+//                 v6 carried forward — seamless no-falloff noise,
+//                 subdivided fan + bridge at matched resolution,
+//                 cliff tops/bottoms welded to noised rims.
+//                 v4 carried forward — edge classification, corner
+//                 blend-components, splat data.
 //
-// Geometry conventions (verified against MovementZoneRenderer):
-//   - Flat-top hexes. Corner i at angle 60°·i from +X, CCW.
-//   - Edge e spans corners e and e+1, faces neighbour direction
-//     d = (6 - e) % 6 (the EdgeForDir reflection).
-//   - Corner i is shared with neighbour directions (7 - i) % 6
-//     and (6 - i) % 6.
-//   - Godot front faces wind clockwise; up-facing surfaces are CCW
-//     in the (X, Z) math plane. Walls/skirts face outward.
-//   - SMOOTH shading on the top surface (inner fan + bridges),
-//     FLAT shading on walls/skirts — see Build().
-//   - st.GenerateTangents() is REQUIRED after GenerateNormals()
-//     so the splat shader's NORMAL_MAP path works.
+// REQUIRES: st.GenerateTangents() after GenerateNormals() (in Build).
+// Reads per-terrain exports on HexGridManager (see NoiseParams).
 // ============================================================
 
 public static class HexMeshBuilder
 {
-    /// <summary>Vertex-colour multiplier at the bottom of map-edge skirts (vertex-colour mode only).</summary>
     private const float SkirtFloorDarkening = 0.5f;
-
-    /// <summary>Vertex-colour multiplier at the bottom of cliff walls (vertex-colour mode only; splat mode darkens by normal in-shader).</summary>
     private const float CliffFaceDarkening = 0.7f;
-
-    /// <summary>Height delta below which a bridge half is built as a single quad even when terracing is on.</summary>
     private const float FlatEpsilon = 0.01f;
 
-    // Shared noise generator for top-surface displacement. Static so the mesh
-    // builder and the prop sampler evaluate IDENTICAL values for the same world
-    // XZ — if these ever diverge, props float above / sink below the surface.
-    private static FastNoiseLite _surfaceNoise;
-    private static float _surfaceNoiseFreq = -1f;
+    // One noise generator PER frequency in use this build, cached so we don't
+    // rebuild the field every sample. Frequency varies per terrain now, so we
+    // key the cache by frequency.
+    private static readonly System.Collections.Generic.Dictionary<float, FastNoiseLite> _noiseByFreq = new();
 
-    /// <summary>
-    /// World-space surface displacement in [-1, 1] at (worldX, worldZ). Pure
-    /// function of position, so continuous across tiles. Caller scales by
-    /// amplitude and a per-vertex falloff. Lazily (re)built when frequency
-    /// changes.
-    /// </summary>
-    public static float SurfaceNoise(float worldX, float worldZ, float frequency)
+    private static FastNoiseLite NoiseForFreq(float frequency)
     {
-        if (_surfaceNoise == null || Math.Abs(_surfaceNoiseFreq - frequency) > 0.0001f)
+        // Quantise the key so tiny float drift doesn't explode the cache.
+        float key = Mathf.Round(frequency * 1000f) / 1000f;
+        if (!_noiseByFreq.TryGetValue(key, out var n))
         {
-            _surfaceNoise = new FastNoiseLite
+            n = new FastNoiseLite
             {
-                // Fixed seed: the displacement field is the same every run, so a
-                // given map seed still reproduces exactly (heights are deterministic
-                // and the noise is positional, not random per-build).
                 Seed = 1337,
-                Frequency = frequency,
+                Frequency = key,
                 NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth,
                 FractalType = FastNoiseLite.FractalTypeEnum.Fbm,
                 FractalOctaves = 3
             };
-            _surfaceNoiseFreq = frequency;
+            _noiseByFreq[key] = n;
+        }
+        return n;
+    }
+
+    /// <summary>Raw positional noise in ~[-1,1] at a world XZ for a given frequency.</summary>
+    public static float SurfaceNoise(float worldX, float worldZ, float frequency)
+        => NoiseForFreq(frequency).GetNoise2D(worldX, worldZ);
+
+    // ── Per-terrain parameters ────────────────────────────────────────────────
+
+    /// <summary>(amplitude, frequency) for a terrain type, from HexGridManager exports.</summary>
+    private static (float amp, float freq) NoiseParams(HexGridManager grid, TileTerrainType terrain)
+    {
+        return terrain switch
+        {
+            TileTerrainType.Grass => (grid.GrassNoiseAmp, grid.GrassNoiseFreq),
+            TileTerrainType.Forest => (grid.ForestNoiseAmp, grid.ForestNoiseFreq),
+            TileTerrainType.Stone => (grid.StoneNoiseAmp, grid.StoneNoiseFreq),
+            TileTerrainType.Water => (grid.WaterNoiseAmp, grid.WaterNoiseFreq),
+            TileTerrainType.Ice => (grid.IceNoiseAmp, grid.IceNoiseFreq),
+            TileTerrainType.Lava => (grid.LavaNoiseAmp, grid.LavaNoiseFreq),
+            TileTerrainType.Arcane => (grid.ArcaneNoiseAmp, grid.ArcaneNoiseFreq),
+            _ => (grid.GrassNoiseAmp, grid.GrassNoiseFreq)
+        };
+    }
+
+    private static float Displace(float amp, float freq, float worldX, float worldZ)
+    {
+        if (amp <= 0f)
+            return 0f;
+        return SurfaceNoise(worldX, worldZ, freq) * amp;
+    }
+
+    /// <summary>Interior displacement using the tile's OWN terrain params.</summary>
+    private static float NoiseOwn(HexGridManager grid, TileData tile, float worldX, float worldZ)
+    {
+        var (amp, freq) = NoiseParams(grid, tile.TerrainType);
+        return Displace(amp, freq, worldX, worldZ);
+    }
+
+    /// <summary>Mid-point displacement: mean params of the two edge terrains, sampled once.</summary>
+    private static float NoiseBlend2(HexGridManager grid, TileTerrainType a, TileTerrainType b, float worldX, float worldZ)
+    {
+        var (aA, aF) = NoiseParams(grid, a);
+        var (bA, bF) = NoiseParams(grid, b);
+        return Displace((aA + bA) * 0.5f, (aF + bF) * 0.5f, worldX, worldZ);
+    }
+
+    /// <summary>
+    /// Corner displacement: mean params over the corner's BLEND COMPONENT
+    /// (same membership the height blend uses). Symmetric over the component, so
+    /// every tile touching this corner computes the identical value → watertight.
+    /// </summary>
+    private static float NoiseCorner(HexGridManager grid, TileData tile, int cornerIndex, float worldX, float worldZ)
+    {
+        var (m0, m1, m2, tA, tB) = CornerComponent(grid, tile, cornerIndex, 0);
+
+        float sumAmp = 0f, sumFreq = 0f;
+        int n = 0;
+        if (m0)
+        { var (a, f) = NoiseParams(grid, tile.TerrainType); sumAmp += a; sumFreq += f; n++; }
+        if (m1)
+        { var (a, f) = NoiseParams(grid, tA.TerrainType); sumAmp += a; sumFreq += f; n++; }
+        if (m2)
+        { var (a, f) = NoiseParams(grid, tB.TerrainType); sumAmp += a; sumFreq += f; n++; }
+
+        if (n == 0)
+        {
+            var (a, f) = NoiseParams(grid, tile.TerrainType);
+            return Displace(a, f, worldX, worldZ);
         }
 
-        return _surfaceNoise.GetNoise2D(worldX, worldZ);
+        return Displace(sumAmp / n, sumFreq / n, worldX, worldZ);
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -115,9 +160,6 @@ public static class HexMeshBuilder
         float floorLocal = worldFloor - ownTop;
         Vector2 centerXZ = new Vector2(tile.TileView.GlobalPosition.X, tile.TileView.GlobalPosition.Z);
         int threshold = grid.CliffHeightThreshold;
-
-        float noiseAmp = grid.TerrainNoiseAmplitude;
-        float noiseFreq = grid.TerrainNoiseFrequency;
         int subdiv = Math.Max(1, grid.TerrainNoiseSubdiv);
 
         var st = new SurfaceTool();
@@ -125,17 +167,28 @@ public static class HexMeshBuilder
         if (splatMode)
             st.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbaFloat);
 
-        // ── Shared blend inputs ───────────────────────────────────────────
         float ownIdx = (int)tile.TerrainType;
         Color ownColor = TerrainColor(grid, tile.TerrainType);
         Color ownWeights = new Color(1f, 0f, 0f, 0f);
         Color ownIndices = new Color(ownIdx, ownIdx, ownIdx, ownIdx);
 
+        var cornerXZ = new Vector2[6];
+        var midXZ = new Vector2[6];
+        for (int e = 0; e < 6; e++)
+        {
+            Vector2 cA = Corner(e, radius);
+            Vector2 cB = Corner((e + 1) % 6, radius);
+            cornerXZ[e] = centerXZ + cA;
+            midXZ[e] = centerXZ + (cA + cB) * 0.5f;
+        }
+
+        // Corner heights: component-mean base + corner-blended positional noise.
         var cornerY = new float[6];
         var cornerColor = new Color[6];
         for (int i = 0; i < 6; i++)
         {
-            cornerY[i] = CornerWorldY(grid, tile, i) - ownTop;
+            float baseY = CornerWorldY(grid, tile, i) - ownTop;
+            cornerY[i] = baseY + NoiseCorner(grid, tile, i, cornerXZ[i].X, cornerXZ[i].Y);
             if (!splatMode)
                 cornerColor[i] = CornerColor(grid, tile, i);
         }
@@ -156,9 +209,15 @@ public static class HexMeshBuilder
             isCliff[e] = nE != null && Math.Abs(tile.Height - nE.Height) > threshold;
 
             bool blends = nE != null && !isCliff[e];
-            midY[e] = blends
+
+            float midBase = blends
                 ? ((tile.Height + nE.Height) * 0.5f) * HexTile.HeightStep - ownTop
                 : 0f;
+            // Mid noise blends THIS tile's terrain with the edge neighbour's.
+            float midNoise = blends
+                ? NoiseBlend2(grid, tile.TerrainType, nE.TerrainType, midXZ[e].X, midXZ[e].Y)
+                : 0f;
+            midY[e] = midBase + midNoise;
 
             if (splatMode)
             {
@@ -180,32 +239,23 @@ public static class HexMeshBuilder
             }
         }
 
-        // ── 1) Inner hexagon: SUBDIVIDED + NOISE-DISPLACED ────────────────
-        // Smooth shading so the noisy surface reads as rolling terrain.
+        // ── 1) Inner hexagon: subdivided, OWN-terrain seamless noise ──────
         st.SetSmoothGroup(0);
         Color innerAttr = splatMode ? ownWeights : ownColor;
 
-        // The inner hex boundary is the 12-gon of (corner, mid, corner, ...) at
-        // radius*solidFactor. Build six fan triangles (centre, A, B) where
-        // A/B walk corner→mid and mid→corner, and subdivide each barycentrically.
         for (int e = 0; e < 6; e++)
         {
             Vector2 cA = Corner(e, radius) * solidFactor;
             Vector2 cB = Corner((e + 1) % 6, radius) * solidFactor;
             Vector2 m = (cA + cB) * 0.5f;
 
-            // Two fan triangles per edge: (centre, cA, m) and (centre, m, cB).
-            // Boundary points cA, m, cB carry their analytic height (flat, 0 here
-            // for the inner ring which sits at local Y=0). Centre carries noise.
             AddNoisyFanTri(st, Vector3.Zero, cA, m, subdiv,
-                centerXZ, splatMode, innerAttr, ownIndices,
-                noiseAmp, noiseFreq, solidFactor, radius);
+                centerXZ, splatMode, innerAttr, ownIndices, grid, tile);
             AddNoisyFanTri(st, Vector3.Zero, m, cB, subdiv,
-                centerXZ, splatMode, innerAttr, ownIndices,
-                noiseAmp, noiseFreq, solidFactor, radius);
+                centerXZ, splatMode, innerAttr, ownIndices, grid, tile);
         }
 
-        // ── 2) Bridge strips: two halves per edge (UNCHANGED) ─────────────
+        // ── 2) Bridge strips ──────────────────────────────────────────────
         for (int e = 0; e < 6; e++)
         {
             int e2 = (e + 1) % 6;
@@ -220,12 +270,12 @@ public static class HexMeshBuilder
             Color attrM = splatMode ? edgeWeightsM[e] : midColor[e];
 
             AddBridgeHalf(st, centerXZ, splatMode, idx, solidFactor, terraceSteps,
-                cA, cornerY[e], attrA, mid, midY[e], attrM, inA);
+                cA, cornerY[e], attrA, mid, midY[e], attrM, inA, grid, tile, subdiv);
             AddBridgeHalf(st, centerXZ, splatMode, idx, solidFactor, terraceSteps,
-                mid, midY[e], attrM, cB, cornerY[e2], attrB, inA);
+                mid, midY[e], attrM, cB, cornerY[e2], attrB, inA, grid, tile, subdiv);
         }
 
-        // ── 3) Cliff walls (UNCHANGED, flat-shaded) ───────────────────────
+        // ── 3) Cliff walls: top = own noised rim, bottom = lower noised rim
         st.SetSmoothGroup(uint.MaxValue);
         for (int e = 0; e < 6; e++)
         {
@@ -241,9 +291,15 @@ public static class HexMeshBuilder
             float topYM = midY[e];
             float topYB = cornerY[e2];
 
-            float botYA = CornerComponentMeanWorldY(grid, tile, e, 2) - ownTop;
-            float botYM = nbr[e].Height * HexTile.HeightStep - ownTop;
-            float botYB = CornerComponentMeanWorldY(grid, tile, e2, 1) - ownTop;
+            float botBaseA = CornerComponentMeanWorldY(grid, tile, e, 2) - ownTop;
+            float botBaseM = nbr[e].Height * HexTile.HeightStep - ownTop;
+            float botBaseB = CornerComponentMeanWorldY(grid, tile, e2, 1) - ownTop;
+
+            // Bottom rim noise uses the LOWER neighbour's corner component / terrain
+            // at the same world points, so the wall foot welds to the lower cap.
+            float botYA = botBaseA + NoiseCorner(grid, nbr[e], CornerIndexOnNeighbour(e, false), cornerXZ[e].X, cornerXZ[e].Y);
+            float botYM = botBaseM + NoiseBlend2(grid, nbr[e].TerrainType, nbr[e].TerrainType, midXZ[e].X, midXZ[e].Y);
+            float botYB = botBaseB + NoiseCorner(grid, nbr[e], CornerIndexOnNeighbour(e, true), cornerXZ[e2].X, cornerXZ[e2].Y);
 
             Color idx = splatMode ? edgeIndices[e] : ownIndices;
             Color attrA = splatMode ? edgeWeightsA[e] : cornerColor[e];
@@ -269,7 +325,7 @@ public static class HexMeshBuilder
                 botYM, botYB, botM, botB);
         }
 
-        // ── 4) Map-edge skirts (UNCHANGED, flat-shaded) ───────────────────
+        // ── 4) Map-edge skirts: top = noised rim, bottom = world floor ─────
         for (int e = 0; e < 6; e++)
         {
             if (nbr[e] != null)
@@ -305,16 +361,36 @@ public static class HexMeshBuilder
         }
 
         st.GenerateNormals();
-        st.GenerateTangents();   // required for the splat shader's NORMAL_MAP path
+        st.GenerateTangents();
         return st.Commit();
     }
 
     /// <summary>
-    /// World-space surface Y of the terrain at (worldX, worldZ), assuming the
-    /// point lies on <paramref name="tile"/>. Mirrors v4 edge geometry AND the
-    /// v5 inner-surface noise (same noise + same boundary falloff), so props
-    /// sit on the displaced surface. Reads grid.CliffHeightThreshold and the
-    /// grid.TerrainNoise* knobs.
+    /// Which corner index, ON THE LOWER NEIGHBOUR across edge e of THIS tile,
+    /// coincides with this tile's corner e (atSecond=false) or e+1 (atSecond=true).
+    /// The neighbour shares this tile's edge-e corners; on the neighbour those are
+    /// the two corners of its opposing edge. We only need a corner whose component
+    /// over the neighbour yields the same world point — using the neighbour's own
+    /// terrain via its corner component keeps the foot welded. A robust mapping:
+    /// the shared corner on the neighbour is found by matching world position, but
+    /// since NoiseCorner only needs the component terrains (symmetric), passing the
+    /// neighbour with ANY of its corners that include this shared point is correct.
+    /// We approximate with the neighbour's corner that faces back along the edge.
+    /// </summary>
+    private static int CornerIndexOnNeighbour(int e, bool atSecond)
+    {
+        // This tile's edge e faces neighbour dir d = (6-e)%6. On the neighbour,
+        // the coinciding edge is the opposite, e' = (e+3)%6, whose corners are
+        // e' and e'+1. The neighbour's corner e'+1 lines up with our corner e,
+        // and neighbour corner e' lines up with our corner e+1 (mirror).
+        int ePrime = (e + 3) % 6;
+        return atSecond ? ePrime : (ePrime + 1) % 6;
+    }
+
+    /// <summary>
+    /// World-space surface Y at (worldX, worldZ) on <paramref name="tile"/>.
+    /// Mirrors v7 per-terrain noise so props ride the surface. Inside the solid
+    /// inner hex uses own-terrain noise; the bridge band interpolates own→blended.
     /// </summary>
     public static float SampleSurfaceWorldY(
         HexGridManager grid, TileData tile,
@@ -325,12 +401,13 @@ public static class HexMeshBuilder
             return ownTop;
 
         float radius = grid.HexRadius;
-        Vector2 p = new Vector2(
-            worldX - tile.TileView.GlobalPosition.X,
-            worldZ - tile.TileView.GlobalPosition.Z);
+        Vector2 originXZ = new Vector2(tile.TileView.GlobalPosition.X, tile.TileView.GlobalPosition.Z);
+        Vector2 p = new Vector2(worldX - originXZ.X, worldZ - originXZ.Y);
+
+        float ownNoise = NoiseOwn(grid, tile, worldX, worldZ);
 
         if (p.LengthSquared() < 0.0001f)
-            return ownTop + InteriorNoiseOffset(grid, worldX, worldZ, 0f, solidFactor);
+            return ownTop + ownNoise;
 
         float angDeg = Mathf.PosMod(Mathf.RadToDeg(Mathf.Atan2(p.Y, p.X)), 360f);
         int e = Mathf.Clamp((int)(angDeg / 60f), 0, 5);
@@ -345,71 +422,54 @@ public static class HexMeshBuilder
 
         float rho = a + b;
 
-        // Inside the solid inner hex: flat analytic height + interior noise,
-        // with the SAME radial falloff the mesh uses (1 at centre → 0 at rim).
         if (rho <= solidFactor)
-        {
-            float rNorm = rho / Mathf.Max(0.0001f, solidFactor); // 0 centre .. 1 rim
-            return ownTop + InteriorNoiseOffset(grid, worldX, worldZ, rNorm, solidFactor);
-        }
+            return ownTop + ownNoise;
 
         rho = Mathf.Min(rho, 1f);
         float s = b / rho;
         float t = (rho - solidFactor) / (1f - solidFactor);
 
-        float yE = CornerWorldY(grid, tile, e) - ownTop;
-        float yF = CornerWorldY(grid, tile, e2) - ownTop;
-
         var nE = grid.GetTile(tile.Axial + HexDirection.All[(6 - e) % 6]);
         bool blends = nE != null && Math.Abs(tile.Height - nE.Height) <= grid.CliffHeightThreshold;
-        float yM = blends
+
+        Vector2 cornerEworld = originXZ + cE;
+        Vector2 cornerFworld = originXZ + cF;
+        Vector2 midWorld = originXZ + (cE + cF) * 0.5f;
+
+        float yE = (CornerWorldY(grid, tile, e) - ownTop) + NoiseCorner(grid, tile, e, cornerEworld.X, cornerEworld.Y);
+        float yF = (CornerWorldY(grid, tile, e2) - ownTop) + NoiseCorner(grid, tile, e2, cornerFworld.X, cornerFworld.Y);
+        float midBase = blends
             ? ((tile.Height + nE.Height) * 0.5f) * HexTile.HeightStep - ownTop
             : 0f;
+        float yM = midBase + (blends
+            ? NoiseBlend2(grid, tile.TerrainType, nE.TerrainType, midWorld.X, midWorld.Y)
+            : 0f);
 
         float edgeY = s < 0.5f
             ? Mathf.Lerp(yE, yM, s * 2f)
             : Mathf.Lerp(yM, yF, (s - 0.5f) * 2f);
 
-        if (terraceSteps <= 0 || Mathf.Abs(edgeY) < FlatEpsilon)
-            return ownTop + edgeY * t;
+        float innerY = ownNoise;
+
+        if (terraceSteps <= 0 || Mathf.Abs(edgeY - innerY) < FlatEpsilon)
+            return ownTop + Mathf.Lerp(innerY, edgeY, t);
 
         int steps = terraceSteps * 2 + 1;
         int k = Mathf.Clamp((int)(t * steps), 0, steps - 1);
         float frac = t * steps - k;
         float v0 = ((k + 1) / 2) / (float)(terraceSteps + 1);
         float v1 = ((k + 2) / 2) / (float)(terraceSteps + 1);
-        return ownTop + edgeY * Mathf.Lerp(v0, v1, frac);
-    }
-
-    /// <summary>Interior noise displacement (world units) at normalized radius rNorm (0 centre .. 1 boundary). Falloff = (1 - rNorm) so it is exactly 0 at the rim, matching the flat boundary ring.</summary>
-    private static float InteriorNoiseOffset(HexGridManager grid, float worldX, float worldZ, float rNorm, float solidFactor)
-    {
-        float amp = grid.TerrainNoiseAmplitude;
-        if (amp <= 0f)
-            return 0f;
-
-        float falloff = Mathf.Clamp(1f - rNorm, 0f, 1f);
-        // Smoothstep the falloff so the transition to the flat rim is gentle.
-        falloff = falloff * falloff * (3f - 2f * falloff);
-        return SurfaceNoise(worldX, worldZ, grid.TerrainNoiseFrequency) * amp * falloff;
+        return ownTop + Mathf.Lerp(innerY, edgeY, Mathf.Lerp(v0, v1, frac));
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Subdivided fan triangle with noise
+    // Subdivided fan triangle — OWN terrain noise (no falloff)
     // ────────────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Subdivides triangle (centre0, boundaryA, boundaryB) into a barycentric
-    /// grid of resolution `n` and emits it. The two boundary vertices sit on
-    /// the inner-hex rim (local Y = 0, no noise — keeps the seam with bridges
-    /// flat). The centre and all interior vertices are displaced by interior
-    /// noise with a falloff keyed to barycentric distance from the boundary
-    /// edge, so displacement is full at the centre and 0 along the rim edge.
-    /// </summary>
     private static void AddNoisyFanTri(
         SurfaceTool st, Vector3 centre, Vector2 bA, Vector2 bB, int n,
         Vector2 centerXZ, bool splat, Color attr, Color idx,
-        float amp, float freq, float solidFactor, float radius)
+        HexGridManager grid, TileData tile)
     {
         Vector2 c2 = new Vector2(centre.X, centre.Z);
 
@@ -419,13 +479,7 @@ public static class HexMeshBuilder
             float fj = j / (float)n;
             float wc = 1f - fi - fj;
             Vector2 xz = c2 * wc + bA * fi + bB * fj;
-
-            float y = 0f;
-            if (amp > 0f && wc > 0.0001f)
-            {
-                float fall = wc * wc * (3f - 2f * wc);
-                y = SurfaceNoise(centerXZ.X + xz.X, centerXZ.Y + xz.Y, freq) * amp * fall;
-            }
+            float y = NoiseOwn(grid, tile, centerXZ.X + xz.X, centerXZ.Y + xz.Y);
             return new Vector3(xz.X, y, xz.Y);
         }
 
@@ -433,12 +487,10 @@ public static class HexMeshBuilder
         {
             for (int j = 0; j < n - i; j++)
             {
-                // Upright triangle — winding flipped to match the fan (CCW in XZ).
                 AddVert(st, V(i, j), attr, centerXZ, splat, idx);
                 AddVert(st, V(i + 1, j), attr, centerXZ, splat, idx);
                 AddVert(st, V(i, j + 1), attr, centerXZ, splat, idx);
 
-                // Inverted triangle — same flip.
                 if (i + j < n - 1)
                 {
                     AddVert(st, V(i + 1, j), attr, centerXZ, splat, idx);
@@ -589,7 +641,7 @@ public static class HexMeshBuilder
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Internals (UNCHANGED from v4)
+    // Internals
     // ────────────────────────────────────────────────────────────────────────
 
     private static Vector2 Corner(int i, float radius)
@@ -598,45 +650,86 @@ public static class HexMeshBuilder
         return new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius;
     }
 
+    /// <summary>
+    /// One half of a bridge strip, subdivided along its length into `lengthDiv`
+    /// columns. Inner-ring points carry the tile's OWN-terrain noise (matching the
+    /// fan's outer ring); outer-rim points use the passed (already blended-noised)
+    /// boundary heights yA/yB. Inner→outer interpolation keeps the band continuous.
+    /// </summary>
     private static void AddBridgeHalf(SurfaceTool st, Vector2 centerXZ, bool splat, Color idx,
         float solidFactor, int terraceSteps,
         Vector2 outerA, float yA, Color attrA,
         Vector2 outerB, float yB, Color attrB,
-        Color innerAttr)
+        Color innerAttr, HexGridManager grid, TileData tile, int lengthDiv)
     {
+        int n = Math.Max(1, lengthDiv);
+
         Vector2 innerA = outerA * solidFactor;
         Vector2 innerB = outerB * solidFactor;
 
-        bool flat = Mathf.Abs(yA) < FlatEpsilon && Mathf.Abs(yB) < FlatEpsilon;
+        var innerPos = new Vector3[n + 1];
+        var outerPos = new Vector3[n + 1];
+        var colInnerAttr = new Color[n + 1];
+        var colOuterAttr = new Color[n + 1];
 
-        if (terraceSteps <= 0 || flat)
+        for (int c = 0; c <= n; c++)
         {
-            AddQuad(st, centerXZ, splat, idx,
-                new Vector3(innerA.X, 0f, innerA.Y), innerAttr,
-                new Vector3(innerB.X, 0f, innerB.Y), innerAttr,
-                new Vector3(outerA.X, yA, outerA.Y), attrA,
-                new Vector3(outerB.X, yB, outerB.Y), attrB);
-            return;
+            float u = c / (float)n;
+
+            Vector2 inXZ = innerA.Lerp(innerB, u);
+            Vector2 outXZ = outerA.Lerp(outerB, u);
+
+            float inY = NoiseOwn(grid, tile, centerXZ.X + inXZ.X, centerXZ.Y + inXZ.Y);
+            float outY = Mathf.Lerp(yA, yB, u);
+
+            innerPos[c] = new Vector3(inXZ.X, inY, inXZ.Y);
+            outerPos[c] = new Vector3(outXZ.X, outY, outXZ.Y);
+            colInnerAttr[c] = innerAttr;
+            colOuterAttr[c] = attrA.Lerp(attrB, u);
         }
 
-        int steps = terraceSteps * 2 + 1;
-        for (int k = 0; k < steps; k++)
+        for (int c = 0; c < n; c++)
         {
-            float t0 = (float)k / steps;
-            float t1 = (float)(k + 1) / steps;
-            float v0 = ((k + 1) / 2) / (float)(terraceSteps + 1);
-            float v1 = ((k + 2) / 2) / (float)(terraceSteps + 1);
+            Vector3 i0 = innerPos[c], i1 = innerPos[c + 1];
+            Vector3 o0 = outerPos[c], o1 = outerPos[c + 1];
+            Color ia0 = colInnerAttr[c], ia1 = colInnerAttr[c + 1];
+            Color oa0 = colOuterAttr[c], oa1 = colOuterAttr[c + 1];
 
-            Vector2 a0 = innerA.Lerp(outerA, t0);
-            Vector2 a1 = innerA.Lerp(outerA, t1);
-            Vector2 b0 = innerB.Lerp(outerB, t0);
-            Vector2 b1 = innerB.Lerp(outerB, t1);
+            bool flat = Mathf.Abs(o0.Y - i0.Y) < FlatEpsilon && Mathf.Abs(o1.Y - i1.Y) < FlatEpsilon;
 
-            AddQuad(st, centerXZ, splat, idx,
-                new Vector3(a0.X, yA * v0, a0.Y), innerAttr.Lerp(attrA, t0),
-                new Vector3(b0.X, yB * v0, b0.Y), innerAttr.Lerp(attrB, t0),
-                new Vector3(a1.X, yA * v1, a1.Y), innerAttr.Lerp(attrA, t1),
-                new Vector3(b1.X, yB * v1, b1.Y), innerAttr.Lerp(attrB, t1));
+            if (terraceSteps <= 0 || flat)
+            {
+                AddQuad(st, centerXZ, splat, idx,
+                    i0, ia0,
+                    i1, ia1,
+                    o0, oa0,
+                    o1, oa1);
+                continue;
+            }
+
+            int steps = terraceSteps * 2 + 1;
+            for (int k = 0; k < steps; k++)
+            {
+                float t0 = (float)k / steps;
+                float t1 = (float)(k + 1) / steps;
+                float v0 = ((k + 1) / 2) / (float)(terraceSteps + 1);
+                float v1 = ((k + 2) / 2) / (float)(terraceSteps + 1);
+
+                Vector3 a0 = new Vector3(
+                    Mathf.Lerp(i0.X, o0.X, t0), Mathf.Lerp(i0.Y, o0.Y, v0), Mathf.Lerp(i0.Z, o0.Z, t0));
+                Vector3 a1 = new Vector3(
+                    Mathf.Lerp(i0.X, o0.X, t1), Mathf.Lerp(i0.Y, o0.Y, v1), Mathf.Lerp(i0.Z, o0.Z, t1));
+                Vector3 b0 = new Vector3(
+                    Mathf.Lerp(i1.X, o1.X, t0), Mathf.Lerp(i1.Y, o1.Y, v0), Mathf.Lerp(i1.Z, o1.Z, t0));
+                Vector3 b1 = new Vector3(
+                    Mathf.Lerp(i1.X, o1.X, t1), Mathf.Lerp(i1.Y, o1.Y, v1), Mathf.Lerp(i1.Z, o1.Z, t1));
+
+                AddQuad(st, centerXZ, splat, idx,
+                    a0, ia0.Lerp(oa0, t0),
+                    b0, ia1.Lerp(oa1, t0),
+                    a1, ia0.Lerp(oa0, t1),
+                    b1, ia1.Lerp(oa1, t1));
+            }
         }
     }
 
