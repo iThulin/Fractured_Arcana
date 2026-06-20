@@ -42,8 +42,11 @@ public partial class HexGridManager : Node3D
     /// <summary>Single-mesh fallback, used only when FlowerMeshes is empty.</summary>
     [Export] public Mesh FlowerMesh;
 
-    /// <summary>Material for the flowers. REQUIRED — if null, flowers are skipped (never rendered material-less). Assign painterly_flower.tres (sway + clean palette colours).</summary>
+    /// <summary>Material for the flowers when one material covers the whole mesh. REQUIRED unless UseMeshSurfaceMaterials is on. Assign painterly_flower.tres.</summary>
     [Export] public Material FlowerMaterial;
+
+    /// <summary>When ON, the flower meshes' OWN per-surface materials are used (petal / stem / centre as separate material slots), so FlowerMaterial is ignored. When OFF, FlowerMaterial overrides every surface.</summary>
+    [Export] public bool UseMeshSurfaceMaterials = false;
 
     [Export(PropertyHint.Range, "0,40,1")] public int FlowersPerTile = 6;
     [Export(PropertyHint.Range, "0.05,2.0,0.05")] public float FlowerScale = 0.5f;
@@ -81,10 +84,10 @@ public partial class HexGridManager : Node3D
         if (!EnableFlowerProps)
             return;
 
-        if (FlowerMaterial == null)
+        if (!UseMeshSurfaceMaterials && FlowerMaterial == null)
         {
-            GD.PushWarning("[HexGridManager] FlowerMaterial unassigned — flowers skipped. " +
-                "Assign painterly_flower.tres (or any lit material that reads instance colour).");
+            GD.PushWarning("[HexGridManager] FlowerMaterial unassigned and UseMeshSurfaceMaterials is off — flowers skipped. " +
+                "Assign painterly_flower.tres, or enable UseMeshSurfaceMaterials to use the meshes' own surface materials.");
             return;
         }
 
@@ -246,7 +249,7 @@ public partial class HexGridManager : Node3D
             var mm = new MultiMesh
             {
                 TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-                UseColors = col != null,
+                UseCustomData = col != null,
                 Mesh = variantMeshes[v],
                 InstanceCount = tf.Count
             };
@@ -255,16 +258,17 @@ public partial class HexGridManager : Node3D
             {
                 mm.SetInstanceTransform(i, tf[i]);
                 if (col != null)
-                    mm.SetInstanceColor(i, col[i]);
+                    mm.SetInstanceCustomData(i, col[i]); // palette -> INSTANCE_CUSTOM (frees vertex colour for the mask)
             }
 
             var mmi = new MultiMeshInstance3D
             {
                 Name = $"FlowerPropField_{v}",
                 Multimesh = mm,
-                MaterialOverride = FlowerMaterial,
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
             };
+            if (!UseMeshSurfaceMaterials)
+                mmi.MaterialOverride = FlowerMaterial; // single material across all surfaces
             mmi.AddToGroup(FlowerPropGroup);
             parent.AddChild(mmi);
             mmi.GlobalTransform = Transform3D.Identity;

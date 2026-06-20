@@ -456,9 +456,10 @@ public partial class HexGridManager : Node3D
             ApplyThemeAtmosphere();
 
         SpawnObstacleVisuals();
-        SpawnTerrainPropsFromManifest();
+        //SpawnTerrainPropsFromManifest();
         SpawnPainterlyGrass();
         SpawnFlowerProps();
+        SpawnRockProps();
         RefreshAllTileLabels();
 
         RecomputeGridBounds();

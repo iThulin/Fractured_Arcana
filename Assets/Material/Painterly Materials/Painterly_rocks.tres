@@ -1,0 +1,27 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://brf6b5tpj6geu"]
+
+[ext_resource type="Shader" uid="uid://d1q7hb5vy0iw8" path="res://Assets/Shaders/painterly_rock.gdshader" id="1_l0dur"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_l0dur")
+shader_parameter/rock_base = Color(0.60784316, 0.627451, 0.63529414, 1)
+shader_parameter/rock_variation = 0.1
+shader_parameter/saturation = 1.0
+shader_parameter/use_instance_tint = true
+shader_parameter/fallback_tint = Color(1, 1, 1, 1)
+shader_parameter/use_top_tint = true
+shader_parameter/top_color = Color(0.65882355, 0.65882355, 0.5803922, 1)
+shader_parameter/top_strength = 0.400000019
+shader_parameter/top_sharpness = 2.5
+shader_parameter/base_darken = 0.150000007125
+shader_parameter/base_height = 0.25
+shader_parameter/use_mottle = false
+shader_parameter/mottle_scale = 1.0
+shader_parameter/mottle_strength = 0.15
+shader_parameter/use_normal_map = false
+shader_parameter/normal_strength = 1.0
+shader_parameter/toon_bands = 6.0
+shader_parameter/toon_softness = 1.0
+shader_parameter/toon_wrap = 0.30000001425
+shader_parameter/ambient_fill = 0.450000021375

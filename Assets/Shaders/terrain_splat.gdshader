@@ -72,11 +72,23 @@ uniform sampler2D ground_detail_tex : hint_default_white, repeat_enable, filter_
 uniform float     ground_detail_scale : hint_range(0.05, 2.0) = 0.6;   // higher = smaller stones
 /// Soft painterly value variation across the ground (breaks the flat pastel).
 uniform float     ground_mottle : hint_range(0.0, 0.5) = 0.12;
-/// Small painterly stones painted where the detail field dips below threshold.
+/// Soil HUE variation: the detail field also blends the ground toward soil_tint
+/// in its patches, so the ground breaks into warm/cool soil rather than one
+/// flat colour. This is the part that sells "soil" under toon lighting.
+uniform vec3      soil_tint : source_color = vec3(0.52, 0.40, 0.28);    // damp warm-brown patches
+uniform float     soil_tint_strength : hint_range(0.0, 1.0) = 0.0;      // 0 = off; raise to ~0.3-0.5
+/// SECOND noise field (independent scale) drives the soil-tint patches, so the
+/// hue variation doesn't line up 1:1 with the value mottle — reads more natural.
+uniform float     soil_tint_scale : hint_range(0.01, 1.0) = 0.12;       // lower = bigger patches
+/// Small painterly stones painted where the stone field dips below threshold.
+/// Stones use their OWN field (below) so pebble blobs don't share the smooth mottle.
+uniform sampler2D stone_tex : hint_default_white, repeat_enable, filter_linear; // assign a CELLULAR (Voronoi) NoiseTexture2D
+uniform float     stone_scale : hint_range(0.05, 2.0) = 0.5;           // higher = smaller, denser stones
 uniform vec3      rock_color : source_color = vec3(0.55, 0.52, 0.48);
 uniform float     rock_amount : hint_range(0.0, 1.0) = 0.0;             // 0 = no stones; raise to add them
 uniform float     rock_threshold : hint_range(0.0, 1.0) = 0.42;        // how much of the field becomes stone
 uniform float     rock_sharpness : hint_range(0.5, 16.0) = 5.0;        // lower = softer painted edge
+uniform float     rock_variation : hint_range(0.0, 0.5) = 0.15;        // per-stone value jitter so they're not uniform
 
 uniform vec3 highlight_color = vec3(0.0);
 uniform float highlight_strength : hint_range(0.0, 3.0) = 0.0;
@@ -189,13 +201,22 @@ void fragment() {
 			: smoothstep(pastel_height_low, pastel_height_high, v_world_pos.y);
 		vec3 pastel = pastel_gradient(gt);
 
-		// Painterly ground detail: soft value mottling + small stone blobs,
-		// sampled in world XZ so it stays put as the camera moves.
+		// Painterly ground detail: soft value mottling + soil hue variation +
+		// small stone blobs, sampled in world XZ so it stays put as the camera moves.
 		if (use_ground_detail) {
 			float d = texture(ground_detail_tex, v_world_pos.xz * ground_detail_scale).r;
 			pastel *= 1.0 + (d - 0.5) * (ground_mottle * 2.0);
-			float rock = (1.0 - smoothstep(rock_threshold, rock_threshold + 1.0 / rock_sharpness, d)) * rock_amount;
-			pastel = mix(pastel, rock_color, rock);
+
+			// Soil hue patches from a second, larger-scale sample of the field.
+			float st = texture(ground_detail_tex, v_world_pos.xz * soil_tint_scale).r;
+			pastel = mix(pastel, soil_tint, smoothstep(0.35, 0.85, st) * soil_tint_strength);
+
+			// Stones from a dedicated cellular field (rounded pebble blobs), with
+			// a touch of per-stone value jitter so they don't read as one flat colour.
+			float sd = texture(stone_tex, v_world_pos.xz * stone_scale).r;
+			float rock = (1.0 - smoothstep(rock_threshold, rock_threshold + 1.0 / rock_sharpness, sd)) * rock_amount;
+			vec3 stone = rock_color * (1.0 + (sd - 0.5) * rock_variation * 2.0);
+			pastel = mix(pastel, stone, rock);
 		}
 
 		float ground_mask = (1.0 - cliff_mix) * pastel_strength * grass_weight;

@@ -12,117 +12,222 @@ render_mode cull_disabled, specular_disabled, alpha_to_coverage;
 // ============================================================
 //  painterly_grass.gdshader  (v6 — wind-driven mass tint)
 //
-//  v6 adds the "rolling meadow wave": the mass tint pattern now scrolls
-//  along the wind, driven by the SAME coherent gust that bends the
-//  blades (v_wave), so the darker/lighter clumps sweep across the field
-//  in lockstep with the sway. mass_wind_follow controls how far it
-//  rides (0 = static tint, as before).
+//  Inspector tooltips use /** ... */ doc comments (two leading asterisks)
+//  placed directly above each uniform. Plain // comments are NOT shown on hover.
 //
-//  v5 systems unchanged:
-//    - distance fade (alpha_to_coverage / dither fallback)
-//    - atmospheric depth tint
-//    - tip translucency / backlight
-//  v4 systems unchanged:
-//    - multi-stop height gradient, multi-band toon light(),
-//      AO root-darkening, world-space mass clumping (now x2 tints),
-//      two-layer coherent world-space wind, albedo + normal maps
+//  Systems: multi-stop height gradient, world-space mass-tint clumping (x2,
+//  wind-following), AO root-darkening, optional albedo + normal maps, two-layer
+//  coherent world-space wind, multi-band toon light(), distance fade
+//  (alpha_to_coverage / dither fallback), atmospheric depth tint, tip
+//  translucency / backlight.
 // ============================================================
 
 // ---- Multi-stop height gradient ----
 group_uniforms gradient;
+
+/** Colour at the blade base (root). The darkest stop of the height gradient. */
 uniform vec3  base_color : source_color = vec3(0.10, 0.34, 0.09);
+
+/** Colour at mid-height. The dominant meadow green. */
 uniform vec3  mid_color : source_color = vec3(0.32, 0.62, 0.18);
+
+/** Colour at the blade tips. The lightest green before the highlight kicks in. */
 uniform vec3  tip_color : source_color = vec3(0.65, 0.90, 0.35);
+
+/** Near-white highlight blended into the very tips (above highlight_start) for sun-catch. */
 uniform vec3  highlight_color : source_color = vec3(0.96, 1.00, 0.78);
+
+/** Where the mid_color sits along the base->tip height (0 = base, 1 = tip). Shifts the gradient balance. */
 uniform float mid_position : hint_range(0.05, 0.95) = 0.5;
+
+/** Curves the height ramp. >1 pushes colour toward the base (greener lower down); <1 toward the tips. */
 uniform float tip_bias : hint_range(0.5, 4.0) = 1.5;
+
+/** Height (0..1) at which highlight_color begins blending in. Higher = highlight only at the very tips. */
 uniform float highlight_start : hint_range(0.0, 1.0) = 0.78;
+
+/** Per-blade brightness jitter (world-space hash) so blades don't look uniform. */
 uniform float color_variation : hint_range(0.0, 0.3) = 0.07;
-uniform float color_saturation : hint_range(0.0, 2.0) = 1.0; // >1 = richer/more painterly; push to ~1.3-1.5 for Ghibli greens
+
+/** Saturation / vibrance. 1.0 = unchanged; push to ~1.3-1.5 for richer Ghibli greens. */
+uniform float color_saturation : hint_range(0.0, 2.0) = 1.0;
 
 // ---- Mass clumping (world-space, low frequency) ----
 group_uniforms mass_clumping;
+
+/** Enable the first mass tint — recolours whole world-space regions (clumps), not single blades. */
 uniform bool      use_mass_tint = false;
+
+/** Low-frequency noise defining the mass-tint regions. Sampled in world space so clumps stay put as the camera moves. */
 uniform sampler2D mass_tex : hint_default_white, repeat_enable, filter_linear;
+
+/** Colour multiplied into the darker patches of the mass field (tint 1). */
 uniform vec3      mass_tint_color : source_color = vec3(0.50, 0.62, 0.42);
+
+/** How strongly tint 1 recolours its patches. 0 = off. */
 uniform float     mass_strength : hint_range(0.0, 1.0) = 0.55;
+
+/** World-space scale of the mass pattern. Lower = larger clumps. */
 uniform float     mass_scale : hint_range(0.005, 0.4) = 0.06;
-// Second tint — same field + scale (matching pattern), shifted to its own
-// patches so a different colour shows through. More colour variety, no new texture.
+
+/** Enable a second mass tint — same pattern offset to different patches, for more colour variety with no extra texture. */
 uniform bool      use_mass_tint2 = false;
+
+/** Colour for the second mass tint's patches. */
 uniform vec3      mass_tint_color2 : source_color = vec3(0.50, 0.46, 0.26);
+
+/** Strength of the second mass tint. */
 uniform float     mass_strength2 : hint_range(0.0, 1.0) = 0.40;
-// Rolling meadow wave: scroll the tint pattern along the wind, driven by the
-// same coherent gust that bends the blades. 0 = static tint (old behaviour).
+
+/** Scrolls the mass-tint pattern along the wind with the SAME gust that bends the blades, so colour clumps roll across the field. 0 = static tint. */
 uniform float     mass_wind_follow : hint_range(0.0, 1.0) = 0.0;
 
 // ---- AO root-darkening ----
 group_uniforms ambient_occlusion;
+
+/** Darkens the blade roots for contact-shadow depth. 0 = off. */
 uniform float ao_strength : hint_range(0.0, 1.0) = 0.45;
+
+/** Height up the blade over which the root darkening fades out. */
 uniform float ao_height : hint_range(0.0, 0.6) = 0.28;
 
 // ---- Per-blade albedo / detail texture (multiply) ----
 group_uniforms albedo_texture;
+
+/** Multiply a detail/albedo texture over the blades. */
 uniform bool      use_albedo_tex = false;
+
+/** The detail texture, multiplied into the gradient colour. */
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
+
+/** Blend amount of the detail texture. 0 = none, 1 = full multiply. */
 uniform float     albedo_tex_strength : hint_range(0.0, 1.0) = 0.5;
+
+/** Sample the texture by object-space position instead of mesh UV (for instanced blades without unique UVs). */
 uniform bool      albedo_tex_object_space = false;
+
+/** Scale of the object-space texture sampling (only used when albedo_tex_object_space is on). */
 uniform float     albedo_obj_scale : hint_range(0.1, 8.0) = 2.0;
 
 // ---- Per-blade tangent-space normal map ----
 group_uniforms normal_map;
+
+/** Apply a tangent-space normal map. Requires mesh tangents (call GenerateTangents on the SurfaceTool). */
 uniform bool      use_normal_map = false;
+
+/** The tangent-space normal map. */
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
+
+/** Normal map intensity. */
 uniform float     normal_strength : hint_range(0.0, 2.0) = 1.0;
 
 // ---- Stiffness (root->tip weight) ----
 group_uniforms stiffness;
+
+/** Derive the base->tip weight from local mesh height instead of UV.y. Use for meshes without clean vertical UVs. */
 uniform bool  stiffness_from_model_height = false;
+
+/** Mesh height used to normalise height-based stiffness (when stiffness_from_model_height is on). */
 uniform float model_height : hint_range(0.05, 4.0) = 1.0;
-uniform bool  stiffness_from_vertex_color = false;
 
 // ---- Wind: two-layer, world-space (coherent gusts sweeping in sections) ----
 group_uniforms wind;
+
+/** Seamless noise driving the wind. Use the SAME texture on the flower material so flowers and grass share the gust. */
 uniform sampler2D wind_noise : hint_default_black, repeat_enable, filter_linear;
+
+/** Wind direction on the ground plane (x, z). */
 uniform vec2  wind_dir = vec2(1.0, 0.35);
+
+/** How far blades bend in the wind. Keep the wave_* values matched across any props sharing the wind so they stay in phase. */
 uniform float wind_bend : hint_range(0.0, 1.0) = 0.15;
+
+/** Constant baseline lean added to every gust, so grass never stands perfectly still. */
 uniform float wind_amplitude : hint_range(0.0, 1.0) = 0.4;
+
+/** Spatial size of the big rolling gust. Lower = broad gusts sweeping the whole field. */
 uniform float wave_scale : hint_range(0.01, 1.0) = 0.12;
+
+/** Scroll speed of the main gust over time. */
 uniform float wave_speed : hint_range(0.0, 3.0) = 0.5;
+
+/** Strength of the main rolling gust (the dominant motion term). */
 uniform float wave_strength : hint_range(0.0, 2.0) = 0.7;
+
+/** Stretches the gust across the wind direction. Lower = long streaky gusts; 1.0 = round patches. */
 uniform float wave_stretch : hint_range(0.05, 1.0) = 0.35;
+
+/** Spatial size of the fine secondary flutter layered on the main gust. Higher = busier ripples. */
 uniform float detail_scale : hint_range(0.1, 6.0) = 1.2;
+
+/** Scroll speed of the fine flutter layer. */
 uniform float detail_speed : hint_range(0.0, 3.0) = 0.25;
+
+/** Strength of the fine flutter layer. */
 uniform float detail_strength : hint_range(0.0, 1.0) = 0.25;
 
 // ---- Toon lighting ----
 group_uniforms toon;
+
+/** Number of flat shading steps in the toon ramp. Higher = smoother, lower = chunkier cel banding. */
 uniform float toon_bands : hint_range(1.0, 6.0) = 3.0;
+
+/** Softness of the edge between toon bands. 0 = hard cel edges. */
 uniform float toon_softness : hint_range(0.0, 1.0) = 0.12;
+
+/** Wraps light around the blade so shadowed sides aren't pure black. Higher = flatter, softer light. */
 uniform float toon_wrap : hint_range(0.0, 1.0) = 0.25;
 
 // ---- Distance fade (kills far-field blade crawl; reads as soft depth) ----
 group_uniforms distance_fade;
+
+/** Fade far blades out instead of letting them alias into shimmering noise. */
 uniform bool  use_distance_fade = true;
-uniform bool  use_dither_fade = false;                         // ON if alpha_to_coverage is ignored on your backend
-uniform float fade_start : hint_range(1.0, 80.0) = 18.0;       // world units from camera where blades begin fading
-uniform float fade_end : hint_range(1.0, 120.0) = 40.0;        // fully gone here
+
+/** Use ordered dithering instead of alpha_to_coverage. Turn ON if your backend ignores alpha_to_coverage and far grass pops instead of fading. */
+uniform bool  use_dither_fade = false;
+
+/** Camera distance (world units) where blades begin fading. */
+uniform float fade_start : hint_range(1.0, 80.0) = 18.0;
+
+/** Camera distance (world units) where blades are fully gone. */
+uniform float fade_end : hint_range(1.0, 120.0) = 40.0;
 
 // ---- Atmospheric depth tint (distant grass drifts toward haze) ----
 group_uniforms atmospheric_depth;
+
+/** Tint distant grass toward a haze colour for aerial recession. */
 uniform bool  use_depth_tint = true;
-uniform vec3  depth_color : source_color = vec3(0.62, 0.68, 0.72); // match your fog/sky for best recession
+
+/** Haze colour distant grass drifts toward. Match your fog/sky for the best recession. */
+uniform vec3  depth_color : source_color = vec3(0.62, 0.68, 0.72);
+
+/** Distance where the haze tint begins. */
 uniform float depth_start : hint_range(0.0, 80.0) = 8.0;
+
+/** Distance where the haze tint reaches full strength. */
 uniform float depth_end : hint_range(0.0, 120.0) = 30.0;
+
+/** Maximum haze blend amount. */
 uniform float depth_strength : hint_range(0.0, 1.0) = 0.5;
 
 // ---- Tip translucency / backlight (sun through the blades) ----
 group_uniforms translucency;
+
+/** Light passing through the blades toward the viewer — rim-glow when the sun is behind the grass. */
 uniform bool  use_translucency = true;
+
+/** Colour of the through-blade glow. */
 uniform vec3  translucency_color : source_color = vec3(0.75, 0.95, 0.40);
+
+/** Intensity of the backlight glow. */
 uniform float translucency_strength : hint_range(0.0, 3.0) = 1.0;
-uniform float translucency_power : hint_range(1.0, 12.0) = 4.0;     // tighter = sharper rim of glow
-uniform float translucency_distortion : hint_range(0.0, 1.0) = 0.3; // how much the normal bends the through-light
+
+/** Tightness of the glow rim. Higher = sharper, narrower rim. */
+uniform float translucency_power : hint_range(1.0, 12.0) = 4.0;
+
+/** How much the blade normal bends the through-light direction. */
+uniform float translucency_distortion : hint_range(0.0, 1.0) = 0.3;
 
 varying float v_stiffness;
 varying float v_jitter;
@@ -166,19 +271,9 @@ float dither_bayer(vec2 fc)
 
 void vertex()
 {
-    float stiffness;
-    if (stiffness_from_model_height)
-    {
-        stiffness = clamp(VERTEX.y / max(model_height, 0.0001), 0.0, 1.0);
-    }
-    else if (stiffness_from_vertex_color)
-    {
-        stiffness = COLOR.r;
-    }
-    else
-    {
-        stiffness = clamp(UV.y, 0.0, 1.0);
-    }
+    float stiffness = stiffness_from_model_height
+        ? clamp(VERTEX.y / max(model_height, 0.0001), 0.0, 1.0)
+        : clamp(UV.y, 0.0, 1.0);
     v_stiffness = stiffness;
 
     v_obj_uv = VERTEX.xy * albedo_obj_scale;
@@ -281,6 +376,7 @@ void fragment()
         col = mix(col, depth_color, dt);
     }
 
+    // Final albedo. COLOR.rgb is a per-instance/vertex tint hook (white = no-op).
     ALBEDO = col * COLOR.rgb;
     ROUGHNESS = 1.0;
     SPECULAR = 0.0;

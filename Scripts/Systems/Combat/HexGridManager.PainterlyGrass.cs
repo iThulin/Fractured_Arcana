@@ -4,11 +4,16 @@ using System.Collections.Generic;
 // ============================================================
 // HexGridManager.PainterlyGrass.cs  (partial of HexGridManager)
 //
-// Animated ground-cover grass over grass/forest tiles. Now scatters
+// Animated ground-cover grass over grass/forest tiles. Scatters
 // across the FULL hexagon (so adjacent grass tiles tessellate into a
 // continuous carpet reaching every edge), with grass-aware overlap:
 // blades may bleed slightly past an edge ONLY toward a grass neighbour,
 // hiding the seam; edges facing non-grass / the map boundary clip hard.
+//
+// All [Export] fields carry /// XML doc summaries so they show as
+// tooltips in the Godot inspector. (Requires the project to generate
+// the XML documentation file — GenerateDocumentationFile in the .csproj.
+// If your already-commented exports show tooltips, this is already on.)
 //
 // INTEGRATION: one line at the tail of GenerateMap(), after
 //   SpawnTerrainPropsFromManifest();
@@ -18,27 +23,50 @@ using System.Collections.Generic;
 public partial class HexGridManager : Node3D
 {
     [ExportGroup("Painterly Grass")]
+
+    /** Master toggle. When off, no grass is spawned and any existing field is cleared. */
     [Export] public bool EnablePainterlyGrass = true;
+
+    /** Explicit grass shader. If left null, the shader is loaded from PainterlyGrassShaderPath. */
     [Export] public Shader PainterlyGrassShader;
+
+    /** Fallback load path for the grass shader, used only when PainterlyGrassShader is null. */
     [Export] public string PainterlyGrassShaderPath = "res://Assets/Shaders/painterly_grass.gdshader";
+
+    /** Explicit grass material. If set, it is used AS-IS — the automatic wind_noise injection is skipped, so you must set the shader's wind_noise slot yourself on this material. Leave null to let the builder create one and wire wind_noise for you. */
     [Export] public Material PainterlyGrassMaterial;
+
+    /** Blade mesh to instance. If null, a procedural two-quad blade is built at GrassBladeHeight. */
     [Export] public Mesh PainterlyGrassMesh;
 
+    /** Overall blade scale multiplier (applied to both width and height, before per-blade jitter). */
     [Export(PropertyHint.Range, "0.05,3.0,0.05")] public float GrassScale = 1.0f;
+
+    /** Base blade count per tile. Forest tiles get ×1.35 and the map density preset scales it further (Sparse 0.5 → Wild 1.8). */
     [Export(PropertyHint.Range, "0,800,1")] public int GrassBladesPerTile = 40;
+
+    /** Height of the PROCEDURAL blade mesh. Ignored when a PainterlyGrassMesh is assigned. */
     [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float GrassBladeHeight = 0.28f;
 
-    /// <summary>How far blades may bleed past an edge toward a grass neighbour (fraction of HexRadius). Hides grass-grass seams; 0 = clip exactly to the hex.</summary>
+    /** How far blades may bleed past an edge toward a grass neighbour (fraction of HexRadius). Hides grass-grass seams; 0 = clip exactly to the hex. */
     [Export(PropertyHint.Range, "0.0,0.4,0.01")] public float GrassEdgeOverlap = 0.12f;
 
+    /** Per-blade random height variation (± fraction). Higher = more varied blade heights. */
     [Export(PropertyHint.Range, "0,0.6,0.05")] public float GrassHeightJitter = 0.3f;
+
+    /** Per-blade random width variation (± fraction). Higher = more varied blade widths. */
     [Export(PropertyHint.Range, "0,0.6,0.05")] public float GrassWidthJitter = 0.2f;
+
+    /** Also scatter grass on Forest tiles (with a denser blade count). Off = grass on Grass tiles only. */
     [Export] public bool GrassOnForest = true;
-    /// <summary>0 = even meadow; 1 = grass fully driven by the clump field (dense clumps + thin gaps).</summary>
+
+    /** 0 = even meadow; 1 = grass fully driven by the clump field (dense clumps + thin gaps). */
     [Export(PropertyHint.Range, "0,1,0.05")] public float GrassClumpInfluence = 0.0f;
-    /// <summary>World-space frequency of the clump field. Lower = bigger clumps and bigger bare patches.</summary>
+
+    /** World-space frequency of the clump field. Lower = bigger clumps and bigger bare patches. Flowers/rocks share this field, so changing it shifts where they cluster too. */
     [Export] public float GrassClumpFrequency = 0.35f;
-    /// <summary>Clump-noise value below which ground is left fully bare (hard pockets). 0 = no hard bare spots.</summary>
+
+    /** Clump-noise value below which ground is left fully bare (hard pockets). 0 = no hard bare spots. */
     [Export(PropertyHint.Range, "0,1,0.02")] public float GrassBareThreshold = 0.0f;
 
     private const string PainterlyGrassGroup = "painterly_grass";
@@ -194,11 +222,11 @@ public partial class HexGridManager : Node3D
         mmi.GlobalTransform = Transform3D.Identity; // instance transforms are world-space
     }
 
-    /// <summary>
+    /** 
     /// Per-blade surface height, sampled the same way props are (analytic
     /// blended-mesh sample) so grass and props sit at identical heights on
     /// slopes. Legacy mode falls back to the flat tile top.
-    /// </summary>
+    ///  */
     private float SampleGrassSurfaceY(TileData tile, float worldX, float worldZ)
     {
         if (UseBlendedTerrainMesh && tile.TileView != null)

@@ -1,63 +1,35 @@
-[gd_scene format=4 uid="uid://b3uwyeo6pgvuf"]
+[gd_scene format=3 uid="uid://b3uwyeo6pgvuf"]
 
 [ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/Combat/HexGridManager.cs" id="1_grid"]
 [ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/Combat/HexTile.tscn" id="2_3u6ok"]
 [ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scripts/UI/CameraController.cs" id="2_cam"]
-[ext_resource type="ArrayMesh" uid="uid://rbj61r6bfw3l" path="res://Assets/Terrain Asset/Grass Tuft.tres" id="2_enr3w"]
+[ext_resource type="ArrayMesh" uid="uid://03hk4cssyjrd" path="res://Assets/Terrain Asset/Grass Tuft.tres" id="2_enr3w"]
 [ext_resource type="Material" uid="uid://bh1ab1xjlty2f" path="res://Assets/Material/terrain_splat.tres" id="3_3ycxn"]
 [ext_resource type="Script" uid="uid://bbhabwevbq81l" path="res://Scripts/Dev/CharacterStagingPreview.cs" id="3_drv"]
-[ext_resource type="Material" uid="uid://bb6cgw8ypa6eb" path="res://Assets/Material/painterly_grass.tres" id="3_rsji2"]
+[ext_resource type="Material" uid="uid://bb6cgw8ypa6eb" path="res://Assets/Material/Painterly Materials/painterly_grass.tres" id="3_rsji2"]
 [ext_resource type="Script" uid="uid://djax72iri8r6v" path="res://Scripts/Dev/StagingControlPanel.cs" id="4_panel"]
 [ext_resource type="ArrayMesh" uid="uid://briplfo4ti7tv" path="res://Assets/Terrain Asset/Painterly Flowers/Flowers 2.tres" id="4_wc4mq"]
-[ext_resource type="Material" uid="uid://b8rynssq8te2o" path="res://Assets/Material/painterly_flower.tres" id="5_85nxq"]
 [ext_resource type="Environment" uid="uid://bbtn025ticmfd" path="res://Assets/Environments/Combat_Environment.tres" id="5_kq0xm"]
 [ext_resource type="ArrayMesh" uid="uid://bnhwgjcu5ajff" path="res://Assets/Terrain Asset/Painterly Flowers/Flowers 3.tres" id="5_uatt3"]
 [ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Combat/Players/Unit.tscn" id="5_yt0nn"]
 [ext_resource type="ArrayMesh" uid="uid://ca4r0k5ndon1o" path="res://Assets/Terrain Asset/Painterly Flowers/Flowers 5.tres" id="6_h4n05"]
 [ext_resource type="Script" uid="uid://hyoq6dl1gf67" path="res://Scripts/Dev/PainterlyGrassTuner.cs" id="9_0egh5"]
-[ext_resource type="PackedScene" uid="uid://dhuftpbe8niqo" path="res://Assets/Terrain Asset/Painterly Flowers/Flowers 2,3,5.glb" id="16_qt4u3"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a27w1"]
-resource_name = "M_flower.001"
-
-[sub_resource type="ArrayMesh" id="ArrayMesh_fbtky"]
-_surfaces = [{
-"aabb": AABB(-0.10603358, 0.2242101, -0.0947268, 0.1619218, 0.094034806, 0.20427406),
-"format": 34896613377,
-"index_count": 414,
-"index_data": PackedByteArray("cgBzAAAAcgALAHMAcwALABAAEQAQABIAEQAMABAAcwAQAAwAAABzAAwAAAAMAA0ADgANAAwADgAMAA8AAwAAAAQAAwABAAAAcgAAAAEAcgABAHQAcgB0AAsAdAABAAUAdAAKAAsAdAACAAoAdAAFAAIAAgAJAAoAAgAIAAkABgACAAUABgAFAAcAdQB2ABMAdQAeAHYAdgAeACMAJAAjACUAJAAfACMAdgAjAB8AEwB2AB8AEwAfACAAIQAgAB8AIQAfACIAFgATABcAFgAUABMAdQATABQAdQAUAHcAdQB3AB4AdwAUABgAdwAdAB4AdwAVAB0AdwAYABUAFQAcAB0AFQAbABwAGQAVABgAGQAYABoAeAB5ACYAeAAxAHkAeQAxADYANwA2ADgANwAyADYAeQA2ADIAJgB5ADIAJgAyADMANAAzADIANAAyADUAKQAmACoAKQAnACYAeAAmACcAeAAnAHoAeAB6ADEAegAnACsAegAwADEAegAoADAAegArACgAKAAvADAAKAAuAC8ALAAoACsALAArAC0AewA5AHwAewB8AEEAfABJAEEASgBLAEkASgBJAEUAfABFAEkAOQBFAHwAOQBGAEUARwBFAEYARwBIAEUAPAA9ADkAPAA5ADsAewA7ADkAewB9ADsAewBBAH0AfQA+ADsAfQBBAEIAPwBAAD4APwA+ADoAfQA6AD4AfQBCADoAOgBCAEMAOgBDAEQAfgBMAH8AfgB/AFQAfwBcAFQAXQBeAFwAXQBcAFgAfwBYAFwATABYAH8ATABZAFgAWgBYAFkAWgBbAFgATwBQAEwATwBMAE4AfgBOAEwAfgCAAE4AfgBUAIAAgABRAE4AgABUAFUAUgBTAFEAUgBRAE0AgABNAFEAgABVAE0ATQBVAFYATQBWAFcAgQBfAIIAgQCCAGcAggBvAGcAcABxAG8AcABvAGsAggBrAG8AXwBrAIIAXwBsAGsAbQBrAGwAbQBuAGsAYgBjAF8AYgBfAGEAgQBhAF8AgQCDAGEAgQBnAIMAgwBkAGEAgwBnAGgAZQBmAGQAZQBkAGAAgwBgAGQAgwBoAGAAYABoAGkAYABpAGoA"),
-"lods": [0.008647331, PackedByteArray("AAABAAIAAwABAAAAAwAAAAQAAgABAAUABgAFAAcABgACAAUAAgAIAAkAAgAJAAoAAgAKAAsAAAACAAsAAAALAAwAAAAMAA0ADgANAAwADgAMAA8ADAALABAAEQAMABAAEQAQABIAEwAUABUAFgAUABMAFgATABcAFQAUABgAGQAYABoAGQAVABgAFQAbABwAFQAcAB0AFQAdAB4AEwAVAB4AEwAeAB8AEwAfACAAIQAgAB8AIQAfACIAHwAeACMAJAAfACMAJAAjACUAJgAnACgAKQAnACYAKQAmACoAKAAnACsALAArAC0ALAAoACsAKAAuAC8AKAAvADAAKAAwADEAJgAoADEAJgAxADIAJgAyADMANAAzADIANAAyADUAMgAxADYANwAyADYANwA2ADgAOQA6ADsAPAA5ADsAPAA9ADkAOgA+ADsAPwBAAD4APwA+ADoAOQBBADoAOgBBAEIAOgBCAEMAOgBDAEQAOQBFAEEAOQBGAEUARwBFAEYARwBIAEUARQBJAEEASgBJAEUASgBLAEkATABNAE4ATwBMAE4ATwBQAEwATQBRAE4AUgBTAFEAUgBRAE0ATABUAE0ATQBUAFUATQBVAFYATQBWAFcATABYAFQATABZAFgAWgBYAFkAWgBbAFgAWABcAFQAXQBcAFgAXQBeAFwAXwBgAGEAYgBfAGEAYgBjAF8AYABkAGEAZQBmAGQAZQBkAGAAXwBnAGAAYABnAGgAYABoAGkAYABpAGoAXwBrAGcAXwBsAGsAbQBrAGwAbQBuAGsAawBvAGcAcABvAGsAcABxAG8A")],
-"name": "M_flower.001",
-"primitive": 3,
-"uv_scale": Vector4(0, 0, 0, 0),
-"vertex_count": 132,
-"vertex_data": PackedByteArray("Cc+KzeoKAAAr733RRhMAANbsOfDOKAAAhe9Us0QKAAAry9StAAAAAOH1ltSMFAAApvnM2UwuAAD//wm8LBsAAAnz3+D2NgAAbdns9IxCAABdyv//lC8AAMHJpPj0KwAAFbe34ZwUAABmywjLFgYAADXCM61FAwAAiKL/xZkRAADGxcX8SywAAOOje8muHgAArbUK6M8zAADNCeuBq30AAD0WdpbLXwAArjKNxARmAAAoD2xmulwAAAAAkE1ifgAA0Rc1ncBZAAAqPz+uhVsAAN4nTIxWTgAApEbsuCpjAAA9VffMF34AAHs67s3AiAAA+jU5w3SIAACJFcqV7pYAAMwCPnuqgAAAKQRIUxCGAAA3FhJsXacAAOU10sapjAAAhiZLhLapAABwQ5yw35gAAMJq71us4QAAR4UMiVPTAAAPpliDE+UAADV4snSmwQAA8ljRQVHRAABkimyUWdEAAJOyq3ig1QAAj5tGi9bCAACkuJtt6d0AANy/HEYC9gAAEqLmT2T/AADgm9lN6PsAAAtwFTnE+AAACGJxWfThAAABW402MdgAAO5jtQX/9QAACJvcSf3/AACydvICmv4AABCgXh3//wAAeM73yMwLAABg7NPr5CkAAFDvI81zFAAAHO9Tr6YLAADBys+pXwEAAIT1ONCuFQAAkPiK1TUvAAAG/7S3GBwAACnJCvWFLQAAF8rB+9QwAADi2DzwTkMAADXyLtyHNwAAzLZq3dAVAABQy9vGZgcAAHvCcKnPBAAAlKIcwhYTAABYxXX4dS0AAB2k6sSpHwAAFLZZ4500AABlC659yn0AAII0mcAUZgAALRjFkmVfAABOEfxiylwAACQCHEpzfgAAshlUmb1ZAADBQCyqElwAAHkpMIjLTgAATjgywLOIAAB+PD/Kr4gAALFWlMgufgAA20detHhjAAB/FwiS3pYAAOEEtXd0gAAAfAZZUJ+FAAB8GO1oFqcAAM83/cK1jAAAPihXgDepAAD1RISsOpgAAC5rB1g74AAAxqaBf6zjAABRhu+Fr9EAAFF54nBmwAAACloAPhDQAAAyi6+Q688AAN6yPHSI1AAA5pvxhqvBAAApndxJ6foAAAyjQEz7/QAAI8BIQoL0AACXuI9phNwAAPdwbTVW9wAAKWMGVn3gAACQXJ8zwdYAAFVldgKa9AAA2psJRp3+AACFdwAA1PwAALyguBoW/gAAPNSS0wAfAAATvCPhOxcAADjn0euuJgAAdSfYlEd6AAChGTiYPpIAAAEwPrzaagAAM4qhU7TjAADpdfg9G/YAABeguHnH5QAA69M9zywgAADxuhTdSRgAAHfnDOg4KAAAYikIkTx6AABgG2GU2pIAAFMySrluagAAEovwT0biAABgdnU5IPUAAKKhwXZY5AAA")
-}]
-blend_shape_mode = 0
-
-[sub_resource type="ArrayMesh" id="ArrayMesh_jpa18"]
-resource_name = "Flower_Linen_wFlower_M_Material #36_0_001"
-_surfaces = [{
-"aabb": AABB(-0.10603358, 0.2242101, -0.0947268, 0.1619218, 0.094034806, 0.20427406),
-"attribute_data": PackedByteArray("FJ6yUSvID3G87plQ5rK2g8uBTmEE0Uh3cfqkXrLitoNX/wJOV//qHIbeKhpt1hkf6ZxVJBuTUVLLgU1Ty4GVFqvUcxjnlyoG1M8qBhSeslEryA9xvO6ZUOaytoPLgU5hBNFId3H6pF6y4raDV/8CTlf/6hyG3ioabdYZH+mcVSQbk1FSy4FNU8uBlRar1HMY55cqBtTPKgYUnrJRK8gPcbzumVDmsraDy4FOYQTRSHdx+qResuK2g1f/Ak5X/+ocht4qGm3WGR/pnFUkG5NRUsuBTVPLgZUWq9RzGOeXKgbUzyoGFJ6yUbzumVAryA9x5rK2g8uBTmEE0Uh3cfqkXrLitoNt1hkfht4qGlf/6hxX/wJO6ZxVJBuTUVLLgU1Ty4GVFqvUcxjnlyoG1M8qBhSeslG87plQK8gPceaytoPLgU5hBNFId3H6pF6y4raDbdYZH4beKhpX/+ocV/8CTumcVSQbk1FSy4FNU8uBlRar1HMY55cqBtTPKgYUnrJRvO6ZUCvID3HmsraDy4FOYQTRSHdx+qResuK2g23WGR+G3ioaV//qHFf/Ak7pnFUkG5NRUsuBTVPLgZUWq9RzGOeXKgbUzyoGZcEeRPSkaSg85fBMZcEeRPSkaSg85fBMZcEeRPSkaSg85fBMZcEeRPSkaSg85fBMZcEeRPSkaSg85fBMZcEeRPSkaSg85fBM"),
-"format": 34896613399,
-"index_count": 414,
-"index_data": PackedByteArray("cgBzAAAAcgALAHMAcwALABAAEQAQABIAEQAMABAAcwAQAAwAAABzAAwAAAAMAA0ADgANAAwADgAMAA8AAwAAAAQAAwABAAAAcgAAAAEAcgABAHQAcgB0AAsAdAABAAUAdAAKAAsAdAACAAoAdAAFAAIAAgAJAAoAAgAIAAkABgACAAUABgAFAAcAdQB2ABMAdQAeAHYAdgAeACMAJAAjACUAJAAfACMAdgAjAB8AEwB2AB8AEwAfACAAIQAgAB8AIQAfACIAFgATABcAFgAUABMAdQATABQAdQAUAHcAdQB3AB4AdwAUABgAdwAdAB4AdwAVAB0AdwAYABUAFQAcAB0AFQAbABwAGQAVABgAGQAYABoAeAB5ACYAeAAxAHkAeQAxADYANwA2ADgANwAyADYAeQA2ADIAJgB5ADIAJgAyADMANAAzADIANAAyADUAKQAmACoAKQAnACYAeAAmACcAeAAnAHoAeAB6ADEAegAnACsAegAwADEAegAoADAAegArACgAKAAvADAAKAAuAC8ALAAoACsALAArAC0AewA5AHwAewB8AEEAfABJAEEASgBLAEkASgBJAEUAfABFAEkAOQBFAHwAOQBGAEUARwBFAEYARwBIAEUAPAA9ADkAPAA5ADsAewA7ADkAewB9ADsAewBBAH0AfQA+ADsAfQBBAEIAPwBAAD4APwA+ADoAfQA6AD4AfQBCADoAOgBCAEMAOgBDAEQAfgBMAH8AfgB/AFQAfwBcAFQAXQBeAFwAXQBcAFgAfwBYAFwATABYAH8ATABZAFgAWgBYAFkAWgBbAFgATwBQAEwATwBMAE4AfgBOAEwAfgCAAE4AfgBUAIAAgABRAE4AgABUAFUAUgBTAFEAUgBRAE0AgABNAFEAgABVAE0ATQBVAFYATQBWAFcAgQBfAIIAgQCCAGcAggBvAGcAcABxAG8AcABvAGsAggBrAG8AXwBrAIIAXwBsAGsAbQBrAGwAbQBuAGsAYgBjAF8AYgBfAGEAgQBhAF8AgQCDAGEAgQBnAIMAgwBkAGEAgwBnAGgAZQBmAGQAZQBkAGAAgwBgAGQAgwBoAGAAYABoAGkAYABpAGoA"),
-"lods": [0.008647331, PackedByteArray("AAABAAIAAwABAAAAAwAAAAQAAgABAAUABgAFAAcABgACAAUAAgAIAAkAAgAJAAoAAgAKAAsAAAACAAsAAAALAAwAAAAMAA0ADgANAAwADgAMAA8ADAALABAAEQAMABAAEQAQABIAEwAUABUAFgAUABMAFgATABcAFQAUABgAGQAYABoAGQAVABgAFQAbABwAFQAcAB0AFQAdAB4AEwAVAB4AEwAeAB8AEwAfACAAIQAgAB8AIQAfACIAHwAeACMAJAAfACMAJAAjACUAJgAnACgAKQAnACYAKQAmACoAKAAnACsALAArAC0ALAAoACsAKAAuAC8AKAAvADAAKAAwADEAJgAoADEAJgAxADIAJgAyADMANAAzADIANAAyADUAMgAxADYANwAyADYANwA2ADgAOQA6ADsAPAA5ADsAPAA9ADkAOgA+ADsAPwBAAD4APwA+ADoAOQBBADoAOgBBAEIAOgBCAEMAOgBDAEQAOQBFAEEAOQBGAEUARwBFAEYARwBIAEUARQBJAEEASgBJAEUASgBLAEkATABNAE4ATwBMAE4ATwBQAEwATQBRAE4AUgBTAFEAUgBRAE0ATABUAE0ATQBUAFUATQBVAFYATQBWAFcATABYAFQATABZAFgAWgBYAFkAWgBbAFgAWABcAFQAXQBcAFgAXQBeAFwAXwBgAGEAYgBfAGEAYgBjAF8AYABkAGEAZQBmAGQAZQBkAGAAXwBnAGAAYABnAGgAYABoAGkAYABpAGoAXwBrAGcAXwBsAGsAbQBrAGwAbQBuAGsAawBvAGcAcABvAGsAcABxAG8A")],
-"material": SubResource("StandardMaterial3D_a27w1"),
-"name": "M_flower.001",
-"primitive": 3,
-"uv_scale": Vector4(0, 0, 0, 0),
-"vertex_count": 132,
-"vertex_data": PackedByteArray("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")
-}]
-blend_shape_mode = 0
-shadow_mesh = SubResource("ArrayMesh_fbtky")
+[ext_resource type="ArrayMesh" uid="uid://h828cjr34et3" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_1.tres" id="9_oa5ao"]
+[ext_resource type="ArrayMesh" uid="uid://bv611trboi78r" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_2.tres" id="10_pr4vi"]
+[ext_resource type="ArrayMesh" uid="uid://bnsgay2w2a4af" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_3.tres" id="11_ve8sw"]
+[ext_resource type="ArrayMesh" uid="uid://dqpvqfq1puuv1" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_4.tres" id="12_6bmsi"]
+[ext_resource type="ArrayMesh" uid="uid://cffmwxp25vmf7" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_5.tres" id="13_42lop"]
+[ext_resource type="ArrayMesh" uid="uid://b5t7jgtwct0i4" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_6.tres" id="14_rqjji"]
+[ext_resource type="ArrayMesh" uid="uid://bot2u60y1733a" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_7.tres" id="15_iwfmq"]
+[ext_resource type="ArrayMesh" uid="uid://brh2bfy3k2uo2" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_8.tres" id="16_8jt3x"]
+[ext_resource type="ArrayMesh" uid="uid://67powmk7dj6h" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_9.tres" id="17_odj5a"]
+[ext_resource type="Material" uid="uid://brf6b5tpj6geu" path="res://Assets/Material/Painterly Materials/Painterly_rocks.tres" id="18_pr4vi"]
 
 [node name="CharacterStaging" type="Node3D" unique_id=1681662511]
 
 [node name="HexGridManager" type="Node3D" parent="." unique_id=71923393 node_paths=PackedStringArray("ThemeSun", "ThemeWorldEnvironment")]
 script = ExtResource("1_grid")
+Theme = 8
 RandomizeLayout = true
 HexTileScene3D = ExtResource("2_3u6ok")
 TerrainMaterialOverride = ExtResource("3_3ycxn")
@@ -65,14 +37,15 @@ GrassNoiseAmp = 0.36
 GrassNoiseFreq = 0.25
 ThemeSun = NodePath("../ThemeSun")
 ThemeWorldEnvironment = NodePath("../WorldEnvironment")
-EnableFlowerProps = false
 FlowerMeshes = Array[Mesh]([ExtResource("4_wc4mq"), ExtResource("5_uatt3"), ExtResource("6_h4n05")])
-FlowerMeshWeights = PackedFloat32Array(1, 0.5, 0.3)
-FlowerMesh = SubResource("ArrayMesh_jpa18")
-FlowerMaterial = ExtResource("5_85nxq")
+FlowerMeshWeights = PackedFloat32Array(1, 0.7, 0.5)
+UseMeshSurfaceMaterials = true
 FlowersPerTile = 20
-FlowerScale = 0.8500000000000001
-EnablePainterlyGrass = false
+FlowerScale = 0.75
+FlowerClumpBias = 1.0
+FlowerTiltJitter = 0.6
+FlowerOnForest = false
+FlowerPalette = PackedColorArray(0.97, 0.84, 0.3, 1, 0.72, 0.55, 0.85, 1, 0.59607846, 0.9607843, 0.92156863, 1)
 PainterlyGrassMaterial = ExtResource("3_rsji2")
 PainterlyGrassMesh = ExtResource("2_enr3w")
 GrassScale = 0.5
@@ -83,8 +56,12 @@ GrassHeightJitter = 0.6
 GrassWidthJitter = 0.6
 GrassOnForest = false
 GrassClumpInfluence = 0.8
-GrassClumpFrequency = 0.4
+GrassClumpFrequency = 0.45
 GrassBareThreshold = 0.3
+RockMeshes = Array[Mesh]([ExtResource("9_oa5ao"), ExtResource("10_pr4vi"), ExtResource("11_ve8sw"), ExtResource("12_6bmsi"), ExtResource("13_42lop"), ExtResource("14_rqjji"), ExtResource("15_iwfmq"), ExtResource("16_8jt3x"), ExtResource("17_odj5a")])
+RockMaterial = ExtResource("18_pr4vi")
+RocksPerTile = 4
+RockScale = 1.5
 
 [node name="ThemeSun" type="DirectionalLight3D" parent="." unique_id=1961182073]
 transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 12, 0)
@@ -132,6 +109,3 @@ grow_vertical = 2
 script = ExtResource("9_0egh5")
 Material = ExtResource("3_rsji2")
 metadata/_custom_type_script = "uid://hyoq6dl1gf67"
-
-[node name="Flowers 2,3,5" parent="." unique_id=1334090087 instance=ExtResource("16_qt4u3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5746336, 0, 3.3291798)

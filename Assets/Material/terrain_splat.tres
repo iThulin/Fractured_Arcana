@@ -12,7 +12,18 @@ seamless = true
 seed = 1
 
 [sub_resource type="NoiseTexture2D" id="NoiseTexture2D_r8yi3"]
+width = 2048
+height = 2048
 noise = SubResource("FastNoiseLite_wpqog")
+seamless = true
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_r8yi3"]
+noise_type = 2
+frequency = 0.435
+cellular_return_type = 0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_l37mq"]
+noise = SubResource("FastNoiseLite_r8yi3")
 seamless = true
 
 [resource]
@@ -30,23 +41,29 @@ shader_parameter/wall_darkening = 0.12
 shader_parameter/use_pastel_ground = true
 shader_parameter/grass_layer = 0
 shader_parameter/pastel_strength = 0.9450000448875
-shader_parameter/pastel_low = Color(0.7411765, 0.6627451, 0.49411765, 1)
-shader_parameter/pastel_mid = Color(0.9764706, 0.85490197, 0.6431373, 1)
-shader_parameter/pastel_high = Color(0.9, 0.94, 0.82, 1)
+shader_parameter/pastel_low = Color(0.3019608, 0.23921569, 0.16862746, 1)
+shader_parameter/pastel_mid = Color(0.38039216, 0.33333334, 0.23137255, 1)
+shader_parameter/pastel_high = Color(0.47843137, 0.41960785, 0.29803923, 1)
 shader_parameter/pastel_mid_pos = 0.67200003029006
 shader_parameter/pastel_height_low = 0.0
-shader_parameter/pastel_height_high = 4.0
-shader_parameter/pastel_from_noise = false
+shader_parameter/pastel_height_high = 1.0
+shader_parameter/pastel_from_noise = true
 shader_parameter/pastel_noise_tex = SubResource("NoiseTexture2D_r8yi3")
 shader_parameter/pastel_noise_scale = 0.05
 shader_parameter/use_ground_detail = true
 shader_parameter/ground_detail_tex = SubResource("NoiseTexture2D_wpqog")
-shader_parameter/ground_detail_scale = 0.22700000915256
+shader_parameter/ground_detail_scale = 0.8770000400275599
 shader_parameter/ground_mottle = 0.30000001425
+shader_parameter/soil_tint = Color(0.1336951, 0.0724806, 0.025721675, 1)
+shader_parameter/soil_tint_strength = 0.50000002375
+shader_parameter/soil_tint_scale = 0.12
+shader_parameter/stone_tex = SubResource("NoiseTexture2D_l37mq")
+shader_parameter/stone_scale = 0.15000000549505998
 shader_parameter/rock_color = Color(0.55, 0.52, 0.48, 1)
-shader_parameter/rock_amount = 0.0
-shader_parameter/rock_threshold = 0.42
-shader_parameter/rock_sharpness = 5.0
+shader_parameter/rock_amount = 0.2000000095
+shader_parameter/rock_threshold = 0.230000010925
+shader_parameter/rock_sharpness = 7.810000347225
+shader_parameter/rock_variation = 0.42000001995
 shader_parameter/highlight_color = Vector3(0, 0, 0)
 shader_parameter/highlight_strength = 0.0
 shader_parameter/use_grid_lines = true

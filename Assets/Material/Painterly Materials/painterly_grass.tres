@@ -2,12 +2,7 @@
 
 [ext_resource type="Shader" uid="uid://e3m26c7664p0" path="res://Assets/Shaders/painterly_grass.gdshader" id="1_17omr"]
 [ext_resource type="Texture2D" uid="uid://cbf1kub3gh1ld" path="res://Assets/Terrain Asset/Painterly Grass/grass_normal_1.png" id="2_17omr"]
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_17omr"]
-
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_2b8cx"]
-noise = SubResource("FastNoiseLite_17omr")
-seamless = true
+[ext_resource type="Texture2D" uid="uid://bcp76ync0flw5" path="res://Assets/Material/Painterly Materials/Painterly_wind_noise.tres" id="3_etxi6"]
 
 [resource]
 render_priority = 0
@@ -41,8 +36,7 @@ shader_parameter/normal_tex = ExtResource("2_17omr")
 shader_parameter/normal_strength = 1.0
 shader_parameter/stiffness_from_model_height = false
 shader_parameter/model_height = 1.0
-shader_parameter/stiffness_from_vertex_color = false
-shader_parameter/wind_noise = SubResource("NoiseTexture2D_2b8cx")
+shader_parameter/wind_noise = ExtResource("3_etxi6")
 shader_parameter/wind_dir = Vector2(1, 0.35)
 shader_parameter/wind_bend = 0.090000004275
 shader_parameter/wind_amplitude = 0.66000003135
