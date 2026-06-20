@@ -2,16 +2,26 @@ using Godot;
 using System;
 
 // ============================================================
-// HexMeshBuilder.cs  (v7 — per-terrain noise character)
+// HexMeshBuilder.cs  (v8 — cliff foot welded via neighbour sampler)
 //
 // Purpose:        Generates the per-tile blended terrain mesh.
 //
-//                 v7 — PER-TERRAIN NOISE (amplitude + frequency):
-//                 Each terrain type now has its OWN noise amplitude
-//                 and frequency, so water stays near-flat, stone is
-//                 jagged/high-frequency, grass rolls, arcane swells
-//                 smoothly — instead of every terrain sharing one
-//                 uniform lumpiness.
+//                 v8 — CLIFF FOOT WELD:
+//                 The cliff wall's bottom rim no longer reconstructs
+//                 the lower neighbour's rim noise from THIS tile's
+//                 side (the old CornerIndexOnNeighbour mapping was
+//                 approximate and left a vertical gap, most visible
+//                 on water edges). Instead the foot queries the
+//                 neighbour's OWN surface sampler
+//                 (SampleSurfaceWorldY) at the exact shared world
+//                 points — the same math that places the neighbour's
+//                 visible top — so the foot lands on it by
+//                 construction. CornerIndexOnNeighbour is removed.
+//
+//                 v7 carried forward — PER-TERRAIN NOISE (amplitude
+//                 + frequency): each terrain type has its own noise
+//                 amp/freq, so water stays near-flat, stone is
+//                 jagged, grass rolls, arcane swells smoothly.
 //
 //                 WATERTIGHT SEAM RULE: a surface point's
 //                 displacement is noise(worldXZ, freq) * amp, and at
@@ -22,22 +32,20 @@ using System;
 //                   - MID points (shared by 2 tiles) blend the two
 //                     terrains' params: (amp,freq) = mean of the two,
 //                     then sample ONCE. Both tiles compute the same
-//                     mean → agree.
+//                     mean -> agree.
 //                   - CORNER points (shared by up to 3 tiles) blend
 //                     params over the corner's BLEND COMPONENT (the
 //                     same membership the height blend uses, so a
 //                     corner across a cliff doesn't pull in the wrong
-//                     terrain). Symmetric over the component → every
-//                     tile computes the same mean → agree.
-//                 Blending the PARAMETERS and sampling once (rather
-//                 than blending two separately-sampled noises) is the
-//                 cheap, provably-identical operation for all tiles.
+//                     terrain). Symmetric over the component -> every
+//                     tile computes the same mean -> agree.
 //
 //                 v6 carried forward — seamless no-falloff noise,
-//                 subdivided fan + bridge at matched resolution,
+//                 subdivided fan + radially-subdivided bridge band,
 //                 cliff tops/bottoms welded to noised rims.
 //                 v4 carried forward — edge classification, corner
-//                 blend-components, splat data.
+//                 blend-components (now water/land aware via
+//                 BlendConnected), splat data.
 //
 // REQUIRES: st.GenerateTangents() after GenerateNormals() (in Build).
 // Reads per-terrain exports on HexGridManager (see NoiseParams).
@@ -120,7 +128,7 @@ public static class HexMeshBuilder
     /// <summary>
     /// Corner displacement: mean params over the corner's BLEND COMPONENT
     /// (same membership the height blend uses). Symmetric over the component, so
-    /// every tile touching this corner computes the identical value → watertight.
+    /// every tile touching this corner computes the identical value -> watertight.
     /// </summary>
     private static float NoiseCorner(HexGridManager grid, TileData tile, int cornerIndex, float worldX, float worldZ)
     {
@@ -206,7 +214,13 @@ public static class HexMeshBuilder
         {
             var nE = grid.GetTile(tile.Axial + HexDirection.All[(6 - e) % 6]);
             nbr[e] = nE;
-            isCliff[e] = nE != null && Math.Abs(tile.Height - nE.Height) > threshold;
+            // Water never blends into land: the water tile stays flat at its own
+            // surface to the boundary; the land neighbour drops/terraces to it.
+            bool waterEdge = nE != null &&
+                ((tile.TerrainType == TileTerrainType.Water) != (nE.TerrainType == TileTerrainType.Water));
+
+            isCliff[e] = nE != null &&
+                (Math.Abs(tile.Height - nE.Height) > threshold || waterEdge);
 
             bool blends = nE != null && !isCliff[e];
 
@@ -275,7 +289,8 @@ public static class HexMeshBuilder
                 mid, midY[e], attrM, cB, cornerY[e2], attrB, inA, grid, tile, subdiv);
         }
 
-        // ── 3) Cliff walls: top = own noised rim, bottom = lower noised rim
+        // ── 3) Cliff walls: top = own noised rim, bottom = lower tile's
+        //       ACTUAL surface (queried from its own sampler) ──────────────
         st.SetSmoothGroup(uint.MaxValue);
         for (int e = 0; e < 6; e++)
         {
@@ -291,15 +306,13 @@ public static class HexMeshBuilder
             float topYM = midY[e];
             float topYB = cornerY[e2];
 
-            float botBaseA = CornerComponentMeanWorldY(grid, tile, e, 2) - ownTop;
-            float botBaseM = nbr[e].Height * HexTile.HeightStep - ownTop;
-            float botBaseB = CornerComponentMeanWorldY(grid, tile, e2, 1) - ownTop;
-
-            // Bottom rim noise uses the LOWER neighbour's corner component / terrain
-            // at the same world points, so the wall foot welds to the lower cap.
-            float botYA = botBaseA + NoiseCorner(grid, nbr[e], CornerIndexOnNeighbour(e, false), cornerXZ[e].X, cornerXZ[e].Y);
-            float botYM = botBaseM + NoiseBlend2(grid, nbr[e].TerrainType, nbr[e].TerrainType, midXZ[e].X, midXZ[e].Y);
-            float botYB = botBaseB + NoiseCorner(grid, nbr[e], CornerIndexOnNeighbour(e, true), cornerXZ[e2].X, cornerXZ[e2].Y);
+            // Weld the wall foot to the LOWER tile's ACTUAL surface at these world
+            // points by querying its own surface sampler — the same math that
+            // places the neighbour's visible top, so the foot lands on it exactly
+            // (no reconstruction, no gap). Local Y = neighbour world Y − ownTop.
+            float botYA = SampleSurfaceWorldY(grid, nbr[e], cornerXZ[e].X, cornerXZ[e].Y, solidFactor, terraceSteps) - ownTop;
+            float botYM = SampleSurfaceWorldY(grid, nbr[e], midXZ[e].X, midXZ[e].Y, solidFactor, terraceSteps) - ownTop;
+            float botYB = SampleSurfaceWorldY(grid, nbr[e], cornerXZ[e2].X, cornerXZ[e2].Y, solidFactor, terraceSteps) - ownTop;
 
             Color idx = splatMode ? edgeIndices[e] : ownIndices;
             Color attrA = splatMode ? edgeWeightsA[e] : cornerColor[e];
@@ -376,31 +389,11 @@ public static class HexMeshBuilder
     }
 
     /// <summary>
-    /// Which corner index, ON THE LOWER NEIGHBOUR across edge e of THIS tile,
-    /// coincides with this tile's corner e (atSecond=false) or e+1 (atSecond=true).
-    /// The neighbour shares this tile's edge-e corners; on the neighbour those are
-    /// the two corners of its opposing edge. We only need a corner whose component
-    /// over the neighbour yields the same world point — using the neighbour's own
-    /// terrain via its corner component keeps the foot welded. A robust mapping:
-    /// the shared corner on the neighbour is found by matching world position, but
-    /// since NoiseCorner only needs the component terrains (symmetric), passing the
-    /// neighbour with ANY of its corners that include this shared point is correct.
-    /// We approximate with the neighbour's corner that faces back along the edge.
-    /// </summary>
-    private static int CornerIndexOnNeighbour(int e, bool atSecond)
-    {
-        // This tile's edge e faces neighbour dir d = (6-e)%6. On the neighbour,
-        // the coinciding edge is the opposite, e' = (e+3)%6, whose corners are
-        // e' and e'+1. The neighbour's corner e'+1 lines up with our corner e,
-        // and neighbour corner e' lines up with our corner e+1 (mirror).
-        int ePrime = (e + 3) % 6;
-        return atSecond ? ePrime : (ePrime + 1) % 6;
-    }
-
-    /// <summary>
     /// World-space surface Y at (worldX, worldZ) on <paramref name="tile"/>.
     /// Mirrors v7 per-terrain noise so props ride the surface. Inside the solid
-    /// inner hex uses own-terrain noise; the bridge band interpolates own→blended.
+    /// inner hex uses own-terrain noise; the bridge band interpolates own->blended.
+    /// Also queried by the cliff-foot weld (section 3) to land a wall's bottom on
+    /// the lower neighbour's actual surface.
     /// </summary>
     public static float SampleSurfaceWorldY(
         HexGridManager grid, TileData tile,
@@ -440,7 +433,11 @@ public static class HexMeshBuilder
         float t = (rho - solidFactor) / (1f - solidFactor);
 
         var nE = grid.GetTile(tile.Axial + HexDirection.All[(6 - e) % 6]);
-        bool blends = nE != null && Math.Abs(tile.Height - nE.Height) <= grid.CliffHeightThreshold;
+        bool waterEdge = nE != null &&
+            ((tile.TerrainType == TileTerrainType.Water) != (nE.TerrainType == TileTerrainType.Water));
+        bool blends = nE != null
+            && Math.Abs(tile.Height - nE.Height) <= grid.CliffHeightThreshold
+            && !waterEdge;
 
         Vector2 cornerEworld = originXZ + cE;
         Vector2 cornerFworld = originXZ + cF;
@@ -459,17 +456,30 @@ public static class HexMeshBuilder
             ? Mathf.Lerp(yE, yM, s * 2f)
             : Mathf.Lerp(yM, yF, (s - 0.5f) * 2f);
 
-        float innerY = ownNoise;
+        // Match the radially-noised band: own noise at the query point, plus the
+        // rim deviation ramped across the band (noise at the rim point removed so
+        // t = 0 meets the fan and t = 1 meets the rim).
+        Vector2 rimXZ = originXZ + cE.Lerp(cF, s);
+        float rimNoise = NoiseOwn(grid, tile, rimXZ.X, rimXZ.Y);
+        float smoothBandY = ownTop + ownNoise + (edgeY - rimNoise) * t;
 
-        if (terraceSteps <= 0 || Mathf.Abs(edgeY - innerY) < FlatEpsilon)
-            return ownTop + Mathf.Lerp(innerY, edgeY, t);
+        if (terraceSteps <= 0 || Mathf.Abs(edgeY) < FlatEpsilon)
+            return smoothBandY;
 
-        int steps = terraceSteps * 2 + 1;
+        int hStepSpan = Mathf.Max(1, Mathf.RoundToInt(Mathf.Abs(edgeY) / HexTile.HeightStep));
+
+        // Match AddBridgeHalf: gentle 1-step edges are smooth ramps, not terraces.
+        const int TerraceMinSpan = 2;
+        if (hStepSpan < TerraceMinSpan)
+            return smoothBandY;
+
+        int terraces = hStepSpan * terraceSteps;
+        int steps = terraces * 2 + 1;
         int k = Mathf.Clamp((int)(t * steps), 0, steps - 1);
         float frac = t * steps - k;
-        float v0 = ((k + 1) / 2) / (float)(terraceSteps + 1);
-        float v1 = ((k + 2) / 2) / (float)(terraceSteps + 1);
-        return ownTop + Mathf.Lerp(innerY, edgeY, Mathf.Lerp(v0, v1, frac));
+        float v0 = ((k + 1) / 2) / (float)(terraces + 1);
+        float v1 = ((k + 2) / 2) / (float)(terraces + 1);
+        return ownTop + edgeY * Mathf.Lerp(v0, v1, frac);
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -512,7 +522,7 @@ public static class HexMeshBuilder
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Corner components (UNCHANGED from v4)
+    // Corner components (water/land aware via BlendConnected)
     // ────────────────────────────────────────────────────────────────────────
 
     public static float CornerWorldY(HexGridManager grid, TileData tile, int cornerIndex)
@@ -558,6 +568,16 @@ public static class HexMeshBuilder
         return c;
     }
 
+    /// <summary>True when two tiles share a smooth blended surface rather than meet at a cliff: both present, within the height threshold, and not a water/land straddle.</summary>
+    private static bool BlendConnected(TileData x, TileData y, int threshold)
+    {
+        if (x == null || y == null)
+            return false;
+        if ((x.TerrainType == TileTerrainType.Water) != (y.TerrainType == TileTerrainType.Water))
+            return false;
+        return Math.Abs(x.Height - y.Height) <= threshold;
+    }
+
     private static (bool m0, bool m1, bool m2, TileData tA, TileData tB)
         CornerComponent(HexGridManager grid, TileData tile, int cornerIndex, int startSlot)
     {
@@ -566,14 +586,14 @@ public static class HexMeshBuilder
         var tA = grid.GetTile(tile.Axial + HexDirection.All[(7 - cornerIndex) % 6]);
         var tB = grid.GetTile(tile.Axial + HexDirection.All[(6 - cornerIndex) % 6]);
 
-        int h0 = tile.Height;
         bool p1 = tA != null, p2 = tB != null;
-        int h1 = p1 ? tA.Height : 0;
-        int h2 = p2 ? tB.Height : 0;
 
-        bool a01 = p1 && Math.Abs(h0 - h1) <= threshold;
-        bool a02 = p2 && Math.Abs(h0 - h2) <= threshold;
-        bool a12 = p1 && p2 && Math.Abs(h1 - h2) <= threshold;
+        // Height-AND-terrain aware: a water/land pair is a barrier, never a blend,
+        // so it must not join a corner component — same predicate the per-edge
+        // waterEdge rule uses, so edges and corners agree.
+        bool a01 = BlendConnected(tile, tA, threshold);
+        bool a02 = BlendConnected(tile, tB, threshold);
+        bool a12 = BlendConnected(tA, tB, threshold);
 
         bool m0 = startSlot == 0;
         bool m1 = startSlot == 1 && p1;
@@ -664,7 +684,8 @@ public static class HexMeshBuilder
     /// One half of a bridge strip, subdivided along its length into `lengthDiv`
     /// columns. Inner-ring points carry the tile's OWN-terrain noise (matching the
     /// fan's outer ring); outer-rim points use the passed (already blended-noised)
-    /// boundary heights yA/yB. Inner→outer interpolation keeps the band continuous.
+    /// boundary heights yA/yB. The smooth path also subdivides across the band's
+    /// WIDTH so it follows the noise field instead of a single planar span.
     /// </summary>
     private static void AddBridgeHalf(SurfaceTool st, Vector2 centerXZ, bool splat, Color idx,
         float solidFactor, int terraceSteps,
@@ -677,71 +698,112 @@ public static class HexMeshBuilder
         Vector2 innerA = outerA * solidFactor;
         Vector2 innerB = outerB * solidFactor;
 
+        // Per-column rings. Inner ring carries the tile's OWN-terrain noise so it
+        // welds to the subdivided fan's outer edge; outer rim carries the already
+        // blended-noised boundary heights yA/yB (shared with the neighbour).
         var innerPos = new Vector3[n + 1];
         var outerPos = new Vector3[n + 1];
-        var colInnerAttr = new Color[n + 1];
-        var colOuterAttr = new Color[n + 1];
-
+        var outerAttrCol = new Color[n + 1];
         for (int c = 0; c <= n; c++)
         {
             float u = c / (float)n;
-
             Vector2 inXZ = innerA.Lerp(innerB, u);
             Vector2 outXZ = outerA.Lerp(outerB, u);
-
             float inY = NoiseOwn(grid, tile, centerXZ.X + inXZ.X, centerXZ.Y + inXZ.Y);
             float outY = Mathf.Lerp(yA, yB, u);
-
             innerPos[c] = new Vector3(inXZ.X, inY, inXZ.Y);
             outerPos[c] = new Vector3(outXZ.X, outY, outXZ.Y);
-            colInnerAttr[c] = innerAttr;
-            colOuterAttr[c] = attrA.Lerp(attrB, u);
+            outerAttrCol[c] = attrA.Lerp(attrB, u);
         }
+
+        // Terrace classification is constant across the half (depends on yA/yB).
+        bool flat = Mathf.Abs(yA) < FlatEpsilon && Mathf.Abs(yB) < FlatEpsilon;
+        int hStepSpan = flat ? 0 : Mathf.Max(1, Mathf.RoundToInt(
+            Mathf.Max(Mathf.Abs(yA), Mathf.Abs(yB)) / HexTile.HeightStep));
+        const int TerraceMinSpan = 2;
+        bool terrace = terraceSteps > 0 && hStepSpan >= TerraceMinSpan;
+
+        if (!terrace)
+        {
+            // Subdivide across the band's WIDTH too, so it follows the noise field
+            // like the fan instead of a single planar span (the solid-factor ring).
+            // Inner row welds to the fan (pure own noise); outer row hits the shared
+            // rim exactly (the noise term cancels at tr = 1).
+            int radial = Math.Max(2, Mathf.RoundToInt(n * (1f - solidFactor) / Mathf.Max(0.01f, solidFactor)));
+
+            Vector3 BandVert(int c, int r)
+            {
+                float u = c / (float)n;
+                float tr = r / (float)radial;
+                Vector2 inXZ = innerA.Lerp(innerB, u);
+                Vector2 outXZ = outerA.Lerp(outerB, u);
+                Vector2 xz = inXZ.Lerp(outXZ, tr);
+                float rimY = Mathf.Lerp(yA, yB, u);
+                float dev = rimY - NoiseOwn(grid, tile, centerXZ.X + outXZ.X, centerXZ.Y + outXZ.Y);
+                float y = NoiseOwn(grid, tile, centerXZ.X + xz.X, centerXZ.Y + xz.Y) + dev * tr;
+                return new Vector3(xz.X, y, xz.Y);
+            }
+
+            Color BandAttr(int c, int r)
+            {
+                float u = c / (float)n;
+                float tr = r / (float)radial;
+                return innerAttr.Lerp(attrA.Lerp(attrB, u), tr);
+            }
+
+            for (int c = 0; c < n; c++)
+            {
+                for (int r = 0; r < radial; r++)
+                {
+                    AddQuad(st, centerXZ, splat, idx,
+                        BandVert(c, r), BandAttr(c, r),
+                        BandVert(c + 1, r), BandAttr(c + 1, r),
+                        BandVert(c, r + 1), BandAttr(c, r + 1),
+                        BandVert(c + 1, r + 1), BandAttr(c + 1, r + 1));
+                }
+            }
+            return;
+        }
+
+        // Terraced: per column, march inner->outer in tread/riser steps.
+        // t = run (XZ inner->outer), v = stepped rise (Y inner->outer). t=0 welds to
+        // the fan, t=1 welds to the rim, so the band stays watertight.
+        int terraces = hStepSpan * terraceSteps;
+        int steps = terraces * 2 + 1;
 
         for (int c = 0; c < n; c++)
         {
-            Vector3 i0 = innerPos[c], i1 = innerPos[c + 1];
-            Vector3 o0 = outerPos[c], o1 = outerPos[c + 1];
-            Color ia0 = colInnerAttr[c], ia1 = colInnerAttr[c + 1];
-            Color oa0 = colOuterAttr[c], oa1 = colOuterAttr[c + 1];
+            Vector3 iA = innerPos[c], oA = outerPos[c];
+            Vector3 iB = innerPos[c + 1], oB = outerPos[c + 1];
+            Color oaA = outerAttrCol[c], oaB = outerAttrCol[c + 1];
 
-            bool flat = Mathf.Abs(o0.Y - i0.Y) < FlatEpsilon && Mathf.Abs(o1.Y - i1.Y) < FlatEpsilon;
-
-            if (terraceSteps <= 0 || flat)
-            {
-                AddQuad(st, centerXZ, splat, idx,
-                    i0, ia0,
-                    i1, ia1,
-                    o0, oa0,
-                    o1, oa1);
-                continue;
-            }
-
-            int steps = terraceSteps * 2 + 1;
             for (int k = 0; k < steps; k++)
             {
                 float t0 = (float)k / steps;
                 float t1 = (float)(k + 1) / steps;
-                float v0 = ((k + 1) / 2) / (float)(terraceSteps + 1);
-                float v1 = ((k + 2) / 2) / (float)(terraceSteps + 1);
+                float v0 = ((k + 1) / 2) / (float)(terraces + 1);
+                float v1 = ((k + 2) / 2) / (float)(terraces + 1);
 
-                Vector3 a0 = new Vector3(
-                    Mathf.Lerp(i0.X, o0.X, t0), Mathf.Lerp(i0.Y, o0.Y, v0), Mathf.Lerp(i0.Z, o0.Z, t0));
-                Vector3 a1 = new Vector3(
-                    Mathf.Lerp(i0.X, o0.X, t1), Mathf.Lerp(i0.Y, o0.Y, v1), Mathf.Lerp(i0.Z, o0.Z, t1));
-                Vector3 b0 = new Vector3(
-                    Mathf.Lerp(i1.X, o1.X, t0), Mathf.Lerp(i1.Y, o1.Y, v0), Mathf.Lerp(i1.Z, o1.Z, t0));
-                Vector3 b1 = new Vector3(
-                    Mathf.Lerp(i1.X, o1.X, t1), Mathf.Lerp(i1.Y, o1.Y, v1), Mathf.Lerp(i1.Z, o1.Z, t1));
+                Vector3 lowA = TerracePoint(iA, oA, t0, v0);
+                Vector3 highA = TerracePoint(iA, oA, t1, v1);
+                Vector3 lowB = TerracePoint(iB, oB, t0, v0);
+                Vector3 highB = TerracePoint(iB, oB, t1, v1);
 
                 AddQuad(st, centerXZ, splat, idx,
-                    a0, ia0.Lerp(oa0, t0),
-                    b0, ia1.Lerp(oa1, t0),
-                    a1, ia0.Lerp(oa0, t1),
-                    b1, ia1.Lerp(oa1, t1));
+                    lowA, innerAttr.Lerp(oaA, t0),
+                    lowB, innerAttr.Lerp(oaB, t0),
+                    highA, innerAttr.Lerp(oaA, t1),
+                    highB, innerAttr.Lerp(oaB, t1));
             }
         }
     }
+
+    /// <summary>Terrace sample: XZ lerps inner->outer by run t; Y lerps inner->outer by stepped rise v.</summary>
+    private static Vector3 TerracePoint(Vector3 inner, Vector3 outer, float t, float v)
+        => new Vector3(
+            Mathf.Lerp(inner.X, outer.X, t),
+            Mathf.Lerp(inner.Y, outer.Y, v),
+            Mathf.Lerp(inner.Z, outer.Z, t));
 
     private static void AddWallQuad(SurfaceTool st, Vector2 centerXZ, bool splat, Color idx,
         Vector2 a, float topYA, Color topAttrA,
