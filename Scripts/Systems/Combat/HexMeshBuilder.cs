@@ -341,6 +341,16 @@ public static class HexMeshBuilder
             Color topB = splatMode ? edgeWeightsB[e] : cornerColor[e2];
             Color topM = splatMode ? edgeWeightsM[e] : midColor[e];
 
+            // Skirt flag: in splat mode the weights' alpha is free, so mark these
+            // boundary faces with A = 1 (interior faces leave A = 0). The shader
+            // reads it to paint skirts a flat boundary colour and skip cliff/grid.
+            if (splatMode)
+            {
+                topA.A = 1f;
+                topB.A = 1f;
+                topM.A = 1f;
+            }
+
             Color botA = topA, botM = topM, botB = topB;
             if (!splatMode)
             {

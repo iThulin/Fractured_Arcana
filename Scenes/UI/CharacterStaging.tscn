@@ -29,7 +29,10 @@
 
 [node name="HexGridManager" type="Node3D" parent="." unique_id=71923393 node_paths=PackedStringArray("ThemeSun", "ThemeWorldEnvironment")]
 script = ExtResource("1_grid")
-Theme = 8
+GridWidth = 15
+GridHeight = 15
+LayoutType = 3
+Theme = 9
 RandomizeLayout = true
 HexTileScene3D = ExtResource("2_3u6ok")
 TerrainMaterialOverride = ExtResource("3_3ycxn")

@@ -180,8 +180,8 @@ public partial class HexGridManager : Node3D
     [Export] public float ForestNoiseAmp = 0.22f;
     [Export] public float ForestNoiseFreq = 0.7f;
 
-    [Export] public float StoneNoiseAmp = 0.40f;
-    [Export] public float StoneNoiseFreq = 1.25f;
+    [Export] public float StoneNoiseAmp = 0.34f;
+    [Export] public float StoneNoiseFreq = 0.40f;
 
     [Export] public float WaterNoiseAmp = 0.03f;
     [Export] public float WaterNoiseFreq = 0.4f;
