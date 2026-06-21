@@ -642,21 +642,6 @@ public static class HexMeshBuilder
 
     public static Color TerrainColor(HexGridManager grid, TileTerrainType terrain)
     {
-        Material m = terrain switch
-        {
-            TileTerrainType.Grass => grid.GrassMaterial,
-            TileTerrainType.Forest => grid.ForestMaterial,
-            TileTerrainType.Stone => grid.StoneMaterial,
-            TileTerrainType.Water => grid.WaterMaterial,
-            TileTerrainType.Arcane => grid.ArcaneMaterial,
-            TileTerrainType.Ice => grid.IceMaterial,
-            TileTerrainType.Lava => grid.LavaMaterial,
-            _ => null
-        };
-
-        if (m is StandardMaterial3D std)
-            return std.AlbedoColor;
-
         return terrain switch
         {
             TileTerrainType.Grass => UITheme.CombatTileGrass,

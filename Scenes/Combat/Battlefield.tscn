@@ -5,20 +5,33 @@
 [ext_resource type="Script" uid="uid://c07b4kiher343" path="res://Scripts/UI/DeckUiManager.cs" id="3_pqsji"]
 [ext_resource type="PackedScene" uid="uid://iuge2orfh1hw" path="res://Scenes/Cards/CardUI.tscn" id="4_f341a"]
 [ext_resource type="PackedScene" uid="uid://csdmm1n6b4hoe" path="res://Scenes/Cards/DropSlot.tscn" id="5_fcnvh"]
-[ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/Combat/HexGridManager.cs" id="6_duw5d"]
+[ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/Combat/Terrain/HexGridManager.cs" id="6_duw5d"]
 [ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/Combat/HexTile.tscn" id="7_vjrxi"]
 [ext_resource type="PackedScene" uid="uid://dpnt6dp1jietn" path="res://Scenes/Combat/Summons/HexTile_Stone_Blocker.tscn" id="8_qd0yx"]
-[ext_resource type="PackedScene" uid="uid://csb2mcllkxlj6" path="res://Scenes/Combat/Summons/HexTile_Crystal_Blocker.tscn" id="9_uihwe"]
+[ext_resource type="Material" uid="uid://bh1ab1xjlty2f" path="res://Assets/Material/terrain_splat.tres" id="9_7tp1w"]
+[ext_resource type="ArrayMesh" uid="uid://briplfo4ti7tv" path="res://Assets/Terrain Asset/Painterly Flowers/Flowers 2.tres" id="9_nvl2j"]
 [ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scripts/UI/CameraController.cs" id="10_cdchv"]
+[ext_resource type="ArrayMesh" uid="uid://bnhwgjcu5ajff" path="res://Assets/Terrain Asset/Painterly Flowers/Flowers 3.tres" id="10_k1fpm"]
+[ext_resource type="ArrayMesh" uid="uid://ca4r0k5ndon1o" path="res://Assets/Terrain Asset/Painterly Flowers/Flowers 5.tres" id="11_7tp1w"]
 [ext_resource type="Script" uid="uid://7xc312fm8dtm" path="res://Scripts/Cards/CardDropHandler.cs" id="11_mdga3"]
-[ext_resource type="Script" uid="uid://ba84w4qhnvtux" path="res://Scripts/Systems/Combat/CombatManager.cs" id="12_7b6bt"]
+[ext_resource type="Shader" uid="uid://e3m26c7664p0" path="res://Assets/Shaders/painterly_grass.gdshader" id="12_4s1is"]
+[ext_resource type="Script" uid="uid://ba84w4qhnvtux" path="res://Scripts/Systems/Combat/Game logic/CombatManager.cs" id="12_7b6bt"]
+[ext_resource type="Material" uid="uid://bb6cgw8ypa6eb" path="res://Assets/Material/Painterly Materials/painterly_grass.tres" id="13_cm01p"]
 [ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Combat/Players/Unit.tscn" id="13_golrv"]
 [ext_resource type="Environment" uid="uid://bbtn025ticmfd" path="res://Assets/Environments/Combat_Environment.tres" id="13_tfvp6"]
+[ext_resource type="ArrayMesh" uid="uid://03hk4cssyjrd" path="res://Assets/Terrain Asset/Grass Tuft.tres" id="14_16blo"]
 [ext_resource type="PackedScene" uid="uid://chfd280du8r83" path="res://Scenes/Combat/Monsters/TargetDummy.tscn" id="14_jroeh"]
+[ext_resource type="ArrayMesh" uid="uid://h828cjr34et3" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_1.tres" id="15_6m6xa"]
+[ext_resource type="ArrayMesh" uid="uid://bv611trboi78r" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_2.tres" id="16_q7oa6"]
 [ext_resource type="PackedScene" uid="uid://cl1s1lbvr48m" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
-
-[sub_resource type="Resource" id="Resource_tfvp6"]
-metadata/__load_path__ = "res://Assets/Terrain Asset/Poliigon_GrassPatchyGround_4585_BaseColor.jpg"
+[ext_resource type="ArrayMesh" uid="uid://bnsgay2w2a4af" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_3.tres" id="17_onrkg"]
+[ext_resource type="ArrayMesh" uid="uid://dqpvqfq1puuv1" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_4.tres" id="18_6jt2h"]
+[ext_resource type="ArrayMesh" uid="uid://cffmwxp25vmf7" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_5.tres" id="19_hodjo"]
+[ext_resource type="ArrayMesh" uid="uid://b5t7jgtwct0i4" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_6.tres" id="20_ar26w"]
+[ext_resource type="ArrayMesh" uid="uid://bot2u60y1733a" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_7.tres" id="21_xj70s"]
+[ext_resource type="ArrayMesh" uid="uid://brh2bfy3k2uo2" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_8.tres" id="22_a00u1"]
+[ext_resource type="ArrayMesh" uid="uid://67powmk7dj6h" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_9.tres" id="23_3oinc"]
+[ext_resource type="Material" uid="uid://brf6b5tpj6geu" path="res://Assets/Material/Painterly Materials/Painterly_rocks.tres" id="24_k1fpm"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h4djk"]
 albedo_color = Color(0.357868, 0.30020714, 0.22991636, 1)
@@ -84,7 +97,7 @@ offset_right = 82.0
 offset_bottom = 968.0
 text = "Remove"
 
-[node name="HexGridManager" type="Node3D" parent="." unique_id=1283187122]
+[node name="HexGridManager" type="Node3D" parent="." unique_id=1283187122 node_paths=PackedStringArray("ThemeSun", "ThemeWorldEnvironment")]
 script = ExtResource("6_duw5d")
 GridWidth = 15
 GridHeight = 15
@@ -96,8 +109,18 @@ TerrainRoughness = 0.4
 HeightVariation = 1.0
 HexTileScene3D = ExtResource("7_vjrxi")
 RockObstacleScene = ExtResource("8_qd0yx")
-CrystalObstacleScene = ExtResource("9_uihwe")
-GrassTexture = SubResource("Resource_tfvp6")
+TerrainSolidFactor = 0.8
+TerrainMaterialOverride = ExtResource("9_7tp1w")
+ThemeSun = NodePath("../DirectionalLight3D")
+ThemeWorldEnvironment = NodePath("../WorldEnvironment")
+FlowerMeshes = Array[Mesh]([ExtResource("9_nvl2j"), ExtResource("10_k1fpm"), ExtResource("11_7tp1w")])
+FlowerMeshWeights = PackedFloat32Array(1, 0.7, 0.5)
+UseMeshSurfaceMaterials = true
+PainterlyGrassShader = ExtResource("12_4s1is")
+PainterlyGrassMaterial = ExtResource("13_cm01p")
+PainterlyGrassMesh = ExtResource("14_16blo")
+RockMeshes = Array[Mesh]([ExtResource("15_6m6xa"), ExtResource("16_q7oa6"), ExtResource("17_onrkg"), ExtResource("18_6jt2h"), ExtResource("19_hodjo"), ExtResource("20_ar26w"), ExtResource("21_xj70s"), ExtResource("22_a00u1"), ExtResource("23_3oinc")])
+RockMaterial = ExtResource("24_k1fpm")
 
 [node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=1378590758]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)

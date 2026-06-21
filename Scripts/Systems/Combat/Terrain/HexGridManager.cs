@@ -104,17 +104,6 @@ public partial class HexGridManager : Node3D
     [Export] public PackedScene CrystalObstacleScene;
     [Export] public Node3D ObstacleParent;
 
-    // Tile Materials
-
-    [ExportGroup("Tile Materials")]
-    [Export] public Material GrassMaterial;
-    [Export] public Material ForestMaterial;
-    [Export] public Material StoneMaterial;
-    [Export] public Material WaterMaterial;
-    [Export] public Material ArcaneMaterial;
-    [Export] public Material IceMaterial;
-    [Export] public Material LavaMaterial;
-
     [ExportGroup("Blended Terrain Mesh")]
     [Export] public bool UseBlendedTerrainMesh = true;
     [Export(PropertyHint.Range, "0.55,0.9,0.01")] public float TerrainSolidFactor = 0.75f;
@@ -1012,24 +1001,6 @@ public partial class HexGridManager : Node3D
             tile.TileView.RefreshVisualState();
             return;
         }
-
-        // Assign the exported terrain material when one is set. When materials are
-        // unassigned (the current project state), this stays null and behaviour is
-        // identical to before — flat colour only via SetBaseColor below.
-        Material terrainMaterial = tile.TerrainType switch
-        {
-            TileTerrainType.Grass => GrassMaterial,
-            TileTerrainType.Forest => ForestMaterial,
-            TileTerrainType.Stone => StoneMaterial,
-            TileTerrainType.Water => WaterMaterial,
-            TileTerrainType.Lava => LavaMaterial,
-            TileTerrainType.Arcane => ArcaneMaterial,
-            TileTerrainType.Ice => IceMaterial,
-            _ => null
-        };
-
-        if (terrainMaterial != null)
-            tile.TileView.SetMaterial(terrainMaterial);
 
         Color color = tile.TerrainType switch
         {

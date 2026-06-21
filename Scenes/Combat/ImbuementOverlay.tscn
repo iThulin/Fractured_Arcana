@@ -1,8 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://b_imbue_overlay_002"]
+[gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Tiles/ImbuementOverlay.cs" id="1_overlay_script"]
-[ext_resource type="Shader" path="res://Assets/Shaders/imbuement_aura.gdshader" id="2_aura_shader"]
-[ext_resource type="Shader" path="res://Assets/Shaders/imbuement_glyph.gdshader" id="3_glyph_shader"]
+[ext_resource type="Script" uid="uid://dxqupxhqxkumf" path="res://Scripts/Systems/Combat/Game logic/ImbuementOverlay.cs" id="1_overlay_script"]
+[ext_resource type="Shader" uid="uid://cr1egkjghpt0y" path="res://Assets/Shaders/imbuement_aura.gdshader" id="2_aura_shader"]
+[ext_resource type="Shader" uid="uid://b2r2lwrb8m6w4" path="res://Assets/Shaders/imbuement_glyph.gdshader" id="3_glyph_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_aura"]
 render_priority = 1
