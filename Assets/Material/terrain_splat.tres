@@ -1,0 +1,135 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://bh1ab1xjlty2f"]
+
+[ext_resource type="Shader" uid="uid://fhs81hebua46" path="res://Assets/Shaders/terrain_splat.gdshader" id="1_partf"]
+[ext_resource type="Texture2D" uid="uid://bh1t48f751rg0" path="res://Assets/Material/Painterly Materials/Cliff_crack.tres" id="2_r8yi3"]
+[ext_resource type="Texture2D" uid="uid://bcp76ync0flw5" path="res://Assets/Material/Painterly Materials/Painterly_wind_noise.tres" id="2_wpqog"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_partf"]
+noise_type = 2
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_wpqog"]
+noise = SubResource("FastNoiseLite_partf")
+seamless = true
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_wpqog"]
+seed = 1
+frequency = 0.0033
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_r8yi3"]
+width = 2048
+height = 2048
+noise = SubResource("FastNoiseLite_wpqog")
+seamless = true
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_r8yi3"]
+noise_type = 2
+frequency = 0.0191
+cellular_return_type = 0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_l37mq"]
+noise = SubResource("FastNoiseLite_r8yi3")
+seamless = true
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_l37mq"]
+frequency = 0.0054
+fractal_type = 0
+cellular_jitter = 1.285
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_xbbr0"]
+width = 2048
+height = 2048
+noise = SubResource("FastNoiseLite_l37mq")
+seamless = true
+seamless_blend_skirt = 1.0
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_partf")
+shader_parameter/texture_scale = 0.22
+shader_parameter/roughness_value = 0.85
+shader_parameter/triplanar_sharpness = 4.0
+shader_parameter/normal_strength = 1.0
+shader_parameter/flip_normal_y = false
+shader_parameter/cliff_layer = 4
+shader_parameter/cliff_blend_start = 0.850000040375
+shader_parameter/cliff_blend_sharpness = 8.0
+shader_parameter/wall_darkening = 0.12
+shader_parameter/toon_bands = 6.0
+shader_parameter/toon_softness = 1.0
+shader_parameter/toon_wrap = 0.27
+shader_parameter/ambient_fill = 0.45
+shader_parameter/use_solid_skirt = true
+shader_parameter/skirt_color = Color(0.1, 0.09, 0.14, 1)
+shader_parameter/use_pastel_ground = true
+shader_parameter/grass_layer = 0
+shader_parameter/pastel_strength = 0.9450000448875
+shader_parameter/pastel_low = Color(0.3019608, 0.23921569, 0.16862746, 1)
+shader_parameter/pastel_mid = Color(0.38039216, 0.33333334, 0.23137255, 1)
+shader_parameter/pastel_high = Color(0.47843137, 0.41960785, 0.29803923, 1)
+shader_parameter/pastel_mid_pos = 0.67200003029006
+shader_parameter/pastel_height_low = 0.0
+shader_parameter/pastel_height_high = 1.0
+shader_parameter/pastel_from_noise = true
+shader_parameter/pastel_noise_tex = SubResource("NoiseTexture2D_r8yi3")
+shader_parameter/pastel_noise_scale = 0.32300001499324
+shader_parameter/use_stone_ground = true
+shader_parameter/stone_layer = 4
+shader_parameter/stone_strength = 0.85
+shader_parameter/stone_noise_tex = ExtResource("2_wpqog")
+shader_parameter/stone_cool = Color(0.4, 0.44, 0.5, 1)
+shader_parameter/stone_warm = Color(0.54, 0.5, 0.45, 1)
+shader_parameter/stone_tint_scale = 0.05
+shader_parameter/stone_mottle = 0.12
+shader_parameter/stone_mottle_scale = 0.25
+shader_parameter/use_cliff_treatment = true
+shader_parameter/cliff_tint = Color(0.34, 0.36, 0.42, 1)
+shader_parameter/cliff_tint_strength = 0.5
+shader_parameter/cliff_contact_strength = 0.45
+shader_parameter/cliff_contact_height = 1.2
+shader_parameter/cliff_crack_tex = ExtResource("2_r8yi3")
+shader_parameter/cliff_crack_scale = 0.5
+shader_parameter/cliff_crack_strength = 0.15
+shader_parameter/cliff_moss = Color(0.4, 0.5, 0.28, 1)
+shader_parameter/cliff_moss_amount = 1.0
+shader_parameter/use_ground_detail = true
+shader_parameter/ground_detail_tex = SubResource("NoiseTexture2D_wpqog")
+shader_parameter/ground_detail_scale = 1.23900005722256
+shader_parameter/ground_mottle = 0.1850000087875
+shader_parameter/soil_tint = Color(0.1336951, 0.0724806, 0.025721675, 1)
+shader_parameter/soil_tint_strength = 0.50000002375
+shader_parameter/soil_tint_scale = 0.12
+shader_parameter/stone_tex = SubResource("NoiseTexture2D_l37mq")
+shader_parameter/stone_scale = 0.57300002558756
+shader_parameter/rock_color = Color(0.55, 0.52, 0.48, 1)
+shader_parameter/rock_amount = 0.3200000152
+shader_parameter/rock_threshold = 0.230000010925
+shader_parameter/rock_sharpness = 8.181000364847499
+shader_parameter/rock_variation = 0.42000001995
+shader_parameter/highlight_color = Vector3(0, 0, 0)
+shader_parameter/highlight_strength = 0.0
+shader_parameter/use_water = true
+shader_parameter/water_layer = 1
+shader_parameter/water_shallow = Color(0.22802284, 0.6443342, 0.6972902, 1)
+shader_parameter/water_deep = Color(0.2138193, 0.45583004, 0.6491408, 1)
+shader_parameter/water_deep_at = -1.0
+shader_parameter/water_shallow_at = 9.49999998667295e-08
+shader_parameter/water_flow = Vector2(1, 0.35)
+shader_parameter/water_wave_scale = 0.25400001136648
+shader_parameter/water_wave_speed = 0.0050000002375
+shader_parameter/water_detail_scale = 3.50000016299012
+shader_parameter/water_detail_speed = 0.0050000002375
+shader_parameter/water_ripple_strength = 0.0800000038
+shader_parameter/water_glint = Color(0.8, 0.92, 1, 1)
+shader_parameter/water_glint_strength = 0.0050000002375
+shader_parameter/water_foam = Color(0.92, 0.96, 1, 1)
+shader_parameter/water_foam_width = 0.35200001672
+shader_parameter/water_foam_softness = 0.12
+shader_parameter/water_noise_tex = SubResource("NoiseTexture2D_xbbr0")
+shader_parameter/water_tone_scale = 0.06600000278574
+shader_parameter/water_normal_strength = 0.3
+shader_parameter/use_grid_lines = true
+shader_parameter/grid_line_color = Color(0.18, 0.22, 0.16, 1)
+shader_parameter/grid_hex_radius = 1.0
+shader_parameter/grid_line_width = 0.010000000475
+shader_parameter/grid_line_softness = 0.02
+shader_parameter/grid_line_strength = 0.4

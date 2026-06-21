@@ -1,0 +1,117 @@
+[gd_scene format=3 uid="uid://b3uwyeo6pgvuf"]
+
+[ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/Combat/HexGridManager.cs" id="1_grid"]
+[ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/Combat/HexTile.tscn" id="2_3u6ok"]
+[ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scripts/UI/CameraController.cs" id="2_cam"]
+[ext_resource type="ArrayMesh" uid="uid://03hk4cssyjrd" path="res://Assets/Terrain Asset/Grass Tuft.tres" id="2_enr3w"]
+[ext_resource type="Material" uid="uid://bh1ab1xjlty2f" path="res://Assets/Material/terrain_splat.tres" id="3_3ycxn"]
+[ext_resource type="Script" uid="uid://bbhabwevbq81l" path="res://Scripts/Dev/CharacterStagingPreview.cs" id="3_drv"]
+[ext_resource type="Material" uid="uid://bb6cgw8ypa6eb" path="res://Assets/Material/Painterly Materials/painterly_grass.tres" id="3_rsji2"]
+[ext_resource type="Script" uid="uid://djax72iri8r6v" path="res://Scripts/Dev/StagingControlPanel.cs" id="4_panel"]
+[ext_resource type="ArrayMesh" uid="uid://briplfo4ti7tv" path="res://Assets/Terrain Asset/Painterly Flowers/Flowers 2.tres" id="4_wc4mq"]
+[ext_resource type="Environment" uid="uid://bbtn025ticmfd" path="res://Assets/Environments/Combat_Environment.tres" id="5_kq0xm"]
+[ext_resource type="ArrayMesh" uid="uid://bnhwgjcu5ajff" path="res://Assets/Terrain Asset/Painterly Flowers/Flowers 3.tres" id="5_uatt3"]
+[ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Combat/Players/Unit.tscn" id="5_yt0nn"]
+[ext_resource type="ArrayMesh" uid="uid://ca4r0k5ndon1o" path="res://Assets/Terrain Asset/Painterly Flowers/Flowers 5.tres" id="6_h4n05"]
+[ext_resource type="Script" uid="uid://hyoq6dl1gf67" path="res://Scripts/Dev/PainterlyGrassTuner.cs" id="9_0egh5"]
+[ext_resource type="ArrayMesh" uid="uid://h828cjr34et3" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_1.tres" id="9_oa5ao"]
+[ext_resource type="ArrayMesh" uid="uid://bv611trboi78r" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_2.tres" id="10_pr4vi"]
+[ext_resource type="ArrayMesh" uid="uid://bnsgay2w2a4af" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_3.tres" id="11_ve8sw"]
+[ext_resource type="ArrayMesh" uid="uid://dqpvqfq1puuv1" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_4.tres" id="12_6bmsi"]
+[ext_resource type="ArrayMesh" uid="uid://cffmwxp25vmf7" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_5.tres" id="13_42lop"]
+[ext_resource type="ArrayMesh" uid="uid://b5t7jgtwct0i4" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_6.tres" id="14_rqjji"]
+[ext_resource type="ArrayMesh" uid="uid://bot2u60y1733a" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_7.tres" id="15_iwfmq"]
+[ext_resource type="ArrayMesh" uid="uid://brh2bfy3k2uo2" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_8.tres" id="16_8jt3x"]
+[ext_resource type="ArrayMesh" uid="uid://67powmk7dj6h" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_9.tres" id="17_odj5a"]
+[ext_resource type="Material" uid="uid://brf6b5tpj6geu" path="res://Assets/Material/Painterly Materials/Painterly_rocks.tres" id="18_pr4vi"]
+
+[node name="CharacterStaging" type="Node3D" unique_id=1681662511]
+
+[node name="HexGridManager" type="Node3D" parent="." unique_id=71923393 node_paths=PackedStringArray("ThemeSun", "ThemeWorldEnvironment")]
+script = ExtResource("1_grid")
+GridWidth = 15
+GridHeight = 15
+LayoutType = 3
+Theme = 9
+RandomizeLayout = true
+HexTileScene3D = ExtResource("2_3u6ok")
+TerrainSolidFactor = 0.8
+TerrainTerraceSteps = 1
+TerrainMaterialOverride = ExtResource("3_3ycxn")
+GrassNoiseAmp = 0.36
+GrassNoiseFreq = 0.25
+ThemeSun = NodePath("../ThemeSun")
+ThemeWorldEnvironment = NodePath("../WorldEnvironment")
+FlowerMeshes = Array[Mesh]([ExtResource("4_wc4mq"), ExtResource("5_uatt3"), ExtResource("6_h4n05")])
+FlowerMeshWeights = PackedFloat32Array(1, 0.7, 0.5)
+UseMeshSurfaceMaterials = true
+FlowersPerTile = 5
+FlowerScale = 1.5
+FlowerScaleJitter = 0.5
+FlowerClumpBias = 1.0
+FlowerTiltJitter = 0.6
+FlowerOnForest = false
+FlowerPalette = PackedColorArray(0.9484187, 0.84913254, 0.2832791, 1, 0.42759806, 0.3345899, 0.82195586, 1, 0.59607846, 0.9607843, 0.92156863, 1)
+PainterlyGrassMaterial = ExtResource("3_rsji2")
+PainterlyGrassMesh = ExtResource("2_enr3w")
+GrassScale = 0.5
+GrassBladesPerTile = 700
+GrassBladeHeight = 1.5
+GrassEdgeOverlap = 0.0
+GrassHeightJitter = 0.6
+GrassWidthJitter = 0.6
+GrassOnForest = false
+GrassClumpInfluence = 0.6
+GrassClumpFrequency = 0.3
+GrassBareThreshold = 0.3
+RockMeshes = Array[Mesh]([ExtResource("9_oa5ao"), ExtResource("10_pr4vi"), ExtResource("11_ve8sw"), ExtResource("12_6bmsi"), ExtResource("13_42lop"), ExtResource("14_rqjji"), ExtResource("15_iwfmq"), ExtResource("16_8jt3x"), ExtResource("17_odj5a")])
+RockMaterial = ExtResource("18_pr4vi")
+RocksPerTile = 4
+RockScale = 1.5
+
+[node name="ThemeSun" type="DirectionalLight3D" parent="." unique_id=1961182073]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 12, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1174178077]
+environment = ExtResource("5_kq0xm")
+
+[node name="CameraController" type="Node3D" parent="." unique_id=1142674768]
+script = ExtResource("2_cam")
+
+[node name="CameraPivot" type="Node3D" parent="CameraController" unique_id=2016869422]
+
+[node name="Camera3D" type="Camera3D" parent="CameraController/CameraPivot" unique_id=1487156802]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
+
+[node name="CharacterStagingPreview" type="Node3D" parent="." unique_id=1556967683 node_paths=PackedStringArray("Grid", "Camera")]
+script = ExtResource("3_drv")
+Grid = NodePath("../HexGridManager")
+UnitScene = ExtResource("5_yt0nn")
+Camera = NodePath("../CameraController")
+PreviewRadius = 3
+StartTheme = 8
+
+[node name="PanelLayer" type="CanvasLayer" parent="." unique_id=334136645]
+
+[node name="StagingControlPanel" type="Control" parent="PanelLayer" unique_id=842430858 node_paths=PackedStringArray("Preview")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("4_panel")
+Preview = NodePath("../../CharacterStagingPreview")
+
+[node name="PainterlyGrassTuner" type="PanelContainer" parent="PanelLayer" unique_id=946496049]
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+script = ExtResource("9_0egh5")
+Material = ExtResource("3_rsji2")
+metadata/_custom_type_script = "uid://hyoq6dl1gf67"

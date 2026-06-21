@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://cn2hlconos371"]
+
+[ext_resource type="Script" uid="uid://dqk28nqqm6ql4" path="res://Scripts/Systems/Combat/HexGridManager.cs" id="1_grid"]
+[ext_resource type="Script" uid="uid://wqtdv0uvn5b3" path="res://Scripts/UI/CameraController.cs" id="2_cam"]
+[ext_resource type="PackedScene" uid="uid://kr82jj8kd6i1" path="res://Scenes/Combat/HexTile.tscn" id="2_fp6ep"]
+[ext_resource type="Script" uid="uid://bbhabwevbq81l" path="res://Scripts/Dev/CharacterStagingPreview.cs" id="3_drv"]
+[ext_resource type="Texture2D" uid="uid://dxlcwtwyiwt55" path="res://Assets/Terrain Asset/Poliigon_GrassPatchyGround_4585_BaseColor.jpg" id="3_hgwbb"]
+[ext_resource type="Texture2D" uid="uid://5ljuvxyxrwxb" path="res://Assets/Terrain Asset/Poliigon_GrassPatchyGround_4585_Normal.png" id="4_hgwbb"]
+[ext_resource type="Script" uid="uid://djax72iri8r6v" path="res://Scripts/Dev/StagingControlPanel.cs" id="4_panel"]
+[ext_resource type="Environment" uid="uid://bbtn025ticmfd" path="res://Assets/Environments/Combat_Environment.tres" id="4_tsv8v"]
+[ext_resource type="Texture2D" uid="uid://d1pox3wu3ow2l" path="res://Assets/Terrain Asset/Stone_Hextile_texture/Rock_Albedo.png" id="5_p1kqd"]
+[ext_resource type="Texture2D" uid="uid://bycvu1b2gikar" path="res://Assets/Terrain Asset/Stone_Hextile_texture/Rock_textureNormal.jpg" id="6_j0cy0"]
+[ext_resource type="PackedScene" uid="uid://bb7yljiwkjvgm" path="res://Scenes/Combat/Players/Unit.tscn" id="7_p1kqd"]
+[ext_resource type="Texture2D" uid="uid://dmms71k831cy4" path="res://Assets/Terrain Asset/Snow_Hextile_texture/FA_Terrain_albedo.png" id="7_siphq"]
+[ext_resource type="Texture2D" uid="uid://ol8mfwhs5uho" path="res://Assets/Terrain Asset/Snow_Hextile_texture/FA_Terrain_normal.png" id="8_safv5"]
+[ext_resource type="Shader" uid="uid://e3m26c7664p0" path="res://Assets/Shaders/painterly_grass.gdshader" id="9_safv5"]
+
+[node name="CharacterStaging" type="Node3D" unique_id=254555785]
+
+[node name="HexGridManager" type="Node3D" parent="." unique_id=674094289 node_paths=PackedStringArray("ThemeSun", "ThemeWorldEnvironment")]
+script = ExtResource("1_grid")
+HexTileScene3D = ExtResource("2_fp6ep")
+TerrainNoiseAmplitude = 0.35
+TerrainNoiseFrequency = 1.0
+CliffHeightThreshold = 5
+GrassTexture = ExtResource("3_hgwbb")
+GrassNormal = ExtResource("4_hgwbb")
+StoneTexture = ExtResource("5_p1kqd")
+StoneNormal = ExtResource("6_j0cy0")
+IceTexture = ExtResource("7_siphq")
+IceNormal = ExtResource("8_safv5")
+TerrainTextureScale = 0.9
+ThemeSun = NodePath("../ThemeSun")
+ThemeWorldEnvironment = NodePath("../WorldEnvironment")
+PainterlyGrassShader = ExtResource("9_safv5")
+GrassBladesPerTile = 70
+
+[node name="ThemeSun" type="DirectionalLight3D" parent="." unique_id=1247828838]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 12, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1163155961]
+environment = ExtResource("4_tsv8v")
+
+[node name="CameraController" type="Node3D" parent="." unique_id=75693457]
+script = ExtResource("2_cam")
+
+[node name="CameraPivot" type="Node3D" parent="CameraController" unique_id=294488971]
+
+[node name="Camera3D" type="Camera3D" parent="CameraController/CameraPivot" unique_id=1962231569]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
+
+[node name="CharacterStagingPreview" type="Node3D" parent="." unique_id=2114705807 node_paths=PackedStringArray("Grid", "Camera")]
+script = ExtResource("3_drv")
+Grid = NodePath("../HexGridManager")
+UnitScene = ExtResource("7_p1kqd")
+Camera = NodePath("../CameraController")
+
+[node name="PanelLayer" type="CanvasLayer" parent="." unique_id=406026102]
+
+[node name="StagingControlPanel" type="Control" parent="PanelLayer" unique_id=1834820356 node_paths=PackedStringArray("Preview")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("4_panel")
+Preview = NodePath("../../CharacterStagingPreview")
