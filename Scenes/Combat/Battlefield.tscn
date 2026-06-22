@@ -22,6 +22,9 @@
 [ext_resource type="ArrayMesh" uid="uid://03hk4cssyjrd" path="res://Assets/Terrain Asset/Grass Tuft.tres" id="14_16blo"]
 [ext_resource type="PackedScene" uid="uid://chfd280du8r83" path="res://Scenes/Combat/Monsters/TargetDummy.tscn" id="14_jroeh"]
 [ext_resource type="ArrayMesh" uid="uid://h828cjr34et3" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_1.tres" id="15_6m6xa"]
+[ext_resource type="ArrayMesh" uid="uid://fu8eu23ytneu" path="res://Assets/Terrain Asset/Painterly Grass/Grass Tuft B.tres" id="15_16blo"]
+[ext_resource type="ArrayMesh" uid="uid://dso7537ufeda4" path="res://Assets/Terrain Asset/Painterly Grass/Tall Grass.tres" id="15_cm01p"]
+[ext_resource type="Script" uid="uid://dob22fy125iys" path="res://Scripts/Systems/Combat/Terrain/GrassMeshVariant.cs" id="16_6m6xa"]
 [ext_resource type="ArrayMesh" uid="uid://bv611trboi78r" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_2.tres" id="16_q7oa6"]
 [ext_resource type="PackedScene" uid="uid://cl1s1lbvr48m" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
 [ext_resource type="ArrayMesh" uid="uid://bnsgay2w2a4af" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_3.tres" id="17_onrkg"]
@@ -32,6 +35,21 @@
 [ext_resource type="ArrayMesh" uid="uid://brh2bfy3k2uo2" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_8.tres" id="22_a00u1"]
 [ext_resource type="ArrayMesh" uid="uid://67powmk7dj6h" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_9.tres" id="23_3oinc"]
 [ext_resource type="Material" uid="uid://brf6b5tpj6geu" path="res://Assets/Material/Painterly Materials/Painterly_rocks.tres" id="24_k1fpm"]
+
+[sub_resource type="Resource" id="Resource_6jt2h"]
+script = ExtResource("16_6m6xa")
+Mesh = ExtResource("15_cm01p")
+ScaleMin = 0.25
+ScaleMax = 0.5
+AllowOnForest = false
+metadata/_custom_type_script = "uid://dob22fy125iys"
+
+[sub_resource type="Resource" id="Resource_16blo"]
+script = ExtResource("16_6m6xa")
+Mesh = ExtResource("15_16blo")
+ScaleMin = 0.1
+ScaleMax = 0.2
+metadata/_custom_type_script = "uid://dob22fy125iys"
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h4djk"]
 albedo_color = Color(0.357868, 0.30020714, 0.22991636, 1)
@@ -118,7 +136,14 @@ FlowerMeshWeights = PackedFloat32Array(1, 0.7, 0.5)
 UseMeshSurfaceMaterials = true
 PainterlyGrassShader = ExtResource("12_4s1is")
 PainterlyGrassMaterial = ExtResource("13_cm01p")
+GrassMeshVariants = Array[Object]([SubResource("Resource_6jt2h"), SubResource("Resource_16blo")])
 PainterlyGrassMesh = ExtResource("14_16blo")
+GrassDebugLog = true
+GrassBladesPerTile = 600
+GrassEdgeOverlap = 0.0
+GrassHeightJitter = 0.6
+GrassWidthJitter = 0.6
+GrassBareThreshold = 0.3
 RockMeshes = Array[Mesh]([ExtResource("15_6m6xa"), ExtResource("16_q7oa6"), ExtResource("17_onrkg"), ExtResource("18_6jt2h"), ExtResource("19_hodjo"), ExtResource("20_ar26w"), ExtResource("21_xj70s"), ExtResource("22_a00u1"), ExtResource("23_3oinc")])
 RockMaterial = ExtResource("24_k1fpm")
 

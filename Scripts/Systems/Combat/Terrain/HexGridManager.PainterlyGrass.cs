@@ -10,6 +10,16 @@ using System.Collections.Generic;
 // blades may bleed slightly past an edge ONLY toward a grass neighbour,
 // hiding the seam; edges facing non-grass / the map boundary clip hard.
 //
+// MESH PALETTE: assign one or more weighted GrassMeshVariant resources in
+// GrassMeshVariants to mix blade shapes. Each variant becomes its own
+// MultiMeshInstance3D (its own draw call) but they all share the single
+// grass ShaderMaterial, so wind/tint stay perfectly in phase across them.
+// Per variant you also get a scale band, a flat tint, and grass/forest
+// terrain eligibility. Variant selection + scale use a SEPARATE RNG
+// stream, so adding variants does NOT change blade positions for an
+// existing MapSeed (and a default 1->1 scale band draws no random number
+// at all, keeping legacy fields byte-identical).
+//
 // All [Export] fields carry /// XML doc summaries so they show as
 // tooltips in the Godot inspector. (Requires the project to generate
 // the XML documentation file — GenerateDocumentationFile in the .csproj.
@@ -36,16 +46,22 @@ public partial class HexGridManager : Node3D
     /** Explicit grass material. If set, it is used AS-IS — the automatic wind_noise injection is skipped, so you must set the shader's wind_noise slot yourself on this material. Leave null to let the builder create one and wire wind_noise for you. */
     [Export] public Material PainterlyGrassMaterial;
 
-    /** Blade mesh to instance. If null, a procedural two-quad blade is built at GrassBladeHeight. */
+    /** Weighted mesh palette. Add GrassMeshVariant entries to mix blade shapes; each blade picks one at random by Weight (filtered by terrain eligibility). Empty = fall back to PainterlyGrassMesh (or the procedural blade). Each variant is a separate draw call, so keep this to a few. */
+    [Export] public GrassMeshVariant[] GrassMeshVariants;
+
+    /** Single fallback blade mesh, used only when GrassMeshVariants is empty. If this is also null, a procedural two-quad blade is built at GrassBladeHeight. */
     [Export] public Mesh PainterlyGrassMesh;
 
-    /** Overall blade scale multiplier (applied to both width and height, before per-blade jitter). */
+    /** Print per-variant blade counts to the output log after each spawn — handy for confirming your Weight ratios produced the blade distribution you expected. */
+    [Export] public bool GrassDebugLog = false;
+
+    /** Overall blade scale multiplier (applied to both width and height, before per-variant scale and per-blade jitter). */
     [Export(PropertyHint.Range, "0.05,3.0,0.05")] public float GrassScale = 1.0f;
 
     /** Base blade count per tile. Forest tiles get ×1.35 and the map density preset scales it further (Sparse 0.5 → Wild 1.8). */
     [Export(PropertyHint.Range, "0,800,1")] public int GrassBladesPerTile = 40;
 
-    /** Height of the PROCEDURAL blade mesh. Ignored when a PainterlyGrassMesh is assigned. */
+    /** Height of the PROCEDURAL blade mesh. Ignored when a GrassMeshVariants entry or PainterlyGrassMesh is assigned. */
     [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float GrassBladeHeight = 0.28f;
 
     /** How far blades may bleed past an edge toward a grass neighbour (fraction of HexRadius). Hides grass-grass seams; 0 = clip exactly to the hex. */
@@ -83,7 +99,84 @@ public partial class HexGridManager : Node3D
         if (mat == null)
             return;
 
-        Mesh bladeMesh = PainterlyGrassMesh ?? BuildProceduralBladeMesh(GrassBladeHeight);
+        // ---- Resolve the effective weighted mesh palette ----
+        // Explicit weighted variants if any are valid, else the single
+        // PainterlyGrassMesh, else a procedural blade.
+        var meshes = new List<Mesh>();
+        var weights = new List<float>();
+        var sMin = new List<float>();
+        var sMax = new List<float>();
+        var tints = new List<Color>();
+        var onGrass = new List<bool>();
+        var onForest = new List<bool>();
+
+        if (GrassMeshVariants != null)
+        {
+            foreach (var v in GrassMeshVariants)
+            {
+                if (v == null || v.Mesh == null)
+                    continue;
+                meshes.Add(v.Mesh);
+                weights.Add(Mathf.Max(0f, v.Weight));
+                float lo = Mathf.Max(0.01f, Mathf.Min(v.ScaleMin, v.ScaleMax));
+                float hi = Mathf.Max(0.01f, Mathf.Max(v.ScaleMin, v.ScaleMax));
+                sMin.Add(lo);
+                sMax.Add(hi);
+                tints.Add(v.Tint);
+                onGrass.Add(v.AllowOnGrass);
+                onForest.Add(v.AllowOnForest);
+            }
+        }
+
+        if (meshes.Count == 0)
+        {
+            meshes.Add(PainterlyGrassMesh ?? BuildProceduralBladeMesh(GrassBladeHeight));
+            weights.Add(1f);
+            sMin.Add(1f);
+            sMax.Add(1f);
+            tints.Add(Colors.White);
+            onGrass.Add(true);
+            onForest.Add(true);
+        }
+
+        int variantCount = meshes.Count;
+
+        // Per-variant transform buckets.
+        var buckets = new List<Transform3D>[variantCount];
+        for (int v = 0; v < variantCount; v++)
+            buckets[v] = new List<Transform3D>();
+
+        // Build a weighted picker (indices + cumulative weights) over the
+        // subset of variants eligible for a given terrain. Falls back to ALL
+        // variants if the eligible subset is empty, and to uniform weighting
+        // if every eligible weight is <= 0, so grass never silently vanishes.
+        (int[] idx, float[] cum, float total) BuildPicker(System.Func<int, bool> eligible)
+        {
+            var ids = new List<int>();
+            for (int v = 0; v < variantCount; v++)
+                if (eligible(v))
+                    ids.Add(v);
+            if (ids.Count == 0)
+                for (int v = 0; v < variantCount; v++)
+                    ids.Add(v);
+
+            float sum = 0f;
+            foreach (int id in ids)
+                sum += weights[id];
+            bool uni = sum <= 0f;
+
+            var cum = new float[ids.Count];
+            float acc = 0f;
+            for (int j = 0; j < ids.Count; j++)
+            {
+                acc += uni ? 1f : weights[ids[j]];
+                cum[j] = acc;
+            }
+            return (ids.ToArray(), cum, uni ? ids.Count : sum);
+        }
+
+        var grassPick = BuildPicker(v => onGrass[v]);
+        var forestPick = BuildPicker(v => onForest[v]);
 
         float densityScalar = DensityPreset switch
         {
@@ -95,6 +188,35 @@ public partial class HexGridManager : Node3D
         };
 
         var rng = new RandomNumberGenerator { Seed = (ulong)(MapSeed ^ 0x6B61736D) };
+
+        // SEPARATE stream for variant selection + per-variant scale, so adding
+        // or removing mesh variants does NOT perturb blade positions/scales for
+        // a given seed. A degenerate (min==max) scale band draws nothing here,
+        // keeping single-mesh legacy fields byte-identical.
+        var variantRng = new RandomNumberGenerator { Seed = (ulong)(MapSeed ^ 0x4D455348) }; // "MESH"
+
+        int PickVariant(bool isForest)
+        {
+            var (ids, cum, total) = isForest ? forestPick : grassPick;
+            if (ids.Length == 1)
+                return ids[0];
+            float r = variantRng.Randf() * total;
+            for (int j = 0; j < ids.Length; j++)
+            {
+                if (r < cum[j])
+                    return ids[j];
+            }
+            return ids[ids.Length - 1];
+        }
+
+        float SampleVariantScale(int vIdx)
+        {
+            float lo = sMin[vIdx];
+            float hi = sMax[vIdx];
+            if (lo >= hi)
+                return lo;                       // fixed band -> no RNG draw
+            return variantRng.RandfRange(lo, hi);
+        }
 
         var clumpNoise = new FastNoiseLite
         {
@@ -121,7 +243,6 @@ public partial class HexGridManager : Node3D
             t.TerrainType == TileTerrainType.Grass ||
             (GrassOnForest && t.TerrainType == TileTerrainType.Forest);
 
-        var transforms = new List<Transform3D>(Tiles.Count * GrassBladesPerTile);
         var nbrGrass = new bool[6];
 
         foreach (var tile in Tiles.Values)
@@ -186,40 +307,127 @@ public partial class HexGridManager : Node3D
                 float wz = top.Z + p.Y;
                 var pos = new Vector3(wx, SampleGrassSurfaceY(tile, wx, wz), wz);
 
+                int vIdx = PickVariant(isForest);
+                float vScale = SampleVariantScale(vIdx);
+
                 float yaw = rng.RandfRange(0f, Mathf.Tau);
-                float hs = GrassScale * (1f + rng.RandfRange(-GrassHeightJitter, GrassHeightJitter));
-                float ws = GrassScale * (1f + rng.RandfRange(-GrassWidthJitter, GrassWidthJitter));
+                float hs = GrassScale * vScale * (1f + rng.RandfRange(-GrassHeightJitter, GrassHeightJitter));
+                float ws = GrassScale * vScale * (1f + rng.RandfRange(-GrassWidthJitter, GrassWidthJitter));
 
                 var basis = new Basis(Vector3.Up, yaw)
                     .Scaled(new Vector3(Mathf.Max(0.05f, ws), Mathf.Max(0.05f, hs), Mathf.Max(0.05f, ws)));
-                transforms.Add(new Transform3D(basis, pos));
+
+                buckets[vIdx].Add(new Transform3D(basis, pos));
             }
         }
 
-        if (transforms.Count == 0)
+        int totalBlades = 0;
+        for (int v = 0; v < variantCount; v++)
+            totalBlades += buckets[v].Count;
+
+        if (GrassDebugLog)
+        {
+            var sb = new System.Text.StringBuilder("[PainterlyGrass] blade counts: ");
+            for (int v = 0; v < variantCount; v++)
+                sb.Append($"#{v}={buckets[v].Count} ");
+            sb.Append($"(total {totalBlades})");
+            GD.Print(sb.ToString());
+        }
+
+        if (totalBlades == 0)
             return;
 
-        var mm = new MultiMesh
-        {
-            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-            Mesh = bladeMesh,
-            InstanceCount = transforms.Count
-        };
-        for (int i = 0; i < transforms.Count; i++)
-            mm.SetInstanceTransform(i, transforms[i]);
-
-        var mmi = new MultiMeshInstance3D
-        {
-            Name = "PainterlyGrassField",
-            Multimesh = mm,
-            MaterialOverride = mat,
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
-        };
-        mmi.AddToGroup(PainterlyGrassGroup);
-
         Node parent = PropParent ?? this;
-        parent.AddChild(mmi);
-        mmi.GlobalTransform = Transform3D.Identity; // instance transforms are world-space
+
+        // Per-instance mesh height is ALWAYS written (cheap — 16 bytes/instance)
+        // so stiffness_from_instance_height works regardless of variant count or
+        // a null/empty palette slot. Gating this on variantCount once silently
+        // disabled instance-height mode whenever a slot was empty -> never again.
+        const bool writeHeights = true;
+
+        // One MultiMeshInstance3D per non-empty variant. All share the single
+        // grass material so wind + mass tint stay in phase across variants.
+        for (int v = 0; v < variantCount; v++)
+        {
+            var list = buckets[v];
+            if (list.Count == 0)
+                continue;
+
+            bool tinted = tints[v] != Colors.White;
+
+            // Object-space height of THIS variant's mesh. Written per-instance
+            // (custom-data .r) so the shader can normalise the height gradient
+            // PER MESH — a tall and a short mesh each get a correct 0->1 ramp.
+            // Also drives the AABB padding below so tall meshes get a tall box.
+            float meshHeight = meshes[v].GetAabb().Size.Y;
+            if (meshHeight <= 0.0001f)
+                meshHeight = 1.0f;
+
+            // On the Compatibility renderer, enabling custom data but NOT colors
+            // leaves the shader's COLOR builtin reading an uninitialised instance
+            // slot (black) -> ALBEDO = col * COLOR collapses to 0 and every blade
+            // renders black regardless of base_color. So whenever custom data is
+            // on we MUST also enable AND explicitly fill the colour slot
+            // (white = inert tint hook). Pair them, always.
+            bool useColors = tinted || writeHeights;
+            Color instanceColor = tinted ? tints[v] : Colors.White;
+
+            var mm = new MultiMesh
+            {
+                TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+                Mesh = meshes[v],
+                UseColors = useColors,          // both flags must precede InstanceCount
+                UseCustomData = writeHeights
+            };
+            mm.InstanceCount = list.Count;
+
+            var customHeight = new Color(meshHeight, 0f, 0f, 0f);
+            for (int i = 0; i < list.Count; i++)
+            {
+                mm.SetInstanceTransform(i, list[i]);
+                if (useColors)
+                    mm.SetInstanceColor(i, instanceColor);
+                if (writeHeights)
+                    mm.SetInstanceCustomData(i, customHeight);
+            }
+
+            // --- Explicit visibility AABB ---
+            // Godot's auto-computed MultiMesh AABB is unreliable for world-space
+            // scattered grass: the whole instance frustum-culls as a single unit
+            // on a small camera rotation (tall grass vanishing on a ~15° turn),
+            // and vertex-shader wind sway pushes blades past whatever box it did
+            // compute. Build bounds from the actual instance origins and grow
+            // generously to cover blade height, per-variant scale, and sway.
+            Vector3 mn = list[0].Origin;
+            Vector3 mx = mn;
+            for (int i = 0; i < list.Count; i++)
+            {
+                Vector3 o = list[i].Origin;
+                mn.X = Mathf.Min(mn.X, o.X);
+                mn.Y = Mathf.Min(mn.Y, o.Y);
+                mn.Z = Mathf.Min(mn.Z, o.Z);
+                mx.X = Mathf.Max(mx.X, o.X);
+                mx.Y = Mathf.Max(mx.Y, o.Y);
+                mx.Z = Mathf.Max(mx.Z, o.Z);
+            }
+            // Use the real mesh height (not GrassBladeHeight, which only sizes
+            // the procedural blade) so imported tall meshes get a correct box.
+            float worldBladeHeight = meshHeight * GrassScale * sMax[v];
+            float grow = Mathf.Max(4.0f, worldBladeHeight * 2.0f + 2.0f);
+            mm.CustomAabb = new Aabb(mn, mx - mn).Grow(grow);
+
+            var mmi = new MultiMeshInstance3D
+            {
+                Name = $"PainterlyGrassField_{v}",
+                Multimesh = mm,
+                MaterialOverride = mat,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+            };
+            mmi.AddToGroup(PainterlyGrassGroup);
+
+            parent.AddChild(mmi);
+            mmi.GlobalTransform = Transform3D.Identity; // instance transforms are world-space
+        }
     }
 
     /** 

@@ -1,0 +1,33 @@
+[gd_resource type="ArrayMesh" format=4 uid="uid://dso7537ufeda4"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_am6eu"]
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_xxgr0"]
+_surfaces = [{
+"aabb": AABB(-0.040987696, 0.0025383234, -0.014788796, 0.08197539, 1.9999999, 0.021066595),
+"format": 34896613377,
+"index_count": 42,
+"index_data": PackedByteArray("AAABAAIAAAADAAEABAADAAAABQACAAEABQAGAAIABwAGAAUABwAFAAgACQAKAAsADAALAAoADAANAAsADgANAAwACQAPAAoAEAAPAAkAEAAJABEA"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 18,
+"vertex_data": PackedByteArray("Rc3/v2C3AAC6Jf9/8qMAAETa/3/yowAAuTL/v2C3AAD/f///AAAAAA4Q/z+1swAA8O//P7WzAAD//wAAtbMAAAAAAAC1swAA8O//P1T8AAC6Jf9/kewAAETa/3+R7AAAuTL/v///AABFzf+///8AAP9///+eSAAADhD/P1T8AAAAAAAAVPwAAP//AABU/AAA")
+}]
+blend_shape_mode = 0
+
+[resource]
+resource_name = "Grass Tuft_Plane"
+_surfaces = [{
+"aabb": AABB(-0.040987696, 0.0025383234, -0.014788796, 0.08197539, 1.9999999, 0.021066595),
+"attribute_data": PackedByteArray("AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//"),
+"format": 34896613399,
+"index_count": 42,
+"index_data": PackedByteArray("AAABAAIAAAADAAEABAAFAAYABAAHAAUACAAJAAoACAALAAkADAANAA4ADwAQABEADwASABAAEwAUABUAFgAXABgAFgAZABcAGgAbABwAGgAdABsA"),
+"material": SubResource("StandardMaterial3D_am6eu"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 30,
+"vertex_data": PackedByteArray("Rc3/v2C3IQC6Jf9/8qMhAETa/3/yoyEAuTL/v2C3IQDw7/8/VPzkf7ol/3+R7OR/RNr/f5Hs5H8OEP8/VPzkfwAAAABU/P5/8O//P1T8/n///wAAVPz+fw4Q/z9U/P5//3///wAAOwG5Mv+/YLc7AUXN/79gtzsB//8AALWzAAAOEP8/tbMAAAAAAAC1swAA8O//P7WzAAD/f///nkjEfkXN/7///8R+uTL/v///xH65Mv+////ef0Ta/3+R7N5/uiX/f5Hs3n9Fzf+////efw4Q/z+1sxoARNr/f/KjGgC6Jf9/8qMaAPDv/z+1sxoA////f////3////9/////f////3////9/////f////3//f////3////9/////f///AAD/fwAA/38AAP9/////f////3////9/////f////3////9/////fwAA/38AAP9/AAD/fwAA/38AAP9/AAD/fwAA/38AAP9/")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_xxgr0")
