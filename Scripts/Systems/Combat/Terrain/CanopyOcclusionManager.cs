@@ -18,11 +18,21 @@ using System.Collections.Generic;
 //     chest/centre, set FeetYOffset negative to drop the clear-from height.
 // ============================================================
 
-public partial class CanopyOcclusion : Node3D
+public partial class CanopyOcclusionManager : Node3D
 {
 	private const int MaxOccluders = 16; // must match the shader array size
 
+	/// <summary>Manual override (hand-placed testing). In a live map the scatter
+	/// injects the cached material via SetCanopyMaterial — leave this null then.</summary>
 	[Export] public ShaderMaterial CanopyMaterial;
+
+	/// <summary>Called by HexGridManager.SpawnCanopyProps so the feeder writes to
+	/// the exact material instance the canopy MultiMeshes render with.</summary>
+	public void SetCanopyMaterial(ShaderMaterial m)
+	{
+		if (m != null)
+			CanopyMaterial = m;
+	}
 	[Export] public string OccluderGroup = "units";
 	[Export] public NodePath UnitsRoot;            // optional: gather Node3D children instead of a group
 	[Export] public float FeetYOffset = 0.0f;      // shift the clear-from height relative to unit origin

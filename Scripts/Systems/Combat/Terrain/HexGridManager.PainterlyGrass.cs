@@ -109,6 +109,9 @@ public partial class HexGridManager : Node3D
         var tints = new List<Color>();
         var onGrass = new List<bool>();
         var onForest = new List<bool>();
+        var clumpInfl = new List<float>();
+        var clumpScale = new List<float>();
+        var clumpCov = new List<float>();
 
         if (GrassMeshVariants != null)
         {
@@ -125,6 +128,9 @@ public partial class HexGridManager : Node3D
                 tints.Add(v.Tint);
                 onGrass.Add(v.AllowOnGrass);
                 onForest.Add(v.AllowOnForest);
+                clumpInfl.Add(Mathf.Clamp(v.ClumpInfluence, 0f, 1f));
+                clumpScale.Add(Mathf.Max(0.001f, v.ClumpScale));
+                clumpCov.Add(Mathf.Clamp(v.ClumpCoverage, 0f, 1f));
             }
         }
 
@@ -137,6 +143,9 @@ public partial class HexGridManager : Node3D
             tints.Add(Colors.White);
             onGrass.Add(true);
             onForest.Add(true);
+            clumpInfl.Add(0f);
+            clumpScale.Add(0.08f);
+            clumpCov.Add(0.4f);
         }
 
         int variantCount = meshes.Count;
@@ -146,11 +155,11 @@ public partial class HexGridManager : Node3D
         for (int v = 0; v < variantCount; v++)
             buckets[v] = new List<Transform3D>();
 
-        // Build a weighted picker (indices + cumulative weights) over the
-        // subset of variants eligible for a given terrain. Falls back to ALL
-        // variants if the eligible subset is empty, and to uniform weighting
-        // if every eligible weight is <= 0, so grass never silently vanishes.
-        (int[] idx, float[] cum, float total) BuildPicker(System.Func<int, bool> eligible)
+        // Eligible variant indices per terrain. Weights are now POSITION-
+        // dependent (clump gating), so the cumulative table can't be precomputed
+        // here — only the eligible set is. Falls back to ALL variants if a
+        // terrain's eligible subset is empty, so grass never silently vanishes.
+        int[] BuildPickerIds(System.Func<int, bool> eligible)
         {
             var ids = new List<int>();
             for (int v = 0; v < variantCount; v++)
@@ -159,24 +168,27 @@ public partial class HexGridManager : Node3D
             if (ids.Count == 0)
                 for (int v = 0; v < variantCount; v++)
                     ids.Add(v);
-
-            float sum = 0f;
-            foreach (int id in ids)
-                sum += weights[id];
-            bool uni = sum <= 0f;
-
-            var cum = new float[ids.Count];
-            float acc = 0f;
-            for (int j = 0; j < ids.Count; j++)
-            {
-                acc += uni ? 1f : weights[ids[j]];
-                cum[j] = acc;
-            }
-            return (ids.ToArray(), cum, uni ? ids.Count : sum);
+            return ids.ToArray();
         }
 
-        var grassPick = BuildPicker(v => onGrass[v]);
-        var forestPick = BuildPicker(v => onForest[v]);
+        var grassIds = BuildPickerIds(v => onGrass[v]);
+        var forestIds = BuildPickerIds(v => onForest[v]);
+
+        // Per-variant clump field (one independently-seeded noise per variant
+        // that uses it) so a variant's pockets are connected and don't coincide
+        // with another variant's. Null for variants with ClumpInfluence == 0.
+        var clumpNoiseV = new FastNoiseLite[variantCount];
+        for (int v = 0; v < variantCount; v++)
+        {
+            if (clumpInfl[v] <= 0f)
+                continue;
+            clumpNoiseV[v] = new FastNoiseLite
+            {
+                Seed = unchecked(MapSeed ^ (0x436C0000 + v * 0x00010001)),
+                Frequency = clumpScale[v],
+                NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth
+            };
+        }
 
         float densityScalar = DensityPreset switch
         {
@@ -195,15 +207,50 @@ public partial class HexGridManager : Node3D
         // keeping single-mesh legacy fields byte-identical.
         var variantRng = new RandomNumberGenerator { Seed = (ulong)(MapSeed ^ 0x4D455348) }; // "MESH"
 
-        int PickVariant(bool isForest)
+        // Scratch buffer for live (position-dependent) effective weights,
+        // reused every pick so we don't allocate per blade.
+        var effW = new float[variantCount];
+
+        // Position-aware weighted pick. Each eligible variant's weight is gated
+        // by its clump field sampled at (wx,wz): inside the variant's pocket the
+        // gate ~1 (full weight), outside it ~0 (absent), blended by ClumpInfluence.
+        // A flat (ClumpInfluence == 0) variant keeps its constant weight and so
+        // fills wherever the gated variants drop out. Uses a SINGLE variantRng
+        // draw per call, identical to before when no variant clumps — so existing
+        // seeds keep byte-identical variant assignment until clumping is enabled.
+        int PickVariant(bool isForest, float wx, float wz)
         {
-            var (ids, cum, total) = isForest ? forestPick : grassPick;
+            var ids = isForest ? forestIds : grassIds;
             if (ids.Length == 1)
                 return ids[0];
-            float r = variantRng.Randf() * total;
+
+            float sum = 0f;
             for (int j = 0; j < ids.Length; j++)
             {
-                if (r < cum[j])
+                int id = ids[j];
+                float w = weights[id];
+                var noise = clumpNoiseV[id];
+                if (noise != null)
+                {
+                    float n = noise.GetNoise2D(wx, wz) * 0.5f + 0.5f;     // 0..1
+                    float threshold = 1f - clumpCov[id];
+                    const float soft = 0.15f;
+                    float gate = Mathf.SmoothStep(threshold - soft, threshold + soft, n);
+                    w *= Mathf.Lerp(1f, gate, clumpInfl[id]);
+                }
+                effW[j] = w;
+                sum += w;
+            }
+
+            if (sum <= 0f) // every eligible variant gated out here -> uniform pick
+                return ids[Mathf.Min(ids.Length - 1, (int)(variantRng.Randf() * ids.Length))];
+
+            float r = variantRng.Randf() * sum;
+            float acc = 0f;
+            for (int j = 0; j < ids.Length; j++)
+            {
+                acc += effW[j];
+                if (r < acc)
                     return ids[j];
             }
             return ids[ids.Length - 1];
@@ -307,7 +354,7 @@ public partial class HexGridManager : Node3D
                 float wz = top.Z + p.Y;
                 var pos = new Vector3(wx, SampleGrassSurfaceY(tile, wx, wz), wz);
 
-                int vIdx = PickVariant(isForest);
+                int vIdx = PickVariant(isForest, wx, wz);
                 float vScale = SampleVariantScale(vIdx);
 
                 float yaw = rng.RandfRange(0f, Mathf.Tau);

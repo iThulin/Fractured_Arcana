@@ -35,13 +35,16 @@
 [ext_resource type="ArrayMesh" uid="uid://brh2bfy3k2uo2" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_8.tres" id="22_a00u1"]
 [ext_resource type="ArrayMesh" uid="uid://67powmk7dj6h" path="res://Assets/Terrain Asset/Painterly_Rocks/Rock_9.tres" id="23_3oinc"]
 [ext_resource type="Material" uid="uid://brf6b5tpj6geu" path="res://Assets/Material/Painterly Materials/Painterly_rocks.tres" id="24_k1fpm"]
+[ext_resource type="Script" uid="uid://dh1cdr75p3xg1" path="res://Scripts/Systems/Combat/Terrain/CanopyOcclusionManager.cs" id="29_6m6xa"]
 
 [sub_resource type="Resource" id="Resource_6jt2h"]
 script = ExtResource("16_6m6xa")
 Mesh = ExtResource("15_cm01p")
-Weight = 0.5
+Weight = 2.0
+ClumpInfluence = 1.0
+ClumpCoverage = 0.35
 ScaleMin = 0.25
-ScaleMax = 0.5
+ScaleMax = 0.38
 AllowOnForest = false
 metadata/_custom_type_script = "uid://dob22fy125iys"
 
@@ -123,19 +126,23 @@ GridWidth = 15
 GridHeight = 15
 HexRadius = 1.025
 LayoutType = 1
-Theme = 4
+Theme = 9
 TerrainDensity = 0.4
 TerrainRoughness = 0.4
 HeightVariation = 1.0
 HexTileScene3D = ExtResource("7_vjrxi")
 RockObstacleScene = ExtResource("8_qd0yx")
-TerrainSolidFactor = 0.8
+TerrainSolidFactor = 0.9
+TerrainTerraceSteps = 1
 TerrainMaterialOverride = ExtResource("9_7tp1w")
 ThemeSun = NodePath("../DirectionalLight3D")
 ThemeWorldEnvironment = NodePath("../WorldEnvironment")
 FlowerMeshes = Array[Mesh]([ExtResource("9_nvl2j"), ExtResource("10_k1fpm"), ExtResource("11_7tp1w")])
 FlowerMeshWeights = PackedFloat32Array(1, 0.7, 0.5)
 UseMeshSurfaceMaterials = true
+FlowerScale = 0.75
+FlowerClumpBias = 1.0
+FlowerOnForest = false
 PainterlyGrassShader = ExtResource("12_4s1is")
 PainterlyGrassMaterial = ExtResource("13_cm01p")
 GrassMeshVariants = Array[Object]([SubResource("Resource_6jt2h"), SubResource("Resource_16blo")])
@@ -147,6 +154,9 @@ RocksPerTile = 6
 RockScale = 1.6
 RockScaleJitter = 0.8
 RockBareBias = 1.0
+
+[node name="CanopyOcclusionManager" type="Node3D" parent="HexGridManager" unique_id=1562116521]
+script = ExtResource("29_6m6xa")
 
 [node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=1378590758]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)

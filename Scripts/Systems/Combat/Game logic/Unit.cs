@@ -300,6 +300,8 @@ public partial class Unit : Node3D
 
         CreateHoverRing();
 
+        AddToGroup("units");
+
         _nameLabel = GetNodeOrNull<Label3D>("NameLabel");
         if (_nameLabel != null)
             _nameLabel.Text = DisplayName.Length > 0 ? DisplayName : Name;

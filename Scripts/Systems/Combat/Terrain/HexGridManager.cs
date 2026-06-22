@@ -449,6 +449,7 @@ public partial class HexGridManager : Node3D
         SpawnPainterlyGrass();
         SpawnFlowerProps();
         SpawnRockProps();
+        SpawnCanopyProps();
         RefreshAllTileLabels();
 
         RecomputeGridBounds();
