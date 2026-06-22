@@ -10,16 +10,27 @@ shader_type spatial;
 render_mode cull_disabled, specular_disabled, alpha_to_coverage;
 
 // ============================================================
-//  painterly_grass.gdshader  (v6 — wind-driven mass tint)
+//  painterly_grass.gdshader  (v7 — synced wind shimmer + per-instance height)
 //
 //  Inspector tooltips use /** ... */ doc comments (two leading asterisks)
 //  placed directly above each uniform. Plain // comments are NOT shown on hover.
 //
 //  Systems: multi-stop height gradient, world-space mass-tint clumping (x2,
-//  wind-following), AO root-darkening, optional albedo + normal maps, two-layer
-//  coherent world-space wind, multi-band toon light(), distance fade
-//  (alpha_to_coverage / dither fallback), atmospheric depth tint, tip
-//  translucency / backlight.
+//  wind-following), wind shimmer (colour slaved to the bend wave — always in
+//  sync), AO root-darkening, optional albedo + normal maps, two-layer coherent
+//  world-space wind, per-instance OR per-model height stiffness, multi-band
+//  toon light(), distance fade (alpha_to_coverage / dither fallback),
+//  atmospheric depth tint, tip translucency / backlight.
+//
+//  v7 additions (all default OFF — inert until toggled):
+//   - use_wind_shimmer: colour shift slaved DIRECTLY to the coherent bend wave
+//     (v_wave_coherent). Unlike mass_wind_follow, which feeds the wave through
+//     a random texture lookup and so never locks to the bend, this maps colour
+//     straight off the bend value, so the colour ripple and the bend ripple are
+//     the SAME travelling wave and cannot drift out of sync.
+//   - stiffness_from_instance_height: normalise blade height PER MESH from
+//     MultiMesh custom data (INSTANCE_CUSTOM.r). The spawner already writes each
+//     variant's object-space height there. Off = behaves exactly like v6.
 // ============================================================
 
 // ---- Multi-stop height gradient ----
@@ -79,8 +90,26 @@ uniform vec3      mass_tint_color2 : source_color = vec3(0.50, 0.46, 0.26);
 /** Strength of the second mass tint. */
 uniform float     mass_strength2 : hint_range(0.0, 1.0) = 0.40;
 
-/** Scrolls the mass-tint pattern along the wind with the SAME gust that bends the blades, so colour clumps roll across the field. 0 = static tint. */
+/** Scrolls the mass-tint pattern along the wind by pushing its sample UV with the gust. NOTE: because it displaces a STATIC pattern through a texture lookup, this does NOT stay phase-locked to the blade bend — use use_wind_shimmer for synced bend+colour motion, and keep this at 0 for static regional clumps. */
 uniform float     mass_wind_follow : hint_range(0.0, 1.0) = 0.0;
+
+// ---- Wind shimmer (colour slaved to the bend wave — always in sync) ----
+group_uniforms wind_shimmer;
+
+/** Tie a colour shift to the SAME value that bends each blade (the coherent gust wave). A gust then crosses the field as ONE synchronized bend + colour ripple. Unlike mass_wind_follow — which pushes a static pattern through a random texture lookup and so never locks to the bend — this maps colour straight from the bend wave, so it cannot drift out of sync. */
+uniform bool  use_wind_shimmer = false;
+
+/** Colour blended in at the crest of the wind wave (blades leaning hardest into the gust). A pale silver-green reads as the classic wheat-field shimmer. */
+uniform vec3  wind_shimmer_color : source_color = vec3(0.80, 0.93, 0.58);
+
+/** How strongly the wind wave shifts blade colour. */
+uniform float wind_shimmer_strength : hint_range(0.0, 1.0) = 0.4;
+
+/** Concentrate the shift toward the tips, where deflection is largest. 0 = whole blade shifts evenly; 1 = tips only. */
+uniform float wind_shimmer_tip_bias : hint_range(0.0, 1.0) = 0.6;
+
+/** Shimmer on BOTH lean directions (grass catching light as it rocks either way) instead of only the forward crest. */
+uniform bool  wind_shimmer_two_sided = true;
 
 // ---- AO root-darkening ----
 group_uniforms ambient_occlusion;
@@ -129,6 +158,9 @@ uniform bool  stiffness_from_model_height = false;
 
 /** Mesh height used to normalise height-based stiffness (when stiffness_from_model_height is on). */
 uniform float model_height : hint_range(0.05, 4.0) = 1.0;
+
+/** Per-MESH height normalisation from MultiMesh custom data (INSTANCE_CUSTOM.r), which the spawner fills with each variant's own object-space height. Use this when mixing grass meshes of DIFFERENT heights so each gets a correct 0->1 gradient — the single model_height uniform can't. Takes priority over stiffness_from_model_height for any instance whose custom-data .r > 0. */
+uniform bool  stiffness_from_instance_height = false;
 
 // ---- Wind: two-layer, world-space (coherent gusts sweeping in sections) ----
 group_uniforms wind;
@@ -234,8 +266,9 @@ varying float v_jitter;
 varying vec2  v_world_xz;
 varying vec2  v_obj_uv;
 varying float v_view_dist;
-varying float v_wave;          // signed coherent wind wave, shared with the mass tint
-varying vec2  v_wind_ndir;     // normalized wind direction, shared with the mass tint
+varying float v_wave;            // signed gust (wave*strength + detail*strength), shared with the mass tint
+varying float v_wave_coherent;   // raw main gust wave [-1,1] only (no detail) — drives the synced shimmer
+varying vec2  v_wind_ndir;       // normalized wind direction, shared with the mass tint
 
 float hash21(vec2 p)
 {
@@ -271,9 +304,16 @@ float dither_bayer(vec2 fc)
 
 void vertex()
 {
-    float stiffness = stiffness_from_model_height
-        ? clamp(VERTEX.y / max(model_height, 0.0001), 0.0, 1.0)
-        : clamp(UV.y, 0.0, 1.0);
+    // Height normalisation, priority order: per-instance custom-data height
+    // (correct for mixed-height meshes) -> single model_height uniform -> UV.y.
+    float h_norm;
+    if (stiffness_from_instance_height && INSTANCE_CUSTOM.r > 0.0001)
+        h_norm = VERTEX.y / INSTANCE_CUSTOM.r;
+    else if (stiffness_from_model_height)
+        h_norm = VERTEX.y / max(model_height, 0.0001);
+    else
+        h_norm = UV.y;
+    float stiffness = clamp(h_norm, 0.0, 1.0);
     v_stiffness = stiffness;
 
     v_obj_uv = VERTEX.xy * albedo_obj_scale;
@@ -306,6 +346,12 @@ void vertex()
     // tint so the colour wave travels with the same gust that bends the blades.
     v_wave = wave * wave_strength + detail * detail_strength;
 
+    // Raw main gust only ([-1,1], no detail flutter, no strength) — drives the
+    // synced wind shimmer. This is the dominant term in `sway` below, so a
+    // colour shift keyed to it crests exactly where the blade bends hardest,
+    // and stays clean because the busy detail layer is excluded.
+    v_wave_coherent = wave;
+
     float sway = gust * wind_bend * stiffness * stiffness;
     VERTEX.x += ndir.x * sway;
     VERTEX.z += ndir.y * sway;
@@ -331,8 +377,10 @@ void fragment()
     col *= 1.0 + v_jitter * color_variation;
 
     // 3. Mass clumping — world-space, whole regions, not single blades.
-    //    The tint UV is pushed along the wind by the coherent gust (v_wave),
-    //    so the darker/lighter patches roll across the meadow with the sway.
+    //    The tint UV is pushed along the wind by the gust (v_wave). NOTE this
+    //    displaces a static pattern through a texture lookup, so it does NOT
+    //    stay phase-locked to the bend; for synced bend+colour use the shimmer
+    //    below and leave mass_wind_follow at 0 for static regional clumps.
     vec2 mass_flow = v_wind_ndir * v_wave * mass_wind_follow;
     if (use_mass_tint)
     {
@@ -348,6 +396,18 @@ void fragment()
         float m2 = texture(mass_tex, v_world_xz * mass_scale + mass2_offset + mass_flow).r;
         float darken2 = (1.0 - m2) * mass_strength2;
         col = mix(col, col * mass_tint_color2, darken2);
+    }
+
+    // 3.4 Wind shimmer — colour slaved to the coherent gust wave
+    //     (v_wave_coherent), the SAME [-1,1] value that drives the dominant
+    //     bend in vertex(). Because the shimmer reads it directly (no texture
+    //     lookup in between, unlike mass_wind_follow), the colour crest and the
+    //     bend crest are the identical travelling wave and cannot drift apart.
+    if (use_wind_shimmer)
+    {
+        float w = wind_shimmer_two_sided ? abs(v_wave_coherent) : max(v_wave_coherent, 0.0);
+        float tipw = mix(1.0, v_stiffness, wind_shimmer_tip_bias);
+        col = mix(col, wind_shimmer_color, clamp(w, 0.0, 1.0) * wind_shimmer_strength * tipw);
     }
 
     // 3.5 Saturation / vibrance — push richness for the painterly look.

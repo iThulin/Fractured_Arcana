@@ -1,7 +1,9 @@
 [gd_resource type="NoiseTexture2D" format=3 uid="uid://bcp76ync0flw5"]
 
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_17omr"]
+[ext_resource type="FastNoiseLite" uid="uid://xfex1gengpvs" path="res://Assets/Material/Painterly Materials/Painterly_wind_fast_noise_lite.tres" id="1_r8agb"]
 
 [resource]
-noise = SubResource("FastNoiseLite_17omr")
+width = 1024
+height = 1024
+noise = ExtResource("1_r8agb")
 seamless = true

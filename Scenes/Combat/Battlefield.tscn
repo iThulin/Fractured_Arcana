@@ -39,6 +39,7 @@
 [sub_resource type="Resource" id="Resource_6jt2h"]
 script = ExtResource("16_6m6xa")
 Mesh = ExtResource("15_cm01p")
+Weight = 0.5
 ScaleMin = 0.25
 ScaleMax = 0.5
 AllowOnForest = false
@@ -48,7 +49,8 @@ metadata/_custom_type_script = "uid://dob22fy125iys"
 script = ExtResource("16_6m6xa")
 Mesh = ExtResource("15_16blo")
 ScaleMin = 0.1
-ScaleMax = 0.2
+ScaleMax = 0.15000000000000002
+AllowOnForest = false
 metadata/_custom_type_script = "uid://dob22fy125iys"
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h4djk"]
@@ -139,13 +141,12 @@ PainterlyGrassMaterial = ExtResource("13_cm01p")
 GrassMeshVariants = Array[Object]([SubResource("Resource_6jt2h"), SubResource("Resource_16blo")])
 PainterlyGrassMesh = ExtResource("14_16blo")
 GrassDebugLog = true
-GrassBladesPerTile = 600
-GrassEdgeOverlap = 0.0
-GrassHeightJitter = 0.6
-GrassWidthJitter = 0.6
-GrassBareThreshold = 0.3
 RockMeshes = Array[Mesh]([ExtResource("15_6m6xa"), ExtResource("16_q7oa6"), ExtResource("17_onrkg"), ExtResource("18_6jt2h"), ExtResource("19_hodjo"), ExtResource("20_ar26w"), ExtResource("21_xj70s"), ExtResource("22_a00u1"), ExtResource("23_3oinc")])
 RockMaterial = ExtResource("24_k1fpm")
+RocksPerTile = 6
+RockScale = 1.6
+RockScaleJitter = 0.8
+RockBareBias = 1.0
 
 [node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=1378590758]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)

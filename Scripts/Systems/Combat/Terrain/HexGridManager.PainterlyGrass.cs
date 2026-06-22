@@ -59,31 +59,31 @@ public partial class HexGridManager : Node3D
     [Export(PropertyHint.Range, "0.05,3.0,0.05")] public float GrassScale = 1.0f;
 
     /** Base blade count per tile. Forest tiles get ×1.35 and the map density preset scales it further (Sparse 0.5 → Wild 1.8). */
-    [Export(PropertyHint.Range, "0,800,1")] public int GrassBladesPerTile = 40;
+    [Export(PropertyHint.Range, "0,800,1")] public int GrassBladesPerTile = 400;
 
     /** Height of the PROCEDURAL blade mesh. Ignored when a GrassMeshVariants entry or PainterlyGrassMesh is assigned. */
-    [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float GrassBladeHeight = 0.28f;
+    [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float GrassBladeHeight = 0.3f;
 
     /** How far blades may bleed past an edge toward a grass neighbour (fraction of HexRadius). Hides grass-grass seams; 0 = clip exactly to the hex. */
-    [Export(PropertyHint.Range, "0.0,0.4,0.01")] public float GrassEdgeOverlap = 0.12f;
+    [Export(PropertyHint.Range, "0.0,0.4,0.01")] public float GrassEdgeOverlap = 0.05f;
 
     /** Per-blade random height variation (± fraction). Higher = more varied blade heights. */
-    [Export(PropertyHint.Range, "0,0.6,0.05")] public float GrassHeightJitter = 0.3f;
+    [Export(PropertyHint.Range, "0,0.6,0.05")] public float GrassHeightJitter = 0.6f;
 
     /** Per-blade random width variation (± fraction). Higher = more varied blade widths. */
-    [Export(PropertyHint.Range, "0,0.6,0.05")] public float GrassWidthJitter = 0.2f;
+    [Export(PropertyHint.Range, "0,0.6,0.05")] public float GrassWidthJitter = 0.6f;
 
     /** Also scatter grass on Forest tiles (with a denser blade count). Off = grass on Grass tiles only. */
-    [Export] public bool GrassOnForest = true;
+    [Export] public bool GrassOnForest = false;
 
     /** 0 = even meadow; 1 = grass fully driven by the clump field (dense clumps + thin gaps). */
-    [Export(PropertyHint.Range, "0,1,0.05")] public float GrassClumpInfluence = 0.0f;
+    [Export(PropertyHint.Range, "0,1,0.05")] public float GrassClumpInfluence = 0.35f;
 
     /** World-space frequency of the clump field. Lower = bigger clumps and bigger bare patches. Flowers/rocks share this field, so changing it shifts where they cluster too. */
     [Export] public float GrassClumpFrequency = 0.35f;
 
     /** Clump-noise value below which ground is left fully bare (hard pockets). 0 = no hard bare spots. */
-    [Export(PropertyHint.Range, "0,1,0.02")] public float GrassBareThreshold = 0.0f;
+    [Export(PropertyHint.Range, "0,1,0.02")] public float GrassBareThreshold = 0.3f;
 
     private const string PainterlyGrassGroup = "painterly_grass";
     private Material _painterlyGrassMaterialCache;
