@@ -1,84 +1,115 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 // ============================================================
 // GuildSaveData.cs
 //
-// Purpose:        The full save schema for one guild — everything
-//                 that persists between runs (wizard choice, gold,
-//                 companions, armory, buildings, faction rep,
-//                 region memory, lore unlocks, persistent deck).
+// Purpose:        In-memory envelope over the three-tier save
+//                 schema. Assembles the EternalLedger (tier 3)
+//                 and CycleState (tier 2) into one object and
+//                 exposes the ENTIRE legacy field surface as
+//                 [JsonIgnore] forwarding shims so existing call
+//                 sites compile unchanged during the transition.
+//                 THIS CLASS IS NEVER SERIALIZED — SaveManager
+//                 writes Ledger and Cycle to separate files.
 // Layer:          Data
-// Collaborators:  SaveManager.cs (serializes this),
-//                 StarterDeckLoader.cs (seeds PlayerDeck),
-//                 PlayerDeckService.cs (hydrates cards from save),
-//                 BuildingDatabase.cs (Buildings list),
-//                 ItemDatabase.cs (Armory field), CampusScreen.cs
-// See:            README §6 — Save System
-// Schema version history:
-//   v1 — initial schema
-//   v2 — added PlayerDeck, ArcaneSplinters, UnlockedCardBlueprintIds
+// Collaborators:  EternalLedger.cs (tier 3), CycleState.cs
+//                 (tier 2), SaveManager.cs (dual-file IO),
+//                 StarterDeckLoader.cs, PlayerDeckService.cs,
+//                 BuildingDatabase.cs, ItemDatabase.cs,
+//                 CampusScreen.cs (all via shims)
+// See:            open_world_refactor_v1.docx §10 — Save Schema
+// Shim policy:    Shims exist so Phase 0 lands without touching
+//                 forty call sites. New code should address
+//                 .Cycle and .Ledger directly; burn shims down
+//                 opportunistically as files get touched.
 // ============================================================
 
 /// <summary>
-/// Top-level save model. One instance per guild slot.
-/// Serialized to JSON by <see cref="SaveManager"/>.
-/// Bump <see cref="SaveVersion"/> and add a migration in
-/// <c>SaveManager.MigrateIfNeeded</c> whenever the schema changes.
+/// The active save, assembled in memory from its two on-disk halves.
+/// <see cref="Ledger"/> survives every cycle; <see cref="Cycle"/> is
+/// replaced wholesale at each cycle reset.
 /// </summary>
 public class GuildSaveData
 {
+    // ── The two tiers ────────────────────────────────────────────────────
+    /// <summary>Tier 3 — the loom. The only permanent-loss vector.</summary>
+    public EternalLedger Ledger = new();
+
+    /// <summary>Tier 2 — the current timeline.</summary>
+    public CycleState Cycle = new();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Forwarding shims — legacy surface, [JsonIgnore], never serialized.
+    // ═══════════════════════════════════════════════════════════════════
+
     // ── Meta ────────────────────────────────────────────────────────────
-    public int SaveVersion = 8;
-    public string GuildName = "New Guild";
-    public string CreatedAt = "";
-    public string LastPlayedAt = "";
+    [JsonIgnore] public int SaveVersion
+    { get => Ledger.SaveVersion; set { Ledger.SaveVersion = value; Cycle.SaveVersion = value; } }
+
+    [JsonIgnore] public string GuildName
+    { get => Ledger.GuildName; set => Ledger.GuildName = value; }
+
+    [JsonIgnore] public string CreatedAt
+    { get => Ledger.CreatedAt; set => Ledger.CreatedAt = value; }
+
+    [JsonIgnore] public string LastPlayedAt
+    { get => Ledger.LastPlayedAt; set => Ledger.LastPlayedAt = value; }
 
     // ── Campaign state ───────────────────────────────────────────────────
-    /// <summary>
-    /// Persistent campaign-level state: archmage placements, dispositions,
-    /// corruption levels, and the Chronomancer's clock. Generated once at
-    /// new game from a seeded RNG; never regenerated.
-    /// </summary>
-    public CampaignState Campaign = new();
+    [JsonIgnore] public CampaignState Campaign
+    { get => Cycle.Campaign; set => Cycle.Campaign = value; }
 
     // ── Wizard ──────────────────────────────────────────────────────────
-    public string SelectedSchool = "Elementalist";
-    public string WizardName = "Wizard";
+    [JsonIgnore] public string SelectedSchool
+    { get => Cycle.SelectedSchool; set => Cycle.SelectedSchool = value; }
+
+    [JsonIgnore] public string WizardName
+    { get => Cycle.WizardName; set => Cycle.WizardName = value; }
 
     // ── Region ──────────────────────────────────────────────────────────
-    public string CurrentRegionId = "frontier_wilds";
+    [JsonIgnore] public string CurrentRegionId
+    { get => Cycle.CurrentRegionId; set => Cycle.CurrentRegionId = value; }
 
     // ── Economy ─────────────────────────────────────────────────────────
-    public int Gold = 0;
+    [JsonIgnore] public int Gold
+    { get => Cycle.Gold; set => Cycle.Gold = value; }
 
-    /// <summary>
-    /// Upgrade currency. Earned from combat at a low rate; spent at
-    /// Training Grounds to upgrade OwnedCard.UpgradeTier.
-    /// </summary>
-    public int ArcaneSplinters = 0;
+    [JsonIgnore] public int ArcaneSplinters
+    { get => Cycle.ArcaneSplinters; set => Cycle.ArcaneSplinters = value; }
 
     // ── Run stats ───────────────────────────────────────────────────────
-    public int TotalRuns = 0;
-    public int RunsWon = 0;
-    public int RunsLost = 0;
-    public int TotalGoldEarned = 0;
-    public int TotalEncountersWon = 0;
+    [JsonIgnore] public int TotalRuns
+    { get => Cycle.TotalRuns; set => Cycle.TotalRuns = value; }
+
+    [JsonIgnore] public int RunsWon
+    { get => Cycle.RunsWon; set => Cycle.RunsWon = value; }
+
+    [JsonIgnore] public int RunsLost
+    { get => Cycle.RunsLost; set => Cycle.RunsLost = value; }
+
+    [JsonIgnore] public int TotalGoldEarned
+    { get => Cycle.TotalGoldEarned; set => Cycle.TotalGoldEarned = value; }
+
+    [JsonIgnore] public int TotalEncountersWon
+    { get => Cycle.TotalEncountersWon; set => Cycle.TotalEncountersWon = value; }
 
     // ── Companions ──────────────────────────────────────────────────────
-    public List<Companion> Companions = new();
-    public List<string> ActivePartyCompanionIds = new();
-    public int MaxPartySize = 2;
+    [JsonIgnore] public List<Companion> Companions
+    { get => Cycle.Companions; set => Cycle.Companions = value; }
 
-    // ── Training Grounds helpers ─────────────────────────────────────────
-    public int TrainingGroundsTier => GetBuildingTier("training_grounds");
+    [JsonIgnore] public List<string> ActivePartyCompanionIds
+    { get => Cycle.ActivePartyCompanionIds; set => Cycle.ActivePartyCompanionIds = value; }
 
-    /// <summary>
-    /// How many stance slots a companion has based on Training Grounds tier.
-    /// </summary>
-    public int MartialStanceSlots => TrainingGroundsTier;
+    [JsonIgnore] public int MaxPartySize
+    { get => Cycle.MaxPartySize; set => Cycle.MaxPartySize = value; }
 
-    /// <summary>Base AP for a Fighter at current Training Grounds tier.</summary>
-    public int FighterBaseAP => TrainingGroundsTier switch
+    // ── Training Grounds helpers (read the eternal campus) ──────────────
+    [JsonIgnore] public int TrainingGroundsTier => GetBuildingTier("training_grounds");
+
+    [JsonIgnore] public int MartialStanceSlots => TrainingGroundsTier;
+
+    [JsonIgnore] public int FighterBaseAP => TrainingGroundsTier switch
     {
         0 => 3,
         1 => 4,
@@ -87,8 +118,7 @@ public class GuildSaveData
         _ => 3,
     };
 
-    /// <summary>Base AP for a Ranger at current Training Grounds tier.</summary>
-    public int RangerBaseAP => TrainingGroundsTier switch
+    [JsonIgnore] public int RangerBaseAP => TrainingGroundsTier switch
     {
         0 => 3,
         1 => 5,
@@ -99,76 +129,73 @@ public class GuildSaveData
 
     private int GetBuildingTier(string buildingId)
     {
-        foreach (var b in Buildings)
+        foreach (var b in Ledger.Buildings)
             if (b.Id == buildingId)
                 return b.Tier;
         return 0;
     }
 
     // ── Equipment armory ─────────────────────────────────────────────────
-    public ArmoryData Armory = new();
+    [JsonIgnore] public ArmoryData Armory
+    { get => Cycle.Armory; set => Cycle.Armory = value; }
 
-    // ── Buildings ────────────────────────────────────────────────────────
-    public List<BuildingSaveData> Buildings = new();
+    // ── Buildings (the eternal campus) ───────────────────────────────────
+    [JsonIgnore] public List<BuildingSaveData> Buildings
+    { get => Ledger.Buildings; set => Ledger.Buildings = value; }
 
     // ── Persistent deck ──────────────────────────────────────────────────
-    /// <summary>
-    /// The player's owned card collection and active-deck loadout.
-    /// Seeded by <see cref="StarterDeckLoader.SeedStarterDeck"/> on
-    /// new game. Hydrated into live Card instances at run start by
-    /// <see cref="PlayerDeckService"/>.
-    /// </summary>
-    public PlayerDeckSave PlayerDeck = new();
+    [JsonIgnore] public PlayerDeckSave PlayerDeck
+    { get => Cycle.PlayerDeck; set => Cycle.PlayerDeck = value; }
 
-    /// <summary>
-    /// Minimum cards that must remain in the deck. Default 10.
-    /// Cannot disenchant below this floor.
-    /// </summary>
-    public int MinDeckSize = 10;
+    [JsonIgnore] public int MinDeckSize
+    { get => Cycle.MinDeckSize; set => Cycle.MinDeckSize = value; }
 
-    /// <summary>
-    /// Set of CardBlueprint.Id values the player has "discovered" —
-    /// only discovered cards appear in draft pools. Starter cards are
-    /// added here automatically during SeedStarterDeck. New cards enter
-    /// the pool when first drafted or found.
-    /// </summary>
-    public List<string> UnlockedCardBlueprintIds = new();
+    /// <summary>Discovered blueprints — knowledge, so it lives in the loom.</summary>
+    [JsonIgnore] public List<string> UnlockedCardBlueprintIds
+    { get => Ledger.UnlockedCardBlueprintIds; set => Ledger.UnlockedCardBlueprintIds = value; }
 
     // ── Faction reputation ──────────────────────────────────────────────
-    public System.Collections.Generic.Dictionary<string, int> FactionReputation = new();
+    [JsonIgnore] public Dictionary<string, int> FactionReputation
+    { get => Cycle.FactionReputation; set => Cycle.FactionReputation = value; }
 
-    // ── Region memory (which hexes revealed per region) ─────────────────
-    public System.Collections.Generic.Dictionary<string, RegionMemorySaveData> RegionMemory = new();
+    // ── Region memory ────────────────────────────────────────────────────
+    [JsonIgnore] public Dictionary<string, RegionMemorySaveData> RegionMemory
+    { get => Cycle.RegionMemory; set => Cycle.RegionMemory = value; }
 
-    // ── Honored Dead records ─────────────────────────────────────────────
-    /// <summary>
-    /// Records of units who died in combat, used to summon spirits in the Ossuary.
-    /// Appended to when units die, but never removed or modified (except for the 
-    /// HasBeenSummoned flag) — the full history of deaths is preserved.
-    /// </summary>
-    public List<HonoredDeadRecord> HonoredDead = new();
+    // ── Honored Dead (the loom remembers the dead) ──────────────────────
+    [JsonIgnore] public List<HonoredDeadRecord> HonoredDead
+    { get => Ledger.HonoredDead; set => Ledger.HonoredDead = value; }
 
     // ── Lore / progression flags ────────────────────────────────────────
-    public List<string> UnlockedLoreEntries = new();
-    public List<string> CompletedEvents = new();
+    [JsonIgnore] public List<string> UnlockedLoreEntries
+    { get => Ledger.UnlockedLoreEntries; set => Ledger.UnlockedLoreEntries = value; }
+
+    [JsonIgnore] public List<string> CompletedEvents
+    { get => Cycle.CompletedEvents; set => Cycle.CompletedEvents = value; }
 
     // ── Phase 3+ stubs ───────────────────────────────────────────────────
-    public string CharterAlignment = "";
-    public int SeasonalThreatLevel = 0;
-    public System.Collections.Generic.Dictionary<string, int> FragmentProgress = new();
+    [JsonIgnore] public string CharterAlignment
+    { get => Cycle.CharterAlignment; set => Cycle.CharterAlignment = value; }
+
+    [JsonIgnore] public int SeasonalThreatLevel
+    { get => Cycle.SeasonalThreatLevel; set => Cycle.SeasonalThreatLevel = value; }
+
+    [JsonIgnore] public Dictionary<string, int> FragmentProgress
+    { get => Cycle.FragmentProgress; set => Cycle.FragmentProgress = value; }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Persistent deck types
+// Persistent deck types (unchanged; serialized inside CycleState.PlayerDeck)
 // ────────────────────────────────────────────────────────────────────────────
 
 /// <summary>
-/// The player's full card collection and active-deck configuration,
-/// persisted between runs as part of <see cref="GuildSaveData"/>.
+/// The player's full card collection and active-deck configuration
+/// for the current cycle. Seeded by StarterDeckLoader at cycle start;
+/// hydrated into live Card instances at run start by PlayerDeckService.
 /// </summary>
 public class PlayerDeckSave
 {
-    /// <summary>Every card the player owns, across all copies.</summary>
+    /// <summary>Every card the player owns this cycle, across all copies.</summary>
     public List<OwnedCard> Cards = new();
 
     /// <summary>
@@ -190,8 +217,8 @@ public class PlayerDeckSave
 public class OwnedCard
 {
     /// <summary>
-    /// Matches <see cref="CardBlueprint.Id"/>: "school:TopName|BotName".
-    /// Used to look up the blueprint in CardDatabase at run start.
+    /// Matches <see cref="CardBlueprint.Id"/>. Used to look up the
+    /// blueprint in CardDatabase at run start.
     /// </summary>
     public string BlueprintId = "";
 
@@ -224,20 +251,10 @@ public class OwnedCard
     public bool IsStarter = false;
 
     /// <summary>
-    /// Tracks the number of times a card has been cast in the campaign
+    /// Tracks the number of times a card has been cast in the campaign.
     /// Used as a resource for card mastery.
+    /// </summary>
     public int CastCount = 0;
-
-    // ── Migration shims ───────────────────────────────────────────────
-    // Read during v4→v5 migration from old saves. Suppressed on write
-    // when at default values so they don't appear in new save files.
-    [System.Text.Json.Serialization.JsonIgnore(
-        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
-    public int UpgradeTier = 0;
-
-    [System.Text.Json.Serialization.JsonIgnore(
-        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
-    public string ChosenBranch = null;
 
     // ── Convenience ──────────────────────────────────────────────────
     public bool IsBaseUpgraded => TopTier >= 1 && BotTier >= 1;
@@ -250,7 +267,6 @@ public class OwnedCard
     // Whether a given half can be upgraded further
     public bool CanUpgradeTop => IsBaseUpgraded && TopTier < 4 && PointsRemaining > 0;
     public bool CanUpgradeBot => IsBaseUpgraded && BotTier < 4 && PointsRemaining > 0;
-
 }
 
 // ────────────────────────────────────────────────────────────────────────────

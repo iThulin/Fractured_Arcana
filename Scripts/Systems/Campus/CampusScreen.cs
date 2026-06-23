@@ -78,6 +78,8 @@ public partial class CampusScreen : Control
     {
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
         CallDeferred(nameof(BuildUI));
+        // Debug: generate a world and dump it to the console
+        WorldDebug.GenerateAndDump(12345, "Elementalist");
     }
 
     private void BuildUI()
