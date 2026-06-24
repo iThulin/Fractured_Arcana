@@ -111,7 +111,10 @@ public class WorldData
     public int Width = 96;
     public int Height = 96;
 
-    /// <summary>Row-major: tile(x,y) = Tiles[y * Width + x].</summary>
+    /// <summary>Row-major OFFSET storage: tile(col,row) = Tiles[row * Width + col].
+    /// The world is a Civ-6-style rectangular hex map — flat-top, odd-q. Use
+    /// HexCoord for distance/neighbors/disc; (col,row) are offset coordinates,
+    /// not square coordinates.</summary>
     public WorldTile[] Tiles = System.Array.Empty<WorldTile>();
 
     public List<WorldPoi> Pois = new();
@@ -133,15 +136,27 @@ public class WorldData
     /// at call sites). Returns false if out of bounds.</summary>
     public bool TryIndex(int x, int y, out int index)
     {
-        if (!InBounds(x, y)) { index = -1; return false; }
+        if (!InBounds(x, y))
+        { index = -1; return false; }
         index = y * Width + x;
         return true;
     }
 
     public WorldPoi PoiAt(int x, int y)
     {
-        if (!InBounds(x, y)) return null;
+        if (!InBounds(x, y))
+            return null;
         int pi = GetTile(x, y).PoiIndex;
         return (pi >= 0 && pi < Pois.Count) ? Pois[pi] : null;
     }
+
+    // ── Hex topology (the world is a flat-top odd-q rectangular hex map) ──
+    /// <summary>Hex distance between two tiles in offset coordinates.</summary>
+    public int HexDistance(int col1, int row1, int col2, int row2)
+        => HexCoord.OffsetDistance(col1, row1, col2, row2);
+
+    /// <summary>In-bounds offset cells within hex radius R of a center —
+    /// the expedition window footprint.</summary>
+    public System.Collections.Generic.List<(int col, int row)> Disc(int col, int row, int radius)
+        => HexCoord.Disc(col, row, radius, Width, Height);
 }

@@ -78,7 +78,7 @@ public static class WorldGenerator
         var start = capitals[0];
         var convergence = capitals
             .Skip(1)
-            .OrderByDescending(c => Cheb(c, start))
+            .OrderByDescending(c => Dist(c, start))
             .First();
         world.ConvergenceX = convergence.x;
         world.ConvergenceY = convergence.y;
@@ -90,9 +90,10 @@ public static class WorldGenerator
         var distOf = new Dictionary<string, int>();
         foreach (var kvp in capitals.Select((c, i) => (id: kingdomIds[i], c)))
         {
-            int d = Cheb(kvp.c, start);
+            int d = Dist(kvp.c, start);
             distOf[kvp.id] = d;
-            if (d > maxDist) maxDist = d;
+            if (d > maxDist)
+                maxDist = d;
         }
         foreach (var id in kingdomIds)
             tierOf[id] = DistanceToTier(distOf[id], maxDist);
@@ -104,7 +105,8 @@ public static class WorldGenerator
         var placeables = new List<PlaceableRegion>();
         foreach (var id in kingdomIds)
         {
-            if (id == convergenceKingdom) continue;
+            if (id == convergenceKingdom)
+                continue;
             placeables.Add(new PlaceableRegion { Id = id, Tier = tierOf[id] });
         }
         var campaign = CampaignGenerator.Generate(seed, playerSchool, placeables);
@@ -227,8 +229,9 @@ public static class WorldGenerator
                 var cand = land[(int)(rng.Randi() % (uint)land.Count)];
                 int minD = int.MaxValue;
                 foreach (var cap in capitals)
-                    minD = Mathf.Min(minD, Cheb(cand, cap));
-                if (minD > bestMin) { bestMin = minD; best = cand; }
+                    minD = Mathf.Min(minD, Dist(cand, cap));
+                if (minD > bestMin)
+                { bestMin = minD; best = cand; }
             }
             capitals.Add(best);
         }
@@ -236,7 +239,7 @@ public static class WorldGenerator
     }
 
     /// <summary>Assigns every land tile to its nearest capital's kingdom
-    /// (Chebyshev). Water stays wilderness. Returns the per-capital kingdom ids
+    /// (hex). Water stays wilderness. Returns the per-capital kingdom ids
     /// in capital order.</summary>
     private static List<string> AssignTerritories(WorldData world, List<(int x, int y)> capitals)
     {
@@ -255,8 +258,9 @@ public static class WorldGenerator
                 int nearest = 0, bestD = int.MaxValue;
                 for (int i = 0; i < capitals.Count; i++)
                 {
-                    int d = Cheb((x, y), capitals[i]);
-                    if (d < bestD) { bestD = d; nearest = i; }
+                    int d = Dist((x, y), capitals[i]);
+                    if (d < bestD)
+                    { bestD = d; nearest = i; }
                 }
                 world.Tiles[idx].KingdomId = ids[nearest];
             }
@@ -292,7 +296,7 @@ public static class WorldGenerator
         {
             for (int x = 0; x < world.Width; x++)
             {
-                int d = Cheb((x, y), convergence);
+                int d = Dist((x, y), convergence);
                 if (d <= bloom)
                 {
                     int idx = y * world.Width + x;
@@ -306,7 +310,8 @@ public static class WorldGenerator
         // seat's own territory, which has no archmage).
         foreach (var kvp in kingdoms)
         {
-            if (string.IsNullOrEmpty(kvp.Value.ArchmageId)) continue;
+            if (string.IsNullOrEmpty(kvp.Value.ArchmageId))
+                continue;
             // Cheap proxy: if any of this kingdom's region appears in campaign and
             // it's a tier-3 territory, give it baseline corruption 1.
             if (kvp.Value.Tier >= 3)
@@ -324,7 +329,8 @@ public static class WorldGenerator
         for (int i = 0; i < capitals.Count; i++)
         {
             string id = kingdomIds[i];
-            if (id == convergenceKingdom) continue;
+            if (id == convergenceKingdom)
+                continue;
             if (!kingdoms.TryGetValue(id, out var ks) || string.IsNullOrEmpty(ks.ArchmageId))
                 continue;
 
@@ -339,15 +345,18 @@ public static class WorldGenerator
         };
         foreach (var id in kingdomIds)
         {
-            if (id == convergenceKingdom) continue;
+            if (id == convergenceKingdom)
+                continue;
             var tiles = TilesOfKingdom(world, id);
-            if (tiles.Count == 0) continue;
+            if (tiles.Count == 0)
+                continue;
 
             int count = p.PoiPerKingdom;
             for (int n = 0; n < count; n++)
             {
                 var (x, y) = tiles[(int)(rng.Randi() % (uint)tiles.Count)];
-                if (world.GetTile(x, y).PoiIndex >= 0) continue; // already a POI here
+                if (world.GetTile(x, y).PoiIndex >= 0)
+                    continue; // already a POI here
                 PoiKind kind = kinds[(int)(rng.Randi() % (uint)kinds.Length)];
                 bool staging = kind == PoiKind.Outpost; // outposts become staging points when secured
                 AddPoi(world, x, y, kind, id, grantsStaging: staging);
@@ -361,8 +370,12 @@ public static class WorldGenerator
         int poiIndex = world.Pois.Count;
         world.Pois.Add(new WorldPoi
         {
-            X = x, Y = y, Kind = kind, KingdomId = kingdomId,
-            Discovered = false, GrantsStaging = grantsStaging,
+            X = x,
+            Y = y,
+            Kind = kind,
+            KingdomId = kingdomId,
+            Discovered = false,
+            GrantsStaging = grantsStaging,
         });
         int idx = y * world.Width + x;
         var t = world.Tiles[idx];
@@ -380,13 +393,17 @@ public static class WorldGenerator
 
         world.StagingPoints.Add(new StagingPoint
         {
-            X = start.x, Y = start.y, Name = "Home Camp", Source = "Start", Available = true,
+            X = start.x,
+            Y = start.y,
+            Name = "Home Camp",
+            Source = "Start",
+            Available = true,
         });
 
         // Pre-discover the nearest few POIs so the first strategic view has
         // something to aim at.
         var nearest = world.Pois
-            .Select((poi, i) => (poi, i, d: Cheb((poi.X, poi.Y), start)))
+            .Select((poi, i) => (poi, i, d: Dist((poi.X, poi.Y), start)))
             .OrderBy(t2 => t2.d)
             .Take(p.PreDiscoveredPois);
         foreach (var (poi, _, _) in nearest)
@@ -404,15 +421,20 @@ public static class WorldGenerator
         return result;
     }
 
-    private static int Cheb((int x, int y) a, (int x, int y) b)
-        => Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
+    // World coords (x,y) ARE offset (col,row). Distance is hexagonal — the
+    // world is a Civ-6-style rectangular hex map (flat-top, odd-q).
+    private static int Dist((int x, int y) a, (int x, int y) b)
+        => HexCoord.OffsetDistance(a.x, a.y, b.x, b.y);
 
     private static int DistanceToTier(int dist, int maxDist)
     {
-        if (maxDist <= 0) return 1;
+        if (maxDist <= 0)
+            return 1;
         float t = (float)dist / maxDist;
-        if (t < 0.34f) return 1;
-        if (t < 0.67f) return 2;
+        if (t < 0.34f)
+            return 1;
+        if (t < 0.67f)
+            return 2;
         return 3;
     }
 

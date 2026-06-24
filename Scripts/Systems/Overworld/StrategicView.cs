@@ -111,7 +111,7 @@ public partial class StrategicView : Node2D
             {
                 int i = y * _world.Width + x;
                 mm.SetInstanceTransform2D(i,
-                    new Transform2D(0f, new Vector2(x * TilePx, y * TilePx)));
+                    new Transform2D(0f, HexCoord.OffsetRenderPosition(x, y, TilePx)));
                 mm.SetInstanceColor(i, TileColor(_world.Tiles[i]));
                 mm.SetInstanceCustomData(i, Colors.White); // keep custom-data buffer non-zero
             }
@@ -156,8 +156,9 @@ public partial class StrategicView : Node2D
             {
                 int poiIndex = visible[n];
                 var poi = _world.Pois[poiIndex];
-                mm.SetInstanceTransform2D(n, new Transform2D(0f,
-                    new Vector2(poi.X * TilePx + TilePx * 0.5f, poi.Y * TilePx + TilePx * 0.5f)));
+                Vector2 pos = HexCoord.OffsetRenderPosition(poi.X, poi.Y, TilePx)
+                              + new Vector2(TilePx * 0.5f, TilePx * 0.5f);
+                mm.SetInstanceTransform2D(n, new Transform2D(0f, pos));
                 mm.SetInstanceColor(n, PoiColor(poi.Kind));
                 mm.SetInstanceCustomData(n, Colors.White);
                 _poiInstanceOfPoi[poiIndex] = n;
