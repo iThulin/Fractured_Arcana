@@ -24,6 +24,49 @@ using System.Text;
 
 public static class WorldDebug
 {
+    // When set, dump output is appended here (user://) instead of only printed.
+    private static System.Text.StringBuilder _log;
+
+    /// <summary>Generate a world and write a full diagnostic to
+    /// user://world_dump.txt (no Output-panel truncation). Returns the
+    /// generated data. On Mac the file lands in
+    /// ~/Library/Application Support/Godot/app_userdata/&lt;Project&gt;/world_dump.txt</summary>
+    public static GeneratedWorldData GenerateAndDumpToFile(int seed, string school,
+                                                           WorldGenerator.Params p = null,
+                                                           string path = "user://world_dump.txt")
+    {
+        _log = new System.Text.StringBuilder();
+        var g = WorldGenerator.Generate(seed, school, p);
+        DumpTerrain(g.World);
+        DumpTerritories(g.World, g.Kingdoms);
+        DumpKingdoms(g.Kingdoms, g.Campaign);
+        RunInvariants(g);
+
+        using (var f = FileAccess.Open(path, FileAccess.ModeFlags.Write))
+        {
+            if (f != null)
+            {
+                f.StoreString(_log.ToString());
+                GD.Print($"[WorldDebug] Full dump written to {path} " +
+                         $"({_log.Length} chars). Globalized: {ProjectSettings.GlobalizePath(path)}");
+            }
+            else
+            {
+                GD.PrintErr($"[WorldDebug] Could not open {path} for writing.");
+            }
+        }
+        _log = null;
+        return g;
+    }
+
+    /// <summary>Print to the Output panel AND, if a file dump is in progress,
+    /// append to the log buffer.</summary>
+    private static void Emit(string s)
+    {
+        GD.Print(s);
+        _log?.Append(s).Append('\n');
+    }
+
     /// <summary>Generate a world and print a full diagnostic. Returns the
     /// generated data so a caller can inspect further.</summary>
     public static GeneratedWorldData GenerateAndDump(int seed, string school,
@@ -49,7 +92,7 @@ public static class WorldDebug
                 sb.Append(TerrainGlyph(w.GetTile(x, y).Terrain));
             sb.Append('\n');
         }
-        GD.Print(sb.ToString());
+        Emit(sb.ToString());
     }
 
     // ── ASCII territory map (downsampled; each kingdom a distinct glyph) ──
@@ -75,14 +118,15 @@ public static class WorldDebug
                 { sb.Append('@'); continue; }
 
                 var t = w.GetTile(x, y);
-                if (string.IsNullOrEmpty(t.KingdomId)) { sb.Append('.'); continue; }
+                if (string.IsNullOrEmpty(t.KingdomId))
+                { sb.Append('.'); continue; }
                 sb.Append(glyphOf.TryGetValue(t.KingdomId, out var ch) ? ch : '?');
             }
             sb.Append('\n');
         }
         foreach (var kvp in glyphOf)
             sb.AppendLine($"  {kvp.Value} = {kvp.Key}");
-        GD.Print(sb.ToString());
+        Emit(sb.ToString());
     }
 
     /// <summary>Sample step that keeps the printed map under ~48 columns.</summary>
@@ -95,7 +139,8 @@ public static class WorldDebug
     {
         for (int y = y0; y < y0 + step && y < w.Height; y++)
             for (int x = x0; x < x0 + step && x < w.Width; x++)
-                if (test(x, y)) return true;
+                if (test(x, y))
+                    return true;
         return false;
     }
 
@@ -113,7 +158,7 @@ public static class WorldDebug
                           $"archmage={(string.IsNullOrEmpty(k.ArchmageId) ? "(none)" : k.ArchmageId),-12} " +
                           $"stance={k.Stance} corruption={corruption}");
         }
-        GD.Print(sb.ToString());
+        Emit(sb.ToString());
     }
 
     // ── Invariants ───────────────────────────────────────────────────────
@@ -158,14 +203,18 @@ public static class WorldDebug
             fails.Add("no POIs pre-discovered — first strategic view would be blank.");
 
         if (fails.Count == 0)
-            GD.Print($"\n[WorldDebug] INVARIANTS PASSED " +
-                     $"({w.Pois.Count} POIs, {discovered} pre-discovered, " +
-                     $"{archmageKingdoms} archmage kingdoms).");
+            Emit($"\n[WorldDebug] INVARIANTS PASSED " +
+                 $"({w.Pois.Count} POIs, {discovered} pre-discovered, " +
+                 $"{archmageKingdoms} archmage kingdoms).");
         else
         {
-            GD.PrintErr("\n[WorldDebug] INVARIANT FAILURES:");
+            Emit("\n[WorldDebug] INVARIANT FAILURES:");
+            GD.PrintErr("[WorldDebug] INVARIANT FAILURES (see log):");
             foreach (var f in fails)
+            {
+                Emit($"  - {f}");
                 GD.PrintErr($"  - {f}");
+            }
         }
     }
 

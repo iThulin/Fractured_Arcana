@@ -79,7 +79,7 @@ public partial class CampusScreen : Control
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
         CallDeferred(nameof(BuildUI));
         // Debug: generate a world and dump it to the console
-        WorldDebug.GenerateAndDump(12345, "Elementalist");
+        WorldDebug.GenerateAndDumpToFile(12345, "Elementalist");
     }
 
     private void BuildUI()
@@ -224,9 +224,15 @@ public partial class CampusScreen : Control
         // Refresh the newly visible tab so it always shows current data
         switch (index)
         {
-            case 3: RefreshExpeditionTab(); break;
-            case 4: RefreshArmoryTab(); break;
-            case 5: RefreshTrainingTab(); break;
+            case 3:
+                RefreshExpeditionTab();
+                break;
+            case 4:
+                RefreshArmoryTab();
+                break;
+            case 5:
+                RefreshTrainingTab();
+                break;
         }
     }
 
@@ -321,7 +327,8 @@ public partial class CampusScreen : Control
 
     private void RefreshGuildIdentityPanel()
     {
-        if (_guildIdentityContainer == null) return;
+        if (_guildIdentityContainer == null)
+            return;
         foreach (var child in _guildIdentityContainer.GetChildren())
             child.QueueFree();
 
@@ -415,11 +422,13 @@ public partial class CampusScreen : Control
 
     private void RefreshGuildResultPanel()
     {
-        if (_guildResultContainer == null) return;
+        if (_guildResultContainer == null)
+            return;
         foreach (var child in _guildResultContainer.GetChildren())
             child.QueueFree();
 
-        if (!RunResultData.HasResults) return;
+        if (!RunResultData.HasResults)
+            return;
 
         bool won = RunResultData.ReachedObjective;
 
@@ -673,7 +682,8 @@ public partial class CampusScreen : Control
 
     private void PopulateExpeditionRegionList()
     {
-        if (_expeditionRegionList == null || _worldMap == null) return;
+        if (_expeditionRegionList == null || _worldMap == null)
+            return;
 
         foreach (var child in _expeditionRegionList.GetChildren())
             child.QueueFree();
@@ -841,7 +851,8 @@ public partial class CampusScreen : Control
         _selectedExpeditionRegionId = regionId;
 
         var node = _worldMap?.Nodes.Find(n => n.RegionId == regionId);
-        if (node == null) return;
+        if (node == null)
+            return;
 
         bool unlocked = IsExpeditionRegionUnlocked(node);
         var (visits, explored, cleared) = RegionMemoryService.GetStats(regionId);
@@ -891,14 +902,18 @@ public partial class CampusScreen : Control
 
     private void OnExpeditionDeployPressed()
     {
-        if (_selectedExpeditionRegionId == null) return;
-        if (_selectedSlot < 0) return;
+        if (_selectedExpeditionRegionId == null)
+            return;
+        if (_selectedSlot < 0)
+            return;
 
         var node = _worldMap?.Nodes.Find(n => n.RegionId == _selectedExpeditionRegionId);
-        if (node == null || !IsExpeditionRegionUnlocked(node)) return;
+        if (node == null || !IsExpeditionRegionUnlocked(node))
+            return;
 
         var save = SaveManager.ActiveSave;
-        if (save == null) return;
+        if (save == null)
+            return;
 
         // Deduct deployment cost
         if (node.DeploymentCost > 0)
@@ -923,7 +938,8 @@ public partial class CampusScreen : Control
 
     private void RefreshExpeditionTab()
     {
-        if (_expeditionRegionList == null) return;
+        if (_expeditionRegionList == null)
+            return;
         PopulateExpeditionRegionList();
 
         // Re-select previously selected region if still valid
@@ -935,10 +951,12 @@ public partial class CampusScreen : Control
 
     private bool IsExpeditionRegionUnlocked(RegionNode node)
     {
-        if (node.UnlockedByDefault) return true;
+        if (node.UnlockedByDefault)
+            return true;
 
         var save = SaveManager.ActiveSave;
-        if (save == null) return false;
+        if (save == null)
+            return false;
 
         if (!string.IsNullOrEmpty(node.RequiresRegionCleared))
         {
@@ -977,7 +995,8 @@ public partial class CampusScreen : Control
 
     private void RefreshArmoryTab()
     {
-        if (_armoryContainer == null) return;
+        if (_armoryContainer == null)
+            return;
 
         foreach (Node child in _armoryContainer.GetChildren())
             child.QueueFree();
@@ -1023,7 +1042,8 @@ public partial class CampusScreen : Control
         foreach (var companionId in save.ActivePartyCompanionIds)
         {
             var companion = save.Companions.Find(c => c.Id == companionId);
-            if (companion == null || companion.IsPermadead) continue;
+            if (companion == null || companion.IsPermadead)
+                continue;
 
             AddUnitSelectorButton(row, companion.Id, companion.Name, UITheme.Success);
         }
@@ -1338,7 +1358,8 @@ public partial class CampusScreen : Control
     // ═══════════════════════════════════════════════════════════════════════
     private void RefreshTrainingTab()
     {
-        if (_trainingContainer == null) return;
+        if (_trainingContainer == null)
+            return;
         foreach (Node child in _trainingContainer.GetChildren())
             child.QueueFree();
 
@@ -1375,11 +1396,13 @@ public partial class CampusScreen : Control
         AddSectionHeader(_trainingContainer, "Select Companion");
         BuildTrainingCompanionSelector(save);
 
-        if (_selectedTrainingCompanionId == null) return;
+        if (_selectedTrainingCompanionId == null)
+            return;
 
         var companion = save.Companions.Find(
             c => c.Id == _selectedTrainingCompanionId);
-        if (companion == null || companion.IsPermadead) return;
+        if (companion == null || companion.IsPermadead)
+            return;
 
         bool isMartial = companion.UnitClass == "Fighter" ||
                          companion.UnitClass == "Ranger";
@@ -1407,7 +1430,8 @@ public partial class CampusScreen : Control
 
         foreach (var companion in save.Companions)
         {
-            if (!companion.IsRecruited || companion.IsPermadead) continue;
+            if (!companion.IsRecruited || companion.IsPermadead)
+                continue;
             bool isMartial = companion.UnitClass == "Fighter" ||
                              companion.UnitClass == "Ranger";
 
@@ -1449,7 +1473,8 @@ public partial class CampusScreen : Control
             {
                 bool slotActive = i < slots;
                 var stance = StanceRegistry.Get(companion.TrainedStanceIds[i]);
-                if (stance == null) continue;
+                if (stance == null)
+                    continue;
 
                 var row = BuildStanceRow(stance, companion, save,
                     isActive: slotActive, canForget: true);
@@ -1484,8 +1509,10 @@ public partial class CampusScreen : Control
         bool anyLearnable = false;
         foreach (var stance in StanceRegistry.All.Values)
         {
-            if (stance.Class != martialClass) continue;
-            if (companion.TrainedStanceIds.Contains(stance.Id)) continue;
+            if (stance.Class != martialClass)
+                continue;
+            if (companion.TrainedStanceIds.Contains(stance.Id))
+                continue;
 
             anyLearnable = true;
             bool canLearn = companion.TrainedStanceIds.Count < save.MartialStanceSlots;
@@ -1642,13 +1669,20 @@ public partial class CampusScreen : Control
     {
         var parts = new System.Collections.Generic.List<string>();
 
-        if (def.Stats.MaxHP != 0) parts.Add($"+{def.Stats.MaxHP} HP");
-        if (def.Stats.MaxMana != 0) parts.Add($"+{def.Stats.MaxMana} Mana");
-        if (def.Stats.Armor != 0) parts.Add($"+{def.Stats.Armor} Armor");
-        if (def.Stats.BaseSpeed != 0) parts.Add($"+{def.Stats.BaseSpeed} Speed");
-        if (def.Stats.AttackDamage != 0) parts.Add($"+{def.Stats.AttackDamage} Atk");
-        if (def.Stats.AttackRange != 0) parts.Add($"+{def.Stats.AttackRange} Range");
-        if (def.Stats.SpellDamage != 0) parts.Add($"+{def.Stats.SpellDamage} SpellDmg");
+        if (def.Stats.MaxHP != 0)
+            parts.Add($"+{def.Stats.MaxHP} HP");
+        if (def.Stats.MaxMana != 0)
+            parts.Add($"+{def.Stats.MaxMana} Mana");
+        if (def.Stats.Armor != 0)
+            parts.Add($"+{def.Stats.Armor} Armor");
+        if (def.Stats.BaseSpeed != 0)
+            parts.Add($"+{def.Stats.BaseSpeed} Speed");
+        if (def.Stats.AttackDamage != 0)
+            parts.Add($"+{def.Stats.AttackDamage} Atk");
+        if (def.Stats.AttackRange != 0)
+            parts.Add($"+{def.Stats.AttackRange} Range");
+        if (def.Stats.SpellDamage != 0)
+            parts.Add($"+{def.Stats.SpellDamage} SpellDmg");
 
         if (def.Passive != "None" && !string.IsNullOrEmpty(def.Passive))
             parts.Add(PassiveLabel(def.Passive, def.PassiveValue));
@@ -1757,8 +1791,10 @@ public partial class CampusScreen : Control
 
     private void RefreshSlotButtons()
     {
-        if (_slotContainer == null) return;
-        foreach (var child in _slotContainer.GetChildren()) child.QueueFree();
+        if (_slotContainer == null)
+            return;
+        foreach (var child in _slotContainer.GetChildren())
+            child.QueueFree();
 
         var slots = SaveManager.GetAllSlotInfo();
         foreach (var slot in slots)
@@ -1906,8 +1942,10 @@ public partial class CampusScreen : Control
 
     private void RefreshCompanionList()
     {
-        if (_companionContainer == null) return;
-        foreach (var child in _companionContainer.GetChildren()) child.QueueFree();
+        if (_companionContainer == null)
+            return;
+        foreach (var child in _companionContainer.GetChildren())
+            child.QueueFree();
 
         var save = SaveManager.ActiveSave;
         if (save == null)
@@ -1927,8 +1965,10 @@ public partial class CampusScreen : Control
         bool anyShown = false;
         foreach (var c in save.Companions)
         {
-            if (!c.IsAvailable && !c.IsRecruited) continue;
-            if (c.IsPermadead) continue;
+            if (!c.IsAvailable && !c.IsRecruited)
+                continue;
+            if (c.IsPermadead)
+                continue;
             anyShown = true;
 
             var card = new PanelContainer();
@@ -2002,8 +2042,10 @@ public partial class CampusScreen : Control
 
     private void RefreshBuildingList()
     {
-        if (_buildingContainer == null) return;
-        foreach (var child in _buildingContainer.GetChildren()) child.QueueFree();
+        if (_buildingContainer == null)
+            return;
+        foreach (var child in _buildingContainer.GetChildren())
+            child.QueueFree();
 
         var save = SaveManager.ActiveSave;
         if (save == null)
@@ -2015,7 +2057,8 @@ public partial class CampusScreen : Control
         foreach (var buildingSave in save.Buildings)
         {
             var template = BuildingDatabase.GetTemplate(buildingSave.Id);
-            if (template == null) continue;
+            if (template == null)
+                continue;
 
             var card = new PanelContainer();
             var cardStyle = new StyleBoxFlat
@@ -2116,9 +2159,11 @@ public partial class CampusScreen : Control
 
     private void RefreshGoldLabel()
     {
-        if (_goldLabel == null) return;
+        if (_goldLabel == null)
+            return;
         var save = SaveManager.ActiveSave;
-        if (save == null) { _goldLabel.Text = ""; return; }
+        if (save == null)
+        { _goldLabel.Text = ""; return; }
         _goldLabel.Text = $"Gold: {save.Gold}    ✦ {save.ArcaneSplinters} Splinters";
     }
 
@@ -2154,26 +2199,34 @@ public partial class CampusScreen : Control
     private bool TryBuildOrUpgrade(string buildingId)
     {
         var save = SaveManager.ActiveSave;
-        if (save == null) return false;
+        if (save == null)
+            return false;
         var template = BuildingDatabase.GetTemplate(buildingId);
-        if (template == null) return false;
+        if (template == null)
+            return false;
 
         BuildingSaveData buildingSave = null;
         foreach (var b in save.Buildings)
-            if (b.Id == buildingId) { buildingSave = b; break; }
-        if (buildingSave == null) return false;
+            if (b.Id == buildingId)
+            { buildingSave = b; break; }
+        if (buildingSave == null)
+            return false;
 
         int nextTier = buildingSave.Tier + 1;
-        if (nextTier > template.MaxTier) return false;
+        if (nextTier > template.MaxTier)
+            return false;
         var tierData = template.Tiers.Find(t => t.Tier == nextTier);
-        if (tierData == null || save.Gold < tierData.GoldCost) return false;
+        if (tierData == null || save.Gold < tierData.GoldCost)
+            return false;
 
         foreach (var reqId in tierData.RequiredBuildings)
         {
             bool found = false;
             foreach (var b in save.Buildings)
-                if (b.Id == reqId && b.Tier > 0) { found = true; break; }
-            if (!found) return false;
+                if (b.Id == reqId && b.Tier > 0)
+                { found = true; break; }
+            if (!found)
+                return false;
         }
 
         save.Gold -= tierData.GoldCost;
@@ -2191,7 +2244,8 @@ public partial class CampusScreen : Control
 
     private void EnsureRostersAndBuildings()
     {
-        if (SaveManager.ActiveSave == null) return;
+        if (SaveManager.ActiveSave == null)
+            return;
         CompanionRoster.EnsureRoster(SaveManager.ActiveSave);
         BuildingDatabase.EnsureBuildings(SaveManager.ActiveSave);
     }
@@ -2199,12 +2253,14 @@ public partial class CampusScreen : Control
     private void EnsureStarterItems()
     {
         var save = SaveManager.ActiveSave;
-        if (save == null) return;
+        if (save == null)
+            return;
 
         ItemDatabase.LoadAll();
 
         // Only seed on a fresh armory
-        if (save.Armory.OwnedItems.Count > 0) return;
+        if (save.Armory.OwnedItems.Count > 0)
+            return;
 
         // Give one of each starter item
         var starterIds = new[]

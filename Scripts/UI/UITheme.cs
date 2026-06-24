@@ -246,6 +246,36 @@ public static class UITheme
     public static readonly Color OverworldInfoLabelTint = Gold;
 
     // ════════════════════════════════════════════════════════════
+    // FACTION COLORS
+    // ════════════════════════════════════════════════════════════
+
+
+    private static readonly System.Collections.Generic.Dictionary<string, Color> _factionColorCache = new();
+
+    public static Color FactionColor(string factionId)
+    {
+        if (string.IsNullOrEmpty(factionId))
+            return Neutral;
+
+        if (_factionColorCache.TryGetValue(factionId, out var cached))
+            return cached;
+
+        var def = FactionRegistry.Get(factionId);
+        Color c = (def != null && !string.IsNullOrEmpty(def.ColorHex))
+            ? new Color(def.ColorHex)   // Godot parses "#RRGGBB"
+            : Neutral;
+
+        _factionColorCache[factionId] = c;
+        return c;
+    }
+
+    // Strategic-view discovery tones (read by StrategicView).
+    public static readonly Color StrategicUnseen = WorldDeep;                       // unexplored void
+    public static readonly Color StrategicCharted = new Color(0.16f, 0.14f, 0.20f, 1f); // dim known-shape
+    public static readonly Color StrategicCorruption = new Color(0.78f, 0.12f, 0.20f, 1f); // red wash, blended by level
+
+
+    // ════════════════════════════════════════════════════════════
     // DRUID VISUALS
     // ════════════════════════════════════════════════════════════
 
