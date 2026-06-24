@@ -5,3 +5,4 @@
 [node name="Node2D" type="Node2D" unique_id=695119459]
 script = ExtResource("1_sat08")
 TilePx = 20.0
+Standalone = false

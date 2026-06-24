@@ -54,15 +54,7 @@ public partial class CampusScreen : Control
     private string _selectedTrainingCompanionId = null;
 
     // Expedition tab
-    private string _selectedExpeditionRegionId = null;
-    private VBoxContainer _expeditionRegionList;
-    private Panel _expeditionDetailPanel;
-    private Label _expeditionDetailName;
-    private Label _expeditionDetailDesc;
-    private Label _expeditionDetailStats;
-    private Label _expeditionDetailLock;
-    private Button _expeditionDeployButton;
-    private WorldMapDefinition _worldMap;
+    private Label _expeditionWorldStatus;
 
     private static readonly Dictionary<CardSchool, string> SchoolDescriptions = new()
     {
@@ -78,8 +70,6 @@ public partial class CampusScreen : Control
     {
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
         CallDeferred(nameof(BuildUI));
-        // Debug: generate a world and dump it to the console
-        WorldDebug.GenerateAndDumpToFile(12345, "Elementalist");
     }
 
     private void BuildUI()
@@ -572,421 +562,142 @@ public partial class CampusScreen : Control
 
     private void BuildExpeditionTab(ScrollContainer scroll)
     {
-        _worldMap = WorldMapLoader.Load();
-
-        // Two-column layout: region list (left) + detail panel (right)
-        var margins = MakeMargins(24, 16);
+        var margins = MakeMargins(32, 24);
         scroll.AddChild(margins);
+        var layout = MakeVBox(16);
+        margins.AddChild(layout);
 
-        var outerVBox = MakeVBox(10);
-        margins.AddChild(outerVBox);
-
-        AddSectionHeader(outerVBox, "Choose Destination");
+        AddSectionHeader(layout, "Set Out");
 
         var hint = new Label
         {
-            Text = "Select a region to view details and deploy your expedition.",
+            Text = "The world stands as one map for this cycle. Open the strategic map " +
+                   "to choose a staging point and launch a bounded expedition. Explore " +
+                   "outward, secure outposts to unlock new staging grounds, and illuminate " +
+                   "the world before the Grand Conjunction forces the final confrontation.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         hint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         hint.Modulate = UITheme.CampusSubtleText;
-        outerVBox.AddChild(hint);
-        outerVBox.AddChild(new HSeparator());
+        layout.AddChild(hint);
 
-        // ── Two-column HBox ──────────────────────────────────────────────
-        var columns = new HBoxContainer();
-        columns.AddThemeConstantOverride("separation", 16);
-        columns.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        outerVBox.AddChild(columns);
+        layout.AddChild(new HSeparator());
 
-        // Left column — region card list
-        var leftCol = new VBoxContainer
+        // ── World status panel ───────────────────────────────────────────
+        var statusPanel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        statusPanel.AddThemeStyleboxOverride("panel",
+            UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Violet));
+        layout.AddChild(statusPanel);
+
+        var statusMargin = new MarginContainer();
+        statusMargin.AddThemeConstantOverride("margin_left", 18);
+        statusMargin.AddThemeConstantOverride("margin_right", 18);
+        statusMargin.AddThemeConstantOverride("margin_top", 14);
+        statusMargin.AddThemeConstantOverride("margin_bottom", 14);
+        statusPanel.AddChild(statusMargin);
+
+        _expeditionWorldStatus = new Label
         {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(280, 0),
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        leftCol.AddThemeConstantOverride("separation", 8);
-        columns.AddChild(leftCol);
+        _expeditionWorldStatus.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        _expeditionWorldStatus.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        statusMargin.AddChild(_expeditionWorldStatus);
 
-        _expeditionRegionList = MakeVBox(8);
-        leftCol.AddChild(_expeditionRegionList);
+        layout.AddChild(new Control { CustomMinimumSize = new Vector2(0, 8) });
 
-        // Right column — detail panel
-        _expeditionDetailPanel = new Panel
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(300, 320),
-        };
-        var detailStyle = new StyleBoxFlat
-        {
-            BgColor = new Color(0.06f, 0.06f, 0.1f, 0.9f),
-            BorderColor = UITheme.NeutralDim,
-            BorderWidthTop = 1,
-            BorderWidthBottom = 1,
-            BorderWidthLeft = 1,
-            BorderWidthRight = 1,
-            CornerRadiusTopLeft = 6,
-            CornerRadiusTopRight = 6,
-            CornerRadiusBottomLeft = 6,
-            CornerRadiusBottomRight = 6,
-        };
-        _expeditionDetailPanel.AddThemeStyleboxOverride("panel", detailStyle);
-        columns.AddChild(_expeditionDetailPanel);
+        // ── Launch button ────────────────────────────────────────────────
+        var launchBtn = MakeButton("Open Strategic Map", 260, 52, UITheme.CampusBodyFontSize);
+        launchBtn.Pressed += OnOpenStrategicMap;
+        var btnRow = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
+        btnRow.AddChild(launchBtn);
+        layout.AddChild(btnRow);
 
-        var detailMargin = new MarginContainer
-        {
-            AnchorRight = 1f,
-            AnchorBottom = 1f,
-        };
-        detailMargin.AddThemeConstantOverride("margin_left", 16);
-        detailMargin.AddThemeConstantOverride("margin_right", 16);
-        detailMargin.AddThemeConstantOverride("margin_top", 16);
-        detailMargin.AddThemeConstantOverride("margin_bottom", 16);
-        _expeditionDetailPanel.AddChild(detailMargin);
-
-        var detailVBox = new VBoxContainer();
-        detailVBox.AddThemeConstantOverride("separation", 10);
-        detailMargin.AddChild(detailVBox);
-
-        _expeditionDetailName = MakeExpDetailLabel("Select a region", UITheme.NarrativeTitleColor, UITheme.CampusSectionFontSize);
-        detailVBox.AddChild(_expeditionDetailName);
-
-        detailVBox.AddChild(new HSeparator());
-
-        _expeditionDetailDesc = MakeExpDetailLabel("Click a region card to see details.", UITheme.NarrativeBodyColor, UITheme.CampusBodyFontSize);
-        _expeditionDetailDesc.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        detailVBox.AddChild(_expeditionDetailDesc);
-
-        detailVBox.AddChild(new HSeparator());
-
-        _expeditionDetailStats = MakeExpDetailLabel("", UITheme.CampusSubtleText, UITheme.CampusSmallFontSize);
-        _expeditionDetailStats.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        detailVBox.AddChild(_expeditionDetailStats);
-
-        _expeditionDetailLock = MakeExpDetailLabel("", new Color(1f, 0.4f, 0.4f), UITheme.CampusSmallFontSize);
-        _expeditionDetailLock.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        _expeditionDetailLock.Visible = false;
-        detailVBox.AddChild(_expeditionDetailLock);
-
-        // Spacer pushes button to bottom
-        detailVBox.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-
-        _expeditionDeployButton = MakeButton("Deploy Expedition", 260, 48, UITheme.CampusBodyFontSize);
-        _expeditionDeployButton.Visible = false;
-        _expeditionDeployButton.Pressed += OnExpeditionDeployPressed;
-        detailVBox.AddChild(_expeditionDeployButton);
-
-        // Populate the region list
-        PopulateExpeditionRegionList();
-    }
-
-    private void PopulateExpeditionRegionList()
-    {
-        if (_expeditionRegionList == null || _worldMap == null)
-            return;
-
-        foreach (var child in _expeditionRegionList.GetChildren())
-            child.QueueFree();
-
-        var save = SaveManager.ActiveSave;
-
-        foreach (var node in _worldMap.Nodes)
-        {
-            bool unlocked = IsExpeditionRegionUnlocked(node);
-            bool visited = RegionMemoryService.HasMemory(node.RegionId);
-            bool isCurrent = save?.CurrentRegionId == node.RegionId;
-
-            // ── Card panel ───────────────────────────────────────────────
-            var card = new PanelContainer();
-            card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-
-            Color bgColor = !unlocked
-                ? new Color(0.06f, 0.06f, 0.06f, 0.8f)
-                : isCurrent
-                    ? new Color(0.08f, 0.18f, 0.1f, 0.9f)
-                    : visited
-                        ? new Color(0.07f, 0.1f, 0.16f, 0.9f)
-                        : new Color(0.05f, 0.08f, 0.12f, 0.9f);
-
-            Color borderColor = isCurrent
-                ? UITheme.POIObjective
-                : unlocked
-                    ? UITheme.NeutralDim
-                    : new Color(0.15f, 0.15f, 0.15f);
-
-            var cardStyle = new StyleBoxFlat
-            {
-                BgColor = bgColor,
-                BorderColor = borderColor,
-                BorderWidthTop = isCurrent ? 2 : 1,
-                BorderWidthBottom = isCurrent ? 2 : 1,
-                BorderWidthLeft = isCurrent ? 2 : 1,
-                BorderWidthRight = isCurrent ? 2 : 1,
-                CornerRadiusTopLeft = 5,
-                CornerRadiusTopRight = 5,
-                CornerRadiusBottomLeft = 5,
-                CornerRadiusBottomRight = 5,
-            };
-            card.AddThemeStyleboxOverride("panel", cardStyle);
-
-            var cardMargin = new MarginContainer();
-            cardMargin.AddThemeConstantOverride("margin_left", 12);
-            cardMargin.AddThemeConstantOverride("margin_right", 12);
-            cardMargin.AddThemeConstantOverride("margin_top", 8);
-            cardMargin.AddThemeConstantOverride("margin_bottom", 8);
-            card.AddChild(cardMargin);
-
-            var cardVBox = new VBoxContainer();
-            cardVBox.AddThemeConstantOverride("separation", 3);
-            cardMargin.AddChild(cardVBox);
-
-            // Row 1: name + lock icon
-            var nameRow = new HBoxContainer();
-            nameRow.AddThemeConstantOverride("separation", 6);
-            cardVBox.AddChild(nameRow);
-
-            var nameLabel = new Label
-            {
-                Text = unlocked ? node.DisplayName : "???",
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            };
-            nameLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            nameLabel.AddThemeColorOverride("font_color",
-                unlocked ? Colors.White : new Color(0.35f, 0.35f, 0.35f));
-            nameRow.AddChild(nameLabel);
-
-            if (isCurrent)
-            {
-                var currentBadge = new Label { Text = "● Active" };
-                currentBadge.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-                currentBadge.AddThemeColorOverride("font_color", UITheme.POIObjective);
-                nameRow.AddChild(currentBadge);
-            }
-
-            // Row 2: terrain flavor or lock
-            if (unlocked)
-            {
-                var flavorLabel = new Label
-                {
-                    Text = $"{node.Atmosphere}  ·  {node.TerrainFlavor}",
-                };
-                flavorLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-                flavorLabel.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
-                cardVBox.AddChild(flavorLabel);
-            }
-
-            // Row 3: exploration bar or "not yet explored"
-            if (visited)
-            {
-                var (visits, explored, cleared) = RegionMemoryService.GetStats(node.RegionId);
-
-                var barRow = new HBoxContainer();
-                barRow.AddThemeConstantOverride("separation", 6);
-                cardVBox.AddChild(barRow);
-
-                var barLabel = new Label { Text = $"{explored:F0}%" };
-                barLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-                barLabel.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
-                barRow.AddChild(barLabel);
-
-                var bar = new ProgressBar
-                {
-                    Value = explored,
-                    SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                    CustomMinimumSize = new Vector2(0, 10),
-                    ShowPercentage = false,
-                };
-                barRow.AddChild(bar);
-
-                if (cleared)
-                {
-                    var clearedLabel = new Label { Text = "✓ Cleared" };
-                    clearedLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-                    clearedLabel.AddThemeColorOverride("font_color", UITheme.POIObjective);
-                    barRow.AddChild(clearedLabel);
-                }
-            }
-            else if (unlocked)
-            {
-                var unvisitedLabel = new Label { Text = "Unexplored" };
-                unvisitedLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-                unvisitedLabel.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
-                cardVBox.AddChild(unvisitedLabel);
-            }
-            else
-            {
-                var lockLabel = new Label { Text = "🔒 Locked" };
-                lockLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-                lockLabel.AddThemeColorOverride("font_color", new Color(0.4f, 0.4f, 0.4f));
-                cardVBox.AddChild(lockLabel);
-            }
-
-            // Deployment cost badge
-            if (unlocked && node.DeploymentCost > 0)
-            {
-                var costLabel = new Label { Text = $"Deploy cost: {node.DeploymentCost}g" };
-                costLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-                costLabel.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.3f));
-                cardVBox.AddChild(costLabel);
-            }
-
-            // Invisible click button layered over the whole card
-            var clickBtn = new Button
-            {
-                AnchorRight = 1f,
-                AnchorBottom = 1f,
-                Flat = true,
-                FocusMode = FocusModeEnum.None,
-            };
-            string capturedId = node.RegionId;
-            clickBtn.Pressed += () => OnExpeditionRegionSelected(capturedId);
-            card.AddChild(clickBtn);
-
-            _expeditionRegionList.AddChild(card);
-        }
-    }
-
-    private void OnExpeditionRegionSelected(string regionId)
-    {
-        _selectedExpeditionRegionId = regionId;
-
-        var node = _worldMap?.Nodes.Find(n => n.RegionId == regionId);
-        if (node == null)
-            return;
-
-        bool unlocked = IsExpeditionRegionUnlocked(node);
-        var (visits, explored, cleared) = RegionMemoryService.GetStats(regionId);
-
-        _expeditionDetailName.Text = unlocked ? node.DisplayName : "Unknown Region";
-        _expeditionDetailDesc.Text = unlocked
-            ? node.Description
-            : "Explore adjacent regions to unlock this area.";
-
-        if (visits > 0)
-        {
-            string objectiveStatus = cleared ? "Objective completed" : "Objective not reached";
-            _expeditionDetailStats.Text =
-                $"Visits: {visits}\n" +
-                $"Explored: {explored:F0}%\n" +
-                $"{objectiveStatus}";
-        }
-        else if (unlocked)
-        {
-            _expeditionDetailStats.Text = "No expeditions recorded.";
-        }
-        else
-        {
-            _expeditionDetailStats.Text = "";
-        }
-
-        if (!unlocked)
-        {
-            string reason = GetExpeditionLockReason(node);
-            _expeditionDetailLock.Text = reason;
-            _expeditionDetailLock.Visible = true;
-            _expeditionDeployButton.Visible = false;
-        }
-        else
-        {
-            _expeditionDetailLock.Visible = false;
-            _expeditionDeployButton.Visible = true;
-
-            int gold = SaveManager.ActiveSave?.Gold ?? 0;
-            bool canAfford = node.DeploymentCost == 0 || gold >= node.DeploymentCost;
-            _expeditionDeployButton.Disabled = !canAfford || _selectedSlot < 0;
-            _expeditionDeployButton.Text = node.DeploymentCost > 0
-                ? $"Deploy  ({node.DeploymentCost}g)"
-                : "Deploy Expedition";
-        }
-    }
-
-    private void OnExpeditionDeployPressed()
-    {
-        if (_selectedExpeditionRegionId == null)
-            return;
-        if (_selectedSlot < 0)
-            return;
-
-        var node = _worldMap?.Nodes.Find(n => n.RegionId == _selectedExpeditionRegionId);
-        if (node == null || !IsExpeditionRegionUnlocked(node))
-            return;
-
-        var save = SaveManager.ActiveSave;
-        if (save == null)
-            return;
-
-        // Deduct deployment cost
-        if (node.DeploymentCost > 0)
-        {
-            if (save.Gold < node.DeploymentCost)
-            {
-                GD.Print("[Expedition] Not enough gold to deploy.");
-                return;
-            }
-            save.Gold -= node.DeploymentCost;
-        }
-
-        // Set destination and launch
-        save.CurrentRegionId = _selectedExpeditionRegionId;
-        if (Enum.TryParse<CardSchool>(save.SelectedSchool, out var school))
-            PlayerSession.SelectedSchool = school;
-        SaveManager.Save();
-
-        GD.Print($"[Expedition] Deploying to '{_selectedExpeditionRegionId}'");
-        GetTree().ChangeSceneToFile("res://Scenes/Overworld/OverworldScene.tscn");
+        RefreshExpeditionTab();
     }
 
     private void RefreshExpeditionTab()
     {
-        if (_expeditionRegionList == null)
+        if (_expeditionWorldStatus == null)
             return;
-        PopulateExpeditionRegionList();
-
-        // Re-select previously selected region if still valid
-        if (_selectedExpeditionRegionId != null)
-            OnExpeditionRegionSelected(_selectedExpeditionRegionId);
-    }
-
-    // ── Access helpers ───────────────────────────────────────────────────
-
-    private bool IsExpeditionRegionUnlocked(RegionNode node)
-    {
-        if (node.UnlockedByDefault)
-            return true;
 
         var save = SaveManager.ActiveSave;
         if (save == null)
-            return false;
-
-        if (!string.IsNullOrEmpty(node.RequiresRegionCleared))
         {
-            if (!save.RegionMemory.TryGetValue(node.RequiresRegionCleared, out var mem))
-                return false;
-            return mem.ObjectiveReached;
+            _expeditionWorldStatus.Text = "No guild loaded. Select a save slot first.";
+            return;
         }
 
-        return true;
-    }
+        var cycle = save.Cycle;
+        bool worldExists = cycle?.World != null && cycle.World.Tiles.Length > 0;
 
-    private string GetExpeditionLockReason(RegionNode node)
-    {
-        if (!string.IsNullOrEmpty(node.RequiresRegionCleared) && _worldMap != null)
+        if (!worldExists)
         {
-            var req = _worldMap.Nodes.Find(n => n.RegionId == node.RequiresRegionCleared);
-            string reqName = req?.DisplayName ?? node.RequiresRegionCleared;
-            return $"Requires: complete the objective in {reqName}";
+            _expeditionWorldStatus.Text =
+                $"Cycle {cycle?.CycleNumber ?? 1}: a new timeline awaits generation. " +
+                "Opening the strategic map will weave the world.";
+            return;
         }
-        return "Requirements not met.";
+
+        // Summarize discovery progress + staging options.
+        var world = cycle.World;
+        int explored = 0, charted = 0;
+        for (int i = 0; i < world.Tiles.Length; i++)
+        {
+            var d = world.Tiles[i].Discovery;
+            if (d == TileDiscovery.Explored)
+                explored++;
+            else if (d == TileDiscovery.Charted)
+                charted++;
+        }
+        float pct = world.Tiles.Length > 0 ? explored * 100f / world.Tiles.Length : 0f;
+        int staging = 0;
+        foreach (var sp in world.StagingPoints)
+            if (sp.Available)
+                staging++;
+        int discoveredPois = 0;
+        foreach (var p in world.Pois)
+            if (p.Discovered)
+                discoveredPois++;
+
+        _expeditionWorldStatus.Text =
+            $"Cycle {cycle.CycleNumber}  ·  World {world.Width}×{world.Height}\n" +
+            $"Illuminated: {pct:F1}%  ({explored} tiles explored, {charted} charted)\n" +
+            $"Staging points available: {staging}\n" +
+            $"Points of interest discovered: {discoveredPois}";
     }
 
-    // ── Detail label helper (mirrors WorldMapScreen) ─────────────────────
-
-    private static Label MakeExpDetailLabel(string text, Color color, int fontSize)
+    private void OnOpenStrategicMap()
     {
-        var lbl = new Label { Text = text };
-        lbl.AddThemeFontSizeOverride("font_size", fontSize);
-        lbl.AddThemeColorOverride("font_color", color);
-        return lbl;
+        if (SaveManager.ActiveSave == null)
+        {
+            GD.Print("[Campus] No save loaded — cannot open strategic map.");
+            return;
+        }
+
+        EnsureCycleWorld();
+        GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
+    }
+
+    /// <summary>Generate the cycle's world on first entry if it doesn't exist yet.
+    /// Deterministic per cycle + slot, stored in the cycle save, generated once.
+    /// (Later this moves to a dedicated CycleInitializer at cycle start.)</summary>
+    private void EnsureCycleWorld()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+            return;
+        if (cycle.World != null && cycle.World.Tiles.Length > 0)
+            return; // already generated this cycle
+
+        int seed = cycle.CycleNumber * 100003 + SaveManager.ActiveSlot;
+        var g = WorldGenerator.Generate(seed, cycle.SelectedSchool);
+        cycle.World = g.World;
+        cycle.Kingdoms = g.Kingdoms;
+        cycle.Campaign = g.Campaign;
+        SaveManager.Save();
+        GD.Print($"[Campus] Generated cycle {cycle.CycleNumber} world (seed {seed}, " +
+                 $"{g.Kingdoms.Count} territories, {g.World.Pois.Count} POIs).");
     }
 
     // ═══════════════════════════════════════════════════════════════════════

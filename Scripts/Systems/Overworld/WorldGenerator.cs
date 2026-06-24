@@ -140,7 +140,7 @@ public static class WorldGenerator
         ScatterPois(world, kingdoms, convergenceKingdom, capitals, kingdomIds, p, rng);
 
         // ── 8. Starting staging point + a few pre-discovered POIs ────────
-        SeedStaging(world, start, p);
+        SeedStaging(world, start, p, rng);
 
         GD.Print($"[WorldGenerator] World {p.Width}x{p.Height} seed={seed}: " +
                  $"{kingdoms.Count} territories, convergence='{convergenceKingdom}' " +
@@ -384,7 +384,8 @@ public static class WorldGenerator
     }
 
     // ── 8. Staging ───────────────────────────────────────────────────────
-    private static void SeedStaging(WorldData world, (int x, int y) start, Params p)
+    private static void SeedStaging(WorldData world, (int x, int y) start, Params p,
+                                    RandomNumberGenerator rng)
     {
         var t = world.GetTile(start.x, start.y);
         t.IsStagingPoint = true;
@@ -400,14 +401,75 @@ public static class WorldGenerator
             Available = true,
         });
 
-        // Pre-discover the nearest few POIs so the first strategic view has
-        // something to aim at.
+        // ── Guarantee staging can bootstrap ──────────────────────────────
+        // Place 2 staging-granting outposts in the 10–14 hex ring around start:
+        // one inside the first window (d<=12, found on expedition 1 if you explore
+        // toward it), one just beyond (d 13–14, needs a second push). Pre-discover
+        // both so they show on the strategic map as visible goals from the start.
+        SeedBootstrapOutpost(world, start, minD: 10, maxD: 12, rng, "Frontier Outpost");
+        SeedBootstrapOutpost(world, start, minD: 13, maxD: 14, rng, "Distant Outpost");
+
+        // Pre-discover the nearest few ordinary POIs too, so the first strategic
+        // view has texture beyond the guaranteed outposts.
         var nearest = world.Pois
-            .Select((poi, i) => (poi, i, d: Dist((poi.X, poi.Y), start)))
+            .Where(poi => !poi.Discovered)
+            .Select((poi, i) => (poi, d: Dist((poi.X, poi.Y), start)))
             .OrderBy(t2 => t2.d)
             .Take(p.PreDiscoveredPois);
-        foreach (var (poi, _, _) in nearest)
+        foreach (var (poi, _) in nearest)
             poi.Discovered = true;
+    }
+
+    /// <summary>Force a discovered, staging-granting Outpost POI onto a walkable
+    /// land tile within [minD, maxD] hex distance of the start. Guarantees the
+    /// exploration loop can bootstrap a second staging point.</summary>
+    private static void SeedBootstrapOutpost(WorldData world, (int x, int y) start,
+                                             int minD, int maxD,
+                                             RandomNumberGenerator rng, string name)
+    {
+        var candidates = new List<(int x, int y)>();
+        for (int y = 0; y < world.Height; y++)
+        {
+            for (int x = 0; x < world.Width; x++)
+            {
+                int d = Dist((x, y), start);
+                if (d < minD || d > maxD)
+                    continue;
+                var tile = world.GetTile(x, y);
+                if (tile.Terrain == OverworldHex.TerrainType.Water)
+                    continue;
+                if (tile.PoiIndex >= 0)
+                    continue;          // don't stack on an existing POI
+                if (tile.IsStagingPoint)
+                    continue;
+                candidates.Add((x, y));
+            }
+        }
+        if (candidates.Count == 0)
+        {
+            GD.PushWarning($"[WorldGenerator] No bootstrap-outpost site in ring " +
+                           $"[{minD},{maxD}] — staging may not bootstrap.");
+            return;
+        }
+
+        var (ox, oy) = candidates[(int)(rng.Randi() % (uint)candidates.Count)];
+        int poiIndex = world.Pois.Count;
+        world.Pois.Add(new WorldPoi
+        {
+            X = ox,
+            Y = oy,
+            Kind = PoiKind.Outpost,
+            KingdomId = world.GetTile(ox, oy).KingdomId ?? "",
+            Discovered = true,           // visible on the strategic map from the start
+            GrantsStaging = true,        // securing it adds a staging point
+        });
+        int idx = oy * world.Width + ox;
+        var ot = world.Tiles[idx];
+        ot.PoiIndex = poiIndex;
+        world.Tiles[idx] = ot;
+
+        GD.Print($"[WorldGenerator] Bootstrap outpost '{name}' at ({ox},{oy}), " +
+                 $"hex distance {Dist((ox, oy), start)} from start.");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────

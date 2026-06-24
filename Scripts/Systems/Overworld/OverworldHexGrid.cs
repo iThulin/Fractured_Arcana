@@ -43,6 +43,7 @@ using System.Collections.Generic;
 /// <summary>2D flat-top hex grid for the overworld map. Owns the per-tile <see cref="OverworldHex"/> children and exposes axial-coord helpers. Seeded field + RNG ensure the same map regenerates on return from combat.</summary>
 public partial class OverworldHexGrid : Node2D
 {
+
     [Export] public int Seed = 0;  // 0 = random
     [Export] public int GridWidth = 15;
     [Export] public int GridHeight = 15;
@@ -51,6 +52,11 @@ public partial class OverworldHexGrid : Node2D
     public RegionDefinition Region { get; set; }
 
     // ── Runtime data ────────────────────────────────────────────────────
+
+    /// <summary>When true, _Ready does NOT generate a region — an external
+    /// WorldWindowBuilder populates Hexes from WorldData instead. Set this
+    /// before adding the grid to the tree.</summary>
+    public bool WindowMode = false;
     private RandomNumberGenerator _rng;
     private OverworldField _field;
     public Dictionary<Vector2I, OverworldHex> Hexes { get; private set; } = new();
@@ -76,7 +82,6 @@ public partial class OverworldHexGrid : Node2D
             Seed = (int)_rng.Randi();
         }
 
-        // Apply region dimensions if a region is set
         if (Region != null)
         {
             GridWidth = Region.GridWidth;
@@ -87,7 +92,9 @@ public partial class OverworldHexGrid : Node2D
         _hexWidth = _hexSize * 1.5f;
         _hexHeight = _hexSize * Mathf.Sqrt(3f);
 
-        GenerateGrid();
+        // Window mode: the builder fills Hexes from WorldData. Do not generate.
+        if (!WindowMode)
+            GenerateGrid();
     }
 
     /// <summary>
@@ -764,5 +771,22 @@ public partial class OverworldHexGrid : Node2D
                 result.Add(kvp.Key);
         }
         return result;
+    }
+
+    /// <summary>Re-emit a child hex's click through the grid's own signal.
+    /// OverworldHex.HexClicked is wired to this in window mode (mirrors what
+    /// OnHexClicked does for generated grids).</summary>
+    public void RaiseHexClicked(Vector2I axial)
+    {
+        EmitSignal(SignalName.HexClicked, axial);
+    }
+
+    /// <summary>In window mode there is no objective; the entry IS the staging
+    /// point (grid-local 0,0). Set both anchors so any code reading EntryCoord /
+    /// ObjectiveCoord stays valid (e.g. HUD distance, which we repurpose).</summary>
+    public void SetWindowAnchors(Vector2I partyStartLocal)
+    {
+        EntryCoord = partyStartLocal;
+        ObjectiveCoord = partyStartLocal;
     }
 }

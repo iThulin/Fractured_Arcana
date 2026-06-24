@@ -89,4 +89,15 @@ public static class PlayerSession
         CardSlotCost = 30;
         ForceNextEncounterType = -1;
     }
+
+    // ── Expedition deploy handoff (strategic view → expedition scene) ────
+
+    /// <summary>Offset column of the staging point the next expedition launches from.</summary>
+    public static int ExpeditionStagingCol = -1;
+
+    /// <summary>Offset row of the staging point the next expedition launches from.</summary>
+    public static int ExpeditionStagingRow = -1;
+
+    /// <summary>Window radius for the next expedition (0 = use ExpeditionManager default).</summary>
+    public static int ExpeditionWindowRadius = 0;
 }

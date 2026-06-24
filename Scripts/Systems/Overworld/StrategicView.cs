@@ -33,9 +33,17 @@ public partial class StrategicView : Node2D
     [Export] public int StandaloneSeed = 12345;  // used only when self-generating
     [Export] public string StandaloneSchool = "Elementalist";
 
+    /// <summary>When true, _Ready generates a throwaway world for isolated testing.
+    /// When false (the real strategic scene), it reads SaveManager.ActiveSave.Cycle.World
+    /// and enables staging-point deploy.</summary>
+    [Export] public bool Standalone = true;
+
     // For standalone testing: reveal the whole world so colors are visible
     // without running expeditions. Leave false to see true discovery (mostly void).
     [Export] public bool RevealAllForTesting = true;
+
+    /// <summary>Operating range / window radius handed to the expedition on deploy.</summary>
+    [Export] public int DeployWindowRadius = 12;
 
     private WorldData _world;
     private System.Collections.Generic.Dictionary<string, KingdomState> _kingdoms = new();
@@ -56,12 +64,27 @@ public partial class StrategicView : Node2D
     {
         if (_world == null)
         {
-            // Standalone: generate a world so the scene renders alone.
-            var g = WorldGenerator.Generate(StandaloneSeed, StandaloneSchool);
-            _world = g.World;
-            _kingdoms = g.Kingdoms;
-            if (RevealAllForTesting)
-                RevealAll();
+            if (Standalone)
+            {
+                // Isolated testing: generate a throwaway world so the scene renders alone.
+                var g = WorldGenerator.Generate(StandaloneSeed, StandaloneSchool);
+                _world = g.World;
+                _kingdoms = g.Kingdoms;
+                if (RevealAllForTesting)
+                    RevealAll();
+            }
+            else
+            {
+                // Real strategic scene: read the resident cycle world.
+                var cycle = SaveManager.ActiveSave?.Cycle;
+                if (cycle == null)
+                {
+                    GD.PrintErr("StrategicView: no active cycle — cannot show world.");
+                    return;
+                }
+                _world = cycle.World;
+                _kingdoms = cycle.Kingdoms;
+            }
         }
 
         BuildCamera();
@@ -85,7 +108,57 @@ public partial class StrategicView : Node2D
 
         BuildTileLayer();
         BuildPoiLayer();
+        if (!Standalone)
+        {
+            BuildStagingMarkers();
+            BuildHud();
+        }
         FrameCamera();
+    }
+
+    /// <summary>Persistent strategic-map HUD: a free exit back to campus. Returning
+    /// costs nothing — the world, discoveries, and staging points already live in
+    /// the saved cycle, so leaving and reopening the map changes nothing.</summary>
+    private void BuildHud()
+    {
+        _hud?.QueueFree();
+        _hud = new CanvasLayer { Name = "StrategicHud" };
+        AddChild(_hud);
+
+        var campusBtn = new Button
+        {
+            Text = "Return to Campus",
+            AnchorLeft = 0f,
+            AnchorTop = 0f,
+            AnchorRight = 0f,
+            AnchorBottom = 0f,
+            OffsetLeft = 16,
+            OffsetTop = 16,
+            OffsetRight = 196,
+            OffsetBottom = 56,
+        };
+        campusBtn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        UITheme.ApplyButtonStyle(campusBtn, isPrimary: false);
+        campusBtn.Pressed += () =>
+            GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
+        _hud.AddChild(campusBtn);
+
+        // A short legend so the player knows what they're looking at.
+        var hint = new Label
+        {
+            Text = "Click a gold beacon to deploy an expedition.",
+            AnchorLeft = 0.5f,
+            AnchorTop = 1f,
+            AnchorRight = 0.5f,
+            AnchorBottom = 1f,
+            GrowHorizontal = Control.GrowDirection.Both,
+            OffsetTop = -34,
+            OffsetBottom = -10,
+        };
+        hint.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        hint.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.5f));
+        hint.HorizontalAlignment = HorizontalAlignment.Center;
+        _hud.AddChild(hint);
     }
 
     private void BuildTileLayer()
@@ -389,5 +462,207 @@ public partial class StrategicView : Node2D
             _world.Tiles[i].Discovery = TileDiscovery.Explored;
         foreach (var poi in _world.Pois)
             poi.Discovered = true;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // Staging-point deploy (real mode only)
+    // ════════════════════════════════════════════════════════════════════
+
+    private Node2D _stagingLayer;
+    private CanvasLayer _deployUi;
+    private CanvasLayer _hud;
+    private StagingPoint _pendingStaging;
+
+    /// <summary>One clickable marker per available staging point. Staging points
+    /// are few, so a handful of Area2D markers is cheap (unlike per-tile nodes).</summary>
+    private void BuildStagingMarkers()
+    {
+        _stagingLayer?.QueueFree();
+        _stagingLayer = new Node2D { Name = "StagingMarkers", ZIndex = 2 };
+        AddChild(_stagingLayer);
+
+        foreach (var sp in _world.StagingPoints)
+        {
+            if (!sp.Available)
+                continue;
+
+            var center = HexCoord.OffsetRenderPosition(sp.X, sp.Y, TilePx)
+                         + new Vector2(TilePx * 0.5f, TilePx * 0.5f);
+
+            // Visual: a ringed beacon so it stands out from POI diamonds.
+            var marker = new Node2D { Position = center };
+
+            var ring = new Polygon2D
+            {
+                Polygon = MakeRing(TilePx * 1.6f),
+                Color = UITheme.Gold,
+            };
+            marker.AddChild(ring);
+
+            var core = new Polygon2D
+            {
+                Polygon = MakeRing(TilePx * 0.7f),
+                Color = UITheme.TextPrimary,
+            };
+            marker.AddChild(core);
+
+            // Clickable area sized to the ring.
+            var area = new Area2D();
+            var shape = new CollisionShape2D
+            {
+                Shape = new CircleShape2D { Radius = TilePx * 1.8f },
+            };
+            area.AddChild(shape);
+            var captured = sp;
+            area.InputEvent += (viewport, evt, idx) =>
+            {
+                if (evt is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+                    OnStagingClicked(captured);
+            };
+            marker.AddChild(area);
+
+            _stagingLayer.AddChild(marker);
+        }
+    }
+
+    private void OnStagingClicked(StagingPoint sp)
+    {
+        _pendingStaging = sp;
+        ShowDeployConfirm(sp);
+    }
+
+    private void ShowDeployConfirm(StagingPoint sp)
+    {
+        _deployUi?.QueueFree();
+        _deployUi = new CanvasLayer { Name = "DeployUI" };
+        AddChild(_deployUi);
+
+        // Dim backdrop.
+        var backdrop = new ColorRect { Color = UITheme.BgOverlay };
+        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _deployUi.AddChild(backdrop);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0.5f,
+            AnchorTop = 0.5f,
+            AnchorRight = 0.5f,
+            AnchorBottom = 0.5f,
+            GrowHorizontal = Control.GrowDirection.Both,
+            GrowVertical = Control.GrowDirection.Both,
+            OffsetLeft = -200,
+            OffsetRight = 200,
+            OffsetTop = -130,
+            OffsetBottom = 130,
+        };
+        panel.AddThemeStyleboxOverride("panel",
+            UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Violet));
+        _deployUi.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 20);
+        margin.AddThemeConstantOverride("margin_right", 20);
+        margin.AddThemeConstantOverride("margin_top", 18);
+        margin.AddThemeConstantOverride("margin_bottom", 18);
+        panel.AddChild(margin);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 10);
+        margin.AddChild(vbox);
+
+        var title = new Label { Text = $"Deploy from {sp.Name}" };
+        title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeMedium);
+        title.AddThemeColorOverride("font_color", UITheme.Gold);
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        vbox.AddChild(title);
+
+        vbox.AddChild(new HSeparator());
+
+        // Context: kingdom + terrain + range.
+        var tile = _world.GetTile(sp.X, sp.Y);
+        string kingdomLabel = string.IsNullOrEmpty(tile.KingdomId)
+            ? "Wilderness"
+            : (_kingdoms.TryGetValue(tile.KingdomId, out var ks) && !string.IsNullOrEmpty(ks.ControllingFactionId)
+                ? FactionDisplay(ks.ControllingFactionId)
+                : tile.KingdomId);
+
+        AddDeployStat(vbox, "Location", $"({sp.X}, {sp.Y}) · {tile.Terrain}");
+        AddDeployStat(vbox, "Territory", kingdomLabel);
+        AddDeployStat(vbox, "Operating range", $"~{DeployWindowRadius * 2} tiles across");
+
+        // Corruption warning if the staging tile is corrupted.
+        if (tile.Corruption > 0)
+        {
+            var warn = new Label { Text = $"⚠ Corruption level {tile.Corruption} in this region." };
+            warn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+            warn.AddThemeColorOverride("font_color", UITheme.Danger);
+            vbox.AddChild(warn);
+        }
+
+        vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
+
+        var buttons = new HBoxContainer();
+        buttons.AddThemeConstantOverride("separation", 12);
+        buttons.Alignment = BoxContainer.AlignmentMode.Center;
+        vbox.AddChild(buttons);
+
+        var cancelBtn = new Button { Text = "Cancel", CustomMinimumSize = new Vector2(120, 40) };
+        UITheme.ApplyButtonStyle(cancelBtn, isPrimary: false);
+        cancelBtn.Pressed += () => { _deployUi?.QueueFree(); _deployUi = null; _pendingStaging = null; };
+        buttons.AddChild(cancelBtn);
+
+        var deployBtn = new Button { Text = "Deploy", CustomMinimumSize = new Vector2(120, 40) };
+        UITheme.ApplyButtonStyle(deployBtn, isPrimary: true);
+        deployBtn.Pressed += Deploy;
+        buttons.AddChild(deployBtn);
+    }
+
+    private void AddDeployStat(VBoxContainer parent, string label, string value)
+    {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 8);
+        var l = new Label { Text = label, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        l.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        l.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        row.AddChild(l);
+        var v = new Label { Text = value };
+        v.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        v.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        row.AddChild(v);
+        parent.AddChild(row);
+    }
+
+    private void Deploy()
+    {
+        if (_pendingStaging == null)
+            return;
+
+        PlayerSession.ExpeditionStagingCol = _pendingStaging.X;
+        PlayerSession.ExpeditionStagingRow = _pendingStaging.Y;
+        PlayerSession.ExpeditionWindowRadius = DeployWindowRadius;
+
+        GD.Print($"[StrategicView] Deploying expedition from " +
+                 $"'{_pendingStaging.Name}' ({_pendingStaging.X},{_pendingStaging.Y}).");
+
+        GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
+    }
+
+    private string FactionDisplay(string factionId)
+    {
+        var def = FactionRegistry.Get(factionId);
+        return def != null ? def.DisplayName : factionId;
+    }
+
+    /// <summary>A simple filled ring (octagon approximation) for staging markers.</summary>
+    private static Vector2[] MakeRing(float radius)
+    {
+        const int n = 8;
+        var pts = new Vector2[n];
+        for (int i = 0; i < n; i++)
+        {
+            float a = Mathf.Tau * i / n;
+            pts[i] = new Vector2(radius * Mathf.Cos(a), radius * Mathf.Sin(a));
+        }
+        return pts;
     }
 }

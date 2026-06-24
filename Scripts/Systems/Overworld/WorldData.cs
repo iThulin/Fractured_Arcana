@@ -85,6 +85,10 @@ public class WorldPoi
     /// are absent from the strategic view.</summary>
     public bool Discovered = false;
 
+    /// <summary>True once resolved (combat won, rest used, narrative completed).
+    /// A consumed POI persists as consumed so it isn't re-offered on revisit.</summary>
+    public bool Consumed = false;
+
     /// <summary>True if discovering/securing this POI grants a staging point.</summary>
     public bool GrantsStaging = false;
 }

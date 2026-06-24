@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dqtry4fhws5uk"]
+
+[ext_resource type="Script" uid="uid://bpkakpey70dow" path="res://Scripts/Systems/Overworld/ExpeditionManager.cs" id="1_hfc8v"]
+
+[node name="ExpeditionScene" type="Node2D" unique_id=1488066935]
+script = ExtResource("1_hfc8v")
