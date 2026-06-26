@@ -26,7 +26,7 @@ using System.Linq;
 public partial class CardRewardScreen : Control
 {
     [Export] public PackedScene CardUIScene;
-    [Export] public string OverworldScenePath = "res://Scenes/Overworld/OverworldScene.tscn";
+    [Export] public string OverworldScenePath = "res://Scenes/Overworld/ExpeditionScene.tscn";
 
     // Probability of a generic card appearing in each slot
     private const float GenericChance = 0.30f;
@@ -157,15 +157,18 @@ public partial class CardRewardScreen : Control
             bool useGeneric = genericPool.Count > 0 && rng.NextDouble() < GenericChance;
             var pool = useGeneric ? genericPool : schoolPool;
 
-            if (pool.Count == 0) pool = schoolPool.Count > 0 ? schoolPool : genericPool;
-            if (pool.Count == 0) break;
+            if (pool.Count == 0)
+                pool = schoolPool.Count > 0 ? schoolPool : genericPool;
+            if (pool.Count == 0)
+                break;
 
             // Try up to 10 times to avoid duplicates
             CardBlueprint pick = null;
             for (int attempt = 0; attempt < 10; attempt++)
             {
                 var candidate = pool[rng.Next(pool.Count)];
-                if (!usedIds.Contains(candidate.Id)) { pick = candidate; break; }
+                if (!usedIds.Contains(candidate.Id))
+                { pick = candidate; break; }
             }
             // Fallback: allow duplicate if pool too small
             pick ??= pool[rng.Next(pool.Count)];
@@ -192,7 +195,8 @@ public partial class CardRewardScreen : Control
                 CardRarity.Legendary => 1,
                 _ => 4,
             };
-            for (int i = 0; i < w; i++) weighted.Add(bp);
+            for (int i = 0; i < w; i++)
+                weighted.Add(bp);
         }
         return weighted;
     }
@@ -249,7 +253,8 @@ public partial class CardRewardScreen : Control
             var timer = GetTree().CreateTimer(0.05f);
             timer.Timeout += () =>
             {
-                if (!IsInstanceValid(cardUi)) return;
+                if (!IsInstanceValid(cardUi))
+                    return;
                 cardUi.SetProcess(false);
                 cardUi.Modulate = Colors.White;
                 cardUi.Rotation = 0f;
@@ -292,7 +297,8 @@ public partial class CardRewardScreen : Control
 
     private void ApplyPreviewCardState(CardUi cardUi, float scale)
     {
-        if (!IsInstanceValid(cardUi)) return;
+        if (!IsInstanceValid(cardUi))
+            return;
         cardUi.SetProcess(false);
         cardUi.Modulate = Colors.White;
         cardUi.Rotation = 0f;
@@ -370,7 +376,8 @@ public partial class CardRewardScreen : Control
 
     private void OnCardPicked(CardBlueprint bp)
     {
-        if (_chosen) return;
+        if (_chosen)
+            return;
         _chosen = true;
 
         var save = SaveManager.ActiveSave;
@@ -391,7 +398,8 @@ public partial class CardRewardScreen : Control
 
     private void OnSkip()
     {
-        if (_chosen) return;
+        if (_chosen)
+            return;
         _chosen = true;
 
         GD.Print("[CardReward] Player skipped card reward.");
@@ -401,18 +409,22 @@ public partial class CardRewardScreen : Control
 
     private void DisableAllButtons()
     {
-        if (_skipButton != null) _skipButton.Disabled = true;
+        if (_skipButton != null)
+            _skipButton.Disabled = true;
         foreach (Node col in _cardRow.GetChildren())
         {
             foreach (Node child in col.GetChildren())
             {
-                if (child is Button btn) btn.Disabled = true;
+                if (child is Button btn)
+                    btn.Disabled = true;
             }
         }
     }
 
     private void ReturnToOverworld()
     {
-        GetTree().ChangeSceneToFile(OverworldScenePath);
+        string target = EncounterRouter.Instance?.OverworldScenePath
+            ?? "res://Scenes/Overworld/ExpeditionScene.tscn";
+        GetTree().ChangeSceneToFile(target);
     }
 }

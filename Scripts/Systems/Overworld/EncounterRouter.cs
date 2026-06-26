@@ -23,7 +23,7 @@ using System.Collections.Generic;
 public partial class EncounterRouter : Node
 {
     [Export] public string CombatScenePath = "res://Scenes/Combat/Battlefield.tscn";
-    [Export] public string OverworldScenePath = "res://Scenes/Overworld/OverworldScene.tscn";
+    [Export] public string OverworldScenePath = "res://Scenes/Overworld/ExpeditionScene.tscn";
 
     public static EncounterRouter Instance { get; private set; }
 

@@ -332,7 +332,8 @@ public partial class NegotiationManager : Control
 
     private void RefreshTensionBar()
     {
-        if (_state == null) return;
+        if (_state == null)
+            return;
 
         int t = _state.Tension;
         _tensionLabel.Text = $"Tension: {t}/10  |  Zone: {_state.Zone}" +
@@ -357,7 +358,8 @@ public partial class NegotiationManager : Control
 
     private void RefreshTerms()
     {
-        if (_termsContainer == null || _state == null) return;
+        if (_termsContainer == null || _state == null)
+            return;
 
         foreach (var child in _termsContainer.GetChildren())
             child.QueueFree();
@@ -405,7 +407,8 @@ public partial class NegotiationManager : Control
 
     private void RefreshTokenButtons()
     {
-        if (_tokenContainer == null || _state == null) return;
+        if (_tokenContainer == null || _state == null)
+            return;
 
         foreach (var child in _tokenContainer.GetChildren())
             child.QueueFree();
@@ -424,7 +427,8 @@ public partial class NegotiationManager : Control
         int colIndex = 0;
         foreach (var kvp in _state.TokenPool)
         {
-            if (kvp.Value <= 0) continue;
+            if (kvp.Value <= 0)
+                continue;
 
             var token = kvp.Key;
             var count = kvp.Value;
@@ -446,8 +450,10 @@ public partial class NegotiationManager : Control
                 }
             };
 
-            if (colIndex % 2 == 0) col1.AddChild(btn);
-            else col2.AddChild(btn);
+            if (colIndex % 2 == 0)
+                col1.AddChild(btn);
+            else
+                col2.AddChild(btn);
             colIndex++;
         }
 
@@ -475,7 +481,8 @@ public partial class NegotiationManager : Control
 
     private void AppendLog(string message)
     {
-        if (_logLabel == null) return;
+        if (_logLabel == null)
+            return;
         _logLabel.AppendText($"\n{message}");
     }
 
@@ -530,7 +537,7 @@ public partial class NegotiationManager : Control
     {
         GetTree().ChangeSceneToFile(
             EncounterRouter.Instance?.OverworldScenePath
-            ?? "res://Scenes/Overworld/OverworldScene.tscn");
+            ?? "res://Scenes/Overworld/ExpeditionScene.tscn");
     }
 
     private Label MakeTinyLabel(string text, Color color)

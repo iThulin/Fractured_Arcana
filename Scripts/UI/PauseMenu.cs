@@ -24,10 +24,10 @@ public partial class PauseMenu : Control
     /// <summary>Sentinel value passed to inline sub-overlays' ReturnScenePath so they QueueFree themselves on back instead of triggering a scene change.</summary>
     public const string InlineSentinel = "__INLINE__";
 
-    [Export] public string SettingsScenePath    = "res://Scenes/UI/SettingsMenu.tscn";
+    [Export] public string SettingsScenePath = "res://Scenes/UI/SettingsMenu.tscn";
     [Export] public string CardLibraryScenePath = "res://Scenes/UI/CardLibrary.tscn";
-    [Export] public string MainMenuScenePath    = "res://Scenes/Campus/CampusScene.tscn";
-    [Export] public string OverworldScenePath   = "res://Scenes/Overworld/OverworldScene.tscn";
+    [Export] public string MainMenuScenePath = "res://Scenes/Campus/CampusScene.tscn";
+    [Export] public string OverworldScenePath = "res://Scenes/Overworld/ExpeditionScene.tscn";
 
     private Button _resumeButton;
     private Button _settingsButton;
@@ -46,23 +46,23 @@ public partial class PauseMenu : Control
     {
         ProcessMode = ProcessModeEnum.Always;
 
-        _backdrop      = GetNode<ColorRect>("Backdrop");
+        _backdrop = GetNode<ColorRect>("Backdrop");
         _menuContainer = GetNode<Control>("MenuContainer");
-        _overlayHost   = GetNode<Control>("OverlayHost");
+        _overlayHost = GetNode<Control>("OverlayHost");
 
-        _resumeButton         = GetNode<Button>("MenuContainer/Margin/VBox/ResumeButton");
-        _settingsButton       = GetNode<Button>("MenuContainer/Margin/VBox/SettingsButton");
-        _cardLibraryButton    = GetNode<Button>("MenuContainer/Margin/VBox/CardLibraryButton");
+        _resumeButton = GetNode<Button>("MenuContainer/Margin/VBox/ResumeButton");
+        _settingsButton = GetNode<Button>("MenuContainer/Margin/VBox/SettingsButton");
+        _cardLibraryButton = GetNode<Button>("MenuContainer/Margin/VBox/CardLibraryButton");
         _returnToCampusButton = GetNode<Button>("MenuContainer/Margin/VBox/ReturnToCampusButton");
-        _forfeitCombatButton  = GetNode<Button>("MenuContainer/Margin/VBox/ForfeitCombatButton");
-        _quitButton           = GetNode<Button>("MenuContainer/Margin/VBox/QuitButton");
+        _forfeitCombatButton = GetNode<Button>("MenuContainer/Margin/VBox/ForfeitCombatButton");
+        _quitButton = GetNode<Button>("MenuContainer/Margin/VBox/QuitButton");
 
-        _resumeButton.Pressed         += OnResumePressed;
-        _settingsButton.Pressed       += OnSettingsPressed;
-        _cardLibraryButton.Pressed    += OnCardLibraryPressed;
+        _resumeButton.Pressed += OnResumePressed;
+        _settingsButton.Pressed += OnSettingsPressed;
+        _cardLibraryButton.Pressed += OnCardLibraryPressed;
         _returnToCampusButton.Pressed += OnReturnToCampusPressed;
-        _forfeitCombatButton.Pressed  += OnForfeitCombatPressed;
-        _quitButton.Pressed           += OnQuitPressed;
+        _forfeitCombatButton.Pressed += OnForfeitCombatPressed;
+        _quitButton.Pressed += OnQuitPressed;
 
         _backdrop.GuiInput += OnBackdropInput;
 
@@ -73,12 +73,12 @@ public partial class PauseMenu : Control
     public void Configure(PauseManager.PauseContext ctx)
     {
         bool inOverworld = ctx == PauseManager.PauseContext.Overworld;
-        bool inCombat    = ctx == PauseManager.PauseContext.InCombat;
+        bool inCombat = ctx == PauseManager.PauseContext.InCombat;
 
-        _cardLibraryButton.Visible    = true;
+        _cardLibraryButton.Visible = true;
         _returnToCampusButton.Visible = inOverworld;
-        _forfeitCombatButton.Visible  = inCombat;
-        _quitButton.Visible           = true;
+        _forfeitCombatButton.Visible = inCombat;
+        _quitButton.Visible = true;
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -123,7 +123,9 @@ public partial class PauseMenu : Control
         else
         {
             PauseManager.Instance?.ClosePauseMenu();
-            GetTree().ChangeSceneToFile(OverworldScenePath);
+            GetTree().ChangeSceneToFile(
+                EncounterRouter.Instance?.OverworldScenePath
+                ?? OverworldScenePath);
         }
     }
 
@@ -131,7 +133,8 @@ public partial class PauseMenu : Control
 
     private void OnBackdropInput(InputEvent @event)
     {
-        if (_currentInlinePanel != null) return;
+        if (_currentInlinePanel != null)
+            return;
         if (@event is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
             OnResumePressed();
     }
@@ -142,7 +145,8 @@ public partial class PauseMenu : Control
 
     private void OpenInlineOverlay(string scenePath, System.Action<Node> before = null)
     {
-        if (_currentInlinePanel != null) return;
+        if (_currentInlinePanel != null)
+            return;
 
         var packed = GD.Load<PackedScene>(scenePath);
         if (packed == null)
@@ -179,13 +183,15 @@ public partial class PauseMenu : Control
 
     private void MoveOverlayHostToFront()
     {
-        if (!IsInstanceValid(_overlayHost)) return;
+        if (!IsInstanceValid(_overlayHost))
+            return;
         MoveChild(_overlayHost, GetChildCount() - 1);
     }
 
     private void RestoreMenuContainer()
     {
-        if (!IsInstanceValid(_menuContainer)) return;
+        if (!IsInstanceValid(_menuContainer))
+            return;
         _menuContainer.Visible = true;
         MoveChild(_menuContainer, GetChildCount() - 1);
     }
