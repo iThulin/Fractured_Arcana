@@ -121,13 +121,6 @@ public class CycleState
     // ── Faction reputation (the timeline forgets) ────────────────────────
     public Dictionary<string, int> FactionReputation = new();
 
-    // ── Region memory (per-kingdom-per-cycle) ────────────────────────────
-    /// <summary>
-    /// Fog, seeds, consumed POIs per visited region. This is also the
-    /// carrier of the mid-run approximate-resume behavior.
-    /// </summary>
-    public Dictionary<string, RegionMemorySaveData> RegionMemory = new();
-
     // ── Narrative state (timeline-scoped) ────────────────────────────────
     /// <summary>
     /// One-shot narrative events completed in THIS timeline. Cross-loop

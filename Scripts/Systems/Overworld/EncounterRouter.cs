@@ -62,56 +62,6 @@ public partial class EncounterRouter : Node
     }
 
     /// <summary>
-    /// Called by RunManager to start a combat encounter.
-    /// Saves overworld state, then swaps to the combat scene.
-    /// </summary>
-    public void StartCombat(
-        OverworldRunManager runManager,
-        Vector2I combatHexCoord,
-        EncounterTier tier = EncounterTier.Battle,
-        string terrainType = "Grassland")
-    {
-        // ── Save overworld state ────────────────────────────────────────
-        SavedStepsRemaining = runManager.StepsRemaining;
-        SavedCurrentHP = runManager.CurrentHP;
-        SavedGoldEarned = runManager.GoldEarned;
-        SavedSplinterEarned = runManager.SplinterEarned;
-        SavedEncountersWon = runManager.EncountersWon;
-        SavedPartyCoord = runManager.GetPartyCoord();
-        SavedCombatHexCoord = combatHexCoord;
-
-        // Save fog and POI state for every hex
-        SavedFogStates.Clear();
-        SavedPOIConsumed.Clear();
-        var grid = runManager.GetGrid();
-        foreach (var kvp in grid.Hexes)
-        {
-            SavedFogStates[kvp.Key] = kvp.Value.Fog;
-            SavedPOIConsumed[kvp.Key] = kvp.Value.POIConsumed;
-        }
-
-        HasPendingReturn = false;
-
-        GD.Print($"EncounterRouter: Saved overworld state. Party at {SavedPartyCoord}, " +
-                 $"Steps: {SavedStepsRemaining}, HP: {SavedCurrentHP}");
-
-        // ── Build encounter definition from region pool ──────────────────
-        string regionId = runManager.GetRegionId();
-        float diffMult = runManager.GetRegion()?.EnemyDifficultyMult ?? 1.0f;
-
-        var encounterDef = EncounterPoolLoader.Pick(regionId, tier, terrainType, diffMult);
-        EncounterContextCarrier.Set(encounterDef);
-        EncounterContextCarrier.SetContext(terrainType, tier);
-
-        GD.Print($"EncounterRouter: Encounter set — {encounterDef.DisplayName} " +
-                 $"({encounterDef.Tier}, {encounterDef.Enemies.Count} enemies)");
-
-        _currentTier = tier;
-        // ── Swap to combat scene ────────────────────────────────────────
-        GetTree().ChangeSceneToFile(CombatScenePath);
-    }
-
-    /// <summary>
     /// Called by GameRunner (via signal) when combat ends.
     /// Stores the result and swaps back to the overworld.
     /// </summary>

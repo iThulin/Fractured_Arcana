@@ -44,64 +44,82 @@ public class GuildSaveData
     // ═══════════════════════════════════════════════════════════════════
 
     // ── Meta ────────────────────────────────────────────────────────────
-    [JsonIgnore] public int SaveVersion
+    [JsonIgnore]
+    public int SaveVersion
     { get => Ledger.SaveVersion; set { Ledger.SaveVersion = value; Cycle.SaveVersion = value; } }
 
-    [JsonIgnore] public string GuildName
+    [JsonIgnore]
+    public string GuildName
     { get => Ledger.GuildName; set => Ledger.GuildName = value; }
 
-    [JsonIgnore] public string CreatedAt
+    [JsonIgnore]
+    public string CreatedAt
     { get => Ledger.CreatedAt; set => Ledger.CreatedAt = value; }
 
-    [JsonIgnore] public string LastPlayedAt
+    [JsonIgnore]
+    public string LastPlayedAt
     { get => Ledger.LastPlayedAt; set => Ledger.LastPlayedAt = value; }
 
     // ── Campaign state ───────────────────────────────────────────────────
-    [JsonIgnore] public CampaignState Campaign
+    [JsonIgnore]
+    public CampaignState Campaign
     { get => Cycle.Campaign; set => Cycle.Campaign = value; }
 
     // ── Wizard ──────────────────────────────────────────────────────────
-    [JsonIgnore] public string SelectedSchool
+    [JsonIgnore]
+    public string SelectedSchool
     { get => Cycle.SelectedSchool; set => Cycle.SelectedSchool = value; }
 
-    [JsonIgnore] public string WizardName
+    [JsonIgnore]
+    public string WizardName
     { get => Cycle.WizardName; set => Cycle.WizardName = value; }
 
     // ── Region ──────────────────────────────────────────────────────────
-    [JsonIgnore] public string CurrentRegionId
+    [JsonIgnore]
+    public string CurrentRegionId
     { get => Cycle.CurrentRegionId; set => Cycle.CurrentRegionId = value; }
 
     // ── Economy ─────────────────────────────────────────────────────────
-    [JsonIgnore] public int Gold
+    [JsonIgnore]
+    public int Gold
     { get => Cycle.Gold; set => Cycle.Gold = value; }
 
-    [JsonIgnore] public int ArcaneSplinters
+    [JsonIgnore]
+    public int ArcaneSplinters
     { get => Cycle.ArcaneSplinters; set => Cycle.ArcaneSplinters = value; }
 
     // ── Run stats ───────────────────────────────────────────────────────
-    [JsonIgnore] public int TotalRuns
+    [JsonIgnore]
+    public int TotalRuns
     { get => Cycle.TotalRuns; set => Cycle.TotalRuns = value; }
 
-    [JsonIgnore] public int RunsWon
+    [JsonIgnore]
+    public int RunsWon
     { get => Cycle.RunsWon; set => Cycle.RunsWon = value; }
 
-    [JsonIgnore] public int RunsLost
+    [JsonIgnore]
+    public int RunsLost
     { get => Cycle.RunsLost; set => Cycle.RunsLost = value; }
 
-    [JsonIgnore] public int TotalGoldEarned
+    [JsonIgnore]
+    public int TotalGoldEarned
     { get => Cycle.TotalGoldEarned; set => Cycle.TotalGoldEarned = value; }
 
-    [JsonIgnore] public int TotalEncountersWon
+    [JsonIgnore]
+    public int TotalEncountersWon
     { get => Cycle.TotalEncountersWon; set => Cycle.TotalEncountersWon = value; }
 
     // ── Companions ──────────────────────────────────────────────────────
-    [JsonIgnore] public List<Companion> Companions
+    [JsonIgnore]
+    public List<Companion> Companions
     { get => Cycle.Companions; set => Cycle.Companions = value; }
 
-    [JsonIgnore] public List<string> ActivePartyCompanionIds
+    [JsonIgnore]
+    public List<string> ActivePartyCompanionIds
     { get => Cycle.ActivePartyCompanionIds; set => Cycle.ActivePartyCompanionIds = value; }
 
-    [JsonIgnore] public int MaxPartySize
+    [JsonIgnore]
+    public int MaxPartySize
     { get => Cycle.MaxPartySize; set => Cycle.MaxPartySize = value; }
 
     // ── Training Grounds helpers (read the eternal campus) ──────────────
@@ -109,7 +127,8 @@ public class GuildSaveData
 
     [JsonIgnore] public int MartialStanceSlots => TrainingGroundsTier;
 
-    [JsonIgnore] public int FighterBaseAP => TrainingGroundsTier switch
+    [JsonIgnore]
+    public int FighterBaseAP => TrainingGroundsTier switch
     {
         0 => 3,
         1 => 4,
@@ -118,7 +137,8 @@ public class GuildSaveData
         _ => 3,
     };
 
-    [JsonIgnore] public int RangerBaseAP => TrainingGroundsTier switch
+    [JsonIgnore]
+    public int RangerBaseAP => TrainingGroundsTier switch
     {
         0 => 3,
         1 => 5,
@@ -136,51 +156,59 @@ public class GuildSaveData
     }
 
     // ── Equipment armory ─────────────────────────────────────────────────
-    [JsonIgnore] public ArmoryData Armory
+    [JsonIgnore]
+    public ArmoryData Armory
     { get => Cycle.Armory; set => Cycle.Armory = value; }
 
     // ── Buildings (the eternal campus) ───────────────────────────────────
-    [JsonIgnore] public List<BuildingSaveData> Buildings
+    [JsonIgnore]
+    public List<BuildingSaveData> Buildings
     { get => Ledger.Buildings; set => Ledger.Buildings = value; }
 
     // ── Persistent deck ──────────────────────────────────────────────────
-    [JsonIgnore] public PlayerDeckSave PlayerDeck
+    [JsonIgnore]
+    public PlayerDeckSave PlayerDeck
     { get => Cycle.PlayerDeck; set => Cycle.PlayerDeck = value; }
 
-    [JsonIgnore] public int MinDeckSize
+    [JsonIgnore]
+    public int MinDeckSize
     { get => Cycle.MinDeckSize; set => Cycle.MinDeckSize = value; }
 
     /// <summary>Discovered blueprints — knowledge, so it lives in the loom.</summary>
-    [JsonIgnore] public List<string> UnlockedCardBlueprintIds
+    [JsonIgnore]
+    public List<string> UnlockedCardBlueprintIds
     { get => Ledger.UnlockedCardBlueprintIds; set => Ledger.UnlockedCardBlueprintIds = value; }
 
     // ── Faction reputation ──────────────────────────────────────────────
-    [JsonIgnore] public Dictionary<string, int> FactionReputation
+    [JsonIgnore]
+    public Dictionary<string, int> FactionReputation
     { get => Cycle.FactionReputation; set => Cycle.FactionReputation = value; }
 
-    // ── Region memory ────────────────────────────────────────────────────
-    [JsonIgnore] public Dictionary<string, RegionMemorySaveData> RegionMemory
-    { get => Cycle.RegionMemory; set => Cycle.RegionMemory = value; }
-
     // ── Honored Dead (the loom remembers the dead) ──────────────────────
-    [JsonIgnore] public List<HonoredDeadRecord> HonoredDead
+    [JsonIgnore]
+    public List<HonoredDeadRecord> HonoredDead
     { get => Ledger.HonoredDead; set => Ledger.HonoredDead = value; }
 
     // ── Lore / progression flags ────────────────────────────────────────
-    [JsonIgnore] public List<string> UnlockedLoreEntries
+    [JsonIgnore]
+    public List<string> UnlockedLoreEntries
     { get => Ledger.UnlockedLoreEntries; set => Ledger.UnlockedLoreEntries = value; }
 
-    [JsonIgnore] public List<string> CompletedEvents
+    [JsonIgnore]
+    public List<string> CompletedEvents
     { get => Cycle.CompletedEvents; set => Cycle.CompletedEvents = value; }
 
     // ── Phase 3+ stubs ───────────────────────────────────────────────────
-    [JsonIgnore] public string CharterAlignment
+    [JsonIgnore]
+    public string CharterAlignment
     { get => Cycle.CharterAlignment; set => Cycle.CharterAlignment = value; }
 
-    [JsonIgnore] public int SeasonalThreatLevel
+    [JsonIgnore]
+    public int SeasonalThreatLevel
     { get => Cycle.SeasonalThreatLevel; set => Cycle.SeasonalThreatLevel = value; }
 
-    [JsonIgnore] public Dictionary<string, int> FragmentProgress
+    [JsonIgnore]
+    public Dictionary<string, int> FragmentProgress
     { get => Cycle.FragmentProgress; set => Cycle.FragmentProgress = value; }
 }
 
