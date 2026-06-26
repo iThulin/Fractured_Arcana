@@ -191,7 +191,7 @@ public partial class ExpeditionManager : Node2D
         // Narrative panel + pool (keyed to the staging kingdom)
         _narrativePanel = new NarrativeEncounterPanel { Visible = false };
         GetHudCanvas().AddChild(_narrativePanel);
-        _encounterPool = NarrativeEncounterLoader.LoadForRegion(stagingKingdom);
+        _encounterPool = NarrativeEncounterLoader.LoadForRegion(StagingTemplateRegion());
 
         // Wire signals
         _grid.HexClicked += OnHexClicked;
@@ -455,9 +455,9 @@ public partial class ExpeditionManager : Node2D
     private void OpenScoutReport(Vector2I coord, OverworldHex hex)
     {
         string terrainType = hex.Terrain.ToString();
-        string kingdomId = StagingKingdom();
+        string regionId = StagingTemplateRegion();
         var tier = EncounterTier.Battle;
-        var encounterDef = EncounterPoolLoader.Pick(kingdomId, tier, terrainType, _scaledDifficultyMult);
+        var encounterDef = EncounterPoolLoader.Pick(regionId, tier, terrainType, _scaledDifficultyMult);
 
         _pendingCombatHexCoord = coord;
         _pendingEncounter = encounterDef;
@@ -527,7 +527,7 @@ public partial class ExpeditionManager : Node2D
         _ambushPending = true;
         ShowInfo("A patrol has intercepted you!");
         var encounterDef = EncounterPoolLoader.Pick(
-            StagingKingdom(), EncounterTier.Skirmish, hex.Terrain.ToString(), _scaledDifficultyMult);
+            StagingTemplateRegion(), EncounterTier.Skirmish, hex.Terrain.ToString(), _scaledDifficultyMult);
         CommitCombat(coord, encounterDef, hex.Terrain.ToString());
     }
 
@@ -658,7 +658,7 @@ public partial class ExpeditionManager : Node2D
         hex.RefreshVisuals();
         ConsumeWorldPoi(coord);
 
-        string kingdomId = StagingKingdom();
+        string kingdomId = StagingTemplateRegion();
         string terrain = hex.Terrain.ToString();
         var encounter = NegotiationEncounterLoader.PickForTerrain(terrain, kingdomId);
         if (encounter == null)
@@ -966,6 +966,22 @@ public partial class ExpeditionManager : Node2D
 
     private string StagingKingdom()
         => _world.GetTile(_stagingCol, _stagingRow).KingdomId ?? "frontier_wilds";
+
+    /// <summary>The content template region for the staging kingdom — the real
+    /// region name (e.g. "frontier_wilds") that encounter/narrative pools are
+    /// filed under, NOT the "kingdom_N" id. Resolves via the kingdom's
+    /// TemplateRegionId set at world generation; falls back to the borderlands.</summary>
+    private string StagingTemplateRegion()
+    {
+        string kid = StagingKingdom();
+        if (_world != null && SaveManager.ActiveSave?.Cycle?.Kingdoms != null &&
+            SaveManager.ActiveSave.Cycle.Kingdoms.TryGetValue(kid, out var ks) &&
+            !string.IsNullOrEmpty(ks.TemplateRegionId))
+        {
+            return ks.TemplateRegionId;
+        }
+        return "frontier_wilds";
+    }
 
     /// <summary>Map a stored grid-local coord through the window (identity — the
     /// window rebuild uses the same staging point, so local coords are stable).</summary>

@@ -78,6 +78,15 @@ public static class CorruptionSpread
     private static Dictionary<string, HashSet<string>> _adjacency;
     private static WorldData _adjacencyWorld;
 
+    // kingdom_N -> real region id, for translating to the campaign's region-keyed
+    // corruption/archmage maps. Pressure + adjacency stay in kingdom space (tile
+    // topology); only campaign reads/writes use the region key.
+    private static readonly Dictionary<string, string> _kingdomToRegion = new();
+
+    private static string RegionOf(string kingdomId)
+        => _kingdomToRegion.TryGetValue(kingdomId, out var r) && !string.IsNullOrEmpty(r)
+            ? r : kingdomId;
+
     /// <summary>Run one lunation of corruption spread on the cycle's world +
     /// campaign. Call from the lunation-boundary hook (one deploy = one lunation).</summary>
     public static void Tick(WorldData world, CampaignState campaign,
@@ -85,6 +94,12 @@ public static class CorruptionSpread
     {
         if (world == null || campaign == null || world.Tiles.Length == 0)
             return;
+
+        // Refresh kingdom->region map each tick (cheap; kingdoms is small).
+        _kingdomToRegion.Clear();
+        if (kingdoms != null)
+            foreach (var kvp in kingdoms)
+                _kingdomToRegion[kvp.Key] = kvp.Value.TemplateRegionId;
 
         EnsureAdjacency(world);
         SeedPressureFromLevels(campaign);
@@ -125,7 +140,8 @@ public static class CorruptionSpread
             bool touchesConvergence = false;
             foreach (var n in kvp.Value)
             {
-                if (n == convergenceKingdom) touchesConvergence = true;
+                if (n == convergenceKingdom)
+                    touchesConvergence = true;
                 if (before.TryGetValue(n, out float np) && np > maxNeighbour)
                     maxNeighbour = np;
             }
@@ -153,20 +169,22 @@ public static class CorruptionSpread
         }
 
         // Write integer levels back through AdvanceCorruption so the archmage-
-        // flip-at-3 mechanic fires exactly as the legacy system expected.
+        // flip-at-3 mechanic fires. The campaign keys corruption + archmagi by
+        // REAL region id, so translate kingdom -> region at the call.
         foreach (var kvp in _pressure)
         {
             string kid = kvp.Key;
+            string region = RegionOf(kid);
             int targetLevel = Mathf.FloorToInt(kvp.Value);
-            int curLevel = campaign.GetCorruption(kid);
+            int curLevel = campaign.GetCorruption(region);
             // AdvanceCorruption raises by 1 and handles the archmage flip; call it
             // until the integer level matches the accumulated pressure.
             while (curLevel < targetLevel && curLevel < 3)
             {
-                bool flipped = campaign.AdvanceCorruption(kid);
-                curLevel = campaign.GetCorruption(kid);
+                bool flipped = campaign.AdvanceCorruption(region);
+                curLevel = campaign.GetCorruption(region);
                 if (flipped)
-                    GD.Print($"[Corruption] Kingdom '{kid}' archmage fell to corruption.");
+                    GD.Print($"[Corruption] Kingdom '{kid}' ({region}) archmage fell to corruption.");
             }
         }
     }
@@ -183,8 +201,9 @@ public static class CorruptionSpread
         // Level 0→0, 1→40, 2→70, 3→100 (a kingdom "fully fallen" saturates).
         float TargetFor(string kid)
         {
-            if (string.IsNullOrEmpty(kid)) return 0f;
-            int lvl = campaign.GetCorruption(kid);
+            if (string.IsNullOrEmpty(kid))
+                return 0f;
+            int lvl = campaign.GetCorruption(RegionOf(kid));
             return lvl switch { 0 => 0f, 1 => 40f, 2 => 70f, _ => 100f };
         }
 
@@ -252,7 +271,8 @@ public static class CorruptionSpread
             for (int x = 0; x < world.Width; x++)
             {
                 string kid = world.GetTile(x, y).KingdomId;
-                if (string.IsNullOrEmpty(kid)) continue;
+                if (string.IsNullOrEmpty(kid))
+                    continue;
                 if (!_adjacency.ContainsKey(kid))
                     _adjacency[kid] = new HashSet<string>();
 
@@ -275,14 +295,18 @@ public static class CorruptionSpread
         return world.GetTile(world.ConvergenceX, world.ConvergenceY).KingdomId ?? "";
     }
 
-    // Rebuild the fractional pressure accumulator from integer levels if this is
-    // a fresh session (the accumulator isn't serialized; integer levels are).
+    // Rebuild the fractional pressure accumulator (kingdom-keyed) from the
+    // campaign's integer levels (region-keyed) if this is a fresh session.
+    // Each kingdom inherits its region's level.
     private static void SeedPressureFromLevels(CampaignState campaign)
     {
-        foreach (var kvp in campaign.CorruptionLevels)
+        foreach (var kingdomEntry in _kingdomToRegion)
         {
-            if (!_pressure.ContainsKey(kvp.Key) || _pressure[kvp.Key] < kvp.Value)
-                _pressure[kvp.Key] = kvp.Value;
+            string kid = kingdomEntry.Key;
+            string region = kingdomEntry.Value;
+            int lvl = campaign.GetCorruption(region);
+            if (lvl > 0 && (!_pressure.ContainsKey(kid) || _pressure[kid] < lvl))
+                _pressure[kid] = lvl;
         }
     }
 

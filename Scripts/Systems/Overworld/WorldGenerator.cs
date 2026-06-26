@@ -98,16 +98,49 @@ public static class WorldGenerator
         foreach (var id in kingdomIds)
             tierOf[id] = DistanceToTier(distOf[id], maxDist);
 
-        // ── 4. Archmage placement via the existing CampaignGenerator ─────
-        // Territories become PlaceableRegions with distance-derived tiers.
-        // Exclude the convergence territory from placement (Kassian's seat).
+        // ── 4. Assign each kingdom a REAL region, then place archmagi ────
+        // Each kingdom becomes an instance of one of the authored regions
+        // (hollow_mire, glacial_threshold, …). This unifies the two region
+        // concepts: a kingdom IS a region, so its archmage, encounters,
+        // terrain palette and flavor all flow from one assignment. The
+        // convergence territory is Kassian's seat → always "the_convergence".
         string convergenceKingdom = kingdomIds[capitals.FindIndex(c => c.x == convergence.x && c.y == convergence.y)];
+
+        // Real region pool, excluding the convergence (reserved for Kassian).
+        var allRegions = RegionLoader.LoadAll();
+        allRegions.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+        var realRegionPool = allRegions
+            .Where(r => r.Id != "the_convergence")
+            .Select(r => r.Id)
+            .ToList();
+        // Deterministic shuffle so assignment is stable per seed.
+        ShuffleDeterministic(realRegionPool, rng);
+
+        // kingdom_N -> real region id (convergence handled separately).
+        var kingdomRegion = new Dictionary<string, string>();
+        int regionCursor = 0;
+        foreach (var id in kingdomIds)
+        {
+            if (id == convergenceKingdom)
+            {
+                kingdomRegion[id] = "the_convergence";
+                continue;
+            }
+            string region = realRegionPool.Count > 0
+                ? realRegionPool[regionCursor % realRegionPool.Count]
+                : "frontier_wilds";
+            kingdomRegion[id] = region;
+            regionCursor++;
+        }
+
+        // Feed the REAL region ids (not kingdom_N) to the campaign generator,
+        // so archmagi are placed onto real regions. Tier carries through.
         var placeables = new List<PlaceableRegion>();
         foreach (var id in kingdomIds)
         {
             if (id == convergenceKingdom)
                 continue;
-            placeables.Add(new PlaceableRegion { Id = id, Tier = tierOf[id] });
+            placeables.Add(new PlaceableRegion { Id = kingdomRegion[id], Tier = tierOf[id] });
         }
         var campaign = CampaignGenerator.Generate(seed, playerSchool, placeables);
 
@@ -118,19 +151,24 @@ public static class WorldGenerator
             string id = kingdomIds[i];
             bool isStart = (i == 0);
             bool isConvergence = (id == convergenceKingdom);
+            string region = kingdomRegion[id];
+            // Archmage is now looked up by the REAL region id the campaign used.
+            string archmageId = isConvergence ? "" : campaign.GetArchmageForRegion(region);
 
             kingdoms[id] = new KingdomState
             {
                 RegionId = id,
-                TemplateRegionId = id,
+                TemplateRegionId = region,
                 DisplayName = id,
                 ControllingFactionId = isConvergence ? "" : factionOf[id],
                 Stance = isStart ? KingdomStance.Friendly : KingdomStance.Neutral,
                 Tier = isConvergence ? 3 : tierOf[id],
                 Stability = 50,
                 PlayerInfluence = isStart ? 25 : 0,
-                ArchmageId = campaign.GetArchmageForRegion(id),
+                ArchmageId = archmageId,
             };
+            GD.Print($"[WorldGen] {id} -> region '{region}'" +
+                     (string.IsNullOrEmpty(archmageId) ? " (no archmage)" : $" (archmage {archmageId})"));
         }
 
         // ── 6. Corruption gradient toward the convergence seat ───────────
@@ -284,6 +322,19 @@ public static class WorldGenerator
     }
 
     // ── 6. Corruption gradient ───────────────────────────────────────────
+    // ── Region template assignment ───────────────────────────────────────
+
+    /// <summary>In-place Fisher–Yates shuffle using the world RNG, so kingdom→
+    /// region assignment is deterministic per seed.</summary>
+    private static void ShuffleDeterministic<T>(List<T> list, RandomNumberGenerator rng)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = (int)(rng.Randi() % (uint)(i + 1));
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
+
     private static void ApplyCorruptionGradient(WorldData world,
         Dictionary<string, KingdomState> kingdoms, CampaignState campaign,
         (int x, int y) convergence)
@@ -318,7 +369,7 @@ public static class WorldGenerator
             if (string.IsNullOrEmpty(kvp.Value.ArchmageId))
                 continue;
             if (kvp.Value.Tier >= 3)
-                campaign.CorruptionLevels[kvp.Key] = 1;
+                campaign.CorruptionLevels[kvp.Value.TemplateRegionId] = 1;
         }
     }
 
