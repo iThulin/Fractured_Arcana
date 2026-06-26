@@ -49,6 +49,11 @@ public sealed class OverworldField
     /// <summary>How much the detail layer perturbs base elevation (0..1).</summary>
     public float DetailWeight = 0.16f;
 
+    /// <summary>Spreads mid-clustered elevation/moisture toward the extremes so
+    /// region palette thresholds in the tails actually fire. 1.0 = raw (clustered),
+    /// higher = more extremes. 2.2 is tuned so each region's signature terrain shows.</summary>
+    public float RedistributionStrength = 2.2f;
+
     public OverworldField(int seed)
     {
         _elevation = MakeNoise(seed, ElevationFrequency, FastNoiseLite.NoiseTypeEnum.SimplexSmooth, octaves: 4);
@@ -79,14 +84,14 @@ public sealed class OverworldField
         float detailE = Norm01(_detail.GetNoise2D(p.X, p.Y));
 
         float e = Mathf.Lerp(baseE, detailE, DetailWeight);
-        return Mathf.Clamp(e, 0f, 1f);
+        return Redistribute(Mathf.Clamp(e, 0f, 1f));
     }
 
     /// <summary>Coherent moisture in [0,1] at the given axial coord (1.0 = wettest, 0.0 = driest).</summary>
     public float SampleMoisture01(Vector2I axial)
     {
         Vector2 p = AxialToPlane(axial);
-        return Mathf.Clamp(Norm01(_moisture.GetNoise2D(p.X, p.Y)), 0f, 1f);
+        return Redistribute(Mathf.Clamp(Norm01(_moisture.GetNoise2D(p.X, p.Y)), 0f, 1f));
     }
 
     // ── Classification ────────────────────────────────────────────────────────
@@ -144,4 +149,15 @@ public sealed class OverworldField
 
     /// <summary>Remaps FastNoiseLite output (~[-1,1]) to [0,1].</summary>
     private static float Norm01(float n) => (n + 1f) * 0.5f;
+
+    /// <summary>Push a [0,1] value away from 0.5 toward the extremes via a signed
+    /// power curve. Keeps 0, 0.5, and 1 fixed. Strength 1 is identity.</summary>
+    private float Redistribute(float v)
+    {
+        if (RedistributionStrength <= 1.0001f)
+            return v;
+        float c = (v - 0.5f) * 2f;                       // [-1, 1]
+        float spread = Mathf.Pow(Mathf.Abs(c), 1f / RedistributionStrength);
+        return Mathf.Sign(c) * spread * 0.5f + 0.5f;
+    }
 }

@@ -27,6 +27,17 @@ using System.Collections.Generic;
 // scene, press F6). SetWorld(world) injects the real cycle world.
 // ============================================================
 
+/// <summary>Map lenses — each colors the strategic map to answer a different
+/// question. Political = faction control + terrain texture + corruption (the
+/// combined overview); Terrain = raw region terrain; Corruption = a spread
+/// heat map.</summary>
+public enum StrategicLens
+{
+    Political,
+    Terrain,
+    Corruption,
+}
+
 public partial class StrategicView : Node2D
 {
     [Export] public float TilePx = 10f;          // world-space size of one tile quad
@@ -48,6 +59,7 @@ public partial class StrategicView : Node2D
     private WorldData _world;
     private System.Collections.Generic.Dictionary<string, KingdomState> _kingdoms = new();
     private bool _debugReveal = false;   // debug full-map view (non-destructive)
+    private StrategicLens _lens = StrategicLens.Political;  // active map lens
     private MultiMeshInstance2D _tileLayer;
     private MultiMeshInstance2D _poiLayer;
     private Camera2D _camera;
@@ -214,6 +226,66 @@ public partial class StrategicView : Node2D
         hint.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.5f));
         hint.HorizontalAlignment = HorizontalAlignment.Center;
         _hud.AddChild(hint);
+
+        BuildLensButtons();
+    }
+
+    // ── Map lens toggles ─────────────────────────────────────────────────
+    private readonly System.Collections.Generic.List<Button> _lensButtons = new();
+
+    private void BuildLensButtons()
+    {
+        _lensButtons.Clear();
+
+        // A horizontal row under the Return-to-Campus button, top-left.
+        var row = new HBoxContainer
+        {
+            AnchorLeft = 0f,
+            AnchorTop = 0f,
+            AnchorRight = 0f,
+            AnchorBottom = 0f,
+            OffsetLeft = 16,
+            OffsetTop = 64,
+            OffsetRight = 16,
+            OffsetBottom = 96,
+        };
+        row.AddThemeConstantOverride("separation", 6);
+        _hud.AddChild(row);
+
+        var lbl = new Label { Text = "View:" };
+        lbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        lbl.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.6f));
+        lbl.VerticalAlignment = VerticalAlignment.Center;
+        row.AddChild(lbl);
+
+        AddLensButton(row, "Political", StrategicLens.Political);
+        AddLensButton(row, "Terrain", StrategicLens.Terrain);
+        AddLensButton(row, "Corruption", StrategicLens.Corruption);
+
+        UpdateLensButtons();
+    }
+
+    private void AddLensButton(HBoxContainer row, string text, StrategicLens lens)
+    {
+        var btn = new Button { Text = text, ToggleMode = true };
+        btn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        UITheme.ApplyButtonStyle(btn, isPrimary: false);
+        btn.Pressed += () => SetLens(lens);
+        btn.SetMeta("lens", (int)lens);
+        row.AddChild(btn);
+        _lensButtons.Add(btn);
+    }
+
+    private void UpdateLensButtons()
+    {
+        foreach (var btn in _lensButtons)
+        {
+            if (!IsInstanceValid(btn))
+                continue;
+            bool active = (int)btn.GetMeta("lens") == (int)_lens;
+            btn.ButtonPressed = active;
+            btn.Modulate = active ? Colors.White : new Color(1f, 1f, 1f, 0.55f);
+        }
     }
 
     private void BuildTileLayer()
@@ -307,32 +379,61 @@ public partial class StrategicView : Node2D
         // world be inspected during testing.
         var discovery = _debugReveal ? TileDiscovery.Explored : t.Discovery;
 
-        // Discovery first: unexplored is void.
+        // Discovery first: unexplored is void (all lenses respect fog).
         if (discovery == TileDiscovery.Unseen)
             return UITheme.StrategicUnseen;
 
+        // Charted-but-unexplored: dim hint of the active lens's read.
         if (discovery == TileDiscovery.Charted)
         {
-            // Known shape, not yet explored: faction hue at low strength over
-            // a dim base, so you can see WHOSE land it is before exploring it.
-            bool ownedLand = t.Terrain != OverworldHex.TerrainType.Water &&
-                             !string.IsNullOrEmpty(t.KingdomId);
-            Color baseC = ownedLand ? FactionColorForKingdom(t.KingdomId) : TerrainColor(t.Terrain);
-            return baseC.Lerp(UITheme.StrategicCharted, 0.55f);
+            Color hint = LensBaseColor(t);
+            return hint.Lerp(UITheme.StrategicCharted, 0.55f);
         }
 
-        // Explored: faction control is the PRIMARY read at strategic scale.
-        // Terrain only modulates brightness slightly; corruption washes on top.
-        bool isLand = t.Terrain != OverworldHex.TerrainType.Water;
+        // Explored: the active lens decides how the tile reads.
+        return LensColor(t);
+    }
 
+    /// <summary>The fully-saturated color for a tile under the active lens
+    /// (explored tiles). Each lens answers a different question about the tile.</summary>
+    private Color LensColor(WorldTile t)
+    {
+        switch (_lens)
+        {
+            case StrategicLens.Terrain:
+                return TerrainLensColor(t);
+            case StrategicLens.Corruption:
+                return CorruptionLensColor(t);
+            default:
+                return PoliticalLensColor(t);
+        }
+    }
+
+    /// <summary>The base (un-dimmed) color used for the charted-tile hint, per lens.</summary>
+    private Color LensBaseColor(WorldTile t)
+    {
+        switch (_lens)
+        {
+            case StrategicLens.Terrain:
+                return TerrainColor(t.Terrain);
+            case StrategicLens.Corruption:
+                return CorruptionLensColor(t);
+            default:
+                bool ownedLand = t.Terrain != OverworldHex.TerrainType.Water &&
+                                 !string.IsNullOrEmpty(t.KingdomId);
+                return ownedLand ? FactionColorForKingdom(t.KingdomId) : TerrainColor(t.Terrain);
+        }
+    }
+
+    // ── Political lens (default): faction control + terrain luminance + corruption wash ──
+    private Color PoliticalLensColor(WorldTile t)
+    {
+        bool isLand = t.Terrain != OverworldHex.TerrainType.Water;
         Color c;
         if (isLand && !string.IsNullOrEmpty(t.KingdomId))
         {
-            // Faction color is the base. Terrain shifts its luminance a little
-            // so forests read darker than grassland WITHIN a territory, without
-            // washing out which faction owns the tile.
             Color faction = FactionColorForKingdom(t.KingdomId);
-            float lum = TerrainLuminance(t.Terrain);          // ~0.7..1.15
+            float lum = TerrainLuminance(t.Terrain);
             c = new Color(
                 Mathf.Clamp(faction.R * lum, 0f, 1f),
                 Mathf.Clamp(faction.G * lum, 0f, 1f),
@@ -341,18 +442,34 @@ public partial class StrategicView : Node2D
         }
         else
         {
-            // Wilderness / water: terrain color, no faction.
             c = TerrainColor(t.Terrain);
         }
-
         if (t.Corruption > 0)
         {
-            // Corruption is 0–100; wash intensity scales smoothly toward StrategicCorruption.
             float k = Mathf.Clamp(t.Corruption / 100f, 0f, 1f) * 0.6f;
             c = c.Lerp(UITheme.StrategicCorruption, k);
         }
-
         return c;
+    }
+
+    // ── Terrain lens: pure region terrain, no faction tint. Shows the
+    //    per-region terrain identity (the whole point of terrain-per-region). ──
+    private Color TerrainLensColor(WorldTile t) => TerrainColor(t.Terrain);
+
+    // ── Corruption lens: a heat map. Clean land reads cool/neutral, corruption
+    //    ramps through warning to full corruption color. Makes the spread legible. ──
+    private Color CorruptionLensColor(WorldTile t)
+    {
+        if (t.Terrain == OverworldHex.TerrainType.Water)
+            return UITheme.TerrainWater.Darkened(0.3f);
+        float k = Mathf.Clamp(t.Corruption / 100f, 0f, 1f);
+        // Cool clean -> hot corrupted, via a two-stop ramp for readability.
+        Color clean = new Color(0.18f, 0.26f, 0.22f);          // dim green-grey
+        Color mid = new Color(0.65f, 0.45f, 0.15f);            // amber
+        Color hot = UITheme.StrategicCorruption;               // full corruption
+        return k < 0.5f
+            ? clean.Lerp(mid, k / 0.5f)
+            : mid.Lerp(hot, (k - 0.5f) / 0.5f);
     }
 
     private static Color TerrainColor(OverworldHex.TerrainType t) => t switch
@@ -439,6 +556,26 @@ public partial class StrategicView : Node2D
     /// <summary>A POI just became discovered — rebuild the POI layer (its
     /// instance count changed). Cheap relative to the tile layer.</summary>
     public void RefreshPois() => BuildPoiLayer();
+
+    /// <summary>Switch the active map lens and recolor every tile. Cheap: only
+    /// rewrites instance colors, no rebuild.</summary>
+    public void SetLens(StrategicLens lens)
+    {
+        if (_lens == lens)
+            return;
+        _lens = lens;
+        RecolorAllTiles();
+        UpdateLensButtons();
+    }
+
+    private void RecolorAllTiles()
+    {
+        if (_tileLayer?.Multimesh == null || _world == null)
+            return;
+        var mm = _tileLayer.Multimesh;
+        for (int i = 0; i < _world.Tiles.Length; i++)
+            mm.SetInstanceColor(i, TileColor(_world.Tiles[i]));
+    }
 
     // ── Camera ───────────────────────────────────────────────────────────
     private void BuildCamera()
