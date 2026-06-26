@@ -301,6 +301,7 @@ public partial class CampusScreen : Control
                 PlayerSession.SkipDeployment = false;
                 PlayerSession.ForceNextEncounterType = -1;
                 PlayerSession.DebugRevealStrategicMap = false;
+                PlayerSession.DebugGrantStagingArmed = false;
             }
         };
 
@@ -1578,6 +1579,9 @@ public partial class CampusScreen : Control
             on => PlayerSession.SkipDeployment = on));
         grid.AddChild(MakeDebugCheck("Reveal Strategic Map", PlayerSession.DebugRevealStrategicMap,
             on => PlayerSession.DebugRevealStrategicMap = on));
+        grid.AddChild(MakeDebugCheck("Grant Staging (press G in expedition)",
+            PlayerSession.DebugGrantStagingArmed,
+            on => PlayerSession.DebugGrantStagingArmed = on));
 
         var forceLabel = new Label { Text = "Force Next POI:" };
         forceLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);

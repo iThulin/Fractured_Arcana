@@ -563,13 +563,12 @@ public static class WorldGenerator
             Available = true,
         });
 
-        // ── Guarantee staging can bootstrap ──────────────────────────────
-        // Place 2 staging-granting outposts in the 10–14 hex ring around start:
-        // one inside the first window (d<=12, found on expedition 1 if you explore
-        // toward it), one just beyond (d 13–14, needs a second push). Pre-discover
-        // both so they show on the strategic map as visible goals from the start.
-        SeedBootstrapOutpost(world, start, minD: 10, maxD: 12, rng, "Frontier Outpost");
-        SeedBootstrapOutpost(world, start, minD: 13, maxD: 14, rng, "Distant Outpost");
+        string startKingdom = world.GetTile(start.x, start.y).KingdomId ?? "";
+        // Near outpost: inside the first window, home kingdom is fine — it bootstraps the loop.
+        SeedBootstrapOutpost(world, start, minD: 10, maxD: 12, rng, "Frontier Outpost", foreignTo: null);
+        // Distant outpost: MUST be in a different kingdom, so its window reaches foreign ground.
+        // This is the anti-softlock guarantee — without it every staging point can stay home.
+        SeedBootstrapOutpost(world, start, minD: 13, maxD: 18, rng, "Distant Outpost", foreignTo: startKingdom);
 
         // Pre-discover the nearest few ordinary POIs too, so the first strategic
         // view has texture beyond the guaranteed outposts.
@@ -586,10 +585,12 @@ public static class WorldGenerator
     /// land tile within [minD, maxD] hex distance of the start. Guarantees the
     /// exploration loop can bootstrap a second staging point.</summary>
     private static void SeedBootstrapOutpost(WorldData world, (int x, int y) start,
-                                             int minD, int maxD,
-                                             RandomNumberGenerator rng, string name)
+                                                 int minD, int maxD,
+                                                 RandomNumberGenerator rng, string name,
+                                                 string foreignTo)
     {
         var candidates = new List<(int x, int y)>();
+        var foreignCandidates = new List<(int x, int y)>();
         for (int y = 0; y < world.Height; y++)
         {
             for (int x = 0; x < world.Width; x++)
@@ -601,20 +602,34 @@ public static class WorldGenerator
                 if (tile.Terrain == OverworldHex.TerrainType.Water)
                     continue;
                 if (tile.PoiIndex >= 0)
-                    continue;          // don't stack on an existing POI
+                    continue;
                 if (tile.IsStagingPoint)
                     continue;
                 candidates.Add((x, y));
+                if (!string.IsNullOrEmpty(foreignTo) &&
+                    !string.IsNullOrEmpty(tile.KingdomId) &&
+                    tile.KingdomId != foreignTo)
+                    foreignCandidates.Add((x, y));
             }
         }
-        if (candidates.Count == 0)
+
+        // Prefer a foreign-kingdom site when one is required and available.
+        var pickList = (foreignTo != null && foreignCandidates.Count > 0)
+            ? foreignCandidates
+            : candidates;
+
+        if (foreignTo != null && foreignCandidates.Count == 0)
+            GD.PushWarning($"[WorldGenerator] No FOREIGN bootstrap site for '{name}' in ring " +
+                           $"[{minD},{maxD}] — falling back to home kingdom; softlock risk.");
+
+        if (pickList.Count == 0)
         {
             GD.PushWarning($"[WorldGenerator] No bootstrap-outpost site in ring " +
                            $"[{minD},{maxD}] — staging may not bootstrap.");
             return;
         }
 
-        var (ox, oy) = candidates[(int)(rng.Randi() % (uint)candidates.Count)];
+        var (ox, oy) = pickList[(int)(rng.Randi() % (uint)pickList.Count)];
         int poiIndex = world.Pois.Count;
         world.Pois.Add(new WorldPoi
         {
@@ -622,8 +637,8 @@ public static class WorldGenerator
             Y = oy,
             Kind = PoiKind.Outpost,
             KingdomId = world.GetTile(ox, oy).KingdomId ?? "",
-            Discovered = true,           // visible on the strategic map from the start
-            GrantsStaging = true,        // securing it adds a staging point
+            Discovered = true,
+            GrantsStaging = true,
         });
         int idx = oy * world.Width + ox;
         var ot = world.Tiles[idx];
@@ -631,7 +646,7 @@ public static class WorldGenerator
         world.Tiles[idx] = ot;
 
         GD.Print($"[WorldGenerator] Bootstrap outpost '{name}' at ({ox},{oy}), " +
-                 $"hex distance {Dist((ox, oy), start)} from start.");
+                 $"hex distance {Dist((ox, oy), start)} from start, kingdom '{world.GetTile(ox, oy).KingdomId}'.");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────

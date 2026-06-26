@@ -315,6 +315,53 @@ public partial class ExpeditionManager : Node2D
     }
 
     // ════════════════════════════════════════════════════════════════════
+    // Debug / dev-mode helpers
+    // ════════════════════════════════════════════════════════════════════
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (!PlayerSession.DebugMode || ExpeditionComplete)
+            return;
+        if (!PlayerSession.DebugGrantStagingArmed)
+            return;
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.G })
+        {
+            DebugGrantStagingHere();
+            GetViewport().SetInputAsHandled();
+        }
+    }
+
+    private void DebugGrantStagingHere()
+    {
+        var local = _party.CurrentCoord;
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+        {
+            ShowInfo("[DEBUG] Can't resolve current tile to world.");
+            return;
+        }
+        foreach (var sp in _world.StagingPoints)
+            if (sp.X == col && sp.Y == row)
+            { ShowInfo("[DEBUG] Already a staging point here."); return; }
+
+        _world.StagingPoints.Add(new StagingPoint
+        {
+            X = col,
+            Y = row,
+            Name = "Debug Staging",
+            Source = "Debug",
+            Available = true,
+        });
+        if (_world.TryIndex(col, row, out int idx))
+            _world.Tiles[idx].IsStagingPoint = true;
+
+        string kid = _world.GetTile(col, row).KingdomId ?? "";
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        ShowInfo($"[DEBUG] Staging granted at ({col},{row}), kingdom '{kid}'.");
+        GD.Print($"[DEBUG] Granted staging at ({col},{row}), kingdom '{kid}'.");
+    }
+
+    // ════════════════════════════════════════════════════════════════════
     // Movement / POI handlers (lifted from OverworldRunManager, de-objectived)
     // ════════════════════════════════════════════════════════════════════
 
@@ -458,8 +505,6 @@ public partial class ExpeditionManager : Node2D
         string regionId = StagingTemplateRegion();
         var tier = EncounterTier.Battle;
         var arch = RollArchmageAt(coord);   // resident archmage rolls for its own forces
-        GD.Print($"[ArchmageEncounter] POI tile kingdom-archmage='{KingdomArchmageAt(coord)}', " +
-         $"draw={(arch != null ? arch.Id : "(region pool)")}");
         var encounterDef =
             (arch != null
                 ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, _scaledDifficultyMult)
@@ -539,8 +584,6 @@ public partial class ExpeditionManager : Node2D
         // are always the archmage's own, NO chance roll. Region pool only backstops
         // an archmage that has no authored skirmish group.
         var arch = ArchmageDefById(archmageId);
-        GD.Print($"[ArchmageEncounter] patrol archmageId='{archmageId}', " +
-         $"draw={(arch != null ? arch.Id : "(region pool)")}");
         var encounterDef =
             (arch != null
                 ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Skirmish, terrainType, _scaledDifficultyMult)
@@ -1034,8 +1077,7 @@ public partial class ExpeditionManager : Node2D
         var def = ArchmageDefById(KingdomArchmageAt(local));
         if (def == null)
             return null;
-        // TEMP TEST: force the draw whenever an archmage owns the tile.
-        return def; // was: GD.Randf() < def.ArchmageFactionChance ? def : null;
+        return GD.Randf() < def.ArchmageFactionChance ? def : null;
     }
 
     /// <summary>Map a stored grid-local coord through the window (identity — the

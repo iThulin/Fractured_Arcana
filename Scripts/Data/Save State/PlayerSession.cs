@@ -50,6 +50,7 @@ public static class PlayerSession
     // ── Debug flags (only active when DebugMode = true) ─────────────────
     public static bool NoFog = false;
     public static bool UnlimitedSteps = false;
+    public static bool DebugGrantStagingArmed = false;
     public static bool GodModeHP = false;
     public static bool StartWithGold = false;
     public static bool StartWithSplinters = false;
