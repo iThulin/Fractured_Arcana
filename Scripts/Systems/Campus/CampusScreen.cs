@@ -300,6 +300,7 @@ public partial class CampusScreen : Control
                 PlayerSession.StartWithSplinters = false;
                 PlayerSession.SkipDeployment = false;
                 PlayerSession.ForceNextEncounterType = -1;
+                PlayerSession.DebugRevealStrategicMap = false;
             }
         };
 
@@ -675,7 +676,119 @@ public partial class CampusScreen : Control
             return;
         }
 
+        // If the last cycle ended at the Grand Conjunction, begin a new cycle first —
+        // with school reselection (Option A: unlocked blueprints, campus, mastery, and
+        // essence persist in the ledger; the deck resets to a starter).
+        if (PlayerSession.CycleEndedByConjunction)
+        {
+            ShowNewCycleSchoolPicker();
+            return;
+        }
+
         EnsureCycleWorld();
+        GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
+    }
+
+    /// <summary>After a Conjunction, let the player choose the next cycle's school
+    /// (the same school is allowed — they keep their unlocked card pool either way,
+    /// but the deck rebuilds from a starter). Then begin the new cycle and open the
+    /// freshly generated world.</summary>
+    private void ShowNewCycleSchoolPicker()
+    {
+        var layer = new CanvasLayer { Name = "NewCycleUI" };
+        AddChild(layer);
+
+        var backdrop = new ColorRect { Color = new Color(0.02f, 0.0f, 0.04f, 0.92f) };
+        backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
+        layer.AddChild(backdrop);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0.5f,
+            AnchorTop = 0.5f,
+            AnchorRight = 0.5f,
+            AnchorBottom = 0.5f,
+            GrowHorizontal = GrowDirection.Both,
+            GrowVertical = GrowDirection.Both,
+            OffsetLeft = -280,
+            OffsetRight = 280,
+            OffsetTop = -200,
+            OffsetBottom = 200,
+        };
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
+        layer.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 28);
+        margin.AddThemeConstantOverride("margin_right", 28);
+        margin.AddThemeConstantOverride("margin_top", 24);
+        margin.AddThemeConstantOverride("margin_bottom", 24);
+        panel.AddChild(margin);
+
+        var vbox = MakeVBox(14);
+        margin.AddChild(vbox);
+
+        var title = new Label { Text = "A New Timeline" };
+        title.AddThemeFontSizeOverride("font_size", UITheme.CampusTitleFontSize);
+        title.AddThemeColorOverride("font_color", UITheme.Gold);
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        vbox.AddChild(title);
+
+        var body = new Label
+        {
+            Text = "Kassian weaves the world anew. Choose the school of this cycle. " +
+                   "Everything you have learned — your card knowledge, your campus, your " +
+                   "mastery — endures. Your deck begins again from its foundations.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        body.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        body.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+        vbox.AddChild(body);
+
+        vbox.AddChild(new HSeparator());
+
+        string previousSchool = SaveManager.ActiveSave.Cycle.SelectedSchool;
+
+        var grid = new GridContainer { Columns = 2 };
+        grid.AddThemeConstantOverride("h_separation", 10);
+        grid.AddThemeConstantOverride("v_separation", 10);
+        vbox.AddChild(grid);
+
+        foreach (CardSchool school in System.Enum.GetValues(typeof(CardSchool)))
+        {
+            string schoolName = school.ToString();
+            bool isPrevious = schoolName == previousSchool;
+
+            var btn = new Button
+            {
+                Text = isPrevious ? $"{schoolName}  (again)" : schoolName,
+                CustomMinimumSize = new Vector2(230, 44),
+            };
+            btn.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            UITheme.ApplyButtonStyle(btn, isPrimary: isPrevious);
+
+            string captured = schoolName;
+            btn.Pressed += () => BeginNextCycle(captured, layer);
+            grid.AddChild(btn);
+        }
+    }
+
+    private void BeginNextCycle(string school, CanvasLayer pickerLayer)
+    {
+        // Archive the dead cycle and create the fresh one. Option A persistence is
+        // automatic: BeginNewCycle leaves the ledger untouched, resets the cycle,
+        // and re-seeds a starter deck for the chosen school.
+        SaveManager.BeginNewCycle(school, "ConvergenceDefeat");
+        PlayerSession.CycleEndedByConjunction = false;
+        if (Enum.TryParse<CardSchool>(school, out var cs))
+            PlayerSession.SelectedSchool = cs;
+
+        pickerLayer?.QueueFree();
+
+        // Generate the new cycle's world and open it.
+        EnsureCycleWorld();
+        RefreshAll();
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
     }
 
@@ -695,10 +808,12 @@ public partial class CampusScreen : Control
         cycle.World = g.World;
         cycle.Kingdoms = g.Kingdoms;
         cycle.Campaign = g.Campaign;
+        CorruptionSpread.Reset(); // new world — drop cached adjacency + pressure
         SaveManager.Save();
         GD.Print($"[Campus] Generated cycle {cycle.CycleNumber} world (seed {seed}, " +
                  $"{g.Kingdoms.Count} territories, {g.World.Pois.Count} POIs).");
     }
+
 
     // ═══════════════════════════════════════════════════════════════════════
     // Armory Tab
@@ -1449,7 +1564,7 @@ public partial class CampusScreen : Control
             return cb;
         }
 
-        grid.AddChild(MakeDebugCheck("No Fog of War", PlayerSession.NoFog,
+        grid.AddChild(MakeDebugCheck("No Fog in Expedition", PlayerSession.NoFog,
             on => PlayerSession.NoFog = on));
         grid.AddChild(MakeDebugCheck("Unlimited Steps", PlayerSession.UnlimitedSteps,
             on => PlayerSession.UnlimitedSteps = on));
@@ -1461,6 +1576,8 @@ public partial class CampusScreen : Control
             on => PlayerSession.StartWithSplinters = on));
         grid.AddChild(MakeDebugCheck("Skip Deployment", PlayerSession.SkipDeployment,
             on => PlayerSession.SkipDeployment = on));
+        grid.AddChild(MakeDebugCheck("Reveal Strategic Map", PlayerSession.DebugRevealStrategicMap,
+            on => PlayerSession.DebugRevealStrategicMap = on));
 
         var forceLabel = new Label { Text = "Force Next POI:" };
         forceLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);

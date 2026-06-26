@@ -35,8 +35,9 @@ public partial class PatrolToken : Node2D
     private const float BodyRadius = 11f;
     private const float OutlineRadius = 13.5f;
     private const float MoveSpeed = 220f; // pixels per second (slightly slower than party)
-    private const int DetectionRange = 4; // hexes within which the patrol hunts
-    private const int HomeRange = 4;      // max hexes the patrol wanders from its home
+    private const int DetectionRange = 8;     // hexes within which the patrol spots you
+    private const int HomeRange = 4;          // legacy wander radius (pre-detection only)
+    private const int LoseInterestRange = 14; // once committed, only gives up beyond this
 
     // ── Public state ──────────────────────────────────────────────────────
     public Vector2I CurrentCoord { get; private set; }
@@ -55,6 +56,7 @@ public partial class PatrolToken : Node2D
     private OverworldHexGrid _grid;
     private Vector2I _homeCoord;
     private Vector2I _prevCoord;
+    private bool _committed = false;          // true once it has spotted the player
     private RandomNumberGenerator _rng;
     private Color _factionColor;
 
@@ -218,13 +220,28 @@ public partial class PatrolToken : Node2D
 
         int distToPlayer = _grid.Distance(CurrentCoord, playerCoord);
 
-        Vector2I next;
+        // Spot the player within detection range → commit to the hunt.
         if (distToPlayer <= DetectionRange)
-            next = StepToward(CurrentCoord, playerCoord);   // hunt
+            _committed = true;
+        // Lose the trail only if the player breaks well clear.
+        else if (_committed && distToPlayer > LoseInterestRange)
+            _committed = false;
+
+        Vector2I next;
+        if (_committed)
+        {
+            // Relentless pursuit — no home leash. Equal speed means it shadows a
+            // moving player and closes on a dithering one.
+            next = StepToward(CurrentCoord, playerCoord);
+        }
         else if (_grid.Distance(CurrentCoord, _homeCoord) > HomeRange)
-            next = StepToward(CurrentCoord, _homeCoord);    // return to territory
+        {
+            next = StepToward(CurrentCoord, _homeCoord);    // drift back to territory
+        }
         else
+        {
             next = Wander();
+        }
 
         if (next != CurrentCoord)
             MoveTo(next);
@@ -238,6 +255,7 @@ public partial class PatrolToken : Node2D
     public void Disengage(int cooldownSteps)
     {
         _recoveryCooldown = cooldownSteps;
+        _committed = false;
         TeleportTo(_homeCoord); // ← swap _homeCoord for an archmage-seat coord if you add one
     }
 

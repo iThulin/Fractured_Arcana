@@ -64,21 +64,24 @@ public partial class OverworldFactionManager : Node2D
 
         if (campaign == null)
         {
-            GD.Print($"[FactionManager] No campaign — skipping patrol spawn for '{regionId}'.");
+            GD.Print($"[FactionManager] No campaign — spawning a wilds patrol for '{regionId}'.");
+            SpawnWildsPatrol(regionId);
             return;
         }
 
         _archmageId = campaign.GetArchmageForRegion(regionId);
         if (string.IsNullOrEmpty(_archmageId))
         {
-            GD.Print($"[FactionManager] No archmage in '{regionId}' — no patrols spawned.");
+            GD.Print($"[FactionManager] No archmage in '{regionId}' — spawning a wilds patrol.");
+            SpawnWildsPatrol(regionId);
             return;
         }
 
         _archmage = ArchmageRegistry.Get(_archmageId);
         if (_archmage == null)
         {
-            GD.PushWarning($"[FactionManager] Archmage '{_archmageId}' not found in registry.");
+            GD.PushWarning($"[FactionManager] Archmage '{_archmageId}' not found — wilds patrol instead.");
+            SpawnWildsPatrol(regionId);
             return;
         }
 
@@ -285,6 +288,55 @@ public partial class OverworldFactionManager : Node2D
                 GD.Print($"[FactionManager] Patrol '{p.ArchmageId}' routed home, " +
                          $"recovering for {cooldownSteps} step(s).");
             }
+    }
+
+    // One slow, generic patrol for archmage-less territory. Spawns at a passable
+    // tile a few hexes from the grid's entry (the staging point in window mode) so
+    // it starts at a distance and closes in. Uses a neutral color and a seeded RNG
+    // derived from the region id for determinism within a session.
+
+    /// <summary>Spawn a single generic wilds patrol when no archmage force applies.
+    /// Guarantees every expedition has at least one pursuer.</summary>
+    private void SpawnWildsPatrol(string regionId)
+    {
+        // Find a passable spawn tile 5–9 hexes from the entry, iterating
+        // deterministically so the spawn is reproducible.
+        Vector2I entry = _grid.EntryCoord;
+        var candidates = new List<Vector2I>();
+        foreach (var kvp in _grid.Hexes)
+        {
+            int d = _grid.Distance(kvp.Key, entry);
+            if (d < 5 || d > 9)
+                continue;
+            var t = kvp.Value.Terrain;
+            if (t == OverworldHex.TerrainType.Water || t == OverworldHex.TerrainType.Mountain)
+                continue;
+            candidates.Add(kvp.Key);
+        }
+        if (candidates.Count == 0)
+        {
+            GD.Print("[FactionManager] No wilds-patrol spawn site found — none spawned.");
+            return;
+        }
+
+        // Sort for determinism, then pick by a region-seeded RNG.
+        candidates.Sort((a, b) => a.X != b.X ? a.X - b.X : a.Y - b.Y);
+        var rng = new RandomNumberGenerator { Seed = (ulong)(regionId.GetHashCode() ^ 0x5EED) };
+        var start = candidates[(int)(rng.Randi() % (uint)candidates.Count)];
+
+        var patrol = new PatrolToken { Name = "WildsPatrol_0" };
+        _grid.AddChild(patrol);
+        patrol.Initialize(
+            _grid,
+            start,
+            homeCoord: start,
+            factionColorHex: "#9A8478",   // neutral dun — clearly not a faction force
+            archmageId: "wilds",
+            seed: (int)rng.Randi());
+        _patrols.Add(patrol);
+
+        _initialized = true;
+        GD.Print($"[FactionManager] Wilds patrol spawned at {start} (entry {entry}).");
     }
 
     // ═══════════════════════════════════════════════════════════════════════

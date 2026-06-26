@@ -146,6 +146,31 @@ public class CalendarState
     }
 
     /// <summary>
+    /// Advance the calendar by one whole lunation — the cost of deploying one
+    /// expedition. Snaps to the new moon (phase 0) of the next lunation and
+    /// keeps TotalPhasesElapsed consistent (counts the phases skipped to reach
+    /// the next new moon). Returns true (a lunation boundary is always crossed),
+    /// mirroring AdvancePhase's contract so callers can run the per-lunation
+    /// world tick on the return value. Does nothing if the Conjunction is reached.
+    /// </summary>
+    public bool AdvanceLunation()
+    {
+        if (ConjunctionReached)
+            return false;
+
+        // Phases consumed to land on the next new moon: finish out the current
+        // lunation (PhasesPerLunation - CurrentPhase). From a fresh new moon that
+        // is a full 8; mid-lunation it's whatever remains.
+        int phasesToNextNewMoon = PhasesPerLunation - CurrentPhase;
+        TotalPhasesElapsed += phasesToNextNewMoon;
+
+        CurrentPhase = 0;
+        CurrentLunation++;
+
+        return true;
+    }
+
+    /// <summary>
     /// Returns the unresolved eclipse landing on the current phase,
     /// or null. The caller resolves it as a defense battle.
     /// </summary>
@@ -169,9 +194,12 @@ public class CalendarState
     {
         foreach (var e in Eclipses)
         {
-            if (e.Resolved) continue;
-            if (e.LandsOnLunation > CurrentLunation) return true;
-            if (e.LandsOnLunation == CurrentLunation && e.LandsOnPhase >= CurrentPhase) return true;
+            if (e.Resolved)
+                continue;
+            if (e.LandsOnLunation > CurrentLunation)
+                return true;
+            if (e.LandsOnLunation == CurrentLunation && e.LandsOnPhase >= CurrentPhase)
+                return true;
         }
         return false;
     }

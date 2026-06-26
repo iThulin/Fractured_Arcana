@@ -47,6 +47,7 @@ public partial class StrategicView : Node2D
 
     private WorldData _world;
     private System.Collections.Generic.Dictionary<string, KingdomState> _kingdoms = new();
+    private bool _debugReveal = false;   // debug full-map view (non-destructive)
     private MultiMeshInstance2D _tileLayer;
     private MultiMeshInstance2D _poiLayer;
     private Camera2D _camera;
@@ -84,6 +85,7 @@ public partial class StrategicView : Node2D
                 }
                 _world = cycle.World;
                 _kingdoms = cycle.Kingdoms;
+                _debugReveal = PlayerSession.DebugMode && PlayerSession.DebugRevealStrategicMap;
             }
         }
 
@@ -143,6 +145,59 @@ public partial class StrategicView : Node2D
             GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
         _hud.AddChild(campusBtn);
 
+        // ── Calendar readout: the doomsday clock, top-right ──────────────
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle != null)
+        {
+            var cal = cycle.Calendar;
+            var calPanel = new PanelContainer
+            {
+                AnchorLeft = 1f,
+                AnchorTop = 0f,
+                AnchorRight = 1f,
+                AnchorBottom = 0f,
+                GrowHorizontal = Control.GrowDirection.Begin,
+                OffsetLeft = -260,
+                OffsetRight = -16,
+                OffsetTop = 16,
+                OffsetBottom = 84,
+            };
+            calPanel.AddThemeStyleboxOverride("panel",
+                UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Gold));
+            _hud.AddChild(calPanel);
+
+            var calMargin = new MarginContainer();
+            calMargin.AddThemeConstantOverride("margin_left", 14);
+            calMargin.AddThemeConstantOverride("margin_right", 14);
+            calMargin.AddThemeConstantOverride("margin_top", 8);
+            calMargin.AddThemeConstantOverride("margin_bottom", 8);
+            calPanel.AddChild(calMargin);
+
+            var calVbox = new VBoxContainer();
+            calVbox.AddThemeConstantOverride("separation", 2);
+            calMargin.AddChild(calVbox);
+
+            var phaseLbl = new Label
+            {
+                Text = $"Lunation {cal.CurrentLunation} / {cal.LunationsPerCycle}  ·  {cal.CurrentPhaseName}",
+            };
+            phaseLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+            phaseLbl.AddThemeColorOverride("font_color", UITheme.Gold);
+            calVbox.AddChild(phaseLbl);
+
+            int lunationsLeft = cal.LunationsRemaining;
+            var remainLbl = new Label
+            {
+                Text = lunationsLeft <= 2
+                    ? $"⚠ {lunationsLeft} lunation(s) until the Conjunction"
+                    : $"{lunationsLeft} lunations until the Conjunction",
+            };
+            remainLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+            remainLbl.AddThemeColorOverride("font_color",
+                lunationsLeft <= 2 ? UITheme.Danger : new Color(1f, 1f, 1f, 0.6f));
+            calVbox.AddChild(remainLbl);
+        }
+
         // A short legend so the player knows what they're looking at.
         var hint = new Label
         {
@@ -200,9 +255,10 @@ public partial class StrategicView : Node2D
         _poiInstanceOfPoi.Clear();
 
         // Count discovered POIs first (MultiMesh needs a fixed instance count).
+        // Debug reveal shows every POI regardless of discovery.
         var visible = new List<int>();
         for (int i = 0; i < _world.Pois.Count; i++)
-            if (_world.Pois[i].Discovered)
+            if (_debugReveal || _world.Pois[i].Discovered)
                 visible.Add(i);
 
         // Markers are diamonds, a bit larger than a tile so they read when zoomed out.
@@ -246,11 +302,16 @@ public partial class StrategicView : Node2D
     // ── Color logic ──────────────────────────────────────────────────────
     private Color TileColor(WorldTile t)
     {
+        // Debug full-map reveal: treat every tile as Explored for DISPLAY only —
+        // the saved discovery state is never touched. Lets corruption + the whole
+        // world be inspected during testing.
+        var discovery = _debugReveal ? TileDiscovery.Explored : t.Discovery;
+
         // Discovery first: unexplored is void.
-        if (t.Discovery == TileDiscovery.Unseen)
+        if (discovery == TileDiscovery.Unseen)
             return UITheme.StrategicUnseen;
 
-        if (t.Discovery == TileDiscovery.Charted)
+        if (discovery == TileDiscovery.Charted)
         {
             // Known shape, not yet explored: faction hue at low strength over
             // a dim base, so you can see WHOSE land it is before exploring it.
@@ -286,7 +347,8 @@ public partial class StrategicView : Node2D
 
         if (t.Corruption > 0)
         {
-            float k = Mathf.Clamp(t.Corruption / 3f, 0f, 1f) * 0.55f;
+            // Corruption is 0–100; wash intensity scales smoothly toward StrategicCorruption.
+            float k = Mathf.Clamp(t.Corruption / 100f, 0f, 1f) * 0.6f;
             c = c.Lerp(UITheme.StrategicCorruption, k);
         }
 
@@ -591,9 +653,10 @@ public partial class StrategicView : Node2D
         AddDeployStat(vbox, "Operating range", $"~{DeployWindowRadius * 2} tiles across");
 
         // Corruption warning if the staging tile is corrupted.
-        if (tile.Corruption > 0)
+        if (tile.Corruption >= 20)
         {
-            var warn = new Label { Text = $"⚠ Corruption level {tile.Corruption} in this region." };
+            string sev = tile.Corruption >= 60 ? "Heavy" : "Spreading";
+            var warn = new Label { Text = $"⚠ {sev} corruption here ({tile.Corruption}/100)." };
             warn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
             warn.AddThemeColorOverride("font_color", UITheme.Danger);
             vbox.AddChild(warn);
@@ -637,14 +700,122 @@ public partial class StrategicView : Node2D
         if (_pendingStaging == null)
             return;
 
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+            return;
+
+        // ── Time advances on deploy: one expedition costs one full LUNATION ──
+        // 12 lunations per cycle = 12 expeditions, and the lunation counter ticks
+        // every deploy (visible countdown). The Conjunction is a real deadline.
+        bool crossedLunation = cycle.Calendar.AdvanceLunation();
+        SaveManager.MarkDirty();
+
+        if (crossedLunation)
+        {
+            GD.Print($"[Calendar] New lunation: {cycle.Calendar.CurrentLunation} " +
+                     $"({cycle.Calendar.CurrentPhaseName}).");
+            // The living world advances one lunation: corruption spreads.
+            CorruptionSpread.Tick(cycle.World, cycle.Campaign, cycle.Kingdoms);
+        }
+
+        // ── Did this tip the cycle into the Grand Conjunction? ──────────────
+        if (cycle.Calendar.ConjunctionReached)
+        {
+            GD.Print("[Calendar] The Grand Conjunction has come. The cycle ends.");
+            _deployUi?.QueueFree();
+            _deployUi = null;
+            _pendingStaging = null;
+            ShowConjunction();
+            return;
+        }
+
+        SaveManager.SaveIfDirty();
+
         PlayerSession.ExpeditionStagingCol = _pendingStaging.X;
         PlayerSession.ExpeditionStagingRow = _pendingStaging.Y;
         PlayerSession.ExpeditionWindowRadius = DeployWindowRadius;
 
         GD.Print($"[StrategicView] Deploying expedition from " +
-                 $"'{_pendingStaging.Name}' ({_pendingStaging.X},{_pendingStaging.Y}).");
+                 $"'{_pendingStaging.Name}' ({_pendingStaging.X},{_pendingStaging.Y}). " +
+                 $"Phase {cycle.Calendar.TotalPhasesElapsed} " +
+                 $"(L{cycle.Calendar.CurrentLunation} · {cycle.Calendar.CurrentPhaseName}).");
 
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
+    }
+
+    /// <summary>The Grand Conjunction has arrived. For now the cycle simply ends —
+    /// no final encounter yet (miniboss + campus assault are a later phase). Show a
+    /// beat, then return the player to campus, where the next cycle is begun on
+    /// re-entry to the strategic map (school reselection happens there).</summary>
+    private void ShowConjunction()
+    {
+        var panelLayer = new CanvasLayer { Name = "ConjunctionUI" };
+        AddChild(panelLayer);
+
+        var backdrop = new ColorRect { Color = new Color(0.02f, 0.0f, 0.04f, 0.92f) };
+        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        panelLayer.AddChild(backdrop);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0.5f,
+            AnchorTop = 0.5f,
+            AnchorRight = 0.5f,
+            AnchorBottom = 0.5f,
+            GrowHorizontal = Control.GrowDirection.Both,
+            GrowVertical = Control.GrowDirection.Both,
+            OffsetLeft = -260,
+            OffsetRight = 260,
+            OffsetTop = -150,
+            OffsetBottom = 150,
+        };
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
+        panelLayer.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 28);
+        margin.AddThemeConstantOverride("margin_right", 28);
+        margin.AddThemeConstantOverride("margin_top", 24);
+        margin.AddThemeConstantOverride("margin_bottom", 24);
+        panel.AddChild(margin);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 14);
+        margin.AddChild(vbox);
+
+        var title = new Label { Text = "The Grand Conjunction" };
+        title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeLarge);
+        title.AddThemeColorOverride("font_color", UITheme.Gold);
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        vbox.AddChild(title);
+
+        var body = new Label
+        {
+            Text = "The moons align and the timeline closes. Kassian's alignment completes — " +
+                   "this world is unmade. What you have learned endures; the timeline does not.\n\n" +
+                   "Return to the campus to begin the next cycle.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        body.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        body.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        vbox.AddChild(body);
+
+        vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
+
+        var btn = new Button { Text = "Return to Campus", CustomMinimumSize = new Vector2(220, 48) };
+        btn.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
+        UITheme.ApplyButtonStyle(btn, isPrimary: true);
+        btn.Pressed += () =>
+        {
+            // Mark the cycle as ended-by-conjunction so the campus knows to begin a
+            // new cycle on next strategic-map entry. We DON'T call BeginNewCycle here
+            // because the next school is chosen at the campus.
+            PlayerSession.CycleEndedByConjunction = true;
+            SaveManager.SaveIfDirty();
+            GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
+        };
+        vbox.AddChild(btn);
     }
 
     private string FactionDisplay(string factionId)

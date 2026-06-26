@@ -50,7 +50,7 @@ public static class WorldGenerator
         public int Height = 96;
         public int KingdomCount = 10;     // territories partitioned across the surface
         public float WaterLevel = 0.30f;  // elevation below this is unwalkable water (avoid as capitals/POIs)
-        public int PoiPerKingdom = 8;     // rough POI density per territory
+        public int PoiPerKingdom = 12;    // ~10 POIs per radius-12 window (sim-calibrated)
         public int PreDiscoveredPois = 3; // POIs visible from the start, near the staging point
     }
 
@@ -288,10 +288,10 @@ public static class WorldGenerator
         Dictionary<string, KingdomState> kingdoms, CampaignState campaign,
         (int x, int y) convergence)
     {
-        // Tile-level: a soft bloom around the seat, capped at 1 so nothing
-        // auto-falls at generation. Kingdom-level corruption (CampaignState)
-        // gets the nearest ring pre-warmed to 1.
-        int bloom = Mathf.Max(world.Width, world.Height) / 8;
+        // Tile-level: a corruption bloom around the seat on the 0–100 scale,
+        // falling off with distance. The convergence core starts heavily
+        // corrupted; this is the source the per-lunation spread radiates from.
+        int bloom = Mathf.Max(world.Width, world.Height) / 6;
         for (int y = 0; y < world.Height; y++)
         {
             for (int x = 0; x < world.Width; x++)
@@ -301,19 +301,22 @@ public static class WorldGenerator
                 {
                     int idx = y * world.Width + x;
                     if (world.Tiles[idx].Terrain != OverworldHex.TerrainType.Water)
-                        world.Tiles[idx].Corruption = 1;
+                    {
+                        // 100 at the seat, falling to ~20 at the bloom edge.
+                        float t = 1f - (float)d / bloom;
+                        int corruption = Mathf.RoundToInt(Mathf.Lerp(20f, 100f, t));
+                        world.Tiles[idx].Corruption = (byte)Mathf.Clamp(corruption, 0, 100);
+                    }
                 }
             }
         }
 
         // Pre-warm the kingdom whose capital is nearest the seat (excluding the
-        // seat's own territory, which has no archmage).
+        // seat's own territory) on the 0–3 territory scale.
         foreach (var kvp in kingdoms)
         {
             if (string.IsNullOrEmpty(kvp.Value.ArchmageId))
                 continue;
-            // Cheap proxy: if any of this kingdom's region appears in campaign and
-            // it's a tier-3 territory, give it baseline corruption 1.
             if (kvp.Value.Tier >= 3)
                 campaign.CorruptionLevels[kvp.Key] = 1;
         }
@@ -338,10 +341,17 @@ public static class WorldGenerator
         }
 
         // Scatter ordinary POIs per kingdom on walkable, non-seat tiles.
+        // Weighted kinds: combat is common; Outpost AND Settlement both appear so
+        // staging sources are plentiful (each window should hit 2-3 staging POIs).
+        // Settlements grant staging on DISCOVERY (no fight); outposts on securing.
         PoiKind[] kinds =
         {
-            PoiKind.Combat, PoiKind.Combat, PoiKind.Rest,
-            PoiKind.Narrative, PoiKind.Negotiation, PoiKind.Outpost,
+            PoiKind.Combat, PoiKind.Combat, PoiKind.Combat,
+            PoiKind.Rest, PoiKind.Rest,
+            PoiKind.Narrative, PoiKind.Narrative,
+            PoiKind.Negotiation,
+            PoiKind.Outpost, PoiKind.Outpost,   // ~2/11 secured-staging
+            PoiKind.Settlement,                  // ~1/11 discovered-staging
         };
         foreach (var id in kingdomIds)
         {
@@ -352,16 +362,34 @@ public static class WorldGenerator
                 continue;
 
             int count = p.PoiPerKingdom;
-            for (int n = 0; n < count; n++)
+            var placed = new List<(int x, int y)>();
+            int attempts = 0, maxAttempts = count * 12;
+
+            while (placed.Count < count && attempts < maxAttempts)
             {
+                attempts++;
                 var (x, y) = tiles[(int)(rng.Randi() % (uint)tiles.Count)];
                 if (world.GetTile(x, y).PoiIndex >= 0)
-                    continue; // already a POI here
+                    continue;      // occupied
+                if (TooClose(placed, x, y, 2))
+                    continue;              // spacing: min 2 hexes apart
+
                 PoiKind kind = kinds[(int)(rng.Randi() % (uint)kinds.Length)];
-                bool staging = kind == PoiKind.Outpost; // outposts become staging points when secured
+                bool staging = kind == PoiKind.Outpost || kind == PoiKind.Settlement;
                 AddPoi(world, x, y, kind, id, grantsStaging: staging);
+                placed.Add((x, y));
             }
         }
+    }
+
+    /// <summary>True if (x,y) is within minDist hexes of any already-placed POI.
+    /// Keeps POIs from clumping so windows read as populated, not piled.</summary>
+    private static bool TooClose(List<(int x, int y)> placed, int x, int y, int minDist)
+    {
+        foreach (var (px, py) in placed)
+            if (HexCoord.OffsetDistance(px, py, x, y) < minDist)
+                return true;
+        return false;
     }
 
     private static void AddPoi(WorldData world, int x, int y, PoiKind kind,

@@ -36,7 +36,7 @@ using System.Collections.Generic;
 public partial class ExpeditionManager : Node2D
 {
     [Export] public int WindowRadius = 12;
-    [Export] public int OperatingRange = 24;   // step budget for one sortie
+    [Export] public int OperatingRange = 40;   // step budget for one sortie (crosses a window + probes onward)
     [Export] public int ExhaustionDamagePerStep = 10;
 
     // ── Runtime resource state (rides EncounterRouter across combat) ─────
@@ -79,6 +79,12 @@ public partial class ExpeditionManager : Node2D
     private const float CameraPanSpeed = 400f;
 
     private const string StrategicScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
+
+    // ── Autosave throttle ───────────────────────────────────────────────
+    // The cycle file holds the whole world array (~2MB+), so per-move saves
+    // stutter. Autosave at most once per interval; checkpoints save directly.
+    private const double AutosaveIntervalSec = 3.0;
+    private double _lastAutosaveMsec = 0;
 
     [Signal] public delegate void ExpeditionEndedEventHandler(bool extracted);
 
@@ -233,11 +239,29 @@ public partial class ExpeditionManager : Node2D
             {
                 poi.Discovered = true;
                 changed = true;
+
+                // Settlements grant staging the moment they're DISCOVERED — a
+                // friendly hub, no fight needed. (Outposts/seats still grant on
+                // being secured, via OnPartyArrived/GrantStagingPointAt.)
+                if (poi.Kind == PoiKind.Settlement && poi.GrantsStaging)
+                    GrantStagingPointAt(local);
             }
         }
 
         if (changed)
             SaveManager.MarkDirty();
+    }
+
+    /// <summary>Flush a dirty save at most once per AutosaveIntervalSec. Keeps the
+    /// large cycle file from being written every move. Real checkpoints (combat
+    /// entry, outpost secured, extract) bypass this and save directly.</summary>
+    private void ThrottledAutosave()
+    {
+        double now = Time.GetTicksMsec();
+        if (now - _lastAutosaveMsec < AutosaveIntervalSec * 1000.0)
+            return;
+        _lastAutosaveMsec = now;
+        SaveManager.SaveIfDirty();
     }
 
     /// <summary>Mark a world POI consumed (resolved) so it isn't re-offered.</summary>
@@ -323,6 +347,18 @@ public partial class ExpeditionManager : Node2D
                 if (CurrentHP <= 0)
                 { CurrentHP = 0; FailExpedition("Lost to the wilds."); return; }
             }
+
+            // Corruption attrition: crossing corrupted ground bleeds you. Light at
+            // the creeping edge, heavy in the convergence core — so the spreading
+            // corruption is a hostile zone to route around, not stroll through.
+            int corruptionDrain = CorruptionDrainAt(newCoord);
+            if (corruptionDrain > 0)
+            {
+                CurrentHP -= corruptionDrain;
+                ShowInfo($"The corruption sears you! Lost {corruptionDrain} HP.");
+                if (CurrentHP <= 0)
+                { CurrentHP = 0; FailExpedition("Consumed by corruption."); return; }
+            }
         }
 
         // Reveal-on-move writes straight into World.
@@ -332,8 +368,10 @@ public partial class ExpeditionManager : Node2D
         if (_factionManager != null && !ExpeditionComplete)
             _factionManager.Tick(_party.CurrentCoord);
 
-        // Periodic durability flush (the "continuous save" — into the cycle file).
-        SaveManager.SaveIfDirty();
+        // Durability flush — THROTTLED. The cycle file is large (the whole world
+        // array), so saving every move stutters. Autosave at most once every few
+        // seconds; real checkpoints (combat entry, outpost, extract) save directly.
+        ThrottledAutosave();
 
         // Range warning + auto-extract offer.
         if (StepsRemaining == 0 && !ExpeditionComplete)
@@ -689,7 +727,7 @@ public partial class ExpeditionManager : Node2D
         BankResources(extracted: true);
         ShowInfo($"Extracted. Gold: {GoldEarned}, Splinters: {SplinterEarned}, Encounters: {EncountersWon}.");
         ShowReturnButton();
-        EmitSignal("ExpeditionEnded", true);
+        EmitSignal(SignalName.ExpeditionEnded, true);
     }
 
     private void FailExpedition(string reason)
@@ -709,7 +747,7 @@ public partial class ExpeditionManager : Node2D
         BankResources(extracted: false);
         ShowInfo($"Expedition failed: {reason} Discoveries retained; unbanked spoils lost.");
         ShowReturnButton();
-        EmitSignal("ExpeditionEnded", false);
+        EmitSignal(SignalName.ExpeditionEnded, false);
     }
 
     /// <summary>Write expedition results into the cycle save. Discovery is already
@@ -963,6 +1001,22 @@ public partial class ExpeditionManager : Node2D
         _ => 0,
     };
 
+    /// <summary>HP lost crossing a corrupted tile, by its world corruption (0–100).
+    /// Below 30 is harmless (the faint edge); it ramps to ~10 at the core. This
+    /// makes the corrupted third of the late-cycle map genuinely dangerous to cross.</summary>
+    private int CorruptionDrainAt(Vector2I local)
+    {
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return 0;
+        if (!_world.TryIndex(col, row, out int idx))
+            return 0;
+        int corruption = _world.Tiles[idx].Corruption;
+        if (corruption < 30)
+            return 0;
+        // 30 → ~2, 100 → ~10, linear.
+        return Mathf.Clamp(2 + (corruption - 30) * 8 / 70, 2, 10);
+    }
+
     private int ComputePartyBaseHP()
     {
         const int WizardBaseHP = 20;
@@ -990,11 +1044,17 @@ public partial class ExpeditionManager : Node2D
 
     private void EnsureEncounterRouter()
     {
-        if (EncounterRouter.Instance != null)
-            return;
-        var router = new EncounterRouter { Name = "EncounterRouter" };
-        router.CombatScenePath = "res://Scenes/Combat/Battlefield.tscn";
-        router.OverworldScenePath = "res://Scenes/Overworld/ExpeditionScene.tscn";
-        GetTree().Root.AddChild(router);
+        if (EncounterRouter.Instance == null)
+        {
+            var router = new EncounterRouter { Name = "EncounterRouter" };
+            GetTree().Root.AddChild(router);
+        }
+
+        // ALWAYS claim the return path — the router is a persistent singleton that
+        // survives scene changes, so if the retired OverworldRunManager (or a prior
+        // session) created it pointing at the old OverworldScene, combat would
+        // return THERE instead of the expedition window. Set it every _Ready.
+        EncounterRouter.Instance.CombatScenePath = "res://Scenes/Combat/Battlefield.tscn";
+        EncounterRouter.Instance.OverworldScenePath = "res://Scenes/Overworld/ExpeditionScene.tscn";
     }
 }

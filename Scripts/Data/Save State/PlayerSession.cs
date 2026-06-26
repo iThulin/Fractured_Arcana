@@ -100,4 +100,14 @@ public static class PlayerSession
 
     /// <summary>Window radius for the next expedition (0 = use ExpeditionManager default).</summary>
     public static int ExpeditionWindowRadius = 0;
+
+    /// <summary>Set true when the Grand Conjunction ends a cycle. The campus reads
+    /// this on entry and begins the next cycle (with school reselection) instead of
+    /// resuming the dead one. Reset to false once the new cycle is begun.</summary>
+    public static bool CycleEndedByConjunction = false;
+
+    /// <summary>Debug: when true, the strategic view charts the ENTIRE map (all tiles
+    /// visible, all POIs discovered) so corruption spread and the whole world can be
+    /// inspected during testing. Does not write to the save — purely a view override.</summary>
+    public static bool DebugRevealStrategicMap = false;
 }
