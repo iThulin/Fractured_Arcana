@@ -1,0 +1,401 @@
+**THE RUN STRUCTURE**
+
+Fog of War Exploration, Encounters & the Complete Gameplay Loop
+
+*Design Reference Document — v2 (Exploration Overhaul)*
+
+This document defines the complete run structure built around a fog-of-war hex exploration system that replaces traditional roguelike node graphs. Instead of choosing from predetermined branching paths, the player explores a partially obscured regional map, discovering encounters organically as they push through unknown territory. The system creates genuine exploration with real uncertainty, meaningful scouting decisions, and emergent storytelling through spatial relationships between encounters.
+
+Technical context: the game is built in Godot 4.6 with C#. Combat encounters use the existing HexGridManager and GameRunner systems. The overworld exploration map is a new system that reuses hex-grid conventions at a macro scale, creating visual and mechanical consistency between exploration and combat.
+
+**1. The Macro Loop**
+
+*The game operates on a three-phase cycle: Prepare at campus, Explore a region, Return with results. Each cycle takes 30–50 minutes.*
+
+| **Phase** | **Location** | **What Happens** | **Duration** |
+| --- | --- | --- | --- |
+| **Phase 1: Preparation** | Guild Campus | Select a region to explore from the world map. Choose a party (wizard + 2 companions). Equip items, review Courier Station intel (which pre-reveals specific hexes on the region map), assign idle companions to War Room side missions, and review the seasonal threat tracker. Campus buildings provide passive buffs for the upcoming run. | 5–10 min |
+| **Phase 2: Exploration** | Region Map | The player enters a fog-covered hex map and explores freely, uncovering encounters, landmarks, and environmental features. Movement costs steps from a limited budget. The player chooses their own route toward the region’s objective, balancing thorough exploration against efficiency. Encounters are engaged as they’re discovered. | 20–35 min |
+| **Phase 3: Return** | Guild Campus | Run results are processed: reputation changes, loot integration, companion arc updates, lore additions, side mission resolution, seasonal threat advancement, and campus growth reveals. The player sees the tangible impact of their run before preparing for the next. | 3–5 min |
+
+**2. The Fog of War Exploration Map**
+
+*The exploration map is the defining system of the run experience. It replaces predetermined paths with genuine spatial exploration.*
+
+**2a. Design Philosophy**
+
+In Slay the Spire, the player sees every possible path from the start and plans their optimal route before moving. The question is ‘which predetermined path do I take?’ In this system, the player sees almost nothing and must discover the map through movement. The question becomes ‘which direction do I explore?’ — a fundamentally richer question because it involves genuine uncertainty, risk assessment, and the thrill of discovery.
+
+The exploration map is not a full dungeon crawl. Movement is abstracted to hex-to-hex steps, each representing the party traveling through a zone of the region. The player is making strategic navigation decisions, not managing real-time movement. The rhythm is: move to a hex, see what’s revealed, decide whether to engage or continue, pick the next direction.
+
+**2b. Map Grid Specifications**
+
+| **Element** | **Specification** |
+| --- | --- |
+| **Grid Size** | 15x15 to 20x20 hexes depending on region type. Smaller regions (Trade City: 15x15) are denser with more encounters per hex. Larger regions (Frontier Wilds: 20x20) are sparser with more empty traversal hexes and longer distances between POIs. |
+| **Entry Point** | The player always enters from a designated edge of the map. The entry hex and its immediate neighbors (1-hex radius) are pre-revealed. An entry narrative event triggers on arrival, setting the region’s context. |
+| **Objective Landmark** | The region’s primary objective (boss, fragment guardian, critical event) is placed as a visible landmark that the player can see through the fog from anywhere on the map. Its general direction is always known; its exact distance and the path to reach it are not. |
+| **Secondary Landmarks** | 2–3 additional landmarks are visible through fog as large silhouettes. These contain major encounters (sub-bosses, high-value negotiations, critical story beats). They serve as navigation anchors — the player orients their exploration around them. |
+| **Points of Interest (POIs)** | 15–20 encounter nodes scattered across the map. Invisible until the player’s vision radius reveals them. POIs contain combat, narrative, or negotiation encounters. Their type is shown by an icon once revealed. Estimated difficulty is shown by color intensity. |
+| **Terrain Hexes** | Every hex has a terrain type (road, forest, mountain, ruins, water, swamp, arcane ground, volcanic). Terrain affects movement cost, hints at likely POI types, and determines the combat hex grid theme if a fight occurs on or near that hex. |
+| **Empty Hexes** | 40–60% of hexes contain no encounter. These are traversal hexes that create space between POIs, making exploration feel like traveling through a world rather than hopping between encounters. Empty hexes can still trigger minor random events (companion dialogue, ambient lore, resource finds). |
+
+**2c. Fog of War Mechanics**
+
+| **Mechanic** | **Description** | **Availability** |
+| --- | --- | --- |
+| **Base Vision** | The player reveals all hexes within 1 hex of their current position. This is the default with no upgrades or abilities. | Always active |
+| **Extended Vision** | Campus buildings and companion abilities can extend vision to 2 or even 3 hexes. The Observatory adds +1 vision. Specific companions (scouts, familiars) add +1 vision. These stack up to a maximum of 3 hex vision radius. | Passive; determined at run start |
+| **Terrain Silhouettes** | Even through fog, the player can see terrain type silhouettes — the general shape of mountains, the color tint of forests, the glow of arcane ground. This provides imperfect information: you know there are ruins ahead but not what’s in them. | Always visible through fog |
+| **Landmark Visibility** | The 3–4 landmarks on the map are always visible through fog as large, distinctive icons. The player can see their position on the map but not the hexes between their current location and the landmark. | Always visible; serves as navigation anchor |
+| **POI Reveal** | When a hex containing a POI enters the player’s vision radius, the POI icon appears. The icon shows encounter type (sword for combat, scroll for narrative, scales for negotiation, question mark for unknown). Difficulty is shown by color: green (easy), amber (moderate), red (hard), purple (elite/boss). | Revealed by vision radius |
+| **Intel Pre-Reveal** | The Courier Station campus building pre-reveals 2–3 specific POI hexes before the run starts. These appear on the map with full information (type + difficulty) even through fog. The War Room can additionally reveal the general density of POIs in a quadrant of the map. | Campus building dependent |
+| **Permanent Reveal** | Once a hex is revealed, it stays revealed for the rest of the run. If the player revisits the region on a future run, previously explored hexes remain revealed (region memory). New POIs may have appeared in revealed areas, but the terrain and landmarks persist. | Persistent within and across runs |
+
+**3. Movement, Time ****&**** the Step Budget**
+
+*Every hex moved costs steps from a limited budget. This creates the core exploration tension: thorough exploration yields more rewards but costs more steps, risking the run’s objective or the seasonal threat clock.*
+
+**3a. Step Budget**
+
+Each run has a step budget of 25–35 steps depending on region size. The objective landmark is typically 10–14 direct-path hexes from the entry point. This means the player has roughly 12–20 steps of ‘exploration budget’ to spend on detours, side content, and backtracking. The budget is visible at all times as a prominent UI element.
+
+When the step budget reaches 0, the run doesn’t end immediately — but consequences begin. Each additional step costs HP from the party (the wizard and companions are exhausted). This soft limit means the player can push beyond their budget if they’re close to something valuable, but at increasing cost. If total party HP drops to 0 from exhaustion, the run ends in a forced retreat with reduced rewards.
+
+**3b. Terrain Movement Costs**
+
+| **Terrain** | **Movement Cost** | **Characteristics** | **Typical POIs** |
+| --- | --- | --- | --- |
+| **Road** | 1 step | Fastest travel. Roads connect major landmarks and entry points. Following roads is efficient but predictable — fewer hidden POIs along established routes. | Merchants, patrols, toll encounters |
+| **Grassland** | 1 step | Open terrain with good visibility. Standard traversal cost. Common in Trade City and Warfront regions. | Camps, battlefields, travelers |
+| **Forest** | 2 steps | Slow but rich with hidden content. Forest hexes have the highest POI density and the most hidden encounters. Exploration-heavy but expensive. | Ambushes, nature spirits, hidden shrines, herbalism (reagent finds) |
+| **Mountain** | 3 steps | Very slow but contains high-value content. Mountain POIs are disproportionately rewarding — hidden vaults, rare lore, siege-tier combat. The terrain tax is the price of premium rewards. | Vaults, dragon lairs, ancient observatories, mine encounters |
+| **Ruins** | 2 steps | Moderate cost with high narrative density. Ruins hexes are weighted toward narrative and lore encounters. Necromancer and Arcanist content concentrates here. | Undead encounters, puzzle chambers, lore caches, spirit negotiations |
+| **Swamp** | 2 steps + 1 HP drain per hex | Hazardous terrain that costs resources as well as steps. Contains unique encounters not found elsewhere. The HP drain creates a genuine risk/reward calculation for entering swamp zones. | Alchemical reagents, cursed encounters, isolation-themed narrative |
+| **Water** | Impassable (must find crossing) | Rivers and lakes block direct movement. The player must find a bridge, ford, or ferry. Crossings are often POIs themselves — toll bridges (negotiation), guarded fords (combat), or ferry services (trade). | Crossings are encounter sites; water borders create natural routing constraints |
+| **Arcane Ground** | 1 step; +1 mana at run start | Magically infused terrain that provides a combat benefit. Walking through arcane ground hexes grants +1 starting mana in the next combat encounter. Arcanist and Enchanter content concentrates here. | Ley line events, magical anomalies, arcane creature encounters |
+| **Volcanic** | 2 steps + chance of hazard event | Dangerous terrain with a 30% chance per hex of triggering a minor hazard event (rockfall damage, gas cloud that reduces visibility). Contains Elementalist-aligned content and rare forging materials. | Elemental encounters, forge sites, fire creature combat |
+| **Temporal Distortion** | Variable (1–3 steps, randomized) | Time-warped terrain where movement cost is unpredictable. The player sees the cost after committing to the hex. Chronomancer companions can predict the cost before moving. Unique to Temporal Rift regions. | Time paradox events, echo encounters, causality puzzles |
+
+**3c. Step Budget Modifiers**
+
+| **Source** | **Bonus** | **Notes** |
+| --- | --- | --- |
+| **Expedition Outfitter (campus)** | +3 steps | Better supplies extend the party’s range |
+| **Ranger-type martial companion** | +2 steps | Efficient pathfinding reduces wasted movement |
+| **Artificer companion** | +2 steps in Foundry Wastes only | Mechanical knowledge navigates industrial terrain efficiently |
+| **Chronomancer companion** | +2 steps in Temporal Rift only | Temporal awareness avoids time-wasting distortions |
+| **Road-heavy route** | Effective +30–50% budget | Following roads stretches the budget by reducing per-hex costs |
+| **Exhaustion potion (consumable)** | +5 emergency steps (no HP drain) | Crafted at the Reagent Garden; single-use insurance against running short |
+| **War Room intel** | Effective +2–3 steps | Knowing where POIs are eliminates wasted exploration steps |
+
+**4. Scouting, Intel ****&**** Information Gathering**
+
+*The fog of war is a progression system in itself. Early in the meta-game, the player explores nearly blind. With a developed campus and experienced companions, they explore with substantial intel. The fog never fully disappears, but it becomes manageable.*
+
+**4a. Pre-Run Intelligence**
+
+| **Intel Source** | **What It Reveals** | **Requirements** |
+| --- | --- | --- |
+| **Courier Station** | Reveals 2–3 specific POI hexes with full information (type, difficulty, and a brief description). The player can see these through fog before entering the region. | Campus building (Tier 1: 2 reveals, Tier 2: 3 reveals, Tier 3: 3 reveals + difficulty rating) |
+| **War Room** | Reveals the general POI density of each quadrant of the map (low/medium/high). Doesn’t show specific hexes but tells the player where to explore for content. | Campus building (Tier 1: density only, Tier 2: density + dominant encounter type, Tier 3: density + type + estimated total value) |
+| **Observatory** | +1 vision radius for the entire run. This is the single most impactful intel building because it affects every step of exploration. | Campus building (passive; always active once built) |
+| **Spy Network (upgrade)** | Reveals all negotiation encounters on the map and their NPC archetype. The player enters knowing exactly where diplomacy opportunities are. | Courier Station upgrade; requires Tier 3 |
+| **Library research** | Completed lore research about a region type reveals 1 hidden vault location if one exists on this run’s map. | Campus building; requires specific research project completion |
+| **Companion lore** | Companions who have visited the region before (on a prior run) contribute 1–2 POI reveals from memory. | Companion-dependent; incentivizes bringing experienced companions to familiar regions |
+| **Faction contacts** | Allied factions with a presence in the region reveal POIs belonging to their faction (their camps, outposts, merchants). Hostile factions do not reveal and may plant false intel (a revealed POI that’s actually an ambush). | Faction reputation dependent; creates consequences for diplomatic choices |
+
+**4b. In-Run Scouting**
+
+Once inside the region, the player has several ways to extend their knowledge beyond the base vision radius.
+
+| **Method** | **Effect** | **Requirements** |
+| --- | --- | --- |
+| **Familiar Scout** | Deploy a familiar (from the Familiar Roost building) to reveal a line of 3 hexes in a chosen direction. The familiar returns after 2 steps. Limited to 2 deployments per run. Reveals terrain and POI presence but not POI difficulty. | Familiar Roost campus building; all wizard schools |
+| **Companion Scout** | Martial companions with the Scout trait can be sent 2 hexes ahead to reveal the area. This costs 1 step and the companion is unavailable for the next encounter. Reveals full POI information including difficulty. | Companion-dependent; martial companions only |
+| **High Ground** | Moving onto a mountain or elevated ruin hex grants a one-time vision bonus: reveal all hexes within 3 range for terrain only (no POI details). Useful for mapping the general landscape before committing to a direction. | Requires reaching a mountain/elevated hex; automatic trigger |
+| **Chronomancer Foresight** | The Chronomancer wizard or companion can spend 2 mana to ‘look ahead’ at any single hex on the map, revealing its contents regardless of fog or distance. Limited to 3 uses per run. | Chronomancer school or companion ability |
+| **Arcanist Analysis** | When the Arcanist reveals a POI, they automatically see one additional detail: the specific reward category (cards, gold, lore, reputation). Other schools only see encounter type and difficulty. | Arcanist school passive; always active |
+| **Necromancer Communion** | At any ruins hex, the Necromancer can commune with the dead to learn about 2–3 nearby hexes — what happened there in the past, which hints at current content. Free action, no step cost. | Necromancer school ability; only works on ruins terrain |
+| **Enchanter Charm Network** | When the Enchanter completes a negotiation encounter, they can charm the NPC into revealing 2 nearby POIs as a bonus reward, regardless of deal quality. | Enchanter school passive; triggers after any negotiation |
+| **Elementalist Elemental Sense** | The Elementalist can sense elemental terrain (volcanic, arcane ground, water) through fog within 3 hexes. This doesn’t reveal POIs but reveals terrain type, allowing the Elementalist to navigate toward favorable combat environments. | Elementalist school passive; always active |
+| **Artificer Drone** | The Artificer can build a scouting drone (costs 1 step to construct) that reveals a 2-hex radius area centered on any hex within 4 range. The drone is permanent for the rest of the run and can be redeployed each time the player moves 3 hexes. | Artificer school ability; 1 step construction cost |
+
+**5. Points of Interest Design**
+
+*POIs are the encounters the player discovers through exploration. Unlike a node graph where encounters are guaranteed and visible, POIs are discovered organically and optionally — the player always chooses whether to engage.*
+
+**5a. POI Engagement Rules**
+
+When the player moves onto or adjacent to a POI hex, the encounter is revealed but not triggered. The player sees the encounter type, difficulty, and a brief description. They then choose: engage the encounter (enter combat, narrative, or negotiation), scout further (continue moving without engaging), or avoid entirely (move in a different direction). This is critical — the player should never be forced into an encounter by moving to the wrong hex. Forced engagement removes the agency that makes exploration meaningful.
+
+The sole exception is ambush encounters — combat POIs with the Ambush tag that trigger when the player enters the hex, not when they’re adjacent. Ambush POIs are uncommon (1–2 per region) and are hinted at by terrain (dense forest, narrow mountain passes). Companions with the Scout trait can detect and disable ambushes within their scout range.
+
+**5b. POI Types and Terrain Affinity**
+
+| **POI Type** | **Description** | **Terrain Affinity** | **Map Marker** | **Frequency** |
+| --- | --- | --- | --- | --- |
+| **Combat: Skirmish** | Easy combat; 2–3 enemies | Grassland, Road, Forest edge | Green marker | Common; 3–4 per region |
+| **Combat: Battle** | Moderate combat; 3–5 enemies with 1 elite | Forest, Ruins, Arcane Ground | Amber marker | Common; 2–3 per region |
+| **Combat: Siege** | Hard combat; 4–6 enemies with environmental hazards | Mountain, Volcanic, Deep Ruins | Red marker | Uncommon; 1–2 per region |
+| **Combat: Ambush** | Forced engagement; 3–4 enemies with surprise round | Dense Forest, Mountain Pass, Swamp | Red marker (hidden until triggered) | Rare; 1–2 per region |
+| **Narrative: Discovery** | Lore-focused; reveals world-building and fragment clues | Ruins, Arcane Ground, Mountain summit | Scroll marker (blue) | Common; 2–3 per region |
+| **Narrative: Companion** | Companion-specific story beat; advances a companion’s arc | Any terrain; placed near companion-relevant features | Scroll marker (gold) | Uncommon; 0–2 per region (dependent on party composition) |
+| **Narrative: Choice** | Branching decision with faction and reputation consequences | Road crossings, Settlements, Border hexes | Scroll marker (purple) | Uncommon; 1–2 per region |
+| **Negotiation: Trade** | Merchant or economic exchange | Road, Grassland, River crossing | Scales marker (green) | Common; 1–2 per region |
+| **Negotiation: Diplomacy** | Faction-aligned NPC; reputation-focused | Settlement, Fortress landmark, Border hex | Scales marker (blue) | Uncommon; 1 per region |
+| **Negotiation: Confrontation** | High-stakes social encounter; may escalate to combat | Any terrain; often near landmarks | Scales marker (red) | Rare; 0–1 per region |
+| **Rest Site** | Safe hex for healing, shopping, and companion interaction | Road intersection, Clearing, Oasis | Campfire marker | Guaranteed; 1–2 per region |
+| **Hidden Vault** | Secret POI with highest-value rewards; requires key, puzzle, or intel to access | Mountain interior, Deep Ruins, Underground | No marker until discovered through lore or intel | Rare; 0–1 per region |
+| **Landmark Encounter** | Major encounter at a visible landmark; may be combat, narrative, negotiation, or hybrid | Landmark hex | Landmark icon (always visible) | Guaranteed; 3–4 per region (including the objective) |
+
+**6. The Landmark System**
+
+*Landmarks replace the fixed structural nodes (Crossroads, Climax) from linear roguelike designs. They’re visible navigation anchors that give the player direction without prescribing a route.*
+
+**6a. Landmark Properties**
+
+Every landmark is visible through fog from any point on the map. The player can always see 3–4 landmark icons on their map, giving them a sense of the region’s geography and major features. Landmarks are the ‘what do I head toward?’ decision points — the player orients their exploration around them.
+
+| **Landmark** | **Description** | **Notes** |
+| --- | --- | --- |
+| **The Objective** | The region’s primary goal. Always present. Contains the climax encounter: a boss fight, critical negotiation, or pivotal narrative event. The player knows where it is from the start but must navigate fog-covered terrain to reach it. | Always 1 per region. Marked with a unique icon distinct from other landmarks. Reaching it is the primary win condition. |
+| **The Stronghold** | A fortified location controlled by a faction. Contains a high-difficulty combat encounter and a diplomacy opportunity. Clearing the stronghold shifts the regional power balance and may open or close other encounter options. | 0–1 per region. Provides significant faction reputation swing. If the faction is allied, the Stronghold is a rest/resupply point instead of a combat site. |
+| **The Sanctum** | A place of magical significance tied to a specific school. Contains a school-aligned narrative encounter with lore, graft materials, and potential companion recruitment. The encounter changes based on which wizard school the player is using. | 0–1 per region. School-aligned content. Artificer Sanctums are workshops; Necromancer Sanctums are burial grounds; Chronomancer Sanctums are frozen moments. |
+| **The Market** | A major trading hub within the region. Contains 2–3 negotiation encounters with different NPC archetypes, plus a vendor. The Market is the richest source of negotiation content in a single location. | 0–1 per region. May not appear in hostile or wilderness regions. Always appears in Trade City and Undercity regions. |
+| **The Ruin** | An ancient site with layered content: an outer ring of combat encounters, a middle ring of narrative/puzzle encounters, and a core containing rare lore or a hidden vault. Exploring the Ruin is like a mini-dungeon within the exploration map. | 0–1 per region. The most content-dense landmark. Requires 3–5 steps to fully explore internally. Worth the investment if the player has budget remaining. |
+
+**6b. Navigation Flow**
+
+The player’s typical navigation pattern follows a rhythm: orient toward a landmark, explore the fog between your position and the landmark, engage with discovered POIs along the way, reach the landmark and complete its encounter(s), then re-orient toward the next landmark or the objective. This creates a natural progression without enforcing a linear path.
+
+The key design insight is that the space between landmarks is where most of the exploration gameplay lives. The landmarks are the destinations; the fog-covered terrain between them is the journey. A player who rushes directly from landmark to landmark on roads will have a very different (and less rewarding) experience than a player who ventures into the forests and mountains between them.
+
+**7. Dynamic Map Events**
+
+*The exploration map is not static. Events occur and conditions change as the player moves through the region, making the map feel alive and responsive.*
+
+| **Event Type** | **Description** | **Mechanics** |
+| --- | --- | --- |
+| **Roaming NPCs** | Merchant caravans, enemy patrols, and wandering creatures move across the map along roads and paths. The player may encounter them by crossing their path. Merchants offer mobile trade opportunities; patrols create avoidance or engagement decisions. | NPCs move 1–2 hexes per player step. Visible once within vision range. Patrols have detection ranges — if the player enters a patrol’s detection range, the patrol pursues for 3 steps before giving up. |
+| **Spreading Hazards** | Fire spreads through forest hexes if the player used fire magic in a nearby combat. Blight spreads from corrupted hexes toward clean ones. Flooding from rain events makes river hexes expand. These create evolving terrain that changes movement options. | Hazards spread 1 hex per 3 player steps. The player can see hazard borders through fog (smoke, discoloration). Creates dynamic routing decisions — a path that was open 5 steps ago may be blocked now. |
+| **Seasonal Threat Creep** | The seasonal threat’s influence visibly creeps across the map from one edge. Hexes touched by the threat become harder (enemies are buffed, hazard chance increases) but may contain threat-specific rewards. The creep advances 1 hex per 5 player steps. | Creates a soft time pressure beyond the step budget. If the player lingers too long, the threat reaches areas they haven’t explored yet, making them harder. Encourages exploring away from the threat’s direction first. |
+| **Weather Systems** | Rain, storms, snow, or magical phenomena move across the map. Weather affects terrain costs (rain makes grassland cost 2 steps; snow makes mountains impassable), combat conditions (storms reduce ranged accuracy on the hex grid), and NPC behavior (merchants seek shelter during storms). | Weather moves across the map over 8–10 steps. Visible 3–4 hexes ahead as cloud formations. The player can time their movement to avoid bad weather or exploit good weather. |
+| **Faction Reactions** | Completing a faction-aligned encounter causes nearby hexes controlled by that faction to shift. Friendly factions may reveal additional POIs, offer safe passage, or send reinforcements to landmark encounters. Hostile factions may spawn patrols, set ambushes, or lock down their Stronghold. | Immediate effect within 3–4 hex radius of the completed encounter. Creates cascading consequences — helping one faction changes the map in ways that affect subsequent encounters. |
+| **Discovery Chains** | Some POIs are connected in discovery chains: finding a map fragment at one POI reveals a hidden POI elsewhere. Completing a narrative encounter might unlock a dialogue option at a distant landmark. These chains reward thorough exploration by connecting distant content. | Chains are 2–3 links long. The player sees a notification when they’ve found a chain link and a general direction hint for the next link. Completing a chain yields premium rewards. |
+| **Companion Reactions** | Companions react to terrain and discoveries. A Necromancer companion comments when entering ruins. An Elementalist companion senses elemental terrain ahead. These reactions can hint at nearby hidden content, provide ambient lore, and build companion personality. | Triggered by terrain type and POI proximity. No mechanical cost; purely narrative and atmospheric with occasional useful information. |
+
+**8. Region Memory and Revisitation**
+
+*Regions are persistent places in the world, not disposable procedural corridors. The player’s exploration history is remembered across runs.*
+
+**8a. What Persists**
+
+| **Element** | **How It Persists** | **Notes** |
+| --- | --- | --- |
+| **Fog State** | Hexes revealed during a previous run remain revealed on future visits. The player builds up a mental and literal map of each region over multiple runs. | Terrain, paths, and landmark positions persist. POI positions do not — new POIs are generated each visit. |
+| **Landmark Status** | Landmarks that were engaged (completed, failed, or partially explored) are marked on the map. The Stronghold you cleared last run shows as ‘Cleared’ and may have different content on revisit (friendly garrison instead of hostile defenders). | Landmark encounters refresh with new content each visit but reflect the outcome of previous visits. |
+| **Terrain Changes** | Environmental changes from previous runs persist. If fire spread through a forest, the burned hexes remain until the forest regrows (3–4 runs). If the seasonal threat corrupted hexes, the corruption persists until the threat is resolved. | Creates a living, evolving world. The player’s actions have visible, lasting consequences on the map. |
+| **Faction Control** | Faction territories shift based on the player’s actions. Clearing a hostile Stronghold might cause an allied faction to claim that area on future visits, changing the encounters and NPC population. | Faction control is recalculated between runs based on cumulative reputation and completed encounters. |
+| **Discovery Chains** | Progress on discovery chains persists across runs. If the player found the first link of a chain on one run, the second link is available on the next visit without re-finding the first. | Allows multi-run exploration arcs within a single region. |
+
+**8b. What Refreshes**
+
+POI encounters are regenerated each run — the player won’t find the same merchant in the same hex twice. POI placement is semi-random: the generation algorithm respects terrain affinity rules (ruins POIs in ruins terrain, trade POIs near roads) but randomizes specific positions and content. This means a familiar region still has surprises, and the player’s terrain knowledge helps them predict where to find content without knowing exactly what they’ll find.
+
+Roaming NPCs, weather patterns, and minor random events are also regenerated each run. The dynamic map events create a different situational texture even in well-explored regions.
+
+**9. Encounter Distribution by Region Type**
+
+*Each region type determines the terrain composition, POI mix, and landmark types, creating distinct exploration textures.*
+
+| **Region** | **Terrain Mix** | **POI Mix (of ~15 POIs)** | **Design Notes** |
+| --- | --- | --- | --- |
+| **Warfront** | 60% grassland, 20% road, 10% ruins, 10% forest | 6 combat, 2 narrative, 1 negotiation, 1 rest; +1 Stronghold landmark (always) | Heavy combat; martial companions excel; negotiation is with military commanders; short step budget (25) because the region is compact and dangerous |
+| **Trade City** | 40% road, 30% grassland, 20% arcane ground, 10% water | 2 combat, 3 narrative, 3 negotiation, 2 rest; +1 Market landmark (always) | Social-heavy; Enchanter and Artificer excel; dense POIs near roads; long step budget (30) because travel is easy |
+| **Haunted Ruins** | 50% ruins, 20% forest, 15% swamp, 15% arcane ground | 4 combat, 4 narrative, 0 negotiation, 1 rest; +1 Ruin landmark (always); +1 Sanctum | Lore-heavy; Necromancer-aligned; no negotiation (the dead don’t bargain); high narrative density; medium step budget (28) |
+| **Arcane Nexus** | 35% arcane ground, 25% grassland, 20% mountain, 20% ruins | 3 combat, 2 narrative, 2 negotiation, 1 rest; +1 Sanctum (always); +1 Ruin | Balanced; Arcanist-aligned; rule-changing combat hazards; negotiation with rival scholars; medium step budget (28) |
+| **Frontier Wilds** | 30% forest, 25% mountain, 20% grassland, 15% swamp, 10% volcanic | 5 combat, 2 narrative, 1 negotiation, 1 rest; +1 Stronghold (always) | Exploration-heavy; Elementalist-aligned; terrain variety forces diverse movement; long step budget (35) because the map is large and sparse |
+| **Temporal Rift** | 30% temporal distortion, 25% arcane ground, 25% ruins, 20% grassland | 3 combat, 3 narrative, 1 negotiation, 1 rest; +1 Sanctum (always); unique: echoes of past encounters | Non-linear; Chronomancer-aligned; variable movement costs; narrative-heavy with time paradox themes; medium step budget (28) but effectively shorter due to temporal distortion costs |
+| **The Undercity** | 40% ruins, 30% road (tunnels), 15% water (underground rivers), 15% arcane ground | 3 combat, 2 narrative, 3 negotiation, 1 rest; +1 Market (always); +1 Stronghold | Intrigue-heavy; Enchanter-aligned; dense and compact (15x15); heavy negotiation; faction power dynamics; short step budget (25) but everything is close together |
+| **The Foundry Wastes** | 35% volcanic, 25% ruins, 20% mountain, 20% road (tracks) | 4 combat, 2 narrative, 2 negotiation, 0 rest; +1 Ruin (always); unique: no natural rest site | Artificer-aligned; no rest site — the Artificer can build a camp (costs 2 steps), otherwise the party must find shelter at a POI; hostile terrain; crafting material rich |
+
+**10. Combat Hex Grid Integration**
+
+*When the player engages a combat POI, the game transitions from the exploration map to the tactical hex grid. The overworld context directly shapes the combat encounter.*
+
+**10a. Overworld-to-Combat Translation**
+
+| **Overworld Element** | **Combat Effect** | **Implementation** |
+| --- | --- | --- |
+| **Terrain → MapTheme** | The overworld hex’s terrain type determines the combat MapTheme. Forest hexes use OvergrownRuins theme. Volcanic hexes use VolcanicScar. Arcane Ground uses ArcaneMeadow. Ruins hexes use a ruins variant. | Direct mapping from terrain enum to MapTheme enum |
+| **Difficulty → DensityPreset** | POI difficulty tier maps to your existing DensityPreset. Skirmish: Sparse. Battle: Standard. Siege: Dense. Boss: Wild. This affects obstacle density, terrain roughness, and height variation. | Direct mapping from difficulty enum to DensityPreset enum |
+| **Difficulty → Enemy Count** | Skirmish: 2–3 enemies. Battle: 3–5 enemies + 1 elite. Siege: 4–6 enemies + 1–2 elites. Boss: 1 boss + 2–4 support. | Passed to spawn system as SpawnCount parameters |
+| **Adjacent Terrain → Grid Modifiers** | Overworld hexes adjacent to the combat hex influence the grid. Combat near a river hex adds water tiles to one edge of the grid. Combat near volcanic hexes adds lava tiles. Combat near arcane ground adds ley line tiles. This creates spatial storytelling — the combat grid reflects its place in the world. | Modifier system reads adjacent overworld hexes and injects additional terrain features into the grid generation |
+| **Weather → Combat Effects** | Active weather on the overworld hex applies combat modifiers. Rain: reduced ranged accuracy, water tiles expand. Storm: random lightning strikes on the grid (damage to units on open tiles). Snow: ice terrain costs extra movement. Clear: no modifier. | Weather state is passed from overworld to combat scene |
+| **Threat Creep → Enemy Buffs** | If the seasonal threat has reached the combat hex on the overworld, enemies receive a threat buff: +1 HP per unit, +1 damage on elites. The player can see this modifier before engaging. | Buff applied during enemy spawn; visible on POI tooltip |
+
+**10b. Combat Difficulty Tiers**
+
+| **Tier** | **Difficulty** | **Composition** | **When Encountered** |
+| --- | --- | --- | --- |
+| **Skirmish** | Easy | 2–3 basic enemies; Sparse density; favorable terrain; 3–5 rounds | Grassland and road POIs; early exploration encounters |
+| **Battle** | Moderate | 3–5 enemies + 1 elite; Standard density; neutral terrain; 4–6 rounds | Forest, ruins, and arcane ground POIs; main exploration content |
+| **Siege** | Hard | 4–6 enemies + 1–2 elites; Dense density; hazardous terrain; 5–8 rounds | Mountain, volcanic, and deep ruins POIs; requires committed exploration |
+| **Boss** | Climax | 1 boss + 2–4 support; Wild density; unique layout; 6–10 rounds; multi-phase | Objective landmark only; one per region; the run’s defining combat |
+| **Ambush** | Variable | 3–4 enemies with surprise round (enemies act first); player starts without deployment phase; immediate combat | Triggered by entering an ambush POI hex; can be avoided by scout companions |
+
+**11. Wizard School Exploration Identities**
+
+*Each wizard school has unique exploration abilities that make navigating the fog-of-war map feel different. These passive and active abilities are always available on the overworld and don’t cost leverage tokens or mana — they’re fundamental to how each school experiences exploration.*
+
+**♦ Elementalist***  —  The Pathbreaker*
+
+**Passive — Elemental Sense: **Detect elemental terrain (volcanic, arcane ground, water, ice) through fog within 3 hexes. The terrain type is revealed but not POI content. Allows the Elementalist to navigate toward favorable combat environments and avoid unfavorable ones.
+
+**Active — Force Path: **Once per run, clear a terrain obstacle (destroy a boulder blocking a mountain pass, freeze a river to create a crossing, burn through dense forest). This opens a hex that was previously impassable, creating a shortcut. Costs 0 steps but the cleared hex may trigger a hazard event.
+
+**Exploration Identity: **The Elementalist brute-forces the map. They sense the terrain ahead, smash through obstacles, and fight whatever they find. Their exploration is aggressive and direct — they save steps by creating shortcuts rather than finding existing paths.
+
+**♦ Arcanist***  —  The Analyst*
+
+**Passive — Arcane Literacy: **When any POI is revealed, the Arcanist automatically sees one additional detail: the specific reward category (cards, gold, lore, reputation, graft materials). Other schools only see encounter type and difficulty. This makes the Arcanist’s exploration decisions more informed.
+
+**Active — Ley Line Trace: **Twice per run, trace the underground ley line network from any arcane ground hex. This reveals all arcane ground hexes connected to the traced hex, regardless of fog. Since arcane ground POIs tend to be high-value, this is powerful reconnaissance.
+
+**Exploration Identity: **The Arcanist explores with the most information. They know what rewards await at each POI and can trace magical infrastructure to find high-value content. Their exploration is calculated and efficient — they rarely waste steps on low-value content.
+
+**♦ Chronomancer***  —  The Oracle*
+
+**Passive — Temporal Echo: **When entering any hex, the Chronomancer sees a brief echo of what happened there in the past — a ghostly image of a previous visitor, a faded battle, a vanished structure. This provides flavor and occasionally reveals hidden POI locations (if something important happened there historically).
+
+**Active — Foresight: **Three times per run, look at any single hex on the map regardless of fog or distance and reveal its full contents. The most precise scouting ability in the game. Combines powerfully with Observatory (+1 vision) for near-complete map awareness.
+
+**Exploration Identity: **The Chronomancer sees the most of the map through foresight and temporal echoes. Their exploration is cautious and well-informed — they rarely walk into surprises and can plan routes several steps ahead. They excel at finding hidden vaults and avoiding ambushes.
+
+**♦ Enchanter***  —  The Networker*
+
+**Passive — Charm Network: **After completing any negotiation encounter, the Enchanter’s charmed NPC reveals 2 nearby POI hexes as a bonus, regardless of deal quality. This creates a snowball effect — each negotiation makes the next exploration phase better informed.
+
+**Active — Enchanted Compass: **Once per run, divine the direction of the highest-value unrevealed POI within 6 hexes. Doesn’t reveal the hex itself — just points the player toward valuable content. Useful when the player is deciding between multiple exploration directions.
+
+**Exploration Identity: **The Enchanter’s map knowledge grows throughout the run as they complete negotiations. Early exploration is relatively blind, but mid-to-late run, the Enchanter has the most comprehensive map of anyone who’s been engaging with social content. Their exploration rewards social investment.
+
+**♦ Artificer***  —  The Engineer*
+
+**Passive — Structural Analysis: **When the Artificer reveals ruins or mountain hexes, they automatically detect whether the hex contains a hidden vault or underground structure. This doesn’t reveal the vault’s contents but tells the player it exists, prompting further investigation.
+
+**Active — Scouting Drone: **Build a mechanical scout drone (costs 1 step to construct) that reveals a 2-hex radius area centered on any hex within 4 range. The drone persists for the entire run and can be redeployed every 3 player steps. The single most versatile scouting tool in the game.
+
+**Active — Field Camp: **In regions without natural rest sites (Foundry Wastes), the Artificer can build a camp at any non-hazardous hex for 2 steps. The camp functions as a rest site: HP recovery, vendor access (if Merchant Quarter is built), and companion interaction. Other schools must find or reach existing rest sites.
+
+**Exploration Identity: **The Artificer shapes the map itself. They build scouts, construct camps, and detect hidden structures. Their exploration is methodical and constructive — they leave infrastructure behind that makes the region easier on future visits.
+
+**♦ Necromancer***  —  The Historian*
+
+**Passive — Death Sense: **The Necromancer can sense the density of death in nearby hexes — whether significant violence or death occurred there. High death-sense readings hint at combat POIs, undead encounters, historical battle sites with lore, or bone-material resource nodes. This sense works through fog within 2 hexes.
+
+**Active — Commune with the Dead: **At any ruins hex, the Necromancer can commune with lingering spirits at no step cost. Spirits reveal 2–3 nearby hex contents based on what they witnessed in life — the locations of dangers, hidden vaults, and the movements of living NPCs. The information is reliable but flavored through the spirit’s perspective.
+
+**Exploration Identity: **The Necromancer reads the map’s history. They sense where death occurred, speak to the dead for intelligence, and are drawn toward ruins and dark places where their power is strongest. Their exploration is lore-rich and atmospheric — the map tells them stories that other schools never hear.
+
+**12. Reward Structure**
+
+*Exploration-based rewards include both encounter rewards (from completing POIs) and discovery rewards (from the act of exploring itself).*
+
+**12a. Encounter Rewards by Type**
+
+| **Encounter** | **Typical Rewards** | **Notes** |
+| --- | --- | --- |
+| **Combat: Skirmish** | 30–50 gold; 1 common card draft; minor crafting materials | Baseline combat reward |
+| **Combat: Battle** | 50–100 gold; 1 uncommon card draft; moderate materials; equipment chance | Standard combat reward; primary card acquisition source |
+| **Combat: Siege** | 100–200 gold; 1 rare card draft; significant materials; guaranteed equipment; graft material chance | Premium combat reward; justifies the step investment to reach mountain/deep terrain |
+| **Combat: Boss** | 200–400 gold; 1 rare/legendary card draft; boss trophy; guaranteed rare equipment; boss lore entry | Run-defining reward; trophies display on campus |
+| **Narrative: Discovery** | Lore entry; +1 Library research progress; companion arc fragments; occasional item/gold | Primary lore source; feeds Library and fragment progression |
+| **Narrative: Companion** | Companion arc progress (major); loyalty shift; unique companion card unlock; companion backstory lore | The most emotionally valuable reward type; requires specific companion in party |
+| **Narrative: Choice** | Faction reputation shift; branching consequences that affect later POIs in the same run; occasional exclusive item | Consequences ripple through the rest of the run via faction reactions |
+| **Negotiation** | Variable by deal quality: 1-star to 5-star scale; ranges from worse-than-skirmish to better-than-siege in specific categories | High ceiling, low floor; rewards negotiation skill and preparation |
+| **Landmark** | Premium encounter reward + landmark-specific bonus (Stronghold: faction control shift; Sanctum: graft recipe; Market: exclusive vendor; Ruin: multi-reward sequence) | The richest single-encounter reward in the game; worth navigating toward |
+| **Hidden Vault** | Fragment lore (always); rare artifact (80%); companion recruitment (40%); unique graft recipe (20%); legendary card (10%) | The jackpot; requires intel or school abilities to discover |
+
+**12b. Exploration Rewards**
+
+Beyond encounter rewards, the act of exploring generates passive value.
+
+| **Reward Type** | **Description** | **Notes** |
+| --- | --- | --- |
+| **Fog Cleared** | Each newly revealed hex contributes to a region exploration percentage. At 25%, 50%, 75%, and 100% thresholds, the player earns exploration milestone bonuses: gold, lore fragments, and a reputation boost with scholarly factions. | Tracked per region; persists across runs; incentivizes thorough multi-run exploration |
+| **Terrain Resources** | Certain terrain types passively generate minor resources when traversed. Forest: herb (reagent). Mountain: ore (crafting). Arcane Ground: mana crystal. Volcanic: ember shard. Swamp: rare reagent (50% chance). These add up over a full run. | Automatic; no player action required; creates a drip of crafting materials |
+| **Companion Dialogue** | Empty hexes have a chance to trigger companion dialogue. These short exchanges build companion personality, occasionally reveal hints about nearby content, and provide tiny loyalty boosts (+1). Over a full run, these add up to meaningful relationship progress. | Triggered on empty hexes; 30% chance per empty hex traversed; dependent on companion personality |
+| **Map Knowledge** | Revealed hexes persist across runs. This means early runs in a region are information-gathering investments that pay off on future visits with more efficient routing and better preparation. Map knowledge is itself a form of progression. | Persistent; the most unique reward of the fog-of-war system |
+
+**13. Party Composition and Exploration Strategy**
+
+*Party composition affects exploration as much as combat. Different companions and wizard schools create fundamentally different exploration experiences in the same region.*
+
+| **Party Type** | **Exploration Impact** | **Best Used For** |
+| --- | --- | --- |
+| **Battle Party (Wizard + 2 martial)** | Strong combat; +2 step budget from Ranger companion; Scout companion detects ambushes and reveals POIs 2 hexes ahead; weak scouting beyond immediate surroundings; limited negotiation tokens | Use for Warfront and Frontier Wilds. Efficiently handle combat POIs. Avoid negotiation-heavy regions. |
+| **Diplomatic Party (Wizard + 1 wizard + 1 social companion)** | Strong negotiation and narrative; Enchanter’s Charm Network reveals POIs through negotiation; weaker in combat; moderate step budget; good intel gathering from social encounters | Use for Trade City and Undercity. Each negotiation reveals more of the map. Snowball effect rewards social engagement. |
+| **Scholar Party (Wizard + 2 wizard companions)** | Maximum scouting and intel; combined school abilities reveal huge portions of the map; weakest combat frontline; best lore and fragment discovery; inefficient step usage due to no Ranger bonus | Use for Arcane Nexus and Temporal Rift. Best for fragment research runs. Accept harder combat for superior exploration. |
+| **Explorer Party (Wizard + 1 Ranger + 1 wizard companion)** | Best overall exploration efficiency; Ranger provides +2 steps and Scout ability; wizard companion provides school scouting ability; balanced combat; moderate negotiation | The default safe choice for first visits to a region. Maximizes exploration coverage without sacrificing combat viability. |
+| **Specialist Party (Wizard + 2 school-aligned companions)** | Maximum alignment bonus in matching regions; unique scouting abilities stack; school-specific content is most accessible; narrow outside matching regions | Use for school-specific regions to maximize graft research, companion recruitment, and school-aligned rewards. |
+
+**14. Fragment Recovery Run Modifications**
+
+*Fragment recovery arcs use a modified version of the exploration map. The fog-of-war system is adapted to create a more focused, narratively driven experience.*
+
+| **Modification** | **Description** | **Purpose** |
+| --- | --- | --- |
+| **Map Size** | Smaller: 10x10 hexes. The fragment’s domain is a concentrated, intense space rather than a sprawling region. | Tighter exploration; less wasted traversal; higher POI density |
+| **Fog Behavior** | The fog is thicker — base vision is reduced to adjacent hexes only (no 1-hex radius). The fragment’s guardian actively resists revelation, requiring more effort to see ahead. School alignment mitigates this: matching schools get normal vision. | Creates a claustrophobic, high-tension exploration experience |
+| **Step Budget** | Reduced to 15–20 steps. The fragment run is shorter but every step matters more. There’s almost no budget for aimless exploration. | Forces decisive navigation toward the fragment’s core |
+| **Persistent Progress** | If the player fails (runs out of HP or retreats), their fog state and completed POIs are saved. The next attempt starts from the entry but with map knowledge intact. Uncompleted POIs refresh with new content. | Prevents frustration on repeated attempts while maintaining challenge |
+| **The Guardian’s Presence** | The fragment guardian is a dynamic map entity. It can be sensed from anywhere on the map as a pulsing icon. As the player approaches, the guardian’s influence intensifies: nearby hexes become more hazardous, combat encounters gain the guardian’s element, and narrative encounters reference the guardian’s history. | The guardian is a presence throughout the run, not just a final boss |
+| **Fragment Corruption** | Failed combat encounters and poor narrative choices during fragment runs add corruption to the fragment. Corruption is visible as a meter on the UI. High corruption makes the Convergence harder. Corruption can be reduced through campus rituals between fragment run attempts. | Creates meaningful consequence for failure beyond progress loss |
+
+**15. Seasonal Threat Integration**
+
+*The seasonal threat creates an overarching urgency that shapes exploration decisions across the entire world map.*
+
+| **System** | **Description** | **Notes** |
+| --- | --- | --- |
+| **World Map Creep** | The seasonal threat occupies a position on the world map and its influence spreads toward nearby regions. Regions closer to the threat source have harder encounters, modified terrain (corruption, military presence), and threat-specific POIs that contain intel. | Visible on the world map during preparation phase; updated after each run |
+| **In-Region Threat** | Within a region, the threat’s influence creeps across the exploration map from one edge, advancing 1 hex per 5 player steps. Hexes touched by the creep have buffed enemies, hazardous terrain, and threat-specific encounters. The creep is visible through fog as a discolored border. | Creates a soft directional urgency — explore away from the creep first |
+| **Threat Missions** | Special runs on the world map that directly counter the seasonal threat. These use unique exploration maps with threat-themed terrain and encounters. Success reduces the threat; failure accelerates it. | Available from the War Room; high-risk, high-reward |
+| **Campus Defense** | When the threat clock maxes out, a campus defense run triggers. The exploration map is replaced by the campus itself — the player defends their buildings on a large combat grid with multiple fronts. | Mandatory event; campus buildings determine defenses; deployed companions defend secondary fronts |
+
+**16. Technical Architecture**
+
+*How the exploration map connects to the existing Godot codebase and what new systems are needed.*
+
+| **System** | **Description** | **Integration Notes** |
+| --- | --- | --- |
+| **OverworldHexGrid** | New Godot scene. A 2D hex grid rendered as a tilemap or sprite-based grid. Each hex stores: terrain type, fog state (hidden/silhouette/revealed), POI reference (if any), and dynamic event state. The player’s party is a token that moves hex-to-hex. Camera follows the party with the fog boundary visible at the edges. | New scene; hex coordinate math can reuse HexGridManager’s AxialToWorld logic at a different scale |
+| **FogOfWarManager** | New C# class. Manages the fog state for each hex: hidden, silhouette (terrain only), or revealed (full content). Handles vision radius calculation, intel pre-reveals, school ability reveals, and region memory persistence. | Core exploration system; reads from GuildSaveData for campus bonuses and region memory |
+| **POIGenerator** | New C# class. Procedurally places POIs on the overworld grid based on region type, terrain affinity rules, and difficulty distribution. Respects landmark placement (fixed positions) and ensures minimum spacing between POIs. | Data-driven; reads region definitions from JSON/Resource files |
+| **EncounterRouter** | New C# class. When the player engages a POI, determines which scene to load (GameRunner for combat, NarrativeScene for narrative, NegotiationScene for negotiation). Passes context: terrain type → MapTheme, difficulty → DensityPreset, weather → combat modifiers, adjacent terrain → grid features. | Bridges overworld and combat; minimal changes to existing GameRunner |
+| **DynamicEventSystem** | New C# class. Manages roaming NPCs, spreading hazards, weather, threat creep, and faction reactions on the overworld grid. Processes events after each player step. | Runs on the overworld grid; does not affect combat scenes directly |
+| **RegionMemoryStore** | Extension to GuildSaveData. Stores per-region: fog state array, landmark status, terrain changes, faction control, discovery chain progress, and exploration percentage. | Serialized to JSON; loaded when entering a previously visited region |
+| **GameRunner (existing)** | Minimal modifications: add an initialization method that accepts overworld context (MapTheme, DensityPreset, enemy composition, weather modifiers, terrain modifiers) from EncounterRouter. Add a completion callback that returns results (victory/defeat, rewards) to EncounterRouter. | 2–3 new methods; existing combat logic unchanged |
+| **StepBudgetUI** | New UI element. A prominent bar or counter showing remaining steps, current terrain cost, and step budget modifiers. Displayed at all times on the overworld. Animates when steps are spent. | Overlaid on the OverworldHexGrid scene |
+
+**17. Design Principles**
+
+**1. Exploration is the game, not the loading screen. **The fog-of-war map is where the player makes their most consequential decisions: which direction to go, what to engage, when to press forward, when to retreat. It should feel as mechanically rich and emotionally engaging as combat.
+
+**2. Information is the primary resource. **In this system, knowledge of the map is as valuable as gold or cards. Every campus building, companion ability, and school passive that reveals information is an investment in better exploration decisions. The player should feel their guild growing smarter, not just stronger.
+
+**3. Every school explores differently. **An Elementalist and a Chronomancer in the same region should have fundamentally different experiences. The Elementalist smashes through obstacles and senses elemental terrain. The Chronomancer peers through time and rewinds mistakes. If two schools feel the same on the exploration map, the system has failed.
+
+**4. The map tells stories. **Spatial relationships between POIs, terrain types, dynamic events, and landmarks create emergent narratives. A burned forest next to a volcanic vent tells a story. A merchant caravan fleeing from a threat creep zone tells a story. The map should generate these moments organically.
+
+**5. Regions are places, not levels. **Region memory, persistent terrain changes, and faction control shifts mean that regions feel like real places in the world that change over time. Returning to a region should feel like revisiting a familiar location with new developments, not replaying the same content.
+
+**6. The step budget creates meaningful tension. **Without a resource constraint, exploration is just wandering. The step budget forces prioritization: can I afford to explore that distant mountain hex, or should I head straight for the objective? This tension is what makes exploration decisions feel strategic rather than leisurely.
+
+**7. Surprise is sacred. **The fog of war exists to create moments of genuine discovery. Hidden vaults, ambush encounters, unexpected NPC encounters, and dynamic map events all serve the same purpose: making the player feel like the world contains things they haven’t seen yet. Preserving surprise across dozens of runs is the system’s greatest challenge and most important goal.
+
+**8. 30–50 minutes and done. **Despite the exploration freedom, individual runs should still be completable in a single sitting. The step budget and map sizes are calibrated for this. If runs consistently exceed 50 minutes, reduce map size or POI density, never the player’s sense of discovery.
+
+**Document Notes: **This document replaces the v1 Run Structure document. The fog-of-war exploration map is the defining mechanical innovation of the game’s run experience and should be prototyped early. Recommended implementation order: (1) OverworldHexGrid with basic fog and movement, (2) POI generation with placeholder encounters, (3) EncounterRouter connecting to existing GameRunner, (4) FogOfWarManager with vision and intel systems, (5) DynamicEventSystem, (6) school-specific abilities, (7) region memory persistence. All numerical values (grid sizes, step budgets, POI counts, vision ranges) are initial estimates and should be tuned through playtesting.

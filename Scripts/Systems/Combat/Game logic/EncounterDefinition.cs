@@ -23,7 +23,7 @@ public enum EncounterTier
     Battle,    // 3 enemies, standard
     Siege,     // 4–5 enemies, hard
     Ambush,    // 3 enemies, surprise (future: grants enemies a free action)
-    Boss,      // 1–3 enemies, very hard (future)
+    Boss,      // 1–3 enemies, very hard (future) 
 }
 
 /// <summary>

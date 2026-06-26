@@ -457,7 +457,14 @@ public partial class ExpeditionManager : Node2D
         string terrainType = hex.Terrain.ToString();
         string regionId = StagingTemplateRegion();
         var tier = EncounterTier.Battle;
-        var encounterDef = EncounterPoolLoader.Pick(regionId, tier, terrainType, _scaledDifficultyMult);
+        var arch = RollArchmageAt(coord);   // resident archmage rolls for its own forces
+        GD.Print($"[ArchmageEncounter] POI tile kingdom-archmage='{KingdomArchmageAt(coord)}', " +
+         $"draw={(arch != null ? arch.Id : "(region pool)")}");
+        var encounterDef =
+            (arch != null
+                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, _scaledDifficultyMult)
+                : null)
+            ?? EncounterPoolLoader.Pick(regionId, tier, terrainType, _scaledDifficultyMult);
 
         _pendingCombatHexCoord = coord;
         _pendingEncounter = encounterDef;
@@ -526,9 +533,20 @@ public partial class ExpeditionManager : Node2D
 
         _ambushPending = true;
         ShowInfo("A patrol has intercepted you!");
-        var encounterDef = EncounterPoolLoader.Pick(
-            StagingTemplateRegion(), EncounterTier.Skirmish, hex.Terrain.ToString(), _scaledDifficultyMult);
-        CommitCombat(coord, encounterDef, hex.Terrain.ToString());
+        string regionId = StagingTemplateRegion();
+        string terrainType = hex.Terrain.ToString();
+        // The patrol BELONGS to this archmage (passed by the signal) — its forces
+        // are always the archmage's own, NO chance roll. Region pool only backstops
+        // an archmage that has no authored skirmish group.
+        var arch = ArchmageDefById(archmageId);
+        GD.Print($"[ArchmageEncounter] patrol archmageId='{archmageId}', " +
+         $"draw={(arch != null ? arch.Id : "(region pool)")}");
+        var encounterDef =
+            (arch != null
+                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Skirmish, terrainType, _scaledDifficultyMult)
+                : null)
+            ?? EncounterPoolLoader.Pick(regionId, EncounterTier.Skirmish, terrainType, _scaledDifficultyMult);
+        CommitCombat(coord, encounterDef, terrainType);
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -981,6 +999,43 @@ public partial class ExpeditionManager : Node2D
             return ks.TemplateRegionId;
         }
         return "frontier_wilds";
+    }
+
+    // ── Archmage faction encounters ─────────────────────────────────────
+
+    /// <summary>The non-villain archmage definition for an id, or null.</summary>
+    private ArchmageDefinition ArchmageDefById(string archmageId)
+    {
+        if (string.IsNullOrEmpty(archmageId))
+            return null;
+        var def = ArchmageRegistry.Get(archmageId);
+        return (def == null || def.IsVillainFaction) ? null : def;
+    }
+
+    /// <summary>Archmage controlling the kingdom that owns the given window-local
+    /// tile, or "" if none. Per-tile (NOT staging-keyed) so a border-straddling
+    /// window fights whoever actually holds the ground you're standing on.</summary>
+    private string KingdomArchmageAt(Vector2I local)
+    {
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return "";
+        string kid = _world.GetTile(col, row).KingdomId ?? "";
+        if (!string.IsNullOrEmpty(kid) &&
+            SaveManager.ActiveSave?.Cycle?.Kingdoms != null &&
+            SaveManager.ActiveSave.Cycle.Kingdoms.TryGetValue(kid, out var ks))
+            return ks.ArchmageId ?? "";
+        return "";
+    }
+
+    /// <summary>Roll the resident archmage's ArchmageFactionChance for an ordinary
+    /// combat POI. Returns the archmage to draw from, or null to use the region pool.</summary>
+    private ArchmageDefinition RollArchmageAt(Vector2I local)
+    {
+        var def = ArchmageDefById(KingdomArchmageAt(local));
+        if (def == null)
+            return null;
+        // TEMP TEST: force the draw whenever an archmage owns the tile.
+        return def; // was: GD.Randf() < def.ArchmageFactionChance ? def : null;
     }
 
     /// <summary>Map a stored grid-local coord through the window (identity — the

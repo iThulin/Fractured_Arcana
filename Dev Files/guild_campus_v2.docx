@@ -1,0 +1,200 @@
+**GUILD CAMPUS**
+
+Buildings, Upgrades & Expansions
+
+*Expanded Design Reference — v2*
+
+This document catalogs all planned buildings, upgrades, campus systems, and aesthetic additions for the guild campus. Content is organized into eight sections: core infrastructure, general magic facilities, economy and crafting, reputation and social buildings, wizard-specific school buildings (one sub-section per wizard archetype), upgrade paths, campus-wide systems, and cosmetic additions.
+
+**Wizard Archetypes Covered: **Elementalist, Arcanist, Chronomancer, Enchanter, Artificer, Necromancer
+
+**1. Core Infrastructure**
+
+*Essential buildings that form the foundation of every guild. Available early in the meta-progression and required for basic campus functionality.*
+
+| **Building** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **The Grand Hall** | Central hub and guild meeting space | Unlocks guild-wide passive buffs; hosts faction diplomacy events; visual centerpiece that evolves with guild tier |
+| **The Arcane Library** | Repository of magical knowledge | Unlocks enemy bestiary with revealed weaknesses; research projects that grant card modifiers; lore collectibles |
+| **The Dormitory** | Living quarters for companions | Increases max companion roster size; companions recover morale between runs; personal quarters trigger companion story events |
+| **The Training Grounds** | Practice arena for combat drills | Start runs with a bonus card draft; unlock tutorial challenges for new schools; test deck builds without risking a run |
+| **The Infirmary** | Healing ward for injured members | Reduces recovery time for injured companions; chance to save companions from permadeath; unlocks healing-related card grafts |
+| **The Gatehouse** | Fortified entrance and first line of defense | Unlocks campus defense events during seasonal threats; grants early-warning intel on incoming attacks; cosmetic gate upgrades reflect guild tier |
+| **The Storeroom** | Bulk storage for supplies and reagents | Increases maximum carry capacity for consumables between runs; overflow resources are banked here instead of lost; organize inventory loadouts |
+| **The Council Spire** | Elevated chamber for guild leadership decisions | Unlocks guild decree system with run-modifying edicts; vote on guild direction with companions; shapes guild identity and faction alignment |
+
+**2. General Magic Facilities**
+
+*Shared magical infrastructure available to all wizard types. These buildings support graft research, familiar management, and ambient magical power across the campus.*
+
+| **Building** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **The Summoning Circle** | Planar gateway for conjuration | Unlocks conjuration graft branch; random planar visitors offer rare trades; risk/reward events tied to unstable summons |
+| **The Observatory** | Celestial divination tower | Preview upcoming encounters and boss modifiers before a run; unlocks divination graft branch; star-chart puzzles for bonus rewards |
+| **The Crypt** | Necromantic research sanctum | Unlocks necromancy graft branch; fallen companions can be raised as spectral allies with altered decks; dark reputation consequences |
+| **The Elemental Forge** | Workshop for channeling raw elements | Unlocks elemental graft branch; craft consumable spell scrolls; imbue equipment with elemental affinities |
+| **The Illusion Theater** | Hall of mirrors and deception | Unlocks illusion graft branch; generate decoy encounters to misdirect seasonal threats; espionage missions against rival factions |
+| **The Warding Chamber** | Abjuration and defense research lab | Unlocks abjuration graft branch; guild-wide damage reduction passive; create shield tokens usable at run start |
+| **The Chrono Vault** | Time magic study and containment | Unlocks chronomancy graft branch; rewind one decision per run; replay past story events with different choices |
+| **The Ritual Amphitheater** | Open-air space for large-scale spellwork | Unlocks cooperative casting events where multiple companions combine spells; ritual quests that span multiple runs; amplifies graft potency temporarily |
+| **The Familiar Roost** | Habitat for summoned creatures and bound spirits | Companions’ familiars provide passive scouting bonuses; unlock familiar-specific side encounters; familiars evolve visually as companions level up |
+| **The Ley Line Nexus** | Convergence point of underground magical currents | Boosts mana regeneration for the first 3 turns of every encounter; unlocks ley line events on the overworld; can be attuned to a specific school for stronger bonuses |
+
+**3. Economy ****&**** Crafting Buildings**
+
+*Resource generation, trading, and item crafting facilities that support the guild’s material needs across runs.*
+
+| **Building** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **The Merchant Quarter** | Trade hub and marketplace | Unlock rare card vendors; trade surplus cards between characters; faction reputation discounts |
+| **The Reagent Garden** | Alchemical greenhouse and herb farm | Generate consumable potions between runs; reduce spell graft costs; seasonal harvests tied to calendar events |
+| **The Vault** | Secure treasury and artifact storage | Bank currency across runs; store and retrieve artifacts between characters; interest system that rewards saving |
+| **The Enchanter’s Workshop** | Item modification and crafting studio | Modify equipment with permanent enchantments; break down unwanted cards for crafting materials; create custom relics |
+| **The Scribe’s Tower** | Spell documentation and scroll crafting | Copy spells from companion schools into scrolls (one-use cards); transcribe boss patterns into strategy guides; sell scrolls for income |
+| **The Salvage Yard** | Reclamation and material recovery facility | Deconstruct failed run rewards into raw materials; recover partial value from lost artifacts; unlock recycling-based crafting recipes |
+| **The Auction House** | Competitive bidding venue for rare items | Periodic auctions for unique relics not available elsewhere; bid against NPC factions for contested items; sell surplus for premium currency |
+| **The Expedition Outfitter** | Gear preparation and loadout station | Pre-equip consumables and scrolls before a run; unlock equipment sets that grant bonuses when completed; swap gear between companions freely |
+
+**4. Reputation ****&**** Social Buildings**
+
+*Structures focused on faction relations, recruitment, strategic planning, and the guild’s public presence in the world.*
+
+| **Building** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **The Embassy** | Diplomatic relations center | Unlock faction questlines; negotiate alliances that change available card pools; host visiting dignitaries for unique events |
+| **The Tavern** | Social gathering and recruitment hub | Increased chance of companion encounters during runs; rumor system that hints at hidden events; morale boost for party members |
+| **The Arena** | Public combat exhibition grounds | Challenge mode fights for prestige currency; PvP-style ghost battles against other players’ decks; spectator events that boost guild fame |
+| **The War Room** | Strategic planning and threat tracking | Visual seasonal threat tracker; plan run routes with map intel; coordinate multi-run campaigns against major threats |
+| **The Monument Garden** | Memorial for achievements and fallen | Permanent stat tracking and achievement display; memorial for permadeath companions that grants passive bonuses; visual history of your guild |
+| **The Courier Station** | Message network and intelligence hub | Receive tip-offs about rare encounters before runs; send scouts ahead to reveal map segments; inter-faction mail that triggers timed side quests |
+| **The Lecture Hall** | Public education and outreach center | Train apprentice NPCs who provide minor passive bonuses; host guest lecturers from factions for temporary card access; boosts reputation with scholarly factions |
+| **The Hall of Records** | Archive of guild history and contracts | Track detailed run statistics and companion performance; unlock legacy bonuses for milestones; contracts with factions that provide structured multi-run challenges with guaranteed rewards |
+
+**5. Wizard-Specific School Buildings**
+
+*Each wizard archetype unlocks a unique set of buildings tied to their magical discipline. These buildings are constructed when the player chooses that wizard or recruits a companion of that school. They provide school-exclusive mechanics, grafts, and narrative events.*
+
+**♦ Elementalist***  —  Master of fire, ice, lightning, earth, wind, and water*
+
+| **Building** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **The Crucible of Storms** | Open-air tower exposed to raw elemental forces | Unlocks storm-chain card modifiers that let spells arc between targets; weather system on the campus responds to recent elemental usage; train elemental combos (fire + wind = firestorm) |
+| **The Primal Font** | Natural spring infused with elemental essence | Regenerate elemental attunement between runs; unlock primal form cards that temporarily transform the wizard; attunement level affects starting mana type distribution |
+| **The Confluence Chamber** | Sealed room where opposing elements are forced together | Research dual-element fusion spells; risk of catastrophic failure that damages the building (requiring repair resources); successful fusions produce the strongest elemental grafts |
+| **The Elemental Menagerie** | Habitat for captured elemental spirits | Bound elementals serve as combat summons with limited uses per run; elementals evolve based on which elements you favor; rare elementals found during runs can be captured and housed here |
+
+**♦ Arcanist***  —  Scholar of pure magic, meta-spells, and arcane theory*
+
+| **Building** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **The Theorem Hall** | Lecture space for pure magical theory | Unlocks meta-magic modifiers that alter spell properties (range, area, duration) without changing school; research projects that reveal hidden card synergies; permanent +1 hand size after full research tree |
+| **The Paradox Engine** | Experimental device that bends magical rules | Once per run, break one game rule (play an extra card, exceed mana cap, ignore a restriction); paradox events where reality warps around the campus; risk of instability if overused |
+| **The Spell Lattice** | Crystalline structure that maps spell interactions | Visual web showing all discovered card combos and synergies; passive bonus for playing discovered combos in combat; lattice grows as you experiment with new combinations |
+| **The Arcanum Sanctum** | Inner chamber for the deepest magical study | Unlocks arcane mastery cards that scale with total spells cast in a run; sanctum meditation between runs reveals hidden event paths; ultimate research project unlocks a unique legendary card |
+
+**♦ Chronomancer***  —  Manipulator of time, causality, and fate*
+
+| **Building** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **The Pendulum Tower** | Massive clockwork tower that regulates local time flow | Unlocks slow and haste field effects on the battle grid; campus clock visually tracks seasonal threat progress; time-dilated training lets companions gain bonuses faster |
+| **The Echo Chamber** | Room where past events can be replayed as echoes | Replay any completed encounter with different card choices (no rewards, just practice); review past companion story decisions; unlock echo cards that replay your last played spell at reduced cost |
+| **The Temporal Observatory** | Window into possible futures | Preview two possible next encounters and choose which to face; foresight tokens that reveal enemy hands in combat; long-range forecasting of seasonal threat timing |
+| **The Paradox Archive** | Vault containing objects from broken timelines | Collect timeline artifacts that grant powerful but unpredictable effects; paradox events where past decisions resurface with consequences; trade timeline fragments for unique chronomancy grafts |
+
+**♦ Enchanter***  —  Weaver of charms, bindings, and magical influence*
+
+| **Building** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **The Binding Sanctum** | Chamber for infusing objects with magical will | Unlocks enchantment stacking — layer multiple effects on a single card or item; enchanted equipment gains personality and reacts to combat events; permanent enchantments persist across runs on bound items |
+| **The Charm Parlor** | Social space where enchantment meets diplomacy | Enchantment-based dialogue options during narrative events; charm faction leaders for better deals; unlock domination cards that temporarily control enemy units |
+| **The Resonance Garden** | Living garden where enchanted objects harmonize | Enchanted items placed here generate passive resources over time; resonance bonuses when carrying multiple enchanted items of the same type; garden reflects the dominant enchantment school visually |
+| **The Glyph Workshop** | Studio for inscribing magical sigils and wards | Craft ward glyphs that can be placed on the battle grid before encounters; glyphs triggered by enemy movement create traps and zones; glyph recipes discovered through exploration and companion quests |
+
+**♦ Artificer***  —  Builder of constructs, devices, and mechanical magic*
+
+| **Building** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **The Foundry** | Industrial workshop for constructing magical devices | Build mechanical companions (golems, homunculi) with customizable card decks; construct battlefield devices deployable from hand; foundry output scales with invested materials |
+| **The Blueprint Archive** | Drafting room and schematic library | Unlock new construct designs by studying defeated mechanical enemies; blueprint completion grants permanent crafting recipes; trade blueprints with other artificer-aligned factions |
+| **The Calibration Range** | Testing ground for experimental devices | Test new constructs in simulated combat; calibrate device cards to improve their reliability; failed calibrations can produce unexpected but useful variants |
+| **The Tinkerer’s Market** | Bazaar specializing in components and rare parts | Buy and sell mechanical components; commission custom parts from visiting artisans; disassemble found relics into reusable components; market inventory refreshes each run |
+
+**♦ Necromancer***  —  Commander of death, spirits, and undead forces*
+
+| **Building** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **The Ossuary** | Bone repository and undead assembly hall | Raise undead minions from bones collected during runs; minion strength scales with the power of defeated enemies; ossuary visually fills with trophies from fallen foes |
+| **The Soul Well** | Deep shaft that collects residual spirit energy | Harvest soul energy as an alternate currency for necromancy grafts; soul energy powers death-triggered card effects; well depth increases with guild tier, boosting maximum reserves |
+| **The Seance Chamber** | Communication room for speaking with the dead | Consult spirits of defeated bosses for strategic advice; commune with fallen companions for unique story moments; spirit informants reveal hidden encounters during runs |
+| **The Blight Laboratory** | Research facility for curse and disease magic | Develop plague and curse cards that spread between enemies; blight effects linger on the battle grid between turns; risk of campus contamination events if blight research goes wrong |
+
+**6. General Building Upgrade Paths**
+
+*Prestige-tier transformations that fundamentally change a building’s role. Each has narrative and mechanical prerequisites and represents a major guild milestone.*
+
+| **Upgrade Path** | **Effect** | **Unlock Requirement** |
+| --- | --- | --- |
+| **Library → Forbidden Archives** | Unlock cursed spell branches with high power but run-long debuffs; risk/reward research projects | Tier 3 Library + complete 2 companion lore quests |
+| **Dormitory → Companion Suites** | Each companion gets a personal room reflecting their school; unique passive bonuses per companion when they feel at home | Tier 2 Dormitory + recruit 6 companions |
+| **Training Grounds → Gauntlet Arena** | Multi-wave survival mode that generates bonus currency; unlock prestige card variants with alternate art and slight modifiers | Tier 3 Training Grounds + win 10 runs |
+| **Merchant Quarter → Black Market** | Access forbidden cards and cursed artifacts; deal with morally dubious traders; reputation consequences with lawful factions | Tier 2 Merchant Quarter + negative reputation with at least one faction |
+| **Grand Hall → Council Chamber** | Recruit a second companion per run; guild-wide decree system that applies run modifiers | Tier 3 Grand Hall + 8 companions recruited |
+| **Observatory → Astral Beacon** | Open runs in alternate planes with unique enemy types and rewards; celestial events affect all active runs | Tier 3 Observatory + defeat a planar boss |
+| **Infirmary → Soul Anchor** | Guarantee companion survival once per run; resurrect one permadead companion (once ever); stabilize cursed graft side effects | Tier 3 Infirmary + lose a companion to permadeath |
+| **Elemental Forge → Primordial Crucible** | Fuse two graft branches into hybrid elements (steam, magma, storm); craft legendary one-per-run consumables | Tier 3 Forge + master 2 elemental graft branches |
+| **Tavern → Guild Hearth** | Companions build relationships unlocking duo-combo cards; feast events grant multi-run buffs; recruit rare NPC heroes | Tier 3 Tavern + max morale on 3 companions |
+| **War Room → Command Center** | Launch coordinated multi-run offensives against seasonal threats; deploy non-active companions on side missions for resources | Tier 3 War Room + repel a seasonal threat |
+| **Council Spire → Sovereign Tower** | Decrees become permanent guild doctrines; unlock alignment-locked legendary buildings; other guilds send envoys with unique offers | Tier 3 Spire + issue 10 decrees |
+| **Gatehouse → Arcane Bulwark** | Campus defense events become full playable encounters with unique rewards; fortifications provide starting combat buffs; enemy siege events with exclusive loot | Tier 3 Gatehouse + survive 3 campus attacks |
+| **Courier Station → Spy Network** | Plant agents in enemy factions for advance intel; sabotage seasonal threats before they reach full strength; unlock espionage-themed companion quests | Tier 3 Courier Station + complete 5 intel missions |
+| **Lecture Hall → Academy Wing** | Train apprentice wizards who can be sent on autonomous side runs for resources; apprentices occasionally discover new card recipes; academy reputation attracts rare companion candidates | Tier 3 Lecture Hall + train 8 apprentices |
+
+**7. Wizard-Specific Building Upgrades**
+
+*Each wizard school’s signature building has a prestige upgrade that represents mastery of that discipline. These are the most powerful transformations in the game.*
+
+| **Upgrade Path** | **School** | **Effect** | **Unlock Requirement** |
+| --- | --- | --- | --- |
+| **Crucible of Storms → Eye of the Maelstrom** | Elementalist | Permanently unlocks a seventh element (void/aether); all elemental combos gain a third-tier fusion; campus weather becomes an active tactical resource | Tier 3 Crucible + cast every dual-element fusion at least once |
+| **Theorem Hall → The Axiom** | Arcanist | Meta-magic modifiers can stack; unlock reality-rewriting cards that change encounter rules mid-fight; permanent passive that reveals all hidden card interactions | Tier 3 Theorem Hall + discover 20 card synergies |
+| **Pendulum Tower → The Eternity Spire** | Chronomancer | Unlock time-loop encounters where you replay a fight with accumulated knowledge; rewind an entire run back to a decision point (once per run); temporal echoes of yourself fight alongside you | Tier 3 Pendulum Tower + rewind 10 decisions across runs |
+| **Binding Sanctum → The Domination Throne** | Enchanter | Permanently enchant companions with a second passive ability; dominate a boss to fight as an ally in a future encounter; enchantment effects spread to adjacent grid tiles | Tier 3 Sanctum + enchant 15 unique items |
+| **The Foundry → The Grand Manufactory** | Artificer | Build a legendary construct companion with a full custom deck; mass-produce basic constructs for disposable battlefield deployment; unlock mechanical augmentation for organic companions | Tier 3 Foundry + build 10 unique constructs |
+| **The Ossuary → The Throne of Bones** | Necromancer | Raise defeated bosses as permanent undead champions; death magic passively drains nearby enemies at the start of combat; fallen companions return as loyal revenants with hybrid decks | Tier 3 Ossuary + collect bones from 12 unique enemy types |
+
+**8. Campus-Wide Systems**
+
+*Meta-systems that span the entire campus and affect how buildings interact with each other, the world, and the player’s strategic decisions.*
+
+| **System** | **Description** | **Mechanical Impact** |
+| --- | --- | --- |
+| **Ley Line Network** | Underground magical infrastructure | Connect buildings with ley lines for adjacency bonuses; buildings near each other on the campus map share synergy effects; ley line routing becomes a spatial puzzle as the campus grows |
+| **Seasonal Defenses** | Fortifications that activate during threat events | Auto-generated defense encounters when seasonal threats attack your campus; defense strength scales with building count and tier; failing a defense can damage or temporarily disable buildings |
+| **The Campus Grounds** | Open spaces between buildings | Unlock decorative and functional outdoor features (training dummies, meditation circles, sparring pits); grounds events where companions interact organically; space management as you decide where to place new buildings |
+| **The Undercroft** | Hidden tunnels beneath the campus | Discover secret rooms with rare lore and artifacts; undercroft expands as campus grows; risk of subterranean enemy incursions; connects to the Ley Line Network |
+| **Visiting Scholar System** | Rotating NPC experts who offer temporary services | Each visit brings a specialist with a unique school or branch; hire them for one run or invest to recruit permanently; visiting scholars offer grafts not available through your current companions |
+| **The Guild Charter** | Founding document that defines your guild’s identity | Choose from alignment paths (Order, Chaos, Balance) that unlock different building variants; charter amendments require companion votes; your charter determines which factions are allied and opposed |
+| **Campus Rituals** | Periodic large-scale magical events | Schedule rituals that provide powerful but temporary campus-wide effects; rituals require companion participation, taking them out of the run roster temporarily; ritual outcomes depend on which schools participate |
+
+**9. Aesthetic ****&**** Cosmetic Additions**
+
+*Visual enhancements that make the campus feel alive and reflect the player’s unique journey. Primarily cosmetic, but massive for atmosphere and player identity.*
+
+| **Feature** | **Description** | **Unlock Trigger** |
+| --- | --- | --- |
+| **Banners and Flags** | Display your guild’s school colors and crest on the campus exterior; customizable heraldry | Complete your first run |
+| **Enchanted Gardens** | Magical flora that changes with seasons and reflects your dominant school (fire flowers, shadow vines, etc.) | Build the Reagent Garden |
+| **Floating Crystals** | Ambient arcane crystals orbit your towers, color-coded to your most-used magic schools | Reach Guild Tier 3 |
+| **Trophy Hall** | Display boss trophies, rare artifacts, and commemorative items from memorable runs | Defeat 5 unique bosses |
+| **Weather System** | Your campus develops its own microclimate based on your dominant school and reputation | Reach Guild Tier 4 |
+| **Companion Murals** | Murals depicting key moments from companion story arcs appear on guild walls | Complete 3 companion story arcs |
+| **Portal Archway** | A grand portal at the campus entrance that visually reflects your current seasonal threat | Build the War Room |
+| **Spectral Echoes** | Ghostly silhouettes of past guild members wander the grounds, offering ambient lore | Lose 3 companions to permadeath |
+| **School Aura** | The entire campus radiates a subtle visual aura matching your primary wizard’s school — flames for elementalists, clockwork particles for chronomancers, ghostly mist for necromancers | Reach Tier 2 in any school-specific building |
+| **Construct Sentries** | Animated statues or mechanical guards that patrol campus paths | Build the Foundry (Artificer) |
+| **Runic Pathways** | Glowing rune-inscribed walkways connecting buildings, color shifts based on dominant graft type | Install 5 ley line connections |
+| **The World Tree** | A massive magical tree that grows at the campus center, its branches reflecting guild prosperity and health | Reach Guild Tier 5 |
+| **Battle Scars** | Visible damage and repair marks on buildings from survived seasonal threat attacks, treated as badges of honor | Survive a campus defense event |
+| **Companion Quarters Exteriors** | Each companion’s room has a unique exterior that reflects their school — frost on windows, vines, ticking gears, bone wind chimes | Build Companion Suites upgrade |
+
+**Design Notes: **Building tiers (1–3) are assumed for each structure, with visual and mechanical growth at each tier before major upgrades become available. Tier progression should be tied to a mix of currency investment and narrative milestones. School-specific buildings are constructed automatically when a companion of that school joins, but upgrades require active investment. All unlock requirements are initial suggestions pending playtesting. The six wizard archetypes are designed to feel mechanically distinct: Elementalists focus on combo-based damage, Arcanists on meta-game manipulation, Chronomancers on information and second chances, Enchanters on persistent buffs and control, Artificers on construct armies and crafting, and Necromancers on attrition and raising the dead.

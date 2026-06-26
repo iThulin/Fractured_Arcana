@@ -1,0 +1,589 @@
+**GUILD OF WIZARDS**
+
+Expansion Action Plan
+
+*From Prototype to Full Game — A Sequenced Build Roadmap*
+
+*Scope anchored in:*
+
+run_structure_v2  •  guild_campus_v2  •  negotiation_system  •  convergence
+
+# How To Use This Plan
+
+Your design docs are genuinely strong — coherent, interlocking, and internally consistent. The risk with a project this ambitious isn't quality of vision; it's scope paralysis. You have enough designed content for a 60-80 hour game, and trying to build it in natural reading order (campus → runs → negotiation → convergence) will stall you for months before anything is playable end-to-end.
+
+This plan is organized around a different principle: build the smallest thing that proves the core loop works, then layer systems onto it in the order that delivers the most playtesting signal per week of effort. Every phase ends with a game you can actually play — not a pile of disconnected features.
+
+### How to read each phase
+
+- **Goal** — the single outcome that defines phase completion. If you can't demo this to someone in five minutes, the phase isn't done.
+
+- **Deliverables** — concrete build targets, ordered. Don't skip ahead within a phase.
+
+- **Exit criteria** — the observable conditions that mean you're ready to move on. Resist moving on before these are met.
+
+- **What you are deliberately NOT building** — explicit descopes. These are the features it's tempting to add now but shouldn't.
+
+*If you only remember one thing: finish the vertical slice in Phase 1 before touching anything in Phase 3 or later. A complete ugly loop beats an elegant half-loop every time.*
+
+# Five Guiding Principles Before You Start
+
+- **One playable loop at all times.** From Phase 1 onward, every commit should leave the game in a state where you can start a run, do a thing, and return to campus. If a refactor breaks the loop for more than a day, roll it back and do it smaller.
+
+- **Data-driven before content-heavy.** Build the schema and loaders for regions, encounters, NPCs, companions, and buildings before you write more than 2-3 examples of each. You will author 90% of your content after the systems are stable, not before.
+
+- **One wizard school fully working beats six schools half-working.** Implement the Elementalist end-to-end — combat identity, exploration passive, negotiation tokens, building suite, Convergence interactions — before starting the second school. This de-risks the entire system design because you'll catch integration problems once, not six times.
+
+- **Playtest the fog-of-war loop by month three.** It's the defining mechanic and it has the most uncertainty. If it's not fun with placeholder art and one region, no amount of Convergence narrative will save the game. Build it early so you have time to iterate.
+
+- **Companion system is the emotional backbone — don****'****t defer it.** The Convergence only pays off because players are invested in companions. A stubbed-out companion system in Phase 2 is better than a perfect one in Phase 6.
+
+# The Six-Phase Map
+
+Rough sequencing. Durations assume solo or small-team evening/weekend pace; scale to your actual bandwidth. Don't treat these as deadlines — treat them as ordering.
+
+| **Phase** | **Name** | **What You****'****ll Have at the End** | **Rough Effort** |
+| --- | --- | --- | --- |
+| **1** | **Vertical Slice** | One region, one school, one companion, combat + exploration + return loop. Ugly but playable start-to-finish. | 4–6 weeks |
+| **2** | **Systems Foundation** | Save data, campus building framework, companion framework, negotiation skeleton, data schemas. Content still thin. | 6–8 weeks |
+| **3** | **Horizontal Content** | All six schools roughed in, 3-4 regions, 8-12 buildings, 6-8 companions, negotiation working. First internal playtest. | 10–14 weeks |
+| **4** | **The Long Game** | Fragment recovery arcs, seasonal threats, faction system, companion story arcs, upgrade trees. Meta-progression is real. | 10–14 weeks |
+| **5** | **The Convergence** | Endgame event, three paths, post-Convergence world, New Game Plus scaffolding. | 8–12 weeks |
+| **6** | **Polish ****&**** Ship** | Balance, accessibility, art pass, tutorial, onboarding, platform build, release candidate. | 8–16 weeks |
+
+# Phase 1 — The Vertical Slice
+
+### Goal
+
+A player can launch the game, select a wizard, enter a region, explore a fog-of-war hex map, trigger and resolve a combat encounter using your existing HexGridManager + GameRunner, return to a minimal campus screen, and repeat. One complete loop, no shortcuts. Looks like programmer art. Plays like a game.
+
+### Why this first
+
+Nothing else you plan matters if the basic loop isn't compelling. The fog-of-war exploration is the riskiest mechanical bet in the entire design — it's genuinely novel compared to Slay the Spire's node graph, and you won't know if it works until you play it. Build this first, playtest it weekly, and let the findings shape everything downstream.
+
+### Deliverables (in order)
+
+- **OverworldHexGrid scene.** A 2D hex tilemap at a larger scale than your combat grid. Reuse `AxialToWorld` math from `HexGridManager`. Hard-code one 15×15 region with placeholder terrain — no procgen yet.
+
+- **FogOfWarManager.** Three hex states (hidden, silhouette, revealed). Base vision radius of 1. When the party moves, recompute vision. Persist nothing between runs yet.
+
+- **Party token + movement.** Click an adjacent hex → move there → spend a step → trigger vision update. Show step budget as plain text in the corner. Terrain costs: all hexes cost 1 step for now.
+
+- **POIGenerator (minimum version).** Scatter 10 POIs on the 15×15 grid. Two types only: Combat and Rest. Represent with emoji or colored squares.
+
+- **EncounterRouter.** When the party enters a POI hex, if it's Combat, load your existing GameRunner scene with a hardcoded enemy set. When combat completes, return to the overworld with the POI consumed.
+
+- **Minimal campus screen.** Three buttons: Start Run, Wizard Select (one option — the Elementalist), Quit. No buildings yet. Start Run loads the overworld.
+
+- **Run result screen.** After reaching the objective landmark or running out of steps, show a screen: "Run Complete — Gold: X, Cards: Y" then return to campus. Discard the state for now.
+
+### Exit criteria
+
+- You can play 10 runs in a row without the game crashing.
+
+- A person who has never seen the game can be handed the controls and figure out how to play a run in under 2 minutes.
+
+- You find yourself wanting to explore a few extra hexes even when you know the objective location. (If you don't, the fog-of-war design needs rethinking — better to find out now.)
+
+### What you are deliberately NOT building
+
+- Save data persistence across sessions
+
+- Companions (just the wizard for now)
+
+- Any negotiation, narrative, or rest encounters
+
+- Multiple wizard schools
+
+- Any campus building beyond a stub menu
+
+- Terrain cost variation, weather, dynamic events
+
+- Region memory, faction systems, intel pre-reveals
+
+***Shortcut worth taking:** Use Godot**'**s built-in UI and default fonts. Don**'**t touch art or shaders. The goal is mechanical truth, not visual appeal.*
+
+# Phase 2 — Systems Foundation
+
+### Goal
+
+Convert the vertical slice into an extensible framework. Introduce the data abstractions (save data, companion system, building system, negotiation skeleton, encounter type zoo) that everything else will plug into. Content is still thin — you still have one school, one region, maybe two companions — but the plumbing is real.
+
+### Why this before content
+
+If you start building six schools and eight regions on top of Phase 1's hardcoded prototype, you will rebuild everything three times. Spend the time now to define the data schemas and loader patterns, and every piece of content you add after this phase will snap in.
+
+### Deliverables (in order)
+
+### 2.1 — GuildSaveData and persistence
+
+- Create the central `GuildSaveData` class. This is the single source of truth for: wizard roster, companion roster, building tiers, faction reputation, fragment progress, seasonal threat state, region memory, charter alignment, completed lore entries.
+
+- JSON serialization with versioning from day one. You will migrate this schema many times — bake in a version number and migration functions.
+
+- Auto-save after every run completion and every campus change.
+
+- Three save slots minimum, with an export/import-to-clipboard dev menu for sharing playtest saves.
+
+### 2.2 — Region data schema + POIGenerator v2
+
+- Define a `RegionDefinition` Godot Resource (or JSON-backed class): terrain mix percentages, grid size, step budget, POI count, POI type distribution, required landmarks, school affinity, seasonal threat vulnerability.
+
+- Refactor POIGenerator to consume `RegionDefinition`. Add terrain-affinity rules (ruins POIs prefer ruins hexes, etc.).
+
+- Implement all nine terrain types with their movement costs from the run structure doc.
+
+- Implement landmark placement: the objective plus 2-3 secondary landmarks always visible through fog.
+
+### 2.3 — Encounter type zoo
+
+- Three POI types now working end-to-end: **Combat** (existing GameRunner), **Narrative** (new simple scene: flavor text + 2-3 choices + outcome), **Rest** (recover HP, minor event).
+
+- Narrative encounters read from a `NarrativeEncounter` Resource. Build 6-8 examples to prove the schema. Include variable substitution ({wizard_name}, {companion_name}, {region}).
+
+- Defer Negotiation type to phase 2.5 so you can focus the schema work here.
+
+### 2.4 — Companion framework
+
+- `Companion` class with: school, personality trait, loyalty, story arc progress, permadeath flag, deck contribution.
+
+- Companion selection UI in the pre-run phase: pick wizard + up to 2 companions.
+
+- Companions visible in combat as additional units (start with simple card contribution — they add 3-5 cards to your deck based on their school).
+
+- Build 2 companion examples (one martial, one wizard) to prove the schema. Resist adding more until the system is stable.
+
+- Stub `CompanionArc` data structure — even if arc content is empty, the system that tracks arc stages should exist.
+
+### 2.5 — Negotiation skeleton
+
+- Standalone Godot scene per the negotiation doc's technical notes — doesn't interact with the hex grid at all.
+
+- Tension meter (10 steps, 3 zones), token pool display, simple NPC dialogue box, deal terms list.
+
+- Implement all 8 token types but stub sophisticated AI: NPC just reacts to tension zone and token category for now.
+
+- Two NPC archetypes only: Merchant and Commander. These are the most mechanically distinct — prove the system handles the extremes.
+
+- One test negotiation hooked into the overworld as a POI type. If it's fun in isolation, ship it. If not, iterate before adding more archetypes.
+
+### 2.6 — Campus building framework
+
+- `Building` class: id, tier, requirements, passive effects, active effects, category.
+
+- Campus view: a grid of building slots. Click an empty slot → build menu (gated by requirements) → building appears. Click a built building → upgrade/info panel.
+
+- Implement 3 buildings end-to-end to prove the system handles different effect types: **Training Grounds** (run start buff — tests pre-run effects), **Arcane Library** (unlocks bestiary — tests UI unlocks), **Courier Station** (pre-reveals 2-3 hexes — tests overworld integration).
+
+- Building effects are declarative (data), not hardcoded in scenes.
+
+### Exit criteria
+
+- Save/load round-trips the full game state with zero data loss across three versions of the schema.
+
+- You can add a new region, encounter, companion, or building by editing a JSON/Resource file — no code changes required for straightforward cases.
+
+- One complete run uses all four encounter types (combat, narrative, rest, negotiation) and feels cohesive.
+
+- You can play 20 runs across 2-3 sessions and the save persists cleanly.
+
+### What you are deliberately NOT building
+
+- More than one wizard school (still Elementalist-only)
+
+- More than 2 companions
+
+- Fragment recovery
+
+- Seasonal threats
+
+- Faction reputation consequences (track it, don't act on it yet)
+
+- Charter alignment
+
+- Campus aesthetics / visual progression
+
+- Building upgrade paths (just tiers 1-2, not prestige upgrades)
+
+# Phase 3 — Horizontal Content
+
+### Goal
+
+Widen the game. Six schools roughed in (each with distinct combat feel, one signature building, one exploration passive, one negotiation identity). Three or four regions playable. Eight to twelve buildings working. Six to eight companions. Your first genuine internal playtest happens at the end of this phase.
+
+### Why horizontal, not vertical
+
+Once the schema work is done, adding schools and content should be mostly authoring, not engineering. Doing all six schools at a shallow depth beats doing two schools deeply, because the real test of your system design is how it handles variety. The differences between Necromancer and Enchanter will expose assumptions your Elementalist-only build let you ignore.
+
+### Deliverables
+
+### 3.1 — All six schools, minimum viable
+
+For each school (Elementalist, Arcanist, Chronomancer, Enchanter, Artificer, Necromancer), author:
+
+- A **starter deck** of 10-12 cards expressing the school's combat identity from the docs (Elementalist = combo damage, Arcanist = meta-manipulation, etc.). Build these as data, not code.
+
+- The **innate negotiation tokens** per the negotiation doc (e.g., Elementalist = 1 Intimidate + 1 Demonstration).
+
+- The **exploration passive + active** from the run structure doc (e.g., Elementalist = Elemental Sense + Force Path).
+
+- **One signature building** per school (Elementalist = Crucible of Storms, Necromancer = Ossuary, etc.). Unlocks automatically when a companion of that school joins.
+
+- A **school-aligned flavor** for Demonstration tokens in negotiation.
+
+Deliberately descope the secondary school buildings (Primal Font, Confluence Chamber, etc.) to phase 4. One building per school is enough for now.
+
+### 3.2 — Three or four regions playable
+
+Build these regions specifically — they exercise the most distinct terrain and encounter mixes:
+
+- **Frontier Wilds** (20×20, sparse, mixed terrain — stress tests large-map exploration)
+
+- **Trade City** (15×15, dense, road-heavy — stress tests negotiation-forward play)
+
+- **Haunted Ruins** (dense narrative, zero negotiation — stress tests an exploration texture where the meta-game is lore, not deals)
+
+- Optionally: **Arcane Nexus** for rule-changing combat variety
+
+Each region needs 15-20 authored POIs (combat/narrative/negotiation mix per the doc's distribution table). This is bulk content creation; block time for it.
+
+### 3.3 — Core campus building set
+
+Build these 10 buildings because they touch the most systems (every one has downstream effects on runs, companions, or progression):
+
+- **Grand Hall**, **Arcane Library**, **Dormitory**, **Training Grounds**, **Infirmary** (core infrastructure)
+
+- **Tavern**, **War Room**, **Courier Station** (reputation & intel — these drive the negotiation and exploration bonus loops)
+
+- **Reagent Garden**, **Observatory** (support buildings with crisp mechanical effects)
+
+Plus the six school-signature buildings from 3.1 = 16 total buildings. Enough variety to feel like a real campus; not so many that balancing is impossible.
+
+### 3.4 — Companion roster v1
+
+- Eight companions: two Elementalists, and one of each other school. This gives you redundancy in the school your wizard plays most (the Elementalist) and at least one of every school for party diversity.
+
+- Each companion has: school, personality trait, base loyalty, 3 cards they contribute, and a **stubbed three-stage story arc** (arc content can be skeletal — just trigger points and a final reward).
+
+- Recruitment: 3 start available at Dormitory Tier 1; 3 unlock via region encounters; 2 via late-game faction events (stubbed — "coming soon" placeholder is fine).
+
+### 3.5 — Negotiation completion
+
+- All 6 NPC archetypes implemented (Merchant, Commander, Scholar, Opportunist, Idealist, Survivor).
+
+- Hidden terms, deal quality scoring (1-5 stars), patience system, tension zone effects — per the doc.
+
+- Port 4-6 of the doc's example scenarios as authored negotiations.
+
+- Hall of Records lite: track deal quality history. Don't build the full legacy bonus system yet.
+
+### 3.6 — First internal playtest
+
+At the end of this phase, stop building and play the game for a week. Get 2-3 other people to play it. Write down every friction point, balance issue, and moment of confusion. Do NOT start Phase 4 until you have a triaged list of what needs fixing. This is when you find out whether the design holds up.
+
+### Exit criteria
+
+- A player can pick any of the six wizards and have a recognizably different experience in combat, exploration, and negotiation.
+
+- A 45-minute play session takes the player through 1-2 runs with meaningful campus progression visible.
+
+- You or a playtester can articulate why they'd pick one school over another for a specific region — the identity differences are legible.
+
+- The negotiation system is used voluntarily, not avoided.
+
+### What you are deliberately NOT building
+
+- Seasonal threats (stub the UI, no gameplay impact)
+
+- Faction system beyond tracking reputation numbers
+
+- Fragment recovery arcs
+
+- Building upgrade paths / prestige upgrades
+
+- Companion arcs with full narrative (stubs only)
+
+- Charter alignment gameplay effects
+
+- Advanced dynamic map events (roaming NPCs, spreading hazards — add threat creep only)
+
+# Phase 4 — The Long Game
+
+### Goal
+
+Meta-progression that rewards 10+ hours of play. Fragment recovery arcs are the spine of this phase — they give the mid-to-late game a structural objective. Seasonal threats, factions, companion story arcs, and building upgrades all land here because they're the systems that make each run feel consequential to a larger story.
+
+### Deliverables
+
+### 4.1 — Seasonal threat system
+
+- World-map creep clock with visible UI. Threat advances per run, triggers campus defense at max.
+
+- Three distinct seasonal threats with different mechanical flavors. Design them to exercise different strengths (one combat-focused, one intel-focused, one resource-focused).
+
+- Threat missions available from War Room. In-region threat creep affecting difficulty.
+
+- Campus defense encounter: the first time the game pulls the player out of the run loop and into a campus-protection fight. Treat this as a mini-boss moment.
+
+### 4.2 — Faction system
+
+- 4-6 factions with reputation levels (Hostile → Unfriendly → Neutral → Friendly → Allied).
+
+- Reputation changes via negotiation outcomes, narrative choices, and completed encounters.
+
+- Faction consequences: reputation gates specific vendors, companion recruits, intel sources, and starting tension adjustments in negotiations.
+
+- Faction territory on world map — hostile factions lock regions or add hostile patrols; allied factions provide safe passage or bonus POIs.
+
+### 4.3 — Companion story arcs (content work)
+
+- Each of your 8 companions gets a 3-stage arc with real narrative content: introduction, complication, resolution.
+
+- Arcs gate off story-relevant POIs in specific regions when the companion is in the party.
+
+- Arc completion unlocks a unique card, ability, or building contribution.
+
+- Permadeath risk becomes real — companions with incomplete arcs are more vulnerable.
+
+This is the biggest authored-content investment in the plan. Budget it seriously — don't treat it as a side task.
+
+### 4.4 — Fragment recovery (the spine of the endgame)
+
+- Implement the 3-4 run arc structure per the convergence doc: **Stormheart** (Primal Shard), **Infinite Athenaeum** (Axiom Stone), **Shattered Clock** (Moment Eternal), **Charmed City** (Binding Thread), **Eternal Engine** (Schema Core), **The Hollow** (Deathless Covenant).
+
+- Each is a custom sub-region with the modified fog-of-war rules from the doc (10×10, reduced vision, 15-20 step budget, guardian presence).
+
+- Alignment bonuses: if the school matches, the arc is easier and grants a unique reward. If not, it's harder and grants a debuff.
+
+- Fragment corruption meter — persistent between attempts, reducible via campus rituals.
+
+- Gate fragment discovery behind Library research and companion arc progress, per the doc.
+
+Realistic sequencing: build the first two fragments (Primal + Axiom) to prove the system, then author the other four. Don't try to build all six in parallel.
+
+### 4.5 — Building upgrade paths
+
+- Tier 1-3 progression for all buildings (visual + mechanical).
+
+- Five of the general upgrade paths (Library → Forbidden Archives, Dormitory → Companion Suites, War Room → Command Center, Grand Hall → Council Chamber, Courier Station → Spy Network) — pick upgrades that unlock visible gameplay changes.
+
+- Three of the six school-specific prestige upgrades (pick the schools with the strongest existing identities). Defer the rest to post-launch content.
+
+### 4.6 — Guild Charter alignment
+
+- Charter selection (Order / Chaos / Balance) at a specific progression milestone — probably first-fragment-collected.
+
+- Alignment affects: available building variants, faction starting reputations, companion vote weights, path presentation during Convergence prep.
+
+- Charter amendments via Council Spire, requiring companion votes.
+
+### Exit criteria
+
+- A player can collect all six fragments in a full campaign (10-20 hours of play).
+
+- Companion arcs create actual attachment — playtesters can name their favorite companion and explain why.
+
+- Seasonal threat clock creates genuine pressure without feeling like a punishment timer.
+
+- Faction reputation shifts feel consequential across multiple runs.
+
+### What you are deliberately NOT building
+
+- The Convergence event itself (Phase 5)
+
+- Post-Convergence world state
+
+- New Game Plus
+
+- The three Path choices and their variant content (Phase 5)
+
+- Cosmetic / aesthetic campus evolution (Phase 6)
+
+# Phase 5 — The Convergence
+
+### Goal
+
+Deliver the endgame the whole game has been building toward. Three paths (Restoration, Dominion, Synthesis), a five-phase event structure per the doc, companion-fate resolutions, post-Convergence world state, and New Game Plus scaffolding. This is where all the meta-progression pays off.
+
+### Why this phase is later than it feels
+
+The Convergence only works because of everything before it — companion investment, fragment condition, faction support, campus infrastructure, charter alignment. Building the Convergence before those systems are solid produces a flashy finale that doesn't resonate. Build the fuel first, then light the fire.
+
+### Deliverables
+
+### 5.1 — The five-phase Convergence structure
+
+- **Phase 1: The Gathering** — narrative pre-combat scene with companion council vote. Final loadout adjustment.
+
+- **Phase 2: The Fracture** — campus defense encounter using your Phase 4 defense system, scaled up. Non-party companions defend secondary fronts.
+
+- **Phase 3: The Threshold** — new unique battle grid per path (three variants). This is a significant authoring investment — 3 distinct encounter designs.
+
+- **Phase 4: The Reckoning** — climactic boss fight. Modifiers applied from fragment condition, companion loyalty, campus infrastructure, faction support.
+
+- **Phase 5: The Aftermath** — resolution narrative, companion fates, credits montage of the player's guild history.
+
+### 5.2 — Three path implementations
+
+- **Restoration**: the ritual space encounter, Void titan boss, Seal Monument aftermath.
+
+- **Dominion**: Void assault encounter, immune-response boss, Throne-of-the-Voidbound aftermath.
+
+- **Synthesis**: hybrid combat-puzzle-dialogue encounter, negotiation with the Void intelligence, Harmony Spire aftermath.
+
+Each path needs: unique Phase 3 grid, unique Phase 4 boss, unique Phase 5 narrative. Budget this as ~3x the work of a normal boss encounter.
+
+### 5.3 — Path influence wiring
+
+- Implement the influence matrix from the doc (charter alignment, companion council, faction endorsement, fragment condition, campus infrastructure, wizard school, lore discovery).
+
+- Surface these influences to the player before path commitment — they should feel that every decision they've made matters.
+
+- Companion dissent mechanic: companions who oppose the chosen path fight at reduced effectiveness or leave.
+
+### 5.4 — Companion fate system
+
+- Four-state matrix from the convergence doc: completed arc + high loyalty, completed + low, incomplete + high, incomplete + low.
+
+- Permadeath consequences during the event — companions can be lost, sacrificed, or transformed.
+
+- Spirits of permadead companions return per the doc — bittersweet callbacks matter here.
+
+### 5.5 — Post-Convergence world
+
+- Three campus transformations (Restoration / Dominion / Synthesis aesthetic variants).
+
+- New threat tier per path (Void cultists / internal corruption / boundary-rejectors).
+
+- Altered card pool per path (stabilized / Void variants / hybrid Synthesis cards).
+
+- Surviving companion evolution — updated card contributions, new dialogue, epilogue quests.
+
+- At least 3-5 hours of post-Convergence content. If the credits roll and the game ends, the ending feels hollow — make the aftermath meaningful.
+
+### 5.6 — New Game Plus
+
+- Legacy system: certain lore, buildings, and companion echoes carry forward.
+
+- Second Convergence cycle uses different fragment locations and new philosophical questions.
+
+- Defer full NG+ content to post-launch if time is short — ship with scaffolding and one NG+ variation minimum.
+
+### Exit criteria
+
+- Playtesters describe the Convergence as feeling earned, not abrupt.
+
+- Two players who played the same path have distinct stories to tell because their companions and decisions differed.
+
+- A player who picks a "wrong" path (e.g. Elementalist doing Synthesis) can still win with enough preparation.
+
+- The post-Convergence hours don't feel like an epilogue — they feel like a new chapter.
+
+# Phase 6 — Polish & Ship
+
+### Goal
+
+Turn the content-complete game into a product. Balance, accessibility, onboarding, art pass, audio, platform packaging, release.
+
+### Deliverables
+
+### 6.1 — Balance pass
+
+- Every card, encounter, building, and graft re-evaluated against real playtest data.
+
+- Dedicated balance playtests for each wizard school — no school should be strictly worse than another.
+
+- Difficulty curve: first 3 runs should feel winnable; runs 5-10 should introduce real challenge; fragment runs should require preparation; Convergence should be hard but fair.
+
+- Economy: gold, cards, and crafting materials calibrated so hoarding never beats spending.
+
+### 6.2 — Accessibility & UX
+
+- Keyboard/controller parity with mouse. Remappable controls.
+
+- Colorblind modes — especially important for terrain types and tension meter zones.
+
+- Text size, high-contrast mode, screen reader compatibility for UI chrome.
+
+- Tooltip system standardized across all systems (cards, buildings, tokens, grafts, companions).
+
+- Optional run-summary mode for players who want to skim fewer narrative beats.
+
+### 6.3 — Onboarding & tutorial
+
+- First-run tutorial: integrated, not separate. The first region should teach exploration. The first encounter should teach combat. The first negotiation should teach tokens. Don't dump rules up front.
+
+- Contextual tutorials for: first companion recruit, first building, first fragment discovery, first seasonal threat, first Charter choice, pre-Convergence.
+
+- Tutorial skip / replay for veterans and demo playtests.
+
+- In-game wiki / glossary accessible from any menu.
+
+### 6.4 — Art, audio, and aesthetic campus evolution
+
+- Replace programmer art across all systems — highest priority: wizards, companion portraits, card art, building visuals, terrain tiles.
+
+- Implement the cosmetic campus progression from guild_campus_v2 §9: banners, enchanted gardens, floating crystals, trophy hall, weather system, companion murals, portal archway, spectral echoes, school aura, construct sentries, runic pathways, World Tree, battle scars, companion quarter exteriors.
+
+- Music: at minimum a campus theme, one per region type, one per wizard school, a Convergence suite.
+
+- SFX: combat hits, card plays, negotiation tension stings, fog reveal, landmark discovery, fragment recovery, Convergence phase transitions.
+
+### 6.5 — Technical polish
+
+- Save migration testing — a player on your Phase 2 save must be able to load into your Phase 6 build.
+
+- Performance: 60fps on target hardware, no hitches during hex reveal or scene transitions.
+
+- Crash reporting, analytics for balance signals (anonymous; opt-in).
+
+- Localization scaffolding even if you only ship English at launch — keep strings externalized from day one of Phase 2.
+
+### 6.6 — Release
+
+- Platform builds (at minimum Steam; consider itch.io for an early-access demo).
+
+- Store page copy that leads with fog-of-war exploration and wizard school identity — your actual differentiators.
+
+- Press/streamer build with a guided-tour save at an interesting midpoint (3 fragments collected, mid-Charter, one companion permadead).
+
+- Post-launch content plan: the remaining school prestige upgrades, new regions, new fragments in NG+ cycle 2.
+
+# Risks and Honest Concerns
+
+Worth naming up front so you can plan around them.
+
+| **Risk** | **What goes wrong** | **Mitigation** |
+| --- | --- | --- |
+| **Fog-of-war isn****'****t fun** | Players find exploration tedious compared to clicking a node on a map. The system that should be your differentiator becomes the friction point. | Prototype it in Phase 1 and playtest weekly. Iterate on vision radius, step budget, and POI density aggressively. Be willing to cut the landmark count or make base vision 2 hexes instead of 1. |
+| **Six schools × three paths = 18 variant experiences** | Content scope explodes. You end up with six half-finished schools and three abbreviated paths. Identity differences become cosmetic, not mechanical. | Phase 3 builds all six schools at MINIMUM depth before adding depth to any. If you can't afford to finish all six school-specific buildings, cut four to 1-2 buildings each rather than cutting two schools entirely. |
+| **Negotiation system carries zero weight** | Players skip negotiations because combat rewards are clearer. The system becomes optional content that only 30% of players engage with. | Per the doc's own principle: at least 30% of negotiations must offer rewards equal to or better than combat. Monitor this in playtests. Add negotiation-gated companions and regions if it's being bypassed. |
+| **Companion arcs feel like checkboxes** | Arc stages trigger mechanically but don't create emotional investment. Convergence fates land flat. | Don't rush Phase 4.3. Each arc needs an actual writer (you or someone) giving it 5-10 hours of attention. Consider hiring a writer for companion arc content specifically — it's a discrete, contained workstream. |
+| **Balance between schools is impossible** | One school (probably Necromancer, per the doc's own high-ceiling/low-floor note) dominates competitive play. Another becomes a trap option. | Build school-specific difficulty adjustments into the fragment arc and Convergence systems (already in your design). Reserve budget in Phase 6 for 2-3 rounds of balance patches post-launch. |
+| **Save data corruption during schema migrations** | A Phase 4 save doesn't load in a Phase 5 build. Playtesters rage-quit. | Version your save schema from the first commit. Write migration functions, not just new formats. Keep a library of legacy saves in the repo for regression testing. |
+| **Godot 4.6 performance with 15×15–20×20 grids + fog** | Fog-of-war recomputation on large maps causes frame hitches on lower-end hardware. | Profile early. Cache fog calculations. Only recompute when the party moves. If worst case, reduce max grid size to 18×18 and tune POI density up. |
+| **Scope creep into ****"****one more system****"** | You keep adding features from the docs that aren't in this plan. Phase 3 never ends. Fragment recovery slips into year two. | Treat this action plan as a contract with yourself. Anything not in the current phase gets added to a 'post-launch' doc, not 'just one more thing before we move on'. |
+
+# What to Do This Week
+
+If you want to start on Phase 1 tomorrow, here's the ordered first-week punch list:
+
+- **Monday** — Create a new Godot scene `OverworldHexGrid.tscn`. Paste in the axial-coordinate math from `HexGridManager`. Render a 15×15 hex grid as colored polygons. No interaction yet.
+
+- **Tuesday** — Add a party token. Click-to-move between adjacent hexes. Step counter increments in a UI label.
+
+- **Wednesday** — Implement three-state fog (hidden, silhouette, revealed). Vision radius of 1. When the party moves, recompute visibility.
+
+- **Thursday** — Scatter 10 random POIs as colored circles. When the party enters a POI hex, print "Combat encounter triggered" to the console.
+
+- **Friday** — Wire EncounterRouter: POI entry loads your existing GameRunner scene. On combat end, return to the overworld with the POI consumed. If the objective POI is reached, print "Run complete" and quit to main menu.
+
+- **Weekend** — Play 10 runs. Write down every moment of friction or delight. Don't refactor — just observe. Next week starts with what you learned.
+
+*If you get stuck on any specific system and want a deeper breakdown — combat-exploration handoff, the save data schema, the negotiation state machine, the Convergence boss mechanics — ask me and we**'**ll expand that piece on its own.*
+
+# Closing Thought
+
+You have more than enough design to build this game. What you need isn't more vision — it's sequence and restraint. Every phase in this plan is smaller than the one you probably want to be working on. That's deliberate. A game that ships with half your designed content at the quality level you're imagining beats a game that reaches for everything and never ships at all.
+
+*The fog-of-war loop, the six wizard schools, and the Convergence are the three ideas that make this game genuinely interesting. Protect those. Cut anything that doesn**'**t serve them if you have to cut. Good luck — this is a game worth building.*

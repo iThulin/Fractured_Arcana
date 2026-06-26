@@ -1,0 +1,289 @@
+**THE NEGOTIATION SYSTEM**
+
+Leverage, Diplomacy & Non-Combat Encounters
+
+*Design Reference Document*
+
+This document defines the negotiation encounter system — a parallel interaction mode to hex grid combat that handles diplomacy, trade, faction relations, and social conflict. The system is built around a leverage economy where the player’s wizard school, companion roster, faction reputation, and available resources determine their social toolkit. Negotiation outcomes feed the same progression systems as combat: reputation, resources, lore, companion arc progress, and fragment discovery.
+
+**1. Core Design Philosophy**
+
+**The Problem: **Most roguelikes treat non-combat encounters as text boxes with an obvious best choice. The player reads some flavor text, picks the option that gives the most gold or HP, and moves on. There’s no system, no skill expression, and no replay value. Combat is a game; everything else is a menu.
+
+**The Solution: **Negotiation encounters should be a game with their own decision space, tension curve, and skill ceiling. The player should be able to get better at negotiation through experience, and different builds should approach negotiation differently. A Necromancer intimidating a merchant should feel mechanically distinct from an Enchanter charming the same merchant, and both should be valid but produce different outcomes.
+
+**The Principle: **Negotiation is not combat with words. It has its own rhythm, its own resource (leverage), its own spatial metaphor (the tension meter), and its own win conditions (deal quality). It should feel like a distinct mode of play, not a reskinned fight.
+
+**2. The Leverage System**
+
+*Leverage is the core resource of negotiation, analogous to mana in combat. It represents your social, political, and material bargaining power. You spend leverage tokens to make moves during a negotiation.*
+
+**2a. Leverage Token Types**
+
+There are eight leverage token types, organized into three categories: Social, Strategic, and Material. Each token type has a distinct effect on the negotiation and interacts differently with NPC archetypes and the tension meter.
+
+| **Token** | **Category** | **Effect** | **Sources** |
+| --- | --- | --- | --- |
+| **Charm** | Social | Shift the NPC’s disposition one step toward Cordial. If already Cordial, add a bonus concession to the deal. Against resistant archetypes (Commander, Scholar), Charm is half as effective. | Enchanter (innate); high-Charisma companions; Tavern campus building |
+| **Intimidate** | Social | Force the NPC to add one concession to their offer immediately. Pushes tension meter two steps toward Hostile. If the NPC is an Idealist, Intimidate causes them to walk away instantly. | Necromancer (innate); martial companions with high combat stats; Arena campus building |
+| **Persuade** | Social | Present a logical argument that unlocks a hidden deal option or removes a hidden penalty from the current terms. Neutral effect on tension meter. More effective against Scholars and Idealists. | Arcanist (innate); companions with completed story arcs (they’ve learned to articulate their position); Library campus building |
+
+| **Token** | **Category** | **Effect** | **Sources** |
+| --- | --- | --- | --- |
+| **Insight** | Strategic | Reveal one hidden term in the NPC’s offer. Hidden terms can be penalties (this trade agreement includes a future favor clause) or bonuses (the merchant is also willing to include map intel). Each Insight token reveals one term. | Arcanist (innate); Chronomancer (innate); Observatory campus building; companions with the Scholar trait |
+| **Connections** | Strategic | Invoke a mutual contact or faction relationship to shift the negotiation. Opens a new deal branch that references the shared connection. Only available if you have positive reputation with a faction the NPC respects. | Enchanter (innate); Embassy campus building; companions with faction ties; Courier Station campus building |
+| **Patience** | Strategic | Skip your turn without losing ground. The NPC’s patience timer does not advance. Useful for waiting out aggressive NPCs or for stalling while you accumulate information. Limited to 2 uses per negotiation. | Chronomancer (innate); companions with calm or stoic personality traits; Hall of Records campus building |
+
+| **Token** | **Category** | **Effect** | **Sources** |
+| --- | --- | --- | --- |
+| **Offering** | Material | Place a tangible resource on the table — gold, items, scrolls, crafting materials. The NPC evaluates the offering based on their archetype: Merchants value gold highly, Scholars value lore items, Commanders value weapons and armor. An offering that matches the NPC’s values counts as two leverage steps. | Any school; inventory items; Vault campus building (provides bonus offerings); Merchant Quarter |
+| **Demonstration** | Material | Perform a magical display relevant to your school to impress, frighten, or educate the NPC. Elementalists conjure elemental effects. Artificers present a mechanical device. Necromancers commune with nearby spirits. The NPC’s reaction depends on their archetype and whether your school aligns with their values. | All schools (innate, once per negotiation); Training Grounds campus building (grants a second use); companion school adds a second school’s Demonstration option |
+
+**2b. Token Generation Rules**
+
+Each negotiation begins with a token pool generated from four sources. The player can see their full token pool at the start and must plan their approach based on what’s available.
+
+| **Source** | **Token Generation Rule** |
+| --- | --- |
+| **Wizard School** | Your wizard always generates 2 tokens of their innate type. Elementalist: 1 Intimidate + 1 Demonstration. Arcanist: 1 Persuade + 1 Insight. Chronomancer: 1 Patience + 1 Insight. Enchanter: 1 Charm + 1 Connections. Artificer: 1 Demonstration + 1 Offering (a crafted gift). Necromancer: 1 Intimidate + 1 Persuade (speaking with authority over death). |
+| **Companions** | Each companion in your party generates 1 token based on their personality trait and school. A martial companion with the Loyal trait generates Persuade (standing by your side is persuasive). A wizard companion with the Cunning trait generates Insight. A companion with Connections trait generates Connections. Companions with completed story arcs generate a bonus token of any type the player chooses — they’ve grown enough to be versatile. |
+| **Faction Reputation** | If you have Friendly or Allied reputation with a faction relevant to the negotiation, you gain 1 Connections token automatically. If you have Hostile reputation, you lose 1 token from your pool (the NPC has heard bad things about you). Neutral reputation has no effect. |
+| **Campus Buildings** | Specific buildings provide passive token bonuses to all negotiations. The Tavern provides +1 Charm (your guild’s social reputation precedes you). The Arena provides +1 Intimidate (your combat prowess is known). The Library provides +1 Insight (your research network has briefed you). The Embassy provides +1 Connections. These bonuses stack but are capped at 2 bonus tokens from buildings total. |
+| **Items and Equipment** | Certain relics, artifacts, and consumables can be brought into negotiations for specific effects. A Diplomat’s Signet ring provides +1 Charm. A Tome of Contracts provides +1 Insight in trade negotiations specifically. Consumable items can be spent as Offerings without using items from your core inventory. |
+
+**2c. Example Starting Pool**
+
+An Enchanter wizard with a martial Loyal companion and a Chronomancer Cunning companion, Friendly with the Merchant Guild, with the Tavern and Library built, entering a trade negotiation:
+
+**From wizard: **1 Charm + 1 Connections
+
+**From martial companion (Loyal): **1 Persuade
+
+**From Chronomancer companion (Cunning): **1 Insight
+
+**From Merchant Guild reputation (Friendly): **1 Connections
+
+**From Tavern: **1 Charm
+
+**From Library: **1 Insight
+
+**Total pool: **2 Charm, 1 Persuade, 2 Connections, 2 Insight = 7 tokens. This is a strong social toolkit biased toward information gathering and relationship leveraging — well suited for a trade negotiation where hidden terms are likely.
+
+**3. The Tension Meter**
+
+*The tension meter is the spatial metaphor of negotiation — a visible gauge that tracks the emotional temperature of the exchange. It replaces the hex grid as the primary state the player reads and reacts to.*
+
+The meter has 10 steps organized into three zones. Steps 1–3 are the Cordial zone (green). Steps 4–7 are the Strained zone (amber). Steps 8–10 are the Hostile zone (red). Every negotiation starts at step 4 (neutral Strained) unless modified by faction reputation.
+
+| **Zone** | **Color** | **Effects** | **What Pushes Here** |
+| --- | --- | --- | --- |
+| **Cordial (1–3)** | Green | The NPC is favorably disposed. Extra deal options become available: bonus items, faction favors, future discounts, companion recruitment openings. Deals struck in Cordial grant +1 reputation with the NPC’s faction. The NPC may volunteer hidden information without requiring Insight tokens. | Starting reputation is Friendly or better; successful Charm or Persuade tokens; Offering that matches NPC values |
+| **Strained (4–7)** | Amber | Standard negotiation conditions. The base deal terms are available. No bonus options, no penalties. This is the default starting zone and where most negotiations spend the majority of their turns. The NPC is professional but guarded. | Default starting position; neutral interactions; balanced token play |
+| **Hostile (8–10)** | Red | The NPC is antagonistic. Some deal options are locked. At step 9, the NPC issues a final warning. At step 10, the negotiation collapses: the NPC either walks away (losing the encounter entirely) or attacks (triggering a combat encounter with the NPC’s guards). Deals struck in Hostile cause –1 reputation. | Intimidate tokens; aggressive counter-offers; threatening companions; school demonstrations that frighten rather than impress |
+
+**3a. Tension Modifiers by Action**
+
+| **Action** | **Tension Effect** | **Modifiers** |
+| --- | --- | --- |
+| **Charm** | –1 step (toward Cordial) | –2 steps if NPC is an Idealist; no effect if NPC is a Commander |
+| **Intimidate** | +2 steps (toward Hostile) | +3 steps against Scholars and Idealists; only +1 against Commanders (they respect force) |
+| **Persuade** | –1 step (toward Cordial) | –2 steps against Scholars; no effect against Opportunists (they don’t care about logic) |
+| **Insight** | No change | No direct tension effect — Insight is purely informational |
+| **Connections** | –1 step (toward Cordial) | –2 steps if the mutual connection is a faction the NPC belongs to; +1 step if the connection is a faction the NPC is hostile toward (backfires) |
+| **Patience** | No change | Prevents NPC patience decay for one turn; tension meter holds steady |
+| **Offering** | –1 step (toward Cordial) | –2 steps if the offering matches NPC archetype values; no effect if the offering is irrelevant to them |
+| **Demonstration** | Variable | +1 step if the demonstration frightens the NPC; –1 step if it impresses them; no change if it confuses them. Reaction depends on NPC archetype and player’s school |
+| **Aggressive Counter-Offer** | +1 step (toward Hostile) | Demanding significantly better terms without offering anything in return; always increases tension |
+| **Concession** | –2 steps (toward Cordial) | Accepting a term that favors the NPC; powerful tension reduction but costs you deal quality |
+
+**3b. Starting Tension Adjustments**
+
+| **Faction Standing** | **Starting Step** | **Effect** |
+| --- | --- | --- |
+| **Allied** | Start at step 2 (Cordial) | Strong existing relationship; NPC opens with a generous offer |
+| **Friendly** | Start at step 3 (Cordial) | Positive relationship; slightly better opening terms |
+| **Neutral** | Start at step 4 (Strained) | Default; standard terms |
+| **Unfriendly** | Start at step 6 (Strained) | NPC is guarded; some options locked until tension drops |
+| **Hostile** | Start at step 8 (Hostile) | NPC is aggressive; immediate risk of collapse; some deal branches permanently locked |
+
+**4. NPC Negotiation Archetypes**
+
+*Every NPC in a negotiation encounter has an archetype that determines their behavior, priorities, and responses to player actions. Archetypes are readable after a few encounters — the player should be able to identify the archetype within the first 1–2 turns and adjust strategy accordingly.*
+
+| **Archetype** | **Personality ****&**** Behavior** | **Mechanical Details** |
+| --- | --- | --- |
+| **The Merchant** | Profit and material gain above all else. Responds well to Offerings and Connections that promise future business. Annoyed by Intimidation (bad for business). Unmoved by Charm (flattery doesn’t pay bills). Their hidden terms are usually financial — service fees, future favor clauses, exclusive dealing arrangements. | Values: Gold, trade goods, business connections. Patience: High (they’ll negotiate all day). Hidden terms: 2–3, mostly financial. Weakness: Overvalues rare items — offer something unusual and they overpay. Counter-strategy: Use Insight to reveal hidden fees, then Persuade to remove them. |
+| **The Commander** | Respects strength, decisiveness, and military competence. Responds well to Intimidate (from a position of strength, not cruelty) and martial companion Demonstrations. Views Charm as weakness. Suspicious of Insight (feels like spying). Their hidden terms relate to military obligations — mutual defense pacts, troop commitments, strategic concessions. | Values: Martial prowess, loyalty, strategic value. Patience: Low (they have battles to fight). Hidden terms: 1–2, usually military obligations. Weakness: Appeals to honor and duty bypass their skepticism. Counter-strategy: Lead with Demonstration or martial companion presence, then Persuade through shared strategic interest. |
+| **The Scholar** | Values knowledge, expertise, and intellectual engagement above material wealth. Responds well to Persuade (well-reasoned arguments), Insight (demonstrates shared intellectual rigor), and Lore-based Offerings. Offended by Intimidation (barbaric). Bored by Charm (superficial). Their hidden terms relate to knowledge exchange — they want access to your Library, your research, or your companion’s expertise. | Values: Knowledge, magical theory, research access. Patience: Very high (loves to talk). Hidden terms: 2–4, all knowledge-related. Weakness: Intellectual flattery — acknowledging their expertise opens extra deal branches. Counter-strategy: Use Persuade first to establish intellectual credibility, then trade knowledge for material concessions. |
+| **The Opportunist** | Unpredictable — their priorities shift based on what they think they can get. Responds to whatever gives them the most immediate advantage. Their opening terms change based on what’s in your inventory and your reputation. Hidden terms are numerous and varied — the Opportunist always has an angle. They’re the hardest archetype to negotiate with because their behavior is less predictable. | Values: Whatever you have most of. Patience: Medium (they’ll stay as long as there’s profit). Hidden terms: 3–5, varied and surprising. Weakness: They overcommit to perceived advantages — reveal a fake vulnerability and they’ll pursue it, opening real concessions elsewhere. Counter-strategy: Use Insight aggressively to map their actual agenda, then exploit the gap between what they want and what they’re pretending to want. |
+| **The Idealist** | Driven by principles, faction loyalty, and ethical conviction. Responds well to shared values (Guild Charter alignment), Persuade grounded in moral reasoning, and Offerings that serve their cause. Immune to Charm (sees through flattery). Immediately hostile to Intimidation (walks away). Their hidden terms are value-based — they want commitments to their cause, not payment. | Values: Principles, faction goals, ethical alignment. Patience: Medium (patient if you share values, impatient if you don’t). Hidden terms: 1–2, always mission-related. Weakness: Genuine demonstrations of shared purpose bypass all defenses. Counter-strategy: Align your Charter values with theirs early, then negotiate from a position of shared commitment. Offering resources to their cause is the strongest move. |
+| **The Survivor** | Desperate, pragmatic, and risk-averse. Found in war-torn regions, refugee camps, and post-disaster encounters. Responds to almost any offer because they need help, but remembers how they were treated. Low Intimidation threshold (one use and they collapse). Charm and Connections are very effective (they need allies). Their hidden terms are protective — they want guarantees of safety, shelter, or future assistance. | Values: Safety, stability, fair treatment. Patience: Low (desperation makes them anxious). Hidden terms: 1, always about security. Weakness: None to exploit ethically — these encounters are designed to test the player’s moral compass. Counter-strategy: Treat them well. Deals with Survivors have disproportionate reputation effects — generosity is rewarded heavily across multiple factions, exploitation has severe and lasting reputation consequences. |
+
+**5. Wizard School Negotiation Profiles**
+
+*Each wizard school has a distinct negotiation identity built from their innate tokens, their Demonstration effect, and unique dialogue options only available to that school. This ensures that the same negotiation encounter feels different depending on which wizard you’re playing.*
+
+**♦ Elementalist***  —  Force of Nature*
+
+**Innate Tokens: **1 Intimidate + 1 Demonstration
+
+**Demonstration Effect: **Conjure a localized elemental display — a column of fire, a gust that scatters papers, a tremor beneath the NPC’s feet. Against Commanders: impressive (+1 Cordial). Against Scholars: interesting but crude (no change). Against Merchants: threatening (–1 patience). Against Survivors: terrifying (+2 Hostile, strongly discouraged).
+
+**Unique Dialogue Options: **Can offer to solve elemental problems (clear a blocked road with earth magic, thaw frozen goods with fire) as a form of Offering that costs no inventory. Can threaten environmental destruction as a high-risk Intimidation variant that forces a concession but locks the negotiation to Strained or worse permanently.
+
+**Negotiation Identity: **The Elementalist is a blunt instrument in negotiation — powerful but lacking finesse. They excel when strength is respected and struggle when subtlety is required. Pairing with a socially skilled companion is strongly recommended.
+
+**♦ Arcanist***  —  The Analyst*
+
+**Innate Tokens: **1 Persuade + 1 Insight
+
+**Demonstration Effect: **Display a complex magical theorem made visible — glowing equations, interlocking spell diagrams, a miniature arcane model. Against Scholars: deeply impressive (–2 toward Cordial). Against Commanders: confusing (no change). Against Merchants: moderately impressive if framed as valuable knowledge (–1 toward Cordial). Against Opportunists: makes them greedy for your knowledge (+1 hidden term revealed as they probe for information).
+
+**Unique Dialogue Options: **Can analyze the NPC’s argument for logical flaws, granting a free Persuade attempt that doesn’t spend a token (once per negotiation). Can offer theoretical consultation as an Offering — magical analysis or problem-solving that costs nothing material but is highly valued by Scholars.
+
+**Negotiation Identity: **The Arcanist is the best information gatherer in negotiation. They see hidden terms earlier, argue more effectively, and can dismantle weak positions logically. They struggle against Opportunists (who don’t argue logically) and Survivors (who need empathy, not analysis).
+
+**♦ Chronomancer***  —  The Patient Hand*
+
+**Innate Tokens: **1 Patience + 1 Insight
+
+**Demonstration Effect: **Briefly slow or accelerate time around a small object — age a flower to dust, reverse a spilled drink back into a cup. Against all archetypes: unsettling but impressive (–1 toward Cordial, but also grants the NPC +1 patience because they’re fascinated). Against Scholars: grants an additional free Insight (they want to understand the mechanism).
+
+**Unique Dialogue Options: **Can ‘rewind’ one turn per negotiation — take back a token play that went badly and try a different approach. The NPC doesn’t remember the rewound action (narratively, you actually turned back time). Can read the NPC’s likely future response to a proposed action before committing to it (preview system).
+
+**Negotiation Identity: **The Chronomancer is the most forgiving negotiator. Their rewind ability means mistakes are recoverable, and their Patience tokens mean they’re never rushed into bad deals. They lack offensive social tools, which means they rarely get exceptional deals but almost never get bad ones.
+
+**♦ Enchanter***  —  The Silver Tongue*
+
+**Innate Tokens: **1 Charm + 1 Connections
+
+**Demonstration Effect: **Subtly enchant a nearby object to demonstrate magical refinement — make a quill write on its own, cause a pendant to glow, animate a piece of cloth into a graceful display. Against Merchants: very effective (they see commercial potential, –2 toward Cordial). Against Idealists: moderately effective (–1 toward Cordial if the demonstration aligns with their values). Against Commanders: seen as trickery (+1 toward Hostile).
+
+**Unique Dialogue Options: **Can cast a minor enchantment on the NPC that makes them more receptive to the next token played (doubles the next token’s Cordial shift). This is ethically ambiguous — some companions may object, and if the NPC has magic resistance or anti-enchantment training, it backfires spectacularly (+3 Hostile). Can weave binding clauses into agreements that provide ongoing benefits — deals with Enchanters grant +1 to the reputation reward.
+
+**Negotiation Identity: **The Enchanter is the best pure negotiator. They have the widest range of social tools and the most control over the tension meter. Their weakness is over-reliance on manipulation — NPCs with magic resistance or factions that value honesty can punish Enchanter tactics. Also, companions with strong moral compasses may lose loyalty if the Enchanter uses coercive enchantment too frequently.
+
+**♦ Artificer***  —  The Problem Solver*
+
+**Innate Tokens: **1 Demonstration + 1 Offering (crafted gift)
+
+**Demonstration Effect: **Present a mechanical device or magical construct — a self-winding music box, a repair automaton, a light-projecting crystal. Against Merchants: very effective (they see profit, –2 toward Cordial and unlocks a trade-for-blueprints deal branch). Against Commanders: effective if the device is military (–1 toward Cordial). Against Scholars: fascinating (–1 toward Cordial and grants a free Insight as they examine it).
+
+**Unique Dialogue Options: **Can offer to build something for the NPC as a delayed Offering — agree to deliver a construct or device after the run, creating a future obligation that grants better terms now. Can repair or improve the NPC’s equipment during the negotiation as a goodwill gesture (–2 toward Cordial, no token cost, once per negotiation).
+
+**Negotiation Identity: **The Artificer negotiates through practical value. They’re less about social maneuvering and more about demonstrating tangible worth. Their crafted gifts and repair abilities make them universally inoffensive — nobody dislikes someone who fixes their things. They lack the Enchanter’s social control but never accidentally offend.
+
+**♦ Necromancer***  —  The Dark Authority*
+
+**Innate Tokens: **1 Intimidate + 1 Persuade
+
+**Demonstration Effect: **Commune with nearby spirits, animate a small dead creature, or cause shadows to move unnaturally. Against Commanders: respected if framed as battlefield power (–1 toward Cordial). Against Scholars: fascinating but disturbing (no change). Against Merchants: terrifying (+2 toward Hostile). Against Survivors: deeply frightening (+3 toward Hostile, strongly discouraged). Against Idealists: depends entirely on the faction’s view of necromancy.
+
+**Unique Dialogue Options: **Can speak with the dead to gather intel about the NPC before the negotiation begins, granting a free Insight and revealing the NPC’s archetype before the first turn. Can threaten to raise the NPC’s dead relatives or allies — the most powerful Intimidation in the game (+4 concession value) but automatically maxes the tension meter to Hostile and causes permanent reputation damage with all factions who hear about it.
+
+**Negotiation Identity: **The Necromancer is the most polarizing negotiator. They have the highest potential ceiling (their Intimidation options are the most powerful in the game) and the lowest potential floor (they can destroy faction relationships permanently). The Necromancer’s negotiation is always a risk/reward calculation: how much are you willing to sacrifice socially for immediate material gain?
+
+**6. Negotiation Turn Structure**
+
+*A negotiation follows a structured flow of 4–8 turns. The pace is faster than combat — each turn is a single decision, and the encounter should resolve in 2–4 minutes of real time.*
+
+| **Phase** | **What Happens** | **Player Input** |
+| --- | --- | --- |
+| **Opening** | The NPC presents their terms: what they’re offering and what they want. Visible terms are shown clearly. Hidden terms appear as locked icons (the player can see how many hidden terms exist but not what they are). The tension meter is set based on faction reputation. The player’s token pool is displayed. | Automatic — no player input required. This is a reading and planning phase. |
+| **Player Turn** | The player performs one action: play a leverage token, make a counter-offer (propose different terms), offer a concession (accept a term that favors the NPC), or pass (spend a Patience token or advance the NPC’s impatience timer). The action’s effect on the tension meter and deal terms is resolved immediately. | Player chooses one action. Effects are displayed with clear before/after visualization. Tension meter animates to new position. |
+| **NPC Response** | The NPC reacts based on their archetype and the current tension zone. In Cordial: they may volunteer information or improve their offer. In Strained: they hold position or make a minor counter. In Hostile: they issue warnings, retract offers, or escalate. The NPC may also play their own moves — Merchants raise prices, Commanders make demands, Opportunists shift their terms. | Automated based on archetype behavior table. The player reads the response and plans their next action. NPC actions are narrated with dialogue. |
+| **Resolution Check** | After each NPC response, the system checks for resolution conditions. Deal struck: both sides have accepted enough terms for a viable agreement. Walk away: NPC patience has expired or tension reached 10. Escalation: tension is at 10 and the NPC archetype is aggressive (Commander, some Opportunists), triggering combat. Stalemate: both sides have passed twice consecutively, ending with no deal. | Automatic check. If no resolution condition is met, return to Player Turn. |
+
+**6a. NPC Patience System**
+
+Each NPC archetype has a patience value representing how many turns they’re willing to negotiate before walking away. Every Player Turn that doesn’t result in progress toward a deal (playing a non-productive token, making an unreasonable counter-offer) reduces patience by 1. Patience tokens from the Chronomancer freeze the timer for one turn. When patience reaches 0, the NPC walks away and the encounter ends with no deal — the player gets nothing, but reputation is unaffected (no harm done).
+
+| **Archetype** | **Base Patience** | **Reasoning** |
+| --- | --- | --- |
+| **Merchant** | 8 turns | They’ll negotiate all day; patient as long as there’s potential profit |
+| **Commander** | 4 turns | Decisive and impatient; respects efficiency |
+| **Scholar** | 10 turns | Loves discussion; the most patient archetype |
+| **Opportunist** | 6 turns | Stays while there’s an angle; leaves when bored |
+| **Idealist** | 5 turns | Patient if values align; walks quickly if they sense bad faith |
+| **Survivor** | 3 turns | Anxious and desperate; needs resolution fast |
+
+**7. Deal Structure and Outcomes**
+
+*Every negotiation has a deal on the table composed of terms. Terms are the atomic units of a deal — each term represents one exchange of value. The player’s goal is to maximize favorable terms and minimize unfavorable ones before the deal is struck.*
+
+**7a. Term Types**
+
+| **Term Type** | **Description** | **Frequency** |
+| --- | --- | --- |
+| **Resource Exchange** | Trade gold, items, materials, or scrolls. The exchange rate is determined by the NPC’s archetype and the tension zone. Cordial zone: favorable rates. Hostile zone: unfavorable rates. | Common |
+| **Information** | The NPC provides lore, map intel, enemy weaknesses, fragment clues, or faction secrets. Information terms are more common with Scholars and Opportunists. | Common |
+| **Faction Reputation** | The deal’s outcome shifts your standing with the NPC’s faction and potentially allied or rival factions. Deals struck in Cordial grant bonus reputation. Deals in Hostile cost reputation. | Always present |
+| **Companion Lead** | The NPC reveals the location of a potential companion, provides a companion recruitment opportunity, or offers information about an existing companion’s story arc. | Uncommon |
+| **Service Agreement** | The NPC agrees to provide an ongoing service: discounted shop prices in future runs, a mercenary available for hire, a faction safe house in a dangerous region. | Uncommon |
+| **Obligation** | A hidden term (revealed by Insight) where you owe the NPC something in a future run. Obligations range from minor (deliver an item next run) to major (fight on their behalf in a faction conflict). Unfulfilled obligations cause reputation damage. | Hidden |
+| **Betrayal Clause** | A hidden term (revealed by Insight) where the NPC is planning to double-cross you. If not revealed and removed, the NPC ambushes you after the deal or provides false information. Only Opportunists and Hostile-zone NPCs have these. | Hidden, rare |
+| **Future Alliance** | The NPC offers a long-term partnership that provides benefits across multiple runs — a trading partner, an informant, a military ally. These are the most valuable terms and are only available in the Cordial zone with high-patience NPCs. | Rare, Cordial only |
+
+**7b. Deal Quality Rating**
+
+When a deal is struck, the game calculates a Deal Quality score from 1 to 5 stars based on how many favorable terms the player secured relative to how many they gave up. This score is displayed at the end of the encounter and recorded in the Hall of Records campus building for long-term tracking.
+
+| **Rating** | **Description** | **Typical Rewards** |
+| --- | --- | --- |
+| **★☆☆☆☆ (1 star)** | Bad deal. The player accepted significant obligations or gave up more than they received. Common when negotiating from Hostile zone or with low token pools. | Minimal resources, possible obligations, reputation neutral or negative |
+| **★★☆☆☆ (2 stars)** | Fair deal. Roughly equal exchange. The baseline outcome for a straightforward negotiation with no hidden terms uncovered. | Standard resource exchange, basic information, neutral reputation |
+| **★★★☆☆ (3 stars)** | Good deal. Player secured more value than they gave. Hidden terms were revealed and handled. Tension ended in Strained or better. | Favorable exchange, information bonus, positive reputation shift |
+| **★★★★☆ (4 stars)** | Excellent deal. Player dominated the negotiation through smart token use. Most hidden terms revealed, tension ended in Cordial, NPC offered extras. | Premium resources, rare information, companion leads, strong reputation bonus |
+| **★★★★★ (5 stars)** | Perfect deal. Only achievable with optimal token use, full Insight coverage, and Cordial-zone resolution. Extremely rare. Triggers a special notification and is tracked as an achievement. | Best possible outcome plus unique bonus reward (exclusive item, immediate companion recruitment, or faction tier jump) |
+
+**8. Example Negotiation Scenarios**
+
+*These scenarios illustrate how the system creates varied encounters across different contexts. Each scenario lists the situation, the NPC archetype, available deal terms, and notes on how different wizard schools might approach it.*
+
+| **Scenario** | **NPC Type** | **Situation** | **School Variations** |
+| --- | --- | --- | --- |
+| **The Border Checkpoint** | Commander | A military checkpoint blocks the road to a fragment region. The Commander offers passage in exchange for military service (fight a nearby monster camp) or a toll of 100 gold. Hidden term: they also have intelligence about the fragment guardian’s weakness. | Elementalist: Demonstration of power impresses the Commander; can negotiate passage for a reduced toll. Arcanist: Persuade that the fragment mission serves the Commander’s strategic interests. Enchanter: Charm is ineffective; must rely on Connections or Offerings. Necromancer: Intimidation is respected but creates Hostile tension; can commune with dead soldiers to gain intel as a goodwill gesture. |
+| **The Refugee Caravan** | Survivor | A displaced group needs shelter. They offer labor, lore about the region, and a potential companion (a hedge mage among the refugees) in exchange for food, gold, or a promise of campus sanctuary. No hidden terms. Tension starts at Cordial because they’re desperate. | This encounter tests ethics. All schools can easily exploit the Survivors for a 1-star deal with no material cost but massive reputation consequences. Generous treatment yields a companion lead, regional lore, and reputation boosts with multiple factions. The Artificer can repair their wagons (free goodwill). The Chronomancer can reveal their future to reassure them. |
+| **The Black Market Dealer** | Opportunist | A shadowy figure offers rare cards, forbidden grafts, and faction secrets. They want gold, artifacts, or favors. Hidden terms: 3–4, including an obligation to smuggle goods on a future run and a betrayal clause where the items are cursed. Tension starts at Strained. | The most mechanically complex scenario. Every school needs Insight tokens to navigate the hidden terms. Arcanists excel at reading the dealer’s true agenda. Enchanters can Charm for surface-level concessions but miss hidden traps without Insight. Necromancers can use spirit communication to check the dealer’s history. Artificers can evaluate whether the offered items are genuine or counterfeit. |
+| **The Rival Guild Envoy** | Idealist | A representative from a competing guild proposes a temporary alliance against a seasonal threat. They offer shared intelligence, combined military force, and access to their campus facilities. They want your guild to commit to non-aggression, share fragment lore, and support their faction in a political dispute. Hidden term: they want access to your Library. | Charter alignment is critical here. If your guild’s Charter aligns with theirs, this negotiation is straightforward and mutually beneficial. If your Charters conflict, every term is contested. Chronomancers can preview the long-term consequences of the alliance. Enchanters can weave favorable binding clauses. The deal’s quality determines whether the rival guild becomes a lasting ally or a future antagonist. |
+| **The Elemental Spirit** | Scholar | A powerful elemental spirit guards a ley line node that would benefit your campus. It doesn’t want material goods — it wants to understand mortal magic. It offers access to the node in exchange for knowledge: a demonstration of your school’s highest-level magic, a philosophical discussion about the nature of magical order, or a promise to teach it. Patience is 12 turns. | The longest and most rewarding negotiation in the game. Elementalists have a natural bond and can negotiate access plus a permanent elemental ally. Arcanists can engage in the philosophical exchange for mutual benefit. Artificers fascinate the spirit with mechanical magic. Necromancers face the hardest path — elemental spirits fear death magic, starting at Hostile. |
+| **The Merchant Prince’s Auction** | Merchant | A wealthy NPC hosts a private auction for a rare artifact relevant to your fragment quest. Multiple NPC factions are bidding. You must out-negotiate rival bidders by offering the most compelling package — not just gold, but services, alliances, and reputation. Hidden terms: the artifact has a curse that the Merchant knows about but hasn’t disclosed. | A high-stakes Merchant negotiation where the bidding system adds competitive pressure. Connections tokens invoke allies who can pool resources. Insight reveals the curse before you overpay. Intimidation can scare off rival bidders but tanks your reputation with every faction present. The Enchanter’s ability to bind favorable auction terms is uniquely powerful here. |
+
+**9. Campus Building Integration**
+
+*Multiple campus buildings directly affect negotiation encounters. Building these structures is an investment in the guild’s diplomatic capabilities.*
+
+| **Building** | **Negotiation Bonus** | **Narrative Justification** |
+| --- | --- | --- |
+| **Tavern** | +1 Charm token in all negotiations | Your guild’s social reputation and hospitality are known; NPCs arrive predisposed to friendliness |
+| **Arena** | +1 Intimidate token in all negotiations | Your guild’s combat prowess is public knowledge; NPCs know you can back up threats |
+| **Library** | +1 Insight token in all negotiations | Your research network has briefed you on the NPC before the encounter; you arrive informed |
+| **Embassy** | +1 Connections token in all negotiations | Your diplomatic infrastructure provides established channels and mutual contacts |
+| **Merchant Quarter** | +1 Offering token (bonus trade goods) in trade negotiations specifically | Your commercial infrastructure provides surplus goods for bartering |
+| **Courier Station** | Reveal NPC archetype before the encounter begins | Your intelligence network has profiled the NPC in advance |
+| **Hall of Records** | Track deal quality ratings; unlock legacy bonuses for consistent high-quality deals | Your administrative infrastructure records and rewards diplomatic excellence |
+| **Lecture Hall** | +1 Persuade token when negotiating with Scholars or Idealists | Your academic reputation grants credibility with knowledge-oriented NPCs |
+| **War Room** | Preview the consequences of deal terms before accepting them | Your strategic planning capabilities let you model outcomes |
+| **Charm Parlor (Enchanter)** | Enchanter-specific: +1 Charm token and enchantment options don’t risk backfire | Your dedicated enchantment space refines social magic to a safe art |
+| **Seance Chamber (Necromancer)** | Necromancer-specific: free pre-negotiation spirit consultation (reveals archetype + 1 hidden term) | Your communion with the dead provides unmatched intelligence gathering |
+| **Temporal Observatory (Chronomancer)** | Chronomancer-specific: 2 rewinds per negotiation instead of 1 | Your time magic is refined enough to allow multiple second chances |
+
+**10. Design Principles for Negotiation**
+
+**1. Readable within 2 turns. **The player should be able to identify the NPC archetype, assess their token pool’s strengths, and form a plan within the first two turns of any negotiation. Complexity comes from execution and hidden terms, not from opaque systems.
+
+**2. No obviously correct play. **Every token has tradeoffs. Charm is safe but slow. Intimidate is fast but risky. Insight is powerful but doesn’t advance the deal directly. The player should always be weighing options, never autopiloting.
+
+**3. Negotiation should sometimes be better than combat. **If the player can always get more value from fighting than talking, negotiation becomes optional content that only story-focused players engage with. At least 30% of negotiation encounters should offer rewards that are equal to or better than the combat alternative.
+
+**4. Consequences must be visible and lasting. **Reputation changes, obligations, and alliance effects should be displayed clearly at the end of every negotiation and tracked in the Hall of Records. The player should be able to see the long-term impact of their diplomatic choices across multiple runs.
+
+**5. School identity must shine. **A Necromancer and an Enchanter should approach the same NPC with fundamentally different tools and produce fundamentally different outcomes. If two schools feel the same in negotiation, the system has failed.
+
+**6. Companion presence matters. **Bringing a martial intimidator versus a scholarly advisor should visibly change the available options. Players should think about party composition for diplomatic encounters just as much as for combat.
+
+**7. The tension meter is the game board. **In combat, the player reads the hex grid. In negotiation, the player reads the tension meter. It should be the largest, most visually prominent element of the negotiation UI. Every action’s effect on tension should be animated and clear.
+
+**8. Fast and punchy. **Negotiations should resolve in 2–4 minutes of real time. If they drag, players will start skipping them. The 4–8 turn structure enforces brevity. Patience timers enforce urgency. The system should feel snappy, not ponderous.
+
+**Document Notes: **This system is designed to be implementable as a standalone Godot scene that reads from the shared GuildSaveData class and writes outcomes back to it. It does not interact with the hex grid, card runtime, or combat systems. The token pool, tension meter, NPC archetype behavior, and deal structure can all be defined as data (JSON or Resource files) and processed by a lightweight state machine. Visual implementation priority: tension meter first, then token display, then deal terms UI, then NPC dialogue and archetype-specific animations last. All numerical values (patience counts, tension step effects, deal quality thresholds) are initial estimates and should be tuned through playtesting.

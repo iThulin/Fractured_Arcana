@@ -1,0 +1,174 @@
+**Fractured Arcana — The Single-World Refactor**
+
+**Architecture specification v2. **Supersedes the two-scale strategic-map model of open_world_refactor_v1 for the world-geometry layer. One persistent Civ-scale world per lunar cycle; bounded expeditions that illuminate it; a three-layer data/view architecture that keeps Civ-scale state in data and the existing hex-node rendering confined to a per-expedition window. The calendar, three-tier save schema, kingdoms, factions, campus, economy, and assault designs from v1 carry forward unchanged except where noted. This document covers what changes: world data, the two renderers, fog and discovery as persistent world state, staging points, the expedition envelope, and a re-phased build order.
+
+# 1. What Changed From v1, and Why
+
+v1 specified two scales: a strategic province-graph map above, and the existing per-region expedition maps below, generated fresh each deployment. The new direction collapses geography into **one persistent world map** the size of a Civ map. The expedition is not deleted — it changes shape. An expedition is now a bounded sortie onto the standing world, launched from a chosen staging point, illuminating a window of the world that stays illuminated. The cycle (one lunar calendar) is the only run structure; the bounded expedition is the unit of play within it.
+
+The design pillars from v1 hold. The run survives — as a windowed sortie, not a fresh region. The loop is the fiction — the whole world resets each cycle as a new Kassian construction. Progression is mastery. Defeat deposits. Damage transforms. Nothing in this document weakens those.
+
+## 1.1 The contradiction this resolves
+
+A naive single map either (a) deletes the run — continuous free roam, no step budget, no sorties — or (b) cannot render at Civ scale, because the current per-tile node cost is unshippable past a few thousand tiles. The resolution is the same architectural move for both problems: **the world is authoritative as data; interactive hex-nodes render only the active expedition window.** The run survives because expeditions are bounded windows. The renderer survives because it never instantiates more than ~one window of nodes at once.
+
+# 2. The Three-Layer Model
+
+Everything in this refactor is one of three layers. Keeping them distinct is the whole architecture; confusing them is the way it fails.
+
+| **Layer** | **Lifetime / Cost** | **What It Is** |
+| --- | --- | --- |
+| World data | Whole cycle; cheap (a 2D array of structs). Lives in CycleState; never instantiated as nodes. | The authoritative Civ-scale map: terrain, faction ownership, corruption, POIs, and per-tile discovery state. ~9,216 tiles at 96×96. Read by both renderers; written by expeditions. |
+| Expedition view | One expedition; the EXISTING node rendering, confined to a window (~469 hexes). | OverworldHexGrid / OverworldHex / patrols / party token / fog visuals — reused almost verbatim, but rendering only the window around the staging point, not a whole region. |
+| Strategic view | On demand (zoom-out); very cheap (one MultiMesh or drawn texture, one quad per tile, no Area2D). | The simplified whole-world overview: faction blocs, discovered POIs, corruption, and the explored frontier. Read-only. Where the player picks the next expedition direction. |
+
+**The coordinate space is shared. **A world tile at (wx, wy) has one position. The expedition view renders nodes at those world coordinates; the strategic view paints the same coordinates at a smaller scale. Zooming out is a camera transition between the two renderers over one coordinate system — which is why the bubble "meshes" into the overview: it is the same map at two fidelities, centered on the same point.
+
+# 3. The World Data Layer
+
+## 3.1 The tile
+
+A WorldTile is a plain struct (no Godot node). One per world cell. Fields:
+
+| **Field** | **Meaning** |
+| --- | --- |
+| Terrain | OverworldHex.TerrainType — same enum the expedition view already uses. |
+| Elevation / Moisture | The OverworldField scalars, sampled once at generation and stored (so the expedition view need not resample). |
+| KingdomId | Which territory owns this tile (or empty for wilderness). Faction tint reads through this. |
+| Corruption | 0–3 at the tile, enabling hex-by-hex corruption spread across the surface. |
+| Discovery | Unseen / Charted / Explored. PERSISTENT for the cycle — this is the keystone (see §5). |
+| PoiId | Reference into the world POI table, or empty. POIs carry their own discovered flag. |
+| IsStagingPoint | True if the player may launch an expedition from here (see §6). |
+
+The world is a dense 2D array of these, plus side tables: the kingdom dictionary (existing KingdomState, now describing territories on the one map), the POI table, and the staging-point list. All of it serializes into CycleState as data — no nodes, no scene — which makes save/load a plain array write, not a walk over thousands of objects.
+
+## 3.2 Generation
+
+WorldGenerator replaces StrategicMapGenerator’s node-graph output with a tile-array partition. It still does what v1’s generator did, on a continuous surface instead of a graph:
+
+- **Terrain: **OverworldField scaled up to world size produces coherent elevation/moisture/terrain across all ~9,216 tiles — the same field code, a bigger domain. Rivers, mountain ranges, and coasts emerge at continental scale.
+
+- **Kingdoms as territories: **partition the surface into contiguous regions (Voronoi or flood-fill from seeded capitals), one KingdomState each, faction-assigned with adjacency coherence — the blocs are now spatial areas of the map, not nodes.
+
+- **Archmagi: **CampaignGenerator still places them; a kingdom’s seat is a special tile. The betrayal-weight and co-conspirator rules run over territories with distance-derived tiers, exactly as in the v1 seam.
+
+- **Corruption gradient: **baseline rises toward Kassian’s seat, now a location on the map; corruption spreads tile-to-tile each lunation.
+
+- **POIs: **scattered across the world into the POI table, the vast majority undiscovered at generation. A handful near the start are pre-discovered to seed the first staging options.
+
+Deterministic from the cycle seed, as before — the same seed reproduces the same world, which is what the fiction says Kassian’s timelines are.
+
+# 4. The Two Renderers
+
+## 4.1 Expedition view (reuse)
+
+OverworldHexGrid stops BEING the world and becomes a viewport onto it. On expedition launch it instantiates OverworldHex nodes for the window — the hex disc of radius ~12 (~469 tiles) around the staging point — reading each tile’s terrain/fog/POI from the world array rather than generating them. Everything downstream of the grid is unchanged: the party token, click-to-move, patrols, scout panel, narrative/negotiation panels, combat routing through EncounterRouter. The window is the new region; the run loop operates within it.
+
+**Node budget: **~469 interactive hexes per expedition, the same order as today’s 225 at 15×15 — comfortably inside what the GL Compatibility renderer handles. The Civ-scale world never becomes nodes.
+
+**Writes back: **as the expedition reveals tiles and discovers POIs, it writes Discovery and POI-discovered state INTO the world array (§5). When the expedition ends, the window’s nodes are freed; the illumination persists in data.
+
+## 4.2 Strategic view (new, cheap)
+
+A separate renderer paints the whole world from the data array with no per-tile nodes: a MultiMesh of one quad per tile, or a generated texture updated when the world changes. Each tile’s color encodes what the player should see at a glance — terrain underneath, faction tint where discovered, corruption bloom, and crucially the discovery state: Unseen tiles render dark/blank. No Area2D, no Label, no Line2D per tile. At 9,216 tiles this is a single draw, not 9,216 nodes.
+
+**Interaction is coarse: **the strategic view is read-mostly. The player reads it to choose a direction and a staging point, then launches. It does not need per-tile click precision the way the expedition view does — a click maps to a region/staging point, not a hex action.
+
+## 4.3 The zoom transition
+
+Zooming out from an active expedition fades the node-bubble and fades in the strategic paint, centered on the same world coordinate; zooming in reverses it. Because both read the same coordinate space, the bubble appears to sit inside the simplified world exactly where it belongs. Implementation is a camera/scale interpolation plus a crossfade of the two renderers’ visibility — not a regeneration of anything.
+
+# 5. Fog and Discovery as Persistent World State
+
+**This is the keystone decision; everything hangs on it. **Discovery is a per-tile field of the world array, persistent for the whole cycle, written by expeditions and read by both renderers. It is NOT a per-expedition overlay (the v1 RegionMemory model) — that model re-fogged each sortie and could never fill in a whole-world overview.
+
+| **Discovery state** | **Meaning and rendering** |
+| --- | --- |
+| Unseen | Never entered an expedition window. Dark/blank on the strategic view. Its kingdom tint, POIs, and contents are hidden — this is the dark the player pushes into. |
+| Charted | Seen at distance (e.g. from a window’s fringe, or future intel) — terrain shape and faction tint known, but POIs and fine detail not yet discovered. |
+| Explored | Entered and fully revealed by an expedition. Stays Explored for the rest of the cycle. |
+
+**The exploration game IS the illumination of the strategic map. **Across a cycle, expeditions turn the zoomed-out world from dark to known. That filling-in is the player’s sense of progress against the doomsday clock. POIs have a discovered flag: undiscovered ones are absent from the strategic view, so the player reads a faction tint or a corruption bloom in partial-dark and stages an expedition TOWARD it to find what is there. Discovery is the reward; the strategic map is a treasure map mostly still blank.
+
+**Pacing consequence (computed): **a radius-12 window covers ~469 tiles; a 96×96 world is 9,216 tiles. Non-overlapping that is ~20 windows to blanket the world, and expeditions overlap, so ~25–40 expeditions to illuminate the interesting parts. With ~12 lunations and expeditions costing several phases each, a single cycle CANNOT illuminate the whole world. That scarcity is intended — the unreached dark is next cycle’s mystery, and it forces the player to choose which directions matter. Tune world size, window radius, and expedition phase-cost together; their ratio is the cycle’s exploration pacing.
+
+# 6. Staging Points and the Expedition Envelope
+
+## 6.1 Staging points accumulate
+
+A staging point is a discovered location the player may launch an expedition from. The player begins the cycle with one (their entry into the world). Expeditions create more: an established outpost, a reached friendly settlement, a secured POI become future staging points. The list grows as the world opens, so "where do I depart from this lunation" becomes a real strategic choice — stage from the frontier outpost to push deeper into the dark, or from an eastern settlement to operate inside a corrupted kingdom you are trying to save.
+
+## 6.2 The envelope
+
+Each expedition operates within a bounded window centered on the chosen staging point — radius ~12 hexes (~469 tiles). The window is why staging choice matters: one sortie physically cannot cross the continent, so which staging point you pick determines which slice of the world you can reach this lunation. Within the window, the existing run mechanics apply — step budget as operating range, fog reveal, POIs, patrols, combat, extraction. The step budget now bounds movement WITHIN the window rather than defining a region’s size.
+
+## 6.3 Calendar gating
+
+Launching an expedition consumes phases (CalendarManager.AdvanceOnePhase, already built). Lunation boundaries tick the world simulation — kingdom drift, corruption spread, border pressure (Phase 2 work). The Grand Conjunction ends the cycle. Forcing it early remains available. The expedition-to-phase cost is a primary tuning knob: it sets how many sorties fit in a cycle, which with the window/world ratio sets total reachable world per cycle.
+
+# 7. Fate of the Existing Code
+
+| **System** | **Verdict** | **Notes** |
+| --- | --- | --- |
+| OverworldHex, OverworldField, POIGenerator, OverworldPartyToken, FogOfWarManager, PatrolToken, OverworldFactionManager, ScoutReportPanel, NarrativeEncounterPanel, EncounterRouter | Reuse | The tile/expedition layer. Renders a window instead of a region; otherwise intact. |
+| OverworldHexGrid | Modify | Becomes a viewport onto the world array: instantiates window nodes from world data instead of generating a standalone region. |
+| OverworldRunManager | Rebuild | Rebuilt around "deploy a window from a staging point" instead of "generate a region, reach objective, extract." Step budget survives as operating range; entry/objective/EndRun semantics change. |
+| RegionMemoryService | Retire | Its job — persist what you explored — becomes intrinsic to the always-resident world array. Discovery is a tile field now. |
+| RegionDefinition / RegionLoader | Repurpose | No longer per-region maps; become biome/terrain palette presets the world generator samples across the surface. |
+| StrategicMapData (node graph) | Replace | The graph dies; the world array + strategic-view renderer replace it. |
+| StrategicMapGenerator | Rework | Becomes WorldGenerator: partitions a tile array into territories instead of emitting a node graph. Faction/tier/archmage/corruption logic survives. |
+| KingdomState, FactionDefinition, CalendarState/Manager, CycleState/EternalLedger, CampaignGenerator | Reuse | All still valid. Kingdoms are territories on the map; the rest is unchanged. |
+| WorldMapScreen / WorldMapDefinition / WorldMapLoader | Retire | The old region picker is fully replaced by the strategic view + staging selection. |
+
+# 8. Re-Phased Build Order
+
+Re-phased for the single-world model. Phase 0 (schema) is already done and unchanged. Each phase ends at a playable or verifiable state.
+
+## Phase 1a — World data + generator (headless)
+
+- WorldTile struct, world array, POI/staging side tables; all serialized into CycleState.
+
+- WorldGenerator: terrain across the full surface; territory partition with factions, tiers, archmagi (via the existing CampaignGenerator seam); corruption gradient; POI scatter; initial staging point + a few pre-discovered POIs.
+
+- **Exit: **generate a 96×96 world from a seed; dump an ASCII/log view confirming coherent terrain, contiguous faction territories, a placed co-conspirator, and a start staging point. No rendering yet.
+
+## Phase 1b — Strategic view
+
+- The cheap whole-world renderer (MultiMesh or texture) reading the world array; faction tint, corruption, discovery state (Unseen dark), discovered POIs.
+
+- Staging-point selection on the strategic view; pick a point, see its window footprint.
+
+- **Exit: **the generated world is visible zoomed-out and legible; the player can select a staging point. Mostly dark, since nothing is explored yet.
+
+## Phase 1c — Expedition window + the loop
+
+- OverworldHexGrid renders a window from world data around the chosen staging point; OverworldRunManager rebuilt to deploy/extract a window; existing combat/patrol/POI mechanics live inside it.
+
+- Expeditions write Discovery + POI-discovered back into the world array; the strategic view reflects the illumination.
+
+- CalendarManager.AdvanceOnePhase on launch; Conjunction ends the cycle.
+
+- The zoom transition between window and strategic view.
+
+- **Exit (vertical slice): **one full cycle playable — deploy from a staging point, explore a window, fight/negotiate, extract, watch the strategic map fill in, repeat across lunations, hit the Conjunction. Static simulation (no kingdom drift yet).
+
+## Phase 2 — The living world
+
+- Lunation tick: corruption spread tile-to-tile, kingdom stance/stability drift, border pressure, staging points gained from secured locations.
+
+- Reputation → stance gating on where expeditions may operate; difficulty from territory tier + corruption (the v1 patch, now reading the world array).
+
+- **Exit: **leave the world running across lunations and it changes sensibly; corruption visibly creeps across the strategic map.
+
+Phases 3–5 (campus/economy, assaults/scars, the loop metagame) are unchanged from open_world_refactor_v1 — they were specced against the cycle and the three-tier schema, both of which survive intact.
+
+# 9. Open Decisions
+
+| **Decision** | **Status / Recommendation** |
+| --- | --- |
+| World size / window radius / expedition phase-cost | Starting: 96×96 world, radius-12 window (~469 tiles), phase-cost TBD. These three together set exploration pacing; tune as one ratio in Phase 1c playtests. |
+| Strategic-view implementation | MultiMesh (one quad/tile, easy to recolor per tile) vs. a generated texture (cheapest draw, costlier to update). Recommendation: MultiMesh first — simpler to update on discovery, fast enough at 9,216. |
+| Charted state source | How does a tile become Charted (not just Unseen→Explored)? Options: window fringe charts an outer ring; future intel/scrying charts at range. Recommendation: window fringe in Phase 1c; intel later. |
+| Window shape at world edges | A staging point near a coast/edge yields a clipped window. Accept clipped windows (simplest) vs. constrain staging points inland. Recommendation: accept clipping. |
+| Does terrain cost still gate movement inside the window | Yes — the existing per-terrain step costs apply unchanged within the window. |
+| Cross-cycle staging memory | Do any staging points / discoveries persist across cycles (renown-anchored), or does each timeline start fully dark? Recommendation: fully dark each cycle (the world is rebuilt), with cross-cycle knowledge limited to the ledger’s breadth unlocks — consistent with the loop fiction. |

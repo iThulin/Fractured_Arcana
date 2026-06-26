@@ -1,0 +1,229 @@
+**THE CONVERGENCE**
+
+Endgame Narrative, Seal Fragments & Paths to Resolution
+
+*Design Reference Document*
+
+This document defines the endgame narrative structure of the Convergence — the catastrophic magical event that serves as the ultimate threat driving the guild’s growth. It covers the lore framework, the six Seal Fragments tied to each wizard school, the three philosophical paths to resolution, the multi-stage Convergence event itself, and the post-Convergence world state. Every system in the guild campus — buildings, companions, grafts, faction relationships — feeds into how the Convergence unfolds for each player.
+
+**1. The Lore of the Convergence**
+
+Centuries ago, six archmages — one from each school of magic — forged the Sixfold Seal, a metaphysical barrier separating the mortal plane from the raw chaos of the Outer Void. Each archmage bound a fragment of the seal to their discipline, ensuring that no single school could control or unmake it alone. The seal held for generations. But magic is entropy, and entropy is patient.
+
+The seal is failing. Fractures have been spreading for decades, allowing Void-touched creatures and planar anomalies to bleed into the world. The seasonal threats the guild faces during normal play are symptoms of this decay. The Convergence is the moment the seal breaks entirely — when all six fracture lines meet and the Outer Void pours through.
+
+The player’s guild exists in the shadow of this inevitability. Every run is a step closer. The question isn’t whether the Convergence will happen — it’s whether the guild will be ready, and what they’ll choose to do when it arrives.
+
+**The Outer Void**
+
+The Void is not evil — it’s raw, unstructured magical potential. It’s what existed before the schools of magic imposed order on reality. The Convergence threatens to dissolve the structures that make organized magic possible. Spells would become unpredictable. Summoned creatures would lose their bindings. The dead would stir without necromantic command. Time would fracture. The world wouldn’t end — it would become unmade, reduced to a churning soup of magical chaos.
+
+This framing matters because it means the Convergence isn’t a villain to defeat — it’s a force to be reckoned with. Different philosophies about how to respond are all legitimate, which supports multiple endings without a “right” answer.
+
+**2. The Six Seal Fragments**
+
+*Each fragment is bound to a school of magic and guarded by trials that reflect that school’s philosophy. Recovering a fragment is a multi-run arc, not a single event. The fragment’s alignment with your wizard determines whether the recovery is natural or adversarial.*
+
+**♦ The Primal Shard***  —  Elementalist Fragment*
+
+The Primal Shard is raw creation — fire that doesn’t burn, ice that doesn’t melt, lightning frozen mid-strike. It was sealed inside the heart of a perpetual storm at the world’s edge, a place where all six elements rage in eternal conflict. The storm itself is the lock.
+
+**Recovery Arc: **The guild must undertake 3–4 runs into the Stormheart region, each penetrating deeper into the maelstrom. Early runs involve navigating elemental hazards and defeating guardians attuned to specific elements. The final encounter requires the player to master elemental counters — using the right element against each phase of a multi-element guardian. For an Elementalist, this is a homecoming; the storm recognizes you and the trials test mastery. For other schools, the storm is hostile and actively resists non-elemental magic, requiring creative adaptation.
+
+**Aligned (Elementalist): **The storm calms as you approach. Elemental guardians bow rather than fight. The final trial is a puzzle of elemental harmony — balancing all six elements simultaneously. Success grants the Primal Shard plus a permanent elemental fusion ability.
+
+**Opposed (Non-Elementalist): **The storm treats you as an invader. Encounters are harder, with environmental damage each turn. You must find ways to suppress or redirect elemental forces using your own school’s tools. The Necromancer might drain the life from elemental spirits; the Chronomancer might freeze the storm in a time loop. Success grants the Shard but with a lingering elemental instability debuff until the Convergence.
+
+**♦ The Axiom Stone***  —  Arcanist Fragment*
+
+The Axiom Stone is crystallized magical law — the fundamental rules that govern how spells interact, chain, and resolve. It was hidden inside a pocket dimension that only exists when observed, a paradox of magical theory made physical. The dimension is a vast library where the books rewrite themselves and the architecture follows logical proofs rather than physics.
+
+**Recovery Arc: **A 3–4 run arc through the Infinite Athenaeum, a shifting extradimensional space. Each run presents logic puzzles, spell interaction challenges, and encounters where the rules of combat change mid-fight (mana costs invert, damage heals, movement is reversed). The final trial is a debate with the Axiom’s guardian — a sentient theorem that must be intellectually outmaneuvered.
+
+**Aligned (Arcanist): **The Athenaeum recognizes your understanding of magical theory. Puzzle solutions are intuitive, and the guardian treats you as a peer. The final debate rewards elegant solutions with bonus rewards. Success grants the Axiom Stone plus a permanent meta-magic passive that lets you see hidden card interactions.
+
+**Opposed (Non-Arcanist): **The Athenaeum is disorienting and hostile. Puzzles require brute-force solutions. The rule-changing encounters are more extreme. The guardian views you as unworthy and the debate becomes a combat encounter where the guardian weaponizes magical theory against you. The Artificer might build a logic engine to match wits; the Enchanter might charm the guardian into compliance.
+
+**♦ The Moment Eternal***  —  Chronomancer Fragment*
+
+The Moment Eternal is a frozen instant — a single second stretched into infinity, containing every possible version of that second simultaneously. It was sealed inside the Shattered Clock, a ruined tower where time doesn’t flow linearly. Entering the tower means experiencing your own past, future, and alternate selves all at once.
+
+**Recovery Arc: **A 3–4 run arc through the Shattered Clock. Each run takes place in a different time period — one in the tower’s ancient past when it was still functional, one in a possible future where the Convergence already happened, one in a fractured present where multiple timelines overlap. Encounters feature enemies that attack from the future (you see their damage before they act) or from the past (they’ve already acted by the time you see them).
+
+**Aligned (Chronomancer): **You navigate the timelines with clarity. Past and future versions of yourself appear as allies in key encounters. The final trial lets you witness the original sealing of the Convergence and speak with the chronomancer who forged this fragment. Success grants the Moment Eternal plus a permanent ability to glimpse one turn ahead in combat.
+
+**Opposed (Non-Chronomancer): **The timeline shifts are disorienting. Your cards occasionally resolve out of order. Encounters include temporal paradoxes where defeating an enemy in one timeline causes it to appear in another. The Necromancer finds the dead refuse to stay dead across timelines; the Elementalist discovers their elements behave differently in each era. Success grants the fragment but with temporal echo — a debuff where past damage occasionally repeats.
+
+**♦ The Binding Thread***  —  Enchanter Fragment*
+
+The Binding Thread is the connective tissue of the seal — the enchantment that holds the other five fragments in relationship with each other. Without it, the fragments are just powerful artifacts. With it, they form the Sixfold Seal. It was woven into the Tapestry of Wills, a sentient artwork that hangs in a hidden vault beneath a city built on compulsion magic, where every citizen is enchanted and every transaction is a binding contract.
+
+**Recovery Arc: **A 3–4 run arc through the Charmed City. Unlike other arcs, combat is secondary here. The primary challenge is social and strategic — navigating a city where every conversation is a magical negotiation, every promise is literally binding, and breaking an enchantment on one person might enslave another. The player must unravel the city’s web of compulsions to reach the Tapestry without becoming ensnared themselves.
+
+**Aligned (Enchanter): **You speak the language of binding naturally. You can see the enchantment threads connecting citizens and manipulate them without triggering alarms. The final trial is weaving your own thread into the Tapestry to claim the fragment — an act of magical artistry. Success grants the Binding Thread plus a permanent enchantment that lets you see hidden connections between cards in your deck.
+
+**Opposed (Non-Enchanter): **The city’s enchantments treat you as a foreign body. NPCs are compelled to deceive you. Contracts you sign have hidden clauses that impose combat debuffs. The Artificer might build enchantment-detecting devices; the Arcanist might use pure magical theory to deconstruct bindings analytically. Success grants the fragment but with a lingering compulsion — one random card per combat is “bound” and must be played.
+
+**♦ The Schema Core***  —  Artificer Fragment*
+
+The Schema Core is the blueprint of the seal — the technical architecture that translates magical intent into structural reality. It’s the difference between wanting a barrier and having one that actually works. The Core was installed inside the Eternal Engine, a continent-spanning machine built by the original artificer archmage, now buried beneath millennia of geological change and running on automatic, endlessly repairing fractures in the seal that its creator knew would come.
+
+**Recovery Arc: **A 3–4 run arc through the Eternal Engine. The environment is a massive mechanical dungeon — gear-driven corridors, piston-powered traps, automated construct guardians. Each run goes deeper into the machine, and the player must solve engineering puzzles to progress: rerouting power, repairing broken mechanisms to open passages, and reprogramming hostile constructs. The deeper you go, the more you realize the Engine is alive — a semi-sentient system that views intruders as malfunctions to be corrected.
+
+**Aligned (Artificer): **The Engine recognizes you as a fellow builder. Hostile constructs can be reprogrammed rather than destroyed. Engineering puzzles have elegant solutions visible only to artificers. The final trial is integrating yourself into the Engine’s control system and convincing it to release the Schema Core voluntarily. Success grants the Core plus permanent blueprints for a legendary construct.
+
+**Opposed (Non-Artificer): **The Engine treats you as a virus. Constructs are more aggressive and can’t be reprogrammed. Puzzles require brute-force solutions that damage the machine (causing additional hazards). The Necromancer might animate the broken constructs as undead machines; the Chronomancer might rewind damaged sections to their functional state. Success grants the Core but the Engine begins actively hunting your guild in future runs.
+
+**♦ The Deathless Covenant***  —  Necromancer Fragment*
+
+The Deathless Covenant is the seal’s memory — the accumulated knowledge of every soul that has ever touched the barrier, including the six original archmages. It exists in the Hollow, a realm between life and death where the spirits of the dead still perform their duties maintaining the seal. The Covenant is not an object but an agreement — a pact between the living and the dead that the seal will be maintained across generations.
+
+**Recovery Arc: **A 3–4 run arc through the Hollow. The realm is populated by spirits of dead wizards, warriors, and scholars who have been maintaining the seal in death. The environment is hauntingly beautiful — ghostly architecture, spectral gardens, the echoes of a civilization that exists only in memory. Encounters involve spirits who have lost their purpose and become hostile, or who test the living to see if they’re worthy of the Covenant’s knowledge.
+
+**Aligned (Necromancer): **The dead recognize your authority. Spirits serve as guides and allies. The final trial is a negotiation with the original necromancer archmage’s spirit, who demands proof that you understand the responsibility of commanding the dead — not just the power. Success grants the Deathless Covenant plus the ability to consult dead companions for strategic advice permanently.
+
+**Opposed (Non-Necromancer): **The dead view you with suspicion or hostility. Spirits must be defeated or appeased rather than commanded. The realm drains your life force (HP loss each turn in encounters). The Elementalist might use fire to ward off aggressive spirits; the Enchanter might charm spirits into cooperation. Success grants the Covenant but with a death mark — one companion is randomly chosen to be “claimed” by the Hollow and must be rescued in a future run or lost to permadeath.
+
+**3. Seal Fragment Mechanics**
+
+*How the fragments function as gameplay objects and how collecting them shapes the path to the Convergence.*
+
+| **Mechanic** | **Description** |
+| --- | --- |
+| **Fragment Discovery** | Fragments are not available from the start. Each fragment’s location is revealed through lore found during normal runs, companion story arcs, or Library research projects. A fragment only becomes pursuable once its location is fully revealed. |
+| **Multi-Run Arcs** | Each fragment requires 3–4 dedicated runs through a unique region. Progress within the arc is persistent — if you reach the second stage and fail, your next attempt starts from stage two. However, the encounters within each stage are procedurally varied. |
+| **Order of Collection** | Players can pursue fragments in any order, but earlier fragments are easier. Difficulty scales with how many you’ve already collected, as the Void responds to the seal being reassembled. The sixth fragment is always the hardest regardless of which school it belongs to. |
+| **Alignment Bonuses** | Collecting your own school’s fragment first grants a significant narrative and mechanical bonus — a unique legendary card and a lore revelation about your wizard’s connection to the original archmages. This incentivizes but doesn’t require starting with your aligned fragment. |
+| **Cross-School Tension** | Fragments from opposing schools resist being held together. Carrying the Primal Shard (Elementalist) and the Deathless Covenant (Necromancer) simultaneously might cause periodic debuffs or campus events where the fragments conflict. This creates interesting decisions about collection order and builds narrative tension. |
+| **Fragment Corruption** | If a fragment is collected under duress (failing encounters, losing companions during the arc), it arrives corrupted. Corrupted fragments still function but introduce negative modifiers during the Convergence. They can be purified through companion quests or campus ritual events, but this takes additional runs. |
+| **The Binding Thread’s Special Role** | The Enchanter’s fragment is unique — it’s the connective piece. Collecting it last makes the final assembly easier. Collecting it first means every subsequent fragment is easier to integrate. This makes the Binding Thread a strategic pivot point in fragment collection order. |
+| **Campus Display** | Collected fragments are displayed in a dedicated Seal Chamber on your campus. As fragments are added, the chamber visually transforms — glowing with increasing intensity, the fragments orbiting each other, the seal pattern becoming visible on the floor. This is the most dramatic visual progression in the game. |
+
+**4. The Three Paths to Resolution**
+
+Once all six fragments are collected, the Convergence is imminent. The player must choose how to use the assembled seal. This choice is the defining moment of the entire meta-progression — the thesis statement for your guild. The choice is influenced by your Guild Charter alignment, companion opinions, and faction relationships, but ultimately rests with the player.
+
+Each path leads to a different multi-stage final event, a different post-Convergence world state, and a different emotional tone for the ending. None is the “correct” choice.
+
+**Path I: Restoration — “Rebind the Seal”**
+
+**Philosophy: **The world as it exists is worth preserving. The seal worked for centuries and can work again. The Void is chaos, and chaos must be contained. Order, structure, and the traditions of the six schools are humanity’s strength.
+
+**Who Favors This: **Order-aligned guilds, companions with strong ties to institutions and tradition, factions that benefit from the current power structure. The Arcanist and Enchanter archetypes have natural affinity here — the Arcanist values magical rules and the Enchanter values bindings.
+
+**Narrative Tone: **Heroic sacrifice. The original archmages gave everything to forge the seal. This path asks whether your guild is willing to do the same. The Convergence event is a defensive battle — hold the line while the seal is reforged.
+
+**The Convergence Event: **A massive multi-wave defense encounter. Void creatures pour through fractures while the player’s wizard performs the rebinding ritual. Each fragment must be activated in sequence, and each activation triggers a wave tied to that school’s opposing force. Companions hold defensive positions on the battle grid. Campus defenses (if built) provide passive bonuses. The final wave is a Void manifestation that attacks the seal directly — the player must protect the partially-reformed seal while fighting the most powerful enemy in the game.
+
+**Cost: **Rebinding the seal requires a permanent sacrifice. One companion must volunteer to become a living anchor for the seal, disappearing from the roster forever. Which companion volunteers (and whether they survive the process) depends on their relationship with the player and their completed story arcs. If no companion has sufficient loyalty, the player’s wizard must anchor the seal themselves, ending the run but leaving the guild intact under a new leader.
+
+**Post-Convergence World: **The world is preserved but scarred. Regions damaged by Void incursions during the buildup remain altered. The guild is celebrated as saviors but operates in a world that now knows the seal is fragile. New threats emerge from those who want to break the seal intentionally — Void cultists, power-hungry mages, planar entities that tasted freedom. The campus gains a Seal Monument that provides passive bonuses and serves as a reminder of what was sacrificed.
+
+**Path II: Dominion — “Harness the Convergence”**
+
+**Philosophy: **The seal was a stopgap, not a solution. The Void’s power can be harnessed and directed rather than merely contained. Why rebuild a wall when you can tame what’s on the other side? True mastery of magic means controlling all of it — including the chaos.
+
+**Who Favors This: **Chaos-aligned guilds, ambitious companions, factions that want to reshape the world order. The Elementalist and Necromancer have natural affinity — the Elementalist already channels raw forces, and the Necromancer is accustomed to commanding powers that others fear.
+
+**Narrative Tone: **Promethean ambition. This is the path of those who believe limits are meant to be broken. It’s thrilling, dangerous, and morally ambiguous. The Convergence event is an offensive battle — dive into the Void and seize its power.
+
+**The Convergence Event: **An assault into the Void itself. The player uses the assembled fragments not as a barrier but as a key, opening a controlled breach and leading their guild through it. The battle grid becomes a Void-scape — reality-warping terrain, enemies that are manifestations of raw magical concepts. Each fragment transforms into a weapon tied to its school, granting temporary legendary abilities. The final encounter is against the Void’s own immune response — an entity that exists to prevent anything from imposing order on chaos.
+
+**Cost: **Harnessing the Void fundamentally changes your wizard. They become a Void-touched entity — more powerful but less human. Some companions may refuse to follow this path and leave the guild permanently. Factions that valued stability become hostile. The wizard’s card pool is altered: existing cards gain Void variants that are stronger but unpredictable (random bonus or penalty on each cast). The campus itself is transformed by Void energy — visually dramatic but unsettling.
+
+**Post-Convergence World: **The world is fundamentally changed. Magic is more powerful but wilder. New schools of Void magic emerge. The guild becomes the most powerful institution in the world but is feared as much as respected. Former allies may become enemies. The post-Convergence threats are internal — Void corruption spreading through the guild, companions struggling with their transformation, and the constant question of whether the player can control what they’ve unleashed. The campus gains a Void Nexus that provides powerful but double-edged bonuses.
+
+**Path III: Synthesis — “Transcend the Boundary”**
+
+**Philosophy: **The seal and the Void are both incomplete solutions. The seal suppresses the Void but doesn’t resolve the underlying tension. Harnessing the Void imposes order on chaos without understanding it. True resolution means finding a new equilibrium — integrating Void energy into the world’s magical framework so that neither needs to dominate the other.
+
+**Who Favors This: **Balance-aligned guilds, companions who value understanding over control, factions interested in long-term stability rather than immediate power. The Chronomancer and Artificer have natural affinity — the Chronomancer sees the long view and the Artificer builds systems that reconcile opposing forces.
+
+**Narrative Tone: **Philosophical and bittersweet. This is the hardest path because it requires the most from the player — not just strength or ambition, but wisdom. The Convergence event is a negotiation as much as a battle.
+
+**The Convergence Event: **A hybrid encounter that alternates between combat, puzzle-solving, and dialogue. The player must simultaneously fight Void manifestations, solve a magical engineering challenge (redesigning the seal into a permeable membrane rather than a wall), and communicate with the Void itself — which turns out to be not mindless chaos but an alien intelligence that has its own perspective on the barrier. Each fragment must be reconfigured rather than simply activated, requiring school-specific knowledge. Companions with completed story arcs provide crucial insights during the puzzle phases.
+
+**Cost: **Synthesis requires the player to give up certainty. The new equilibrium is untested. Void energy seeps into the world in controlled amounts, changing magic permanently. Some spells no longer work the way they used to. The player’s deck is altered: cards gain Synthesis variants that are different (not strictly better or worse) from their originals. Some companions evolve in unexpected ways. The world that emerges is neither the one that was nor the one the Void wanted — it’s something new.
+
+**Post-Convergence World: **The most dramatically different world state. Magic has a new school — Synthesis — that blends mortal and Void principles. The guild becomes a research institution studying the new equilibrium. Threats come from both sides: Void entities testing the membrane and mortal mages who reject the change. The campus gains a Harmony Spire that visually blends mortal architecture with Void aesthetics and provides unique bonuses unavailable on other paths.
+
+**5. Path Selection and Influence**
+
+*The path choice isn’t a binary menu selection — it’s the culmination of dozens of decisions made across the entire meta-progression. Here’s what shapes it.*
+
+| **Influence Factor** | **How It Shapes the Path** |
+| --- | --- |
+| **Guild Charter Alignment** | The player’s chosen alignment (Order, Chaos, Balance) determines which path is presented as the “natural” choice and which requires justification. Going against your charter alignment triggers companion dissent and faction reactions. |
+| **Companion Council Vote** | Before the final choice, companions vote on the preferred path based on their personality, story arc outcomes, and relationship with the player. A unanimous council provides a significant buff during the Convergence. A divided council means some companions fight at reduced effectiveness. |
+| **Faction Endorsement** | Allied factions send resources or warriors to support the path they favor. Opposed factions may actively sabotage. The player’s faction reputation across the entire game determines how much external support they receive. |
+| **Fragment Condition** | Corrupted fragments make Restoration harder (the seal is flawed), Dominion riskier (corrupted power is unstable), and Synthesis more complex (damaged pieces are harder to reconfigure). Fragment condition is the mechanical consequence of how well or poorly the recovery arcs went. |
+| **Campus Infrastructure** | Specific buildings provide bonuses during the Convergence. The War Room aids Restoration (defensive planning). The Summoning Circle aids Dominion (planar assault coordination). The Ley Line Nexus aids Synthesis (energy redistribution). Having the right infrastructure makes the chosen path significantly easier. |
+| **Player’s Wizard School** | Each school has two paths it’s naturally suited for and one that’s harder. This doesn’t lock the player out — it just means the misaligned path requires more preparation and has higher stakes. |
+| **Lore Discovery** | Hidden lore found during runs, library research, and companion quests reveals information about each path’s likely outcomes. A well-informed player makes a more confident choice. Missing lore means certain Convergence phases are harder because the player lacks key knowledge. |
+| **Previous Convergence Outcomes** | If the player has completed a previous Convergence (on a different save or in New Game Plus), echoes of that choice appear in the current run. This provides meta-narrative continuity and incentivizes trying all three paths across multiple full playthroughs. |
+
+**6. School-to-Path Alignment Matrix**
+
+*Each wizard school has natural affinities and tensions with the three paths. This doesn’t prevent any school from choosing any path — it shapes the difficulty and narrative flavor.*
+
+| **School** | **Restoration** | **Dominion** | **Synthesis** |
+| --- | --- | --- | --- |
+| **Elementalist** | Moderate — raw elements can reinforce natural order, but elemental magic resists being constrained | Strong — elementalists already channel primal forces; commanding the Void’s raw power is a natural extension | Moderate — elements can adapt to a new equilibrium, but the elementalist’s instinct is to dominate forces, not negotiate with them |
+| **Arcanist** | Strong — the arcanist values rules, structure, and magical law; restoring the seal preserves the framework they understand | Weak — the Void’s chaos is antithetical to the arcanist’s need for predictable magical behavior | Moderate — intellectually appealing (a new system to study) but practically uncomfortable (the rules would change) |
+| **Chronomancer** | Moderate — preserving the timeline is appealing, but the chronomancer knows the seal was always temporary | Weak — the chronomancer has seen futures where unchecked power destroys everything; they’re cautious by nature | Strong — the chronomancer sees the long arc of history and understands that true stability requires evolution, not stasis |
+| **Enchanter** | Strong — the seal is the greatest enchantment ever cast; the enchanter reveres and wants to perfect it | Moderate — binding the Void is possible but distasteful; the enchanter prefers willing agreements to forced domination | Moderate — a new binding between mortal and Void is elegant, but the enchanter worries about binding terms with an alien intelligence |
+| **Artificer** | Moderate — the artificer can rebuild the seal with better engineering, but they know a patched system has limits | Moderate — the artificer can build systems to channel Void energy, but they respect the dangers of untested designs | Strong — the artificer sees Synthesis as the ultimate engineering challenge: building a system that reconciles two incompatible forces |
+| **Necromancer** | Weak — the necromancer deals with boundaries between states (life/death) and knows walls always fall eventually | Strong — the necromancer is accustomed to commanding forces others fear; the Void is just another power to master | Moderate — the necromancer can negotiate with the Void through death’s intermediary role, but prefers clear authority to shared power |
+
+**7. The Convergence Event — Structural Breakdown**
+
+*Regardless of path, the Convergence event follows a five-phase structure. The content of each phase changes based on the chosen path, but the rhythm is consistent.*
+
+| **Phase** | **Description** | **Type** |
+| --- | --- | --- |
+| **Phase 1: The Gathering** | All companions assemble at the guild campus. Final companion dialogue and council vote. Last chance to adjust loadout and graft configuration. This is a narrative-only phase with no combat — a calm before the storm. Companion relationships and story arc completions determine morale bonuses for the fight ahead. | Pre-combat |
+| **Phase 2: The Fracture** | The seal breaks. The first Void incursion hits the campus directly. This is a campus defense encounter using the guild’s built defenses. Buildings that were upgraded contribute active or passive effects. Companions not selected for the final party defend other campus positions (their effectiveness depends on their level and morale). This phase is the same for all three paths — the seal breaks regardless of what you plan to do next. | Combat (defense) |
+| **Phase 3: The Threshold** | The player leads their party into the breach. This phase varies dramatically by path. Restoration: a ritual space where the seal must be reforged under pressure. Dominion: an assault into the Void. Synthesis: a liminal space between worlds. The battle grid for this phase is unique to the path and features mechanics not seen anywhere else in the game. | Combat + puzzle |
+| **Phase 4: The Reckoning** | The climactic encounter. Restoration: defending the seal against a Void titan. Dominion: battling the Void’s immune response. Synthesis: a combined fight-and-dialogue with the Void intelligence. This is the hardest encounter in the game. Fragment condition, companion loyalty, campus infrastructure, and faction support all contribute modifiers. A well-prepared guild has significant advantages; an underprepared one faces a genuinely threatening fight. | Boss encounter |
+| **Phase 5: The Aftermath** | Resolution. The world changes based on the path and how well the event was handled. Companion fates are revealed — who survived, who sacrificed, who was changed. The campus transforms to reflect the new world state. A final narrative sequence plays out, providing closure on companion arcs and setting up the post-Convergence era. Credits roll over a montage of the player’s guild history. | Narrative |
+
+**8. Companion Fates During the Convergence**
+
+*Companions are the emotional core of the Convergence. Their fates depend on story arc completion, loyalty, and the player’s chosen path.*
+
+| **Companion State** | **Convergence Outcome** |
+| --- | --- |
+| **Completed Arc + High Loyalty** | The companion fights at full power. They have a unique moment during the Convergence tied to their personal story. On Restoration, they may volunteer as the seal anchor (highest sacrifice). On Dominion, they fully embrace the transformation. On Synthesis, they provide a key insight from their arc that makes a puzzle phase easier. |
+| **Completed Arc + Low Loyalty** | The companion fights at full power but may dissent. On paths they oppose, they might refuse to participate or actively undermine the effort — not out of villainy, but genuine disagreement. If their school is opposed to the chosen path, they may leave mid-event, creating a gap the player must compensate for. |
+| **Incomplete Arc + High Loyalty** | The companion fights willingly but without their full potential. They lack the narrative insight that would grant them a unique Convergence moment. They are at greater risk of permanent loss during the event because their story feels unfinished — thematically, they haven’t become who they need to be. |
+| **Incomplete Arc + Low Loyalty** | The companion is unreliable. They may flee during Phase 2, betray the guild if a Void entity offers them something their unresolved story craves, or simply fight at reduced effectiveness. These outcomes feel like the natural consequence of neglecting a relationship — not a punishment, but a narrative inevitability. |
+| **Permadead Companions** | Companions lost during the meta-progression appear as spirits during the Convergence. On the Restoration path, their spirits help anchor the seal. On Dominion, their echoes haunt the Void assault. On Synthesis, they serve as intermediaries between the player and the Void intelligence. Their presence is bittersweet — a reminder of what was lost, but also that their sacrifice contributed. |
+
+**9. Post-Convergence: The New Era**
+
+*The game doesn’t end at the Convergence. The world transforms based on the outcome, and the guild enters a new era with new threats, new opportunities, and a changed campus.*
+
+| **Element** | **Description** |
+| --- | --- |
+| **New Threat Tier** | Post-Convergence enemies are drawn from the aftermath of the chosen path. Restoration faces Void cultists and seal-breakers. Dominion faces internal corruption and power struggles. Synthesis faces entities from both sides who reject the new equilibrium. These threats are mechanically distinct from pre-Convergence enemies. |
+| **Campus Transformation** | The campus receives a dramatic visual overhaul. Restoration: the campus becomes a fortress-monastery, somber and fortified, with the Seal Monument as its centerpiece. Dominion: Void energy infuses the architecture, creating alien beauty and unsettling geometry. Synthesis: mortal and Void aesthetics blend into something entirely new. |
+| **Altered Magic System** | Card pools change based on path. Restoration: existing schools are strengthened and stabilized, with bonus effects for playing within your school. Dominion: Void variants of existing cards appear, more powerful but with random secondary effects. Synthesis: hybrid cards that blend school and Void properties, offering new tactical possibilities. |
+| **Companion Evolution** | Surviving companions are changed by the experience. Their card offerings shift to reflect the path. Companions whose arcs were completed before the Convergence gain a post-Convergence epilogue quest that provides final closure and a legacy reward. |
+| **New Guild Purpose** | The guild’s motivation shifts. Restoration: become guardians of the renewed seal, patrolling for threats. Dominion: manage the Void-touched world you’ve created, dealing with the consequences of power. Synthesis: explore the new magical frontier, studying and cataloging the changed reality. |
+| **Legacy and New Game Plus** | Completing the post-Convergence era unlocks a true New Game Plus. The player starts a new guild in the post-Convergence world, with echoes of their previous choices woven into the world state. Certain companions, buildings, and lore carry forward. The second Convergence cycle introduces new fragment locations, new paths, and new philosophical questions built on the first cycle’s resolution. |
+
+**10. Core Design Principles**
+
+Every design decision in the Convergence system should be guided by these principles:
+
+**1. No correct answer. **All three paths are valid. The game should never signal that Restoration is “good” and Dominion is “evil.” Each path has genuine costs and genuine rewards. Players who replay should feel that each path reveals something new about the world and characters, not that they’re grinding toward the “real” ending.
+
+**2. Preparation matters more than execution. **The Convergence event should be hard but fair. A well-prepared guild — complete companion arcs, strong campus infrastructure, good fragment condition — should be able to succeed on any path. An underprepared guild should feel the gaps. The difficulty should come from the meta-progression, not from the final fight’s raw numbers.
+
+**3. Companions are the emotional payload. **Buildings and artifacts are satisfying, but companions are what players remember. Every companion should have a meaningful moment during the Convergence that reflects the player’s investment in their story. The companion who sacrifices themselves should make the player feel something. The one who betrays should feel inevitable in retrospect.
+
+**4. The campus tells the story. **Before and after the Convergence, the player’s campus should be a visual autobiography of their entire journey. A first-time visitor to someone’s campus should be able to read the broad strokes of their story just by looking at the buildings, monuments, and aesthetic changes.
+
+**5. The ending is a beginning. **The Convergence resolves the central tension but opens new ones. The post-Convergence world should feel like a reward for everything the player invested, not a dead end. New Game Plus should feel like a sequel that remembers the first game, not a reset.
+
+**Document Notes: **This document is intended as a narrative and structural blueprint. Specific numbers (damage values, buff percentages, wave counts) should be determined during prototyping and playtesting. The emotional beats and structural relationships described here are the foundation; the tuning is iterative. All fragment recovery arcs, Convergence phases, and post-Convergence content should be playtested with each of the six wizard schools to ensure no school feels disadvantaged on any path.

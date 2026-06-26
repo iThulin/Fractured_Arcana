@@ -80,7 +80,8 @@ public static class EncounterPoolLoader
     /// </summary>
     public static TierPoolData Load(string regionId)
     {
-        if (_cache.TryGetValue(regionId, out var cached)) return cached;
+        if (_cache.TryGetValue(regionId, out var cached))
+            return cached;
 
         string path = $"res://Data/Regions/{regionId}.json";
         if (!FileAccess.FileExists(path))
@@ -92,7 +93,8 @@ public static class EncounterPoolLoader
         try
         {
             using var file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
-            if (file == null) return null;
+            if (file == null)
+                return null;
 
             // Parse the whole file as a generic JSON document so we can extract
             // just the encounterPools key without duplicating RegionDefinition fields.
@@ -147,11 +149,64 @@ public static class EncounterPoolLoader
         return BuildDefinition(comp, tier, regionId, terrainType, difficultyMult);
     }
 
+    /// <summary>
+    /// Materialise an EncounterDefinition from an ARCHMAGE faction pool — the
+    /// parallel of Pick() for region pools. Returns null when the archmage has no
+    /// authored group for this tier (or all slots fail to parse), so the caller
+    /// can fall back to the region pool. RegionId is passed through for combat-map
+    /// theming, NOT taken from the archmage (archmages aren't regions).
+    /// </summary>
+    public static EncounterDefinition PickFromArchmage(
+        ArchmageDefinition arch,
+        string regionId,
+        EncounterTier tier,
+        string terrainType,
+        float difficultyMult = 1.0f)
+    {
+        if (arch == null)
+            return null;
+
+        var groups = arch.FactionEncounters?.GetTier(tier.ToString());
+        if (groups == null || groups.Count == 0)
+            return null; // no themed group at this tier — caller uses the region pool
+
+        int idx = (int)(GD.Randi() % (uint)groups.Count);
+        var group = groups[idx];
+
+        float groupMult = difficultyMult * (group.DifficultyMult <= 0f ? 1f : group.DifficultyMult);
+
+        var def = new EncounterDefinition
+        {
+            Id = $"{arch.Id}_{tier}_{group.Name}",
+            DisplayName = group.Name,
+            Tier = tier,
+            RegionId = regionId,
+            TerrainType = terrainType,
+            DifficultyMult = groupMult,
+        };
+
+        foreach (var slot in group.Enemies)
+        {
+            if (Enum.TryParse<EnemyArchetype>(slot.Archetype, ignoreCase: true, out var archetype))
+            {
+                float slotMult = groupMult * (slot.DifficultyMult <= 0f ? 1f : slot.DifficultyMult);
+                def.Enemies.Add(new EnemySlot(archetype, slotMult));
+            }
+            else
+            {
+                GD.PrintErr($"EncounterPoolLoader: Unknown archetype '{slot.Archetype}' in archmage group {arch.Id}/{group.Name}");
+            }
+        }
+
+        return def.Enemies.Count > 0 ? def : null;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────
 
     private static List<CompositionData> GetTierList(TierPoolData pool, EncounterTier tier)
     {
-        if (pool == null) return null;
+        if (pool == null)
+            return null;
         return tier switch
         {
             EncounterTier.Skirmish => pool.Skirmish,

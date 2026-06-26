@@ -1,0 +1,215 @@
+# Companion Progression & Item Systems — v1
+
+*Design specification for individual companion progression (built on the existing Loyalty / ArcStage / PersonalityTrait fields) and the full item lifecycle (acquisition, rarity rules, and Enchanter's Workshop enchanting). Locked decisions: loyalty-tier progression with arc-granted signature abilities; handcrafted unique items with Workshop enchanting as the only item mutation. All numeric values are first-pass tuning targets, not commitments.*
+
+# 1. Design Goals & Constraints
+
+- **Individual, earned progression.** Power that distinguishes one companion from another must come from time spent with that companion — loyalty and story arcs — not from purchased global upgrades. Training Grounds remains the global floor; loyalty is the personal ceiling.
+
+- **No new currencies.** The system is built entirely on fields that already exist and persist: Loyalty (0–100), ArcStage (0–4), PersonalityTrait, TrainedStanceIds. No XP bar, no companion levels.
+
+- **New recruits are immediately fieldable.** Recruits enter at Loyalty 50 (Trusted), which already carries a perk. The bottom tier is a penalty zone reachable only through neglect or betrayal — never a grind zone every recruit must climb out of.
+
+- **Permadeath stakes without grind-loss.** Losing a Sworn companion loses their signature, their bound item, and ripples morale across the roster — but no hour-counted XP investment evaporates. Losses should sting, not invite save-scumming.
+
+- **Items are passive; cards are active.** No item ever casts a spell or grants an activated ability. One-use active effects belong to scrolls (Scribe's Tower). Items bend rules persistently.
+
+- **Handcrafted uniques only.** No procedural affix rolls. Every item is authored. The Enchanter's Workshop is the sole mutation path, capped at one enchantment per item instance.
+
+- **Card-schema constraint preserved.** Arcane-companion benefits that touch contributed cards (free upgrade tiers, signature cards) are specified here but explicitly deferred until the card schema stabilizes, consistent with the faction-deck freeze.
+
+# 2. Loyalty Tier System
+
+*Loyalty (0–100) becomes the progression spine. It is earned in the field — exploration dialogue, surviving deployments, negotiation outcomes, arc moments — and lost through abandonment and betrayal. Tiers gate per-companion benefits read at spawn time.*
+
+## 2a. Tiers
+
+| **Tier** | **Range** | **Effects** | **Notes** |
+| --- | --- | --- | --- |
+| **Wary** | 0–24 | Generates no negotiation token. Personality perk and signature ability disabled. Exploration dialogue replaced by complaints (still grants the +1 recovery drip). | Penalty zone. Only reachable by abandonment, betrayal, or roster-wide morale loss. Recovery path must always exist. |
+| **Hired** | 25–49 | Baseline functionality: base stats, global stance slots, standard negotiation token per personality/school. | Functional but anonymous. A companion here is a tool, not a person. |
+| **Trusted** | 50–74 | Personality perk unlocks — the PersonalityTrait field becomes a mechanical combat passive (see §2c). | Recruitment baseline. New companions start here and are immediately useful — avoids the Darkest Dungeon level-0 dead-weight problem. |
+| **Devoted** | 75–99 | Martials: +1 personal stance slot beyond the global MartialStanceSlots cap. Arcane: +1 starting mana (interim; final benefit is a free upgrade tier on contributed cards, deferred per card-schema freeze). | First tier that takes multiple runs of deliberate investment to reach. |
+| **Sworn** | 100 | Intervention: once per combat, the companion survives a lethal hit at 1 HP. Flagged at spawn; consumed on trigger. | Long-haul capstone (~6–8 deployed runs). Deliberately separate from the arc-completion negotiation bonus — loyalty governs the field, arcs govern the story and social layer. |
+
+**Division of labor: **Loyalty tiers grant combat/field power. Arc completion grants the signature ability (§3) and the existing any-type bonus negotiation token from the negotiation spec. The two tracks never double-grant the same kind of benefit.
+
+## 2b. Loyalty Economy
+
+| **Source** | **Delta** | **Notes** |
+| --- | --- | --- |
+| Exploration dialogue trigger (existing: 30% chance per empty hex) | +1 | Already specified in run structure v2; unchanged. |
+| Survive a combat encounter while deployed | +2 | Applied at CommitCombat on victory. |
+| Complete a full run while deployed | +5 | Applied at run resolution. |
+| Arc stage completed (stages 1–4) | +3 each | Narrative beats reinforce the field bond. |
+| Present at a Cordial-zone negotiation deal | +2 | Ties the negotiation tension meter into companion growth. |
+| Tavern gift (25g, max once per companion per run) | +5 | Gold sink and deliberate recovery lever for Wary companions. |
+| Downed in combat that ends in defeat/retreat (left on field) | −10 | Being rescued (combat won after they fall) costs nothing — heroism is free. |
+| Abandoned: player flees an encounter leaving the companion deployed | −15 | Hardest single penalty in the system. |
+| Betrayed in a negotiation/event choice contradicting their values | −5 | Requires event hooks; values derived from PersonalityTrait + school. |
+| Another companion permadies | −5 to all recruited companions | Morale ripple. Makes permadeath reverberate without grind-loss. |
+
+**Tuning target: **a companion deployed for a full successful run gains roughly +8–12 loyalty. That puts Trusted → Devoted at ~3 runs of consistent deployment and Trusted → Sworn at ~6–8, before gifts and arc bonuses. Sworn should feel like a campaign-length commitment, not a season pass.
+
+## 2c. Personality Perks (Trusted Tier)
+
+*One perk per PersonalityTrait, applying to any class. Small, flavorful, always-on. These make the existing flavor field mechanical.*
+
+| **Trait** | **Perk (always-on at Trusted+)** |
+| --- | --- |
+| Reckless | +1 attack damage (martial) / +1 spell damage (arcane) on the companion's first action each combat. |
+| Stoic | Ignores the first point of damage from each hit while above 50% HP. |
+| Curious | +1 hex scouting radius on the overworld while in the party. |
+| Loyal | +1 armor while adjacent to the wizard. |
+| Cunning | +1 movement on any turn in which the companion does not attack. |
+
+# 3. Arc Signature Abilities
+
+*Completing a companion's story arc (ArcStage 4) grants exactly one signature ability. Signatures are where companion individuality lives: the same Fighter chassis plays differently depending on who the person is. v1 uses a Class × Trait template matrix so the system works for every generated companion; named companions can later override via a signatureId JSON field with bespoke content.*
+
+## 3a. Rules
+
+- **Martial signatures are stances** flagged IsSignature in StanceRegistry. They never appear in training lists, never consume a stance slot, and occupy a dedicated always-available slot — switchable like any stance under the normal once-per-turn rule.
+
+- **Arcane signatures are signature cards** added to the companion's contributed cards — DEFERRED until card schema stabilizes. Interim arcane signature: a combat passive from the matrix below.
+
+- **Signatures are disabled at Wary loyalty.** A betrayed companion withholds their best.
+
+- **Permadeath destroys the signature permanently.** Signatures are people, not gear.
+
+## 3b. Template Matrix (v1)
+
+| **Class** | **Trait** | **Signature** |
+| --- | --- | --- |
+| Fighter | Reckless | Last Stand — while below 25% HP: +2 attack damage and ignore the first hit taken each turn. |
+| Fighter | Stoic | Bulwark Oath — adjacent allies take −1 damage from all hits. Stacks with GuardianAura; total flat reduction from auras capped at −3. |
+| Fighter | Loyal | Shield Brother — once per turn, may intercept an attack targeting an adjacent ally, taking the hit instead. |
+| Fighter | Cunning | Opportunist — attacks against enemies already damaged this turn deal +2 damage. |
+| Fighter | Curious | Probing Strikes — attacking an enemy reveals its intent (next planned action) for one turn. |
+| Ranger | Reckless | Point Blank — no adjacency restriction; +2 damage against targets at range 1. |
+| Ranger | Stoic | Overwatch — if the Ranger did not move this turn, fire a free reaction shot at the first enemy entering attack range. |
+| Ranger | Loyal | Covering Fire — allies adjacent to the Ranger's current target take −1 damage from that target. |
+| Ranger | Cunning | Quarry — upgrades MarkedTarget: Marked enemies take +1 damage from ALL sources, not just the next ally hit. |
+| Ranger | Curious | Keen Eye — +1 overworld scouting radius (stacks with Curious perk) and ambushes are always detected while in the party. |
+| Arcane | (any, interim) | Resonance — the companion gains +1 mana whenever the wizard casts a card matching the companion's school. Final version: a unique signature card contributed to the deck (deferred). |
+
+## 3c. Implementation Hooks (Companion Progression)
+
+- Companion gains a computed LoyaltyTier property (no save schema change) plus an optional string SignatureId for future bespoke overrides.
+
+- CombatManager spawn block (the existing martial setup section) reads tier: applies the Trusted perk, adds the Devoted personal stance slot on top of save.MartialStanceSlots, and sets unit.HasSwornIntervention.
+
+- Unit gains bool HasSwornIntervention / bool InterventionUsed; the damage resolver checks them on lethal damage.
+
+- StanceDefinition gains bool IsSignature; CampusScreen.BuildLearnableStanceList filters them out; the combat stance switcher always includes the signature stance when ArcStage == 4 and tier > Wary.
+
+- Loyalty deltas hook into OverworldRunManager.CommitCombat (survive/downed/abandoned), run resolution (run-complete bonus, permadeath ripple), negotiation resolution (Cordial bonus, betrayal), and a Tavern gift button on CampusScreen.
+
+# 4. Item System — Identity Rules & Rarity Budget
+
+*The existing skeleton (three slots, flat stat modifiers, one passive tag, GUID instances, ArmoryData loadouts) is retained unchanged. This section defines the authoring rules that keep handcrafted items legible and the rarity ladder meaningful.*
+
+## 4a. Hard Rules
+
+- **Items are passive.** No activated abilities, no 'cast X' effects. Active one-shots are scrolls (Scribe's Tower).
+
+- **Two-effect ceiling.** One innate passive (existing PassiveTag) + at most one Workshop enchantment. Never more.
+
+- **Slot identity.** Weapon = offense and output. Armor = defense and sustain. Trinket = economy, utility, and rule-benders.
+
+- **Legendaries are unique-owned.** Once the guild owns a Legendary, it is removed from every drop pool. If the pool is exhausted, the drop rerolls to gold. Rares and below may duplicate — the roster has multiple bodies to equip.
+
+## 4b. Rarity Budget
+
+| **Rarity** | **Power Budget** | **Example** |
+| --- | --- | --- |
+| Common | Flat stats only. No passive. | Iron Buckler: +1 Armor. |
+| Uncommon | Stats + one numeric passive (existing PassiveTag values). | Stormcaller's Focus: +1 MaxMana; Storm spells cost 1 less. |
+| Rare | A passive that changes decisions — positioning, sequencing, targeting. | Duelist's Brand: melee attacks apply Bleed; +1 AttackDamage. |
+| Legendary | A build-around rule change (Slay the Spire relic tier). Unique-owned. | Hourglass of the Reviser: the first card the wizard plays each combat is immediately returned to hand. |
+
+# 5. Acquisition
+
+## 5a. Drop Tables by Region Tier
+
+| **Region Tier** | **Common** | **Uncommon** | **Rare** | **Legendary** |
+| --- | --- | --- | --- | --- |
+| Tier 1 | 70% | 25% | 5% | 0% |
+| Tier 2 | 40% | 40% | 18% | 2% |
+| Tier 3 | 15% | 40% | 35% | 10% |
+| **Boss / Archmage** | — | — | Guaranteed Rare+ | Archmage: guaranteed Legendary candidate roll |
+
+## 5b. Sources
+
+| **Source** | **Behavior** |
+| --- | --- |
+| Combat rewards | Standard table roll per region tier. Elite encounters roll twice, keep the rarer result. |
+| Exploration POIs | Terrain-flavored pools: forge sites lean Weapon, lore caches lean Trinket, per the terrain encounter themes in run structure v2. |
+| Negotiation (Cordial zone) | Bonus deal options may include items one rarity above the region floor — the social route to good gear. |
+| Merchant Quarter (campus) | Vendor stock: Common–Rare, refreshes each run, faction-reputation discounts per campus spec. |
+| Auction House (campus) | The only purchasable Legendary venue; contested NPC faction bidding per campus spec. |
+
+# 6. Enchanting — The Enchanter's Workshop
+
+*The sole mutation path for items, and the sink that finally closes the loop on the terrain drip resources (herb, ore, mana crystal, ember shard, rare reagent) which currently accumulate with no use. Each ItemInstance has exactly one enchantment slot, forever; Tier 3 allows rerolling its contents, never adding a second.*
+
+## 6a. Workshop Tiers
+
+| **Tier** | **Unlocks** | **Typical Cost** |
+| --- | --- | --- |
+| Tier 1 | Stat enchantments: +1 Armor, +2 MaxHP, +1 AttackDamage, +1 MaxMana, +1 SpellDamage, +1 BaseSpeed. | 40–80g + 2 matching materials (ore for offense, herb for sustain). |
+| Tier 2 | Minor passive enchantments drawn from the enchant pool (§6b). Signature item binding (§7). | 120–200g + 1 mana crystal or ember shard. |
+| Tier 3 | Reroll an existing enchantment; transfer an enchantment between items of the same slot; craft one custom relic (the campus-spec capstone). | 200g+ and rare reagents; custom relic is a once-per-save project. |
+
+## 6b. Enchant Pool Rules
+
+- **Separate pools.** Enchantments come from a dedicated enchant list, distinct from innate PassiveTags. An item can never hold the same tag twice (no FireSpellBonusDamage enchant on an item whose innate passive is FireSpellBonusDamage).
+
+- **v1 enchant list: **6 stat enchants (Tier 1 above) + 6 passive enchants: minor mana-on-kill, shield-on-combat-start (small), bleed-duration +1, first-attack +1 damage, −1 damage from ranged hits, +1 negotiation token of a fixed type (Diplomat-line items per the negotiation spec).
+
+# 7. Signature Item Binding (Optional Module)
+
+*Flagged optional — the bridge between the two systems. Cut cleanly if it overcomplicates v1.*
+
+- At Sworn loyalty, one item equipped by that companion may be bound at Workshop Tier 2+.
+
+- A bound item gains a second enchantment slot — the only exception to the one-enchant rule in the entire game.
+
+- Bound items are companion-exclusive (no one else can equip them) and are destroyed on that companion's permadeath.
+
+- Design intent: attachment and stakes. The strongest item in your armory is married to a mortal.
+
+# 8. Content Budget — v1
+
+| **Rarity** | **Weapon** | **Armor** | **Trinket** | **Total** | **Class Split** |
+| --- | --- | --- | --- | --- | --- |
+| Common | 4 | 4 | 4 | 12 | 4 Wizard / 4 Martial / 4 Any |
+| Uncommon | 4 | 4 | 4 | 12 | 5 Wizard / 5 Martial / 2 Any |
+| Rare | 4 | 3 | 3 | 10 | 4 Wizard / 4 Martial / 2 Any |
+| Legendary | 2 | 1 | 3 | 6 | 2 Wizard / 2 Martial / 2 Any |
+
+Forty items plus twelve enchantments is enough for the rarity ladder and Workshop loop to function and be tuned, without committing serious authoring time before the systems are proven in play.
+
+# 9. Implementation Hooks (Items)
+
+- ItemInstance gains: string EnchantId, ItemStatModifiers EnchantStats, string EnchantPassive / int EnchantPassiveValue — deltas stored on the instance, definition never mutated, exactly as the existing code comment anticipates. Plus bool IsBound / string BoundCompanionId for §7.
+
+- ResolvedLoadout aggregation extends to fold enchant deltas into the existing Bonus* fields and Passives list — CombatManager spawn code is untouched.
+
+- GuildSaveData gains Dictionary<string,int> Materials for the terrain drip resources; OverworldRunManager credits them on hex traversal per the run structure v2 table.
+
+- New DropTableRegistry: JSON-driven per region tier (rarity weights), with a pool filter that excludes owned Legendary definition IDs.
+
+- CampusScreen Workshop tab: enchant/reroll/transfer/bind UI, gated by EnchantersWorkshopTier on the save — same pattern as the existing Training tab.
+
+# 10. Open Questions / Deferred
+
+- Arcane companion Devoted benefit and signature cards — deferred until card schema stabilizes (interim benefits specified in §2a and §3b stand until then).
+
+- Betrayal loyalty hooks require negotiation/event choice tagging — depends on event system maturity.
+
+- Whether Sworn Intervention should also be able to save the wizard — current call: self-only; protecting the wizard is Fighter + Loyal signature territory (Shield Brother). Revisit if playtests show wizard deaths feel cheap.
+
+- Tavern gift pricing and the −5 permadeath morale ripple are the two numbers most likely to need tuning.
+
+- Custom relic crafting (Workshop Tier 3 capstone) needs its own mini-spec — out of scope for v1.
