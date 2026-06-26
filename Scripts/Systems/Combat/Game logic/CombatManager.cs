@@ -2893,7 +2893,15 @@ public partial class CombatManager : Node3D
             var archetype = slot.Archetype;
             float mult = slot.DifficultyMult;
 
-            int hp = Mathf.RoundToInt(EnemyArchetypeData.GetMaxHealth(archetype) * mult);
+            // Option B: HP on a softened (sqrt) curve so high mults don't create
+            // slog-sponges; damage closer to linear so deep/corrupted ground is
+            // actually lethal, not just tankier. Armor left flat — scaling it
+            // compounds the chip-grind against a low-unit-count party.
+            float hpMult = Mathf.Sqrt(mult);
+            float dmgMult = mult;
+
+            int hp = Mathf.RoundToInt(EnemyArchetypeData.GetMaxHealth(archetype) * hpMult);
+            int dmg = Mathf.RoundToInt(EnemyArchetypeData.GetAttackDamage(archetype) * dmgMult);
 
             pendingEnemySpawns.Add(new PendingEnemySpawn
             {
@@ -2903,7 +2911,7 @@ public partial class CombatManager : Node3D
                 BaseSpeed = EnemyArchetypeData.GetBaseSpeed(archetype),
                 Armor = EnemyArchetypeData.GetArmor(archetype),
                 AttackRange = EnemyArchetypeData.GetAttackRange(archetype),
-                AttackDamage = EnemyArchetypeData.GetAttackDamage(archetype),
+                AttackDamage = dmg,
                 BodyColor = EnemyArchetypeData.GetBodyColor(archetype),
                 NamePrefix = EnemyArchetypeData.GetThreatLabel(archetype),
             });

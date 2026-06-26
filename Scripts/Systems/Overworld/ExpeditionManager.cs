@@ -505,12 +505,20 @@ public partial class ExpeditionManager : Node2D
         string regionId = StagingTemplateRegion();
         var tier = EncounterTier.Battle;
         var arch = RollArchmageAt(coord);   // resident archmage rolls for its own forces
+        if (PlayerSession.DebugMode)
+            GD.Print($"[ArchmageEncounter] POI tile kingdom-archmage='{KingdomArchmageAt(coord)}', " +
+                     $"draw={(arch != null ? arch.Id : "(region pool)")}");
+
+        // 2c: archmage groups own their authored difficulty (mult 1.0). Region-tier
+        // scaling applies only to the generic region-pool fallback.
+        // SEAM: a future corrupted-archmage variant would swap `arch` here based on
+        // the tile's corruption level before the draw — same call shape, different def.
+        _scaledDifficultyMult = DifficultyMultAt(coord);
         var encounterDef =
             (arch != null
-                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, _scaledDifficultyMult)
+                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, 1.0f)
                 : null)
             ?? EncounterPoolLoader.Pick(regionId, tier, terrainType, _scaledDifficultyMult);
-
         _pendingCombatHexCoord = coord;
         _pendingEncounter = encounterDef;
         _pendingTerrain = terrainType;
@@ -584,9 +592,14 @@ public partial class ExpeditionManager : Node2D
         // are always the archmage's own, NO chance roll. Region pool only backstops
         // an archmage that has no authored skirmish group.
         var arch = ArchmageDefById(archmageId);
+        if (PlayerSession.DebugMode)
+            GD.Print($"[ArchmageEncounter] patrol archmageId='{archmageId}', " +
+                     $"draw={(arch != null ? arch.Id : "(region pool)")}");
+
+        _scaledDifficultyMult = DifficultyMultAt(coord);
         var encounterDef =
             (arch != null
-                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Skirmish, terrainType, _scaledDifficultyMult)
+                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Skirmish, terrainType, 1.0f)
                 : null)
             ?? EncounterPoolLoader.Pick(regionId, EncounterTier.Skirmish, terrainType, _scaledDifficultyMult);
         CommitCombat(coord, encounterDef, terrainType);
@@ -1078,6 +1091,32 @@ public partial class ExpeditionManager : Node2D
         if (def == null)
             return null;
         return GD.Randf() < def.ArchmageFactionChance ? def : null;
+    }
+
+    /// <summary>Combined enemy difficulty multiplier for a window-local tile:
+    /// the tile's kingdom's region-template EnemyDifficultyMult × a positional
+    /// factor from the kingdom's Tier (1→1.0, 2→1.25, 3→1.5). Per-tile (NOT
+    /// staging-keyed) so a border-straddling window scales to the ground you're
+    /// on. Used only for the REGION pool — archmage groups carry their own
+    /// authored difficulty (see OpenScoutReport / OnPatrolCapturedPlayer).</summary>
+    private float DifficultyMultAt(Vector2I local)
+    {
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return 1.0f;
+        string kid = _world.GetTile(col, row).KingdomId ?? "";
+        if (string.IsNullOrEmpty(kid) ||
+            SaveManager.ActiveSave?.Cycle?.Kingdoms == null ||
+            !SaveManager.ActiveSave.Cycle.Kingdoms.TryGetValue(kid, out var ks))
+            return 1.0f;
+
+        float regionMult = RegionLoader.LoadOrDefault(ks.TemplateRegionId)?.EnemyDifficultyMult ?? 1.0f;
+        float tierFactor = ks.Tier switch
+        {
+            <= 1 => 1.0f,
+            2 => 1.25f,
+            _ => 1.5f,   // tier 3+
+        };
+        return regionMult * tierFactor;
     }
 
     /// <summary>Map a stored grid-local coord through the window (identity — the
