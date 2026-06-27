@@ -77,6 +77,11 @@ public static class WorldGenerator
         // capitals place. Terrain for the high bands is stamped post-reclassify.
         MountainShaper.RaiseElevation(world, seed);
 
+        // ── 1c. Hydrology: depression-fill the uplifted surface into inland
+        // Lakes, then trace flow accumulation into river EDGES. Before territories
+        // so lakes aren't owned and rivers exist for later road routing.
+        Hydrology.Apply(world);
+
         // ── 2. Territory partition (capitals → graph Voronoi) ────────────
         var capitals = PlaceCapitals(world, p, rng);   // one per kingdom
         var kingdomIds = AssignTerritories(world, capitals);
