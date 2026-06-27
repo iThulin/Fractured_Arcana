@@ -170,7 +170,7 @@ public partial class OverworldFactionManager : Node2D
                     continue;
 
                 // Terrain filter
-                if (hex.Terrain == OverworldHex.TerrainType.Water ||
+                if (hex.IsWater ||
                     hex.Terrain == OverworldHex.TerrainType.Mountain)
                     continue;
 
@@ -309,7 +309,7 @@ public partial class OverworldFactionManager : Node2D
             if (d < 5 || d > 9)
                 continue;
             var t = kvp.Value.Terrain;
-            if (t == OverworldHex.TerrainType.Water || t == OverworldHex.TerrainType.Mountain)
+            if (TerrainClass.IsWater(t) || t == OverworldHex.TerrainType.Mountain)
                 continue;
             candidates.Add(kvp.Key);
         }

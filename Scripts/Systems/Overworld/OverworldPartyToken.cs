@@ -105,16 +105,18 @@ public partial class OverworldPartyToken : Node2D
     /// </summary>
     public bool TryMoveTo(Vector2I targetCoord)
     {
-        if (_isMoving) return false;
+        if (_isMoving)
+            return false;
 
         // Must be an adjacent hex
         var neighbors = _grid.GetNeighbors(CurrentCoord);
-        if (!neighbors.Contains(targetCoord)) return false;
+        if (!neighbors.Contains(targetCoord))
+            return false;
 
         // Can't walk into water (impassable)
         if (_grid.Hexes.TryGetValue(targetCoord, out var targetHex))
         {
-            if (targetHex.Terrain == OverworldHex.TerrainType.Water)
+            if (targetHex.IsWater)
                 return false;
         }
 
@@ -142,13 +144,15 @@ public partial class OverworldPartyToken : Node2D
     {
         ClearHighlights();
 
-        if (_grid == null) return;
+        if (_grid == null)
+            return;
 
         foreach (var neighborCoord in _grid.GetNeighbors(CurrentCoord))
         {
             if (_grid.Hexes.TryGetValue(neighborCoord, out var hex))
             {
-                if (hex.Terrain == OverworldHex.TerrainType.Water) continue;
+                if (hex.IsWater)
+                    continue;
 
                 // Color the highlight based on cost
                 int cost = GetTerrainCostPreview(hex.Terrain);

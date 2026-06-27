@@ -73,6 +73,12 @@ public partial class StrategicView : Node2D
     // Index bookkeeping for live recolor.
     private readonly Dictionary<int, int> _poiInstanceOfPoi = new(); // poiIndex → poi MultiMesh instance
 
+    // ── Standalone continent-style debug selector ────────────────────────
+    private ContinentStyle? _standaloneStyle = null;   // null = seed-rolled
+    private int _standaloneSeed;
+    private CanvasLayer _debugControls;
+    private Label _debugInfoLabel;
+
     public override void _Ready()
     {
         if (_world == null)
@@ -80,11 +86,8 @@ public partial class StrategicView : Node2D
             if (Standalone)
             {
                 // Isolated testing: generate a throwaway world so the scene renders alone.
-                var g = WorldGenerator.Generate(StandaloneSeed, StandaloneSchool);
-                _world = g.World;
-                _kingdoms = g.Kingdoms;
-                if (RevealAllForTesting)
-                    RevealAll();
+                _standaloneSeed = StandaloneSeed;
+                GenerateStandaloneWorld();
             }
             else
             {
@@ -127,6 +130,8 @@ public partial class StrategicView : Node2D
             BuildStagingMarkers();
             BuildHud();
         }
+        if (Standalone)
+            BuildDebugControls();
         FrameCamera();
     }
 
@@ -419,8 +424,7 @@ public partial class StrategicView : Node2D
             case StrategicLens.Corruption:
                 return CorruptionLensColor(t);
             default:
-                bool ownedLand = t.Terrain != OverworldHex.TerrainType.Water &&
-                                 !string.IsNullOrEmpty(t.KingdomId);
+                bool ownedLand = t.IsLand && !string.IsNullOrEmpty(t.KingdomId);
                 return ownedLand ? FactionColorForKingdom(t.KingdomId) : TerrainColor(t.Terrain);
         }
     }
@@ -428,7 +432,7 @@ public partial class StrategicView : Node2D
     // ── Political lens (default): faction control + terrain luminance + corruption wash ──
     private Color PoliticalLensColor(WorldTile t)
     {
-        bool isLand = t.Terrain != OverworldHex.TerrainType.Water;
+        bool isLand = t.IsLand;
         Color c;
         if (isLand && !string.IsNullOrEmpty(t.KingdomId))
         {
@@ -460,7 +464,7 @@ public partial class StrategicView : Node2D
     //    ramps through warning to full corruption color. Makes the spread legible. ──
     private Color CorruptionLensColor(WorldTile t)
     {
-        if (t.Terrain == OverworldHex.TerrainType.Water)
+        if (t.IsWater)
             return UITheme.TerrainWater.Darkened(0.3f);
         float k = Mathf.Clamp(t.Corruption / 100f, 0f, 1f);
         // Cool clean -> hot corrupted, via a two-stop ramp for readability.
@@ -483,6 +487,9 @@ public partial class StrategicView : Node2D
         OverworldHex.TerrainType.ArcaneGround => UITheme.TerrainArcaneGround,
         OverworldHex.TerrainType.Volcanic => UITheme.TerrainVolcanic,
         OverworldHex.TerrainType.Water => UITheme.TerrainWater,
+        OverworldHex.TerrainType.Hills => UITheme.TerrainHills,
+        OverworldHex.TerrainType.Coast => UITheme.TerrainCoast,
+        OverworldHex.TerrainType.Lake => UITheme.TerrainLake,
         _ => UITheme.Neutral,
     };
 
@@ -498,6 +505,8 @@ public partial class StrategicView : Node2D
         OverworldHex.TerrainType.Swamp => 0.72f,
         OverworldHex.TerrainType.Mountain => 0.88f,
         OverworldHex.TerrainType.Volcanic => 0.85f,
+        OverworldHex.TerrainType.Hills => 0.95f,
+        OverworldHex.TerrainType.Coast => 1.12f,
         _ => 1.0f,
     };
 
@@ -661,6 +670,140 @@ public partial class StrategicView : Node2D
             _world.Tiles[i].Discovery = TileDiscovery.Explored;
         foreach (var poi in _world.Pois)
             poi.Discovered = true;
+    }
+
+    // ── Standalone continent-style selector (debug only) ─────────────────
+
+    /// <summary>(Re)generate the disposable standalone world from the current
+    /// debug seed + style override. Never touches a save — Standalone only.</summary>
+    private void GenerateStandaloneWorld()
+    {
+        var p = new WorldGenerator.Params { ContinentStyleOverride = _standaloneStyle };
+        var g = WorldGenerator.Generate(_standaloneSeed, StandaloneSchool, p);
+        _world = g.World;
+        _kingdoms = g.Kingdoms;
+        if (RevealAllForTesting)
+            RevealAll();
+    }
+
+    /// <summary>Regenerate + repaint the data layers in place. Leaves the debug
+    /// panel and camera node alone so the OptionButton selection is preserved.</summary>
+    private void RegenerateStandalone()
+    {
+        GenerateStandaloneWorld();
+        BuildTileLayer();
+        BuildPoiLayer();
+        FrameCamera();
+        UpdateDebugInfo();
+    }
+
+    private void BuildDebugControls()
+    {
+        _debugControls?.QueueFree();
+        _debugControls = new CanvasLayer { Name = "StandaloneDebugControls" };
+        AddChild(_debugControls);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0f,
+            AnchorTop = 0f,
+            AnchorRight = 0f,
+            AnchorBottom = 0f,
+            OffsetLeft = 16,
+            OffsetTop = 16,
+            OffsetRight = 300,
+            OffsetBottom = 224,
+        };
+        panel.AddThemeStyleboxOverride("panel",
+            UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Violet));
+        _debugControls.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 12);
+        margin.AddThemeConstantOverride("margin_right", 12);
+        margin.AddThemeConstantOverride("margin_top", 10);
+        margin.AddThemeConstantOverride("margin_bottom", 10);
+        panel.AddChild(margin);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 6);
+        margin.AddChild(vbox);
+
+        var title = new Label { Text = "Continent (debug)" };
+        title.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        title.AddThemeColorOverride("font_color", UITheme.Gold);
+        vbox.AddChild(title);
+
+        var opt = new OptionButton();
+        opt.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        opt.AddItem("Seed-rolled", 0);
+        opt.AddItem("Pangaea", 1);
+        opt.AddItem("Continents", 2);
+        opt.AddItem("Archipelago", 3);
+        opt.Select(_standaloneStyle switch
+        {
+            ContinentStyle.Pangaea => 1,
+            ContinentStyle.Continents => 2,
+            ContinentStyle.Archipelago => 3,
+            _ => 0,
+        });
+        opt.ItemSelected += OnStyleSelected;
+        vbox.AddChild(opt);
+
+        var rerollBtn = new Button { Text = "Reroll seed" };
+        rerollBtn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        UITheme.ApplyButtonStyle(rerollBtn, isPrimary: false);
+        rerollBtn.Pressed += () =>
+        {
+            _standaloneSeed = (int)GD.Randi();
+            RegenerateStandalone();
+        };
+        vbox.AddChild(rerollBtn);
+
+        _debugInfoLabel = new Label();
+        _debugInfoLabel.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 3);
+        _debugInfoLabel.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.6f));
+        vbox.AddChild(_debugInfoLabel);
+
+        // ── Lens toggles (debug parity with the real strategic HUD) ──────
+        vbox.AddChild(new HSeparator());
+
+        var viewLabel = new Label { Text = "View" };
+        viewLabel.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        viewLabel.AddThemeColorOverride("font_color", UITheme.Gold);
+        vbox.AddChild(viewLabel);
+
+        _lensButtons.Clear();
+        var lensRow = new HBoxContainer();
+        lensRow.AddThemeConstantOverride("separation", 6);
+        vbox.AddChild(lensRow);
+
+        AddLensButton(lensRow, "Political", StrategicLens.Political);
+        AddLensButton(lensRow, "Terrain", StrategicLens.Terrain);
+        AddLensButton(lensRow, "Corruption", StrategicLens.Corruption);
+        UpdateLensButtons();
+
+        UpdateDebugInfo();
+    }
+
+    private void OnStyleSelected(long idx)
+    {
+        _standaloneStyle = idx switch
+        {
+            1 => ContinentStyle.Pangaea,
+            2 => ContinentStyle.Continents,
+            3 => ContinentStyle.Archipelago,
+            _ => (ContinentStyle?)null,
+        };
+        RegenerateStandalone();
+    }
+
+    private void UpdateDebugInfo()
+    {
+        if (_debugInfoLabel == null || _world == null)
+            return;
+        string rolled = string.IsNullOrEmpty(_world.ContinentStyle) ? "?" : _world.ContinentStyle;
+        _debugInfoLabel.Text = $"seed {_standaloneSeed} · {rolled}";
     }
 
     // ════════════════════════════════════════════════════════════════════

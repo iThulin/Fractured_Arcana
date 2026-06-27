@@ -341,8 +341,8 @@ public partial class PatrolToken : Node2D
     {
         if (!_grid.Hexes.TryGetValue(coord, out var hex))
             return false;
-        return hex.Terrain != OverworldHex.TerrainType.Water &&
-               hex.Terrain != OverworldHex.TerrainType.Mountain;
+        return hex.IsWater == false &&
+       hex.Terrain != OverworldHex.TerrainType.Mountain;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

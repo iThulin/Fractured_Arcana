@@ -21,7 +21,10 @@ public partial class OverworldHex : Node2D
     // ── Data ────────────────────────────────────────────────────────────
     public Vector2I Axial { get; set; }
 
-    public enum TerrainType { Grassland, Forest, Road, Ruins, Mountain, Swamp, ArcaneGround, Volcanic, Water }
+    public enum TerrainType { Grassland, Forest, Road, Ruins, Mountain, Swamp, ArcaneGround, Volcanic, Water, Hills, Coast, Lake }
+    public bool IsWater => TerrainClass.IsWater(Terrain);
+    public bool IsLand => TerrainClass.IsLand(Terrain);
+    public bool IsCoast => TerrainClass.IsCoast(Terrain);
     public TerrainType Terrain { get; set; } = TerrainType.Grassland;
 
     public enum FogState { Hidden, Silhouette, Revealed }
@@ -117,6 +120,9 @@ public partial class OverworldHex : Node2D
             TerrainType.ArcaneGround => UITheme.TerrainArcaneGround,
             TerrainType.Volcanic => UITheme.TerrainVolcanic,
             TerrainType.Water => UITheme.TerrainWater,
+            TerrainType.Hills => UITheme.TerrainHills,
+            TerrainType.Coast => UITheme.TerrainCoast,
+            TerrainType.Lake => UITheme.TerrainLake,
             _ => Colors.Gray
         };
 

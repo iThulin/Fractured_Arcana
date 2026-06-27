@@ -218,7 +218,7 @@ public static class CorruptionSpread
             {
                 int idx = y * w + x;
                 var tile = world.Tiles[idx];
-                if (tile.Terrain == OverworldHex.TerrainType.Water)
+                if (tile.IsWater)
                     continue;
 
                 float target = TargetFor(tile.KingdomId);

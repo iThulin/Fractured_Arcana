@@ -65,6 +65,23 @@ public struct WorldTile
 
     /// <summary>True if an expedition may launch from here.</summary>
     public bool IsStagingPoint;
+
+    /// <summary>River edges as a 6-bit mask in HexCoord.AxialDirections order;
+    /// bit i set = a river runs along edge i. Set on BOTH tiles sharing the edge
+    /// (neighbor across edge i carries bit (i+3)%6) so a window-fringe tile knows
+    /// its own edges without its neighbor loaded. 0 = no river.</summary>
+    public byte RiverEdges;
+
+    /// <summary>Bridge/ford edges, same bit convention as RiverEdges. A set bit
+    /// means a road crosses the river here at no crossing penalty.</summary>
+    public byte BridgeEdges;
+
+    // ── Terrain category predicates (route here, never compare == Water) ──
+    public bool IsOcean => TerrainClass.IsOcean(Terrain);
+    public bool IsLake => TerrainClass.IsLake(Terrain);
+    public bool IsWater => TerrainClass.IsWater(Terrain);
+    public bool IsLand => TerrainClass.IsLand(Terrain);
+    public bool IsCoast => TerrainClass.IsCoast(Terrain);
 }
 
 /// <summary>A point of interest on the world map. Discovery is separate
@@ -128,6 +145,9 @@ public class WorldData
     /// radiates from here; it is the cycle's terminal location.</summary>
     public int ConvergenceX = -1;
     public int ConvergenceY = -1;
+
+    /// <summary>The rolled continental topology, for save/debug.</summary>
+    public string ContinentStyle = "";
 
     // ── Access ───────────────────────────────────────────────────────────
     public bool InBounds(int x, int y) => x >= 0 && y >= 0 && x < Width && y < Height;

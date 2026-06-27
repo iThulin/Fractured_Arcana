@@ -26,7 +26,8 @@ using System.Linq;
 //                 RegionLoader.cs (palette presets),
 //                 CampaignGenerator.cs (archmage seam),
 //                 FactionRegistry.cs, KingdomState.cs,
-//                 WorldData.cs (output), CycleState.cs (stores)
+//                 WorldData.cs (output), CycleState.cs (stores),
+//                 TerrainClass.cs (land/water predicates)
 // See:            single_world_refactor_v2.docx §3.2, §8 (Phase 1a)
 // ============================================================
 
@@ -52,6 +53,8 @@ public static class WorldGenerator
         public float WaterLevel = 0.30f;  // elevation below this is unwalkable water (avoid as capitals/POIs)
         public int PoiPerKingdom = 12;    // ~10 POIs per radius-12 window (sim-calibrated)
         public int PreDiscoveredPois = 3; // POIs visible from the start, near the staging point
+        public ContinentStyle? ContinentStyleOverride = null; // null = roll the continent style from the seed; set to force one (debug).
+
     }
 
     public static GeneratedWorldData Generate(int seed, string playerSchool, Params p = null)
@@ -67,7 +70,12 @@ public static class WorldGenerator
         };
 
         // ── 1. Terrain across the whole surface ──────────────────────────
-        FillTerrain(world, seed);
+        FillTerrain(world, seed, p.ContinentStyleOverride);
+
+        // ── 1b. Orogenic uplift into the elevation field. Runs before
+        // hydrology + territories so ranges are present when rivers drain and
+        // capitals place. Terrain for the high bands is stamped post-reclassify.
+        MountainShaper.RaiseElevation(world, seed);
 
         // ── 2. Territory partition (capitals → graph Voronoi) ────────────
         var capitals = PlaceCapitals(world, p, rng);   // one per kingdom
@@ -180,6 +188,12 @@ public static class WorldGenerator
         // so coastlines + territory assignment stay stable.
         ReclassifyTerrainPerRegion(world, kingdoms);
 
+        // ── 5c. Stamp Hills/Mountain from the final (uplifted) elevation,
+        // AFTER the per-region repaint so the mountain structure is globally
+        // coherent. Lowlands keep their regional identity; biome Volcanic is
+        // preserved.
+        MountainShaper.ClassifyHighlands(world);
+
         // ── 6. Corruption gradient toward the convergence seat ───────────
         ApplyCorruptionGradient(world, kingdoms, campaign, convergence);
 
@@ -198,7 +212,7 @@ public static class WorldGenerator
     }
 
     // ── 1. Terrain ───────────────────────────────────────────────────────
-    private static void FillTerrain(WorldData world, int seed)
+    private static void FillTerrain(WorldData world, int seed, ContinentStyle? styleOverride)
     {
         var field = new OverworldField(seed);
         // Lower frequencies than a 15x15 region so biomes read as continental
@@ -207,19 +221,29 @@ public static class WorldGenerator
         field.MoistureFrequency = 0.013f;
         field.ApplyFrequencies();
 
-        var palette = DefaultWorldPalette();
+        var style = styleOverride ?? ContinentShaper.RollStyle(seed);
+        var shape = ContinentShaper.Build(field, world.Width, world.Height, seed, style);
+        world.ContinentStyle = style.ToString();
+
+        // LAND-only palette: ocean is decided by the continent mask, not by an
+        // elevation threshold, so the Water rule is dropped here.
+        var landPalette = LandOnlyWorldPalette();
 
         for (int y = 0; y < world.Height; y++)
         {
             for (int x = 0; x < world.Width; x++)
             {
-                var axial = new Vector2I(x, y);
-                float e = field.SampleElevation01(axial);
-                float m = field.SampleMoisture01(axial);
+                int i = y * world.Width + x;
+                float e = shape.Elevation[i];
+                float m = field.SampleMoisture01(new Vector2I(x, y));
 
-                world.Tiles[y * world.Width + x] = new WorldTile
+                var terrain = shape.IsOcean[i]
+                    ? OverworldHex.TerrainType.Water
+                    : field.ClassifyByPalette(landPalette, e, m);
+
+                world.Tiles[i] = new WorldTile
                 {
-                    Terrain = field.ClassifyByPalette(palette, e, m),
+                    Terrain = terrain,
                     Elevation = e,
                     Moisture = m,
                     KingdomId = "",
@@ -230,7 +254,20 @@ public static class WorldGenerator
                 };
             }
         }
+
+        GD.Print($"[WorldGen] Continent style={style}, land fraction={shape.LandFraction:P0}.");
     }
+
+    /// <summary>The default world palette minus its Water rule. Ocean is set from
+    /// the continent mask; this classifies LAND only, on land elevation in [0,1].</summary>
+    private static List<OverworldPaletteRule> LandOnlyWorldPalette() => new()
+    {
+        new() { TerrainName = "Volcanic", MinElevation = 0.88f, MaxMoisture = 0.28f },
+        new() { TerrainName = "Mountain", MinElevation = 0.84f },
+        new() { TerrainName = "Swamp",    MaxElevation = 0.40f, MinMoisture = 0.66f },
+        new() { TerrainName = "Forest",   MinMoisture = 0.55f },
+        new() { TerrainName = "Grassland" },
+    };
 
     /// <summary>Reclassify each LAND tile's terrain through its kingdom's region
     /// palette, reusing the shared field's stored elevation/moisture. Water tiles
@@ -255,7 +292,7 @@ public static class WorldGenerator
                 continue;
 
             var landRules = def.BaseTerrain.Palette
-                .Where(r => r.Terrain != OverworldHex.TerrainType.Water)
+                .Where(r => !TerrainClass.IsWater(r.Terrain))
                 .ToList();
             if (landRules.Count == 0)
                 continue;
@@ -283,8 +320,8 @@ public static class WorldGenerator
                 int idx = y * world.Width + x;
                 var tile = world.Tiles[idx];
 
-                // Preserve water — coastlines and territory depend on it.
-                if (tile.Terrain == OverworldHex.TerrainType.Water)
+                // Preserve water AND coast — coastlines and territory depend on it.
+                if (tile.IsWater || tile.IsCoast)
                     continue;
                 if (string.IsNullOrEmpty(tile.KingdomId))
                     continue;
@@ -292,7 +329,7 @@ public static class WorldGenerator
                     continue;
 
                 var newTerrain = classifier.ClassifyByPalette(rules, tile.Elevation, tile.Moisture);
-                if (newTerrain == OverworldHex.TerrainType.Water)
+                if (TerrainClass.IsWater(newTerrain))
                     continue; // never introduce water mid-territory
                 tile.Terrain = newTerrain;
                 world.Tiles[idx] = tile;
@@ -326,7 +363,7 @@ public static class WorldGenerator
             for (int x = 0; x < world.Width; x++)
             {
                 var t = world.GetTile(x, y).Terrain;
-                if (t != OverworldHex.TerrainType.Water)
+                if (TerrainClass.IsLand(t))
                     land.Add((x, y));
             }
 
@@ -373,7 +410,7 @@ public static class WorldGenerator
             for (int x = 0; x < world.Width; x++)
             {
                 int idx = y * world.Width + x;
-                if (world.Tiles[idx].Terrain == OverworldHex.TerrainType.Water)
+                if (world.Tiles[idx].IsWater)
                     continue;
 
                 int nearest = 0, bestD = int.MaxValue;
@@ -434,7 +471,7 @@ public static class WorldGenerator
                 if (d <= bloom)
                 {
                     int idx = y * world.Width + x;
-                    if (world.Tiles[idx].Terrain != OverworldHex.TerrainType.Water)
+                    if (world.Tiles[idx].IsLand)
                     {
                         // 100 at the seat, falling to ~20 at the bloom edge.
                         float t = 1f - (float)d / bloom;
@@ -599,7 +636,7 @@ public static class WorldGenerator
                 if (d < minD || d > maxD)
                     continue;
                 var tile = world.GetTile(x, y);
-                if (tile.Terrain == OverworldHex.TerrainType.Water)
+                if (tile.IsWater)
                     continue;
                 if (tile.PoiIndex >= 0)
                     continue;

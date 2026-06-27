@@ -229,6 +229,9 @@ public static class WorldDebug
         OverworldHex.TerrainType.Road => '=',
         OverworldHex.TerrainType.Ruins => 'r',
         OverworldHex.TerrainType.ArcaneGround => 'a',
+        OverworldHex.TerrainType.Hills => 'n',
+        OverworldHex.TerrainType.Coast => '.',
+        OverworldHex.TerrainType.Lake => 'o',
         _ => '?',
     };
 }

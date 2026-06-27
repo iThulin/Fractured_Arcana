@@ -214,6 +214,9 @@ public static class UITheme
     public static readonly Color TerrainArcaneGround = new Color(0.48f, 0.30f, 0.72f, 1f);
     public static readonly Color TerrainVolcanic = new Color(0.70f, 0.26f, 0.10f, 1f);
     public static readonly Color TerrainWater = new Color(0.18f, 0.44f, 0.78f, 1f);
+    public static readonly Color TerrainHills = new Color(0.50f, 0.56f, 0.34f, 1f);
+    public static readonly Color TerrainCoast = new Color(0.82f, 0.76f, 0.56f, 1f);
+    public static readonly Color TerrainLake = new Color(0.30f, 0.58f, 0.82f, 1f);
 
     public static readonly Color FogHidden = new Color(0.08f, 0.06f, 0.12f, 0.90f);
     public static readonly Color FogSilhouette = new Color(0.08f, 0.06f, 0.12f, 0.48f);
