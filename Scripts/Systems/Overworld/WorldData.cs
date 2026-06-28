@@ -76,6 +76,11 @@ public struct WorldTile
     /// means a road crosses the river here at no crossing penalty.</summary>
     public byte BridgeEdges;
 
+    /// <summary>Index into WorldData.Settlements, or -1 for none. A tile inside a
+    /// city/town carries this; the settlement is an AREA, not a POI. MUST be set to
+    /// -1 at construction — the struct default 0 would alias Settlements[0].</summary>
+    public int SettlementIndex;
+
     // ── Terrain category predicates (route here, never compare == Water) ──
     public bool IsOcean => TerrainClass.IsOcean(Terrain);
     public bool IsLake => TerrainClass.IsLake(Terrain);
@@ -110,6 +115,35 @@ public class WorldPoi
     public bool GrantsStaging = false;
 }
 
+/// <summary>Settlement scale. City = several tiles, grants staging, studded with
+/// POIs; Town = a few tiles down to one, no staging, lightly studded.</summary>
+public enum SettlementTier { Town, City }
+
+/// <summary>A settlement AREA — a contiguous run of tiles, not a POI. Tiles keep
+/// their biome and back-reference this via WorldTile.SettlementIndex. POIs are
+/// studded into the footprint by the generator; staging (cities only) is granted
+/// by a POI at the centre, through the normal POI-discovery path.</summary>
+public class WorldSettlement
+{
+    public SettlementTier Tier = SettlementTier.Town;
+    public int CenterX;
+    public int CenterY;
+    public string KingdomId = "";
+    public string Name = "";
+
+    /// <summary>Cities true, towns false. The staging itself is a POI at the centre;
+    /// this flag is for rendering + intent.</summary>
+    public bool GrantsStaging = false;
+
+    /// <summary>True for the kingdom's primary city, grown from its archmage seat.
+    /// Its centre already carries the Seat POI, so ScatterPois doesn't add a second
+    /// staging POI there.</summary>
+    public bool IsSeat = false;
+
+    /// <summary>Every tile in this settlement's footprint (offset coords).</summary>
+    public List<(int x, int y)> Tiles = new();
+}
+
 /// <summary>One launch location. Accumulates as the world opens.</summary>
 public class StagingPoint
 {
@@ -140,6 +174,7 @@ public class WorldData
 
     public List<WorldPoi> Pois = new();
     public List<StagingPoint> StagingPoints = new();
+    public List<WorldSettlement> Settlements = new();
 
     /// <summary>World coordinate of Kassian's seat (the Convergence). Corruption
     /// radiates from here; it is the cycle's terminal location.</summary>
@@ -172,6 +207,14 @@ public class WorldData
             return null;
         int pi = GetTile(x, y).PoiIndex;
         return (pi >= 0 && pi < Pois.Count) ? Pois[pi] : null;
+    }
+
+    public WorldSettlement SettlementAt(int x, int y)
+    {
+        if (!InBounds(x, y))
+            return null;
+        int si = GetTile(x, y).SettlementIndex;
+        return (si >= 0 && si < Settlements.Count) ? Settlements[si] : null;
     }
 
     // ── Hex topology (the world is a flat-top odd-q rectangular hex map) ──

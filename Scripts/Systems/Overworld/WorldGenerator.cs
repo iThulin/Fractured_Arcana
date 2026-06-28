@@ -54,6 +54,9 @@ public static class WorldGenerator
         public int PoiPerKingdom = 12;    // ~10 POIs per radius-12 window (sim-calibrated)
         public int PreDiscoveredPois = 3; // POIs visible from the start, near the staging point
         public ContinentStyle? ContinentStyleOverride = null; // null = roll the continent style from the seed; set to force one (debug).
+        public float CityStudFraction = 0.55f;   // fraction of a city's tiles that get a POI
+        public float TownStudFraction = 0.50f;
+        public int WildPoiPerKingdom = 5;         // thinned wilderness scatter (was PoiPerKingdom=12)
 
     }
 
@@ -199,6 +202,10 @@ public static class WorldGenerator
         // preserved.
         MountainShaper.ClassifyHighlands(world);
 
+        // ── 5d. Settlements: grow City/Town AREAS (cities on the seats, towns by
+        // suitability). Areas only — ScatterPois studs them with POIs next.
+        Settlements.Generate(world, kingdoms, capitals, kingdomIds, convergenceKingdom, rng);
+
         // ── 6. Corruption gradient toward the convergence seat ───────────
         ApplyCorruptionGradient(world, kingdoms, campaign, convergence);
 
@@ -256,6 +263,7 @@ public static class WorldGenerator
                     Discovery = TileDiscovery.Unseen,
                     PoiIndex = -1,
                     IsStagingPoint = false,
+                    SettlementIndex = -1,
                 };
             }
         }
@@ -504,7 +512,8 @@ public static class WorldGenerator
         List<(int x, int y)> capitals, List<string> kingdomIds,
         Params p, RandomNumberGenerator rng)
     {
-        // Kingdom seats first: each archmage-bearing kingdom's capital becomes a Seat POI.
+        // 1. Archmage seats — each sits at its kingdom's primary (seat) city centre,
+        //    and is that city's staging POI.
         for (int i = 0; i < capitals.Count; i++)
         {
             string id = kingdomIds[i];
@@ -512,50 +521,85 @@ public static class WorldGenerator
                 continue;
             if (!kingdoms.TryGetValue(id, out var ks) || string.IsNullOrEmpty(ks.ArchmageId))
                 continue;
-
             AddPoi(world, capitals[i].x, capitals[i].y, PoiKind.Seat, id, grantsStaging: true);
         }
 
-        // Scatter ordinary POIs per kingdom on walkable, non-seat tiles.
-        // Weighted kinds: combat is common; Outpost AND Settlement both appear so
-        // staging sources are plentiful (each window should hit 2-3 staging POIs).
-        // Settlements grant staging on DISCOVERY (no fight); outposts on securing.
-        PoiKind[] kinds =
+        // 2. Stud settlements: cities dense + civilized, towns sparse. Non-seat
+        //    cities get a Settlement staging POI at centre (seat cities use the Seat).
+        PoiKind[] cityKinds = { PoiKind.Rest, PoiKind.Rest, PoiKind.Negotiation, PoiKind.Narrative, PoiKind.Combat };
+        PoiKind[] townKinds = { PoiKind.Rest, PoiKind.Negotiation, PoiKind.Combat };
+
+        foreach (var s in world.Settlements)
         {
-            PoiKind.Combat, PoiKind.Combat, PoiKind.Combat,
-            PoiKind.Rest, PoiKind.Rest,
-            PoiKind.Narrative, PoiKind.Narrative,
-            PoiKind.Negotiation,
-            PoiKind.Outpost, PoiKind.Outpost,   // ~2/11 secured-staging
-            PoiKind.Settlement,                  // ~1/11 discovered-staging
-        };
+            bool isCity = s.Tier == SettlementTier.City;
+
+            if (isCity && !s.IsSeat && world.GetTile(s.CenterX, s.CenterY).PoiIndex < 0)
+                AddPoi(world, s.CenterX, s.CenterY, PoiKind.Settlement, s.KingdomId, grantsStaging: true);
+
+            var kinds = isCity ? cityKinds : townKinds;
+            float frac = isCity ? p.CityStudFraction : p.TownStudFraction;
+            int target = Mathf.RoundToInt(s.Tiles.Count * frac);
+            if (isCity)
+                target = Mathf.Max(target, 2);
+
+            int placed = 0, attempts = 0, maxAttempts = s.Tiles.Count * 4 + 8;
+            while (placed < target && attempts < maxAttempts)
+            {
+                attempts++;
+                var (x, y) = s.Tiles[(int)(rng.Randi() % (uint)s.Tiles.Count)];
+                if (world.GetTile(x, y).PoiIndex >= 0)
+                    continue;   // occupied (centre seat/staging, or already studded)
+                var kind = kinds[(int)(rng.Randi() % (uint)kinds.Length)];
+                AddPoi(world, x, y, kind, s.KingdomId, grantsStaging: false);
+                placed++;
+            }
+        }
+
+        // 3. Wilderness scatter on non-settlement tiles: thinner, martial. Outposts
+        //    still grant staging so the exploration loop can bootstrap from the wild.
+        PoiKind[] wildKinds = { PoiKind.Combat, PoiKind.Combat, PoiKind.Combat, PoiKind.Outpost, PoiKind.Rest };
+
         foreach (var id in kingdomIds)
         {
             if (id == convergenceKingdom)
                 continue;
-            var tiles = TilesOfKingdom(world, id);
+            var tiles = WildTilesOfKingdom(world, id);
             if (tiles.Count == 0)
                 continue;
 
-            int count = p.PoiPerKingdom;
-            var placed = new List<(int x, int y)>();
+            int count = p.WildPoiPerKingdom;
+            var placedList = new List<(int x, int y)>();
             int attempts = 0, maxAttempts = count * 12;
 
-            while (placed.Count < count && attempts < maxAttempts)
+            while (placedList.Count < count && attempts < maxAttempts)
             {
                 attempts++;
                 var (x, y) = tiles[(int)(rng.Randi() % (uint)tiles.Count)];
                 if (world.GetTile(x, y).PoiIndex >= 0)
-                    continue;      // occupied
-                if (TooClose(placed, x, y, 2))
-                    continue;              // spacing: min 2 hexes apart
+                    continue;
+                if (TooClose(placedList, x, y, 2))
+                    continue;
 
-                PoiKind kind = kinds[(int)(rng.Randi() % (uint)kinds.Length)];
-                bool staging = kind == PoiKind.Outpost || kind == PoiKind.Settlement;
+                PoiKind kind = wildKinds[(int)(rng.Randi() % (uint)wildKinds.Length)];
+                bool staging = kind == PoiKind.Outpost;
                 AddPoi(world, x, y, kind, id, grantsStaging: staging);
-                placed.Add((x, y));
+                placedList.Add((x, y));
             }
         }
+    }
+
+    /// <summary>Kingdom land tiles NOT inside any settlement (the wilderness).</summary>
+    private static List<(int x, int y)> WildTilesOfKingdom(WorldData world, string id)
+    {
+        var result = new List<(int x, int y)>();
+        for (int y = 0; y < world.Height; y++)
+            for (int x = 0; x < world.Width; x++)
+            {
+                var t = world.GetTile(x, y);
+                if (t.KingdomId == id && t.SettlementIndex < 0)
+                    result.Add((x, y));
+            }
+        return result;
     }
 
     /// <summary>True if (x,y) is within minDist hexes of any already-placed POI.

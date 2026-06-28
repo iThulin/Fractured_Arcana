@@ -217,6 +217,8 @@ public static class UITheme
     public static readonly Color TerrainHills = new Color(0.50f, 0.56f, 0.34f, 1f);
     public static readonly Color TerrainCoast = new Color(0.82f, 0.76f, 0.56f, 1f);
     public static readonly Color TerrainLake = new Color(0.30f, 0.58f, 0.82f, 1f);
+    public static readonly Color SettlementCityBorder = new Color(0.95f, 0.80f, 0.30f, 1f); // gold wash
+    public static readonly Color SettlementTownBorder = new Color(0.80f, 0.55f, 0.30f, 1f); // bronze wash
 
     public static readonly Color FogHidden = new Color(0.08f, 0.06f, 0.12f, 0.90f);
     public static readonly Color FogSilhouette = new Color(0.08f, 0.06f, 0.12f, 0.48f);

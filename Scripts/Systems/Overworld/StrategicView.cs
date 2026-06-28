@@ -62,6 +62,7 @@ public partial class StrategicView : Node2D
     private StrategicLens _lens = StrategicLens.Political;  // active map lens
     private MultiMeshInstance2D _tileLayer;
     private MultiMeshInstance2D _poiLayer;
+    private MultiMeshInstance2D _settlementLayer;
     private Camera2D _camera;
 
     // Camera control
@@ -124,6 +125,7 @@ public partial class StrategicView : Node2D
             return;
 
         BuildTileLayer();
+        BuildSettlementLayer();
         BuildPoiLayer();
         if (!Standalone)
         {
@@ -374,6 +376,61 @@ public partial class StrategicView : Node2D
         _poiLayer = new MultiMeshInstance2D { Name = "PoiLayer", Multimesh = mm };
         _poiLayer.ZIndex = 1;
         AddChild(_poiLayer);
+    }
+
+    /// <summary>Tints the boundary tiles of each settlement (a one-tile rim) so a
+    /// city/town's extent reads without hiding the terrain underneath. A tile is on
+    /// the rim if any hex neighbour belongs to a different settlement (or none), or
+    /// if it sits on the map edge. Respects fog: Unseen tiles aren't rimmed. Cities
+    /// gold, towns bronze. Aligns to the tile layer exactly (same transform/mesh).</summary>
+    private void BuildSettlementLayer()
+    {
+        _settlementLayer?.QueueFree();
+        if (_world == null || _world.Settlements.Count == 0)
+            return;
+
+        var fill = new List<(int x, int y, SettlementTier tier)>();
+        for (int i = 0; i < _world.Settlements.Count; i++)
+        {
+            var s = _world.Settlements[i];
+            foreach (var (tx, ty) in s.Tiles)
+            {
+                var disc = _debugReveal ? TileDiscovery.Explored : _world.GetTile(tx, ty).Discovery;
+                if (disc == TileDiscovery.Unseen)
+                    continue;
+                fill.Add((tx, ty, s.Tier));
+            }
+        }
+        if (fill.Count == 0)
+            return;
+
+        var quad = MakeQuadMesh(TilePx);
+        var mm = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform2D,
+            UseColors = true,
+            UseCustomData = true,
+            Mesh = quad,
+            InstanceCount = fill.Count,
+        };
+        for (int n = 0; n < fill.Count; n++)
+        {
+            var (x, y, tier) = fill[n];
+            mm.SetInstanceTransform2D(n,
+                new Transform2D(0f, HexCoord.OffsetRenderPosition(x, y, TilePx)));
+            mm.SetInstanceColor(n, tier == SettlementTier.City
+                ? UITheme.SettlementCityBorder
+                : UITheme.SettlementTownBorder);
+            mm.SetInstanceCustomData(n, Colors.White);
+        }
+
+        _settlementLayer = new MultiMeshInstance2D
+        {
+            Name = "SettlementLayer",
+            Multimesh = mm,
+            ZIndex = 0,   // above tiles (added later in tree), below POIs (z=1)
+        };
+        AddChild(_settlementLayer);
     }
 
     // ── Color logic ──────────────────────────────────────────────────────
@@ -692,6 +749,7 @@ public partial class StrategicView : Node2D
     {
         GenerateStandaloneWorld();
         BuildTileLayer();
+        BuildSettlementLayer();
         BuildPoiLayer();
         FrameCamera();
         UpdateDebugInfo();
