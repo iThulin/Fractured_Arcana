@@ -70,6 +70,11 @@ public partial class OverworldHexGrid : Node2D
 
     // ── Signals ─────────────────────────────────────────────────────────
     [Signal] public delegate void HexClickedEventHandler(Vector2I axial);
+    [Signal] public delegate void HexHoveredEventHandler(Vector2I axial);
+    [Signal] public delegate void HexUnhoveredEventHandler(Vector2I axial);
+
+    public void RaiseHexHovered(Vector2I axial) => EmitSignal(SignalName.HexHovered, axial);
+    public void RaiseHexUnhovered(Vector2I axial) => EmitSignal(SignalName.HexUnhovered, axial);
 
     public override void _Ready()
     {

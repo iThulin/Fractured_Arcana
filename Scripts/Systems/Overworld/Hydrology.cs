@@ -163,9 +163,12 @@ public static class Hydrology
         int riverEdges = 0;
         for (int i = 0; i < n; i++)
         {
-            // Source must be flowing land: not a will-be-lake, not ocean. A river
-            // may still END in a lake/ocean (its receiver) — that isn't gated.
-            if (flooded[i] || world.Tiles[i].IsWater)
+            // Draw the edge wherever real flow passes, INCLUDING through flooded
+            // basins (lakes/marsh) — a river that flows through a basin must still
+            // stamp its out-edge, or the channel visibly breaks across that tile.
+            // Only ocean tiles are excluded as origins (the sea isn't a river source);
+            // a river may still END in ocean via its receiver, which isn't gated.
+            if (world.Tiles[i].IsOcean)
                 continue;
             if (acc[i] < RiverMinFlow)
                 continue;

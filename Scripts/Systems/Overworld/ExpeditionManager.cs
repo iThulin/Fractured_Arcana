@@ -79,6 +79,7 @@ public partial class ExpeditionManager : Node2D
     private const float CameraPanSpeed = 400f;
 
     private const string StrategicScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
+    private Label _hoverTooltip;
 
     // ── Autosave throttle ───────────────────────────────────────────────
     // The cycle file holds the whole world array (~2MB+), so per-move saves
@@ -195,6 +196,8 @@ public partial class ExpeditionManager : Node2D
 
         // Wire signals
         _grid.HexClicked += OnHexClicked;
+        _grid.HexHovered += OnHexHovered;
+        _grid.HexUnhovered += OnHexUnhovered;
         _party.PartyMoved += OnPartyMoved;
         _party.PartyArrived += OnPartyArrived;
 
@@ -437,6 +440,87 @@ public partial class ExpeditionManager : Node2D
         if (ExpeditionComplete)
             return;
         _party.TryMoveTo(axial);
+    }
+    private Vector2I? _hoveredCoord = null;
+
+    private void OnHexHovered(Vector2I axial)
+    {
+        _hoveredCoord = axial;
+        if (_hoverTooltip == null || !_grid.Hexes.TryGetValue(axial, out var hex))
+            return;
+
+        // Fog gate: don't reveal terrain the player hasn't explored.
+        if (hex.Fog != OverworldHex.FogState.Revealed)
+        {
+            _hoverTooltip.Text = hex.Fog == OverworldHex.FogState.Silhouette
+                ? "Charted — unexplored"
+                : "Unexplored";
+        }
+        else
+        {
+            string line = TerrainDisplayName(hex.Terrain);
+            if (hex.POI != OverworldHex.POIType.None && !hex.POIConsumed)
+                line += $"  ·  {hex.POI}";
+            // Corruption readout if the underlying world tile is corrupted.
+            if (_window.TryLocalToWorld(axial, out int col, out int row) &&
+                _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
+                line += $"  ·  corrupted ({_world.Tiles[idx].Corruption})";
+            _hoverTooltip.Text = line;
+        }
+
+        _hoverTooltip.Visible = true;
+        PositionTooltip();
+    }
+
+    private void OnHexUnhovered(Vector2I axial)
+    {
+        // Only clear if we're leaving the tile we're actually showing (enter/exit
+        // can interleave as the mouse crosses a shared edge).
+        if (_hoveredCoord == axial)
+        {
+            _hoveredCoord = null;
+            if (_hoverTooltip != null)
+                _hoverTooltip.Visible = false;
+        }
+    }
+
+    private void PositionTooltip()
+    {
+        if (_hoverTooltip == null || _grid == null)
+            return;
+
+        // Resolve the tile under the cursor from the mouse position, every frame.
+        // (Area2D MouseEntered/Exited is unreliable here; InputEvent gives no exit
+        // event — so we poll, which also fixes "tooltip won't hide off-grid".)
+        Vector2 mouseWorld = _grid.GetGlobalMousePosition();
+        Vector2I axial = _grid.WorldToAxial(_grid.ToLocal(mouseWorld));
+
+        if (!_grid.Hexes.TryGetValue(axial, out var hex))
+        {
+            _hoverTooltip.Visible = false;
+            return;
+        }
+
+        // Fog gate: don't reveal terrain the player hasn't explored.
+        if (hex.Fog != OverworldHex.FogState.Revealed)
+        {
+            _hoverTooltip.Text = hex.Fog == OverworldHex.FogState.Silhouette
+                ? "Charted — unexplored"
+                : "Unexplored";
+        }
+        else
+        {
+            string line = TerrainDisplayName(hex.Terrain);
+            if (hex.POI != OverworldHex.POIType.None && !hex.POIConsumed)
+                line += $"  ·  {hex.POI}";
+            if (_window.TryLocalToWorld(axial, out int col, out int row) &&
+                _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
+                line += $"  ·  corrupted ({_world.Tiles[idx].Corruption})";
+            _hoverTooltip.Text = line;
+        }
+
+        _hoverTooltip.Visible = true;
+        _hoverTooltip.Position = _hudCanvas.GetViewport().GetMousePosition() + new Vector2(16, 12);
     }
 
     private void OnPartyArrived(Vector2I coord)
@@ -893,6 +977,14 @@ public partial class ExpeditionManager : Node2D
         hudPanel.AddThemeStyleboxOverride("panel", hudStyle);
         _hudCanvas.AddChild(hudPanel);
 
+        // Hover tooltip — follows the mouse, names the tile under it (fog-gated).
+        _hoverTooltip = new Label { Visible = false, ZIndex = 100 };
+        _hoverTooltip.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        _hoverTooltip.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        _hoverTooltip.AddThemeColorOverride("font_outline_color", UITheme.WorldDeep);
+        _hoverTooltip.AddThemeConstantOverride("outline_size", 5);
+        _hudCanvas.AddChild(_hoverTooltip);
+
         var margin = new MarginContainer();
         margin.AddThemeConstantOverride("margin_left", 12);
         margin.AddThemeConstantOverride("margin_right", 12);
@@ -986,6 +1078,7 @@ public partial class ExpeditionManager : Node2D
         if (ExpeditionComplete || _camera == null)
             return;
         HandleCameraPan((float)delta);
+        PositionTooltip();
     }
 
     private void HandleCameraPan(float delta)
@@ -1199,4 +1292,10 @@ public partial class ExpeditionManager : Node2D
         EncounterRouter.Instance.CombatScenePath = "res://Scenes/Combat/Battlefield.tscn";
         EncounterRouter.Instance.OverworldScenePath = "res://Scenes/Overworld/ExpeditionScene.tscn";
     }
+
+    private static string TerrainDisplayName(OverworldHex.TerrainType t) => t switch
+    {
+        OverworldHex.TerrainType.ArcaneGround => "Arcane Ground",
+        _ => t.ToString(),
+    };
 }

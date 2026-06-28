@@ -51,6 +51,8 @@ public partial class OverworldHex : Node2D
 
     // ── Signals ─────────────────────────────────────────────────────────
     [Signal] public delegate void HexClickedEventHandler(Vector2I axial);
+    [Signal] public delegate void HexHoveredEventHandler(Vector2I axial);
+    [Signal] public delegate void HexUnhoveredEventHandler(Vector2I axial);
 
     public override void _Ready()
     {
@@ -94,6 +96,8 @@ public partial class OverworldHex : Node2D
         var collider = new CollisionPolygon2D { Polygon = points };
         area.AddChild(collider);
         area.InputEvent += OnAreaInput;
+        area.MouseEntered += () => EmitSignal(SignalName.HexHovered, Axial);
+        area.MouseExited += () => EmitSignal(SignalName.HexUnhovered, Axial);
         AddChild(area);
 
         // Debug coordinate label
@@ -171,6 +175,10 @@ public partial class OverworldHex : Node2D
         {
             EmitSignal(SignalName.HexClicked, Axial);
         }
+        else if (@event is InputEventMouseMotion)
+        {
+            EmitSignal(SignalName.HexHovered, Axial);
+        }
     }
 
     /// <summary>
@@ -199,33 +207,132 @@ public partial class OverworldHex : Node2D
     /// edges. Both adjacent hexes draw the shared edge (they coincide in world space),
     /// so a window-fringe tile still shows its own edges without its neighbour loaded.
     /// Road over river is drawn last, reading as a bridge deck; springs are thin.</summary>
+    /// <summary>Draws river/road/spring networks as smooth noisy curves that cut
+    /// THROUGH the hex interior, rather than straight segments along the rim. Each lit
+    /// edge contributes its midpoint; midpoints are connected via quadratic Béziers
+    /// bowed through the hex centre, so a channel passing through reads as one flowing
+    /// line. Because edge-midpoints are shared between adjacent hexes (same two
+    /// vertices), neighbouring hexes' curves meet exactly — the network is continuous
+    /// without either hex knowing the other. Road-over-river draws last (bridge deck).</summary>
     private void BuildEdgeLines(Vector2[] pts)
     {
         if (RiverEdges == 0 && RoadEdges == 0 && SpringEdges == 0)
             return;
 
-        float riverW = HEX_SIZE * 0.13f;
-        float roadW = HEX_SIZE * 0.09f;
-        float springW = HEX_SIZE * 0.07f;
+        float riverW = HEX_SIZE * 0.15f;
+        float roadW = HEX_SIZE * 0.10f;
+        float springW = HEX_SIZE * 0.08f;
 
+        // Springs first (under), then rivers, then roads (bridge deck on top).
+        // Springs only where there's no river on that edge (matches prior behaviour).
+        BuildChannel(pts, (byte)(SpringEdges & ~RiverEdges), springW, UITheme.TerrainLake, wander: 0.55f);
+        BuildChannel(pts, RiverEdges, riverW, UITheme.TerrainWater, wander: 1.0f);
+        BuildChannel(pts, RoadEdges, roadW, UITheme.TerrainRoad, wander: 0.35f);
+    }
+
+    /// <summary>Build one channel's curves from its edge mask. Pairs of lit edges become
+    /// a through-curve (midpoint→centre→midpoint); a lone lit edge becomes a stub
+    /// (midpoint→centre); 3+ edges fan each midpoint to the centre (a confluence).</summary>
+    private void BuildChannel(Vector2[] pts, byte mask, float width, Color color, float wander)
+    {
+        if (mask == 0)
+            return;
+
+        // Collect midpoints of all lit edges, with their direction for noise seeding.
+        var mids = new System.Collections.Generic.List<(Vector2 p, int dir)>();
         for (int d = 0; d < 6; d++)
         {
-            bool spring = (SpringEdges & (1 << d)) != 0;
-            bool river = (RiverEdges & (1 << d)) != 0;
-            bool road = (RoadEdges & (1 << d)) != 0;
-            if (!spring && !river && !road)
+            if ((mask & (1 << d)) == 0)
                 continue;
-
-            var a = pts[EdgeVerts[d, 0]];
-            var b = pts[EdgeVerts[d, 1]];
-
-            if (spring && !river)
-                AddEdgeLine(a, b, springW, UITheme.TerrainLake);   // thin, lighter blue
-            if (river)
-                AddEdgeLine(a, b, riverW, UITheme.TerrainWater);
-            if (road)
-                AddEdgeLine(a, b, roadW, UITheme.TerrainRoad);     // over river => bridge deck
+            Vector2 mid = (pts[EdgeVerts[d, 0]] + pts[EdgeVerts[d, 1]]) * 0.5f;
+            mids.Add((mid, d));
         }
+
+        Vector2 center = Vector2.Zero; // hex centre in local space (polygon is centred on the node)
+
+        if (mids.Count == 1)
+        {
+            // A lone lit edge — either a true source/mouth, or a one-tile gap in the
+            // flow data mid-river. Extend the curve THROUGH the centre to the opposite
+            // edge's midpoint, so a single missing-edge dropout still reads as a
+            // continuous channel rather than a dead-end stub. The opposite edge is
+            // (dir + 3) % 6 — the antipodal hex side.
+            int dir = mids[0].dir;
+            int opp = (dir + 3) % 6;
+            Vector2 oppMid = (pts[EdgeVerts[opp, 0]] + pts[EdgeVerts[opp, 1]]) * 0.5f;
+            AddCurve(mids[0].p, center, oppMid, width, color, wander, dir, opp);
+        }
+        else if (mids.Count == 2)
+        {
+            // The common case — a channel passing straight through. One curve, bowed
+            // through (near) the centre so it cuts across the tile.
+            AddCurve(mids[0].p, center, mids[1].p, width, color, wander, mids[0].dir, mids[1].dir);
+        }
+        else
+        {
+            // Confluence: each edge feeds the centre. Curves overlap at the centre and
+            // read as a junction.
+            foreach (var m in mids)
+                AddCurve(m.p, center, center, width, color, wander, m.dir, m.dir);
+        }
+    }
+
+    /// <summary>Sample a quadratic Bézier (a→control→b) into a Line2D, nudging the
+    /// control point and interior samples by deterministic per-hex noise so the path
+    /// wanders organically. When b == control (a stub), degenerates to a curved spoke
+    /// from a to the centre.</summary>
+    private void AddCurve(Vector2 a, Vector2 control, Vector2 b, float width, Color color,
+                          float wander, int seedA, int seedB)
+    {
+        const int Samples = 10;
+
+        // Perturb the control point off the centre, so the curve doesn't always pass
+        // dead through the middle. Direction + amount seeded per-hex + per-edge so it's
+        // stable across rebuilds but varies tile to tile.
+        float n = HexNoise(seedA * 7 + seedB * 13);
+        Vector2 perp = (b - a).Orthogonal().Normalized();
+        if (!perp.IsFinite())
+            perp = Vector2.Right;
+        Vector2 ctrl = control + perp * (HEX_SIZE * 0.18f * wander * n);
+
+        var points = new Vector2[Samples + 1];
+        for (int i = 0; i <= Samples; i++)
+        {
+            float t = (float)i / Samples;
+            // Quadratic Bézier.
+            Vector2 p = a.Lerp(ctrl, t).Lerp(ctrl.Lerp(b, t), t);
+            // Light per-sample jitter for an organic edge (zero at the endpoints so
+            // shared midpoints stay exact — continuity with neighbours must not break).
+            float endFade = Mathf.Sin(t * Mathf.Pi); // 0 at ends, 1 at middle
+            float j = (HexNoise(seedA * 31 + i * 17) - 0.5f) * HEX_SIZE * 0.10f * wander * endFade;
+            Vector2 jdir = (b - a).Orthogonal().Normalized();
+            if (!jdir.IsFinite())
+                jdir = Vector2.Up;
+            points[i] = p + jdir * j;
+        }
+
+        var line = new Line2D
+        {
+            Points = points,
+            Width = width,
+            DefaultColor = color,
+            ZIndex = 1,                       // above terrain/border, below fog(2) + POI(3)
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round,
+            JointMode = Line2D.LineJointMode.Round,
+        };
+        AddChild(line);
+    }
+
+    /// <summary>Deterministic [0,1] hash noise keyed on this hex's axial coord plus a
+    /// salt, so curve wander is stable across rebuilds (combat round-trips rebuild the
+    /// window) yet differs per tile and per edge.</summary>
+    private float HexNoise(int salt)
+    {
+        int h = Axial.X * 374761393 + Axial.Y * 668265263 + salt * 2147483647;
+        h = (h ^ (h >> 13)) * 1274126177;
+        h &= 0x7fffffff;
+        return (h % 10000) / 10000f;
     }
 
     private void AddEdgeLine(Vector2 a, Vector2 b, float width, Color color)
