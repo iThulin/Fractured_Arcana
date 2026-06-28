@@ -1,0 +1,237 @@
+{
+	"id": "cogwork_reach",
+	"displayName": "The Cogwork Reach",
+	"description": "The one place the Collapse didn't fully take. Workshops never went cold here, and the canal-roads still run between a dozen walled towns that trade, scheme, and undercut one another by the hour. Smoke, gear-towers, and the constant noise of something being built. The Tinker guilds hold the charters, and the charters hold everything else.",
+	"schoolAffinity": "Tinker",
+	"atmosphere": "Neutral",
+	"baseDifficultyTier": 2,
+	"displayTier": "The Interior",
+	"gridWidth": 21,
+	"gridHeight": 21,
+	"stepBudget": 40,
+	"combatPOICount": 14,
+	"restPOICount": 6,
+	"outpostPOICount": 4,
+	"narrativePOICount": 5,
+	"negotiationPOICount": 6,
+	"hasRiver": true,
+	"hasMountainRange": false,
+	"hasRoads": true,
+	"riverCrossingCount": 4,
+	"enemyDifficultyMult": 1.1,
+	"goldRewardMult": 1.35,
+	"settlementDensity": 2.0,
+	"baseTerrain": {
+		"elevationFrequency": 0.09,
+		"moistureFrequency": 0.08,
+		"detailWeight": 0.14,
+		"palette": [
+			{
+				"terrainName": "Mountain",
+				"minElevation": 0.86
+			},
+			{
+				"terrainName": "Forest",
+				"minMoisture": 0.60,
+				"maxElevation": 0.58
+			},
+			{
+				"terrainName": "Ruins",
+				"minElevation": 0.50,
+				"maxElevation": 0.74,
+				"maxMoisture": 0.40
+			},
+			{
+				"terrainName": "Grassland"
+			}
+		]
+	},
+	"affinity": {
+		"temperature": "temperate",
+		"moisture": "temperate",
+		"elevation": "low",
+		"coastal": false,
+		"dominantTerrain": "None"
+	},
+	"encounterPools": {
+		"skirmish": [
+			{
+				"name": "charter_enforcers",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "guild_runners",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "workshop_wards",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			}
+		],
+		"battle": [
+			{
+				"name": "clockwork_guard",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "rival_charter",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "foundry_crew",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "artificer_cell",
+				"enemies": [
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			}
+		],
+		"siege": [
+			{
+				"name": "town_militia",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "guild_war",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
+				"name": "siege_engines",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			}
+		],
+		"ambush": [
+			{
+				"name": "alley_cutters",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "trap_works",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			}
+		]
+	}
+}

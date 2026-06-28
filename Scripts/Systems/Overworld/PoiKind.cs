@@ -41,4 +41,6 @@ public enum PoiKind
     Seat,
     /// <summary>A settlement — a friendly/neutral hub; may grant staging (world-scale only).</summary>
     Settlement,
+    /// <summary>The convergence seat — Kassian's seat, the endgame objective (world-scale only).</summary>
+    Convergence,
 }

@@ -2,7 +2,7 @@
 	"id": "the_crags",
 	"displayName": "The Crags",
 	"description": "A broken highland where the passes are narrow and every ridgeline hides someone watching you. Ranger country — both the kind that guides travelers and the kind that prefers travelers don't arrive.",
-	"schoolAffinity": "Ranger",
+	"schoolAffinity": "Tinker",
 	"atmosphere": "Hostile",
 	"baseDifficultyTier": 2,
 	"displayTier": "The Interior",
@@ -20,6 +20,7 @@
 	"riverCrossingCount": 2,
 	"enemyDifficultyMult": 1.3,
 	"goldRewardMult": 1.1,
+	"settlementDensity": 1.0,
 	"baseTerrain": {
 		"elevationFrequency": 0.12,
 		"moistureFrequency": 0.07,
@@ -53,6 +54,13 @@
 				"terrainName": "Grassland"
 			}
 		]
+	},
+	"affinity": {
+		"temperature": "temperate",
+		"moisture": "dry",
+		"elevation": "high",
+		"coastal": false,
+		"dominantTerrain": "None"
 	},
 	"encounterPools": {
 		"skirmish": [

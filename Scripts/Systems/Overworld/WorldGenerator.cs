@@ -43,6 +43,8 @@ public class GeneratedWorldData
 public static class WorldGenerator
 {
     private const string CONVERGENCE_ID = "the_convergence";
+    private static int RegionTierOf(string regionId)
+        => RegionLoader.LoadOrDefault(regionId)?.BaseDifficultyTier ?? 1;
 
     // Defaults; overridable via the parameter object.
     public class Params
@@ -57,7 +59,6 @@ public static class WorldGenerator
         public float CityStudFraction = 0.55f;   // fraction of a city's tiles that get a POI
         public float TownStudFraction = 0.50f;
         public int WildPoiPerKingdom = 5;         // thinned wilderness scatter (was PoiPerKingdom=12)
-
     }
 
     public static GeneratedWorldData Generate(int seed, string playerSchool, Params p = null)
@@ -122,32 +123,10 @@ public static class WorldGenerator
         // convergence territory is Kassian's seat → always "the_convergence".
         string convergenceKingdom = kingdomIds[capitals.FindIndex(c => c.x == convergence.x && c.y == convergence.y)];
 
-        // Real region pool, excluding the convergence (reserved for Kassian).
-        var allRegions = RegionLoader.LoadAll();
-        allRegions.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
-        var realRegionPool = allRegions
-            .Where(r => r.Id != "the_convergence")
-            .Select(r => r.Id)
-            .ToList();
-        // Deterministic shuffle so assignment is stable per seed.
-        ShuffleDeterministic(realRegionPool, rng);
-
-        // kingdom_N -> real region id (convergence handled separately).
-        var kingdomRegion = new Dictionary<string, string>();
-        int regionCursor = 0;
-        foreach (var id in kingdomIds)
-        {
-            if (id == convergenceKingdom)
-            {
-                kingdomRegion[id] = "the_convergence";
-                continue;
-            }
-            string region = realRegionPool.Count > 0
-                ? realRegionPool[regionCursor % realRegionPool.Count]
-                : "frontier_wilds";
-            kingdomRegion[id] = region;
-            regionCursor++;
-        }
+        // Match each territory to the region whose natural climate/terrain it best
+        // fits (geography-driven identity), instead of a blind shuffle. The convergence
+        // stays Kassian's seat; leftover territories fall back to frontier_wilds.
+        var kingdomRegion = RegionMatcher.Match(world, kingdomIds, convergenceKingdom);
 
         // Feed the REAL region ids (not kingdom_N) to the campaign generator,
         // so archmagi are placed onto real regions. Tier carries through.
@@ -156,7 +135,7 @@ public static class WorldGenerator
         {
             if (id == convergenceKingdom)
                 continue;
-            placeables.Add(new PlaceableRegion { Id = kingdomRegion[id], Tier = tierOf[id] });
+            placeables.Add(new PlaceableRegion { Id = kingdomRegion[id], Tier = RegionTierOf(kingdomRegion[id]) });
         }
         var campaign = CampaignGenerator.Generate(seed, playerSchool, placeables);
 
@@ -175,10 +154,10 @@ public static class WorldGenerator
             {
                 RegionId = id,
                 TemplateRegionId = region,
-                DisplayName = id,
+                DisplayName = RegionLoader.LoadOrDefault(region)?.DisplayName ?? id,
                 ControllingFactionId = isConvergence ? "" : factionOf[id],
                 Stance = isStart ? KingdomStance.Friendly : KingdomStance.Neutral,
-                Tier = isConvergence ? 3 : tierOf[id],
+                Tier = isConvergence ? 3 : RegionTierOf(region),
                 Stability = 50,
                 PlayerInfluence = isStart ? 25 : 0,
                 ArchmageId = archmageId,
@@ -194,7 +173,7 @@ public static class WorldGenerator
         // varies by region, so a glacial kingdom reads icy/mountainous and a
         // verdant one reads wet/forested without hard seams. Water is preserved
         // so coastlines + territory assignment stay stable.
-        ReclassifyTerrainPerRegion(world, kingdoms);
+        //ReclassifyTerrainPerRegion(world, kingdoms);
 
         // ── 5c. Stamp Hills/Mountain from the final (uplifted) elevation,
         // AFTER the per-region repaint so the mountain structure is globally
@@ -429,34 +408,134 @@ public static class WorldGenerator
         return capitals;
     }
 
-    /// <summary>Assigns every land tile to its nearest capital's kingdom
-    /// (hex). Water stays wilderness. Returns the per-capital kingdom ids
-    /// in capital order.</summary>
+    // ── Territory cost-flood tuning ──────────────────────────────────────
+    // Borders follow terrain: lowlands are cheap (fronts sprawl), elevation above
+    // the lowland line ramps cost steeply (fronts stall on ridges), river edges
+    // cost extra (fronts meet on rivers), water is impassable (coasts are borders).
+    private const float TerritoryElevationWeight = 12f;
+    private const float TerritoryLowlandLevel = 0.50f;
+    private const float TerritoryRiverWeight = 5f;
+
+    /// <summary>Partitions land among the capitals by a cost-weighted multi-source
+    /// flood (a generalized Voronoi: unit cost would reproduce the old nearest-
+    /// capital result). Cost is cheap on lowland, steep climbing into highland, and
+    /// penalized crossing rivers; water blocks expansion. Borders therefore fall on
+    /// ridgelines, rivers, and coasts. Orphaned land with no land-path to any capital
+    /// (isolated islands) falls back to nearest-by-hex-distance so every land tile is
+    /// still owned. Deterministic for a given world. Returns kingdom ids in capital
+    /// order.</summary>
     private static List<string> AssignTerritories(WorldData world, List<(int x, int y)> capitals)
     {
+        int w = world.Width, h = world.Height, n = w * h;
+
         var ids = new List<string>();
         for (int i = 0; i < capitals.Count; i++)
             ids.Add($"kingdom_{i}");
 
-        for (int y = 0; y < world.Height; y++)
+        var owner = new int[n];
+        var cost = new float[n];
+        var done = new bool[n];
+        for (int i = 0; i < n; i++)
         {
-            for (int x = 0; x < world.Width; x++)
+            owner[i] = -1;
+            cost[i] = float.MaxValue;
+        }
+
+        var pq = new PriorityQueue<int, float>();
+        for (int i = 0; i < capitals.Count; i++)
+        {
+            int idx = capitals[i].y * w + capitals[i].x;
+            owner[idx] = i;
+            cost[idx] = 0f;
+            pq.Enqueue(idx, 0f);
+        }
+
+        while (pq.Count > 0)
+        {
+            int cur = pq.Dequeue();
+            if (done[cur])
+                continue;
+            done[cur] = true;
+
+            int cx = cur % w, cy = cur / w;
+            foreach (var (nx, ny) in HexCoord.Neighbors(cx, cy, w, h))
             {
-                int idx = y * world.Width + x;
+                int ni = ny * w + nx;
+                if (done[ni] || world.Tiles[ni].IsWater)
+                    continue;
+
+                float nc = cost[cur] + EnterCost(world, cx, cy, nx, ny);
+                if (nc < cost[ni])
+                {
+                    cost[ni] = nc;
+                    owner[ni] = owner[cur];
+                    pq.Enqueue(ni, nc);
+                }
+            }
+        }
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                int idx = y * w + x;
                 if (world.Tiles[idx].IsWater)
                     continue;
 
-                int nearest = 0, bestD = int.MaxValue;
-                for (int i = 0; i < capitals.Count; i++)
+                int o = owner[idx];
+                if (o < 0)
                 {
-                    int d = Dist((x, y), capitals[i]);
-                    if (d < bestD)
-                    { bestD = d; nearest = i; }
+                    // Unreachable island: fall back to nearest capital by hex distance
+                    // so no land tile is left ownerless (downstream assumes ownership).
+                    int best = 0, bestD = int.MaxValue;
+                    for (int i = 0; i < capitals.Count; i++)
+                    {
+                        int d = Dist((x, y), capitals[i]);
+                        if (d < bestD)
+                        { bestD = d; best = i; }
+                    }
+                    o = best;
                 }
-                world.Tiles[idx].KingdomId = ids[nearest];
+                world.Tiles[idx].KingdomId = ids[o];
             }
         }
+
         return ids;
+    }
+
+    /// <summary>Cost to expand into (toX,toY) from an adjacent owned tile: a unit step
+    /// plus a steep ramp for elevation above the lowland line, plus a river-ford
+    /// penalty if the crossed edge carries a river.</summary>
+    private static float EnterCost(WorldData world, int fromX, int fromY, int toX, int toY)
+    {
+        var to = world.Tiles[toY * world.Width + toX];
+        float elevExcess = Mathf.Max(0f, to.Elevation - TerritoryLowlandLevel);
+        float c = 1f + TerritoryElevationWeight * elevExcess;
+
+        int d = TerritoryEdgeDir(fromX, fromY, toX, toY);
+        if (d >= 0)
+        {
+            var from = world.Tiles[fromY * world.Width + fromX];
+            if ((from.RiverEdges & (1 << d)) != 0)
+                c += TerritoryRiverWeight;
+        }
+        return c;
+    }
+
+    /// <summary>Direction index (0..5, AxialDirections order) from one offset tile to
+    /// an adjacent one, matching the river-edge bit convention. -1 if not adjacent.</summary>
+    private static int TerritoryEdgeDir(int xa, int ya, int xb, int yb)
+    {
+        var (qa, ra) = HexCoord.OffsetToAxial(xa, ya);
+        var (qb, rb) = HexCoord.OffsetToAxial(xb, yb);
+        int dq = qb - qa, dr = rb - ra;
+        for (int d = 0; d < 6; d++)
+        {
+            var (adq, adr) = HexCoord.AxialDirections[d];
+            if (adq == dq && adr == dr)
+                return d;
+        }
+        return -1;
     }
 
     // ── 3. Factions ──────────────────────────────────────────────────────
@@ -536,12 +615,25 @@ public static class WorldGenerator
         //    and is that city's staging POI.
         for (int i = 0; i < capitals.Count; i++)
         {
+            // The convergence: Kassian's seat and the final objective. A distinct POI
+            // kind so it reads as the endgame target, not a normal capital. Fog-gated like
+            // any seat, so it stays hidden until the player reaches it (dramatic reveal).
+            // grantsStaging stays FALSE — it's an objective marker, not a deploy point;
+            // the assault on it is a later phase and will hook here.
+            int convIdx = kingdomIds.IndexOf(convergenceKingdom);
+            if (convIdx >= 0)
+                AddPoi(world, capitals[convIdx].x, capitals[convIdx].y,
+                       PoiKind.Convergence, convergenceKingdom, grantsStaging: false);
             string id = kingdomIds[i];
             if (id == convergenceKingdom)
                 continue;
-            if (!kingdoms.TryGetValue(id, out var ks) || string.IsNullOrEmpty(ks.ArchmageId))
+            if (!kingdoms.TryGetValue(id, out var ks))
                 continue;
-            AddPoi(world, capitals[i].x, capitals[i].y, PoiKind.Seat, id, grantsStaging: true);
+            // Every kingdom has a capital/seat — the archmage is the *ruler*, not a
+            // precondition for the seat existing. Archmage-less kingdoms are real
+            // polities with a minor/unnamed ruler; they still get a seat + label.
+            bool hasArchmage = !string.IsNullOrEmpty(ks.ArchmageId);
+            AddPoi(world, capitals[i].x, capitals[i].y, PoiKind.Seat, id, grantsStaging: hasArchmage);
         }
 
         // 2. Stud settlements: cities dense + civilized, towns sparse. Non-seat

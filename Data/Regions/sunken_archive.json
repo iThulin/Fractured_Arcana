@@ -20,6 +20,7 @@
 	"riverCrossingCount": 3,
 	"enemyDifficultyMult": 1.3,
 	"goldRewardMult": 1.25,
+	"settlementDensity": 1.0,
 	"baseTerrain": {
 		"elevationFrequency": 0.10,
 		"moistureFrequency": 0.08,
@@ -56,6 +57,13 @@
 				"terrainName": "Grassland"
 			}
 		]
+	},
+	"affinity": {
+		"temperature": "temperate",
+		"moisture": "wet",
+		"elevation": "mid",
+		"coastal": false,
+		"dominantTerrain": "None"
 	},
 	"encounterPools": {
 		"skirmish": [

@@ -226,8 +226,7 @@ public static class UITheme
 
     public static readonly Color TerrainWaterShallow = new Color(0.17f, 0.34f, 0.50f); // muted steel shelf
     public static readonly Color TerrainWaterDeep = new Color(0.05f, 0.14f, 0.29f);    // deep navy
-    public static int OceanDepthForFullDark = 54;   // wide ramp: deep mottle stays visible, only the true abyss saturates
-
+    public static int OceanDepthForFullDark = 36;   // wide ramp: deep mottle stays visible, only the true abyss saturates
 
     public static readonly Color FogHidden = new Color(0.08f, 0.06f, 0.12f, 0.90f);
     public static readonly Color FogSilhouette = new Color(0.08f, 0.06f, 0.12f, 0.48f);
@@ -259,13 +258,6 @@ public static class UITheme
     public static readonly Color OverworldLowResourceWarning = Danger;
     public static readonly Color OverworldInfoLabelTint = Gold;
 
-    /// <summary>Ocean colour by depth-from-shore: shallow teal near land grading to
-    /// deep navy out to sea.</summary>
-    public static Color OceanColor(int depth)
-    {
-        float t = Mathf.Clamp((float)depth / OceanDepthForFullDark, 0f, 1f);
-        return TerrainWaterShallow.Lerp(TerrainWaterDeep, t);
-    }
 
     // ════════════════════════════════════════════════════════════
     // FACTION COLORS
@@ -295,6 +287,40 @@ public static class UITheme
     public static readonly Color StrategicUnseen = WorldDeep;                       // unexplored void
     public static readonly Color StrategicCharted = new Color(0.16f, 0.14f, 0.20f, 1f); // dim known-shape
     public static readonly Color StrategicCorruption = new Color(0.78f, 0.12f, 0.20f, 1f); // red wash, blended by level
+    public static readonly Color StrategicCorruptionWash = new Color(0.42f, 0.10f, 0.16f, 1f); // dark stain for the political-lens overlay
+    public static readonly Color POIConvergence = new Color(0.72f, 0.18f, 0.62f, 1f); // endgame seat: corrupt magenta-violet
+    public static readonly Color KingdomBorder = new Color(0.06f, 0.05f, 0.09f, 0.55f); // dark boundary-tile tint // near-black political boundary
+
+    // Kingdom/territory fill colors — tuned to the overworld palette's register
+    // (values ~0.55, muted) so blocs read as tinted GROUND beneath the POI/label
+    // markers, not as the brightest surface. Hues borrow from the terrain/accent
+    // families already in this file so the political layer feels authored alongside
+    // the rest. Assigned by kingdom index; wraps past the end.
+    public static readonly Color[] KingdomPalette =
+    {
+        new Color(0.56f, 0.40f, 0.36f), // clay (terracotta family)
+        new Color(0.38f, 0.50f, 0.40f), // muted moss (grassland family, dimmed)
+        new Color(0.36f, 0.44f, 0.58f), // dusk blue (arcane-blue family, dimmed)
+        new Color(0.58f, 0.50f, 0.34f), // ochre (gold-dim family)
+        new Color(0.48f, 0.37f, 0.55f), // muted violet (arcane-ground family, dimmed)
+        new Color(0.34f, 0.50f, 0.50f), // teal-grey
+        new Color(0.60f, 0.42f, 0.32f), // rust-brown (volcanic family, heavily dimmed)
+        new Color(0.46f, 0.48f, 0.34f), // olive (hills family)
+        new Color(0.42f, 0.40f, 0.56f), // slate indigo
+        new Color(0.56f, 0.44f, 0.48f), // dusty mauve
+        new Color(0.38f, 0.52f, 0.46f), // verdigris
+        new Color(0.52f, 0.48f, 0.40f), // taupe
+    };
+
+    public static int StrategicLabelFontSize = 15;
+
+    /// <summary>Ocean colour by depth-from-shore: shallow teal near land grading to
+    /// deep navy out to sea.</summary>
+    public static Color OceanColor(int depth)
+    {
+        float t = Mathf.Clamp((float)depth / OceanDepthForFullDark, 0f, 1f);
+        return TerrainWaterShallow.Lerp(TerrainWaterDeep, t);
+    }
 
 
     // ════════════════════════════════════════════════════════════

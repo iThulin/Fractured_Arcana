@@ -64,10 +64,17 @@ public class RegionDefinition
 
     // ── Base terrain palette ─────────────────────────────────────────────
     public OverworldBaseTerrain BaseTerrain = new();
+    public RegionAffinity Affinity = new();
 
     // ── Difficulty multipliers ────────────────────────────────────────────
     public float EnemyDifficultyMult = 1.0f;
     public float GoldRewardMult = 1.0f;
+
+    /// <summary>Multiplier on how many cities/towns this region grows when it owns a
+    /// territory. 1.0 = baseline; >1 = denser/more urban (the Tinker city-states),
+    /// <1 = emptier wilds. Read by Settlements.Generate. Default 1.0 leaves every
+    /// existing region unchanged.</summary>
+    public float SettlementDensity = 1.0f;
 }
 
 /// <summary>Field tuning + terrain palette for a region.</summary>
@@ -92,4 +99,17 @@ public class OverworldPaletteRule
     public OverworldHex.TerrainType Terrain =>
         System.Enum.TryParse<OverworldHex.TerrainType>(TerrainName, ignoreCase: true, out var t)
             ? t : OverworldHex.TerrainType.Grassland;
+}
+
+/// <summary>How a region wants to be placed on the world map. RegionMatcher scores
+/// each territory's measured natural profile against these. Every axis defaults to a
+/// no-constraint value so an unauthored region matches anywhere (and ends up as
+/// leftover/fallback rather than forced onto a poor fit).</summary>
+public class RegionAffinity
+{
+    public string Temperature = "any";      // cold | temperate | warm | any
+    public string Moisture = "any";         // arid | dry | temperate | wet | any
+    public string Elevation = "any";        // low | mid | high | any
+    public bool Coastal = false;            // true → wants ocean coastline
+    public string DominantTerrain = "None"; // Swamp | Forest | Volcanic | None
 }

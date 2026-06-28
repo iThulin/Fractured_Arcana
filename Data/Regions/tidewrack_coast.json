@@ -2,7 +2,7 @@
 	"id": "tidewrack_coast",
 	"displayName": "Tidewrack Coast",
 	"description": "A shipwreck-littered coastline where tidal surges reshape the land twice a day. Smugglers, stranded crews, and something older that came in with the last storm. The water is never the same place twice.",
-	"schoolAffinity": "Ranger",
+	"schoolAffinity": "Enchanter",
 	"atmosphere": "Neutral",
 	"baseDifficultyTier": 1,
 	"displayTier": "The Borderlands",
@@ -20,6 +20,7 @@
 	"riverCrossingCount": 2,
 	"enemyDifficultyMult": 0.95,
 	"goldRewardMult": 1.2,
+	"settlementDensity": 1.0,
 	"baseTerrain": {
 		"elevationFrequency": 0.11,
 		"moistureFrequency": 0.09,
@@ -58,6 +59,13 @@
 				"terrainName": "Grassland"
 			}
 		]
+	},
+	"affinity": {
+		"temperature": "temperate",
+		"moisture": "wet",
+		"elevation": "low",
+		"coastal": true,
+		"dominantTerrain": "None"
 	},
 	"encounterPools": {
 		"skirmish": [

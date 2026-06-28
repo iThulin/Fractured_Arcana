@@ -1,58 +1,47 @@
 {
-	"id": "verdant_deep",
-	"displayName": "The Verdant Deep",
-	"description": "An old-growth forest so dense the canopy blocks the sky for days at a time. The trees here predate the Collapse. They have opinions about visitors. The elemental storms roll in from the west without warning and leave the ground changed behind them.",
+	"id": "jade_coast",
+	"displayName": "The Jade Coast",
+	"description": "Where the jungle meets the sea and neither yields ground. Mangrove drowns the shoreline, the canopy steams, and the wildlife has had no reason to fear anything walking upright in a very long time. The storms come without warning and leave the coastline rearranged. Everything here is green, and most of it is hungry.",
 	"schoolAffinity": "Druid",
 	"atmosphere": "Hostile",
 	"baseDifficultyTier": 2,
 	"displayTier": "The Interior",
 	"gridWidth": 21,
-	"gridHeight": 21,
-	"stepBudget": 42,
+	"gridHeight": 19,
+	"stepBudget": 38,
 	"combatPOICount": 15,
-	"restPOICount": 5,
+	"restPOICount": 4,
 	"outpostPOICount": 3,
-	"narrativePOICount": 6,
+	"narrativePOICount": 5,
 	"negotiationPOICount": 2,
 	"hasRiver": true,
 	"hasMountainRange": false,
 	"hasRoads": false,
 	"riverCrossingCount": 3,
-	"enemyDifficultyMult": 1.35,
-	"goldRewardMult": 1.15,
+	"enemyDifficultyMult": 1.25,
+	"goldRewardMult": 1.2,
 	"settlementDensity": 1.0,
 	"baseTerrain": {
-		"elevationFrequency": 0.09,
-		"moistureFrequency": 0.065,
-		"detailWeight": 0.15,
+		"elevationFrequency": 0.10,
+		"moistureFrequency": 0.09,
+		"detailWeight": 0.18,
 		"palette": [
 			{
 				"terrainName": "Water",
-				"maxElevation": 0.16
+				"maxElevation": 0.22
 			},
 			{
 				"terrainName": "Swamp",
-				"maxElevation": 0.32,
-				"minMoisture": 0.65
-			},
-			{
-				"terrainName": "ArcaneGround",
-				"minElevation": 0.60,
-				"minMoisture": 0.72
+				"maxElevation": 0.34,
+				"minMoisture": 0.62
 			},
 			{
 				"terrainName": "Mountain",
 				"minElevation": 0.84
 			},
 			{
-				"terrainName": "Ruins",
-				"minElevation": 0.52,
-				"maxElevation": 0.75,
-				"maxMoisture": 0.40
-			},
-			{
 				"terrainName": "Forest",
-				"minMoisture": 0.42
+				"minMoisture": 0.45
 			},
 			{
 				"terrainName": "Grassland"
@@ -60,16 +49,16 @@
 		]
 	},
 	"affinity": {
-		"temperature": "temperate",
+		"temperature": "warm",
 		"moisture": "wet",
-		"elevation": "mid",
-		"coastal": false,
+		"elevation": "low",
+		"coastal": true,
 		"dominantTerrain": "Forest"
 	},
 	"encounterPools": {
 		"skirmish": [
 			{
-				"name": "forest_watch",
+				"name": "shore_stalkers",
 				"enemies": [
 					{
 						"archetype": "Ranger"
@@ -80,59 +69,59 @@
 				]
 			},
 			{
-				"name": "deep_hunters",
-				"enemies": [
-					{
-						"archetype": "Ranger"
-					},
-					{
-						"archetype": "Ranger"
-					}
-				]
-			},
-			{
-				"name": "grove_patrol",
+				"name": "beast_callers",
 				"enemies": [
 					{
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "mangrove_watch",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
 					}
 				]
 			}
 		],
 		"battle": [
 			{
-				"name": "storm_wardens",
+				"name": "tide_druids",
 				"enemies": [
 					{
 						"archetype": "Wizard"
 					},
-					{
-						"archetype": "Ranger"
-					},
-					{
-						"archetype": "Soldier"
-					}
-				]
-			},
-			{
-				"name": "deep_grove",
-				"enemies": [
 					{
 						"archetype": "Defender"
 					},
 					{
 						"archetype": "Ranger"
-					},
-					{
-						"archetype": "Wizard"
 					}
 				]
 			},
 			{
-				"name": "elemental_cult",
+				"name": "canopy_pack",
+				"enemies": [
+					{
+						"archetype": "Brute"
+					},
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "storm_grove",
 				"enemies": [
 					{
 						"archetype": "Wizard"
@@ -146,32 +135,32 @@
 				]
 			},
 			{
-				"name": "verdant_host",
+				"name": "thornbound",
 				"enemies": [
 					{
-						"archetype": "Ranger"
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
 					},
 					{
 						"archetype": "Brute"
-					},
-					{
-						"archetype": "Wizard"
 					}
 				]
 			}
 		],
 		"siege": [
 			{
-				"name": "storm_convergence",
+				"name": "jungle_host",
 				"enemies": [
 					{
-						"archetype": "Wizard"
-					},
-					{
-						"archetype": "Wizard"
+						"archetype": "Brute"
 					},
 					{
 						"archetype": "Brute"
+					},
+					{
+						"archetype": "Wizard"
 					},
 					{
 						"archetype": "Ranger"
@@ -179,46 +168,49 @@
 				]
 			},
 			{
-				"name": "grove_ancient",
+				"name": "grovekeeper_wrath",
 				"enemies": [
 					{
-						"archetype": "Brute"
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
 					},
 					{
 						"archetype": "Defender"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "Brute"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "Ranger"
 					}
 				]
 			},
 			{
-				"name": "deep_rising",
+				"name": "monsoon_tide",
 				"enemies": [
 					{
-						"archetype": "Ranger"
+						"archetype": "Soldier"
 					},
 					{
-						"archetype": "Ranger"
-					},
-					{
-						"archetype": "Wizard"
+						"archetype": "Soldier"
 					},
 					{
 						"archetype": "Brute"
+					},
+					{
+						"archetype": "Ranger"
 					}
 				]
 			}
 		],
 		"ambush": [
 			{
-				"name": "canopy_strike",
+				"name": "vine_snare",
 				"enemies": [
 					{
-						"archetype": "Ranger"
+						"archetype": "Defender"
 					},
 					{
 						"archetype": "Ranger"
@@ -229,16 +221,16 @@
 				]
 			},
 			{
-				"name": "grove_awakened",
+				"name": "beast_rush",
 				"enemies": [
 					{
 						"archetype": "Brute"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "Brute"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "Ranger"
 					}
 				]
 			}

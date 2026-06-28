@@ -1,63 +1,44 @@
 {
-	"id": "frontier_wilds",
-	"displayName": "Frontier Wilds",
-	"description": "Dense wilderness beyond the guild's reach. Ancient ruins dot the landscape, half-swallowed by forest. Where the road ends, your run begins.",
-	"schoolAffinity": "Druid",
+	"id": "dustreach",
+	"displayName": "The Dustreach",
+	"description": "A sun-flayed expanse of salt pan and dead caravan road, where the wells went dry a generation ago and the bones point the way to the next one. Scavengers strip what the heat hasn't claimed. Mirages here have learned to wait until you commit before they vanish.",
+	"schoolAffinity": "Tinker",
 	"atmosphere": "Hostile",
-	"baseDifficultyTier": 1,
-	"displayTier": "The Borderlands",
+	"baseDifficultyTier": 2,
+	"displayTier": "The Interior",
 	"gridWidth": 21,
 	"gridHeight": 21,
-	"stepBudget": 40,
+	"stepBudget": 42,
 	"combatPOICount": 16,
-	"restPOICount": 5,
+	"restPOICount": 3,
 	"outpostPOICount": 3,
 	"narrativePOICount": 5,
-	"negotiationPOICount": 3,
-	"hasRiver": true,
+	"negotiationPOICount": 2,
+	"hasRiver": false,
 	"hasMountainRange": false,
 	"hasRoads": true,
-	"riverCrossingCount": 3,
-	"enemyDifficultyMult": 1.0,
-	"goldRewardMult": 1.0,
-	"settlementDensity": 1.0,
+	"riverCrossingCount": 0,
+	"enemyDifficultyMult": 1.3,
+	"goldRewardMult": 1.2,
+	"settlementDensity": 0.5,
 	"baseTerrain": {
 		"elevationFrequency": 0.10,
-		"moistureFrequency": 0.075,
-		"detailWeight": 0.16,
+		"moistureFrequency": 0.06,
+		"detailWeight": 0.20,
 		"palette": [
 			{
-				"terrainName": "Water",
-				"maxElevation": 0.18
-			},
-			{
-				"terrainName": "Volcanic",
-				"minElevation": 0.88,
-				"maxMoisture": 0.28
-			},
-			{
 				"terrainName": "Mountain",
-				"minElevation": 0.82
-			},
-			{
-				"terrainName": "Swamp",
-				"maxElevation": 0.30,
-				"minMoisture": 0.60
+				"minElevation": 0.86
 			},
 			{
 				"terrainName": "Ruins",
-				"minElevation": 0.55,
-				"maxElevation": 0.72,
-				"maxMoisture": 0.35
+				"minElevation": 0.45,
+				"maxElevation": 0.78,
+				"maxMoisture": 0.28
 			},
 			{
-				"terrainName": "ArcaneGround",
-				"minElevation": 0.62,
-				"minMoisture": 0.70
-			},
-			{
-				"terrainName": "Forest",
-				"minMoisture": 0.50
+				"terrainName": "Desert",
+				"maxMoisture": 0.45
 			},
 			{
 				"terrainName": "Grassland"
@@ -65,16 +46,16 @@
 		]
 	},
 	"affinity": {
-		"temperature": "any",
-		"moisture": "any",
-		"elevation": "any",
+		"temperature": "warm",
+		"moisture": "arid",
+		"elevation": "low",
 		"coastal": false,
 		"dominantTerrain": "None"
 	},
 	"encounterPools": {
 		"skirmish": [
 			{
-				"name": "patrol",
+				"name": "dust_scavengers",
 				"enemies": [
 					{
 						"archetype": "Soldier"
@@ -85,7 +66,7 @@
 				]
 			},
 			{
-				"name": "scouts",
+				"name": "salt_nomads",
 				"enemies": [
 					{
 						"archetype": "Ranger"
@@ -96,7 +77,7 @@
 				]
 			},
 			{
-				"name": "vanguard",
+				"name": "scrap_pickers",
 				"enemies": [
 					{
 						"archetype": "Soldier"
@@ -109,35 +90,7 @@
 		],
 		"battle": [
 			{
-				"name": "war_band",
-				"enemies": [
-					{
-						"archetype": "Soldier"
-					},
-					{
-						"archetype": "Soldier"
-					},
-					{
-						"archetype": "Ranger"
-					}
-				]
-			},
-			{
-				"name": "ambush_hunters",
-				"enemies": [
-					{
-						"archetype": "Ranger"
-					},
-					{
-						"archetype": "Ranger"
-					},
-					{
-						"archetype": "Wizard"
-					}
-				]
-			},
-			{
-				"name": "war_coven",
+				"name": "caravan_wreckers",
 				"enemies": [
 					{
 						"archetype": "Soldier"
@@ -146,29 +99,60 @@
 						"archetype": "Brute"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "Ranger"
 					}
 				]
 			},
 			{
-				"name": "fortified_patrol",
+				"name": "mirage_cult",
 				"enemies": [
 					{
-						"archetype": "Defender"
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "bonefield_host",
+				"enemies": [
+					{
+						"archetype": "Brute"
 					},
 					{
 						"archetype": "Soldier"
 					},
 					{
 						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "rust_constructs",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
 					}
 				]
 			}
 		],
 		"siege": [
 			{
-				"name": "warlord_retinue",
+				"name": "salt_tide",
 				"enemies": [
+					{
+						"archetype": "Brute"
+					},
 					{
 						"archetype": "Brute"
 					},
@@ -176,18 +160,15 @@
 						"archetype": "Defender"
 					},
 					{
-						"archetype": "Soldier"
-					},
-					{
 						"archetype": "Ranger"
 					}
 				]
 			},
 			{
-				"name": "arcane_host",
+				"name": "scrapworks_lord",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "Defender"
 					},
 					{
 						"archetype": "Defender"
@@ -196,12 +177,12 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "Soldier"
 					}
 				]
 			},
 			{
-				"name": "overwhelming_force",
+				"name": "dune_host",
 				"enemies": [
 					{
 						"archetype": "Brute"
@@ -214,36 +195,39 @@
 					},
 					{
 						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Wizard"
 					}
 				]
 			}
 		],
 		"ambush": [
 			{
-				"name": "forest_ambush",
+				"name": "sandstorm",
 				"enemies": [
 					{
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "Brute"
 					}
 				]
 			},
 			{
-				"name": "ruins_trap",
+				"name": "pit_trap",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "Defender"
 					},
 					{
 						"archetype": "Soldier"
 					},
 					{
-						"archetype": "Ranger"
+						"archetype": "Wizard"
 					}
 				]
 			}

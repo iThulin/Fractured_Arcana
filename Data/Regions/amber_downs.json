@@ -1,54 +1,44 @@
 {
-	"id": "ashfeld_crossing",
-	"displayName": "Ashfeld Crossing",
-	"description": "A contested river crossing where two armies bled into the mud and neither won. Broken fortifications, mass graves, and scavengers picking through the aftermath. The roads still run, but nothing friendly walks them.",
-	"schoolAffinity": "Adept",
-	"atmosphere": "Hostile",
+	"id": "amber_downs",
+	"displayName": "The Amber Downs",
+	"description": "Rolling grassland gone gold with late grain, threaded by old roads and older boundary-stones. The closest thing to settled country the guild's maps still mark in ink. Petty barons hold the manors and bind their levies with charm-oaths older than the borders they defend. Civilized — which only means the knives are politer.",
+	"schoolAffinity": "Enchanter",
+	"atmosphere": "Neutral",
 	"baseDifficultyTier": 1,
 	"displayTier": "The Borderlands",
 	"gridWidth": 19,
 	"gridHeight": 19,
 	"stepBudget": 36,
-	"combatPOICount": 14,
+	"combatPOICount": 12,
 	"restPOICount": 5,
 	"outpostPOICount": 2,
 	"narrativePOICount": 5,
-	"negotiationPOICount": 4,
+	"negotiationPOICount": 5,
 	"hasRiver": true,
 	"hasMountainRange": false,
 	"hasRoads": true,
-	"riverCrossingCount": 4,
-	"enemyDifficultyMult": 1.0,
+	"riverCrossingCount": 3,
+	"enemyDifficultyMult": 0.9,
 	"goldRewardMult": 1.1,
 	"settlementDensity": 1.0,
 	"baseTerrain": {
 		"elevationFrequency": 0.09,
-		"moistureFrequency": 0.07,
-		"detailWeight": 0.12,
+		"moistureFrequency": 0.08,
+		"detailWeight": 0.14,
 		"palette": [
 			{
-				"terrainName": "Water",
-				"maxElevation": 0.16
+				"terrainName": "Mountain",
+				"minElevation": 0.86
 			},
 			{
-				"terrainName": "Mountain",
-				"minElevation": 0.85
+				"terrainName": "Forest",
+				"minMoisture": 0.58,
+				"maxElevation": 0.62
 			},
 			{
 				"terrainName": "Swamp",
 				"maxElevation": 0.28,
-				"minMoisture": 0.58
-			},
-			{
-				"terrainName": "Ruins",
-				"minElevation": 0.45,
-				"maxElevation": 0.70,
-				"maxMoisture": 0.40
-			},
-			{
-				"terrainName": "Forest",
-				"minMoisture": 0.55,
-				"maxElevation": 0.65
+				"minMoisture": 0.70
 			},
 			{
 				"terrainName": "Grassland"
@@ -65,7 +55,18 @@
 	"encounterPools": {
 		"skirmish": [
 			{
-				"name": "deserters",
+				"name": "highway_bandits",
+				"enemies": [
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "militia_patrol",
 				"enemies": [
 					{
 						"archetype": "Soldier"
@@ -76,31 +77,20 @@
 				]
 			},
 			{
-				"name": "scavengers",
+				"name": "charmed_levy",
 				"enemies": [
 					{
-						"archetype": "Ranger"
+						"archetype": "Wizard"
 					},
 					{
 						"archetype": "Soldier"
-					}
-				]
-			},
-			{
-				"name": "advance_scouts",
-				"enemies": [
-					{
-						"archetype": "Ranger"
-					},
-					{
-						"archetype": "Ranger"
 					}
 				]
 			}
 		],
 		"battle": [
 			{
-				"name": "rear_guard",
+				"name": "baron_retinue",
 				"enemies": [
 					{
 						"archetype": "Defender"
@@ -114,60 +104,77 @@
 				]
 			},
 			{
-				"name": "river_raiders",
+				"name": "bound_militia",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "Defender"
 					},
+					{
+						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "bandit_company",
+				"enemies": [
 					{
 						"archetype": "Brute"
 					},
 					{
 						"archetype": "Ranger"
+					},
+					{
+						"archetype": "Soldier"
 					}
 				]
 			},
 			{
-				"name": "mercenary_band",
+				"name": "court_wards",
 				"enemies": [
 					{
-						"archetype": "Soldier"
-					},
-					{
-						"archetype": "Soldier"
+						"archetype": "Wizard"
 					},
 					{
 						"archetype": "Wizard"
-					}
-				]
-			},
-			{
-				"name": "siege_remnants",
-				"enemies": [
-					{
-						"archetype": "Defender"
 					},
 					{
 						"archetype": "Defender"
-					},
-					{
-						"archetype": "Ranger"
 					}
 				]
 			}
 		],
 		"siege": [
 			{
-				"name": "war_machine",
+				"name": "levied_host",
 				"enemies": [
 					{
-						"archetype": "Brute"
+						"archetype": "Soldier"
 					},
 					{
-						"archetype": "Brute"
+						"archetype": "Soldier"
 					},
 					{
 						"archetype": "Defender"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
+				"name": "enchanted_guard",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Wizard"
 					},
 					{
 						"archetype": "Soldier"
@@ -175,10 +182,10 @@
 				]
 			},
 			{
-				"name": "officer_retinue",
+				"name": "noble_muster",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "Brute"
 					},
 					{
 						"archetype": "Soldier"
@@ -188,36 +195,19 @@
 					},
 					{
 						"archetype": "Wizard"
-					}
-				]
-			},
-			{
-				"name": "fortified_stand",
-				"enemies": [
-					{
-						"archetype": "Defender"
-					},
-					{
-						"archetype": "Defender"
-					},
-					{
-						"archetype": "Soldier"
-					},
-					{
-						"archetype": "Ranger"
 					}
 				]
 			}
 		],
 		"ambush": [
 			{
-				"name": "river_crossing",
+				"name": "roadside_snare",
 				"enemies": [
 					{
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Ranger"
+						"archetype": "Soldier"
 					},
 					{
 						"archetype": "Soldier"
@@ -225,16 +215,16 @@
 				]
 			},
 			{
-				"name": "ruins_holdout",
+				"name": "glamour_trap",
 				"enemies": [
 					{
-						"archetype": "Defender"
-					},
-					{
-						"archetype": "Soldier"
+						"archetype": "Wizard"
 					},
 					{
 						"archetype": "Wizard"
+					},
+					{
+						"archetype": "Ranger"
 					}
 				]
 			}

@@ -80,17 +80,20 @@ public static class Settlements
                 continue;
 
             var cap = capitals[k];
+            float density = RegionDensity(kingdoms, id);
             GrowSettlement(world, cap, CityTargetSize, id, SettlementTier.City, isSeat: true);
             centers.Add(cap);
 
-            if (tiles.Count > ExtraCityKingdomTiles &&
+            if (tiles.Count > ExtraCityKingdomTiles / density &&
                 TryPickCenter(world, tiles, centers, rng, out var c2))
             {
                 GrowSettlement(world, c2, CityTargetSize, id, SettlementTier.City, isSeat: false);
                 centers.Add(c2);
             }
 
-            int townCount = Mathf.Clamp(tiles.Count / TownPerKingdomTiles, MinTowns, MaxTowns);
+            int townCount = Mathf.Clamp(
+                Mathf.RoundToInt(tiles.Count / (float)TownPerKingdomTiles * density),
+                MinTowns, MaxTowns);
             for (int t = 0; t < townCount; t++)
             {
                 if (!TryPickCenter(world, tiles, centers, rng, out var tc))
@@ -140,6 +143,20 @@ public static class Settlements
         }
 
         GD.Print($"[Settlements] +{added} junction towns at road convergences.");
+    }
+
+    /// <summary>The owning region's settlement-density multiplier (1.0 if unknown).
+    /// Cities/towns scale by this so urban regions read denser and wilds emptier.</summary>
+    private static float RegionDensity(Dictionary<string, KingdomState> kingdoms, string kingdomId)
+    {
+        if (kingdoms != null && kingdoms.TryGetValue(kingdomId, out var ks)
+            && !string.IsNullOrEmpty(ks.TemplateRegionId))
+        {
+            var def = RegionLoader.LoadOrDefault(ks.TemplateRegionId);
+            if (def != null && def.SettlementDensity > 0f)
+                return def.SettlementDensity;
+        }
+        return 1.0f;
     }
 
     // ── Growth ───────────────────────────────────────────────────────────

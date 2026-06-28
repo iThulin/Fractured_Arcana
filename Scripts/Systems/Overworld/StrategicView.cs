@@ -58,12 +58,15 @@ public partial class StrategicView : Node2D
 
     private WorldData _world;
     private System.Collections.Generic.Dictionary<string, KingdomState> _kingdoms = new();
+    private Node2D _labelLayer;
+    private const float ArchmageNameZoomThreshold = 1.4f; // ruler line appears past this zoom
     private bool _debugReveal = false;   // debug full-map view (non-destructive)
     private StrategicLens _lens = StrategicLens.Political;  // active map lens
     private MultiMeshInstance2D _tileLayer;
     private MultiMeshInstance2D _poiLayer;
     private MultiMeshInstance2D _settlementLayer;
     private Node2D _edgeLayer;
+    private Node2D _borderLayer;
     private Camera2D _camera;
 
     // Camera control
@@ -127,6 +130,7 @@ public partial class StrategicView : Node2D
 
         BuildTileLayer();
         BuildSettlementLayer();
+        BuildBorderLayer();
         BuildEdgeLayer();
         BuildPoiLayer();
         if (!Standalone)
@@ -137,6 +141,7 @@ public partial class StrategicView : Node2D
         if (Standalone)
             BuildDebugControls();
         FrameCamera();
+        BuildLabelLayer();   // last: needs the framed _zoom for correct counter-scale
     }
 
     /// <summary>Persistent strategic-map HUD: a free exit back to campus. Returning
@@ -447,6 +452,85 @@ public partial class StrategicView : Node2D
         }
     }
 
+    /// <summary>Kingdom boundaries, Political lens only. Instead of stroking edges
+    /// (which exposes the hex stairstep and drifts on the square-quad renderer), this
+    /// TINTS the boundary tiles — a tile whose neighbour is a different kingdom, ocean,
+    /// or off-map — with a dark band, using the SAME quad transform as the tile layer
+    /// so it lands exactly on grid. Mirrors BuildSettlementLayer's rim technique.</summary>
+    private void BuildBorderLayer()
+    {
+        _borderLayer?.QueueFree();
+        if (_world == null || _lens != StrategicLens.Political)
+        {
+            _borderLayer = new Node2D { Name = "BorderLayer" }; // empty placeholder so the ref is valid
+            AddChild(_borderLayer);
+            return;
+        }
+
+        var rim = new List<(int x, int y)>();
+        for (int y = 0; y < _world.Height; y++)
+        {
+            for (int x = 0; x < _world.Width; x++)
+            {
+                var t = _world.GetTile(x, y);
+                if (!t.IsLand || string.IsNullOrEmpty(t.KingdomId))
+                    continue;
+
+                var disc = _debugReveal ? TileDiscovery.Explored : t.Discovery;
+                if (disc == TileDiscovery.Unseen)
+                    continue;
+
+                var (q, r) = HexCoord.OffsetToAxial(x, y);
+                bool onBorder = false;
+                for (int d = 0; d < 6; d++)
+                {
+                    var (dq, dr) = HexCoord.AxialDirections[d];
+                    var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+                    if (!_world.InBounds(nc, nr))
+                    { onBorder = true; break; }
+                    var nt = _world.GetTile(nc, nr);
+                    if (nt.IsWater || nt.KingdomId != t.KingdomId)
+                    { onBorder = true; break; }
+                }
+                if (onBorder)
+                    rim.Add((x, y));
+            }
+        }
+
+        if (rim.Count == 0)
+        {
+            _borderLayer = new Node2D { Name = "BorderLayer" };
+            AddChild(_borderLayer);
+            return;
+        }
+
+        var quad = MakeQuadMesh(TilePx);
+        var mm = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform2D,
+            UseColors = true,
+            UseCustomData = true,
+            Mesh = quad,
+            InstanceCount = rim.Count,
+        };
+        for (int n = 0; n < rim.Count; n++)
+        {
+            var (x, y) = rim[n];
+            mm.SetInstanceTransform2D(n,
+                new Transform2D(0f, HexCoord.OffsetRenderPosition(x, y, TilePx)));
+            mm.SetInstanceColor(n, UITheme.KingdomBorder);
+            mm.SetInstanceCustomData(n, Colors.White);
+        }
+
+        _borderLayer = new MultiMeshInstance2D
+        {
+            Name = "BorderLayer",
+            Multimesh = mm,
+            ZIndex = 0, // above tiles, below POIs — same band as settlement rim
+        };
+        AddChild(_borderLayer);
+    }
+
     private void AddEdgeSegment(Vector2 a, Vector2 b, float width, Color color)
     {
         _edgeLayer.AddChild(new Line2D
@@ -514,6 +598,122 @@ public partial class StrategicView : Node2D
         AddChild(_settlementLayer);
     }
 
+    /// <summary>Per-kingdom name labels, anchored at each kingdom's seat (capital).
+    /// Political lens only; the ruler line is zoom-gated so the far-out view stays
+    /// readable. Drawn above POIs with a dark backing pill for legibility over the
+    /// faction wash.</summary>
+    private void BuildLabelLayer()
+    {
+        _labelLayer?.QueueFree();
+        _labelLayer = new Node2D { Name = "LabelLayer", ZIndex = 3 }; // above POIs (z=1), staging (z=2)
+        AddChild(_labelLayer);
+
+        if (_world == null || _lens != StrategicLens.Political)
+            return;
+
+        bool showRuler = _zoom >= ArchmageNameZoomThreshold;
+
+        // Anchor each kingdom's label at its Seat POI (the capital/seat city centre).
+        foreach (var poi in _world.Pois)
+        {
+            if (poi.Kind != PoiKind.Seat && poi.Kind != PoiKind.Convergence)
+                continue;
+
+            var disc = _debugReveal ? TileDiscovery.Explored : _world.GetTile(poi.X, poi.Y).Discovery;
+            if (disc == TileDiscovery.Unseen)
+                continue; // don't name kingdoms the player hasn't found
+
+            if (string.IsNullOrEmpty(poi.KingdomId) ||
+                !_kingdoms.TryGetValue(poi.KingdomId, out var ks))
+                continue;
+
+            string place = string.IsNullOrEmpty(ks.DisplayName) ? poi.KingdomId : ks.DisplayName;
+            string ruler = null;
+            if (showRuler && !string.IsNullOrEmpty(ks.ArchmageId))
+                ruler = ArchmageRegistry.Get(ks.ArchmageId)?.DisplayName;
+
+            Vector2 at = HexCoord.OffsetRenderPosition(poi.X, poi.Y, TilePx)
+                         + new Vector2(TilePx * 0.5f, TilePx * 0.5f);
+            AddKingdomLabel(at, place, ruler, ominous: poi.Kind == PoiKind.Convergence);
+        }
+    }
+
+    private void AddKingdomLabel(Vector2 center, string place, string ruler, bool ominous = false)
+    {
+        float inv = _zoom > 0.001f ? 1f / _zoom : 1f;
+
+        var holder = new Node2D
+        {
+            Position = center,
+            Scale = new Vector2(inv, inv),
+        };
+        _labelLayer.AddChild(holder);
+
+        var plate = new PanelContainer();
+        var plateStyle = UITheme.MakePanelStyle(
+            new Color(UITheme.BgBase.R, UITheme.BgBase.G, UITheme.BgBase.B, 0.78f),
+            ominous ? UITheme.StrategicCorruption : UITheme.Violet);
+        plateStyle.ContentMarginLeft = plateStyle.ContentMarginRight = 8;
+        plateStyle.ContentMarginTop = plateStyle.ContentMarginBottom = 3;
+        plate.AddThemeStyleboxOverride("panel", plateStyle);
+        holder.AddChild(plate);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 0);
+        plate.AddChild(vbox);
+
+        var nameLbl = new Label
+        {
+            Text = Spaced(place.ToUpperInvariant()),
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        nameLbl.AddThemeFontSizeOverride("font_size", UITheme.StrategicLabelFontSize);
+        nameLbl.AddThemeColorOverride("font_color",
+            ominous ? new Color(0.95f, 0.55f, 0.62f) : UITheme.Gold);
+        nameLbl.AddThemeColorOverride("font_outline_color", UITheme.WorldDeep);
+        nameLbl.AddThemeConstantOverride("outline_size", 4);
+        vbox.AddChild(nameLbl);
+
+        if (!string.IsNullOrEmpty(ruler))
+        {
+            var rulerLbl = new Label
+            {
+                Text = ruler,
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            rulerLbl.AddThemeFontSizeOverride("font_size", UITheme.StrategicLabelFontSize - 5);
+            rulerLbl.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+            rulerLbl.AddThemeColorOverride("font_outline_color", UITheme.WorldDeep);
+            rulerLbl.AddThemeConstantOverride("outline_size", 3);
+            vbox.AddChild(rulerLbl);
+        }
+
+        CallDeferred(nameof(RecenterLabelPlate), plate);
+    }
+
+    /// <summary>Re-position a label plate so it's horizontally centred on, and sitting
+    /// just above, its holder's origin (the seat). Deferred because a Control's size
+    /// isn't known until after it lays out.</summary>
+    private void RecenterLabelPlate(PanelContainer plate)
+    {
+        if (!IsInstanceValid(plate))
+            return;
+        Vector2 size = plate.Size;
+        // Centre horizontally; lift the plate up so its bottom edge clears the seat
+        // diamond (which is ~TilePx*1.4 tall, drawn at the anchor).
+        plate.Position = new Vector2(-size.X * 0.5f, -size.Y - TilePx * 1.1f);
+    }
+
+    /// <summary>Insert thin spaces between characters for a letter-spaced, map-label
+    /// feel (Godot Labels have no native tracking control).</summary>
+    private static string Spaced(string s)
+    {
+        if (string.IsNullOrEmpty(s))
+            return s;
+        // U+2009 THIN SPACE between each character; a hair of tracking, not a full gap.
+        return string.Join("\u2009", s.ToCharArray());
+    }
+
     // ── Color logic ──────────────────────────────────────────────────────
     private Color TileColor(WorldTile t)
     {
@@ -563,7 +763,7 @@ public partial class StrategicView : Node2D
                 return CorruptionLensColor(t);
             default:
                 bool ownedLand = t.IsLand && !string.IsNullOrEmpty(t.KingdomId);
-                return ownedLand ? FactionColorForKingdom(t.KingdomId) : TerrainColorOf(t);
+                return ownedLand ? KingdomColor(t.KingdomId) : TerrainColorOf(t);
         }
     }
 
@@ -574,12 +774,12 @@ public partial class StrategicView : Node2D
         Color c;
         if (isLand && !string.IsNullOrEmpty(t.KingdomId))
         {
-            Color faction = FactionColorForKingdom(t.KingdomId);
+            Color bloc = KingdomColor(t.KingdomId);
             float lum = TerrainLuminance(t.Terrain);
             c = new Color(
-                Mathf.Clamp(faction.R * lum, 0f, 1f),
-                Mathf.Clamp(faction.G * lum, 0f, 1f),
-                Mathf.Clamp(faction.B * lum, 0f, 1f),
+                Mathf.Clamp(bloc.R * lum, 0f, 1f),
+                Mathf.Clamp(bloc.G * lum, 0f, 1f),
+                Mathf.Clamp(bloc.B * lum, 0f, 1f),
                 1f);
         }
         else
@@ -588,8 +788,12 @@ public partial class StrategicView : Node2D
         }
         if (t.Corruption > 0)
         {
-            float k = Mathf.Clamp(t.Corruption / 100f, 0f, 1f) * 0.6f;
-            c = c.Lerp(UITheme.StrategicCorruption, k);
+            // Political lens: corruption is a STAIN over the kingdom color, not a
+            // recolor — the territory's identity must survive underneath. Capped low
+            // and darkened (vs the loud Corruption-lens red) so a heavily corrupted
+            // kingdom reads as "this kingdom, corrupted," not "the red kingdom."
+            float k = Mathf.Clamp(t.Corruption / 100f, 0f, 1f) * 0.35f;
+            c = c.Lerp(UITheme.StrategicCorruptionWash, k);
         }
         return c;
     }
@@ -702,8 +906,34 @@ public partial class StrategicView : Node2D
         PoiKind.Outpost => UITheme.POIOutpost,
         PoiKind.Seat => UITheme.Gold,          // archmage seats: gold
         PoiKind.Settlement => UITheme.ArcaneBlue,
+        PoiKind.Convergence => UITheme.POIConvergence,
         _ => UITheme.TextPrimary,
     };
+
+    /// <summary>A stable, visually distinct fill color per kingdom, keyed off the
+    /// kingdom INDEX so the ten territories spread evenly around the hue wheel and
+    /// adjacent ids never collide. This is the political-lens unit: one kingdom =
+    /// one color = one bordered bloc, regardless of which faction controls it
+    /// (faction is a separate layer; coloring by it merges distinct territories).</summary>
+    private Color KingdomColor(string kingdomId)
+    {
+        if (string.IsNullOrEmpty(kingdomId))
+            return UITheme.Neutral;
+
+        int idx = -1;
+        int us = kingdomId.LastIndexOf('_');
+        if (us >= 0 && us + 1 < kingdomId.Length)
+            int.TryParse(kingdomId.Substring(us + 1), out idx);
+        if (idx < 0)
+        {
+            uint hsh = 2166136261u;
+            foreach (char ch in kingdomId)
+            { hsh ^= ch; hsh *= 16777619u; }
+            idx = (int)(hsh % (uint)UITheme.KingdomPalette.Length);
+        }
+
+        return UITheme.KingdomPalette[idx % UITheme.KingdomPalette.Length];
+    }
 
     // ── Live recolor (Phase 1c hooks) ────────────────────────────────────
 
@@ -728,6 +958,8 @@ public partial class StrategicView : Node2D
             return;
         _lens = lens;
         RecolorAllTiles();
+        BuildBorderLayer();
+        BuildLabelLayer();
         UpdateLensButtons();
     }
 
@@ -792,6 +1024,7 @@ public partial class StrategicView : Node2D
     {
         _zoom = Mathf.Clamp(_zoom * factor, ZoomMin, ZoomMax);
         _camera.Zoom = new Vector2(_zoom, _zoom);
+        BuildLabelLayer(); // re-evaluate the ruler-line zoom gate
     }
 
     // ── Meshes ───────────────────────────────────────────────────────────
@@ -847,9 +1080,11 @@ public partial class StrategicView : Node2D
         GenerateStandaloneWorld();
         BuildTileLayer();
         BuildSettlementLayer();
+        BuildBorderLayer();
         BuildEdgeLayer();
         BuildPoiLayer();
         FrameCamera();
+        BuildLabelLayer();   // match BuildRender: framed zoom first, then labels
         UpdateDebugInfo();
     }
 
