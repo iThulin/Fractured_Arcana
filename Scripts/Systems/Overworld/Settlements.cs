@@ -19,37 +19,33 @@ using System.Collections.Generic;
 //                 City if the territory is large, and Towns scaled by
 //                 territory size, placed by a suitability score (fresh
 //                 water + flat ground) with spacing.
+//
+//                 AddJunctionTowns (called AFTER Roads) drops an extra
+//                 Town at every road convergence — a tile with roads on
+//                 3+ edges — regardless of the per-kingdom town cap.
 // Layer:          System (generation helper)
 // Collaborators:  WorldData / WorldTile (SettlementIndex + Settlements
 //                 table), Hydrology (river/lake data feeds suitability),
-//                 WorldGenerator (caller; ScatterPois studs the result),
+//                 Roads (junction towns read RoadEdges), WorldGenerator,
 //                 HexCoord (neighbours / distance).
-// Notes:          Runs AFTER terrain/hydrology/highlands and territory
-//                 assignment, BEFORE ScatterPois. Deterministic from the
-//                 world RNG.
 // ============================================================
 
 public static class Settlements
 {
     // ── Tuning ───────────────────────────────────────────────────────────
 
-    /// <summary>Target tile count for a City (grown; may fall short if hemmed in
-    /// by water/mountain/other settlements).</summary>
     public static int CityTargetSize = 9;
-
-    /// <summary>A kingdom larger than this (land tiles) earns a second City.</summary>
     public static int ExtraCityKingdomTiles = 650;
-
-    /// <summary>Roughly one Town per this many kingdom land tiles.</summary>
     public static int TownPerKingdomTiles = 200;
     public static int MinTowns = 1, MaxTowns = 6;
-
-    /// <summary>Town size range (1 = a single hamlet tile).</summary>
     public static int TownMinSize = 1, TownMaxSize = 3;
-
-    /// <summary>Min hex distance between settlement centres, so cities/towns don't
-    /// pile on top of each other.</summary>
     public static int SettlementSpacing = 4;
+
+    /// <summary>Size of a town grown at a road junction.</summary>
+    public static int JunctionTownSize = 2;
+    /// <summary>Junction towns ignore the per-kingdom cap but still keep this much
+    /// distance from existing settlements, so they don't pile onto a city.</summary>
+    public static int JunctionMinSpacing = 2;
 
     // ── Entry ────────────────────────────────────────────────────────────
 
@@ -58,7 +54,6 @@ public static class Settlements
         List<(int x, int y)> capitals, List<string> kingdomIds,
         string convergenceKingdom, RandomNumberGenerator rng)
     {
-        // Per-kingdom land tile lists (one scan).
         var kingdomTiles = new Dictionary<string, List<(int x, int y)>>();
         foreach (var id in kingdomIds)
             kingdomTiles[id] = new List<(int x, int y)>();
@@ -73,23 +68,21 @@ public static class Settlements
             }
         }
 
-        var centers = new List<(int x, int y)>();   // all settlement centres (spacing)
+        var centers = new List<(int x, int y)>();
 
         for (int k = 0; k < capitals.Count; k++)
         {
             string id = kingdomIds[k];
             if (id == convergenceKingdom)
-                continue;                            // Kassian's seat — no city (endgame zone)
+                continue;
             var tiles = kingdomTiles[id];
             if (tiles.Count == 0)
                 continue;
 
-            // Primary city anchored on the archmage seat.
             var cap = capitals[k];
             GrowSettlement(world, cap, CityTargetSize, id, SettlementTier.City, isSeat: true);
             centers.Add(cap);
 
-            // Optional second city for large territories.
             if (tiles.Count > ExtraCityKingdomTiles &&
                 TryPickCenter(world, tiles, centers, rng, out var c2))
             {
@@ -97,7 +90,6 @@ public static class Settlements
                 centers.Add(c2);
             }
 
-            // Towns scaled by territory size.
             int townCount = Mathf.Clamp(tiles.Count / TownPerKingdomTiles, MinTowns, MaxTowns);
             for (int t = 0; t < townCount; t++)
             {
@@ -114,10 +106,44 @@ public static class Settlements
                  $"{CountTier(world, SettlementTier.Town)} towns).");
     }
 
+    // ── Junction towns (called after Roads) ──────────────────────────────
+
+    /// <summary>Drops a Town at every road junction — a tile carrying roads on 3+
+    /// edges, i.e. where road paths converge — ignoring the per-kingdom town cap but
+    /// keeping JunctionMinSpacing from existing settlements.</summary>
+    public static void AddJunctionTowns(WorldData world)
+    {
+        var centers = new List<(int x, int y)>();
+        foreach (var s in world.Settlements)
+            centers.Add((s.CenterX, s.CenterY));
+
+        var junctions = new List<(int x, int y)>();
+        for (int y = 0; y < world.Height; y++)
+            for (int x = 0; x < world.Width; x++)
+            {
+                var t = world.GetTile(x, y);
+                if (t.SettlementIndex >= 0 || string.IsNullOrEmpty(t.KingdomId))
+                    continue;
+                if (PopCount(t.RoadEdges) >= 3)
+                    junctions.Add((x, y));
+            }
+
+        int added = 0;
+        foreach (var (x, y) in junctions)
+        {
+            if (TooClose(centers, x, y, JunctionMinSpacing))
+                continue;
+            string id = world.GetTile(x, y).KingdomId;
+            GrowSettlement(world, (x, y), JunctionTownSize, id, SettlementTier.Town, isSeat: false);
+            centers.Add((x, y));
+            added++;
+        }
+
+        GD.Print($"[Settlements] +{added} junction towns at road convergences.");
+    }
+
     // ── Growth ───────────────────────────────────────────────────────────
 
-    /// <summary>Force-claims the centre (even if it's a mountain seat), then
-    /// frontier-grows toward low/flat ground in the same kingdom up to targetSize.</summary>
     private static void GrowSettlement(WorldData world, (int x, int y) center, int targetSize,
         string kingdomId, SettlementTier tier, bool isSeat)
     {
@@ -132,17 +158,16 @@ public static class Settlements
             IsSeat = isSeat,
         };
 
-        Claim(world, center.x, center.y, idx, s);    // centre always claimed
+        Claim(world, center.x, center.y, idx, s);
 
         var frontier = new List<(int x, int y)>();
         AddNeighbors(world, center, kingdomId, frontier);
 
         while (s.Tiles.Count < targetSize && frontier.Count > 0)
         {
-            // Score each valid frontier tile: COMPACTNESS dominates (how many of its
-            // neighbours are already ours — fill gaps, don't extrude), flatness is a
-            // weak tie-breaker. Prune invalid tiles in the same downward scan; select
-            // by VALUE so RemoveAt can't invalidate the choice.
+            // Compactness drives the shape (fill gaps, don't extrude); flatness is a
+            // weak tie-breaker. Prune invalid tiles in the downward scan; select by
+            // VALUE so RemoveAt can't invalidate the choice.
             (int x, int y) pick = default;
             float bestScore = float.NegativeInfinity;
             bool found = false;
@@ -161,7 +186,6 @@ public static class Settlements
                     if (world.GetTile(nx, ny).SettlementIndex == idx)
                         ownNeighbors++;
 
-                // Compactness is the driver (0..6); flatness only breaks ties.
                 float score = ownNeighbors + (1f - world.GetTile(fx, fy).Elevation) * 0.25f;
                 if (score > bestScore)
                 {
@@ -173,7 +197,7 @@ public static class Settlements
             if (!found)
                 break;
 
-            frontier.Remove(pick);   // remove by value — position-independent
+            frontier.Remove(pick);
             Claim(world, pick.x, pick.y, idx, s);
             AddNeighbors(world, pick, kingdomId, frontier);
         }
@@ -195,12 +219,9 @@ public static class Settlements
     {
         foreach (var (nc, nr) in HexCoord.Neighbors(c.x, c.y, world.Width, world.Height))
             if (CanSettle(world, nc, nr, kingdomId))
-                frontier.Add((nc, nr));   // dups are filtered at pick-time
+                frontier.Add((nc, nr));
     }
 
-    /// <summary>A tile a settlement may spread onto: land, not a mountain peak, not
-    /// already claimed, in the same kingdom. (The centre bypasses this so a seat on
-    /// a peak still anchors its city.)</summary>
     private static bool CanSettle(WorldData world, int x, int y, string kingdomId)
     {
         if (!world.InBounds(x, y))
@@ -215,11 +236,8 @@ public static class Settlements
         return t.KingdomId == kingdomId;
     }
 
-    // ── Centre selection (towns / extra cities) ──────────────────────────
+    // ── Centre selection ─────────────────────────────────────────────────
 
-    /// <summary>Picks the highest-suitability settle-able tile in the kingdom that
-    /// is at least SettlementSpacing from every existing centre. Returns false if
-    /// none qualifies (small/crowded kingdom).</summary>
     private static bool TryPickCenter(WorldData world, List<(int x, int y)> tiles,
         List<(int x, int y)> centers, RandomNumberGenerator rng, out (int x, int y) center)
     {
@@ -234,23 +252,20 @@ public static class Settlements
             if (TooClose(centers, x, y))
                 continue;
 
-            float score = Suitability(world, x, y)
-                          + (rng.Randf() * 0.25f);   // tiny jitter to break ties / vary seeds
+            float score = Suitability(world, x, y) + (rng.Randf() * 0.25f);
             if (score > bestScore)
             { bestScore = score; center = (x, y); found = true; }
         }
         return found;
     }
 
-    /// <summary>Higher = better townsite: flat, on/near fresh water or coast, not
-    /// swamp, mild penalty for hills.</summary>
     private static float Suitability(WorldData world, int x, int y)
     {
         var t = world.GetTile(x, y);
-        float s = (1f - t.Elevation);                 // flatter is better
+        float s = (1f - t.Elevation);
 
         if (t.RiverEdges != 0)
-            s += 1.5f;                                // riverside
+            s += 1.5f;
 
         bool nearWater = false;
         foreach (var (nc, nr) in HexCoord.Neighbors(x, y, world.Width, world.Height))
@@ -271,11 +286,22 @@ public static class Settlements
     }
 
     private static bool TooClose(List<(int x, int y)> centers, int x, int y)
+        => TooClose(centers, x, y, SettlementSpacing);
+
+    private static bool TooClose(List<(int x, int y)> centers, int x, int y, int spacing)
     {
         foreach (var (cx, cy) in centers)
-            if (HexCoord.OffsetDistance(cx, cy, x, y) < SettlementSpacing)
+            if (HexCoord.OffsetDistance(cx, cy, x, y) < spacing)
                 return true;
         return false;
+    }
+
+    private static int PopCount(byte b)
+    {
+        int c = 0;
+        while (b != 0)
+        { c += b & 1; b >>= 1; }
+        return c;
     }
 
     private static int CountTier(WorldData world, SettlementTier tier)

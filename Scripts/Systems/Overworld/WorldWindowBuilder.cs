@@ -87,6 +87,9 @@ public class WorldWindowBuilder
                 Axial = local,
                 Terrain = worldTile.Terrain,
                 Fog = FogFromDiscovery(worldTile.Discovery),
+                RiverEdges = worldTile.RiverEdges,
+                RoadEdges = worldTile.RoadEdges,
+                SpringEdges = worldTile.SpringEdges,
             };
 
             // Attach POI from the world table, if this tile has one that's been
@@ -120,7 +123,8 @@ public class WorldWindowBuilder
     {
         if (_localToWorld.TryGetValue(local, out var w))
         {
-            col = w.col; row = w.row;
+            col = w.col;
+            row = w.row;
             return true;
         }
         col = row = -1;

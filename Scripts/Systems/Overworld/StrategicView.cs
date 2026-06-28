@@ -63,6 +63,7 @@ public partial class StrategicView : Node2D
     private MultiMeshInstance2D _tileLayer;
     private MultiMeshInstance2D _poiLayer;
     private MultiMeshInstance2D _settlementLayer;
+    private Node2D _edgeLayer;
     private Camera2D _camera;
 
     // Camera control
@@ -126,6 +127,7 @@ public partial class StrategicView : Node2D
 
         BuildTileLayer();
         BuildSettlementLayer();
+        BuildEdgeLayer();
         BuildPoiLayer();
         if (!Standalone)
         {
@@ -378,6 +380,85 @@ public partial class StrategicView : Node2D
         AddChild(_poiLayer);
     }
 
+    /// <summary>River/road overlay for the strategic zoom. Each tile draws a half-
+    /// segment from its centre toward each river/road edge's shared boundary; the two
+    /// tiles' halves meet, tracing the network as a route (a center-path simplification
+    /// — the window draws true hex edges). Respects fog. Rivers blue, roads tan; a road
+    /// over a river draws second, reading as a crossing.</summary>
+    private void BuildEdgeLayer()
+    {
+        _edgeLayer?.QueueFree();
+        _edgeLayer = new Node2D { Name = "EdgeLayer" };   // over settlement tint, under POIs (z=1)
+        AddChild(_edgeLayer);
+        if (_world == null)
+            return;
+
+        float half = TilePx * 0.5f;
+        var center = new Vector2(half, half);
+        float riverW = Mathf.Max(1f, TilePx * 0.20f);
+        float roadW = Mathf.Max(1f, TilePx * 0.13f);
+        float springW = Mathf.Max(1f, TilePx * 0.11f);
+
+        for (int y = 0; y < _world.Height; y++)
+        {
+            for (int x = 0; x < _world.Width; x++)
+            {
+                var t = _world.GetTile(x, y);
+                if (t.RiverEdges == 0 && t.RoadEdges == 0 && t.SpringEdges == 0)
+                    continue;
+                if (t.IsWater)
+                    continue;   // never originate a line in water — kills the ocean overshoot
+
+                var disc = _debugReveal ? TileDiscovery.Explored : t.Discovery;
+                if (disc == TileDiscovery.Unseen)
+                    continue;
+
+                Vector2 c = HexCoord.OffsetRenderPosition(x, y, TilePx) + center;
+                var (q, r) = HexCoord.OffsetToAxial(x, y);
+
+                for (int d = 0; d < 6; d++)
+                {
+                    bool spring = (t.SpringEdges & (1 << d)) != 0;
+                    bool river = (t.RiverEdges & (1 << d)) != 0;
+                    bool road = (t.RoadEdges & (1 << d)) != 0;
+                    if (!spring && !river && !road)
+                        continue;
+
+                    var (dq, dr) = HexCoord.AxialDirections[d];
+                    var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+                    if (!_world.InBounds(nc, nr))
+                        continue;
+
+                    Vector2 nCenter = HexCoord.OffsetRenderPosition(nc, nr, TilePx) + center;
+                    Vector2 dir = nCenter - c;
+                    float dist = dir.Length();
+                    // Clamp to half a tile so the segment stays inside this tile's
+                    // footprint — two tiles' halves still meet near the shared edge.
+                    Vector2 end = c + dir / dist * Mathf.Min(dist * 0.5f, TilePx * 0.5f);
+
+                    if (spring && !river)
+                        AddEdgeSegment(c, end, springW, UITheme.TerrainLake);   // thin, lighter blue
+                    if (river)
+                        AddEdgeSegment(c, end, riverW, UITheme.TerrainWater);
+                    if (road)
+                        AddEdgeSegment(c, end, roadW, UITheme.TerrainRoad);
+                }
+            }
+        }
+    }
+
+    private void AddEdgeSegment(Vector2 a, Vector2 b, float width, Color color)
+    {
+        _edgeLayer.AddChild(new Line2D
+        {
+            Points = new[] { a, b },
+            Width = width,
+            DefaultColor = color,
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round,
+        });
+    }
+
     /// <summary>Tints the boundary tiles of each settlement (a one-tile rim) so a
     /// city/town's extent reads without hiding the terrain underneath. A tile is on
     /// the rim if any hex neighbour belongs to a different settlement (or none), or
@@ -547,6 +628,10 @@ public partial class StrategicView : Node2D
         OverworldHex.TerrainType.Hills => UITheme.TerrainHills,
         OverworldHex.TerrainType.Coast => UITheme.TerrainCoast,
         OverworldHex.TerrainType.Lake => UITheme.TerrainLake,
+        OverworldHex.TerrainType.Desert => UITheme.TerrainDesert,
+        OverworldHex.TerrainType.Tundra => UITheme.TerrainTundra,
+        OverworldHex.TerrainType.Snow => UITheme.TerrainSnow,
+        OverworldHex.TerrainType.Marsh => UITheme.TerrainMarsh,
         _ => UITheme.Neutral,
     };
 
@@ -564,6 +649,10 @@ public partial class StrategicView : Node2D
         OverworldHex.TerrainType.Volcanic => 0.85f,
         OverworldHex.TerrainType.Hills => 0.95f,
         OverworldHex.TerrainType.Coast => 1.12f,
+        OverworldHex.TerrainType.Desert => 0.80f,
+        OverworldHex.TerrainType.Tundra => 0.62f,
+        OverworldHex.TerrainType.Snow => 0.95f,
+        OverworldHex.TerrainType.Marsh => 0.40f,
         _ => 1.0f,
     };
 
@@ -750,6 +839,7 @@ public partial class StrategicView : Node2D
         GenerateStandaloneWorld();
         BuildTileLayer();
         BuildSettlementLayer();
+        BuildEdgeLayer();
         BuildPoiLayer();
         FrameCamera();
         UpdateDebugInfo();

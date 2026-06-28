@@ -217,6 +217,10 @@ public static class UITheme
     public static readonly Color TerrainHills = new Color(0.50f, 0.56f, 0.34f, 1f);
     public static readonly Color TerrainCoast = new Color(0.82f, 0.76f, 0.56f, 1f);
     public static readonly Color TerrainLake = new Color(0.30f, 0.58f, 0.82f, 1f);
+    public static readonly Color TerrainDesert = new Color(0.83f, 0.74f, 0.46f); // sandy tan
+    public static readonly Color TerrainTundra = new Color(0.62f, 0.66f, 0.60f); // cold grey-green
+    public static readonly Color TerrainSnow = new Color(0.90f, 0.93f, 0.96f); // near-white
+    public static readonly Color TerrainMarsh = new Color(0.34f, 0.46f, 0.40f); // waterlogged green (keep distinct from Swamp)
     public static readonly Color SettlementCityBorder = new Color(0.95f, 0.80f, 0.30f, 1f); // gold wash
     public static readonly Color SettlementTownBorder = new Color(0.80f, 0.55f, 0.30f, 1f); // bronze wash
 

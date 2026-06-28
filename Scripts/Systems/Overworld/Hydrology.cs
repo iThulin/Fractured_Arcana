@@ -65,6 +65,18 @@ public static class Hydrology
     /// larger trunk rivers. Tuned for a 96x96 world.</summary>
     public static int RiverMinFlow = 80;
 
+    /// <summary>Land at/above this is a spring candidate (mountain/high-hill heads).</summary>
+    public static float SpringElevation = 0.80f;
+    /// <summary>Percent of candidates that actually spawn a spring (seeded by coords).</summary>
+    public static int SpringChancePct = 22;
+    /// <summary>Max spring length before it fades, if it doesn't reach water sooner.</summary>
+    public static int SpringMaxLength = 16;
+
+    /// <summary>Lake components this size or smaller become Marsh (passable wetland)
+    /// instead of open Lake — turns fragmented enclosed-basin water into marshland
+    /// while large inland seas stay lakes. Tune up for more marsh, down for more lake.</summary>
+    public static int MarshMaxSize = 12;
+
     // ── Entry ────────────────────────────────────────────────────────────
 
     public static void Apply(WorldData world)
@@ -86,8 +98,8 @@ public static class Hydrology
             {
                 int i = y * w + x;
                 bool isBorder = x == 0 || y == 0 || x == w - 1 || y == h - 1;
-                // Ocean and the map border are the drains: water leaves here.
-                if (world.Tiles[i].IsOcean || isBorder)
+                // Ocean, lakes, and the map border are the drains: water leaves here.
+                if (world.Tiles[i].IsOcean || world.Tiles[i].IsLake || isBorder)
                 {
                     spill[i] = world.Tiles[i].Elevation;
                     visited[i] = true;
@@ -153,7 +165,7 @@ public static class Hydrology
         {
             // Source must be flowing land: not a will-be-lake, not ocean. A river
             // may still END in a lake/ocean (its receiver) — that isn't gated.
-            if (flooded[i] || world.Tiles[i].IsOcean)
+            if (flooded[i] || world.Tiles[i].IsWater)
                 continue;
             if (acc[i] < RiverMinFlow)
                 continue;
@@ -175,6 +187,19 @@ public static class Hydrology
             riverEdges++;
         }
 
+        // ── 5b. Springs: thin streams from high ground down the drainage chain to
+        // the nearest river / lake / sea. Deterministic from tile coords.
+        int springEdges = 0;
+        for (int i = 0; i < n; i++)
+        {
+            var t = world.Tiles[i];
+            if (!t.IsLand || t.Elevation < SpringElevation)
+                continue;
+            if (Hash(i) % 100u >= (uint)SpringChancePct)
+                continue;
+            springEdges += TraceSpring(world, i, receiver, recvDir, flooded);
+        }
+
         // ── 6. Classify lakes LAST ───────────────────────────────────────
         for (int i = 0; i < n; i++)
         {
@@ -184,6 +209,9 @@ public static class Hydrology
             t.Terrain = OverworldHex.TerrainType.Lake;
             world.Tiles[i] = t;
         }
+
+        // ── 7. Classify marsh ─────────────────────────────────────────────
+        ClassifyMarsh(world);
 
         GD.Print($"[Hydrology] {lakeCount} lake tiles, {riverEdges} river edges " +
                  $"(LakeMinDepth={LakeMinDepth}, MinLakeTiles={MinLakeTiles}, RiverMinFlow={RiverMinFlow}).");
@@ -257,5 +285,97 @@ public static class Hydrology
         var (dq, dr) = HexCoord.AxialDirections[d];
         (nCol, nRow) = HexCoord.AxialToOffset(q + dq, r + dr);
         return nCol >= 0 && nRow >= 0 && nCol < w && nRow < h;
+    }
+
+    /// <summary>Follows the drainage receiver chain from a high tile, stamping spring
+    /// edges, until it reaches water, joins a river/existing spring, or fades.</summary>
+    private static int TraceSpring(WorldData world, int start,
+        int[] receiver, byte[] recvDir, bool[] flooded)
+    {
+        int stamped = 0, c = start;
+        for (int step = 0; step < SpringMaxLength; step++)
+        {
+            int r = receiver[c];
+            if (r < 0)
+                break;
+            int d = recvDir[c], opp = (d + 3) % 6;
+
+            var tc = world.Tiles[c];
+            if ((tc.RiverEdges & (byte)(1 << d)) != 0)
+                break;   // joined a trunk — it's drawn already
+            if ((tc.SpringEdges & (byte)(1 << d)) != 0)
+                break;  // merged into another spring
+
+            tc.SpringEdges |= (byte)(1 << d);
+            world.Tiles[c] = tc;
+            var tr = world.Tiles[r];
+            tr.SpringEdges |= (byte)(1 << opp);
+            world.Tiles[r] = tr;
+            stamped++;
+
+            if (world.Tiles[r].IsLake || world.Tiles[r].IsOcean || flooded[r])
+                break;  // reached water
+            if (world.Tiles[r].RiverEdges != 0)
+                break;                                  // reached the river net
+            c = r;
+        }
+        return stamped;
+    }
+
+    /// <summary>Connected Lake components at or below MarshMaxSize become Marsh
+    /// (land, passable wetland); larger components stay Lake. Runs after all lakes
+    /// exist (hydrology lakes + enclosed seas), before territories own anything.</summary>
+    private static void ClassifyMarsh(WorldData world)
+    {
+        int w = world.Width, h = world.Height, n = w * h;
+        var seen = new bool[n];
+        var comp = new List<int>();
+        var queue = new Queue<int>();
+        int marshed = 0;
+
+        for (int start = 0; start < n; start++)
+        {
+            if (seen[start] || world.Tiles[start].Terrain != OverworldHex.TerrainType.Lake)
+                continue;
+
+            comp.Clear();
+            queue.Clear();
+            queue.Enqueue(start);
+            seen[start] = true;
+
+            while (queue.Count > 0)
+            {
+                int c = queue.Dequeue();
+                comp.Add(c);
+                foreach (var (nx, ny) in HexCoord.Neighbors(c % w, c / w, w, h))
+                {
+                    int ni = ny * w + nx;
+                    if (!seen[ni] && world.Tiles[ni].Terrain == OverworldHex.TerrainType.Lake)
+                    { seen[ni] = true; queue.Enqueue(ni); }
+                }
+            }
+
+            if (comp.Count <= MarshMaxSize)
+            {
+                foreach (int idx in comp)
+                {
+                    var t = world.Tiles[idx];
+                    t.Terrain = OverworldHex.TerrainType.Marsh;
+                    world.Tiles[idx] = t;
+                }
+                marshed += comp.Count;
+            }
+        }
+
+        GD.Print($"[Hydrology] {marshed} marsh tiles (lake components <= {MarshMaxSize}).");
+    }
+
+    private static uint Hash(int i)
+    {
+        uint h = (uint)i * 2654435761u;
+        h ^= h >> 15;
+        h *= 2246822519u;
+        h ^= h >> 13;
+        return h;
     }
 }

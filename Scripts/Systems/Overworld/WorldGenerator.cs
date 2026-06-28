@@ -47,11 +47,11 @@ public static class WorldGenerator
     // Defaults; overridable via the parameter object.
     public class Params
     {
-        public int Width = 96;
+        public int Width = 158;
         public int Height = 96;
         public int KingdomCount = 10;     // territories partitioned across the surface
         public float WaterLevel = 0.30f;  // elevation below this is unwalkable water (avoid as capitals/POIs)
-        public int PoiPerKingdom = 12;    // ~10 POIs per radius-12 window (sim-calibrated)
+        public int PoiPerKingdom = 12;
         public int PreDiscoveredPois = 3; // POIs visible from the start, near the staging point
         public ContinentStyle? ContinentStyleOverride = null; // null = roll the continent style from the seed; set to force one (debug).
         public float CityStudFraction = 0.55f;   // fraction of a city's tiles that get a POI
@@ -202,14 +202,24 @@ public static class WorldGenerator
         // preserved.
         MountainShaper.ClassifyHighlands(world);
 
-        // ── 5d. Settlements: grow City/Town AREAS (cities on the seats, towns by
+        // ── 5d. Climate: latitude − elevation lapse → a late terrain override.
+        // Desert (hot+dry), Tundra (cold), Snow (very cold or tall/cold peaks).
+        // After the region repaint + highlands so it wins; before settlements so
+        // towns see the final biome.
+        Climate.Apply(world, seed);
+
+        // ── 5e. Settlements: grow City/Town AREAS (cities on the seats, towns by
         // suitability). Areas only — ScatterPois studs them with POIs next.
         Settlements.Generate(world, kingdoms, capitals, kingdomIds, convergenceKingdom, rng);
 
-        // ── 5e. Roads: MST over each landmass's settlements, stamped as Road on
+        // ── 5f. Roads: MST over each landmass's settlements, stamped as Road on
         // wilderness tiles with bridges where they ford rivers. Before ScatterPois
         // so POIs can land on waystations; after Settlements so the nodes exist.
         Roads.Generate(world);
+
+        // ── 5g. Road-junction towns: a settlement at every road convergence (3+
+        // road edges), regardless of the per-kingdom town cap.
+        Settlements.AddJunctionTowns(world);
 
         // ── 6. Corruption gradient toward the convergence seat ───────────
         ApplyCorruptionGradient(world, kingdoms, campaign, convergence);
@@ -255,7 +265,8 @@ public static class WorldGenerator
                 float m = field.SampleMoisture01(new Vector2I(x, y));
 
                 var terrain = shape.IsOcean[i]
-                    ? OverworldHex.TerrainType.Water
+                    ? (shape.IsEnclosed[i] ? OverworldHex.TerrainType.Lake
+                                           : OverworldHex.TerrainType.Water)
                     : field.ClassifyByPalette(landPalette, e, m);
 
                 world.Tiles[i] = new WorldTile

@@ -232,6 +232,10 @@ public static class WorldDebug
         OverworldHex.TerrainType.Hills => 'n',
         OverworldHex.TerrainType.Coast => '.',
         OverworldHex.TerrainType.Lake => 'o',
+        OverworldHex.TerrainType.Desert => 'D',
+        OverworldHex.TerrainType.Tundra => 'T',
+        OverworldHex.TerrainType.Snow => '*',
+        OverworldHex.TerrainType.Marsh => '%',
         _ => '?',
     };
 }

@@ -77,6 +77,10 @@ public struct WorldTile
     /// never overwritten, so roads run through cities over their real biome.</summary>
     public byte RoadEdges;
 
+    /// <summary>Spring edges — thin headwater streams from high ground, same 6-bit/
+    /// both-sides convention. Rendered thinner than RiverEdges.</summary>
+    public byte SpringEdges;
+
     /// <summary>A bridge is DERIVED: an edge carrying both a road and a river is a
     /// road crossing a river, i.e. a bridge — fast to cross, no ford penalty. Kept
     /// as a property so readers are unchanged and road∩river can never desync.</summary>

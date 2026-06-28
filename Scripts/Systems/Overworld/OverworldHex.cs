@@ -21,7 +21,7 @@ public partial class OverworldHex : Node2D
     // ── Data ────────────────────────────────────────────────────────────
     public Vector2I Axial { get; set; }
 
-    public enum TerrainType { Grassland, Forest, Road, Ruins, Mountain, Swamp, ArcaneGround, Volcanic, Water, Hills, Coast, Lake }
+    public enum TerrainType { Grassland, Forest, Road, Ruins, Mountain, Swamp, ArcaneGround, Volcanic, Water, Hills, Coast, Lake, Desert, Tundra, Snow, Marsh }
     public bool IsWater => TerrainClass.IsWater(Terrain);
     public bool IsLand => TerrainClass.IsLand(Terrain);
     public bool IsCoast => TerrainClass.IsCoast(Terrain);
@@ -33,6 +33,12 @@ public partial class OverworldHex : Node2D
     public enum POIType { None, Combat, Rest, Objective, Narrative, Negotiation, Outpost }
     public POIType POI { get; set; } = POIType.None;
     public bool POIConsumed { get; set; } = false;
+
+    /// <summary>River/road edge masks copied from the world tile (6-bit, same
+    /// convention as WorldTile). Drawn as lines along the hex edges in _Ready.</summary>
+    public byte RiverEdges { get; set; } = 0;
+    public byte RoadEdges { get; set; } = 0;
+    public byte SpringEdges { get; set; } = 0;
 
     // ── Visuals ─────────────────────────────────────────────────────────
     private Polygon2D _polygon;
@@ -67,6 +73,7 @@ public partial class OverworldHex : Node2D
             ZIndex = 1
         };
         AddChild(border);
+        BuildEdgeLines(points);
 
         // Fog overlay (drawn on top)
         _fogOverlay = new Polygon2D { Polygon = points, ZIndex = 2 };
@@ -123,6 +130,10 @@ public partial class OverworldHex : Node2D
             TerrainType.Hills => UITheme.TerrainHills,
             TerrainType.Coast => UITheme.TerrainCoast,
             TerrainType.Lake => UITheme.TerrainLake,
+            TerrainType.Desert => UITheme.TerrainDesert,
+            TerrainType.Tundra => UITheme.TerrainTundra,
+            TerrainType.Snow => UITheme.TerrainSnow,
+            TerrainType.Marsh => UITheme.TerrainMarsh,
             _ => Colors.Gray
         };
 
@@ -177,4 +188,56 @@ public partial class OverworldHex : Node2D
     }
 
     public static float GetHexSize() => HEX_SIZE;
+
+    // Direction index -> the two hex-vertex indices of that edge (flat-top; matches
+    // HexCoord.AxialDirections cross-referenced with AxialToWorld neighbour offsets).
+    private static readonly int[,] EdgeVerts =
+        { {0,1}, {5,0}, {4,5}, {3,4}, {2,3}, {1,2} };
+
+    /// <summary>Draws river/road/spring edges as Line2D segments along the hex's
+    /// edges. Both adjacent hexes draw the shared edge (they coincide in world space),
+    /// so a window-fringe tile still shows its own edges without its neighbour loaded.
+    /// Road over river is drawn last, reading as a bridge deck; springs are thin.</summary>
+    private void BuildEdgeLines(Vector2[] pts)
+    {
+        if (RiverEdges == 0 && RoadEdges == 0 && SpringEdges == 0)
+            return;
+
+        float riverW = HEX_SIZE * 0.13f;
+        float roadW = HEX_SIZE * 0.09f;
+        float springW = HEX_SIZE * 0.07f;
+
+        for (int d = 0; d < 6; d++)
+        {
+            bool spring = (SpringEdges & (1 << d)) != 0;
+            bool river = (RiverEdges & (1 << d)) != 0;
+            bool road = (RoadEdges & (1 << d)) != 0;
+            if (!spring && !river && !road)
+                continue;
+
+            var a = pts[EdgeVerts[d, 0]];
+            var b = pts[EdgeVerts[d, 1]];
+
+            if (spring && !river)
+                AddEdgeLine(a, b, springW, UITheme.TerrainLake);   // thin, lighter blue
+            if (river)
+                AddEdgeLine(a, b, riverW, UITheme.TerrainWater);
+            if (road)
+                AddEdgeLine(a, b, roadW, UITheme.TerrainRoad);     // over river => bridge deck
+        }
+    }
+
+    private void AddEdgeLine(Vector2 a, Vector2 b, float width, Color color)
+    {
+        var line = new Line2D
+        {
+            Points = new[] { a, b },
+            Width = width,
+            DefaultColor = color,
+            ZIndex = 1,                       // above terrain/border, below fog(2) + POI(3)
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round,
+        };
+        AddChild(line);
+    }
 }

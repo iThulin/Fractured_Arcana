@@ -35,6 +35,10 @@ public sealed class ContinentShape
     /// <summary>Row-major. True = ocean (below the solved sea level).</summary>
     public bool[] IsOcean;
 
+    /// <summary>Row-major. True = a Water tile NOT connected to the world ocean
+    /// (an enclosed basin) — becomes a Lake instead of sea.</summary>
+    public bool[] IsEnclosed;
+
     public ContinentStyle Style;
     public float LandFraction;
 }
@@ -71,7 +75,7 @@ public static class ContinentShaper
         var shaped = new float[n];
 
         // Aspect-correct normalization: map the LARGER dimension to [-1,1] so the
-        // world isn't stretched and falloffs/centers stay circular.
+        // world isn't stretched and the mask's continents/falloffs stay circular.
         float half = Mathf.Max(width, height) * 0.5f;
         float cx = (width - 1) * 0.5f;
         float cy = (height - 1) * 0.5f;
@@ -88,8 +92,13 @@ public static class ContinentShaper
                 float u = (x - cx) / half;
                 float v = (y - cy) / half;
 
-                // Border taper: ocean rings the world so no land clips the edge.
-                float edge = EdgeTaper(u, v);
+                // Border taper uses PER-AXIS normalization (each axis reaches ±1 at
+                // its OWN edge). With aspect-correct (u,v) the short axis never enters
+                // the taper band on a non-square map, so land runs off the N/S border;
+                // un/vn fix that. The mask below keeps (u,v) so continents stay round.
+                float un = (x - cx) / (width * 0.5f);
+                float vn = (y - cy) / (height * 0.5f);
+                float edge = EdgeTaper(un, vn);
 
                 float m;
                 if (style == ContinentStyle.Pangaea)
@@ -136,13 +145,50 @@ public static class ContinentShaper
                 land++;
         }
 
+        var isEnclosed = FloodEnclosed(isOcean, width, height);
+
         return new ContinentShape
         {
             Elevation = outE,
             IsOcean = isOcean,
+            IsEnclosed = isEnclosed,
             Style = style,
             LandFraction = (float)land / n,
         };
+    }
+
+    /// <summary>BFS ocean inward from the map border (the true outer sea). Any Water
+    /// tile the flood never reaches is an enclosed basin → flagged for Lake.</summary>
+    private static bool[] FloodEnclosed(bool[] isOcean, int w, int h)
+    {
+        int n = w * h;
+        var reached = new bool[n];
+        var queue = new Queue<int>();
+
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                bool border = x == 0 || y == 0 || x == w - 1 || y == h - 1;
+                int i = y * w + x;
+                if (border && isOcean[i] && !reached[i])
+                { reached[i] = true; queue.Enqueue(i); }
+            }
+
+        while (queue.Count > 0)
+        {
+            int c = queue.Dequeue();
+            foreach (var (nx, ny) in HexCoord.Neighbors(c % w, c / w, w, h))
+            {
+                int ni = ny * w + nx;
+                if (isOcean[ni] && !reached[ni])
+                { reached[ni] = true; queue.Enqueue(ni); }
+            }
+        }
+
+        var enclosed = new bool[n];
+        for (int i = 0; i < n; i++)
+            enclosed[i] = isOcean[i] && !reached[i];
+        return enclosed;
     }
 
     private static float EdgeTaper(float u, float v)
