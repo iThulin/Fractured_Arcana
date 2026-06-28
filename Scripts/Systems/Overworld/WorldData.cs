@@ -72,9 +72,16 @@ public struct WorldTile
     /// its own edges without its neighbor loaded. 0 = no river.</summary>
     public byte RiverEdges;
 
-    /// <summary>Bridge/ford edges, same bit convention as RiverEdges. A set bit
-    /// means a road crosses the river here at no crossing penalty.</summary>
-    public byte BridgeEdges;
+    /// <summary>Road edges, same 6-bit/both-sides convention as RiverEdges. A road
+    /// runs ALONG edge i. Roads are edges, not tiles — the underlying terrain is
+    /// never overwritten, so roads run through cities over their real biome.</summary>
+    public byte RoadEdges;
+
+    /// <summary>A bridge is DERIVED: an edge carrying both a road and a river is a
+    /// road crossing a river, i.e. a bridge — fast to cross, no ford penalty. Kept
+    /// as a property so readers are unchanged and road∩river can never desync.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public byte BridgeEdges => (byte)(RoadEdges & RiverEdges);
 
     /// <summary>Index into WorldData.Settlements, or -1 for none. A tile inside a
     /// city/town carries this; the settlement is an AREA, not a POI. MUST be set to
