@@ -154,15 +154,21 @@ public partial class OverworldPartyToken : Node2D
                 if (hex.IsWater)
                     continue;
 
-                // Color the highlight based on cost
-                int cost = GetTerrainCostPreview(hex.Terrain);
-                Color tint = cost switch
-                {
-                    1 => UITheme.MoveHighlightCheap,
-                    2 => UITheme.MoveHighlightModerate,
-                    3 => UITheme.MoveHighlightExpensive,
-                    _ => UITheme.MoveHighlightDefault,
-                };
+                // Edge-aware preview: the number is the TRUE cost (terrain ± road/ford);
+                // the colour signals a road (green) or an unbridged river ford (red).
+                _grid.Hexes.TryGetValue(CurrentCoord, out var fromHex);
+                int cost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, CurrentCoord, neighborCoord);
+                bool edgeRoad = OverworldMovementCost.EdgeHasRoad(fromHex, CurrentCoord, neighborCoord);
+                bool edgeFord = OverworldMovementCost.EdgeHasUnbridgedRiver(fromHex, CurrentCoord, neighborCoord);
+                Color tint = edgeRoad ? UITheme.MoveHighlightCheap
+                           : edgeFord ? UITheme.MoveHighlightExpensive
+                           : cost switch
+                           {
+                               1 => UITheme.MoveHighlightCheap,
+                               2 => UITheme.MoveHighlightModerate,
+                               3 => UITheme.MoveHighlightExpensive,
+                               _ => UITheme.MoveHighlightExpensive,
+                           };
 
                 var highlight = new Polygon2D
                 {
@@ -203,20 +209,7 @@ public partial class OverworldPartyToken : Node2D
     }
 
     private int GetTerrainCostPreview(OverworldHex.TerrainType terrain)
-    {
-        return terrain switch
-        {
-            OverworldHex.TerrainType.Road => 1,
-            OverworldHex.TerrainType.Grassland => 1,
-            OverworldHex.TerrainType.ArcaneGround => 1,
-            OverworldHex.TerrainType.Forest => 2,
-            OverworldHex.TerrainType.Ruins => 2,
-            OverworldHex.TerrainType.Swamp => 2,
-            OverworldHex.TerrainType.Mountain => 3,
-            OverworldHex.TerrainType.Volcanic => 2,
-            _ => 1
-        };
-    }
+        => OverworldMovementCost.TerrainStep(terrain);
 
     private Vector2[] MakeCirclePoints(float radius, int segments)
     {

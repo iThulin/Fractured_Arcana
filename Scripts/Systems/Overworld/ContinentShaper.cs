@@ -12,6 +12,13 @@ using System.Collections.Generic;
 //                 (no magic elevation threshold). Returns shaped
 //                 per-tile land elevation in [0,1] plus an ocean mask.
 //                 Pure / deterministic from the world seed.
+//
+//                 A low-frequency COASTLINE WARP displaces the mask and
+//                 taper coordinates so continents aren't perfect circles
+//                 and the ocean frame (esp. the N/S border) is an
+//                 irregular coastline rather than a clean band. A hard
+//                 ocean frame on the outermost tiles keeps the warp from
+//                 clipping land against the literal map edge.
 // Layer:          System (generation helper)
 // Collaborators:  OverworldField (raw elevation), WorldGenerator
 //                 (FillTerrain consumes this), WorldData.
@@ -46,6 +53,19 @@ public sealed class ContinentShape
 /// <summary>Builds a continental mask and solves sea level by quantile.</summary>
 public static class ContinentShaper
 {
+    // ── Tuning ───────────────────────────────────────────────────────────
+
+    /// <summary>Coastline warp strength (normalized space). Higher = more peninsulas,
+    /// bays and offshore islands; too high fragments a Pangaea. ~0.10–0.18.</summary>
+    public static float CoastWarp = 0.15f;
+
+    /// <summary>Coastline warp frequency. Lower = broader, smoother lobes.</summary>
+    public static float CoastWarpFrequency = 0.025f;
+
+    /// <summary>Beyond this |per-axis normalized| coord, tiles are forced ocean — a
+    /// hard frame so the warp can't push land onto the literal map edge.</summary>
+    public static float OceanFrameMargin = 0.96f;
+
     /// <summary>Target land fraction per style; sea level is solved to hit this.</summary>
     private static float TargetLand(ContinentStyle s) => s switch
     {
@@ -82,6 +102,25 @@ public static class ContinentShaper
 
         var centers = PlaceCenters(style, seed, out float sigma);
 
+        // Coastline warp: two low-freq channels displace the shape/taper coords so
+        // nothing comes out a perfect circle or a flat band.
+        var warpX = new FastNoiseLite
+        {
+            Seed = seed + 4242,
+            Frequency = CoastWarpFrequency,
+            NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth,
+            FractalType = FastNoiseLite.FractalTypeEnum.Fbm,
+            FractalOctaves = 2,
+        };
+        var warpY = new FastNoiseLite
+        {
+            Seed = seed + 9119,
+            Frequency = CoastWarpFrequency,
+            NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth,
+            FractalType = FastNoiseLite.FractalTypeEnum.Fbm,
+            FractalOctaves = 2,
+        };
+
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
@@ -89,16 +128,25 @@ public static class ContinentShaper
                 int i = y * width + x;
                 float raw = field.SampleElevation01(new Vector2I(x, y));
 
-                float u = (x - cx) / half;
-                float v = (y - cy) / half;
+                float du = warpX.GetNoise2D(x, y) * CoastWarp;
+                float dv = warpY.GetNoise2D(x, y) * CoastWarp;
 
-                // Border taper uses PER-AXIS normalization (each axis reaches ±1 at
-                // its OWN edge). With aspect-correct (u,v) the short axis never enters
-                // the taper band on a non-square map, so land runs off the N/S border;
-                // un/vn fix that. The mask below keeps (u,v) so continents stay round.
-                float un = (x - cx) / (width * 0.5f);
-                float vn = (y - cy) / (height * 0.5f);
+                // Aspect-correct coords for the mask, warped so coastlines wobble.
+                float u = (x - cx) / half + du;
+                float v = (y - cy) / half + dv;
+
+                // Per-axis coords for the taper (each axis reaches ±1 at its own edge),
+                // warped so the ocean frame is an irregular coastline, not a flat band.
+                float un = (x - cx) / (width * 0.5f) + du;
+                float vn = (y - cy) / (height * 0.5f) + dv;
                 float edge = EdgeTaper(un, vn);
+
+                // Hard ocean frame on the literal outermost tiles so the warp can't
+                // push land off the map edge (which reads as clipped).
+                float unRaw = (x - cx) / (width * 0.5f);
+                float vnRaw = (y - cy) / (height * 0.5f);
+                if (Mathf.Abs(unRaw) > OceanFrameMargin || Mathf.Abs(vnRaw) > OceanFrameMargin)
+                    edge = 0f;
 
                 float m;
                 if (style == ContinentStyle.Pangaea)
@@ -111,8 +159,8 @@ public static class ContinentShaper
                     float best = 0f;
                     foreach (var c in centers)
                     {
-                        float du = u - c.X, dv = v - c.Y;
-                        float d2 = du * du + dv * dv;
+                        float dcu = u - c.X, dcv = v - c.Y;
+                        float d2 = dcu * dcu + dcv * dcv;
                         float g = Mathf.Exp(-d2 / (2f * sigma * sigma));
                         if (g > best)
                             best = g;
@@ -206,9 +254,12 @@ public static class ContinentShaper
         float minSep;
         if (style == ContinentStyle.Continents)
         {
-            count = 2 + (int)(rng.Randi() % 4u);   // 2..5
-            sigma = 0.42f;
-            minSep = 0.55f;
+            // Tighter gaussians, farther apart, and at least 3 centres so a
+            // "Continents" roll reliably yields multiple landmasses with ocean
+            // channels between them instead of one fused blob.
+            count = 3 + (int)(rng.Randi() % 3u);   // 3..5
+            sigma = 0.28f;
+            minSep = 0.68f;
         }
         else // Archipelago (also the centers source for any non-Pangaea style)
         {
@@ -219,7 +270,7 @@ public static class ContinentShaper
 
         var centers = new List<Vector2>();
         int guard = 0;
-        while (centers.Count < count && guard++ < 400)
+        while (centers.Count < count && guard++ < 600)
         {
             // Interior only, so the edge taper still rings every continent in ocean.
             var c = new Vector2(rng.RandfRange(-0.6f, 0.6f), rng.RandfRange(-0.6f, 0.6f));

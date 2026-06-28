@@ -370,8 +370,12 @@ public partial class ExpeditionManager : Node2D
         int stepCost = 1, hpDrain = 0;
         if (_grid.Hexes.TryGetValue(newCoord, out var hex))
         {
-            stepCost = GetTerrainStepCost(hex.Terrain);
             hpDrain = GetTerrainHPDrain(hex.Terrain);
+            // Edge-aware step cost: destination terrain, cheapened by a road on the
+            // travelled edge, surcharged by an unbridged river ford. Read the shared
+            // edge off the tile we're leaving (masks live on both sides).
+            _grid.Hexes.TryGetValue(oldCoord, out var fromHex);
+            stepCost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, oldCoord, newCoord);
         }
 
         if (!(PlayerSession.DebugMode && PlayerSession.UnlimitedSteps))
@@ -1133,25 +1137,11 @@ public partial class ExpeditionManager : Node2D
         WriteVisibleToWorld();
     }
 
-    private int GetTerrainStepCost(OverworldHex.TerrainType terrain) => terrain switch
-    {
-        OverworldHex.TerrainType.Road => 1,
-        OverworldHex.TerrainType.Grassland => 1,
-        OverworldHex.TerrainType.ArcaneGround => 1,
-        OverworldHex.TerrainType.Forest => 2,
-        OverworldHex.TerrainType.Ruins => 2,
-        OverworldHex.TerrainType.Swamp => 2,
-        OverworldHex.TerrainType.Mountain => 3,
-        OverworldHex.TerrainType.Volcanic => 2,
-        _ => 1,
-    };
+    private int GetTerrainStepCost(OverworldHex.TerrainType terrain)
+        => OverworldMovementCost.TerrainStep(terrain);
 
-    private int GetTerrainHPDrain(OverworldHex.TerrainType terrain) => terrain switch
-    {
-        OverworldHex.TerrainType.Swamp => 3,
-        OverworldHex.TerrainType.Volcanic => GD.Randf() < 0.3f ? 5 : 0,
-        _ => 0,
-    };
+    private int GetTerrainHPDrain(OverworldHex.TerrainType terrain)
+        => OverworldMovementCost.TerrainHPDrain(terrain);
 
     /// <summary>HP lost crossing a corrupted tile, by its world corruption (0–100).
     /// Below 30 is harmless (the faint edge); it ramps to ~10 at the core. This
