@@ -208,16 +208,20 @@ public static class WorldGenerator
         // towns see the final biome.
         Climate.Apply(world, seed);
 
-        // ── 5e. Settlements: grow City/Town AREAS (cities on the seats, towns by
+        // ── 5e. Bathymetry: ocean depth-from-shore, for shallow→deep shading and
+        // (later) ship navigation. After all terrain passes settle land/water.
+        Bathymetry.Apply(world, seed);
+
+        // ── 5f. Settlements: grow City/Town AREAS (cities on the seats, towns by
         // suitability). Areas only — ScatterPois studs them with POIs next.
         Settlements.Generate(world, kingdoms, capitals, kingdomIds, convergenceKingdom, rng);
 
-        // ── 5f. Roads: MST over each landmass's settlements, stamped as Road on
+        // ── 5g. Roads: MST over each landmass's settlements, stamped as Road on
         // wilderness tiles with bridges where they ford rivers. Before ScatterPois
         // so POIs can land on waystations; after Settlements so the nodes exist.
         Roads.Generate(world);
 
-        // ── 5g. Road-junction towns: a settlement at every road convergence (3+
+        // ── 5h. Road-junction towns: a settlement at every road convergence (3+
         // road edges), regardless of the per-kingdom town cap.
         Settlements.AddJunctionTowns(world);
 

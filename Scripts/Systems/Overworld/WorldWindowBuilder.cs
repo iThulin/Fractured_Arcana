@@ -90,6 +90,7 @@ public class WorldWindowBuilder
                 RiverEdges = worldTile.RiverEdges,
                 RoadEdges = worldTile.RoadEdges,
                 SpringEdges = worldTile.SpringEdges,
+                OceanDepth = worldTile.OceanDepth,
             };
 
             // Attach POI from the world table, if this tile has one that's been

@@ -39,6 +39,7 @@ public partial class OverworldHex : Node2D
     public byte RiverEdges { get; set; } = 0;
     public byte RoadEdges { get; set; } = 0;
     public byte SpringEdges { get; set; } = 0;
+    public byte OceanDepth { get; set; } = 0;
 
     // ── Visuals ─────────────────────────────────────────────────────────
     private Polygon2D _polygon;
@@ -126,7 +127,7 @@ public partial class OverworldHex : Node2D
             TerrainType.Swamp => UITheme.TerrainSwamp,
             TerrainType.ArcaneGround => UITheme.TerrainArcaneGround,
             TerrainType.Volcanic => UITheme.TerrainVolcanic,
-            TerrainType.Water => UITheme.TerrainWater,
+            TerrainType.Water => UITheme.OceanColor(OceanDepth),
             TerrainType.Hills => UITheme.TerrainHills,
             TerrainType.Coast => UITheme.TerrainCoast,
             TerrainType.Lake => UITheme.TerrainLake,

@@ -558,12 +558,12 @@ public partial class StrategicView : Node2D
         switch (_lens)
         {
             case StrategicLens.Terrain:
-                return TerrainColor(t.Terrain);
+                return TerrainColorOf(t);
             case StrategicLens.Corruption:
                 return CorruptionLensColor(t);
             default:
                 bool ownedLand = t.IsLand && !string.IsNullOrEmpty(t.KingdomId);
-                return ownedLand ? FactionColorForKingdom(t.KingdomId) : TerrainColor(t.Terrain);
+                return ownedLand ? FactionColorForKingdom(t.KingdomId) : TerrainColorOf(t);
         }
     }
 
@@ -584,7 +584,7 @@ public partial class StrategicView : Node2D
         }
         else
         {
-            c = TerrainColor(t.Terrain);
+            c = TerrainColorOf(t);
         }
         if (t.Corruption > 0)
         {
@@ -596,7 +596,15 @@ public partial class StrategicView : Node2D
 
     // ── Terrain lens: pure region terrain, no faction tint. Shows the
     //    per-region terrain identity (the whole point of terrain-per-region). ──
-    private Color TerrainLensColor(WorldTile t) => TerrainColor(t.Terrain);
+    private Color TerrainLensColor(WorldTile t) => TerrainColorOf(t);
+
+    /// <summary>Terrain color for a whole tile, with ocean shaded shallow→deep by
+    /// distance from shore instead of one flat blue. Use this wherever a tile's
+    /// terrain color is wanted; TerrainColor(TerrainType) stays for type-only lookups.</summary>
+    private static Color TerrainColorOf(WorldTile t)
+        => t.Terrain == OverworldHex.TerrainType.Water
+            ? UITheme.OceanColor(t.OceanDepth)
+            : TerrainColor(t.Terrain);
 
     // ── Corruption lens: a heat map. Clean land reads cool/neutral, corruption
     //    ramps through warning to full corruption color. Makes the spread legible. ──

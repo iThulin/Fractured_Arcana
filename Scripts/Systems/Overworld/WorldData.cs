@@ -87,6 +87,12 @@ public struct WorldTile
     [System.Text.Json.Serialization.JsonIgnore]
     public byte BridgeEdges => (byte)(RoadEdges & RiverEdges);
 
+    /// <summary>Hex distance from the nearest land for ocean tiles (1 = shoreline,
+    /// rising to the open sea); 0 for land and lakes. Drives shallow→deep ocean
+    /// shading and future ship navigation. Set by Bathymetry; struct-default 0 is
+    /// correct for land, so no constructor init needed.</summary>
+    public byte OceanDepth;
+
     /// <summary>Index into WorldData.Settlements, or -1 for none. A tile inside a
     /// city/town carries this; the settlement is an AREA, not a POI. MUST be set to
     /// -1 at construction — the struct default 0 would alias Settlements[0].</summary>

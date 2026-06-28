@@ -224,6 +224,11 @@ public static class UITheme
     public static readonly Color SettlementCityBorder = new Color(0.95f, 0.80f, 0.30f, 1f); // gold wash
     public static readonly Color SettlementTownBorder = new Color(0.80f, 0.55f, 0.30f, 1f); // bronze wash
 
+    public static readonly Color TerrainWaterShallow = new Color(0.17f, 0.34f, 0.50f); // muted steel shelf
+    public static readonly Color TerrainWaterDeep = new Color(0.05f, 0.14f, 0.29f);    // deep navy
+    public static int OceanDepthForFullDark = 54;   // wide ramp: deep mottle stays visible, only the true abyss saturates
+
+
     public static readonly Color FogHidden = new Color(0.08f, 0.06f, 0.12f, 0.90f);
     public static readonly Color FogSilhouette = new Color(0.08f, 0.06f, 0.12f, 0.48f);
     public static readonly Color FogRevealed = new Color(0f, 0f, 0f, 0f);
@@ -253,6 +258,14 @@ public static class UITheme
     public static readonly Color OverworldHudBorder = new Color(0.32f, 0.22f, 0.52f, 0.80f);
     public static readonly Color OverworldLowResourceWarning = Danger;
     public static readonly Color OverworldInfoLabelTint = Gold;
+
+    /// <summary>Ocean colour by depth-from-shore: shallow teal near land grading to
+    /// deep navy out to sea.</summary>
+    public static Color OceanColor(int depth)
+    {
+        float t = Mathf.Clamp((float)depth / OceanDepthForFullDark, 0f, 1f);
+        return TerrainWaterShallow.Lerp(TerrainWaterDeep, t);
+    }
 
     // ════════════════════════════════════════════════════════════
     // FACTION COLORS
