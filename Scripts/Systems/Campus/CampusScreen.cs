@@ -804,7 +804,13 @@ public partial class CampusScreen : Control
         if (cycle.World != null && cycle.World.Tiles.Length > 0)
             return; // already generated this cycle
 
-        int seed = cycle.CycleNumber * 100003 + SaveManager.ActiveSlot;
+        if (cycle.WorldSeed == 0)              // 0 = "not yet rolled" sentinel
+        {
+            var rng = new RandomNumberGenerator();
+            rng.Randomize();
+            cycle.WorldSeed = (int)rng.Randi();
+        }
+        int seed = cycle.WorldSeed;
         var g = WorldGenerator.Generate(seed, cycle.SelectedSchool);
         cycle.World = g.World;
         cycle.Kingdoms = g.Kingdoms;

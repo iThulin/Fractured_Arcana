@@ -163,29 +163,42 @@ public static class Hydrology
         int riverEdges = 0;
         for (int i = 0; i < n; i++)
         {
-            // Draw the edge wherever real flow passes, INCLUDING through flooded
-            // basins (lakes/marsh) — a river that flows through a basin must still
-            // stamp its out-edge, or the channel visibly breaks across that tile.
-            // Only ocean tiles are excluded as origins (the sea isn't a river source);
-            // a river may still END in ocean via its receiver, which isn't gated.
             if (world.Tiles[i].IsOcean)
                 continue;
             if (acc[i] < RiverMinFlow)
                 continue;
-            int r = receiver[i];
-            if (r < 0)
-                continue;
 
-            int d = recvDir[i];                 // edge from i -> receiver
-            int opp = (d + 3) % 6;              // same physical edge, other side
+            int r = receiver[i];
+            int d, opp, rTarget;
+
+            if (r >= 0)
+            {
+                // Normal case: edge toward the receiver (downhill drainage parent).
+                d = recvDir[i];
+                opp = (d + 3) % 6;
+                rTarget = r;
+            }
+            else
+            {
+                // Drain-seed tile (a Lake or border) carrying river flow: it has no
+                // receiver, so the river would die here with no outflow edge. Stamp an
+                // outflow toward the LOWEST-elevation neighbour — where the water spills
+                // out of the lake — so the river continues across/out of the basin
+                // instead of stopping at its shore.
+                if (!LowestNeighbor(world, i, out int nd, out int ni))
+                    continue;   // no valid neighbour (shouldn't happen on a real map)
+                d = nd;
+                opp = (nd + 3) % 6;
+                rTarget = ni;
+            }
 
             var ti = world.Tiles[i];
             ti.RiverEdges |= (byte)(1 << d);
             world.Tiles[i] = ti;
 
-            var tr = world.Tiles[r];
+            var tr = world.Tiles[rTarget];
             tr.RiverEdges |= (byte)(1 << opp);
-            world.Tiles[r] = tr;
+            world.Tiles[rTarget] = tr;
 
             riverEdges++;
         }
@@ -288,6 +301,34 @@ public static class Hydrology
         var (dq, dr) = HexCoord.AxialDirections[d];
         (nCol, nRow) = HexCoord.AxialToOffset(q + dq, r + dr);
         return nCol >= 0 && nRow >= 0 && nCol < w && nRow < h;
+    }
+
+    /// <summary>The lowest-elevation in-bounds neighbour of tile i, with the direction
+    /// index toward it. Used to give a drain-seed tile (lake/border carrying river flow,
+    /// receiver = -1) an outflow edge so the river continues out of the basin instead of
+    /// dying at its shore.</summary>
+    private static bool LowestNeighbor(WorldData world, int i, out int dir, out int neighborIdx)
+    {
+        int w = world.Width;
+        int cx = i % w, cy = i / w;
+        dir = -1;
+        neighborIdx = -1;
+        float lowest = float.MaxValue;
+
+        for (int d = 0; d < 6; d++)
+        {
+            if (!NeighborByDir(cx, cy, d, w, world.Height, out int nx, out int ny))
+                continue;
+            int ni = ny * w + nx;
+            float e = world.Tiles[ni].Elevation;
+            if (e < lowest)
+            {
+                lowest = e;
+                dir = d;
+                neighborIdx = ni;
+            }
+        }
+        return dir >= 0;
     }
 
     /// <summary>Follows the drainage receiver chain from a high tile, stamping spring

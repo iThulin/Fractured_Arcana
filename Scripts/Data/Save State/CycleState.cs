@@ -57,6 +57,7 @@ public class CycleState
     /// Replaces the retired node-graph StrategicMapData.
     /// </summary>
     public WorldData World = new();
+    public int WorldSeed;
 
     /// <summary>
     /// Dynamic per-territory state (faction control, stance, tier, stability,
