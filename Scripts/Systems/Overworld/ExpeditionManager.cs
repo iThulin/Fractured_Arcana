@@ -61,6 +61,7 @@ public partial class ExpeditionManager : Node2D
     private Camera2D _camera;
     private NarrativeEncounterPanel _narrativePanel;
     private ScoutReportPanel _scoutPanel;
+    private LedgerPanel _ledgerPanel;
     private List<NarrativeEncounterData> _encounterPool;
 
     // ── Pending combat (scout panel) ────────────────────────────────────
@@ -74,7 +75,7 @@ public partial class ExpeditionManager : Node2D
 
     // ── UI ──────────────────────────────────────────────────────────────
     private Label _stepLabel, _hpLabel, _infoLabel, _windowLabel;
-    private Button _extractButton, _returnButton;
+    private Button _extractButton, _returnButton, _ledgerButton;
     private bool _cameraFreeMode = false;
     private const float CameraPanSpeed = 400f;
 
@@ -192,6 +193,12 @@ public partial class ExpeditionManager : Node2D
         // Narrative panel + pool (keyed to the staging kingdom)
         _narrativePanel = new NarrativeEncounterPanel { Visible = false };
         GetHudCanvas().AddChild(_narrativePanel);
+
+        // Favor ledger panel (C3): read-only ledger + the call-in action.
+        _ledgerPanel = new LedgerPanel { Name = "LedgerPanel" };
+        GetHudCanvas().AddChild(_ledgerPanel);
+        _ledgerPanel.GetIneligibilityReason = CallInIneligibility;
+        _ledgerPanel.OnCallIn = OnLedgerCallIn;
         _encounterPool = NarrativeEncounterLoader.LoadForRegion(StagingTemplateRegion());
 
         // Wire signals
@@ -280,12 +287,20 @@ public partial class ExpeditionManager : Node2D
         }
     }
 
-    /// <summary>Securing a staging-granting POI adds a new launch point to the
+/// <summary>Securing a staging-granting POI adds a new launch point to the
     /// world. Called when such a POI is resolved.</summary>
     private void GrantStagingPointAt(Vector2I local)
     {
         if (!_window.TryLocalToWorld(local, out int col, out int row))
             return;
+        GrantStagingPointAtWorld(col, row);
+    }
+
+    /// <summary>World-coordinate core of the staging grant, so remote reveals
+    /// (Spymaster chart packets, court intelligence) can grant staging for
+    /// settlements discovered outside the current window.</summary>
+    private void GrantStagingPointAtWorld(int col, int row)
+    {
         var poi = _world.PoiAt(col, row);
         if (poi == null || !poi.GrantsStaging)
             return;
@@ -325,6 +340,26 @@ public partial class ExpeditionManager : Node2D
     {
         if (!PlayerSession.DebugMode || ExpeditionComplete)
             return;
+
+        // F: mint test favors for the kingdom under the party (C3 testing).
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.F })
+        {
+            string kid = KingdomIdAt(_party.CurrentCoord);
+            if (string.IsNullOrEmpty(kid))
+            {
+                ShowInfo("[DEBUG] No kingdom here — cannot mint test favors.");
+            }
+            else
+            {
+                CouncilLedger.DebugMintTestFavors(SaveManager.ActiveSave.Cycle, kid);
+                SaveManager.SaveIfDirty();
+                ShowInfo($"[DEBUG] Test favors minted for '{kid}'.");
+                _ledgerPanel?.RefreshRows();
+            }
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (!PlayerSession.DebugGrantStagingArmed)
             return;
         if (@event is InputEventKey { Pressed: true, Keycode: Key.G })
@@ -368,14 +403,26 @@ public partial class ExpeditionManager : Node2D
     // Movement / POI handlers (lifted from OverworldRunManager, de-objectived)
     // ════════════════════════════════════════════════════════════════════
 
-    private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
+        // Border-cross feedback: name the territory being entered. Fired
+        // first so hazard/corruption warnings on the same step overwrite it —
+        // damage outranks geography.
+        string fromKingdom = KingdomIdAt(oldCoord);
+        string toKingdom = KingdomIdAt(newCoord);
+        if (toKingdom != fromKingdom)
+        {
+            ShowInfo(string.IsNullOrEmpty(toKingdom)
+                ? "You cross into unclaimed wilds."
+                : $"You cross into the territory of {KingdomDisplayName(toKingdom)}.");
+        }
+
         int stepCost = 1, hpDrain = 0;
         if (_grid.Hexes.TryGetValue(newCoord, out var hex))
         {
             hpDrain = GetTerrainHPDrain(hex.Terrain);
             // Edge-aware step cost: destination terrain, cheapened by a road on the
-            // travelled edge, surcharged by an unbridged river ford. Read the shared
+            // traveled edge, surcharged by an unbridged river ford. Read the shared
             // edge off the tile we're leaving (masks live on both sides).
             _grid.Hexes.TryGetValue(oldCoord, out var fromHex);
             stepCost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, oldCoord, newCoord);
@@ -1025,8 +1072,28 @@ public partial class ExpeditionManager : Node2D
         };
         _extractButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         UITheme.ApplyButtonStyle(_extractButton, isPrimary: true);
+        
         _extractButton.Pressed += Extract;
         _hudCanvas.AddChild(_extractButton);
+
+        // Ledger button (C3), stacked under Extract.
+        _ledgerButton = new Button
+        {
+            Text = "Ledger",
+            AnchorLeft = 1f,
+            AnchorTop = 0f,
+            AnchorRight = 1f,
+            AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            OffsetLeft = -150,
+            OffsetRight = -12,
+            OffsetTop = 60,
+            OffsetBottom = 100,
+        };
+        _ledgerButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        UITheme.ApplyButtonStyle(_ledgerButton, isPrimary: false);
+        _ledgerButton.Pressed += () => _ledgerPanel?.Toggle();
+        _hudCanvas.AddChild(_ledgerButton);
 
         // Scout panel.
         _scoutPanel = new ScoutReportPanel { Name = "ScoutPanel" };
@@ -1058,6 +1125,10 @@ public partial class ExpeditionManager : Node2D
     {
         if (_extractButton != null)
             _extractButton.Visible = false;
+        if (_ledgerButton != null)
+            _ledgerButton.Visible = false;
+        if (_ledgerPanel != null)
+            _ledgerPanel.Close();
         if (_returnButton != null)
             _returnButton.Visible = true;
     }
@@ -1123,6 +1194,8 @@ public partial class ExpeditionManager : Node2D
 
         if (_grid.Hexes.TryGetValue(_party.CurrentCoord, out var cur))
             _windowLabel.Text += $"  |  {cur.Terrain}";
+        string curKingdom = KingdomIdAt(_party.CurrentCoord);
+        _windowLabel.Text += $"  |  {(string.IsNullOrEmpty(curKingdom) ? "Unclaimed" : KingdomDisplayName(curKingdom))}";
     }
 
     private void ShowInfo(string message)
@@ -1250,6 +1323,210 @@ public partial class ExpeditionManager : Node2D
             return 0;
         // 30 → ~2, 100 → ~10, linear.
         return Mathf.Clamp(2 + (corruption - 30) * 8 / 70, 2, 10);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // Favor call-ins (Court & Council C3, §4a)
+    // ════════════════════════════════════════════════════════════════════
+
+    /// <summary>Steps of patrol suppression a Passage (safe conduct) favor buys.</summary>
+    private const int SafeConductSteps = 25;
+
+    /// <summary>KingdomId of the world tile under a window-local coord, or "".</summary>
+    private string KingdomIdAt(Vector2I local)
+    {
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return "";
+        return _world.GetTile(col, row).KingdomId ?? "";
+    }
+
+    /// <summary>Human-readable kingdom name via the court layer's resolver;
+    /// falls back to the raw id.</summary>
+    private string KingdomDisplayName(string kingdomId)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || string.IsNullOrEmpty(kingdomId))
+            return kingdomId ?? "";
+        return CouncilTick.CourtDisplayName(cycle, kingdomId);
+    }
+
+    /// <summary>Null if the favor is callable right now; else the reason it
+    /// isn't. Ineligible calls never consume the favor.</summary>
+    private string CallInIneligibility(Favor f)
+    {
+        if (f == null)
+            return "No favor.";
+        if (!f.OwedToGuild)
+            return "Owed by the guild — repay it, don't call it in.";
+        if (f.IsMajor)
+            return "Major favors cannot be called in from the field yet.";
+        if (!CouncilLedger.CallableTypes.Contains(f.Type))
+            return $"{f.Type} favors have no field effect yet.";
+        if (ExpeditionComplete)
+            return "The expedition is over.";
+        if (KingdomIdAt(_party.CurrentCoord) != f.KingdomId)
+            return "Must be inside the creditor's territory.";
+        if (f.Type == "Military" &&
+            (_factionManager == null || !_factionManager.HasStandablePatrol()))
+            return "No patrols in the field to stand down.";
+        if (f.Type == "Economic" && CurrentHP >= MaxHP)
+            return "The party is at full strength.";
+        return null;
+    }
+
+    /// <summary>Panel callback: validate, execute, consume, checkpoint.</summary>
+    private void OnLedgerCallIn(Favor f)
+    {
+        var council = SaveManager.ActiveSave?.Cycle?.Council;
+        if (council == null)
+            return;
+
+        string reason = CallInIneligibility(f);
+        if (reason != null)
+        {
+            ShowInfo(reason);
+            return;
+        }
+
+        var (ok, msg) = ExecuteCallIn(f);
+        ShowInfo(msg);
+        if (ok)
+        {
+            CouncilLedger.Consume(council, f);
+            SaveManager.SaveIfDirty(); // favor consumption is a checkpoint
+        }
+        _ledgerPanel.RefreshRows();
+        UpdateUI();
+    }
+
+    /// <summary>The four C3 call-in effects. Returns (consumed, message);
+    /// a no-op outcome refuses without consuming the favor.</summary>
+    private (bool ok, string msg) ExecuteCallIn(Favor f)
+    {
+        switch (f.Type)
+        {
+            case "Military":
+            {
+                string routed = _factionManager?.StandDownNearestPatrol(_party.CurrentCoord);
+                if (routed == null)
+                    return (false, "No patrols in the field to stand down.");
+                return (true, "The Marshal's word arrives: a patrol withdraws for the rest of this expedition.");
+            }
+            case "Economic":
+            {
+                int heal = MaxHP / 4;
+                CurrentHP = Mathf.Min(CurrentHP + heal, MaxHP);
+                return (true, $"The Steward's supply train reaches you. Recovered {heal} HP.");
+            }
+            case "Intelligence":
+            {
+                if (!TryChartPacket(f.KingdomId, out string summary))
+                    return (false, "Nothing new to chart here.");
+                return (true, summary);
+            }
+            case "Passage":
+            {
+                _factionManager?.SuppressAllPatrols(SafeConductSteps);
+                return (true, $"Papers of safe conduct: patrols will not trouble you for {SafeConductSteps} steps.");
+            }
+        }
+        return (false, "That favor has no field effect yet.");
+    }
+
+    /// <summary>Spymaster chart packet: reveal one undiscovered POI in the
+    /// kingdom and chart radius 3 around it (same Unseen -> Charted write
+    /// path as CouncilTick's Gather Intelligence); if the kingdom holds no
+    /// undiscovered POIs, chart radius 3 around the party instead.</summary>
+    private bool TryChartPacket(string kingdomId, out string summary)
+    {
+        summary = "";
+        int charted = 0;
+        string revealedKind = null;
+
+        foreach (var poi in _world.Pois)
+        {
+            if (poi.KingdomId != kingdomId || poi.Discovered)
+                continue;
+            poi.Discovered = true;
+            revealedKind = poi.Kind switch
+            {
+                PoiKind.Combat => "hostile encampment",
+                PoiKind.Rest => "refuge",
+                PoiKind.Narrative => "curious site",
+                PoiKind.Negotiation => "meeting place",
+                PoiKind.Outpost => "outpost",
+                PoiKind.Settlement => "settlement",
+                PoiKind.Seat => "seat of power",
+                _ => "site",
+            };
+            charted = ChartRadius(poi.X, poi.Y, 3);
+            // Remote settlement discovery must still grant staging (the
+            // WriteVisibleToWorld grant only fires on the un->discovered flip).
+            if (poi.Kind == PoiKind.Settlement && poi.GrantsStaging)
+                GrantStagingPointAtWorld(poi.X, poi.Y);
+            break;
+        }
+
+        if (revealedKind == null)
+        {
+            if (_window.TryLocalToWorld(_party.CurrentCoord, out int pc, out int pr))
+                charted = ChartRadius(pc, pr, 3);
+        }
+
+        if (charted == 0 && revealedKind == null)
+            return false;
+
+        SaveManager.MarkDirty();
+        RefreshWindowSilhouettes();
+        summary = revealedKind != null
+            ? (charted > 0
+                ? $"The Spymaster's packet arrives: a {revealedKind} is revealed; {charted} tiles charted."
+                : $"The Spymaster's packet arrives: a {revealedKind} is revealed on already-charted ground.")
+            : $"The Spymaster's packet arrives: {charted} tiles charted around your position.";
+        return true;
+    }
+
+    /// <summary>Chart Unseen tiles in a square radius (never downgrades
+    /// Charted/Explored). Returns the count charted.</summary>
+    private int ChartRadius(int cx, int cy, int radius)
+    {
+        int charted = 0;
+        for (int dy = -radius; dy <= radius; dy++)
+        {
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                if (!_world.TryIndex(cx + dx, cy + dy, out int idx))
+                    continue;
+                if (_world.Tiles[idx].Discovery == TileDiscovery.Unseen)
+                {
+                    _world.Tiles[idx].Discovery = TileDiscovery.Charted;
+                    charted++;
+                }
+            }
+        }
+        return charted;
+    }
+
+    /// <summary>Lift Hidden window hexes to Silhouette where their world tile
+    /// is now Charted — mid-expedition world writes don't otherwise reach the
+    /// already-built window.</summary>
+    private void RefreshWindowSilhouettes()
+    {
+        foreach (var kvp in _grid.Hexes)
+        {
+            var hex = kvp.Value;
+            if (hex.Fog != OverworldHex.FogState.Hidden)
+                continue;
+            if (!_window.TryLocalToWorld(kvp.Key, out int col, out int row))
+                continue;
+            if (!_world.TryIndex(col, row, out int idx))
+                continue;
+            if (_world.Tiles[idx].Discovery == TileDiscovery.Charted)
+            {
+                hex.Fog = OverworldHex.FogState.Silhouette;
+                hex.RefreshVisuals();
+            }
+        }
     }
 
     private int ComputePartyBaseHP()

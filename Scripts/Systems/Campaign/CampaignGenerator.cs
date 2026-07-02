@@ -111,7 +111,7 @@ public static class CampaignGenerator
                 coConspiratorRegion.Id, out var ccId) ? ccId : "";
         }
 
-        // ── Initialise dispositions and corruption ───────────────────────
+        // ── Initialize dispositions and corruption ───────────────────────
         foreach (var pair in state.RegionArchmageMap)
         {
             if (!string.IsNullOrEmpty(pair.Value))

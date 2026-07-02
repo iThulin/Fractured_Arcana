@@ -41,6 +41,12 @@ public class CouncilMissionDef
     public bool RequiresContact = false;
     public bool NeedsTargetCourtier = false;
     public string Blurb = "";
+
+    /// <summary>Minimum standing band to dispatch (Unknown = no gate).</summary>
+    public CourtStandingBand MinBand = CourtStandingBand.Unknown;
+
+    /// <summary>Embassy tier required to dispatch (0 = no gate).</summary>
+    public int RequiredEmbassyTier = 0;
 }
 
 /// <summary>The Tier A mission catalog (C2).</summary>
@@ -49,6 +55,7 @@ public static class CouncilMissions
     public const string AttendCourt = "attend_court";
     public const string PresentGifts = "present_gifts";
     public const string GatherIntelligence = "gather_intelligence";
+    public const string PetitionMinor = "petition_minor";
 
     public static readonly List<CouncilMissionDef> All = new()
     {
@@ -72,6 +79,14 @@ public static class CouncilMissions
             Lunations = 2, GoldCost = 40,
             RequiresContact = true, NeedsTargetCourtier = false,
             Blurb = "Chart the kingdom's ground, uncover its places — and perhaps a courtier's secret. Raises Exposure.",
+        },
+        new CouncilMissionDef
+        {
+            Id = PetitionMinor, DisplayName = "Petition (Minor)",
+            Lunations = 1, GoldCost = 75,
+            RequiresContact = true, NeedsTargetCourtier = true,
+            MinBand = CourtStandingBand.Welcome, RequiredEmbassyTier = 1,
+            Blurb = "Ask a favor of a receptive power at court. Mints one minor favor owed to the guild.",
         },
     };
 
@@ -183,6 +198,9 @@ public static class CouncilTick
             }
         }
 
+        // ── Step 2: obligation decay on overdue favors the guild owes ────
+        CouncilLedger.TickObligationDecay(cycle, lines);
+
         // ── Step 4: resolve / advance missions ───────────────────────────
         // Iterate a copy: resolution removes entries.
         foreach (var mission in council.ActiveMissions.ToList())
@@ -260,6 +278,9 @@ public static class CouncilTick
             case CouncilMissions.GatherIntelligence:
                 ResolveGatherIntelligence(cycle, court, envoy, envoyName, courtName, lines);
                 break;
+            case CouncilMissions.PetitionMinor:
+                ResolvePetition(cycle, court, mission, envoyName, courtName, lines);
+                break;
         }
 
         SaveManager.MarkDirty();
@@ -297,7 +318,7 @@ public static class CouncilTick
         string opener = firstContact
             ? $"{envoyName} has been received at {courtName} for the first time."
             : $"{envoyName} attended {courtName}.";
-        lines.Add($"{opener} {FirstName(target.DisplayName)} the {target.Office} " +
+        lines.Add($"{opener} {FirstName(target.DisplayName)} the {OfficeDisplay(target.Office)} " +
                   $"warms to the guild (Regard {Signed(target.Regard)}). " +
                   $"Standing: {court.Band()}.");
     }
@@ -336,7 +357,7 @@ public static class CouncilTick
 
         target.Regard = Mathf.Clamp(target.Regard + delta, -3, 3);
         lines.Add($"{envoyName} presented gifts to {FirstName(target.DisplayName)} " +
-                  $"the {target.Office} at {courtName}: {verdict} " +
+                  $"the {OfficeDisplay(target.Office)} at {courtName}: {verdict} " +
                   $"(Regard {Signed(target.Regard)}). Standing: {court.Band()}.");
     }
 
@@ -405,10 +426,38 @@ public static class CouncilTick
             ? $"charted {charted} tiles and located {revealed} site(s)"
             : "found little ground left to chart";
         string secret = secretHolder != null
-            ? $" A secret of {FirstName(secretHolder.DisplayName)} the {secretHolder.Office} is now known to the guild."
+            ? $" A secret of {FirstName(secretHolder.DisplayName)} the {OfficeDisplay(secretHolder.Office)} is now known to the guild."
             : (secretFound ? "" : " The court's secrets stayed buried, and questions were asked.");
         lines.Add($"{envoyName} worked the shadows of {courtName}: {intel}.{secret} " +
                   $"(Exposure {court.Exposure}/10.)");
+    }
+
+    private static void ResolvePetition(CycleState cycle, CourtState court,
+        EnvoyMission mission, string envoyName, string courtName, List<string> lines)
+    {
+        court.HasContact = true;
+
+        // Resolution-time backstop for the Welcome gate — covers standing
+        // dropping mid-mission and any un-gated dispatch path.
+        if (court.Band() < CourtStandingBand.Welcome)
+        {
+            lines.Add($"{envoyName}'s petition at {courtName} was heard politely and " +
+                      $"declined — the guild's standing does not yet command favors.");
+            return;
+        }
+
+        var target = court.GetCourtier(mission.TargetCourtierId);
+        if (!CouncilLedger.IsReceptive(target) ||
+            !CouncilLedger.IsPetitionableOffice(target.Office))
+        {
+            lines.Add($"{envoyName}'s petition at {courtName} found no willing patron.");
+            return;
+        }
+
+        var favor = CouncilLedger.MintPetitionFavor(cycle, court, target,
+            $"Petitioned of {target.DisplayName} the {OfficeDisplay(target.Office)} at {courtName}");
+        lines.Add($"{envoyName} secured a favor at {courtName}: {favor.Type} (minor), " +
+                  $"owed by {FirstName(target.DisplayName)} the {OfficeDisplay(target.Office)}.");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
@@ -428,6 +477,26 @@ public static class CouncilTick
             return Prettify(ks.TemplateRegionId);
         }
         return Prettify(kingdomId);
+    }
+
+    /// <summary>Insert spaces into CamelCase office ids for display
+    /// ("CourtWizard" -> "Court Wizard"). The id itself stays CamelCase.</summary>
+    public static string OfficeDisplay(string office)
+    {
+        if (string.IsNullOrEmpty(office))
+        {
+            return "";
+        }
+        var sb = new System.Text.StringBuilder(office.Length + 2);
+        for (int i = 0; i < office.Length; i++)
+        {
+            if (i > 0 && char.IsUpper(office[i]) && char.IsLower(office[i - 1]))
+            {
+                sb.Append(' ');
+            }
+            sb.Append(office[i]);
+        }
+        return sb.ToString();
     }
 
     public static string Prettify(string id)

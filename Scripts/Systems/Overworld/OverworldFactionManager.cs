@@ -275,11 +275,7 @@ public partial class OverworldFactionManager : Node2D
             _patrols[i].SetRecoveryCooldown(cooldowns[i]);
     }
 
-    /// <summary>
-    /// Routs every patrol sitting on <paramref name="coord"/> (the ambush hex):
-    /// each retreats home and won't hunt/capture for <paramref name="cooldownSteps"/> steps.
-    /// </summary>
-    public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
+public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
     {
         foreach (var p in _patrols)
             if (p.IsOnSameHex(coord))
@@ -288,6 +284,63 @@ public partial class OverworldFactionManager : Node2D
                 GD.Print($"[FactionManager] Patrol '{p.ArchmageId}' routed home, " +
                          $"recovering for {cooldownSteps} step(s).");
             }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Court & Council
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>A cooldown so large it never expires within one expedition —
+    /// "stood down for this expedition." Survives combat round-trips via the
+    /// existing GetPatrolCooldowns / RestorePatrolCooldowns path.</summary>
+    private const int StandDownSteps = 1_000_000;
+
+    /// <summary>True if any patrol could still be stood down by a Military
+    /// favor (i.e. not already permanently stood down).</summary>
+    public bool HasStandablePatrol()
+    {
+        foreach (var p in _patrols)
+            if (p.RecoveryCooldown < StandDownSteps / 2)
+                return true;
+        return false;
+    }
+
+    /// <summary>Military favor call-in: the patrol nearest the player retreats
+    /// home and will not hunt or capture for the rest of the expedition.
+    /// Returns its archmage id, or null if no patrol qualified.</summary>
+    public string StandDownNearestPatrol(Vector2I playerCoord)
+    {
+        PatrolToken best = null;
+        int bestDist = int.MaxValue;
+        foreach (var p in _patrols)
+        {
+            if (p.RecoveryCooldown >= StandDownSteps / 2)
+                continue; // already stood down
+            int d = _grid.Distance(p.CurrentCoord, playerCoord);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = p;
+            }
+        }
+        if (best == null)
+            return null;
+
+        best.Disengage(StandDownSteps);
+        GD.Print($"[FactionManager] Patrol '{best.ArchmageId}' stood down for the " +
+                 $"expedition (Marshal favor).");
+        return best.ArchmageId;
+    }
+
+    /// <summary>Passage favor call-in: every patrol breaks off and will not
+    /// hunt or capture for cooldownSteps steps (safe conduct). Never shortens
+    /// an existing longer cooldown (a stood-down patrol stays stood down).</summary>
+    public void SuppressAllPatrols(int cooldownSteps)
+    {
+        foreach (var p in _patrols)
+            if (p.RecoveryCooldown < cooldownSteps)
+                p.Disengage(cooldownSteps);
+        GD.Print($"[FactionManager] Safe conduct: patrols suppressed for {cooldownSteps} step(s).");
     }
 
     // One slow, generic patrol for archmage-less territory. Spawns at a passable

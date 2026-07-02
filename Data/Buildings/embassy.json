@@ -1,0 +1,40 @@
+{
+    "id": "embassy",
+    "name": "Embassy",
+    "description": "A hall for foreign dispatch and reception. Each tier lets the guild keep one more envoy afield, and opens deeper court dealings.",
+    "category": "Reputation",
+    "schoolAffinity": "",
+    "maxTier": 3,
+    "tiers": [
+        {
+            "tier": 1,
+            "description": "A modest hall of dispatch. Two envoys may be kept afield at once. Formal audiences (interactive court climaxes) and Petitions become possible.",
+            "goldCost": 150,
+            "requiredBuildings": [],
+            "unlocksFeatures": [
+                "council_tier_c",
+                "council_petition"
+            ]
+        },
+        {
+            "tier": 2,
+            "description": "A standing diplomatic corps. Three envoys may be kept afield. The guild may keep a second Patron, and its agents work more discreetly (reduced Exposure from intrigue).",
+            "goldCost": 300,
+            "requiredBuildings": [],
+            "unlocksFeatures": [
+                "council_second_patron",
+                "council_discreet_agents"
+            ]
+        },
+        {
+            "tier": 3,
+            "description": "A seat of true statecraft. Four envoys may be kept afield. The guild may Broker the Compact with a Trusted court, and foreign dignitaries begin visiting the campus.",
+            "goldCost": 500,
+            "requiredBuildings": [],
+            "unlocksFeatures": [
+                "council_broker_compact",
+                "embassy_dignitaries"
+            ]
+        }
+    ]
+}

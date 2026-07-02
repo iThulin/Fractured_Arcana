@@ -280,12 +280,12 @@ public partial class CouncilPanel : CanvasLayer
             string text;
             if (!court.HasContact)
             {
-                text = $"  •  A figure of the court — {c.Office}";
+                text = $"  •  A figure of the court — {CouncilTick.OfficeDisplay(c.Office)}";
             }
             else
             {
                 string secret = c.SecretKnown ? "   [secret known]" : "";
-                text = $"  •  {c.DisplayName} — {c.Office}, {c.Archetype}   " +
+                text = $"  •  {c.DisplayName} — {CouncilTick.OfficeDisplay(c.Office)}, {c.Archetype}   " +
                        $"Regard {(c.Regard > 0 ? "+" : "")}{c.Regard}  ·  Influence {c.Influence}{secret}";
             }
             var row = new Label { Text = text };
@@ -415,14 +415,30 @@ public partial class CouncilPanel : CanvasLayer
         missionRow.AddThemeConstantOverride("separation", 6);
         v.AddChild(missionRow);
 
+        var bandNow = court.Band();
+        int embassyTier = CouncilQueries.EmbassyTier(save);
         foreach (var def in CouncilMissions.All)
         {
-            bool locked = def.RequiresContact && !court.HasContact;
+            // Lock reasons in priority order: contact, standing band, embassy.
+            string lockReason = null;
+            if (def.RequiresContact && !court.HasContact)
+            {
+                lockReason = "requires contact";
+            }
+            else if (bandNow < def.MinBand)
+            {
+                lockReason = $"requires {def.MinBand} standing";
+            }
+            else if (embassyTier < def.RequiredEmbassyTier)
+            {
+                lockReason = $"requires Embassy tier {def.RequiredEmbassyTier}";
+            }
+
             string label = $"{def.DisplayName} ({def.Lunations}◐, {def.GoldCost}g)" +
-                           (locked ? " — requires contact" : "");
+                           (lockReason != null ? $" — {lockReason}" : "");
             AddSelectButton(missionRow, label, _selMissionId == def.Id,
                 () => { _selMissionId = def.Id; _selTargetCourtierId = null; RefreshAll(); },
-                disabled: locked);
+                disabled: lockReason != null);
         }
 
         var selDef = _selMissionId != null ? CouncilMissions.Get(_selMissionId) : null;
@@ -434,17 +450,32 @@ public partial class CouncilPanel : CanvasLayer
             v.AddChild(blurb);
         }
 
-        // 3. Target courtier (gifts).
+        // 3. Target courtier (gifts / petitions). Petitions restrict to
+        // receptive courtiers holding a favor-granting office, and show the
+        // favor type the office mints — the office IS the choice.
         if (selDef != null && selDef.NeedsTargetCourtier)
         {
-            AddFlowLabel(v, "Recipient:");
+            bool isPetition = selDef.Id == CouncilMissions.PetitionMinor;
+            var targets = isPetition
+                ? CouncilLedger.PetitionTargets(court)
+                : court.Courtiers;
+
+            AddFlowLabel(v, isPetition ? "Petition of:" : "Recipient:");
             var targetRow = new HBoxContainer();
             targetRow.AddThemeConstantOverride("separation", 6);
             v.AddChild(targetRow);
-            foreach (var c in court.Courtiers)
+
+            if (targets.Count == 0)
+            {
+                AddFlowLabel(v, "  No receptive courtier holds a favor-granting office.");
+            }
+            foreach (var c in targets)
             {
                 string cid = c.Id;
-                AddSelectButton(targetRow, c.DisplayName, _selTargetCourtierId == cid,
+                string label = isPetition
+                    ? $"{c.DisplayName} — {CouncilTick.OfficeDisplay(c.Office)} ({CouncilLedger.OfficeToFavorType(c.Office)})"
+                    : c.DisplayName;
+                AddSelectButton(targetRow, label, _selTargetCourtierId == cid,
                     () => { _selTargetCourtierId = cid; RefreshAll(); });
             }
         }
@@ -493,6 +524,14 @@ public partial class CouncilPanel : CanvasLayer
             return;
         }
         if (def.RequiresContact && !court.HasContact)
+        {
+            return;
+        }
+        if (court.Band() < def.MinBand)
+        {
+            return;
+        }
+        if (CouncilQueries.EmbassyTier(save) < def.RequiredEmbassyTier)
         {
             return;
         }
