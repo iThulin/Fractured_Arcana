@@ -149,6 +149,10 @@ public static class CompanionRoster
         var c = save.Companions.FirstOrDefault(x => x.Id == companionId);
         if (c == null || !c.IsRecruited || c.IsPermadead) return false;
 
+        // Envoys are afield — derived from CouncilState.ActiveMissions
+        // (single-source; never a flag on Companion).
+        if (CouncilQueries.IsOnMission(companionId)) return false;
+
         if (save.ActivePartyCompanionIds.Contains(companionId)) return false;
         if (save.ActivePartyCompanionIds.Count >= save.MaxPartySize) return false;
 

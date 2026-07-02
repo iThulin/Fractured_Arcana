@@ -66,6 +66,15 @@ public class CycleState
     /// </summary>
     public Dictionary<string, KingdomState> Kingdoms = new();
 
+    // ── Court & Council (timeline politics) ──────────────────────────────
+    /// <summary>
+    /// Courts, courtiers, the favor ledger, envoy missions, and echoes in
+    /// flight. Generated at cycle start beside Kingdoms by CourtGenerator;
+    /// dies with the timeline — cross-cycle renown lives in EternalLedger.
+    /// See court_council_system_v1_1.docx §12.
+    /// </summary>
+    public CouncilState Council = new();
+
     // ── Wizard (one cycle, one school) ───────────────────────────────────
     public string SelectedSchool = "Elementalist";
     public string WizardName = "Wizard";

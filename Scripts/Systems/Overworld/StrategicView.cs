@@ -56,6 +56,11 @@ public partial class StrategicView : Node2D
     /// <summary>Operating range / window radius handed to the expedition on deploy.</summary>
     [Export] public int DeployWindowRadius = 12;
 
+    /// <summary>Calendar phases one deploy costs. 8 phases per lunation / 3 per
+    /// deploy ≈ 2-3 expeditions per lunation, ~32 per 12-lunation cycle. The
+    /// second most important pacing knob after LunationsPerCycle.</summary>
+    [Export] public int PhasesPerDeploy = 3;
+
     private WorldData _world;
     private System.Collections.Generic.Dictionary<string, KingdomState> _kingdoms = new();
     private Node2D _labelLayer;
@@ -167,9 +172,27 @@ public partial class StrategicView : Node2D
         };
         campusBtn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         UITheme.ApplyButtonStyle(campusBtn, isPrimary: false);
+        
         campusBtn.Pressed += () =>
             GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
         _hud.AddChild(campusBtn);
+
+        var councilBtn = new Button
+        {
+            Text = "Council",
+            AnchorLeft = 0f,
+            AnchorTop = 0f,
+            AnchorRight = 0f,
+            AnchorBottom = 0f,
+            OffsetLeft = 204,
+            OffsetTop = 16,
+            OffsetRight = 324,
+            OffsetBottom = 56,
+        };
+        councilBtn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        UITheme.ApplyButtonStyle(councilBtn, isPrimary: false);
+        councilBtn.Pressed += () => CouncilPanel.Toggle(this);
+        _hud.AddChild(councilBtn);
 
         // ── Calendar readout: the doomsday clock, top-right ──────────────
         var cycle = SaveManager.ActiveSave?.Cycle;
@@ -1375,16 +1398,28 @@ public partial class StrategicView : Node2D
         if (cycle == null)
             return;
 
-        // ── Time advances on deploy: one expedition costs one full LUNATION ──
-        // 12 lunations per cycle = 12 expeditions, and the lunation counter ticks
-        // every deploy (visible countdown). The Conjunction is a real deadline.
-        bool crossedLunation = cycle.Calendar.AdvanceLunation();
+        // ── Time advances on deploy: one expedition costs PhasesPerDeploy ──
+        // phases (8 per lunation). The lunation BOUNDARY still drives the
+        // world tick; the Conjunction remains a real deadline (~32 deploys).
+        bool crossedLunation = false;
+        for (int i = 0; i < PhasesPerDeploy; i++)
+        {
+            crossedLunation |= cycle.Calendar.AdvancePhase();
+            // SEAM (Phase 4): eclipses land on a specific (lunation, phase).
+            // When eclipse resolution exists, check GetEclipseDueNow() here
+            // and interrupt the deploy — phase-stepping makes mid-lunation
+            // eclipses reachable for the first time.
+        }
         SaveManager.MarkDirty();
 
-        if (crossedLunation)
+    if (crossedLunation)
         {
             GD.Print($"[Calendar] New lunation: {cycle.Calendar.CurrentLunation} " +
                      $"({cycle.Calendar.CurrentPhaseName}).");
+            // Council resolves BEFORE corruption spreads (§13 order): envoy
+            // residency must be computable from missions still live when
+            // the moon turned.
+            CouncilTick.Tick(cycle);
             // The living world advances one lunation: corruption spreads.
             CorruptionSpread.Tick(cycle.World, cycle.Campaign, cycle.Kingdoms);
         }

@@ -37,6 +37,7 @@ public class GeneratedWorldData
     public WorldData World = new();
     public Dictionary<string, KingdomState> Kingdoms = new();
     public CampaignState Campaign = new();
+    public CouncilState Council = new();
 }
 
 /// <summary>Builds a complete Civ-scale world from a seed. Headless.</summary>
@@ -210,15 +211,21 @@ public static class WorldGenerator
         // ── 7. POIs (mostly undiscovered) + kingdom seats ────────────────
         ScatterPois(world, kingdoms, convergenceKingdom, capitals, kingdomIds, p, rng);
 
-        // ── 8. Starting staging point + a few pre-discovered POIs ────────
+    // ── 8. Starting staging point + a few pre-discovered POIs ────────
         SeedStaging(world, start, p, rng);
+
+        // ── 9. Courts (Court & Council phase C1) ─────────────────────────
+        // Own per-kingdom RNGs (seed ^ FNV1a(kingdomId)) — deliberately
+        // does NOT consume from this method's rng, so existing world
+        // output is bit-identical with or without court generation.
+        var council = CourtGenerator.Generate(seed, kingdoms, convergenceKingdom);
 
         GD.Print($"[WorldGenerator] World {p.Width}x{p.Height} seed={seed}: " +
                  $"{kingdoms.Count} territories, convergence='{convergenceKingdom}' " +
                  $"at ({convergence.x},{convergence.y}), " +
                  $"{world.Pois.Count} POIs, {world.StagingPoints.Count} staging point(s).");
 
-        return new GeneratedWorldData { World = world, Kingdoms = kingdoms, Campaign = campaign };
+        return new GeneratedWorldData { World = world, Kingdoms = kingdoms, Campaign = campaign, Council = council };
     }
 
     // ── 1. Terrain ───────────────────────────────────────────────────────

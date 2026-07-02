@@ -810,15 +810,18 @@ public partial class CampusScreen : Control
             rng.Randomize();
             cycle.WorldSeed = (int)rng.Randi();
         }
-        int seed = cycle.WorldSeed;
+        //int seed = cycle.WorldSeed;
+        int seed = -2085197503; // for testing — deterministic world generation
         var g = WorldGenerator.Generate(seed, cycle.SelectedSchool);
         cycle.World = g.World;
         cycle.Kingdoms = g.Kingdoms;
         cycle.Campaign = g.Campaign;
+        cycle.Council = g.Council;
         CorruptionSpread.Reset(); // new world — drop cached adjacency + pressure
         SaveManager.Save();
         GD.Print($"[Campus] Generated cycle {cycle.CycleNumber} world (seed {seed}, " +
-                 $"{g.Kingdoms.Count} territories, {g.World.Pois.Count} POIs).");
+                 $"{g.Kingdoms.Count} territories, {g.World.Pois.Count} POIs, " +
+                 $"{g.Council.Courts.Count} courts).");
     }
 
 
