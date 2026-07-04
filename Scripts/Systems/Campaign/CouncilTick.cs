@@ -143,9 +143,8 @@ public static class CouncilQueries
         return null;
     }
 
-    /// <summary>Embassy tier from the campus (0 if the building doesn't
-    /// exist in the save — the template may not be authored yet).</summary>
-    public static int EmbassyTier(GuildSaveData save)
+    /// <summary>Tier of any campus building by id (0 if absent).</summary>
+    public static int BuildingTier(GuildSaveData save, string buildingId)
     {
         if (save?.Buildings == null)
         {
@@ -153,12 +152,55 @@ public static class CouncilQueries
         }
         foreach (var b in save.Buildings)
         {
-            if (b.Id == "embassy")
+            if (b.Id == buildingId)
             {
                 return b.Tier;
             }
         }
         return 0;
+    }
+
+    /// <summary>Embassy tier from the campus (0 if the building doesn't
+    /// exist in the save — the template may not be authored yet).</summary>
+    public static int EmbassyTier(GuildSaveData save) => BuildingTier(save, "embassy");
+
+    // ── Standing unification (v1.2 ruling): court standing is the SINGLE
+    // source of truth for how a kingdom regards the guild. Stance is a
+    // derived read; nothing stores it. ─────────────────────────────────────
+
+    /// <summary>Derived kingdom stance from the court's standing band.
+    /// Kingdoms without a court (the convergence) read Hostile.</summary>
+    public static KingdomStance StanceFor(CycleState cycle, string kingdomId)
+    {
+        if (cycle?.Council == null ||
+            !cycle.Council.Courts.TryGetValue(kingdomId, out var court))
+        {
+            return KingdomStance.Hostile; // the convergence, or no court
+        }
+        return court.Band() switch
+        {
+            CourtStandingBand.Hostile => KingdomStance.Hostile,
+            CourtStandingBand.Welcome => KingdomStance.Friendly,
+            CourtStandingBand.Favored => KingdomStance.Friendly,
+            CourtStandingBand.Trusted => KingdomStance.Allied,
+            _ => KingdomStance.Neutral, // Unknown, Received
+        };
+    }
+
+    /// <summary>Derived reputation integer for the negotiation system's
+    /// starting-tension formula, for KINGDOM-aligned NPCs. Matches the
+    /// scale NegotiationState.Initialize expects (>=2 Allied ... <=-2
+    /// Hostile). Non-kingdom factions keep FactionReputation.</summary>
+    public static int NegotiationReputationFor(CycleState cycle, string kingdomId)
+    {
+        return StanceFor(cycle, kingdomId) switch
+        {
+            KingdomStance.Allied => 2,
+            KingdomStance.Friendly => 1,
+            KingdomStance.Hostile => -2,
+            KingdomStance.Unfriendly => -1, // unreachable in v1; future granularity
+            _ => 0,
+        };
     }
 
     /// <summary>Concurrent envoy cap: 1 with no Embassy, +1 per tier (§2b).</summary>
@@ -197,6 +239,9 @@ public static class CouncilTick
                 intelCourts.Add(m.KingdomId);
             }
         }
+
+        // ── Step 1: land echoes whose lunation has come (§13) ────────────
+        CouncilEcho.LandEchoes(cycle, lines);
 
         // ── Step 2: obligation decay on overdue favors the guild owes ────
         CouncilLedger.TickObligationDecay(cycle, lines);

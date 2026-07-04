@@ -42,6 +42,13 @@ public partial class EncounterRouter : Node
     public Vector2I SavedPartyCoord;
     public Vector2I SavedCombatHexCoord;
 
+    /// <summary>True when the pending combat was a patrol ambush (C4 deed).</summary>
+    public bool SavedCombatWasPatrolAmbush = false;
+
+    /// <summary>Owner archmage of the ambushing patrol ("wilds" for the
+    /// generic pursuer).</summary>
+    public string SavedCombatPatrolArchmageId = "";
+
     // ── Seed for deterministic map regeneration after combat ────────────
     public int SavedRunSeed;
     public bool HasSavedSeed = false;

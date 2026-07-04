@@ -157,7 +157,6 @@ public static class WorldGenerator
                 TemplateRegionId = region,
                 DisplayName = RegionLoader.LoadOrDefault(region)?.DisplayName ?? id,
                 ControllingFactionId = isConvergence ? "" : factionOf[id],
-                Stance = isStart ? KingdomStance.Friendly : KingdomStance.Neutral,
                 Tier = isConvergence ? 3 : RegionTierOf(region),
                 Stability = 50,
                 PlayerInfluence = isStart ? 25 : 0,

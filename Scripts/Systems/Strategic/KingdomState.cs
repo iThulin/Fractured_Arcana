@@ -60,8 +60,9 @@ public class KingdomState
     // ── Control ──────────────────────────────────────────────────────────
     public string ControllingFactionId = "";
 
-    /// <summary>Player standing with the controlling faction's hold here.</summary>
-    public KingdomStance Stance = KingdomStance.Neutral;
+    // Stance REMOVED (v1.2 standing unification): derived from court
+    // standing via CouncilQueries.StanceFor(cycle, kingdomId). Old saves'
+    // stored stance values are ignored on load.
 
     // ── Difficulty ───────────────────────────────────────────────────────
     /// <summary>1–3 difficulty tier, derived at generation from distance to
@@ -88,11 +89,7 @@ public class KingdomState
     /// convenience. Empty if no archmage was placed.</summary>
     public string ArchmageId = "";
 
-    // ── Helpers ──────────────────────────────────────────────────────────
-    /// <summary>True if the player meets at least the given stance.</summary>
-    public bool AtLeast(KingdomStance required) => Stance >= required;
-
-    /// <summary>Whether the player may currently establish an outpost here
-    /// (Neutral+). The hard gate; cost is handled elsewhere.</summary>
-    public bool CanBuildOutpost => Stance >= KingdomStance.Neutral;
+// ── Helpers ──────────────────────────────────────────────────────────
+    // AtLeast / CanBuildOutpost REMOVED with the stored Stance. Gate reads:
+    //   CouncilQueries.StanceFor(cycle, RegionId) >= KingdomStance.Neutral
 }

@@ -52,7 +52,7 @@ public static class CouncilLedger
     /// <summary>Favor types with a working expedition call-in effect in C3.</summary>
     public static readonly HashSet<string> CallableTypes = new()
     {
-        "Military", "Economic", "Intelligence", "Passage",
+        "Military", "Economic", "Intelligence", "Passage", "Political",
     };
 
     // ── Office -> favor type ─────────────────────────────────────────────

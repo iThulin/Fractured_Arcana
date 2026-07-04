@@ -21,6 +21,11 @@ public static class NegotiationContext
     public static string EncounterId = "";
     public static string HexCoordKey = "";          // "q,r" for the triggering hex
 
+    /// <summary>Archetype of the NPC (C4 echo routing for deal deeds).
+    /// Set alongside EncounterId before the scene swap.</summary>
+    public static string NpcArchetype = "";
+    
+
     // ── Output (set by NegotiationScene on completion) ──────────────────
     public static bool HasResult = false;
     public static bool DealAccepted = false;
@@ -46,5 +51,6 @@ public static class NegotiationContext
         FactionId = "";
         EncounterId = "";
         HexCoordKey = "";
+        NpcArchetype = "";
     }
 }

@@ -130,8 +130,9 @@ public partial class ExpeditionManager : Node2D
         // Faction patrols — keyed to the staging tile's kingdom, if any.
         _factionManager = new OverworldFactionManager { Name = "FactionManager" };
         _grid.AddChild(_factionManager);
-        string stagingKingdom = _world.GetTile(_stagingCol, _stagingRow).KingdomId ?? "";
-        _factionManager.Initialize(_grid, stagingKingdom, cycle.Campaign);
+        // Patrols key off the TEMPLATE REGION (the campaign's archmage map is
+        // keyed by region names like 'dustreach', not 'kingdom_N' ids).
+        _factionManager.Initialize(_grid, StagingTemplateRegion(), cycle.Campaign);
         _factionManager.PatrolCapturedPlayer += OnPatrolCapturedPlayer;
 
         // Party token
@@ -738,6 +739,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 : null)
             ?? EncounterPoolLoader.Pick(regionId, EncounterTier.Skirmish, terrainType, _scaledDifficultyMult);
         CommitCombat(coord, encounterDef, terrainType);
+        // Mark AFTER CommitCombat (which resets the flag): this combat is a
+        // patrol ambush, and whose soldiers they are (C4 deed emission).
+        EncounterRouter.Instance.SavedCombatWasPatrolAmbush = true;
+        EncounterRouter.Instance.SavedCombatPatrolArchmageId = archmageId;
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -773,6 +778,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             ConsumeWorldPoi(resultHex);
             GrantStagingPointAt(resultHex); // securing a seat/settlement via combat can grant staging
             ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters.");
+            EmitCombatDeed(router, resultHex);
         }
         else
         {
@@ -876,6 +882,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         NegotiationContext.Clear();
         NegotiationContext.EncounterId = encounter.Id;
         NegotiationContext.HexCoordKey = $"{coord.X},{coord.Y}";
+        NegotiationContext.NpcArchetype = encounter.Archetype.ToString();
 
         var router = EncounterRouter.Instance;
         if (router != null)
@@ -887,6 +894,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             router.SavedEncountersWon = EncountersWon;
             router.SavedPartyCoord = _party.CurrentCoord;
             router.SavedCombatHexCoord = coord;
+            router.SavedCombatWasPatrolAmbush = false;
+            router.SavedCombatPatrolArchmageId = "";
             router.HasPendingReturn = true;
         }
         SaveManager.SaveIfDirty();
@@ -899,12 +908,33 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (NegotiationContext.DealAccepted)
         {
             GoldEarned = Mathf.Max(0, GoldEarned + NegotiationContext.GoldDelta);
-            if (SaveManager.ActiveSave != null && !string.IsNullOrEmpty(NegotiationContext.FactionId))
+            string f = NegotiationContext.FactionId;
+            var cycle = SaveManager.ActiveSave?.Cycle;
+            if (!string.IsNullOrEmpty(f) && cycle != null)
             {
-                var rep = SaveManager.ActiveSave.FactionReputation;
-                string f = NegotiationContext.FactionId;
-                rep[f] = rep.TryGetValue(f, out int cur) ? cur + NegotiationContext.ReputationDelta
-                                                          : NegotiationContext.ReputationDelta;
+                if (cycle.Kingdoms.ContainsKey(f))
+                {
+                    // Kingdom-aligned: the deal echoes to the court (C4).
+                    // FactionReputation no longer stores kingdom feeling —
+                    // court standing is the single source of truth.
+                    int rep = NegotiationContext.ReputationDelta;
+                    if (rep != 0)
+                    {
+                        string tag = (rep > 0 ? CouncilEcho.DealFair : CouncilEcho.DealExploit)
+                                     + ":" + NegotiationContext.NpcArchetype;
+                        string toast = CouncilEcho.EmitDeed(cycle, f, tag, rep > 0, isMajor: false);
+                        if (toast != null)
+                            ShowInfo(toast);
+                    }
+                }
+                else if (SaveManager.ActiveSave != null)
+                {
+                    // Non-kingdom faction: FactionReputation keeps its job.
+                    var repDict = SaveManager.ActiveSave.FactionReputation;
+                    repDict[f] = repDict.TryGetValue(f, out int cur)
+                        ? cur + NegotiationContext.ReputationDelta
+                        : NegotiationContext.ReputationDelta;
+                }
             }
             ShowInfo($"Deal struck. Gold: {(NegotiationContext.GoldDelta >= 0 ? "+" : "")}{NegotiationContext.GoldDelta}");
         }
@@ -1371,6 +1401,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return "No patrols in the field to stand down.";
         if (f.Type == "Economic" && CurrentHP >= MaxHP)
             return "The party is at full strength.";
+        if (f.Type == "Political" &&
+            !CouncilEcho.HasCancellableNegative(SaveManager.ActiveSave?.Cycle?.Council, f.KingdomId))
+            return "No ill word is travelling toward this court.";
         return null;
     }
 
@@ -1429,8 +1462,84 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 _factionManager?.SuppressAllPatrols(SafeConductSteps);
                 return (true, $"Papers of safe conduct: patrols will not trouble you for {SafeConductSteps} steps.");
             }
+            case "Political":
+            {
+                var council = SaveManager.ActiveSave?.Cycle?.Council;
+                string buried = council != null
+                    ? CouncilEcho.CancelWorstNegative(council, f.KingdomId)
+                    : null;
+                if (buried == null)
+                    return (false, "No ill word is travelling toward this court.");
+                return (true, $"The Chancellor's quiet work: the tale of {buried} will never reach the court.");
+            }
         }
         return (false, "That favor has no field effect yet.");
+    }
+
+    /// <summary>Emit at most ONE echo for a won combat (C4 §7a), priority:
+    /// patrol-slain (negative, major, routed to the patrol's OWNER kingdom)
+    /// > corruption-cleansed (positive; major at world corruption >= 60)
+    /// > settlement-defended (positive, within 4 of a friendly settlement).
+    /// Wilds patrols and courtless kingdoms emit nothing.</summary>
+    private void EmitCombatDeed(EncounterRouter router, Vector2I resultHex)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle?.Council == null)
+            return;
+
+        // 1. Patrol slain — offense against whoever owns the soldiers.
+        if (router.SavedCombatWasPatrolAmbush &&
+            !string.IsNullOrEmpty(router.SavedCombatPatrolArchmageId) &&
+            router.SavedCombatPatrolArchmageId != "wilds")
+        {
+            foreach (var kvp in cycle.Kingdoms)
+            {
+                if (kvp.Value.ArchmageId == router.SavedCombatPatrolArchmageId)
+                {
+                    string t = CouncilEcho.EmitDeed(cycle, kvp.Key,
+                        CouncilEcho.PatrolSlain, positive: false, isMajor: true);
+                    if (t != null)
+                        ShowInfo(t);
+                    return;
+                }
+            }
+            return; // archmage owns no kingdom (shouldn't happen); no echo
+        }
+
+        string kid = KingdomIdAt(resultHex);
+        if (string.IsNullOrEmpty(kid))
+            return;
+
+        // 2. Corruption cleansed on the fought tile.
+        if (_window.TryLocalToWorld(resultHex, out int col, out int row) &&
+            _world.TryIndex(col, row, out int idx) &&
+            _world.Tiles[idx].Corruption >= 30)
+        {
+            bool major = _world.Tiles[idx].Corruption >= 60;
+            string t = CouncilEcho.EmitDeed(cycle, kid,
+                CouncilEcho.CorruptionCleansed, positive: true, isMajor: major);
+            if (t != null)
+                ShowInfo(t);
+            return;
+        }
+
+        // 3. Settlement defended — a discovered settlement of this kingdom
+        // within 4. Square-radius check on world offset coords approximates
+        // hex distance (error <= 1 class at this radius); swap in a proper
+        // offset->cube distance if the world exposes one.
+        foreach (var poi in _world.Pois)
+        {
+            if (poi.Kind != PoiKind.Settlement || poi.KingdomId != kid || !poi.Discovered)
+                continue;
+            if (System.Math.Max(System.Math.Abs(poi.X - col), System.Math.Abs(poi.Y - row)) <= 4)
+            {
+                string t = CouncilEcho.EmitDeed(cycle, kid,
+                    CouncilEcho.SettlementDefended, positive: true, isMajor: false);
+                if (t != null)
+                    ShowInfo(t);
+                return;
+            }
+        }
     }
 
     /// <summary>Spymaster chart packet: reveal one undiscovered POI in the

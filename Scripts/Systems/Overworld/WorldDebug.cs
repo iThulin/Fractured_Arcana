@@ -154,9 +154,9 @@ public static class WorldDebug
             var k = kvp.Value;
             int corruption = campaign.GetCorruption(k.RegionId);
             sb.AppendLine($"  {k.RegionId,-12} tier {k.Tier}  " +
-                          $"faction={k.ControllingFactionId,-18} " +
-                          $"archmage={(string.IsNullOrEmpty(k.ArchmageId) ? "(none)" : k.ArchmageId),-12} " +
-                          $"stance={k.Stance} corruption={corruption}");
+                            $"faction={k.ControllingFactionId,-18} " +
+                            $"archmage={(string.IsNullOrEmpty(k.ArchmageId) ? "(none)" : k.ArchmageId),-12} " +
+                            $"corruption={corruption}");
         }
         Emit(sb.ToString());
     }
