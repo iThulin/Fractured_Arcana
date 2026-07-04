@@ -1,0 +1,22 @@
+{
+	"id": "seraphine_duskwell",
+	"name": "Seraphine Duskwell",
+	"school": "Enchanter",
+	"unitClass": "Arcane",
+	"personalityTrait": "Cunning",
+	"backstory": "A negotiator's protégé, offered across the table as part of a bargain struck in good humor. She considers herself the best clause in that contract.",
+	"recruitmentCost": 0,
+	"isAvailable": false,
+	"unlockCondition": "Offered as a protégé during a Cordial negotiation",
+	"contributedCardIds": [
+		"enchanter_snare_glyph",
+		"enchanter_hex_mark"
+	],
+	"baseHP": 13,
+	"baseSpeed": 2,
+	"baseArmor": 0,
+	"baseAttackDamage": 0,
+	"baseAttackRange": 0,
+	"baseMana": 3,
+	"availableStanceIds": []
+}

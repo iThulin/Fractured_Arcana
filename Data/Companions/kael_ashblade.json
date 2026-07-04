@@ -3,7 +3,7 @@
 	"name": "Kael Ashblade",
 	"school": "None",
 	"unitClass": "Fighter",
-	"personalityTrait": "Aggressive",
+	"personalityTrait": "Reckless",
 	"backstory": "A pit fighter who caught the guild's eye after surviving three rounds against a summoned elemental.",
 	"recruitmentCost": 80,
 	"isAvailable": false,

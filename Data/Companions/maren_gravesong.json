@@ -1,0 +1,22 @@
+{
+	"id": "maren_gravesong",
+	"name": "Maren Gravesong",
+	"school": "Necromancer",
+	"unitClass": "Arcane",
+	"personalityTrait": "Stoic",
+	"backstory": "She walks the corrupted places to record the names of the dead nobody else will. Her ledger is longer than most libraries.",
+	"recruitmentCost": 140,
+	"isAvailable": false,
+	"unlockCondition": "Complete an expedition into a corrupted region",
+	"contributedCardIds": [
+		"necromancer_dirge",
+		"necromancer_grief_strike"
+	],
+	"baseHP": 15,
+	"baseSpeed": 2,
+	"baseArmor": 0,
+	"baseAttackDamage": 0,
+	"baseAttackRange": 0,
+	"baseMana": 3,
+	"availableStanceIds": []
+}

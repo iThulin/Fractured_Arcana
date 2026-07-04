@@ -1,0 +1,22 @@
+{
+	"id": "dagny_thornhelm",
+	"name": "Dagny Thornhelm",
+	"school": "None",
+	"unitClass": "Fighter",
+	"personalityTrait": "Loyal",
+	"backstory": "Twelve years a caravan guard on the same route, for the same family. When the family sold the route, she went looking for something else worth standing in front of.",
+	"recruitmentCost": 90,
+	"isAvailable": true,
+	"unlockCondition": "",
+	"contributedCardIds": [],
+	"baseHP": 19,
+	"baseSpeed": 2,
+	"baseArmor": 1,
+	"baseAttackDamage": 6,
+	"baseAttackRange": 1,
+	"baseMana": 0,
+	"availableStanceIds": [
+		"duelist",
+		"defensive"
+	]
+}

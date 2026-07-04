@@ -1,0 +1,22 @@
+{
+	"id": "yara_ellswood",
+	"name": "Yara Ellswood",
+	"school": "None",
+	"unitClass": "Ranger",
+	"personalityTrait": "Loyal",
+	"backstory": "A king's forester who quit the day she was ordered to look the other way. She reads a treeline the way clerks read contracts, and keeps her word the same way.",
+	"recruitmentCost": 85,
+	"isAvailable": true,
+	"unlockCondition": "",
+	"contributedCardIds": [],
+	"baseHP": 15,
+	"baseSpeed": 3,
+	"baseArmor": 0,
+	"baseAttackDamage": 5,
+	"baseAttackRange": 3,
+	"baseMana": 0,
+	"availableStanceIds": [
+		"marked",
+		"volley"
+	]
+}

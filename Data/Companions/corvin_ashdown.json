@@ -1,0 +1,22 @@
+{
+	"id": "corvin_ashdown",
+	"name": "Corvin Ashdown",
+	"school": "None",
+	"unitClass": "Ranger",
+	"personalityTrait": "Stoic",
+	"backstory": "A deserter from a war nobody won. He speaks maybe forty words a lunation and has never missed twice at the same target.",
+	"recruitmentCost": 95,
+	"isAvailable": false,
+	"unlockCondition": "Complete 4 combat encounters",
+	"contributedCardIds": [],
+	"baseHP": 14,
+	"baseSpeed": 3,
+	"baseArmor": 0,
+	"baseAttackDamage": 6,
+	"baseAttackRange": 3,
+	"baseMana": 0,
+	"availableStanceIds": [
+		"ambush",
+		"aimed"
+	]
+}

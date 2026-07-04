@@ -1,0 +1,22 @@
+{
+	"id": "wren_holloway",
+	"name": "Wren Holloway",
+	"school": "Adept",
+	"unitClass": "Arcane",
+	"personalityTrait": "Curious",
+	"backstory": "Washed out of three specializations for the crime of being interested in all of them. The guild took her precisely because of it.",
+	"recruitmentCost": 100,
+	"isAvailable": true,
+	"unlockCondition": "",
+	"contributedCardIds": [
+		"adept_magic_missile",
+		"adept_ward"
+	],
+	"baseHP": 14,
+	"baseSpeed": 2,
+	"baseArmor": 0,
+	"baseAttackDamage": 0,
+	"baseAttackRange": 0,
+	"baseMana": 3,
+	"availableStanceIds": []
+}

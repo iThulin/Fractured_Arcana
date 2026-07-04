@@ -1,0 +1,22 @@
+{
+	"id": "bram_thistlewade",
+	"name": "Bram Thistlewade",
+	"school": "Druid",
+	"unitClass": "Arcane",
+	"personalityTrait": "Loyal",
+	"backstory": "Found half-starved in a grove the blight had circled but not touched. He held it alone for two lunations, and he does not forget who finally came.",
+	"recruitmentCost": 0,
+	"isAvailable": false,
+	"unlockCondition": "Rescue: found at a companion POI in the wilds",
+	"contributedCardIds": [
+		"druid_creeping_thorn",
+		"druid_bramble_guard"
+	],
+	"baseHP": 16,
+	"baseSpeed": 2,
+	"baseArmor": 0,
+	"baseAttackDamage": 0,
+	"baseAttackRange": 0,
+	"baseMana": 3,
+	"availableStanceIds": []
+}

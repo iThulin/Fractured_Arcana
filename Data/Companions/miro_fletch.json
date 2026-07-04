@@ -1,0 +1,21 @@
+{
+	"id": "miro_fletch",
+	"name": "Miro Fletch",
+	"school": "None",
+	"unitClass": "Ranger",
+	"personalityTrait": "Curious",
+	"backstory": "A fletcher's apprentice who kept sneaking off to watch monsters instead of making arrows for them. He knows more bestiary than most scholars and more escape routes than most thieves.",
+	"recruitmentCost": 70,
+	"isAvailable": false,
+	"unlockCondition": "Complete 3 combat encounters",
+	"contributedCardIds": [],
+	"baseHP": 13,
+	"baseSpeed": 3,
+	"baseArmor": 0,
+	"baseAttackDamage": 5,
+	"baseAttackRange": 3,
+	"baseMana": 0,
+	"availableStanceIds": [
+		"suppression"
+	]
+}
