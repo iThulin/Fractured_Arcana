@@ -1,36 +1,47 @@
 {
-	"id": "adept_counterspell",
-	"status": "wip",
-	"name": "Counterspell",
-	"school": "Adept",
-	"rarity": "Uncommon",
-	"top": {
-		"name": "Counterspell",
-		"mana": 2,
-		"speed": "Reaction",
-		"rules_text": "Cancel the next card played by target enemy this turn.",
-		"tags": [],
-		"targeting": {
-			"type": "unit",
-			"range": 6,
-			"los": true,
-			"enemies_only": true
-		},
-		"effect": {
-			"type": "empty"
-		}
-	},
-	"bottom": {
-		"name": "Spell Drain",
-		"mana": 1,
-		"speed": "Reaction",
-		"rules_text": "If a card was cancelled this turn, gain 2 mana.",
-		"tags": [],
-		"targeting": {
-			"type": "self"
-		},
-		"effect": {
-			"type": "empty"
-		}
-	}
+  "id": "adept_counterspell",
+  "status": "wip",
+  "name": "Counterspell",
+  "school": "Adept",
+  "rarity": "Uncommon",
+  "top": {
+    "name": "Counterspell",
+    "mana": 2,
+    "speed": "Reaction",
+    "rules_text": "Negate target enemy's next action.",
+    "tags": [],
+    "targeting": {
+      "type": "unit",
+      "range": 6,
+      "los": true,
+      "enemies_only": true
+    },
+    "effect": {
+      "type": "negate_action"
+    }
+  },
+  "bottom": {
+    "name": "Spell Drain",
+    "mana": 1,
+    "speed": "Reaction",
+    "rules_text": "If you negated an enemy action this turn, gain 2 mana.",
+    "tags": [],
+    "targeting": {
+      "type": "self"
+    },
+    "effect": {
+      "type": "conditional",
+      "if": {
+        "type": "actions_negated_this_turn",
+        "min": 1
+      },
+      "then": {
+        "type": "gain_mana",
+        "amount": 2
+      },
+      "else": {
+        "type": "empty"
+      }
+    }
+  }
 }

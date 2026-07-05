@@ -1643,6 +1643,88 @@ public sealed class RaiseTerrainEffect : EffectBase
 	}
 }
 
+// ── Aftershock ──────────────────────────────────────────────────────────
+
+/// <summary>
+/// Grants the caster mana per enemy killed since the start of the player's turn.
+/// Reads GameState.EnemiesKilledThisTurn (fed by HandleUnitDeath).
+/// JSON: { "type": "mana_per_kill", "amount_per": 1 }
+/// </summary>
+public sealed class ManaPerKillEffect : EffectBase
+{
+	public int AmountPer;
+	public ManaPerKillEffect(int amountPer) { AmountPer = amountPer; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = FindCasterUnit(s, caster);
+		if (casterUnit == null || s == null)
+			return;
+
+		int kills = s.EnemiesKilledThisTurn;
+		int mana = kills * AmountPer;
+		if (mana > 0)
+		{
+			casterUnit.GainMana(mana);
+			if (s.Mana.ContainsKey(caster))
+				s.Mana[caster] = casterUnit.Stats.Mana;
+		}
+		s.Log($"[ManaPerKill] {kills} kill(s) × {AmountPer} = {mana} mana.");
+	}
+}
+
+// ── Counterspell ────────────────────────────────────────────────────────
+
+/// <summary>
+/// Negates each targeted enemy's next action outright: when its turn comes, the
+/// intent is cleared and the action is lost (no reschedule). Consumed in
+/// RunEnemyTurn before the postpone check.
+/// JSON: { "type": "negate_action" }
+/// </summary>
+public sealed class NegateActionEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets?.Items == null)
+			return;
+
+		foreach (var obj in targets.Items)
+		{
+			var unit = ResolveTargetUnit(s, obj);
+			if (unit == null || unit.IsPlayerControlled || !unit.Stats.IsAlive)
+				continue;
+
+			unit.NegateNextAction = true;
+			s.ActionsNegatedThisTurn++;
+			s.Log($"[Negate] {unit.Name}'s next action is countered.");
+		}
+	}
+}
+
+// ── Riposte ─────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Arms the caster with retaliation: until the start of their next turn, any
+/// attacker that hits them takes the given damage back. Consumed per hit in
+/// PerformAttack / PerformRangedAttack.
+/// JSON: { "type": "retaliate", "damage": 4 }
+/// </summary>
+public sealed class RetaliateEffect : EffectBase
+{
+	public int Damage;
+	public RetaliateEffect(int damage) { Damage = damage; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit ?? FindCasterUnit(s, caster);
+		if (casterUnit == null)
+			return;
+
+		casterUnit.RetaliateDamage = Math.Max(casterUnit.RetaliateDamage, Damage);
+		s.Log($"[Riposte] {casterUnit.Name} will strike back for {Damage} this round.");
+	}
+}
+
 // ── No-Op Effect ────────────────────────────────────────────────────────
 
 /// <summary>Logs <see cref="Text"/> and does nothing else. Useful as a debug placeholder while authoring card data.</summary>

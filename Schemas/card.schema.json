@@ -331,7 +331,10 @@
 						"place_trap",
 						"construct_volley",
 						"damage_per_construct",
-						"enhance_construct"
+						"enhance_construct",
+						"mana_per_kill",
+						"negate_action",
+						"retaliate"
 					]
 				},
 				"amount": {
@@ -839,13 +842,30 @@
 			"properties": {
 				"type": {
 					"type": "string",
-					"description": "Predicate kind. Registered values include: always_true, was_lethal, target_on_tile, target_adjacent_to_tile, target_adjacent_to_caster, caster_on_terrain, has_elements_near_caster, has_construct, construct_count, target_adjacent_to_construct.",
+					"description": "Predicate kind. Registered values include: always_true, was_lethal, target_on_tile, target_adjacent_to_tile, target_adjacent_to_caster, caster_on_terrain, has_elements_near_caster, has_construct, construct_count, target_adjacent_to_construct, count_of_tile_at_least, is_channeled, and, or, not.",
 					"minLength": 1
 				},
 				"min": {
 					"type": "integer",
 					"description": "Minimum count the predicate compares against. Used by: construct_count.",
 					"minimum": 1
+				},
+				"at_least": {
+					"type": "integer",
+					"description": "Minimum number of matching tiles on the board. Used by: count_of_tile_at_least.",
+					"minimum": 1
+				},
+				"predicates": {
+					"type": "array",
+					"description": "Child predicates. Used by: and, or.",
+					"items": {
+						"$ref": "#/$defs/Predicate"
+					},
+					"minItems": 1
+				},
+				"predicate": {
+					"$ref": "#/$defs/Predicate",
+					"description": "Wrapped predicate. Used by: not."
 				},
 				"tile": {
 					"type": "string",

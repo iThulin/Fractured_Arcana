@@ -15,14 +15,53 @@ using System.Collections.Generic;
 //                 GameState.cs, ElementalAttunement.cs
 // See:            README §5.5 (Predicate Types)
 // ============================================================
-//
-// NOTE: Several predicates below (TargetOnTile, TargetAdjacentToTile,
-// CountOfTileAtLeast, IsChanneled) are STUBBED — they reference
-// game systems that don't yet exist (per-tile TileType keys,
-// corpse counting, channel-flag in PredicateContext). They return
-// `false` safely so cards that use them never take the THEN
-// branch, but they need to be wired up before those cards work
-// as designed. Each stub has a TODO showing exactly what to wire.
+
+/// <summary>
+/// Shared tile-matching helpers for the tile predicates. A "tile type" key is
+/// matched against memorials ("memorial"), the tile's TerrainType, its
+/// ElementType, and the usual design-name aliases (stone→Earth, ice→Frost,
+/// storm→Lightning) — same vocabulary as CasterOnTerrain.
+/// </summary>
+internal static class TilePredicateUtil
+{
+    public static TileData ResolveTile(GameState s, object o) => o switch
+    {
+        TileData td => td,
+        Unit u => u.CurrentTile,
+        HexTile tv => s?.Grid?.GetTile(tv.Axial),
+        _ => null
+    };
+
+    public static bool Matches(TileData tile, string tileType)
+    {
+        if (tile == null || string.IsNullOrEmpty(tileType))
+            return false;
+
+        string check = tileType.ToLowerInvariant();
+
+        if (check == "memorial")
+            return tile.HasMemorial;
+
+        if (check == tile.TerrainType.ToString().ToLowerInvariant())
+            return true;
+        if (check == tile.ElementType.ToString().ToLowerInvariant())
+            return true;
+
+        // Design-name aliases (kept in sync with CasterOnTerrain)
+        return check switch
+        {
+            "stone" => tile.TerrainType == TileTerrainType.Stone
+                    || tile.ElementType == TileElementType.Earth,
+            "ice" => tile.TerrainType == TileTerrainType.Ice
+                    || tile.ElementType == TileElementType.Frost,
+            "fire" => tile.ElementType == TileElementType.Fire,
+            "storm" => tile.ElementType == TileElementType.Lightning,
+            "arcane" => tile.TerrainType == TileTerrainType.Arcane
+                    || tile.ElementType == TileElementType.Arcane,
+            _ => false
+        };
+    }
+}
 
 /// <summary>
 /// Always returns true. Useful default for the predicate slot and
@@ -93,9 +132,8 @@ public sealed class LastEffectWasLethal : IPredicate
 // ── Tile / position predicates ──────────────────────────────────────────
 
 /// <summary>
-/// Intended: true when the first target is adjacent to a tile
-///  of the given type. Currently always returns false — wire up grid lookup 
-/// before relying on it.
+/// True when the first target stands on, or within 1 hex of, a tile of the
+/// given type ("on or adjacent to a memorial" wording on cards like Communion).
 /// </summary>
 public sealed class TargetAdjacentToTile : IPredicate
 {
@@ -104,21 +142,26 @@ public sealed class TargetAdjacentToTile : IPredicate
 
     public bool Evaluate(PredicateContext ctx)
     {
-        if (ctx.Targets == null || ctx.Targets.Items.Count == 0)
+        if (ctx?.Game?.Grid == null || ctx.Targets == null || ctx.Targets.Items.Count == 0)
             return false;
-        // TODO: replace with real grid lookup
-        // var firstTarget = ctx.Targets.Items[0];
-        // var pos = GetPositionOf(firstTarget);
-        // foreach (var t in ctx.Game.Grid.GetAdjacentTiles(pos))
-        //     if (t.TileType == TileType) return true;
+
+        var tile = TilePredicateUtil.ResolveTile(ctx.Game, ctx.Targets.Items[0]);
+        if (tile == null)
+            return false;
+
+        if (TilePredicateUtil.Matches(tile, TileType))
+            return true;
+
+        foreach (var n in ctx.Game.Grid.GetNeighbors(tile.Axial))
+            if (TilePredicateUtil.Matches(ctx.Game.Grid.GetTile(n), TileType))
+                return true;
+
         return false;
     }
 }
 
 /// <summary>
-/// Intended: true when the first target is standing on a tile
-/// of the given type. Currently always returns false — wire up grid lookup 
-/// before relying on it.
+/// True when the first target is standing on a tile of the given type.
 /// </summary>
 public sealed class TargetOnTile : IPredicate
 {
@@ -127,13 +170,11 @@ public sealed class TargetOnTile : IPredicate
 
     public bool Evaluate(PredicateContext ctx)
     {
-        if (ctx.Targets == null || ctx.Targets.Items.Count == 0)
+        if (ctx?.Game == null || ctx.Targets == null || ctx.Targets.Items.Count == 0)
             return false;
-        // TODO: replace with real grid lookup.
-        // var pos = GetPositionOf(ctx.Targets.Items[0]);
-        // var tile = ctx.Game.Grid.GetTile(pos);
-        // return tile != null && tile.TileType == TileType;
-        return false;
+
+        var tile = TilePredicateUtil.ResolveTile(ctx.Game, ctx.Targets.Items[0]);
+        return TilePredicateUtil.Matches(tile, TileType);
     }
 }
 
@@ -184,24 +225,42 @@ public sealed class CountOfTileAtLeast : IPredicate
 
     public bool Evaluate(PredicateContext ctx)
     {
-        // TODO: ctx.Game.Grid.CountTilesOfType(TileType) >= AtLeast;
+        var grid = ctx?.Game?.Grid;
+        if (grid?.Tiles == null)
+            return false;
+
+        int count = 0;
+        foreach (var tile in grid.Tiles.Values)
+        {
+            if (TilePredicateUtil.Matches(tile, TileType) && ++count >= AtLeast)
+                return true;
+        }
         return false;
     }
 }
 
 /// <summary>
-/// Intended: true when the current cast is the channel variant of its parent half. 
-/// Currently always returns false — wire up a channel flag in 
-/// <see cref="PredicateContext"/> before relying on this. Could replace the 
-/// standalone ChannelVariant system, or coexist with it.
+/// True when the current cast is the channel variant of its parent half.
+/// Reads <c>GameState.LastCastWasChannel</c>, set during CombatManager's
+/// channel resolution just before the cast is pushed.
 /// </summary>
 public sealed class IsChanneled : IPredicate
 {
-    public bool Evaluate(PredicateContext ctx)
-    {
-        // TODO: set a flag in PredicateContext when the channel variant is used.
-        return false;
-    }
+    public bool Evaluate(PredicateContext ctx) => ctx?.Game?.LastCastWasChannel ?? false;
+}
+
+/// <summary>
+/// True when at least <see cref="Min"/> enemy actions have been negated since the
+/// start of the player's turn (Counterspell). Reads GameState.ActionsNegatedThisTurn.
+/// JSON: { "type": "actions_negated_this_turn", "min": 1 }
+/// </summary>
+public sealed class ActionsNegatedThisTurnPredicate : IPredicate
+{
+    public int Min;
+    public ActionsNegatedThisTurnPredicate(int min) { Min = min; }
+
+    public bool Evaluate(PredicateContext ctx) =>
+        (ctx?.Game?.ActionsNegatedThisTurn ?? 0) >= Min;
 }
 
 /// <summary>

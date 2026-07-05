@@ -235,23 +235,37 @@ public static partial class CardScriptRegistry
         // Swap positions with a friendly spirit
         // { "type": "swap_with_spirit" }
         RegisterEffect("swap_with_spirit", _ =>
-            new EmptyEffect().WithTag("Movement")); // placeholder — implement when movement system supports swap
+            new SwapWithSpiritEffect().WithTag("Movement"));
 
-        // Pull memorials together, merge overlapping pairs into Revenants
-        // { "type": "pull_memorials_and_merge", "range": n, "merge_unit": "Revenant", ... }
+        // Pull memorials 1 tile toward the caster; overlapping pairs merge into a
+        // summoned unit. Optional remainder_unit makes lone memorials rise too.
+        // { "type": "pull_memorials_and_merge", "range": 3, "merge_unit": "Revenant",
+        //   "merge_hp": 12, "merge_damage": 5, "merge_speed": 1,
+        //   "scale_with_strength": false, "remainder_unit": "Spirit", ... }
         RegisterEffect("pull_memorials_and_merge", n =>
-            new EmptyEffect().WithTag("Terrain")); // placeholder — complex spatial operation
+            new PullMemorialsAndMergeEffect(
+                n.TryGetProperty("range", out var r) ? r.GetInt32() : 3,
+                n.TryGetProperty("merge_unit", out var mu) ? mu.GetString() : "Revenant",
+                n.TryGetProperty("merge_hp", out var mh) ? mh.GetInt32() : 12,
+                n.TryGetProperty("merge_damage", out var md) ? md.GetInt32() : 5,
+                n.TryGetProperty("merge_speed", out var ms) ? ms.GetInt32() : 1,
+                n.TryGetProperty("scale_with_strength", out var sw) && sw.GetBoolean(),
+                n.TryGetProperty("remainder_unit", out var ru) ? ru.GetString() : null,
+                n.TryGetProperty("remainder_hp", out var rh) ? rh.GetInt32() : 0,
+                n.TryGetProperty("remainder_damage", out var rd) ? rd.GetInt32() : 0,
+                n.TryGetProperty("remainder_speed", out var rs) ? rs.GetInt32() : 1
+            ).WithTag("Terrain"));
 
-        // Mark spirits to draw cards on kill
-        RegisterEffect("mark_spirits_draw_on_kill", _ =>
-            new EmptyEffect().WithTag("Spirit")); // placeholder
+        // Mark spirits to draw cards on kill this turn
+        // { "type": "mark_spirits_draw_on_kill", "count": 1 }
+        RegisterEffect("mark_spirits_draw_on_kill", n =>
+            new MarkSpiritsDrawOnKillEffect(
+                n.TryGetProperty("count", out var c) ? c.GetInt32() : 1).WithTag("Spirit"));
 
-        // Shield per memorial
+        // Shield per memorial: { "type": "shield_per_memorial", "amount_per": 1 }
         RegisterEffect("shield_per_memorial", n =>
-        {
-            int amt = n.TryGetProperty("amount_per", out var a) ? a.GetInt32() : 1;
-            return new EmptyEffect().WithTag("Defense"); // placeholder — add ShieldPerMemorialEffect later
-        });
+            new ShieldPerMemorialEffect(
+                n.TryGetProperty("amount_per", out var a) ? a.GetInt32() : 1).WithTag("Defense"));
 
         // Consume all memorials in range
         RegisterEffect("consume_all_memorials_in_range", n =>
@@ -261,9 +275,9 @@ public static partial class CardScriptRegistry
             return new ConsumeAllMemorialsGlobalEffect(mana, draw).WithTag("Terrain");
         });
 
-        // Trigger the Flood immediately
+        // Trigger the Flood immediately: { "type": "trigger_flood" }
         RegisterEffect("trigger_flood", _ =>
-            new EmptyEffect().WithTag("Grief")); // placeholder — wire to GriefAttunement.TriggerFlood
+            new TriggerFloodEffect().WithTag("Grief"));
 
         // Set Grief to a specific value
         RegisterEffect("set_grief", n =>

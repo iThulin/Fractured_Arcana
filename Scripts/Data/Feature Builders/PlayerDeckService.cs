@@ -218,10 +218,12 @@ public static class PlayerDeckService
             return null;
         }
 
+        // Upgrade tiers are applied here via CardUpgradeApplier.
         var card = CardUpgradeApplier.Apply(owned.BlueprintId, owned.TopTier, owned.BotTier);
-        // TODO: apply UpgradeTier via CardUpgradeApplier once that system exists.
-        // TODO: apply Grafts via CardGraftApplier once that system exists.
-        // Both are no-ops at tier 0 / empty grafts, so this is safe to ship.
+
+        // NOTE: OwnedCard.Grafts is persisted in the save but no graft system exists
+        // yet (no CardGraftApplier, nothing writes to the list). When grafts become a
+        // feature, apply them here after the upgrade pass.
 
         return card;
     }

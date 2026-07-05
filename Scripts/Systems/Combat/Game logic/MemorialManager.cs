@@ -80,6 +80,31 @@ public class MemorialManager
         return true;
     }
 
+    // ── Called by Congregation / The Flood (pull_memorials_and_merge) ──
+    /// <summary>Relocates a memorial to another tile, firing removal/creation events so visuals track it. Fails if the destination already holds one.</summary>
+    public bool MoveMemorial(TileData from, TileData to)
+    {
+        if (from?.Memorial == null || to == null || to.HasMemorial)
+            return false;
+
+        var data = from.Memorial;
+        from.Memorial = null;
+        OnMemorialRemoved?.Invoke(from);
+        to.Memorial = data;
+        OnMemorialCreated?.Invoke(to);
+        return true;
+    }
+
+    /// <summary>Removes a memorial immediately (not the deferred ConsumedThisTurn path). Used when memorials are spent to summon units.</summary>
+    public bool RemoveMemorial(TileData tile)
+    {
+        if (tile?.Memorial == null)
+            return false;
+        tile.Memorial = null;
+        OnMemorialRemoved?.Invoke(tile);
+        return true;
+    }
+
     // ── Called at start of each turn ────────────────────────────────
     public void Tick()
     {

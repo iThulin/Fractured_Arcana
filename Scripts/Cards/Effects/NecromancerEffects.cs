@@ -366,9 +366,27 @@ public sealed class AdvanceAllSpiritsEffect : EffectBase
 
 			if (AttackIfAdjacent && bestDist <= 1)
 			{
-				// Already adjacent — attack
+				// Already adjacent — attack. Capture the tile first: Die() clears it.
+				var victimTile = nearestEnemy.CurrentTile;
 				nearestEnemy.ApplyDamage(spirit.AttackDamage);
 				s.Log($"[AdvanceSpirits] {spirit.Name} attacks {nearestEnemy.Name} for {spirit.AttackDamage}.");
+
+				// On-kill riders (Call to Purpose and upgrades) — consumed here because
+				// spirits only ever attack through this effect.
+				if (!nearestEnemy.Stats.IsAlive)
+				{
+					if (spirit.CreateMemorialOnKill && victimTile != null && s.Memorials != null)
+					{
+						s.Memorials.CreateMemorial(victimTile, nearestEnemy, spirit.SummonerTeamId);
+						s.Log($"[AdvanceSpirits] {spirit.Name}'s kill leaves a memorial.");
+					}
+					if (spirit.DrawOnKillCount > 0 && casterUnit.DeckData != null)
+					{
+						casterUnit.DeckData.Draw(spirit.DrawOnKillCount);
+						s.OnDrawCards?.Invoke(casterUnit);
+						s.Log($"[AdvanceSpirits] {spirit.Name}'s kill draws {spirit.DrawOnKillCount} card(s).");
+					}
+				}
 			}
 			else
 			{
@@ -1438,4 +1456,280 @@ public class ElderAuraEffect : PersistentEffect
         TurnsRemaining--;
         s.Log($"[ElderAura] {TurnsRemaining} turn(s) remaining.");
     }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Formerly-placeholder effects (implemented from card text; see
+// CardScriptRegistry.Necromancer.cs for the JSON contracts)
+// ════════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Trade Places: the caster swaps positions with a targeted friendly spirit.
+/// Both tiles are vacated before re-placement so PlaceOnTile's occupancy guard
+/// passes; entering the new tiles triggers the normal on-enter hooks.
+/// JSON: { "type": "swap_with_spirit" }
+/// </summary>
+public sealed class SwapWithSpiritEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit?.CurrentTile == null)
+			return;
+
+		Unit spirit = null;
+		if (targets?.Items != null)
+		{
+			foreach (var o in targets.Items)
+			{
+				var u = ResolveTargetUnit(s, o);
+				if (u != null && u.IsSpirit && u.Stats.IsAlive
+					&& u.SummonerTeamId == casterUnit.TeamId)
+				{ spirit = u; break; }
+			}
+		}
+
+		if (spirit?.CurrentTile == null)
+		{
+			s.Log("[TradePlaces] No friendly spirit targeted.");
+			return;
+		}
+
+		var casterTile = casterUnit.CurrentTile;
+		var spiritTile = spirit.CurrentTile;
+
+		casterTile.ClearOccupant(casterUnit);
+		spiritTile.ClearOccupant(spirit);
+		casterUnit.PlaceOnTile(spiritTile);
+		spirit.PlaceOnTile(casterTile);
+
+		s.Log($"[TradePlaces] {casterUnit.Name} swaps with {spirit.Name}.");
+	}
+}
+
+/// <summary>
+/// Congregation / The Flood: memorials within range step 1 tile toward the caster.
+/// A memorial stepping onto another memorial's tile merges: both are spent and a
+/// merge unit is summoned there (stats optionally scaled by combined strength).
+/// If RemainderUnit is set (tier-4 Flood), memorials that did not merge are also
+/// spent, each summoning the remainder unit on its tile.
+/// JSON: { "type": "pull_memorials_and_merge", "range": 3, "merge_unit": "Revenant",
+///         "merge_hp": 12, "merge_damage": 5, "merge_speed": 1,
+///         "scale_with_strength": false, "remainder_unit": "Spirit", ... }
+/// </summary>
+public sealed class PullMemorialsAndMergeEffect : EffectBase
+{
+	public int Range;
+	public string MergeUnit;
+	public int MergeHp, MergeDamage, MergeSpeed;
+	public bool ScaleWithStrength;
+	public string RemainderUnit;
+	public int RemainderHp, RemainderDamage, RemainderSpeed;
+
+	public PullMemorialsAndMergeEffect(int range, string mergeUnit, int mergeHp,
+		int mergeDamage, int mergeSpeed, bool scaleWithStrength,
+		string remainderUnit, int remainderHp, int remainderDamage, int remainderSpeed)
+	{
+		Range = range;
+		MergeUnit = mergeUnit;
+		MergeHp = mergeHp;
+		MergeDamage = mergeDamage;
+		MergeSpeed = mergeSpeed;
+		ScaleWithStrength = scaleWithStrength;
+		RemainderUnit = remainderUnit;
+		RemainderHp = remainderHp;
+		RemainderDamage = remainderDamage;
+		RemainderSpeed = remainderSpeed;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit?.CurrentTile == null || s.Memorials == null || s.Grid == null)
+			return;
+
+		var center = casterUnit.CurrentTile.Axial;
+		int merges = 0, moves = 0;
+
+		// Nearest memorials step first so later ones can land beside them.
+		var tiles = s.Memorials.GetMemorialsInRange(center, Range)
+			.OrderBy(t => s.Grid.Distance(center, t.Axial))
+			.ToList();
+
+		foreach (var tile in tiles)
+		{
+			if (!tile.HasMemorial)
+				continue;   // already merged away this cast
+			int dist = s.Grid.Distance(center, tile.Axial);
+			if (dist <= 1)
+				continue;   // already beside the wizard — nothing to pull
+
+			// Pick the step that gets closest to the caster; prefer stepping onto
+			// another memorial (that is the merge).
+			TileData best = null;
+			bool bestHasMemorial = false;
+			int bestDist = dist;
+			foreach (var n in s.Grid.GetNeighbors(tile.Axial))
+			{
+				var nt = s.Grid.GetTile(n);
+				if (nt == null || nt.IsBlocked)
+					continue;
+				int nd = s.Grid.Distance(center, nt.Axial);
+				if (nd >= dist)
+					continue;
+				bool hasMem = nt.HasMemorial;
+				if (best == null || (hasMem && !bestHasMemorial) || (hasMem == bestHasMemorial && nd < bestDist))
+				{
+					best = nt;
+					bestHasMemorial = hasMem;
+					bestDist = nd;
+				}
+			}
+
+			if (best == null)
+				continue;
+
+			if (bestHasMemorial)
+			{
+				// ── Merge ─────────────────────────────────────────────
+				int combined = tile.Memorial.StrengthValue + best.Memorial.StrengthValue;
+				var spawnTile = best.Occupant == null ? best
+							  : tile.Occupant == null ? tile : null;
+				if (spawnTile == null)
+				{
+					s.Log("[Congregation] Merge blocked — both tiles occupied.");
+					continue;
+				}
+
+				s.Memorials.RemoveMemorial(tile);
+				s.Memorials.RemoveMemorial(best);
+
+				var merged = s.OnSummonRequested?.Invoke(
+					MergeUnit.ToLowerInvariant(), spawnTile, casterUnit.TeamId);
+				if (merged != null)
+				{
+					int hp = MergeHp + (ScaleWithStrength ? 2 * combined : 0);
+					int dmg = MergeDamage + (ScaleWithStrength ? combined : 0);
+					merged.Stats.MaxHealth = hp;
+					merged.Stats.Health = hp;
+					merged.AttackDamage = dmg;
+					merged.RefreshHealthBar();
+					merges++;
+					s.Log($"[Congregation] Two memorials merge — {merged.Name} rises " +
+						  $"({hp} HP, {dmg} DMG).");
+				}
+			}
+			else if (s.Memorials.MoveMemorial(tile, best))
+			{
+				moves++;
+			}
+		}
+
+		// ── The Flood: lone memorials rise too ────────────────────────
+		if (!string.IsNullOrEmpty(RemainderUnit))
+		{
+			foreach (var tile in s.Memorials.GetMemorialsInRange(center, Range).ToList())
+			{
+				if (tile.Occupant != null)
+					continue;
+				s.Memorials.RemoveMemorial(tile);
+				var lone = s.OnSummonRequested?.Invoke(
+					RemainderUnit.ToLowerInvariant(), tile, casterUnit.TeamId);
+				if (lone != null)
+				{
+					if (RemainderHp > 0)
+					{
+						lone.Stats.MaxHealth = RemainderHp;
+						lone.Stats.Health = RemainderHp;
+					}
+					if (RemainderDamage > 0)
+						lone.AttackDamage = RemainderDamage;
+					lone.RefreshHealthBar();
+					s.Log($"[Congregation] A lone memorial rises as {lone.Name}.");
+				}
+			}
+		}
+
+		s.Log($"[Congregation] {moves} memorial(s) drawn in, {merges} merge(s).");
+	}
+}
+
+/// <summary>
+/// One Last Push: friendly spirits that kill an enemy this turn draw the caster
+/// cards. Consumed by the spirit attack in AdvanceAllSpiritsEffect; reset at end
+/// of player turn.
+/// JSON: { "type": "mark_spirits_draw_on_kill", "count": 1 }
+/// </summary>
+public sealed class MarkSpiritsDrawOnKillEffect : EffectBase
+{
+	public int Count;
+	public MarkSpiritsDrawOnKillEffect(int count) { Count = count; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
+
+		int marked = 0;
+		foreach (var u in s.UnitsInPlay)
+		{
+			if (u != null && u.IsSpirit && u.Stats.IsAlive
+				&& u.SummonerTeamId == casterUnit.TeamId)
+			{
+				u.DrawOnKillCount = Count;
+				marked++;
+			}
+		}
+		s.Log($"[MarkSpirits] {marked} spirit(s) will draw {Count} card(s) on kill.");
+	}
+}
+
+/// <summary>
+/// The Weight We Carry: grants the caster shield equal to AmountPer × memorials
+/// on the board. Shield variant of ArmorPerMemorialEffect.
+/// JSON: { "type": "shield_per_memorial", "amount_per": 1 }
+/// </summary>
+public sealed class ShieldPerMemorialEffect : EffectBase
+{
+	public int AmountPer;
+	public ShieldPerMemorialEffect(int amountPer) { AmountPer = amountPer; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null)
+			return;
+		var casterUnit = s.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
+
+		int count = s.Memorials.CountMemorials();
+		int shield = count * AmountPer;
+		if (shield > 0)
+		{
+			casterUnit.Stats.Shield += shield;
+			casterUnit.RefreshHealthBar();
+		}
+		s.Log($"[ShieldPerMemorial] {count} memorial(s) × {AmountPer} = {shield} shield.");
+	}
+}
+
+/// <summary>
+/// The Flood Within / Flood of Grief: forces the Grief Flood immediately —
+/// OnFloodTriggered fires (refreshing all spirits via CombatManager) and Grief
+/// resets to 0.
+/// JSON: { "type": "trigger_flood" }
+/// </summary>
+public sealed class TriggerFloodEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.ActiveCasterUnit?.Attunement is not GriefAttunement grief)
+		{
+			s?.Log("[Flood] Caster has no Grief attunement.");
+			return;
+		}
+		s.Log("[Flood] The grief crests — the Flood breaks.");
+		grief.ForceFlood();
+	}
 }

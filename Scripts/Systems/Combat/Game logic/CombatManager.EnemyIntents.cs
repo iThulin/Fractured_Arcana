@@ -401,6 +401,17 @@ public partial class CombatManager
             CombatCamera?.FocusOn(enemy);
             await ToSignal(GetTree().CreateTimer(EnemyFocusBeat), "timeout");
 
+            // ── Negate (Adept Counterspell): the action is cancelled outright ──
+            if (enemy.NegateNextAction)
+            {
+                enemy.NegateNextAction = false;
+                GD.Print($"{enemy.Name}'s action is negated!");
+                combatUI?.AppendActionLog($"{enemy.Name}'s action is negated!");
+                enemy.CurrentIntent = null;
+                enemy.ClearIntentDisplay();
+                continue;
+            }
+
             // ── Postpone (Chronomancer): the locked strike hangs un-executed ──
             if (enemy.PostponedTurns > 0)
             {

@@ -410,6 +410,19 @@ public static partial class CardScriptRegistry
             return new DamageByHandSizeEffect(mult).WithTag("Damage");
         });
 
+        // Aftershock: { "type": "mana_per_kill", "amount_per": 1 }
+        RegisterEffect("mana_per_kill", n =>
+            new ManaPerKillEffect(
+                n.TryGetProperty("amount_per", out var mk) ? mk.GetInt32() : 1).WithTag("Mana"));
+
+        // Counterspell: { "type": "negate_action" }
+        RegisterEffect("negate_action", _ => new NegateActionEffect().WithTag("Control"));
+
+        // Riposte: { "type": "retaliate", "damage": 4 }
+        RegisterEffect("retaliate", n =>
+            new RetaliateEffect(
+                n.TryGetProperty("damage", out var rt) ? rt.GetInt32() : 4).WithTag("Defense"));
+
         // ═══════════════════════════════════════════════════════════
         // SCHOOL EFFECT REGISTRATIONS — one partial file per school
         // (CardScriptRegistry.<School>.cs). Add new school effects there.
@@ -475,6 +488,41 @@ public static partial class CardScriptRegistry
 
         // Has cast a spell this turn: { "type": "has_cast_spell_this_turn" }
         RegisterPredicate("has_cast_spell_this_turn", _ => new HasCastSpellThisTurnPredicate());
+
+        // Board has at least N tiles of a type: { "type": "count_of_tile_at_least", "tile": "memorial", "at_least": 2 }
+        RegisterPredicate("count_of_tile_at_least", n =>
+            new CountOfTileAtLeast(
+                n.TryGetProperty("tile", out var ct) ? ct.GetString() : "",
+                n.TryGetProperty("at_least", out var al) ? al.GetInt32() : 1));
+
+        // Current cast is the channeled variant: { "type": "is_channeled" }
+        RegisterPredicate("is_channeled", _ => new IsChanneled());
+
+        // Enemy actions negated this turn: { "type": "actions_negated_this_turn", "min": 1 }
+        RegisterPredicate("actions_negated_this_turn", n =>
+            new ActionsNegatedThisTurnPredicate(
+                n.TryGetProperty("min", out var an) ? an.GetInt32() : 1));
+
+        // Logical combinators: { "type": "and"|"or", "predicates": [ ... ] } / { "type": "not", "predicate": { ... } }
+        RegisterPredicate("and", n =>
+        {
+            var parts = new List<IPredicate>();
+            if (n.TryGetProperty("predicates", out var arr))
+                foreach (var p in arr.EnumerateArray())
+                    parts.Add(BuildPredicate(p));
+            return new AndPredicate(parts.ToArray());
+        });
+        RegisterPredicate("or", n =>
+        {
+            var parts = new List<IPredicate>();
+            if (n.TryGetProperty("predicates", out var arr))
+                foreach (var p in arr.EnumerateArray())
+                    parts.Add(BuildPredicate(p));
+            return new OrPredicate(parts.ToArray());
+        });
+        RegisterPredicate("not", n =>
+            new NotPredicate(n.TryGetProperty("predicate", out var inner)
+                ? BuildPredicate(inner) : new AlwaysTrue()));
 
         // Caster controls at least one construct: { "type": "has_construct" }
         RegisterPredicate("has_construct", _ => new HasConstructPredicate());
@@ -659,17 +707,20 @@ public static class JsonCardLoader
                 {
                     case STATUS_STUB:
                         stubs++;
-                        GD.PrintVerbose($"[JsonCardLoader] Skipping stub: {file}");
+                        if (OS.IsStdOutVerbose())
+                            GD.Print($"[JsonCardLoader] Skipping stub: {file}");
                         continue;
 
                     case STATUS_WIP:
                         if (!devMode)
                         {
                             skipped++;
-                            GD.PrintVerbose($"[JsonCardLoader] Skipping wip (DevMode off): {file}");
+                            if (OS.IsStdOutVerbose())
+                                GD.Print($"[JsonCardLoader] Skipping wip (DevMode off): {file}");
                             continue;
                         }
-                        GD.PrintVerbose($"[JsonCardLoader] Loading wip card (DevMode on): {file}");
+                        if (OS.IsStdOutVerbose())
+                            GD.Print($"[JsonCardLoader] Loading wip card (DevMode on): {file}");
                         break;
 
                     case STATUS_READY:

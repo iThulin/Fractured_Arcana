@@ -34,6 +34,15 @@ public sealed class GameState
     /// <summary>The most recently resolved StackItem. Set by Resolver.ResolveTop; read by replicate/echo/mana-refund effects.</summary>
     public StackItem LastResolvedItem;
     public int SpellsCastThisTurn = 0;
+
+    /// <summary>True while the current cast is a channeled (upgraded) variant. Set at cast in CombatManager's channel resolution; read by the IsChanneled predicate.</summary>
+    public bool LastCastWasChannel = false;
+
+    /// <summary>Enemies that died since the start of the player's turn. Incremented in HandleUnitDeath; reset in StartPlayerTurn. Read by mana_per_kill (Aftershock).</summary>
+    public int EnemiesKilledThisTurn = 0;
+
+    /// <summary>Enemy actions negated since the start of the player's turn (Counterspell). Incremented at cast; reset in StartPlayerTurn. Read by actions_negated_this_turn (Spell Drain).</summary>
+    public int ActionsNegatedThisTurn = 0;
     public int LastDamageDealt = 0;   // set by DealDamageEffect after each hit
     public int LastGriefSpent = 0;    // set by GriefDischargeDamageEffect
 

@@ -146,6 +146,19 @@ public partial class Unit : Node3D
     public int PostponedTurns = 0;
 
     /// <summary>
+    /// Adept Counterspell: when true, this unit's next action is cancelled outright
+    /// (intent cleared, no reschedule). Consumed in RunEnemyTurn before postpone.
+    /// </summary>
+    public bool NegateNextAction = false;
+
+    /// <summary>
+    /// Adept Riposte: damage dealt back to any attacker that hits this unit until the
+    /// start of the owner's next turn. Consumed per hit in PerformAttack /
+    /// PerformRangedAttack; reset in StartPlayerTurn.
+    /// </summary>
+    public int RetaliateDamage = 0;
+
+    /// <summary>
     /// Tile the Chronomancer has anchored for snap-back teleport.
     /// Set by SetAnchorEffect; cleared when AnchorTurnsRemaining reaches 0.
     /// </summary>
@@ -274,6 +287,13 @@ public partial class Unit : Node3D
     public int SummonerTeamId = -1;
     public bool OnDeathMemorial = false;
     public bool CreateMemorialOnKill = false;
+
+    /// <summary>
+    /// Cards the owning Necromancer draws when this spirit kills an enemy this turn.
+    /// Set by mark_spirits_draw_on_kill; consumed by the spirit attack in
+    /// AdvanceAllSpiritsEffect; reset (with CreateMemorialOnKill) at end of player turn.
+    /// </summary>
+    public int DrawOnKillCount = 0;
     public int SpiritDamageBuff = 0;
     public int SpiritDamageBuffTurns = 0;
     public bool IsUndying = false;

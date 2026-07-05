@@ -66,7 +66,8 @@ public static class CardDatabase
         });
 
         // Per-card registration log — visible only when Godot runs with --verbose.
-        GD.PrintVerbose($"[BlueprintId] school={school} id=\"{displayKey}\"");
+        if (OS.IsStdOutVerbose())
+            GD.Print($"[BlueprintId] school={school} id=\"{displayKey}\"");
     }
 
     /// <summary>Returns a fresh <see cref="Card"/> instance (unique <see cref="Card.InstanceId"/>) cloned from the blueprint. The CardHalf objects are reused as read-only recipes; if combat ever mutates a half in place, this needs to become a deep clone.</summary>

@@ -49,7 +49,6 @@ public partial class SchoolAttunementUI : PanelContainer
 	// ── UI refs ─────────────────────────────────────────────────────
 	private VBoxContainer _container;
 	private Label _titleLabel;
-	private Label _stubLabel;
 	private bool _isEmbedded = false;
 
 	// Elementalist-specific
@@ -229,7 +228,6 @@ public partial class SchoolAttunementUI : PanelContainer
 		foreach (Node child in _container.GetChildren())
 			child.QueueFree();
 		_elementBars.Clear();
-		_stubLabel = null;
 		_wildingBar = null;
 		_wildingTierLabel = null;
 		_wildingEffectLabel = null;
@@ -1112,20 +1110,6 @@ public partial class SchoolAttunementUI : PanelContainer
 			RefreshTinker();
 		}));
 		RefreshTinker();
-	}
-
-	// ════════════════════════════════════════════════════════════════
-	// STUB — placeholder for future schools
-	// ════════════════════════════════════════════════════════════════
-
-	private void BuildStubUI(string message)
-	{
-		_stubLabel = new Label
-		{
-			Text = message,
-			HorizontalAlignment = HorizontalAlignment.Center
-		};
-		_container.AddChild(_stubLabel);
 	}
 
 	// ════════════════════════════════════════════════════════════════

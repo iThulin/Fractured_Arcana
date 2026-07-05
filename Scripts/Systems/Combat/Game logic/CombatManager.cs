@@ -1429,6 +1429,9 @@ public partial class CombatManager : Node3D
 
             unit.Attunement?.Decay();
             State.SpellsCastThisTurn = 0;
+            State.EnemiesKilledThisTurn = 0;
+            State.ActionsNegatedThisTurn = 0;
+            unit.RetaliateDamage = 0;   // Riposte lasts through the enemy turn only
 
             int wildHeal = State.Growth?.GetUpkeepHeal(unit) ?? 0;
             if (wildHeal > 0)
@@ -1562,6 +1565,10 @@ public partial class CombatManager : Node3D
 
             unit.Stats.Shield = 0;
             unit.RefreshHealthBar();
+
+            // Spirit on-kill riders last a single turn.
+            unit.CreateMemorialOnKill = false;
+            unit.DrawOnKillCount = 0;
         }
 
         if (currentPhase != CombatPhase.PlayerTurn)
@@ -1865,12 +1872,26 @@ public partial class CombatManager : Node3D
         combatUI?.AppendActionLog(msg);
 
         target.ApplyDamage(dmg);
+        ResolveRetaliation(target, enemy);
 
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();
         RefreshPlayerUnitBar();
         RefreshDeckCounts();
         await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+    }
+
+    /// <summary>Riposte: a defender with RetaliateDamage strikes back at whoever just hit it.</summary>
+    private void ResolveRetaliation(Unit defender, Unit attacker)
+    {
+        if (defender == null || attacker == null)
+            return;
+        if (defender.RetaliateDamage <= 0 || !attacker.Stats.IsAlive || attacker.IsDeathQueued)
+            return;
+
+        combatUI?.AppendActionLog($"[Riposte] {defender.Name} strikes back at {attacker.Name} " +
+                                  $"for {defender.RetaliateDamage}!");
+        attacker.ApplyDamage(defender.RetaliateDamage);
     }
 
     private async System.Threading.Tasks.Task PerformRangedAttack(Unit enemy, Unit target, int bonusDamage = 0)
@@ -1900,6 +1921,7 @@ public partial class CombatManager : Node3D
         combatUI?.AppendActionLog(msg);
 
         target.ApplyDamage(dmg);
+        ResolveRetaliation(target, enemy);
 
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();
@@ -2007,6 +2029,8 @@ public partial class CombatManager : Node3D
         if (unit.IsConstruct)          // ← feed Schematics on any construct loss
             RegisterConstructLoss(unit);
         ConduitLinkSystem.OnUnitDied(unit);
+        if (unit.TeamId != 0 && State != null)   // ← feed mana_per_kill (Aftershock)
+            State.EnemiesKilledThisTurn++;
 
         // ── Memorial creation ─────────────────────────────────────────────
         if (State?.Memorials != null && unit.CurrentTile != null)
@@ -3675,6 +3699,9 @@ public partial class CombatManager : Node3D
                 combatUI?.AppendActionLog($"[Channel] {half.Name} → {channelHalf.Name}");
             }
         }
+
+        // Flag for the is_channeled predicate — true only while this cast resolves.
+        State.LastCastWasChannel = resolvedHalf != half;
 
         GD.Print($"Attempt cast {resolvedHalf.Name} cost? " +
                  $"{(resolvedHalf.Costs.Length > 0 ? resolvedHalf.Costs[0].GetType().Name : "none")} " +

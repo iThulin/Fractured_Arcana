@@ -91,6 +91,10 @@ public class GriefAttunement : ISchoolAttunement
         SetCharges(Math.Clamp(value, 0, MaxCharges));
     }
 
+    // ── Called by TriggerFloodEffect (The Flood Within / Flood of Grief) ──
+    /// <summary>Forces the Flood immediately, regardless of current charges. Fires OnFloodTriggered and resets to 0.</summary>
+    public void ForceFlood() => TriggerFlood();
+
     // ── Current tier for UI and effect queries ───────────────────────
     public GriefTier CurrentTier => ChargeToTier(Charges);
 
