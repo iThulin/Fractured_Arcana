@@ -57,10 +57,6 @@ public static class CardLoaderV2
 
         GD.Print($"[CardLoaderV2] Registered {added} cards (DevMode={DevMode}). " +
                  $"Total blueprints: {CardDatabase.Blueprints.Count}");
-
-        // TEMP — delete after one run
-        foreach (var bp in CardDatabase.Blueprints)
-            GD.Print($"[BlueprintId] school={bp.School} id=\"{bp.Id}\"");
     }
 
     public static void Reload(string directoryPath)
