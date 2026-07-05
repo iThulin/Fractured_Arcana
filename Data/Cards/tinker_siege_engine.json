@@ -1,6 +1,6 @@
 {
   "id": "tinker_siege_engine",
-  "status": "stub",
+  "status": "wip",
   "name": "Siege Engine",
   "school": "Tinker",
   "rarity": "Rare",
@@ -8,69 +8,30 @@
     "name": "Siege Engine",
     "mana": 3,
     "speed": "Sorcery",
-    "rules_text": "Deploy a Siege Engine on target tile (20HP 10DMG Range 6). Immobile. 2 turn setup. Deals double damage to terrain objects and constructs.",
+    "rules_text": "Deploy a Siege Engine on an empty tile within 2 (20 HP, 10 DMG, range 6). Immobile; 2 turn setup.",
+    "tags": [],
     "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
+      "type": "empty_tile",
+      "range": 2
     },
     "effect": {
       "type": "summon",
-      "unit": "Siege_Engine",
+      "unit": "siege_engine",
       "count": 1
-    },
-    "channel": {
-      "name": "Siege Engine (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: 1 turn setup and +3HP",
-      "targeting": {
-        "type": "aoe",
-        "radius": 2,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "summon",
-        "unit": "Siege_Engine",
-        "count": 1
-      }
     }
   },
   "bottom": {
     "name": "Emergency Scuttle",
     "mana": 1,
     "speed": "Instant",
-    "rules_text": "Destroy all your constructs. For each construct destroyed deal 5 damage to nearest enemy and gain 2 armor.",
+    "rules_text": "Destroy all your constructs. Each detonates for 5 damage to adjacent enemies. Every loss advances your Schematics.",
+    "tags": [],
     "targeting": {
       "type": "none"
     },
     "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "damage",
-          "amount": 5
-        }
-      ]
-    },
-    "channel": {
-      "name": "Emergency Scuttle (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Deal 9 damage per construct",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 9
-      }
+      "type": "scuttle_constructs",
+      "blast": 5
     }
   }
 }

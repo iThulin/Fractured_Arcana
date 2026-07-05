@@ -1,0 +1,40 @@
+{
+  "id": "tinker_conduit_feedback",
+  "status": "wip",
+  "name": "Conduit Feedback",
+  "school": "Tinker",
+  "rarity": "Uncommon",
+  "top": {
+    "name": "Conduit Feedback",
+    "mana": 2,
+    "speed": "Sorcery",
+    "rules_text": "Deal damage equal to twice the number of constructs you control (max 10).",
+    "tags": [],
+    "targeting": {
+      "type": "unit",
+      "range": 6,
+      "los": true,
+      "enemies_only": true
+    },
+    "effect": {
+      "type": "damage_per_construct",
+      "amount_per": 2,
+      "max": 10
+    }
+  },
+  "bottom": {
+    "name": "Workshop",
+    "mana": 2,
+    "speed": "Sorcery",
+    "rules_text": "Etch a workshop rune on a tile within 4. The next construct deployed there enters with +4 HP and +4 damage.",
+    "tags": [],
+    "targeting": {
+      "type": "tile",
+      "range": 4
+    },
+    "effect": {
+      "type": "etch_ward",
+      "amount": 4
+    }
+  }
+}

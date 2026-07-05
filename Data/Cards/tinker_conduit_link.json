@@ -1,0 +1,48 @@
+{
+  "id": "tinker_conduit_link",
+  "status": "wip",
+  "name": "Conduit Link",
+  "school": "Tinker",
+  "rarity": "Common",
+  "top": {
+    "name": "Conduit Link",
+    "mana": 1,
+    "speed": "Sorcery",
+    "rules_text": "Forge a Conduit Link between you and a construct within range 4. While both endpoints live, damage either one takes is split evenly between them.",
+    "tags": [],
+    "targeting": {
+      "type": "unit",
+      "range": 4
+    },
+    "effect": {
+      "type": "create_link",
+      "mode": "split"
+    }
+  },
+  "bottom": {
+    "name": "Magnetic Clamp",
+    "mana": 1,
+    "speed": "Sorcery",
+    "rules_text": "Pull target enemy 2 tiles toward you, then deal 4 damage.",
+    "tags": [],
+    "targeting": {
+      "type": "unit",
+      "range": 6,
+      "los": false,
+      "enemies_only": true
+    },
+    "effect": {
+      "type": "sequence",
+      "steps": [
+        {
+          "type": "move",
+          "tiles": 2
+        },
+        {
+          "type": "damage",
+          "amount": 4
+        }
+      ]
+    }
+  }
+}

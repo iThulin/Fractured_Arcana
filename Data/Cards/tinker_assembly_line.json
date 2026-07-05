@@ -1,6 +1,6 @@
 {
   "id": "tinker_assembly_line",
-  "status": "stub",
+  "status": "wip",
   "name": "Assembly Line",
   "school": "Tinker",
   "rarity": "Rare",
@@ -8,64 +8,31 @@
     "name": "Assembly Line",
     "mana": 3,
     "speed": "Sorcery",
-    "rules_text": "For 3 turns: at the start of each turn deploy a free Drone (6HP 3DMG) on a random empty tile adjacent to one of your constructs.",
+    "rules_text": "For 3 turns: at the start of your turn a free Drone rolls off the line onto an empty tile beside you (respects your construct cap).",
+    "tags": [],
     "targeting": {
       "type": "self"
     },
     "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "summon",
-          "unit": "Drone",
-          "count": 1
-        }
-      ]
-    },
-    "channel": {
-      "name": "Assembly Line (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Deploy 2 Drones per turn instead",
-      "targeting": {
-        "type": "aoe",
-        "radius": 1,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "summon",
-        "unit": "Drone",
-        "count": 2
-      }
+      "type": "assembly_line",
+      "turns": 3
     }
   },
   "bottom": {
-    "name": "Sygaldry Masterwork",
+    "name": "Etched Masterwork",
     "mana": 2,
     "speed": "Sorcery",
-    "rules_text": "Choose a construct. Permanently give it +3HP +2DMG +1 Range and Regen 1 (heals 2 at start of each turn). It becomes a Masterwork.",
+    "rules_text": "Permanently rebuild a construct you control: +3 HP, +2 damage, +1 range.",
+    "tags": [],
     "targeting": {
-      "type": "tile",
+      "type": "unit",
       "range": 4
     },
     "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Sygaldry Masterwork (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also becomes immune to enemy spell effects",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
+      "type": "enhance_construct",
+      "hp": 3,
+      "damage": 2,
+      "range": 1
     }
   }
 }

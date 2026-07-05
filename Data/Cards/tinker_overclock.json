@@ -1,6 +1,6 @@
 {
   "id": "tinker_overclock",
-  "status": "stub",
+  "status": "wip",
   "name": "Overclock",
   "school": "Tinker",
   "rarity": "Uncommon",
@@ -8,61 +8,30 @@
     "name": "Overclock",
     "mana": 2,
     "speed": "Sorcery",
-    "rules_text": "Choose a construct within range 3. It acts twice this turn (fires twice or its aura pulses twice). Construct takes 3 damage.",
+    "rules_text": "A construct you control within range 3 acts twice this turn and gains 2 Heat. At its Burnout threshold it detonates.",
+    "tags": [],
     "targeting": {
-      "type": "tile",
-      "range": 4
+      "type": "unit",
+      "range": 3
     },
     "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "damage",
-          "amount": 4
-        }
-      ]
-    },
-    "channel": {
-      "name": "Overclock (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: No self-damage to construct",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
+      "type": "overclock",
+      "heat": 2
     }
   },
   "bottom": {
-    "name": "Sygaldry Ward",
+    "name": "Etched Ward",
     "mana": 1,
     "speed": "Sorcery",
-    "rules_text": "Inscribe a rune on target tile within 2. Next construct deployed on this tile has +3HP and +1 to its primary stat.",
+    "rules_text": "Etch a rune on a tile within 2. The next construct deployed there enters with +3 HP and +3 damage.",
+    "tags": [],
     "targeting": {
       "type": "tile",
-      "range": 4
+      "range": 2
     },
     "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Sygaldry Ward (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: +5HP and +2 to primary stat",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
+      "type": "etch_ward",
+      "amount": 3
     }
   }
 }

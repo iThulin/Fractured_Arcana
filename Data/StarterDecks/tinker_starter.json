@@ -1,0 +1,33 @@
+{
+	"school": "Tinker",
+	"cards": [
+		{
+			"id": "tinker_deploy_turret",
+			"count": 2
+		},
+		{
+			"id": "tinker_conduit_bolt",
+			"count": 2
+		},
+		{
+			"id": "tinker_fabricate_armor",
+			"count": 2
+		},
+		{
+			"id": "tinker_arc_bolt",
+			"count": 1
+		},
+		{
+			"id": "tinker_conduit_link",
+			"count": 1
+		},
+		{
+			"id": "tinker_shock_net",
+			"count": 1
+		},
+		{
+			"id": "tinker_deploy_sentinel",
+			"count": 1
+		}
+	]
+}

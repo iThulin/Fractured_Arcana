@@ -1,77 +1,36 @@
 {
   "id": "tinker_drone_bay",
-  "status": "stub",
+  "status": "wip",
   "name": "Drone Bay",
   "school": "Tinker",
   "rarity": "Uncommon",
   "top": {
     "name": "Drone Bay",
     "mana": 3,
-    "speed": "Instant",
-    "rules_text": "Deploy 2 Drones on tiles within 2 of you (6HP 3DMG Range 2 1SPD). Drones are mobile and can be commanded to move 1 tile per turn.",
+    "speed": "Sorcery",
+    "rules_text": "Deploy 2 Drones on empty tiles within 2 (6 HP, 3 DMG, range 2, 1 SPD). Drones advance and fire on their own.",
+    "tags": [],
     "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
+      "type": "empty_tile",
+      "range": 2
     },
     "effect": {
       "type": "summon",
-      "unit": "Drone",
+      "unit": "drone",
       "count": 2
-    },
-    "channel": {
-      "name": "Drone Bay (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Deploy 3 Drones instead",
-      "targeting": {
-        "type": "aoe",
-        "radius": 2,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "summon",
-        "unit": "Drone",
-        "count": 3
-      }
     }
   },
   "bottom": {
     "name": "Redirector Field",
     "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Target construct absorbs the next spell that would hit you (construct takes the damage instead). If construct survives it retaliates for 2 damage.",
+    "speed": "Instant",
+    "rules_text": "The next damage you would take is rerouted in full to your sturdiest construct.",
+    "tags": [],
     "targeting": {
-      "type": "tile",
-      "range": 4
+      "type": "self"
     },
     "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "damage",
-          "amount": 4
-        }
-      ]
-    },
-    "channel": {
-      "name": "Redirector Field (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Construct retaliates for 4",
-      "targeting": {
-        "type": "unit",
-        "range": 6,
-        "los": false,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "damage",
-        "amount": 7
-      }
+      "type": "redirector_field"
     }
   }
 }

@@ -314,7 +314,24 @@
 						"dirge_pulse",
 						"damage_per_memorial",
 						"summon_spirit_from_all_memorials",
-						"summon_spirit_from_all_memorials_and_death_sites"
+						"summon_spirit_from_all_memorials_and_death_sites",
+						"overclock",
+						"salvage_construct",
+						"scuttle_constructs",
+						"repair_constructs",
+						"set_construct_cap",
+						"master_schematic",
+						"assembly_line",
+						"disruption_field",
+						"create_link",
+						"arc_damage",
+						"conduit_singularity",
+						"etch_ward",
+						"redirector_field",
+						"place_trap",
+						"construct_volley",
+						"damage_per_construct",
+						"enhance_construct"
 					]
 				},
 				"amount": {
@@ -521,7 +538,7 @@
 				},
 				"amount_per": {
 					"type": "number",
-					"description": "Magnitude per memorial or grief charge. Used by: armor_per_memorial, shield_per_memorial, damage_per_memorial, armor_per_grief, armor_per_grief_spent.",
+					"description": "Magnitude per counted thing (memorial, grief charge, construct). Used by: armor_per_memorial, shield_per_memorial, damage_per_memorial, armor_per_grief, armor_per_grief_spent, damage_per_construct.",
 					"minimum": 0
 				},
 				"fraction": {
@@ -757,6 +774,58 @@
 					"type": "number",
 					"description": "Bonus amount per point of memorial strength. Used by upgrade patches on armour/damage scaling effects.",
 					"minimum": 0
+				},
+				"heat": {
+					"type": "integer",
+					"description": "Heat added to the targeted construct. Used by: overclock.",
+					"minimum": 1
+				},
+				"draw": {
+					"type": "integer",
+					"description": "Cards drawn as a rider. Used by: salvage_construct.",
+					"minimum": 0
+				},
+				"blast": {
+					"type": "integer",
+					"description": "AoE damage each scuttled construct deals to adjacent enemies. Used by: scuttle_constructs.",
+					"minimum": 0
+				},
+				"cap": {
+					"type": "integer",
+					"description": "New simultaneous-construct cap. Used by: set_construct_cap.",
+					"minimum": 1
+				},
+				"charges": {
+					"type": "integer",
+					"description": "Number of future construct deploys that receive the pending bonus. Used by: master_schematic.",
+					"minimum": 1
+				},
+				"mode": {
+					"type": "string",
+					"description": "Conduit Link redistribution mode. Used by: create_link.",
+					"enum": [
+						"split",
+						"mirror"
+					]
+				},
+				"line_damage": {
+					"type": "integer",
+					"description": "Damage dealt to enemies that step onto the hex line between two linked units. 0 = no line zone. Used by: create_link.",
+					"minimum": 0
+				},
+				"arc": {
+					"type": "integer",
+					"description": "Damage arced to each Conduit Link partner of the primary target. Used by: arc_damage.",
+					"minimum": 0
+				},
+				"per_link": {
+					"type": "integer",
+					"description": "Damage per live team link converged onto the lowest-HP enemy. Used by: conduit_singularity.",
+					"minimum": 1
+				},
+				"slows": {
+					"type": "boolean",
+					"description": "When true, enemies pulsed by the zone are also slowed for 1 turn. Used by: disruption_field."
 				}
 			}
 		},
@@ -770,8 +839,13 @@
 			"properties": {
 				"type": {
 					"type": "string",
-					"description": "Predicate kind. Registered values include: always_true, was_lethal, target_on_tile, target_adjacent_to_tile, target_adjacent_to_caster, caster_on_terrain, has_elements_near_caster.",
+					"description": "Predicate kind. Registered values include: always_true, was_lethal, target_on_tile, target_adjacent_to_tile, target_adjacent_to_caster, caster_on_terrain, has_elements_near_caster, has_construct, construct_count, target_adjacent_to_construct.",
 					"minLength": 1
+				},
+				"min": {
+					"type": "integer",
+					"description": "Minimum count the predicate compares against. Used by: construct_count.",
+					"minimum": 1
 				},
 				"tile": {
 					"type": "string",

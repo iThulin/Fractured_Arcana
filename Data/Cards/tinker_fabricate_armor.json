@@ -1,6 +1,6 @@
 {
   "id": "tinker_fabricate_armor",
-  "status": "stub",
+  "status": "wip",
   "name": "Fabricate Armor",
   "school": "Tinker",
   "rarity": "Common",
@@ -8,61 +8,39 @@
     "name": "Fabricate Armor",
     "mana": 1,
     "speed": "Instant",
-    "rules_text": "Gain 5 armor. If adjacent to a construct gain 5 instead.",
+    "rules_text": "Gain 5 armor. If you control a construct, gain 7 instead.",
+    "tags": [],
     "targeting": {
       "type": "self"
     },
     "effect": {
-      "type": "shield",
-      "amount": 5
-    },
-    "channel": {
-      "name": "Fabricate Armor (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Adjacent construct also gains 2 armor",
-      "targeting": {
-        "type": "tile",
-        "range": 4
+      "type": "conditional",
+      "if": {
+        "type": "has_construct"
       },
-      "effect": {
-        "type": "empty"
+      "then": {
+        "type": "armor",
+        "amount": 7
+      },
+      "else": {
+        "type": "armor",
+        "amount": 5
       }
     }
   },
   "bottom": {
     "name": "Salvage",
     "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Destroy a construct you control within range 3. Gain 2 mana and draw 1 card. Gain 2 armor per 4HP the construct had remaining.",
+    "speed": "Sorcery",
+    "rules_text": "Scrap a construct you control within range 3: gain armor equal to its remaining HP and draw 1 card.",
+    "tags": [],
     "targeting": {
-      "type": "tile",
-      "range": 4
+      "type": "unit",
+      "range": 3
     },
     "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "draw",
-          "count": 1
-        }
-      ]
-    },
-    "channel": {
-      "name": "Salvage (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Gain 2 mana and 2 cards instead",
-      "targeting": {
-        "type": "self"
-      },
-      "effect": {
-        "type": "draw",
-        "count": 2
-      }
+      "type": "salvage_construct",
+      "draw": 1
     }
   }
 }

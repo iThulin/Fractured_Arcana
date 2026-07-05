@@ -117,6 +117,9 @@ public partial class CombatManager : Node3D
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
 
         State = new GameState();
+        ConduitLinkSystem.Clear();
+        EtchingSystem.Clear();
+        TrapSystem.Clear();
         Me = State.PlayerA;
         Opp = State.PlayerB;
 
@@ -2003,6 +2006,7 @@ public partial class CombatManager : Node3D
         HonoredDeadService.RecordDeath(unit);
         if (unit.IsConstruct)          // ← feed Schematics on any construct loss
             RegisterConstructLoss(unit);
+        ConduitLinkSystem.OnUnitDied(unit);
 
         // ── Memorial creation ─────────────────────────────────────────────
         if (State?.Memorials != null && unit.CurrentTile != null)
@@ -3168,7 +3172,7 @@ public partial class CombatManager : Node3D
                     GD.Print($"[Summon] Construct cap reached for team {teamId} — {unitKind} not deployed.");
                     return null;
                 }
-                schematicBonus = GetSchematicBonus(teamId);
+                schematicBonus = ConsumeDeployBonus(teamId) + EtchingSystem.ConsumeWard(tile.Axial);
             }
 
             if (!isWildlife)
@@ -3280,6 +3284,7 @@ public partial class CombatManager : Node3D
                     case "familiar":
                     case "tinker_barrier":
                     case "tinker_colossus":
+                    case "foundry":
                         {
                             var st = TinkerConstructStats(unitKind);
                             scene = DummyUnitScene;

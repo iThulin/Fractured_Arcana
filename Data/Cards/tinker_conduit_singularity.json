@@ -1,0 +1,35 @@
+{
+  "id": "tinker_conduit_singularity",
+  "status": "wip",
+  "name": "Conduit Singularity",
+  "school": "Tinker",
+  "rarity": "Legendary",
+  "top": {
+    "name": "Conduit Singularity",
+    "mana": 4,
+    "speed": "Sorcery",
+    "rules_text": "All your Conduit Links collapse inward: the enemy with the lowest HP takes 4 damage per link you control. Your links are consumed.",
+    "tags": [],
+    "targeting": {
+      "type": "none"
+    },
+    "effect": {
+      "type": "conduit_singularity",
+      "per_link": 4
+    }
+  },
+  "bottom": {
+    "name": "Capacity",
+    "mana": 3,
+    "speed": "Sorcery",
+    "rules_text": "For the rest of the fight you may field up to 8 constructs (normally 5).",
+    "tags": [],
+    "targeting": {
+      "type": "self"
+    },
+    "effect": {
+      "type": "set_construct_cap",
+      "cap": 8
+    }
+  }
+}

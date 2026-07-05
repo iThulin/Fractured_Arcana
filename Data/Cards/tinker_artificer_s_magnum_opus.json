@@ -1,6 +1,6 @@
 {
   "id": "tinker_artificer_s_magnum_opus",
-  "status": "stub",
+  "status": "wip",
   "name": "Artificer's Magnum Opus",
   "school": "Tinker",
   "rarity": "Legendary",
@@ -8,56 +8,29 @@
     "name": "Artificer's Magnum Opus",
     "mana": 5,
     "speed": "Sorcery",
-    "rules_text": "Deploy the Arcanomechanical Colossus on target tile (40HP 13DMG 2SPD Range 3). Mobile. Each turn it auto-attacks nearest enemy AND deploys a free Drone adjacent. All your other constructs within 3 gain +2 to all stats. If destroyed deals 14 damage to all enemies within 2.",
+    "rules_text": "Deploy the Arcanomechanical Colossus on an empty tile within 2 (40 HP, 13 DMG, 2 SPD, range 3). Each activation it fabricates a free Drone; when destroyed it detonates for 6 damage to adjacent enemies.",
+    "tags": [],
     "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
+      "type": "empty_tile",
+      "range": 2
     },
     "effect": {
       "type": "summon",
-      "unit": "Colossus",
+      "unit": "tinker_colossus",
       "count": 1
-    },
-    "channel": {
-      "name": "Artificer's Magnum Opus (Channel)",
-      "mana": 5,
-      "speed": "Reaction",
-      "rules_text": "Channel: Colossus enters with Sympathy Link to you (shared damage split evenly) and +5HP",
-      "targeting": {
-        "type": "aoe",
-        "radius": 2,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "summon",
-        "unit": "Colossus",
-        "count": 1
-      }
     }
   },
   "bottom": {
-    "name": "Elodin's Fury",
+    "name": "Full Salvo",
     "mana": 3,
     "speed": "Sorcery",
-    "rules_text": "All your constructs simultaneously fire at all enemies in their range. Each construct deals its full damage to every enemy it can target. Constructs cannot act next turn.",
+    "rules_text": "Every ready construct you control immediately fires at the nearest enemy within its range (Heat included).",
+    "tags": [],
     "targeting": {
       "type": "none"
     },
     "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Elodin's Fury (Channel)",
-      "mana": 3,
-      "speed": "Reaction",
-      "rules_text": "Channel: Constructs can still act next turn",
-      "targeting": {
-        "type": "none"
-      },
-      "effect": {
-        "type": "empty"
-      }
+      "type": "construct_volley"
     }
   }
 }

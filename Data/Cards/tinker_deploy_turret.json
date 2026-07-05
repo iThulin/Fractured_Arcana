@@ -1,6 +1,6 @@
 {
   "id": "tinker_deploy_turret",
-  "status": "stub",
+  "status": "wip",
   "name": "Deploy Turret",
   "school": "Tinker",
   "rarity": "Common",
@@ -8,53 +8,40 @@
     "name": "Deploy Turret",
     "mana": 2,
     "speed": "Sorcery",
-    "rules_text": "Deploy a Turret on target tile within 2 (10HP 5DMG Range 3). Turret auto-attacks nearest enemy each turn.",
+    "rules_text": "Deploy a Turret on an empty tile within 2 (10 HP, 5 DMG, range 3). It auto-attacks the nearest enemy at the end of your turn.",
+    "tags": [],
     "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
+      "type": "empty_tile",
+      "range": 2
     },
     "effect": {
       "type": "summon",
-      "unit": "Turret",
+      "unit": "turret",
       "count": 1
-    },
-    "channel": {
-      "name": "Deploy Turret (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Turret enters with +2HP",
-      "targeting": {
-        "type": "tile",
-        "range": 4
-      },
-      "effect": {
-        "type": "empty"
-      }
     }
   },
   "bottom": {
     "name": "Recalibrate",
     "mana": 1,
     "speed": "Sorcery",
-    "rules_text": "Draw 1 card. If you have 2+ constructs on the board draw 2 instead.",
+    "rules_text": "Draw 1 card. If you control 2 or more constructs, draw 2 instead.",
+    "tags": [],
     "targeting": {
       "type": "self"
     },
     "effect": {
-      "type": "draw",
-      "count": 1
-    },
-    "channel": {
-      "name": "Recalibrate (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Also gain 1 mana",
-      "targeting": {
-        "type": "self"
+      "type": "conditional",
+      "if": {
+        "type": "construct_count",
+        "min": 2
       },
-      "effect": {
-        "type": "empty"
+      "then": {
+        "type": "draw",
+        "count": 2
+      },
+      "else": {
+        "type": "draw",
+        "count": 1
       }
     }
   }

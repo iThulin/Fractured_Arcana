@@ -1,14 +1,14 @@
 {
-  "id": "tinker_arc_bolt",
+  "id": "tinker_conduit_bolt",
   "status": "wip",
-  "name": "Arc Bolt",
+  "name": "Conduit Bolt",
   "school": "Tinker",
   "rarity": "Common",
   "top": {
-    "name": "Arc Bolt",
-    "mana": 2,
+    "name": "Conduit Bolt",
+    "mana": 1,
     "speed": "Sorcery",
-    "rules_text": "Deal 5 damage. The bolt arcs through Conduit Links: each linked partner of the target takes 2.",
+    "rules_text": "Deal 4 damage. If you control a construct, deal 6 instead.",
     "tags": [],
     "targeting": {
       "type": "unit",
@@ -17,16 +17,25 @@
       "enemies_only": true
     },
     "effect": {
-      "type": "arc_damage",
-      "amount": 5,
-      "arc": 2
+      "type": "conditional",
+      "if": {
+        "type": "has_construct"
+      },
+      "then": {
+        "type": "damage",
+        "amount": 6
+      },
+      "else": {
+        "type": "damage",
+        "amount": 4
+      }
     }
   },
   "bottom": {
-    "name": "Kinetic Plate",
+    "name": "Tinker Step",
     "mana": 1,
     "speed": "Instant",
-    "rules_text": "Gain 4 armor. If you control a construct, also gain 4 shield.",
+    "rules_text": "Move 2 tiles. If you control a construct, gain 2 armor.",
     "tags": [],
     "targeting": {
       "type": "self"
@@ -35,8 +44,8 @@
       "type": "sequence",
       "steps": [
         {
-          "type": "armor",
-          "amount": 4
+          "type": "move",
+          "tiles": 2
         },
         {
           "type": "conditional",
@@ -44,8 +53,8 @@
             "type": "has_construct"
           },
           "then": {
-            "type": "shield",
-            "amount": 4
+            "type": "armor",
+            "amount": 2
           },
           "else": {
             "type": "empty"

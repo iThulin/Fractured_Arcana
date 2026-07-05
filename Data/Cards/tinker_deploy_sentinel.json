@@ -1,78 +1,37 @@
 {
   "id": "tinker_deploy_sentinel",
-  "status": "stub",
+  "status": "wip",
   "name": "Deploy Sentinel",
   "school": "Tinker",
   "rarity": "Common",
   "top": {
     "name": "Deploy Sentinel",
     "mana": 2,
-    "speed": "Instant",
-    "rules_text": "Deploy a Sentinel on target tile within 2 (8HP 1DMG). Sentinel grants +2 armor to all allies within 1 tile. If destroyed grants 2 shield to you.",
+    "speed": "Sorcery",
+    "rules_text": "Deploy a Sentinel on an empty tile within 2 (8 HP, 1 DMG). It grants +2 armor to allies within 1 tile each round.",
+    "tags": [],
     "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
+      "type": "empty_tile",
+      "range": 2
     },
     "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "summon",
-          "unit": "Sentinel",
-          "count": 1
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Deploy Sentinel (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Sentinel has 12HP and +4 armor aura",
-      "targeting": {
-        "type": "aoe",
-        "radius": 1,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
+      "type": "summon",
+      "unit": "sentinel",
+      "count": 1
     }
   },
   "bottom": {
     "name": "Repair Pulse",
     "mana": 1,
     "speed": "Instant",
-    "rules_text": "Heal all constructs you control for 6HP. Constructs at full HP gain 2 shield instead.",
+    "rules_text": "Repair all constructs you control for 6 HP.",
+    "tags": [],
     "targeting": {
       "type": "none"
     },
     "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "empty"
-        },
-        {
-          "type": "shield",
-          "amount": 2
-        }
-      ]
-    },
-    "channel": {
-      "name": "Repair Pulse (Channel)",
-      "mana": 1,
-      "speed": "Reaction",
-      "rules_text": "Channel: Heal 16HP and gain 4 shield",
-      "targeting": {
-        "type": "none"
-      },
-      "effect": {
-        "type": "empty"
-      }
+      "type": "repair_constructs",
+      "amount": 6
     }
   }
 }

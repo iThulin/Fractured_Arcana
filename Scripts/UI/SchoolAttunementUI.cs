@@ -61,6 +61,12 @@ public partial class SchoolAttunementUI : PanelContainer
 	private Label _wildingTierLabel;
 	private Label _wildingEffectLabel;
 
+	// Tinker — Schematics ledger, single 0–5 gauge
+	private TinkerAttunement _boundTinker;
+	private ProgressBar _tinkerBar;
+	private Label _tinkerTierLabel;
+	private Label _tinkerEffectLabel;
+
 	private static readonly string[] WildingTierNames =
 		{ "Still", "Stirring", "Spreading", "Rampant", "Riot" };
 
@@ -171,6 +177,9 @@ public partial class SchoolAttunementUI : PanelContainer
 			case WildingAttunement wildingAtt when wildingAtt != _boundWilding:
 				BindWilding(wildingAtt);
 				break;
+			case TinkerAttunement tinkerAtt when tinkerAtt != _boundTinker:
+				BindTinker(tinkerAtt);
+				break;
 		}
 
 		if (_container != null)
@@ -193,6 +202,8 @@ public partial class SchoolAttunementUI : PanelContainer
 			RefreshWeaveBar();
 		if (_boundWilding != null)
 			RefreshWilding();
+		if (_boundTinker != null)
+			RefreshTinker();
 	}
 
 	public void UseExternalContainer(VBoxContainer externalContainer)
@@ -222,6 +233,9 @@ public partial class SchoolAttunementUI : PanelContainer
 		_wildingBar = null;
 		_wildingTierLabel = null;
 		_wildingEffectLabel = null;
+		_tinkerBar = null;
+		_tinkerTierLabel = null;
+		_tinkerEffectLabel = null;
 
 		// Title — matches UnitNameLabel style (centered, default font)
 		_titleLabel = new Label
@@ -256,7 +270,9 @@ public partial class SchoolAttunementUI : PanelContainer
 				break;
 			case CardSchool.Tinker:
 				_titleLabel.Text = "Contraption Assembly";
-				BuildStubUI("Coming soon.");
+				BuildTinkerUI();
+				if (_currentUnit?.Attunement is TinkerAttunement tinkerAtt)
+					BindTinker(tinkerAtt);
 				break;
 			case CardSchool.Chronomancer:
 				_titleLabel.Text = "Foresight";
@@ -369,6 +385,12 @@ public partial class SchoolAttunementUI : PanelContainer
 			_boundWilding.OnChargeChanged -= OnWildingChargeChanged;
 			_boundWilding.OnRiotTriggered -= OnWildingRiot;
 			_boundWilding = null;
+		}
+
+		if (_boundTinker != null)
+		{
+			_boundTinker.OnTierChanged -= OnTinkerTierChanged;
+			_boundTinker = null;
 		}
 
 		UnbindChronomancer();
@@ -995,6 +1017,101 @@ public partial class SchoolAttunementUI : PanelContainer
 			_wildingBar?.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = UITheme.WildingGreen });
 			RefreshWilding();
 		}));
+	}
+
+	// ════════════════════════════════════════════════════════════════
+	// TINKER — Schematics ledger (0–5, monotonic; fed by construct loss)
+	// ════════════════════════════════════════════════════════════════
+
+	private void BuildTinkerUI()
+	{
+		var row = new HBoxContainer();
+		row.AddThemeConstantOverride("separation", 4);
+		_container.AddChild(row);
+
+		var nameLabel = new Label
+		{
+			Text = "Schem:",
+			CustomMinimumSize = new Vector2(48, 0),
+			HorizontalAlignment = HorizontalAlignment.Left
+		};
+		row.AddChild(nameLabel);
+
+		_tinkerBar = new ProgressBar
+		{
+			CustomMinimumSize = new Vector2(80, UITheme.AttunementBarHeight),
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			MaxValue = TinkerAttunement.MaxTier,
+			Value = 0,
+			Step = 1,
+			ShowPercentage = false
+		};
+		_tinkerBar.AddThemeStyleboxOverride("fill",
+			new StyleBoxFlat { BgColor = SchoolColors.GetBorderColor(CardSchool.Tinker) });
+		row.AddChild(_tinkerBar);
+
+		_tinkerTierLabel = new Label
+		{
+			Text = "Tier 0",
+			CustomMinimumSize = new Vector2(72, 0),
+			HorizontalAlignment = HorizontalAlignment.Right
+		};
+		row.AddChild(_tinkerTierLabel);
+
+		_tinkerEffectLabel = new Label
+		{
+			Text = "",
+			HorizontalAlignment = HorizontalAlignment.Center,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart
+		};
+		_container.AddChild(_tinkerEffectLabel);
+	}
+
+	private void BindTinker(TinkerAttunement att)
+	{
+		_boundTinker = att;
+		att.OnTierChanged += OnTinkerTierChanged;
+		RefreshTinker();
+	}
+
+	private void RefreshTinker()
+	{
+		if (_boundTinker == null || _tinkerBar == null)
+			return;
+
+		int tier = Math.Clamp(_boundTinker.Tier, 0, TinkerAttunement.MaxTier);
+		_tinkerBar.Value = tier;
+		_tinkerTierLabel.Text = $"Tier {tier}";
+		if (_tinkerEffectLabel != null)
+		{
+			string capText = _boundTinker.ConstructCap >= 99
+				? "no cap"
+				: $"cap {_boundTinker.ConstructCap}";
+			_tinkerEffectLabel.Text = tier == 0
+				? $"Lose constructs to advance ({capText})"
+				: $"New constructs +{tier} HP / +{tier} DMG ({capText})";
+		}
+	}
+
+	private void OnTinkerTierChanged(int newTier)
+	{
+		if (_tinkerBar == null)
+		{
+			RefreshTinker();
+			return;
+		}
+
+		// Flash white, then settle back to amber (mirrors OnElementBurst)
+		_tinkerBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = Colors.White });
+		var tween = CreateTween();
+		tween.TweenInterval(0.5f);
+		tween.TweenCallback(Callable.From(() =>
+		{
+			_tinkerBar?.AddThemeStyleboxOverride("fill",
+				new StyleBoxFlat { BgColor = SchoolColors.GetBorderColor(CardSchool.Tinker) });
+			RefreshTinker();
+		}));
+		RefreshTinker();
 	}
 
 	// ════════════════════════════════════════════════════════════════

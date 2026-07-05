@@ -1,6 +1,6 @@
 {
   "id": "tinker_voltaic_lattice",
-  "status": "stub",
+  "status": "wip",
   "name": "Voltaic Lattice",
   "school": "Tinker",
   "rarity": "Uncommon",
@@ -8,68 +8,34 @@
     "name": "Voltaic Lattice",
     "mana": 2,
     "speed": "Sorcery",
-    "rules_text": "Deploy a Lattice Node on target tile (6HP). All constructs within 2 tiles of a Lattice Node deal +2 damage. Multiple Nodes stack.",
+    "rules_text": "Deploy a Lattice Node on an empty tile within 2 (6 HP). Friendly constructs within 2 tiles gain +2 damage each round.",
+    "tags": [],
     "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
+      "type": "empty_tile",
+      "range": 2
     },
     "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "summon",
-          "unit": "Lattice_Node",
-          "count": 1
-        },
-        {
-          "type": "empty"
-        }
-      ]
-    },
-    "channel": {
-      "name": "Voltaic Lattice (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Nodes have 10HP and range is 3",
-      "targeting": {
-        "type": "aoe",
-        "radius": 2,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "summon",
-        "unit": "Lattice_Node",
-        "count": 1
-      }
+      "type": "summon",
+      "unit": "lattice_node",
+      "count": 1
     }
   },
   "bottom": {
     "name": "Disruption Field",
     "mana": 2,
     "speed": "Sorcery",
-    "rules_text": "All enemies within 2 tiles of any construct you control have their spells cost +1 this turn.",
+    "rules_text": "Project a disruption zone (radius 2) on target tile for 3 turns: enemies inside take 3 damage and are slowed each round.",
+    "tags": [],
     "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
+      "type": "tile",
+      "range": 4
     },
     "effect": {
-      "type": "empty"
-    },
-    "channel": {
-      "name": "Disruption Field (Channel)",
-      "mana": 2,
-      "speed": "Reaction",
-      "rules_text": "Channel: Lasts 2 turns",
-      "targeting": {
-        "type": "aoe",
-        "radius": 2,
-        "enemies_only": true
-      },
-      "effect": {
-        "type": "empty"
-      }
+      "type": "disruption_field",
+      "radius": 2,
+      "damage": 3,
+      "slows": true,
+      "turns": 3
     }
   }
 }

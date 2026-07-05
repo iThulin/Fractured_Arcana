@@ -190,6 +190,30 @@ public partial class Unit : Node3D
     /// </summary>
     public bool ActsTwiceThisTurn = false;
 
+    /// <summary>Grand Turret: fires a piercing line that hits every enemy along a chosen direction instead of a single target.</summary>
+    public bool LineAttack = false;
+
+    /// <summary>Colossus: deploys a free Drone on an adjacent empty tile at the end of each of its activations.</summary>
+    public bool SpawnsDronesEachTurn = false;
+
+    /// <summary>Colossus: detonates for AoE damage when destroyed.</summary>
+    public bool DeathNova = false;
+
+    // ── Aura: as a source ───────────────────────────────────────────
+    /// <summary>Sentinel: armor granted to friendly units within AuraArmorRange each round. 0 = no armor aura.</summary>
+    public int AuraArmor = 0;
+    public int AuraArmorRange = 1;
+
+    /// <summary>Lattice Node / Foundry: bonus attack damage granted to friendly constructs within AuraDamageRange each round. 0 = no damage aura.</summary>
+    public int AuraDamage = 0;
+    public int AuraDamageRange = 2;
+
+    // ── Aura: as a recipient (so auras can be cleanly reapplied) ─────
+    /// <summary>Armor this unit currently owes to aura sources. Subtracted before auras are recomputed so they never stack across rounds.</summary>
+    public int AuraArmorReceived = 0;
+    /// <summary>Attack damage this unit currently owes to aura sources. Subtracted before recompute.</summary>
+    public int AuraDamageReceived = 0;
+
     // ── Heat / burnout (push-your-luck) ─────────────────────────────
     /// <summary>
     /// Current Heat. Each point adds +1 to this construct's attack. Raised only by opt-in actions (Overclock, Heat cards) — or passively when <see cref="PassiveHeat"/> is set (corrupted Unshackled Forge).
@@ -422,6 +446,10 @@ public partial class Unit : Node3D
             CurrentTile.ElementStrength = 0f;
             CurrentTile.TileView?.SetElement(TileElementType.None);
         }
+
+        // Tinker: one-shot wire traps fire before link-line zaps.
+        TrapSystem.OnUnitEntered(this);
+        ConduitLinkSystem.OnUnitEntered(this);
     }
 
     public bool TryMoveTo(HexGridManager grid, TileData dest)
@@ -449,6 +477,31 @@ public partial class Unit : Node3D
     {
         if (amount <= 0 || IsDeathQueued)
             return;
+
+        if (!_skipLinkRedistribution)
+        {
+            // Redirector Field: shunt this hit to a designated construct.
+            if (RedirectNextDamageTo != null)
+            {
+                var redirect = RedirectNextDamageTo;
+                RedirectNextDamageTo = null;
+                if (redirect.Stats.IsAlive && !redirect.IsDeathQueued)
+                {
+                    redirect.ApplyDamageSkippingLinks(amount);
+                    RefreshHealthBar();
+                    return;
+                }
+            }
+
+            // Conduit Link redistribution (one hop; guarded against recursion).
+            amount = ConduitLinkSystem.RedistributeFor(this, amount);
+            if (amount <= 0)
+            {
+                RefreshHealthBar();
+                return;
+            }
+        }
+
         int remaining = amount;
 
         if (Stats.Shield > 0)
