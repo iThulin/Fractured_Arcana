@@ -8,3 +8,4 @@
 *.csproj.user
 *.old
 *.lscache
+.DS_Store

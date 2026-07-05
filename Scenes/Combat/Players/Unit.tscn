@@ -1,14 +1,14 @@
 [gd_scene format=3 uid="uid://bb7yljiwkjvgm"]
 
-[ext_resource type="Script" uid="uid://c2y54abonms36" path="res://Scripts/Systems/Combat/Unit.cs" id="1_qk68r"]
-[ext_resource type="ArrayMesh" uid="uid://df5agb8am3phm" path="res://Assets/Player Asset/Player with hat.obj" id="2_20lhf"]
+[ext_resource type="Script" uid="uid://c2y54abonms36" path="res://Scripts/Systems/Combat/Core/Unit.cs" id="1_qk68r"]
+[ext_resource type="ArrayMesh" uid="uid://df5agb8am3phm" path="res://Assets/Player/Player with hat.obj" id="2_20lhf"]
 [ext_resource type="Script" uid="uid://djuc7k1qe7t7n" path="res://Scripts/UI/HealthBarRoot.cs" id="3_k67iv"]
-[ext_resource type="QuadMesh" uid="uid://deaap4obhhv1c" path="res://Assets/UI Asset/HealthBar_Back.tres" id="5_ppost"]
-[ext_resource type="QuadMesh" uid="uid://yduorv4fompv" path="res://Assets/UI Asset/HealthBar_Fill.tres" id="6_20lhf"]
-[ext_resource type="QuadMesh" uid="uid://7h2ukydtg00s" path="res://Assets/UI Asset/ManaBar_Back.tres" id="7_uqujc"]
-[ext_resource type="QuadMesh" uid="uid://cfl3ic5yketdw" path="res://Assets/UI Asset/ManaBar_Fill.tres" id="8_e33bx"]
-[ext_resource type="QuadMesh" uid="uid://b2goaciq5wub" path="res://Assets/UI Asset/ArmorBar_Fill.tres" id="9_armor"]
-[ext_resource type="QuadMesh" uid="uid://qkca1sopgex6" path="res://Assets/UI Asset/ShieldBar_Fill.tres" id="10_shield"]
+[ext_resource type="QuadMesh" uid="uid://deaap4obhhv1c" path="res://Assets/UI/HealthBar_Back.tres" id="5_ppost"]
+[ext_resource type="QuadMesh" uid="uid://yduorv4fompv" path="res://Assets/UI/HealthBar_Fill.tres" id="6_20lhf"]
+[ext_resource type="QuadMesh" uid="uid://7h2ukydtg00s" path="res://Assets/UI/ManaBar_Back.tres" id="7_uqujc"]
+[ext_resource type="QuadMesh" uid="uid://cfl3ic5yketdw" path="res://Assets/UI/ManaBar_Fill.tres" id="8_e33bx"]
+[ext_resource type="QuadMesh" uid="uid://b2goaciq5wub" path="res://Assets/UI/ArmorBar_Fill.tres" id="9_armor"]
+[ext_resource type="QuadMesh" uid="uid://qkca1sopgex6" path="res://Assets/UI/ShieldBar_Fill.tres" id="10_shield"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_20lhf"]
 height = 1.055

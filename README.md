@@ -65,86 +65,62 @@ Drop the `Schemas/` folder and `.vscode/settings.json` from the repo into VS Cod
 
 ## 2. Project Structure
 
+*(Reorganized 2026-07-05 — folder names contain no spaces; scripts are grouped by system.)*
+
 ```
 FracturedArcana/
 ├── project.godot
-├── FracturedArcana.csproj
-├── FracturedArcana.sln
+├── FracturedArcana.csproj / .sln
+├── Schemas/                        # JSON Schema files (card, map) for content validation
+├── docs/                           # Design documents (was "Dev Files")
 │
-├── Data/                                   # JSON content files — no code lives here
-│   ├── Cards/                              # One .json file per card
-│   │   └── elementalist_fireball.json      # Convention: schoolname_cardname.json
-│   ├── Regions/                            # One .json file per region
-│   ├── Encounters/                         # Narrative encounter pools
-│   │   ├── generic_encounters.json         # Fallback pool loaded in every region
-│   │   └── {regionid}_encounters.json      # Region-specific pool
-│   ├── Buildings/                          # One .json file per campus building
-│   └── Companions/                         # One .json file per companion
+├── Data/                           # JSON content files — no code lives here
+│   ├── Archmagi/  Buildings/  Cards/  Companions/  Encounters/  Items/
+│   ├── Maps/  Negotiations/  Regions/  StarterDecks/  Tilesets/  World/
+│   ├── Bestiary/bestiary.json
+│   └── Growth/growth_profiles.json
 │
-├── Schemas/                                # JSON Schema files for content validation
-│   └── card.schema.json                    # Validates Data/Cards/*.json
+├── Assets/
+│   ├── Enemies/  Player/  Props/  Environments/  Shaders/
+│   ├── Materials/PainterlyMaterials/{PainterlyFlowers}/
+│   ├── Terrain/{PainterlyFlowers, PainterlyGrass, Painterly_Rocks,
+│   │            Snow_Hextile_texture, Stone_Hextile_texture}
+│   └── UI/                         # Bar styles, Hex_mesh.tres, HexTile_collider.tres,
+│                                   # HealthBarTheme.tres
 │
-├── Scenes/                                 # Godot .tscn scene files
-│   ├── Campus/
-│   │   └── CampusScene.tscn                # Entry scene
-│   ├── Combat/
-│   │   ├── Battlefield.tscn                # Main combat scene
-│   │   ├── HexTile.tscn                    # Hex tile prefab
-│   │   ├── Players/
-│   │   │   └── Unit.tscn                   # Player/enemy unit prefab
-│   │   ├── Monsters/
-│   │   │   └── TargetDummy.tscn
-│   │   └── Summons/
-│   │       ├── HexTile_Stone_Blocker.tscn
-│   │       └── HexTile_Crystal_Blocker.tscn
-│   ├── Negotiation/
-│   │   └── NegotiationScene.tscn
-│   ├── Cards/
-│   │   ├── CardUI.tscn                     # Card visual prefab
-│   │   └── DropSlot.tscn                   # Hand drop target
-│   └── UI/
-│       └── CombatUI.tscn
+├── Scenes/
+│   ├── Campus/CampusScene.tscn     # Entry scene
+│   ├── Combat/                     # Battlefield, HexTile, ImbuementOverlay
+│   │   ├── Players/Unit.tscn  Monsters/TargetDummy.tscn
+│   │   └── Summons/HexTile_Stone_Blocker.tscn
+│   ├── Cards/                      # CardUI, DropSlot
+│   ├── Dev/CharacterStaging.tscn   # Dev-only staging scene
+│   ├── Negotiation/  Overworld/    # NegotiationScene; Expedition/Strategic scenes
+│   └── UI/                         # CombatUI, menus, deck/card screens, NewGameScreen
 │
-└── Scripts/                                # All C# source files
-    ├── Cards/
-    │   ├── CardData.cs                     # CardSchool, CardRarity, CardType enums
-    │   ├── CardRuntime.cs                  # Card, CardHalf, PlaySpeed — runtime types
-    │   ├── CardDatabase.cs                 # Blueprint registry; RegisterPrebuiltCard()
-    │   ├── CardUi.cs                       # Card visual controller
-    │   ├── DualCardData.cs                 # Node2D wrapper for editor-assigned card pairs
-    │   ├── DeckManager.cs                  # Per-unit deck swap controller
-    │   └── Loader/
-    │       ├── JsonCardLoader.cs           # Parses card JSON → Card objects; status gate
-    │       ├── CardScriptRegistry.cs       # Effect/targeter/predicate factory registry
-    │       └── CardLoaderV2.cs             # Entry point; DevMode flag
-    ├── Systems/
-    │   ├── Combat/
-    │   │   ├── CombatManager.cs
-    │   │   ├── HexGridManager.cs
-    │   │   ├── GameRunner.cs
-    │   │   ├── GameState.cs
-    │   │   └── ElementalAttunement.cs      # ISchoolAttunement, ElementalAttunement
-    │   └── Negotiation/
-    │       └── NegotiationManager.cs
-    ├── Cards/
-    │   └── Effects/
-    │       ├── Effect.cs                   # EffectBase, DealDamageEffect, leaf effects
-    │       └── CompositeEffects.cs         # SequenceEffect, ConditionalEffect, RetargetEffect
+└── Scripts/
+    ├── Cards/                      # Runtime card types, database, deck manager
+    │   └── Effects/  Loader/  Predicates/  Targeting/
     ├── Data/
-    │   ├── GuildSaveData.cs                # Central save data structure
-    │   ├── SaveManager.cs                  # JSON serialization, 3-slot management
-    │   ├── RegionDefinition.cs             # Region data model
-    │   ├── RegionLoader.cs                 # Loads Data/Regions/*.json
-    │   ├── NarrativeEncounterLoader.cs     # Loads Data/Encounters/*.json
-    │   ├── BuildingDatabase.cs             # Loads Data/Buildings/*.json
-    │   └── Companion.cs                    # Companion data model
-    ├── Overworld/
-    │   └── CampusScreen.cs
-    └── UI/
-        ├── CardLibraryUi.cs                # Card library browser
-        ├── SchoolAttunementUI.cs           # Elementalist attunement bars
-        ├── DeckUiManager.cs
-        └── CameraController.cs
+    │   ├── FeatureBuilders/        # Loaders + definitions (regions, buildings, items…)
+    │   └── SaveState/              # GuildSaveData, SaveManager, session state
+    ├── Dev/  Style/  UI/
+    └── Systems/
+        ├── GameBootstrap.cs  GameStateManager.cs        # App lifecycle
+        ├── SettingsManager.cs  PauseManager.cs  TooltipManager.cs   # Autoloads
+        ├── Campaign/  Campus/  Negotiation/
+        ├── Combat/
+        │   ├── Core/               # CombatManager (+partials), Unit (+partials),
+        │   │                       # ChannelResolver, RulesManager, stances, conduit links
+        │   ├── Attunement/         # One file per school (incl. Grief)
+        │   ├── Constructs/  Encounters/  Glyphs/
+        │   └── Terrain/            # HexGridManager (+partials), HexTile, tilesets
+        ├── Legacy/                 # Memorial / honored-dead / growth meta-systems
+        ├── Overworld/
+        │   ├── WorldGen/           # Continent, climate, hydrology, roads, settlements
+        │   ├── Expedition/         # ExpeditionManager, fog of war, encounter routing
+        │   └── Grid/               # HexCoord, OverworldHex(Grid)
+        └── Strategic/              # StrategicView, factions, KingdomState
 ```
 
 > **`Data/` vs `Scripts/Data/`**: `Data/` contains JSON files you author as game content. `Scripts/Data/` contains C# classes that load and represent that data at runtime. Adding content = work in `Data/`. Changing data structures = work in `Scripts/Data/`.

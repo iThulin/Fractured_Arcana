@@ -34,14 +34,14 @@ public static class Bestiary
     private static readonly Dictionary<string, WildlifeDef> _defs = new();
     private static bool _loaded;
 
-    public static void EnsureLoaded(string resPath = "res://Data/bestiary.json")
+    public static void EnsureLoaded(string resPath = "res://Data/Bestiary/bestiary.json")
     {
         if (_loaded) return;
         Load(resPath);
         _loaded = true;
     }
 
-    public static void Reload(string resPath = "res://Data/bestiary.json")
+    public static void Reload(string resPath = "res://Data/Bestiary/bestiary.json")
     {
         _loaded = false;
         EnsureLoaded(resPath);

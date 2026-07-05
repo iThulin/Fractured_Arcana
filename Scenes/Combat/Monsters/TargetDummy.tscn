@@ -1,11 +1,11 @@
 [gd_scene format=3 uid="uid://chfd280du8r83"]
 
-[ext_resource type="Script" uid="uid://c2y54abonms36" path="res://Scripts/Systems/Combat/Unit.cs" id="1_owrha"]
+[ext_resource type="Script" uid="uid://c2y54abonms36" path="res://Scripts/Systems/Combat/Core/Unit.cs" id="1_owrha"]
 [ext_resource type="Script" uid="uid://djuc7k1qe7t7n" path="res://Scripts/UI/HealthBarRoot.cs" id="3_h7n8s"]
-[ext_resource type="QuadMesh" uid="uid://deaap4obhhv1c" path="res://Assets/UI Asset/HealthBar_Back.tres" id="4_8af7j"]
-[ext_resource type="QuadMesh" uid="uid://yduorv4fompv" path="res://Assets/UI Asset/HealthBar_Fill.tres" id="5_bl78a"]
-[ext_resource type="QuadMesh" uid="uid://7h2ukydtg00s" path="res://Assets/UI Asset/ManaBar_Back.tres" id="6_n7mab"]
-[ext_resource type="QuadMesh" uid="uid://cfl3ic5yketdw" path="res://Assets/UI Asset/ManaBar_Fill.tres" id="7_rcbuy"]
+[ext_resource type="QuadMesh" uid="uid://deaap4obhhv1c" path="res://Assets/UI/HealthBar_Back.tres" id="4_8af7j"]
+[ext_resource type="QuadMesh" uid="uid://yduorv4fompv" path="res://Assets/UI/HealthBar_Fill.tres" id="5_bl78a"]
+[ext_resource type="QuadMesh" uid="uid://7h2ukydtg00s" path="res://Assets/UI/ManaBar_Back.tres" id="6_n7mab"]
+[ext_resource type="QuadMesh" uid="uid://cfl3ic5yketdw" path="res://Assets/UI/ManaBar_Fill.tres" id="7_rcbuy"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_wknnj"]
 

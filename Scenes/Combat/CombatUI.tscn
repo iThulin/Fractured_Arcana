@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://fdkd1gcvlgd3"]
-
-[ext_resource type="Script" uid="uid://bpk5ndfmasfh0" path="res://Scripts/UI/CombatUI.cs" id="1_3aeni"]
-
-[node name="CombatUI" type="CanvasLayer" unique_id=986944831]
-script = ExtResource("1_3aeni")

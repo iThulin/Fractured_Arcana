@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" uid="uid://dxqupxhqxkumf" path="res://Scripts/Systems/Combat/Game logic/ImbuementOverlay.cs" id="1_overlay_script"]
+[ext_resource type="Script" uid="uid://dxqupxhqxkumf" path="res://Scripts/Systems/Combat/Core/ImbuementOverlay.cs" id="1_overlay_script"]
 [ext_resource type="Shader" uid="uid://cr1egkjghpt0y" path="res://Assets/Shaders/imbuement_aura.gdshader" id="2_aura_shader"]
 [ext_resource type="Shader" uid="uid://b2r2lwrb8m6w4" path="res://Assets/Shaders/imbuement_glyph.gdshader" id="3_glyph_shader"]
 
