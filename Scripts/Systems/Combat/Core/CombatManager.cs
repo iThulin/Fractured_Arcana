@@ -2032,6 +2032,10 @@ public partial class CombatManager : Node3D
         if (unit.TeamId != 0 && State != null)   // ← feed mana_per_kill (Aftershock)
             State.EnemiesKilledThisTurn++;
 
+        // ── Spirit death-site tracking (they_chose_to_stay tier 4) ────────
+        if (unit.IsSpirit && unit.CurrentTile != null && State != null)
+            State.SpiritDeathTiles.Add(unit.CurrentTile.Axial);
+
         // ── Memorial creation ─────────────────────────────────────────────
         if (State?.Memorials != null && unit.CurrentTile != null)
         {
@@ -2045,7 +2049,15 @@ public partial class CombatManager : Node3D
                 }
             }
 
-            if (unit.HasStatus("haunted"))
+            if (unit.LeaveMemorialOnDeath.HasValue)
+            {
+                // Explicit card mark (Last Words) — overrides everything else.
+                int team = necroTeam >= 0 ? necroTeam : 0;
+                State.Memorials.CreateMemorial(unit.CurrentTile, unit.Name,
+                    wasAlly: false, unit.LeaveMemorialOnDeath.Value, team);
+                State.Log($"[LastWords] {unit.Name} died while marked — {unit.LeaveMemorialOnDeath.Value} memorial created.");
+            }
+            else if (unit.HasStatus("haunted"))
             {
                 // Haunted overrides normal memorial creation — always creates a
                 // Strong memorial regardless of whether a Necromancer is present,
@@ -2178,6 +2190,7 @@ public partial class CombatManager : Node3D
             RefreshPhaseUI();
             GD.Print("=== VICTORY ===");
             combatUI?.AppendActionLog("Victory!");
+            CombatTelemetry.EndFight(true, roundNumber);
             EmitSignal(SignalName.CombatCompleted, true);   // ← ADD THIS
             return true;
         }
@@ -2188,6 +2201,7 @@ public partial class CombatManager : Node3D
             RefreshPhaseUI();
             GD.Print("=== DEFEAT ===");
             combatUI?.AppendActionLog("Defeat.");
+            CombatTelemetry.EndFight(false, roundNumber);
             EmitSignal(SignalName.CombatCompleted, false);  // ← ADD THIS
             return true;
         }
@@ -2905,6 +2919,9 @@ public partial class CombatManager : Node3D
                 NamePrefix = EnemyArchetypeData.GetThreatLabel(archetype),
             });
         }
+
+        CombatTelemetry.BeginFight("debug_default", "", "Battle",
+            pendingEnemySpawns.ConvertAll(p => p.NamePrefix));
     }
 
     /// <summary>
@@ -2947,6 +2964,9 @@ public partial class CombatManager : Node3D
 
         GD.Print($"[Encounter] Loaded '{def.DisplayName}' — " +
                  $"{pendingEnemySpawns.Count} enemies from {def.RegionId}/{def.Tier}");
+
+        CombatTelemetry.BeginFight(def.Id, def.RegionId, def.Tier.ToString(),
+            pendingEnemySpawns.ConvertAll(p => p.NamePrefix));
     }
 
     /// <summary>
@@ -3826,6 +3846,15 @@ public partial class CombatManager : Node3D
             // Record mastery cast against the original half's blueprint
             if (!string.IsNullOrEmpty(cardUi.CardInstance?.BlueprintId))
                 CastMasteryTracker.RecordCast(cardUi.CardInstance.BlueprintId);
+
+            CombatTelemetry.RecordCardCast(
+                cardUi.CardInstance?.BlueprintId ?? resolvedHalf.Name,
+                ReferenceEquals(resolvedHalf, cardUi.CardInstance?.TopHalf) ? "top"
+                    : ReferenceEquals(resolvedHalf, cardUi.CardInstance?.BottomHalf) ? "bottom"
+                    : "resolved",
+                resolvedHalf.School.ToString(),
+                resolvedHalf.ManaCost,
+                roundNumber);
 
             if (selectedUnit != null)
                 selectedUnit.Stats.HasPlayedCardThisTurn = true;

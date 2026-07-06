@@ -1607,9 +1607,28 @@ public partial class CampusScreen : Control
         _forceEncounterDropdown.ItemSelected += (idx) =>
             PlayerSession.ForceNextEncounterType =
                 _forceEncounterDropdown.GetItemId((int)idx);
-        grid.AddChild(_forceEncounterDropdown);
+            grid.AddChild(_forceEncounterDropdown);
 
-        return panel;
+        // ── C4 verification dumps (CouncilDebug.cs) ──────────────────────
+        var dumpEchoesBtn = new Button
+        {
+            Text = "Dump Echoes",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        dumpEchoesBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        dumpEchoesBtn.Pressed += () => CouncilDebug.DumpEchoes();
+        grid.AddChild(dumpEchoesBtn);
+
+        var dumpRegardBtn = new Button
+        {
+            Text = "Dump Regard",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        dumpRegardBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        dumpRegardBtn.Pressed += () => CouncilDebug.DumpRegard();
+        grid.AddChild(dumpRegardBtn);
+
+        return panel;       
     }
 
     // ═══════════════════════════════════════════════════════════════════════

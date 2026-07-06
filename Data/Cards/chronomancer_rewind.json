@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_rewind",
-	"status": "wip",
+	"status": "ready",
 	"name": "Rewind",
 	"school": "Chronomancer",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Re-cast your last resolved spell with its original targets. Spend 1 Foresight.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -26,7 +26,7 @@
 		"speed": "Instant",
 		"rules_text": "Gain 7 shield. When it breaks, restore your HP to its value at cast.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"

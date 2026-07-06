@@ -1,6 +1,6 @@
 {
 	"id": "druid_old_growth_rises",
-	"status": "wip",
+	"status": "ready",
 	"name": "Old Growth Rises",
 	"school": "Druid",
 	"rarity": "Rare",
@@ -40,8 +40,7 @@
 		"speed": "Sorcery",
 		"rules_text": "At a patch of Old Growth, summon the wildlife the land calls for.",
 		"tags": [
-			"growth",
-			"summon"
+			"growth"
 		],
 		"targeting": {
 			"type": "tile",

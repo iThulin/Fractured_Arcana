@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_glyph_network",
-	"status": "wip",
+	"status": "ready",
 	"name": "Glyph Network",
 	"school": "Enchanter",
 	"rarity": "Rare",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Trigger all of your prepared glyphs at once. Each deals its effect plus 1 bonus damage per other glyph triggered.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {
@@ -28,7 +28,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph within 4. The next spell you cast while standing on it is cast twice.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

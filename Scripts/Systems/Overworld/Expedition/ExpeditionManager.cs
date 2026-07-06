@@ -361,8 +361,41 @@ public partial class ExpeditionManager : Node2D
             return;
         }
 
-        if (!PlayerSession.DebugGrantStagingArmed)
+        // E: dump echoes in flight (C4 verification).
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.E })
+        {
+            CouncilDebug.DumpEchoes();
+            ShowInfo("[DEBUG] Echo flight dumped to Output.");
+            GetViewport().SetInputAsHandled();
             return;
+        }
+
+        // R: dump court Regard for the kingdom underfoot (all courts in wilds).
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.R })
+        {
+            string rkid = KingdomIdAt(_party.CurrentCoord);
+            CouncilDebug.DumpRegard(string.IsNullOrEmpty(rkid) ? null : rkid);
+            ShowInfo("[DEBUG] Court Regard dumped to Output.");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        // C: paint world corruption on the party tile + its six neighbours
+        //    (Session C setup). C = 30 (minor band), Shift+C = 60 (major band),
+        //    Ctrl+C = 0 (clear).
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.C } cKey)
+        {
+            byte value = cKey.CtrlPressed ? (byte)0 : (cKey.ShiftPressed ? (byte)60 : (byte)30);
+            int painted = DebugPaintCorruption(_party.CurrentCoord, value);
+            ShowInfo(painted > 0
+                ? $"[DEBUG] Painted corruption {value} on {painted} tile(s)."
+                : "[DEBUG] Could not paint corruption here.");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (!PlayerSession.DebugGrantStagingArmed)
+            return;          
         if (@event is InputEventKey { Pressed: true, Keycode: Key.G })
         {
             DebugGrantStagingHere();
@@ -398,6 +431,37 @@ public partial class ExpeditionManager : Node2D
         SaveManager.SaveIfDirty();
         ShowInfo($"[DEBUG] Staging granted at ({col},{row}), kingdom '{kid}'.");
         GD.Print($"[DEBUG] Granted staging at ({col},{row}), kingdom '{kid}'.");
+    }
+
+    /// <summary>Debug: set world corruption on the party's tile and its six
+    /// neighbours (skipping water). Writes the same field EmitCombatDeed and
+    /// CorruptionDrainAt read. Note: CorruptionSpread's flood only raises, so
+    /// a Ctrl+C clear may be re-raised toward the kingdom's territory level at
+    /// the next boundary. Returns the number of tiles painted.</summary>
+    private int DebugPaintCorruption(Vector2I local, byte value)
+    {
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return 0;
+
+        int painted = 0;
+        void Paint(int x, int y)
+        {
+            if (!_world.TryIndex(x, y, out int idx))
+                return;
+            if (_world.Tiles[idx].IsWater)
+                return;
+            _world.Tiles[idx].Corruption = value;
+            painted++;
+        }
+
+        Paint(col, row);
+        foreach (var (nx, ny) in HexCoord.Neighbors(col, row, _world.Width, _world.Height))
+            Paint(nx, ny);
+
+        if (painted > 0)
+            SaveManager.MarkDirty();
+        GD.Print($"[DEBUG] Corruption {value} painted on {painted} tile(s) around world ({col},{row}).");
+        return painted;
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -694,6 +758,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SavedPartyCoord = _party.CurrentCoord;
         router.SavedCombatHexCoord = hexCoord;
         router.HasPendingReturn = false;
+        // Reset ambush attribution — OnPatrolCapturedPlayer re-marks it AFTER
+        // this call for genuine patrol fights. Without this reset, the flag
+        // from a previous ambush survives on the scene-persistent router and
+        // every later ordinary win re-emits patrol_slain.
+        router.SavedCombatWasPatrolAmbush = false;
+        router.SavedCombatPatrolArchmageId = "";
 
         if (_factionManager != null)
         {

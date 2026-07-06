@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_temporal_sovereign",
-	"status": "wip",
+	"status": "ready",
 	"name": "Temporal Sovereign",
 	"school": "Chronomancer",
 	"rarity": "Legendary",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Rest of fight: take a 2nd turn each round with 2 mana and 1 draw. Spend 2 Foresight.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -27,7 +27,7 @@
 		"speed": "Sorcery",
 		"rules_text": "All enemies skip their next turn; their stacked spells are suspended. You act normally.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"

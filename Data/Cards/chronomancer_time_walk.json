@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_time_walk",
-	"status": "wip",
+	"status": "ready",
 	"name": "Time Walk",
 	"school": "Chronomancer",
 	"rarity": "Uncommon",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Choose a tile within 4. End of each of the next 3 turns: deal 4 to whatever stands there.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "tile",
@@ -28,7 +28,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Imbue tiles in range 2: enemies entering are Slowed and their next spell is Delayed.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "aoe",

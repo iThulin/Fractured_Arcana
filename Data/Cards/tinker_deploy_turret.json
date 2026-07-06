@@ -1,6 +1,6 @@
 {
   "id": "tinker_deploy_turret",
-  "status": "wip",
+  "status": "ready",
   "name": "Deploy Turret",
   "school": "Tinker",
   "rarity": "Common",

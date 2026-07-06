@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_binding_rune",
-	"status": "wip",
+	"status": "ready",
 	"name": "Binding Rune",
 	"school": "Enchanter",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph on a tile within 3. An enemy here at the start of its turn is rooted and takes 3 damage. Lasts 2 turns.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {
@@ -32,7 +32,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Link 2 of your prepared glyphs. When one triggers, the other triggers too.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

@@ -1,6 +1,6 @@
 {
 	"id": "druid_spores",
-	"status": "wip",
+	"status": "ready",
 	"name": "Spores",
 	"school": "Druid",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Poison target and adjacent enemies for 2 turns.",
 		"tags": [
-			"hex"
+			"growth"
 		],
 		"targeting": {
 			"type": "unit",
@@ -47,7 +47,7 @@
 		"speed": "Instant",
 		"rules_text": "Weaken target enemy for 2 turns.",
 		"tags": [
-			"hex"
+			"growth"
 		],
 		"targeting": {
 			"type": "unit",

@@ -171,7 +171,7 @@
 							},
 							{
 								"type": "imbue_tile",
-								"element": "stone"
+								"element": "earth"
 							}
 						]
 					}
@@ -251,7 +251,7 @@
 							},
 							{
 								"type": "imbue_tile",
-								"element": "stone"
+								"element": "earth"
 							}
 						]
 					}
@@ -349,7 +349,7 @@
 							},
 							{
 								"type": "imbue_area",
-								"element": "stone",
+								"element": "earth",
 								"radius": 1
 							},
 							{

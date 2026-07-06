@@ -97,5 +97,17 @@ public static partial class CardScriptRegistry
             int elements = n.TryGetProperty("elements", out var e) ? e.GetInt32() : 1;
             return new WorldshaperEffect(radius, dmgPerTile, elements).WithTag("Terrain");
         });
+
+        // Elemental Sight (Worldshaper tiers 3-4): charge per distinct nearby element.
+        // { "type": "attunement_per_nearby_element", "radius": 3 }
+        RegisterEffect("attunement_per_nearby_element", n =>
+            new AttunementPerNearbyElementEffect(
+                n.TryGetProperty("radius", out var r) ? r.GetInt32() : 3).WithTag("Attunement"));
+
+        // Supercooled (Firestorm tier 3): bonus damage against already-frozen targets.
+        // { "type": "target_has_status", "status": "frozen" }
+        RegisterPredicate("target_has_status", n =>
+            new TargetHasStatusPredicate(
+                n.TryGetProperty("status", out var st) ? st.GetString() : ""));
     }
 }

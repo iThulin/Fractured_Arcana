@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_accelerando",
-	"status": "wip",
+	"status": "ready",
 	"name": "Accelerando",
 	"school": "Chronomancer",
 	"rarity": "Rare",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Until end of turn: each spell you cast costs 1 less and grants 1 Foresight.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -27,7 +27,7 @@
 		"speed": "Sorcery",
 		"rules_text": "All enemies are Slowed and their spells cost +1 this round.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "aoe",

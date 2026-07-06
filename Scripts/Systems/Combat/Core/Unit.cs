@@ -288,6 +288,16 @@ public partial class Unit : Node3D
     public bool OnDeathMemorial = false;
     public bool CreateMemorialOnKill = false;
 
+    /// <summary>When set, this unit leaves a memorial of the given strength on death
+    /// (mark_on_death_memorial — Unfinished Business "Last Words"). Checked in
+    /// CombatManager.HandleUnitDeath before the haunted/necromancer branches.</summary>
+    public MemorialStrength? LeaveMemorialOnDeath = null;
+
+    /// <summary>Ghost Road (imbue_path_memorial phase:true): this unit's movement
+    /// zone ignores blocked/occupied tiles for traversal this turn. Destinations
+    /// must still be enterable. Cleared by the effect's turn-end cleanup.</summary>
+    public bool IsPhasing = false;
+
     /// <summary>
     /// Cards the owning Necromancer draws when this spirit kills an enemy this turn.
     /// Set by mark_spirits_draw_on_kill; consumed by the spirit attack in

@@ -313,6 +313,11 @@ public sealed class DealDamageEffect : EffectBase
 			}
 		}
 
+		// Record for follow-up steps (heal_fraction_of_damage, grief_per_damage, ...).
+		// Total across all targets — "the damage this step dealt".
+		if (hit > 0)
+			s.LastDamageDealt = totalDamage * hit;
+
 		s.Log($"Resolve: Deal {totalDamage} damage to {hit} target(s). lethal={hit > 0}");
 
 		// ── Chain bounce ─────────────────────────────────────────────────
@@ -529,6 +534,9 @@ public sealed class AoeAllEffect : EffectBase
 			s.Log($"[AoeAll] {unit.Name} takes {totalDamage} damage.");
 			hit++;
 		}
+
+		if (hit > 0)
+			s.LastDamageDealt = totalDamage * hit;
 
 		s.Log($"[AoeAll] Cataclysm hit {hit} unit(s).");
 	}

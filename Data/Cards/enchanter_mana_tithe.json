@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_mana_tithe",
-	"status": "wip",
+	"status": "ready",
 	"name": "Mana Tithe",
 	"school": "Enchanter",
 	"rarity": "Uncommon",
@@ -10,8 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Bind an enemy for 3 turns: its spells cost 1 more, and you gain 1 mana each time it casts. Gain 1 Weave.",
 		"tags": [
-			"enchantment",
-			"binding"
+			"enchant"
 		],
 		"targeting": {
 			"type": "unit",
@@ -41,8 +40,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Deal 5 damage and steal 1 buff from the target.",
 		"tags": [
-			"enchantment",
-			"charm"
+			"enchant"
 		],
 		"targeting": {
 			"type": "unit",

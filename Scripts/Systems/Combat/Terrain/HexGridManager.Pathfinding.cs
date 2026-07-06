@@ -42,11 +42,13 @@ public partial class HexGridManager
             {
                 if (!Tiles.TryGetValue(neighbor, out var tile))
                     continue;
-                if (!tile.IsWalkable || tile.IsBlocked)
-                    continue;
-                if (!StepAllowed(current, neighbor))
-                    continue;
-                if (tile.IsOccupied && neighbor != start)
+                // Ghost Road: a phasing unit traverses blocked/occupied tiles
+                // freely but may only END on an enterable one.
+                bool traversable = unit.IsPhasing
+                    || (tile.IsWalkable && !tile.IsBlocked
+                        && StepAllowed(current, neighbor)
+                        && (!tile.IsOccupied || neighbor == start));
+                if (!traversable)
                     continue;
 
                 int stepCost = Mathf.Max(1, tile.MoveCost);
@@ -59,7 +61,7 @@ public partial class HexGridManager
 
                 bestCost[neighbor] = newCost;
                 frontier.Enqueue((neighbor, newCost));
-                if (neighbor != start)
+                if (neighbor != start && tile.CanEnter(unit))
                     result.Add(neighbor);
             }
         }
@@ -98,11 +100,12 @@ public partial class HexGridManager
             {
                 if (!Tiles.TryGetValue(neighbor, out var tile))
                     continue;
-                if (!tile.IsWalkable || tile.IsBlocked)
-                    continue;
-                if (!StepAllowed(current, neighbor))
-                    continue;
-                if (tile.IsOccupied && neighbor != start)
+                // Ghost Road: phasing traversal (see GetReachableTiles).
+                bool traversable = unit.IsPhasing
+                    || (tile.IsWalkable && !tile.IsBlocked
+                        && StepAllowed(current, neighbor)
+                        && (!tile.IsOccupied || neighbor == start));
+                if (!traversable)
                     continue;
 
                 int stepCost = Mathf.Max(1, tile.MoveCost);
@@ -117,7 +120,7 @@ public partial class HexGridManager
                 bestCost[neighbor] = newCost;
                 frontier.Enqueue(neighbor, newCost);
 
-                if (neighbor != start)
+                if (neighbor != start && tile.CanEnter(unit))
                     result[neighbor] = newCost;
             }
         }

@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_warding_step",
-	"status": "wip",
+	"status": "ready",
 	"name": "Warding Step",
 	"school": "Enchanter",
 	"rarity": "Common",
@@ -10,8 +10,7 @@
 		"speed": "Instant",
 		"rules_text": "Move 2. Gain 3 shield. Gain 1 Weave.",
 		"tags": [
-			"enchantment",
-			"ward"
+			"enchant"
 		],
 		"targeting": {
 			"type": "self"
@@ -40,7 +39,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph within 3. When an enemy enters, deal 4 and slow it 1 turn.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

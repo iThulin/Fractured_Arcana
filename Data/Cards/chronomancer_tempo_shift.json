@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_tempo_shift",
-	"status": "wip",
+	"status": "ready",
 	"name": "Tempo Shift",
 	"school": "Chronomancer",
 	"rarity": "Uncommon",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Target ally takes an extra action this turn. Spend 1 Foresight.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "unit",
@@ -30,7 +30,7 @@
 		"speed": "Instant",
 		"rules_text": "Target enemy loses its next action (postponed 1 turn).",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "unit",

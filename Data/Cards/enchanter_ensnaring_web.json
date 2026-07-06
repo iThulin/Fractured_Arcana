@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_ensnaring_web",
-	"status": "wip",
+	"status": "ready",
 	"name": "Ensnaring Web",
 	"school": "Enchanter",
 	"rarity": "Uncommon",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a web of glyphs on a 2-tile radius within 4. Enemies that enter are slowed 1 turn. Lasts 3 turns.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {
@@ -33,7 +33,7 @@
 		"speed": "Instant",
 		"rules_text": "Refresh all of your triggered glyphs (they become active again). Gain 2 Weave.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

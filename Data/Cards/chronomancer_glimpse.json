@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_glimpse",
-	"status": "wip",
+	"status": "ready",
 	"name": "Glimpse",
 	"school": "Chronomancer",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Instant",
 		"rules_text": "Reveal the next action of all enemies within 6. Gain 1 Foresight.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -34,7 +34,7 @@
 		"speed": "Reaction",
 		"rules_text": "When you would be hit: gain 6 shield until your next turn.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"

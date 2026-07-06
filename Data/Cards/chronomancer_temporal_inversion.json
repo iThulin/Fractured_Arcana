@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_temporal_inversion",
-	"status": "wip",
+	"status": "ready",
 	"name": "Temporal Inversion",
 	"school": "Chronomancer",
 	"rarity": "Rare",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Reverse the order of all spells on the stack. The last to resolve now resolves first.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -25,7 +25,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Create 2 Phase tiles within 2. Teleport between them as a free action once/turn for 3 turns.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "tile",

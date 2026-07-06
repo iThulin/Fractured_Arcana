@@ -555,6 +555,7 @@ public static partial class CardScriptRegistry
 
         RegisterTargeter("self", _ => new SelectSelfTarget());
         RegisterTargeter("none", _ => new SelectGlobalTarget());
+        RegisterTargeter("global", _ => new SelectGlobalTarget()); // alias — card JSON uses both spellings
 
         // Unit selector: { "type": "unit", "enemies_only": bool, "range": n, "los": bool }
         RegisterTargeter("unit", n =>

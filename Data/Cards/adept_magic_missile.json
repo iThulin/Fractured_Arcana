@@ -1,6 +1,6 @@
 {
 	"id": "adept_magic_missile",
-	"status": "wip",
+	"status": "ready",
 	"name": "Magic Missile",
 	"school": "Adept",
 	"rarity": "Common",

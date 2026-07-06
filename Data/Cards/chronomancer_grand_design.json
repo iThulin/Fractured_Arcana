@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_grand_design",
-	"status": "wip",
+	"status": "ready",
 	"name": "Grand Design",
 	"school": "Chronomancer",
 	"rarity": "Rare",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Schedule the next two spells you cast this turn to also re-resolve at the end of each of your next 2 turns.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -30,7 +30,7 @@
 		"speed": "Reaction",
 		"rules_text": "Next enemy turn: every enemy action is redirected to a random other enemy.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"

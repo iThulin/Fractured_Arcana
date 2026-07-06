@@ -1,6 +1,6 @@
 {
 	"id": "arcanist_warding_glyph",
-	"status": "wip",
+	"status": "ready",
 	"name": "Warding Glyph",
 	"school": "Arcanist",
 	"rarity": "Common",

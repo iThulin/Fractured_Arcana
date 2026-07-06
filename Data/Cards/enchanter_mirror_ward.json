@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_mirror_ward",
-	"status": "wip",
+	"status": "ready",
 	"name": "Mirror Ward",
 	"school": "Enchanter",
 	"rarity": "Uncommon",
@@ -10,8 +10,7 @@
 		"speed": "Reaction",
 		"rules_text": "Prepare a glyph within 4. The next spell targeting a unit on this tile is reflected back at its caster.",
 		"tags": [
-			"enchantment",
-			"ward"
+			"enchant"
 		],
 		"targeting": {
 			"type": "tile",
@@ -28,8 +27,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Swap the positions of any 2 units within range 3. If either lands on a glyph, trigger it.",
 		"tags": [
-			"enchantment",
-			"charm"
+			"enchant"
 		],
 		"targeting": {
 			"type": "unit",

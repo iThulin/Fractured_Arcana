@@ -1733,3 +1733,1283 @@ public sealed class TriggerFloodEffect : EffectBase
 		grief.ForceFlood();
 	}
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// Upgrade-tier backlog implementations (2026-07-06). JSON contracts in
+// docs/card_effect_backlog.md; registrations in CardScriptRegistry.Necromancer.cs.
+// ════════════════════════════════════════════════════════════════════════════
+
+/// <summary>Shared helpers for the memorial-movement family of effects.</summary>
+internal static class NecroEffectUtil
+{
+	/// <summary>Nearest memorial tile to <paramref name="from"/>, optionally excluding a set of already-claimed tiles. Null when none exist.</summary>
+	public static TileData NearestMemorial(GameState s, Vector2I from, HashSet<TileData> exclude = null, int maxRange = int.MaxValue)
+	{
+		if (s?.Memorials == null || s.Grid == null)
+			return null;
+		TileData best = null;
+		int bestDist = int.MaxValue;
+		foreach (var tile in s.Memorials.GetAllMemorials())
+		{
+			if (exclude != null && exclude.Contains(tile))
+				continue;
+			int d = s.Grid.Distance(from, tile.Axial);
+			if (d <= maxRange && d < bestDist)
+			{ bestDist = d; best = tile; }
+		}
+		return best;
+	}
+
+	/// <summary>Steps a unit up to <paramref name="steps"/> tiles toward (or away from, when <paramref name="toward"/> is false) a position, using the same greedy neighbor-walk as PushEffect/PullEffect. Returns tiles actually moved; sets <paramref name="blocked"/> when movement stopped early.</summary>
+	public static int StepRelativeTo(GameState s, Unit unit, Vector2I anchor, int steps, bool toward, out bool blocked)
+	{
+		blocked = false;
+		int moved = 0;
+		for (int i = 0; i < steps; i++)
+		{
+			var current = unit.CurrentTile.Axial;
+			if (toward && s.Grid.Distance(anchor, current) == 0)
+				break;
+
+			TileData best = null;
+			int bestDist = toward ? s.Grid.Distance(anchor, current) : -1;
+			foreach (var n in s.Grid.GetNeighbors(current))
+			{
+				var td = s.Grid.GetTile(n);
+				if (td == null || !td.CanEnter(unit))
+					continue;
+				int d = s.Grid.Distance(anchor, n);
+				if (toward ? d < bestDist : d > bestDist)
+				{ bestDist = d; best = td; }
+			}
+
+			if (best == null)
+			{ blocked = true; break; }
+
+			unit.CurrentTile.ClearOccupant(unit);
+			unit.PlaceOnTile(best);
+			moved++;
+		}
+		return moved;
+	}
+
+	/// <summary>Summons and configures a spirit at (or, when occupied, adjacent to) a tile. Mirrors SummonSpiritEffect's occupancy fallback. Returns the spirit or null.</summary>
+	public static Unit SpawnSpirit(GameState s, string kind, TileData tile, int team,
+		int hp, int damage, int speed, string sourceName = null)
+	{
+		if (s?.OnSummonRequested == null || tile == null)
+			return null;
+
+		TileData spawnTile = tile;
+		if (tile.IsOccupied && s.Grid != null)
+		{
+			spawnTile = null;
+			foreach (var n in s.Grid.GetNeighbors(tile.Axial))
+			{
+				var nt = s.Grid.GetTile(n);
+				if (nt != null && nt.IsWalkable && !nt.IsBlocked && !nt.IsOccupied)
+				{ spawnTile = nt; break; }
+			}
+			if (spawnTile == null)
+			{
+				s.Log($"[SpawnSpirit] {tile.Axial} occupied and no adjacent tile free — blocked.");
+				return null;
+			}
+		}
+
+		var spirit = s.OnSummonRequested(kind, spawnTile, team);
+		if (spirit == null)
+			return null;
+
+		spirit.IsSpirit = true;
+		spirit.SummonerTeamId = team;
+		spirit.Stats.MaxHealth = hp;
+		spirit.Stats.Health = hp;
+		spirit.Stats.BaseSpeed = speed;
+		spirit.AttackDamage = damage;
+		spirit.ApplySpiritAppearance();
+		s.Log($"[SpawnSpirit] {sourceName ?? kind} rises at {spawnTile.Axial} ({hp}HP {damage}DMG).");
+		return spirit;
+	}
+
+	/// <summary>All living enemy units of the caster's team.</summary>
+	public static List<Unit> LivingEnemies(GameState s, Unit casterUnit)
+		=> s.UnitsInPlay.Where(u => u != null && u.Stats.IsAlive
+			&& u.CurrentTile != null && u.TeamId != casterUnit.TeamId).ToList();
+
+	/// <summary>All living friendly spirits of the caster's team.</summary>
+	public static List<Unit> FriendlySpirits(GameState s, Unit casterUnit)
+		=> s.UnitsInPlay.Where(u => u != null && u.IsSpirit && u.Stats.IsAlive
+			&& u.SummonerTeamId == casterUnit.TeamId).ToList();
+}
+
+/// <summary>
+/// Into the Memory / Put Them in Place: moves each target onto its nearest
+/// memorial. Each memorial claims at most one target per cast, which is what
+/// makes tier 3's "each pushed to a separate memorial" hold with the same node.
+/// JSON: { "type": "pull_to_memorial", "range": 6 }
+/// </summary>
+public sealed class PullToMemorialEffect : EffectBase
+{
+	public int Range;
+	public PullToMemorialEffect(int range) { Range = range; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Grid == null || s.Memorials == null || targets == null)
+			return;
+
+		var claimed = new HashSet<TileData>();
+		foreach (var obj in targets.Items)
+		{
+			var victim = ResolveTargetUnit(s, obj);
+			if (victim?.CurrentTile == null)
+				continue;
+
+			var memorial = NecroEffectUtil.NearestMemorial(s, victim.CurrentTile.Axial, claimed, Range);
+			if (memorial == null)
+			{
+				s.Log($"[PullToMemorial] No unclaimed memorial within {Range} of {victim.Name}.");
+				continue;
+			}
+			claimed.Add(memorial);
+
+			int moved = NecroEffectUtil.StepRelativeTo(s, victim, memorial.Axial, 32, toward: true, out _);
+			bool landed = victim.CurrentTile == memorial;
+			s.Log($"[PullToMemorial] {victim.Name} dragged {moved} tile(s) — " +
+				  (landed ? "onto the memorial." : "toward the memorial."));
+		}
+	}
+}
+
+/// <summary>
+/// Congregation Pull / The Summoning: every enemy within range of the caster is
+/// moved N tiles toward its own nearest memorial.
+/// JSON: { "type": "pull_all_to_memorial", "range": 3, "tiles": 1 }
+/// </summary>
+public sealed class PullAllToMemorialEffect : EffectBase
+{
+	public int Range, Tiles;
+	public PullAllToMemorialEffect(int range, int tiles) { Range = range; Tiles = tiles; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit?.CurrentTile == null || s.Grid == null || s.Memorials == null)
+			return;
+
+		int affected = 0;
+		foreach (var enemy in NecroEffectUtil.LivingEnemies(s, casterUnit))
+		{
+			if (s.Grid.Distance(casterUnit.CurrentTile.Axial, enemy.CurrentTile.Axial) > Range)
+				continue;
+			var memorial = NecroEffectUtil.NearestMemorial(s, enemy.CurrentTile.Axial);
+			if (memorial == null)
+				continue;
+			NecroEffectUtil.StepRelativeTo(s, enemy, memorial.Axial, Tiles, toward: true, out _);
+			affected++;
+		}
+		s.Log($"[PullAllToMemorial] {affected} enemy(ies) drawn toward the memorials.");
+	}
+}
+
+/// <summary>
+/// The Great Wave: every enemy is pushed away from its nearest memorial;
+/// blocked pushes deal collision damage.
+/// JSON: { "type": "push_all_from_memorial", "tiles": 2, "collision_damage": 2 }
+/// </summary>
+public sealed class PushAllFromMemorialEffect : EffectBase
+{
+	public int Tiles, CollisionDamage;
+	public PushAllFromMemorialEffect(int tiles, int collisionDamage) { Tiles = tiles; CollisionDamage = collisionDamage; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Grid == null || s.Memorials == null)
+			return;
+
+		foreach (var enemy in NecroEffectUtil.LivingEnemies(s, casterUnit))
+		{
+			var memorial = NecroEffectUtil.NearestMemorial(s, enemy.CurrentTile.Axial);
+			if (memorial == null)
+				continue;
+			int moved = NecroEffectUtil.StepRelativeTo(s, enemy, memorial.Axial, Tiles, toward: false, out bool blocked);
+			if (blocked && CollisionDamage > 0)
+			{
+				enemy.ApplyDamage(CollisionDamage);
+				s.Log($"[GreatWave] {enemy.Name} thrown {moved} tile(s), collides for {CollisionDamage}.");
+			}
+			else
+				s.Log($"[GreatWave] {enemy.Name} thrown {moved} tile(s) from the memorial.");
+		}
+	}
+}
+
+/// <summary>
+/// The Trap Is Set: damages all enemies, then drags each toward its nearest
+/// memorial; any enemy ending on or beside a memorial takes the landing damage.
+/// JSON: { "type": "push_all_to_memorial", "damage_before": 5, "damage_on_land": 4 }
+/// </summary>
+public sealed class PushAllToMemorialEffect : EffectBase
+{
+	public int DamageBefore, DamageOnLand;
+	public PushAllToMemorialEffect(int damageBefore, int damageOnLand) { DamageBefore = damageBefore; DamageOnLand = damageOnLand; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Grid == null || s.Memorials == null)
+			return;
+
+		foreach (var enemy in NecroEffectUtil.LivingEnemies(s, casterUnit))
+		{
+			if (DamageBefore > 0)
+				enemy.ApplyDamage(DamageBefore);
+			if (!enemy.Stats.IsAlive || enemy.CurrentTile == null)
+				continue;
+
+			var memorial = NecroEffectUtil.NearestMemorial(s, enemy.CurrentTile.Axial);
+			if (memorial == null)
+				continue;
+
+			NecroEffectUtil.StepRelativeTo(s, enemy, memorial.Axial, 10, toward: true, out _);
+			bool landed = enemy.CurrentTile == memorial
+				|| s.Grid.Distance(enemy.CurrentTile.Axial, memorial.Axial) <= 1;
+			if (landed && DamageOnLand > 0)
+			{
+				enemy.ApplyDamage(DamageOnLand);
+				s.Log($"[TheTrap] {enemy.Name} lands in the memory — {DamageOnLand} damage.");
+			}
+		}
+	}
+}
+
+/// <summary>
+/// Last Words: the target is marked — dying while marked leaves a memorial of
+/// the given strength (resolved in CombatManager.HandleUnitDeath).
+/// JSON: { "type": "mark_on_death_memorial", "strength": "strong" }
+/// </summary>
+public sealed class MarkOnDeathMemorialEffect : EffectBase
+{
+	public MemorialStrength Strength;
+	public MarkOnDeathMemorialEffect(MemorialStrength strength) { Strength = strength; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		foreach (var obj in targets?.Items ?? new List<object>())
+		{
+			var victim = ResolveTargetUnit(s, obj);
+			if (victim == null)
+				continue;
+			victim.LeaveMemorialOnDeath = Strength;
+			s.Log($"[LastWords] {victim.Name} is marked — death will leave a {Strength} memorial.");
+		}
+	}
+}
+
+/// <summary>
+/// Many Voices / The Grand Seance: communes with every memorial in range —
+/// draw and gain Grief per memorial; optionally summon a spirit at each; the
+/// Grand Seance leaves the memorials standing (consume: false).
+/// JSON: { "type": "commune_all_memorials", "range": 3, "draw_per": 1, "grief_per": 1,
+///         "summon_per": { "unit": "Spirit", "hp": 8, "damage": 4, "speed": 1 }, "consume": false }
+/// </summary>
+public sealed class CommuneAllMemorialsEffect : EffectBase
+{
+	public int Range, DrawPer, GriefPer;
+	public bool Consume;
+	public string SummonUnit;   // null = no summon
+	public int SummonHp, SummonDamage, SummonSpeed;
+
+	public CommuneAllMemorialsEffect(int range, int drawPer, int griefPer, bool consume,
+		string summonUnit = null, int summonHp = 8, int summonDamage = 4, int summonSpeed = 1)
+	{
+		Range = range;
+		DrawPer = drawPer;
+		GriefPer = griefPer;
+		Consume = consume;
+		SummonUnit = summonUnit;
+		SummonHp = summonHp;
+		SummonDamage = summonDamage;
+		SummonSpeed = summonSpeed;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit?.CurrentTile == null || s.Memorials == null)
+			return;
+
+		var memorials = s.Memorials.GetMemorialsInRange(casterUnit.CurrentTile.Axial, Range);
+		int communed = 0;
+		foreach (var tile in memorials)
+		{
+			if (!tile.HasMemorial)
+				continue;
+			communed++;
+
+			if (DrawPer > 0 && casterUnit.DeckData != null)
+			{
+				casterUnit.DeckData.Draw(DrawPer);
+				s.OnDrawCards?.Invoke(casterUnit);
+			}
+			if (GriefPer > 0 && casterUnit.Attunement is GriefAttunement grief)
+				grief.GainCharges(GriefPer);
+			if (!string.IsNullOrEmpty(SummonUnit))
+				NecroEffectUtil.SpawnSpirit(s, SummonUnit, tile, casterUnit.TeamId,
+					SummonHp, SummonDamage, SummonSpeed, tile.Memorial?.SourceName);
+			if (Consume)
+				s.Memorials.ConsumeMemorial(tile);
+		}
+		s.Log($"[Commune] {communed} memorial(s) answered — drew {communed * DrawPer}, +{communed * GriefPer} Grief.");
+	}
+}
+
+/// <summary>
+/// The Garden / Consecrated Battlefield: Memorial Ground over an area — radius 99
+/// covers the whole board ("permanently" = duration 99, outliving any fight).
+/// JSON: { "type": "create_memorial_ground_area", "radius": 1, "duration": 5, "summon_discount": 2, "spirit_regen": 2 }
+/// </summary>
+public sealed class CreateMemorialGroundAreaEffect : EffectBase
+{
+	public int Radius, Duration, SummonDiscount, SpiritRegen;
+
+	public CreateMemorialGroundAreaEffect(int radius, int duration, int summonDiscount, int spiritRegen)
+	{
+		Radius = radius;
+		Duration = duration;
+		SummonDiscount = summonDiscount;
+		SpiritRegen = spiritRegen;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null || s.Grid == null)
+			return;
+		var casterUnit = s.ActiveCasterUnit;
+
+		TileData center = null;
+		if (targets?.Items?.Count > 0)
+			center = targets.Items[0] switch
+			{
+				TileData td => td,
+				Unit u => u.CurrentTile,
+				_ => null
+			};
+		center ??= casterUnit?.CurrentTile;
+		if (center == null)
+			return;
+
+		int count = 0;
+		foreach (var kvp in s.Grid.Tiles)
+		{
+			if (s.Grid.Distance(center.Axial, kvp.Key) > Radius)
+				continue;
+			var tile = kvp.Value;
+			s.Memorials.HallowTile(tile);
+			tile.SummonDiscount = SummonDiscount;
+			tile.SummonDiscountTurns = Duration;
+			count++;
+		}
+		s.Log($"[MemorialGround] {count} tile(s) consecrated (discount {SummonDiscount}, {Duration} turns).");
+	}
+}
+
+/// <summary>
+/// Grief Made Weapon: armor per Grief charge spent by the preceding discharge.
+/// Reads GameState.LastGriefSpent (set by GriefDischargeDamageEffect).
+/// JSON: { "type": "armor_per_grief_spent", "amount_per": 1 }
+/// </summary>
+public sealed class ArmorPerGriefSpentEffect : EffectBase
+{
+	public int AmountPer;
+	public ArmorPerGriefSpentEffect(int amountPer) { AmountPer = amountPer; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
+		int armor = s.LastGriefSpent * AmountPer;
+		if (armor > 0)
+		{
+			casterUnit.Stats.Armor += armor;
+			casterUnit.RefreshHealthBar();
+		}
+		s.Log($"[GriefMadeWeapon] {s.LastGriefSpent} Grief spent × {AmountPer} = {armor} armor.");
+	}
+}
+
+/// <summary>
+/// Grief Drain: gain 1 Grief per N damage dealt by the preceding step.
+/// JSON: { "type": "grief_per_damage", "damage_per_grief": 3 }
+/// </summary>
+public sealed class GriefPerDamageEffect : EffectBase
+{
+	public int DamagePerGrief;
+	public GriefPerDamageEffect(int damagePerGrief) { DamagePerGrief = Math.Max(1, damagePerGrief); }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.ActiveCasterUnit?.Attunement is not GriefAttunement grief)
+			return;
+		int gained = s.LastDamageDealt / DamagePerGrief;
+		if (gained > 0)
+			grief.GainCharges(gained);
+		s.Log($"[GriefDrain] {s.LastDamageDealt} damage → +{gained} Grief.");
+	}
+}
+
+/// <summary>
+/// Soul Flood's rider: heals the caster for a fraction of the total damage the
+/// preceding step dealt across all targets (DealDamage/AoeAll record the total).
+/// JSON: { "type": "heal_fraction_of_total_damage", "fraction": 1.0 }
+/// </summary>
+public sealed class HealFractionOfTotalDamageEffect : EffectBase
+{
+	public float Fraction;
+	public HealFractionOfTotalDamageEffect(float fraction) { Fraction = fraction; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
+		int heal = (int)(s.LastDamageDealt * Fraction);
+		if (heal > 0)
+		{
+			casterUnit.Stats.Health = Math.Min(casterUnit.Stats.MaxHealth, casterUnit.Stats.Health + heal);
+			casterUnit.RefreshHealthBar();
+		}
+		s.Log($"[SoulFlood] Healed {heal} ({Fraction:P0} of {s.LastDamageDealt} total damage).");
+	}
+}
+
+/// <summary>
+/// The Exchange: heals the friendly spirit with the most missing HP.
+/// JSON: { "type": "heal_most_damaged_spirit", "amount": 4 }
+/// </summary>
+public sealed class HealMostDamagedSpiritEffect : EffectBase
+{
+	public int Amount;
+	public HealMostDamagedSpiritEffect(int amount) { Amount = amount; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
+
+		Unit worst = null;
+		int worstMissing = 0;
+		foreach (var spirit in NecroEffectUtil.FriendlySpirits(s, casterUnit))
+		{
+			int missing = spirit.Stats.MaxHealth - spirit.Stats.Health;
+			if (missing > worstMissing)
+			{ worstMissing = missing; worst = spirit; }
+		}
+
+		if (worst == null)
+		{
+			s.Log("[Exchange] No wounded spirit to heal.");
+			return;
+		}
+		worst.Stats.Health = Math.Min(worst.Stats.MaxHealth, worst.Stats.Health + Amount);
+		worst.RefreshHealthBar();
+		s.Log($"[Exchange] {worst.Name} heals {Amount}.");
+	}
+}
+
+/// <summary>
+/// Overflowing: if Grief exceeds 4 charges, every friendly spirit's HP is
+/// fully restored.
+/// JSON: { "type": "grief_overflow_heal_spirits" }
+/// </summary>
+public sealed class GriefOverflowHealSpiritsEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit?.Attunement is not GriefAttunement grief)
+			return;
+		if (grief.Charges <= 4)
+		{
+			s.Log($"[Overflowing] Grief {grief.Charges} — no overflow.");
+			return;
+		}
+		int refreshed = 0;
+		foreach (var spirit in NecroEffectUtil.FriendlySpirits(s, casterUnit))
+		{
+			spirit.Stats.Health = spirit.Stats.MaxHealth;
+			spirit.RefreshHealthBar();
+			refreshed++;
+		}
+		s.Log($"[Overflowing] Grief overflows — {refreshed} spirit(s) fully restored.");
+	}
+}
+
+/// <summary>
+/// Total Communion: deals damage equal to each target's missing HP. Records the
+/// total so heal_equal_to_damage_dealt can follow.
+/// JSON: { "type": "damage_equal_to_missing_hp" }
+/// </summary>
+public sealed class DamageEqualToMissingHpEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (targets == null)
+			return;
+		int total = 0;
+		foreach (var obj in targets.Items)
+		{
+			var victim = ResolveTargetUnit(s, obj);
+			if (victim == null || !victim.Stats.IsAlive)
+				continue;
+			int missing = victim.Stats.MaxHealth - victim.Stats.Health;
+			if (missing <= 0)
+				continue;
+			victim.ApplyDamage(missing);
+			total += missing;
+			s.Log($"[TotalCommunion] {victim.Name} takes {missing} (missing HP).");
+		}
+		if (total > 0)
+			s.LastDamageDealt = total;
+	}
+}
+
+/// <summary>
+/// The Song That Ends All Things: the dirge hits every enemy on the board;
+/// enemies adjacent to a friendly spirit take multiplied damage; all are pushed
+/// away from their nearest spirit/memorial origin.
+/// JSON: { "type": "dirge_pulse_global", "damage": 4, "push": 2, "collision_damage": 3, "adjacent_spirit_multiplier": 2 }
+/// </summary>
+public sealed class DirgePulseGlobalEffect : EffectBase
+{
+	public int Damage, Push, CollisionDamage, AdjacentSpiritMultiplier;
+
+	public DirgePulseGlobalEffect(int damage, int push, int collisionDamage, int adjacentSpiritMultiplier)
+	{
+		Damage = damage;
+		Push = push;
+		CollisionDamage = collisionDamage;
+		AdjacentSpiritMultiplier = Math.Max(1, adjacentSpiritMultiplier);
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Grid == null)
+			return;
+
+		// Pulse origins: friendly spirits and memorials.
+		var origins = new List<Vector2I>();
+		foreach (var spirit in NecroEffectUtil.FriendlySpirits(s, casterUnit))
+			if (spirit.CurrentTile != null)
+				origins.Add(spirit.CurrentTile.Axial);
+		if (s.Memorials != null)
+			foreach (var tile in s.Memorials.GetAllMemorials())
+				origins.Add(tile.Axial);
+
+		var spirits = NecroEffectUtil.FriendlySpirits(s, casterUnit);
+		foreach (var enemy in NecroEffectUtil.LivingEnemies(s, casterUnit))
+		{
+			bool nearSpirit = spirits.Any(sp => sp.CurrentTile != null
+				&& s.Grid.Distance(sp.CurrentTile.Axial, enemy.CurrentTile.Axial) <= 1);
+			int dmg = nearSpirit ? Damage * AdjacentSpiritMultiplier : Damage;
+			enemy.ApplyDamage(dmg);
+			s.Log($"[TheSong] {enemy.Name} takes {dmg}{(nearSpirit ? " (the spirits sing close)" : "")}.");
+
+			if (!enemy.Stats.IsAlive || enemy.CurrentTile == null || Push <= 0 || origins.Count == 0)
+				continue;
+
+			var nearest = origins.OrderBy(o => s.Grid.Distance(o, enemy.CurrentTile.Axial)).First();
+			NecroEffectUtil.StepRelativeTo(s, enemy, nearest, Push, toward: false, out bool blocked);
+			if (blocked && CollisionDamage > 0)
+				enemy.ApplyDamage(CollisionDamage);
+		}
+	}
+}
+
+/// <summary>
+/// The Grand Procession: every friendly spirit teleports to its nearest
+/// memorial (or beside it when occupied). Memorials are not consumed.
+/// JSON: { "type": "teleport_all_spirits_to_nearest_memorial" }
+/// </summary>
+public sealed class TeleportAllSpiritsToNearestMemorialEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Grid == null || s.Memorials == null)
+			return;
+
+		foreach (var spirit in NecroEffectUtil.FriendlySpirits(s, casterUnit))
+		{
+			if (spirit.CurrentTile == null)
+				continue;
+			var memorial = NecroEffectUtil.NearestMemorial(s, spirit.CurrentTile.Axial);
+			if (memorial == null)
+				continue;
+
+			TileData dest = memorial.CanEnter(spirit) ? memorial : null;
+			if (dest == null)
+				foreach (var n in s.Grid.GetNeighbors(memorial.Axial))
+				{
+					var nt = s.Grid.GetTile(n);
+					if (nt != null && nt.CanEnter(spirit))
+					{ dest = nt; break; }
+				}
+			if (dest == null || dest == spirit.CurrentTile)
+				continue;
+
+			spirit.CurrentTile.ClearOccupant(spirit);
+			spirit.PlaceOnTile(dest);
+			s.Log($"[GrandProcession] {spirit.Name} steps to {dest.Axial}.");
+		}
+	}
+}
+
+/// <summary>
+/// Weight of Loss: bonus damage to the targets equal to AmountPer × memorials
+/// on the board (targeted sibling of damage_per_memorial_global).
+/// JSON: { "type": "damage_per_memorial", "amount_per": 1 }
+/// </summary>
+public sealed class TargetedDamagePerMemorialEffect : EffectBase
+{
+	public int AmountPer;
+	public TargetedDamagePerMemorialEffect(int amountPer) { AmountPer = amountPer; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null || targets == null)
+			return;
+		int damage = s.Memorials.CountMemorials() * AmountPer;
+		if (damage <= 0)
+			return;
+		foreach (var obj in targets.Items)
+		{
+			var victim = ResolveTargetUnit(s, obj);
+			if (victim == null || !victim.Stats.IsAlive)
+				continue;
+			victim.ApplyDamage(damage);
+			s.Log($"[WeightOfLoss] {victim.Name} takes {damage} (memorial weight).");
+		}
+	}
+}
+
+/// <summary>
+/// Chain of Being: the targeted friendly spirit (from Trade Places) swaps
+/// positions with its nearest enemy.
+/// JSON: { "type": "spirit_swap_with_nearest_enemy" }
+/// </summary>
+public sealed class SpiritSwapWithNearestEnemyEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Grid == null)
+			return;
+
+		Unit spirit = null;
+		foreach (var obj in targets?.Items ?? new List<object>())
+		{
+			var u = ResolveTargetUnit(s, obj);
+			if (u != null && u.IsSpirit && u.Stats.IsAlive && u.SummonerTeamId == casterUnit.TeamId)
+			{ spirit = u; break; }
+		}
+		if (spirit?.CurrentTile == null)
+		{
+			s.Log("[ChainOfBeing] No friendly spirit in the target set.");
+			return;
+		}
+
+		Unit enemy = NecroEffectUtil.LivingEnemies(s, casterUnit)
+			.OrderBy(e => s.Grid.Distance(spirit.CurrentTile.Axial, e.CurrentTile.Axial))
+			.FirstOrDefault();
+		if (enemy?.CurrentTile == null)
+			return;
+
+		var spiritTile = spirit.CurrentTile;
+		var enemyTile = enemy.CurrentTile;
+		spiritTile.ClearOccupant(spirit);
+		enemyTile.ClearOccupant(enemy);
+		spirit.PlaceOnTile(enemyTile);
+		enemy.PlaceOnTile(spiritTile);
+		s.Log($"[ChainOfBeing] {spirit.Name} swaps with {enemy.Name}.");
+	}
+}
+
+/// <summary>
+/// Mass Rites: damages all enemies; each kill performs the full rite — a
+/// memorial on the victim's tile, a spirit strike on one enemy adjacent to the
+/// victim, and a spirit summoned from that memorial (consuming it).
+/// JSON: { "type": "last_rite_aoe", "damage": 7, "spirit_strike": 5,
+///         "summon_on_kill": { "unit": "Spirit", "hp": 8, "damage": 4, "speed": 1 } }
+/// </summary>
+public sealed class LastRiteAoeEffect : EffectBase
+{
+	public int Damage, SpiritStrike;
+	public string SummonUnit;
+	public int SummonHp, SummonDamage, SummonSpeed;
+
+	public LastRiteAoeEffect(int damage, int spiritStrike,
+		string summonUnit, int summonHp, int summonDamage, int summonSpeed)
+	{
+		Damage = damage;
+		SpiritStrike = spiritStrike;
+		SummonUnit = summonUnit;
+		SummonHp = summonHp;
+		SummonDamage = summonDamage;
+		SummonSpeed = summonSpeed;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Grid == null)
+			return;
+
+		foreach (var enemy in NecroEffectUtil.LivingEnemies(s, casterUnit))
+		{
+			var victimTile = enemy.CurrentTile;
+			enemy.ApplyDamage(Damage);
+			if (enemy.Stats.IsAlive || victimTile == null)
+				continue;
+
+			// The rite: memorial, adjacent strike, the spirit rises.
+			s.Memorials?.CreateMemorial(victimTile, enemy.Name, wasAlly: false,
+				MemorialStrength.Solid, casterUnit.TeamId);
+
+			if (SpiritStrike > 0)
+			{
+				Unit adjacent = null;
+				foreach (var n in s.Grid.GetNeighbors(victimTile.Axial))
+				{
+					var occ = s.Grid.GetTile(n)?.Occupant;
+					if (occ != null && occ.Stats.IsAlive && occ.TeamId != casterUnit.TeamId)
+					{ adjacent = occ; break; }
+				}
+				if (adjacent != null)
+				{
+					adjacent.ApplyDamage(SpiritStrike);
+					s.Log($"[MassRites] The rite strikes {adjacent.Name} for {SpiritStrike}.");
+				}
+			}
+
+			if (!string.IsNullOrEmpty(SummonUnit) && victimTile.HasMemorial)
+			{
+				var spirit = NecroEffectUtil.SpawnSpirit(s, SummonUnit, victimTile,
+					casterUnit.TeamId, SummonHp, SummonDamage, SummonSpeed, enemy.Name);
+				if (spirit != null)
+					s.Memorials?.ConsumeMemorial(victimTile);
+			}
+		}
+	}
+}
+
+/// <summary>
+/// The Grand Departure: dismisses every friendly spirit; each bursts —
+/// damaging and pushing adjacent enemies — and leaves a memorial of the given
+/// strength on its tile.
+/// JSON: { "type": "mass_departure", "damage": 7, "push": 2, "collision_damage": 2, "memorial_strength": "strong" }
+/// </summary>
+public sealed class MassDepartureEffect : EffectBase
+{
+	public int Damage, Push, CollisionDamage;
+	public MemorialStrength Strength;
+
+	public MassDepartureEffect(int damage, int push, int collisionDamage, MemorialStrength strength)
+	{
+		Damage = damage;
+		Push = push;
+		CollisionDamage = collisionDamage;
+		Strength = strength;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Grid == null)
+			return;
+
+		foreach (var spirit in NecroEffectUtil.FriendlySpirits(s, casterUnit))
+		{
+			var origin = spirit.CurrentTile;
+			if (origin == null)
+				continue;
+
+			// Burst: adjacent enemies take damage and are pushed away.
+			foreach (var n in s.Grid.GetNeighbors(origin.Axial))
+			{
+				var occ = s.Grid.GetTile(n)?.Occupant;
+				if (occ == null || !occ.Stats.IsAlive || occ.TeamId == casterUnit.TeamId)
+					continue;
+				occ.ApplyDamage(Damage);
+				if (occ.Stats.IsAlive && Push > 0)
+				{
+					NecroEffectUtil.StepRelativeTo(s, occ, origin.Axial, Push, toward: false, out bool blocked);
+					if (blocked && CollisionDamage > 0)
+						occ.ApplyDamage(CollisionDamage);
+				}
+			}
+
+			// The spirit departs; its memory remains. Die() fires the normal
+			// death pipeline; the explicit memorial below strengthens if the
+			// death itself already left one.
+			spirit.Die();
+			s.Memorials?.CreateMemorial(origin, spirit.Name, wasAlly: true, Strength, casterUnit.TeamId);
+			s.Log($"[GrandDeparture] {spirit.Name} departs — the burst and the memorial remain.");
+		}
+	}
+}
+
+/// <summary>
+/// The Flood of Memory's draw rider: draw per memorial on the board.
+/// JSON: { "type": "draw_per_memorial_global", "count_per": 1 }
+/// </summary>
+public sealed class DrawPerMemorialGlobalEffect : EffectBase
+{
+	public int CountPer;
+	public DrawPerMemorialGlobalEffect(int countPer) { CountPer = countPer; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit?.DeckData == null || s.Memorials == null)
+			return;
+		int draw = s.Memorials.CountMemorials() * CountPer;
+		if (draw > 0)
+		{
+			casterUnit.DeckData.Draw(draw);
+			s.OnDrawCards?.Invoke(casterUnit);
+		}
+		s.Log($"[FloodOfMemory] Drew {draw} card(s).");
+	}
+}
+
+/// <summary>
+/// The Flood of Memory: every memorial on the board grows one step stronger.
+/// JSON: { "type": "strengthen_all_memorials" }
+/// </summary>
+public sealed class StrengthenAllMemorialsEffect : EffectBase
+{
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s?.Memorials == null)
+			return;
+		int count = 0;
+		foreach (var tile in s.Memorials.GetAllMemorials())
+		{
+			s.Memorials.StrengthenMemorial(tile);
+			count++;
+		}
+		s.Log($"[FloodOfMemory] {count} memorial(s) strengthened.");
+	}
+}
+
+/// <summary>
+/// Grief Made Flesh: summons a champion at the target memorial whose stats
+/// scale with the combined strength of the memorials the preceding
+/// consume_memorials_for_champion step consumed.
+/// JSON: { "type": "summon_spirit_scaled", "unit": "Revenant_Champion",
+///         "base_hp": 28, "base_damage": 10, "hp_per_strength": 4, "damage_per_strength": 2, "speed": 1 }
+/// </summary>
+public sealed class SummonSpiritScaledEffect : EffectBase
+{
+	public string UnitKind;
+	public int BaseHp, BaseDamage, HpPerStrength, DamagePerStrength, Speed;
+
+	public SummonSpiritScaledEffect(string unitKind, int baseHp, int baseDamage,
+		int hpPerStrength, int damagePerStrength, int speed)
+	{
+		UnitKind = unitKind;
+		BaseHp = baseHp;
+		BaseDamage = baseDamage;
+		HpPerStrength = hpPerStrength;
+		DamagePerStrength = damagePerStrength;
+		Speed = speed;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null)
+			return;
+
+		TileData tile = null;
+		foreach (var obj in targets?.Items ?? new List<object>())
+		{
+			tile = obj switch { TileData td => td, Unit u => u.CurrentTile, _ => null };
+			if (tile != null) break;
+		}
+		tile ??= casterUnit.CurrentTile;
+		if (tile == null)
+			return;
+
+		int strength = s.LastMemorialStrengthConsumed;
+		int hp = BaseHp + strength * HpPerStrength;
+		int dmg = BaseDamage + strength * DamagePerStrength;
+
+		var champion = NecroEffectUtil.SpawnSpirit(s, UnitKind, tile, casterUnit.TeamId, hp, dmg, Speed);
+		if (champion != null && tile.HasMemorial)
+			s.Memorials?.ConsumeMemorial(tile);
+		s.Log($"[GriefMadeFlesh] Champion rises with +{strength} combined strength ({hp}HP {dmg}DMG).");
+	}
+}
+
+/// <summary>
+/// Revenant Champion's consume step, done properly: consumes the nearest
+/// <c>count</c> memorials within <c>range</c> of the caster — excluding the
+/// cast's target tile so the champion still has a memorial to rise from — and
+/// records their combined strength for summon_spirit_scaled.
+/// JSON: { "type": "consume_memorials_for_champion", "count": 2, "range": 3 }
+/// </summary>
+public sealed class ConsumeMemorialsForChampionEffect : EffectBase
+{
+	public int Count, Range;
+	public ConsumeMemorialsForChampionEffect(int count, int range) { Count = count; Range = range; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit?.CurrentTile == null || s.Memorials == null || s.Grid == null)
+			return;
+
+		// The tile the champion will rise from is spared.
+		TileData spared = null;
+		foreach (var obj in targets?.Items ?? new List<object>())
+		{
+			spared = obj switch { TileData td => td, Unit u => u.CurrentTile, _ => null };
+			if (spared != null) break;
+		}
+
+		var candidates = s.Memorials.GetMemorialsInRange(casterUnit.CurrentTile.Axial, Range)
+			.Where(t => t != spared)
+			.OrderBy(t => s.Grid.Distance(casterUnit.CurrentTile.Axial, t.Axial))
+			.Take(Count)
+			.ToList();
+
+		int strength = 0;
+		foreach (var tile in candidates)
+		{
+			strength += tile.Memorial?.StrengthValue ?? 0;
+			s.Memorials.ConsumeMemorial(tile);
+		}
+		s.LastMemorialStrengthConsumed = strength;
+		s.Log($"[Reckoning] {candidates.Count} memorial(s) consumed — combined strength {strength}.");
+	}
+}
+
+/// <summary>
+/// Legion of the Honored: consumes every memorial within range; one champion
+/// rises per two consumed, at the consumed sites.
+/// JSON: { "type": "consume_all_memorials_for_champions", "range": 3, "unit": "Revenant_Champion", "base_hp": 24, "base_damage": 8, "speed": 1 }
+/// </summary>
+public sealed class ConsumeAllMemorialsForChampionsEffect : EffectBase
+{
+	public int Range;
+	public string UnitKind;
+	public int BaseHp, BaseDamage, Speed;
+
+	public ConsumeAllMemorialsForChampionsEffect(int range, string unitKind, int baseHp, int baseDamage, int speed)
+	{
+		Range = range;
+		UnitKind = unitKind;
+		BaseHp = baseHp;
+		BaseDamage = baseDamage;
+		Speed = speed;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit?.CurrentTile == null || s.Memorials == null || s.Grid == null)
+			return;
+
+		var memorials = s.Memorials.GetMemorialsInRange(casterUnit.CurrentTile.Axial, Range)
+			.OrderBy(t => s.Grid.Distance(casterUnit.CurrentTile.Axial, t.Axial))
+			.ToList();
+
+		int champions = memorials.Count / 2;
+		foreach (var tile in memorials)
+			s.Memorials.ConsumeMemorial(tile);
+
+		for (int i = 0; i < champions; i++)
+			NecroEffectUtil.SpawnSpirit(s, UnitKind, memorials[i * 2], casterUnit.TeamId,
+				BaseHp, BaseDamage, Speed, "The Honored");
+
+		s.Log($"[Legion] {memorials.Count} memorial(s) consumed — {champions} champion(s) answer.");
+	}
+}
+
+/// <summary>
+/// All Rise: summons a spirit from every memorial created this turn (tracked by
+/// MemorialManager.CreatedSinceLastTick), consuming each.
+/// JSON: { "type": "summon_spirit_from_new_memorials", "unit": "Spirit", "hp": 8, "damage": 4, "speed": 1 }
+/// </summary>
+public sealed class SummonSpiritFromNewMemorialsEffect : EffectBase
+{
+	public string UnitKind;
+	public int HP, Damage, Speed;
+
+	public SummonSpiritFromNewMemorialsEffect(string unitKind, int hp, int damage, int speed)
+	{
+		UnitKind = unitKind;
+		HP = hp;
+		Damage = damage;
+		Speed = speed;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Memorials == null)
+			return;
+
+		int risen = 0;
+		foreach (var tile in s.Memorials.CreatedSinceLastTick.ToList())
+		{
+			if (!tile.HasMemorial)
+				continue;
+			var spirit = NecroEffectUtil.SpawnSpirit(s, UnitKind, tile, casterUnit.TeamId,
+				HP, Damage, Speed, tile.Memorial?.SourceName);
+			if (spirit != null)
+			{
+				s.Memorials.ConsumeMemorial(tile);
+				risen++;
+			}
+		}
+		s.Log($"[AllRise] {risen} spirit(s) rise from this turn's memorials.");
+	}
+}
+
+/// <summary>
+/// All of Them: spirits rise from every memorial AND from every tile a spirit
+/// fell on this combat (GameState.SpiritDeathTiles). Memorial rises reuse
+/// SummonSpiritFromAllMemorialsEffect; death-site rises spawn directly.
+/// JSON: { "type": "summon_spirit_from_all_memorials_and_death_sites", "unit": "Spirit",
+///         "hp_per_spirit": true, "base_hp": 4, "damage": 6, "speed": 1,
+///         "on_arrive_advance": 1, "bonus_damage_per_strength": 2, "inherit_memorial_name": true }
+/// </summary>
+public sealed class SummonSpiritFromAllMemorialsAndDeathSitesEffect : EffectBase
+{
+	public string UnitKind;
+	public int BaseHP, Damage, Speed;
+	public bool HpPerSpirit, InheritMemorialName;
+	public int AdvanceOnArrive, BonusDamagePerStrength;
+
+	public SummonSpiritFromAllMemorialsAndDeathSitesEffect(string kind, int baseHp, int damage, int speed,
+		bool hpPerSpirit, int advanceOnArrive, bool inheritMemorialName, int bonusDamagePerStrength)
+	{
+		UnitKind = kind;
+		BaseHP = baseHp;
+		Damage = damage;
+		Speed = speed;
+		HpPerSpirit = hpPerSpirit;
+		AdvanceOnArrive = advanceOnArrive;
+		InheritMemorialName = inheritMemorialName;
+		BonusDamagePerStrength = bonusDamagePerStrength;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Grid == null)
+			return;
+
+		// 1) Every memorial — existing effect does this correctly.
+		new SummonSpiritFromAllMemorialsEffect(UnitKind, BaseHP, Damage, Speed,
+			HpPerSpirit, AdvanceOnArrive, InheritMemorialName, BonusDamagePerStrength)
+			.Resolve(s, caster, targets, snap);
+
+		// 2) Every tile a spirit fell on this combat (deduplicated, must be free).
+		int risen = 0;
+		foreach (var coord in s.SpiritDeathTiles.Distinct().ToList())
+		{
+			var tile = s.Grid.GetTile(coord);
+			if (tile == null || tile.HasMemorial)
+				continue;   // memorial sites already handled above
+
+			int existing = s.UnitsInPlay.Count(u => u != null && u.IsSpirit
+				&& u.Stats.IsAlive && u.SummonerTeamId == casterUnit.TeamId);
+			int hp = HpPerSpirit ? Math.Max(1, BaseHP + existing) : BaseHP;
+
+			var spirit = NecroEffectUtil.SpawnSpirit(s, UnitKind, tile, casterUnit.TeamId,
+				hp, Damage, Speed, "The Fallen");
+			if (spirit != null)
+				risen++;
+		}
+		s.Log($"[AllOfThem] {risen} spirit(s) rise from where they fell.");
+	}
+}
+
+/// <summary>
+/// Spirit Trail / Ghost Road: grants movement; every tile the caster leaves
+/// this turn gains a Faint memorial. phase: true additionally lets the caster's
+/// movement zone traverse blocked/occupied tiles (Unit.IsPhasing, honored by
+/// the pathfinding zone functions); destinations must still be free.
+/// JSON: { "type": "imbue_path_memorial", "move": 3, "phase": true }
+/// </summary>
+public sealed class ImbuePathMemorialEffect : EffectBase
+{
+	public int MoveTiles;
+	public bool Phase;
+
+	public ImbuePathMemorialEffect(int moveTiles, bool phase)
+	{
+		MoveTiles = moveTiles;
+		Phase = phase;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Memorials == null)
+			return;
+
+		Action<TileData> onLeave = (leftTile) =>
+		{
+			if (leftTile == null || leftTile.HasMemorial)
+				return;
+			string trailName = casterUnit.DisplayName?.Length > 0 ? casterUnit.DisplayName : casterUnit.Name;
+			s.Memorials.CreateMemorial(leftTile, trailName,
+				wasAlly: true, MemorialStrength.Faint, casterUnit.TeamId);
+			s.Log($"[SpiritTrail] A memorial forms at {leftTile.Axial}.");
+		};
+
+		casterUnit.OnTileLeft += onLeave;
+		casterUnit.Stats.MovePoints += MoveTiles;
+		if (Phase)
+			casterUnit.IsPhasing = true;
+
+		s.Log($"[SpiritTrail] {casterUnit.Name} gains {MoveTiles} move" +
+			  (Phase ? " and walks between (phasing)." : "."));
+
+		s.OnTurnEndCleanups ??= new List<Action>();
+		s.OnTurnEndCleanups.Add(() =>
+		{
+			casterUnit.OnTileLeft -= onLeave;
+			casterUnit.IsPhasing = false;
+		});
+	}
+}
+
+/// <summary>
+/// Procession / The Guided: counts memorials the caster passes through for the
+/// rest of the turn and pays out at turn end — cards drawn or armor gained per
+/// memorial. Only memorials that existed when this resolved count, so a
+/// Spirit-Trail step doesn't pay for its own footprints.
+/// JSON: { "type": "draw_per_memorial_passed", "count_per": 1 }
+///       { "type": "armor_per_memorial_passed", "amount_per": 2 }
+/// </summary>
+public sealed class PerMemorialPassedEffect : EffectBase
+{
+	public int Per;
+	public bool GrantArmor;   // false = draw cards
+
+	public PerMemorialPassedEffect(int per, bool grantArmor)
+	{
+		Per = per;
+		GrantArmor = grantArmor;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit == null || s.Memorials == null)
+			return;
+
+		// Snapshot: only pre-existing memorials count as "passed through".
+		var preexisting = new HashSet<Vector2I>(
+			s.Memorials.GetAllMemorials().Select(t => t.Axial));
+
+		int passed = 0;
+		Action<TileData> onLeave = (leftTile) =>
+		{
+			if (leftTile != null && preexisting.Contains(leftTile.Axial))
+				passed++;
+		};
+
+		casterUnit.OnTileLeft += onLeave;
+		s.OnTurnEndCleanups ??= new List<Action>();
+		s.OnTurnEndCleanups.Add(() =>
+		{
+			casterUnit.OnTileLeft -= onLeave;
+			int amount = passed * Per;
+			if (amount <= 0)
+				return;
+			if (GrantArmor)
+			{
+				casterUnit.Stats.Armor += amount;
+				casterUnit.RefreshHealthBar();
+				s.Log($"[TheGuided] {passed} memorial(s) passed — +{amount} armor.");
+			}
+			else if (casterUnit.DeckData != null)
+			{
+				casterUnit.DeckData.Draw(amount);
+				s.OnDrawCards?.Invoke(casterUnit);
+				s.Log($"[Procession] {passed} memorial(s) passed — drew {amount}.");
+			}
+		});
+	}
+}
+
+/// <summary>
+/// Walk Between (Hollow Mantle tier 4): while active, every spell the caster
+/// casts heals all friendly spirits. Replaces the miswired hollow-mantle
+/// duplicate registration.
+/// JSON: { "type": "walk_between", "turns": 2, "spirit_heal_on_cast": 3 }
+/// </summary>
+public sealed class WalkBetweenPersistentEffect : PersistentEffect
+{
+	public int SpiritHealOnCast;
+
+	public WalkBetweenPersistentEffect(int turns, Entity owner, int spiritHealOnCast)
+	{
+		TurnsRemaining = turns;
+		Owner = owner;
+		SpiritHealOnCast = spiritHealOnCast;
+	}
+
+	public override void Tick(GameState s)
+	{
+		TurnsRemaining--;
+		s.Log($"[WalkBetween] {TurnsRemaining} turn(s) remaining.");
+	}
+
+	public override void OnSpellCast(GameState s, Unit casterUnit, TargetSet targets)
+	{
+		if (casterUnit == null || SpiritHealOnCast <= 0)
+			return;
+		int healed = 0;
+		foreach (var spirit in NecroEffectUtil.FriendlySpirits(s, casterUnit))
+		{
+			spirit.Stats.Health = Math.Min(spirit.Stats.MaxHealth,
+				spirit.Stats.Health + SpiritHealOnCast);
+			spirit.RefreshHealthBar();
+			healed++;
+		}
+		if (healed > 0)
+			s.Log($"[WalkBetween] The casting echoes between worlds — {healed} spirit(s) heal {SpiritHealOnCast}.");
+	}
+}
+
+/// <summary>Leaf that registers the WalkBetween aura.</summary>
+public sealed class WalkBetweenLeafEffect : EffectBase
+{
+	public int Turns, SpiritHealOnCast;
+
+	public WalkBetweenLeafEffect(int turns, int spiritHealOnCast)
+	{
+		Turns = turns;
+		SpiritHealOnCast = spiritHealOnCast;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new WalkBetweenPersistentEffect(Turns, caster, SpiritHealOnCast));
+		s.Log($"[WalkBetween] Active for {Turns} turns — spells heal spirits {SpiritHealOnCast}.");
+	}
+}

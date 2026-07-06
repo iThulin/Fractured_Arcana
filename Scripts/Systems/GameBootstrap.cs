@@ -7,9 +7,12 @@ using Godot;
 //                 prime any process-wide registries (currently:
 //                 the card database). Cheap to add new
 //                 initialization steps here — keeps that wiring
-//                 out of individual scenes.
+//                 out of individual scenes. Also hosts the dev
+//                 entry points for CardVerifier (F9 in debug
+//                 builds, or `--verify-cards` headless).
 // Layer:          System
-// Collaborators:  CardLoaderV2.cs (LoadCardsFromJson)
+// Collaborators:  CardLoaderV2.cs (LoadCardsFromJson),
+//                 CardVerifier.cs (dev verification pass)
 // See:            README §3 — startup sequence
 // ============================================================
 
@@ -20,5 +23,27 @@ public partial class GameBootstrap : Node
     {
         // Ensure card database is loaded before any gameplay scenes that rely on it.
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
+
+        // Headless verification: `godot --headless -- --verify-cards`
+        // Exit code 1 on any card error, so a script can gate on it.
+        foreach (var arg in OS.GetCmdlineUserArgs())
+        {
+            if (arg == "--verify-cards")
+            {
+                bool ok = CardVerifier.RunAndReport();
+                GetTree().Quit(ok ? 0 : 1);
+                return;
+            }
+        }
+    }
+
+    public override void _UnhandledKeyInput(InputEvent e)
+    {
+        // F9 in a debug build: run the card verification pass on demand.
+        if (OS.IsDebugBuild()
+            && e is InputEventKey k && k.Pressed && !k.Echo && k.Keycode == Key.F9)
+        {
+            CardVerifier.RunAndReport();
+        }
     }
 }

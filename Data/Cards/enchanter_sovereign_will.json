@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_sovereign_will",
-	"status": "wip",
+	"status": "ready",
 	"name": "Sovereign Will",
 	"school": "Enchanter",
 	"rarity": "Legendary",
@@ -10,8 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Permanently enchant 3 tiles as Sovereign Pillars: allies on them gain +2 to all stats, enemies adjacent deal 2 less and are Hexed if they end their turn there. Pillars cannot be destroyed.",
 		"tags": [
-			"enchantment",
-			"ward"
+			"enchant"
 		],
 		"targeting": {
 			"type": "tile",
@@ -31,8 +30,7 @@
 		"speed": "Instant",
 		"rules_text": "For 2 turns: at the start of each enemy turn, you choose where each enemy moves (up to 2 tiles). Enemies moved onto your glyphs trigger them.",
 		"tags": [
-			"enchantment",
-			"charm"
+			"enchant"
 		],
 		"targeting": {
 			"type": "self"

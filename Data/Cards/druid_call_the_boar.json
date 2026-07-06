@@ -1,6 +1,6 @@
 {
 	"id": "druid_call_the_boar",
-	"status": "wip",
+	"status": "ready",
 	"name": "Call the Boar",
 	"school": "Druid",
 	"rarity": "Uncommon",
@@ -10,9 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "A Boar charges from living ground (14HP 6DMG 3SPD).",
 		"tags": [
-			"growth",
-			"summon",
-			"beast"
+			"growth"
 		],
 		"targeting": {
 			"type": "tile",

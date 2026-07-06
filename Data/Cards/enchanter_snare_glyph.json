@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_snare_glyph",
-	"status": "wip",
+	"status": "ready",
 	"name": "Snare Glyph",
 	"school": "Enchanter",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters, root it 1 turn and deal 4 damage.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {
@@ -31,7 +31,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Teleport to any tile that has one of your glyphs on it. Draw 1 card.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

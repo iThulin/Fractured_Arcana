@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_time_lord",
-	"status": "wip",
+	"status": "ready",
 	"name": "Time Lord",
 	"school": "Chronomancer",
 	"rarity": "Legendary",
@@ -10,7 +10,7 @@
 		"speed": "Instant",
 		"rules_text": "Permanent: at the start of each turn, Rewind OR Fast-Forward one event (a spell, a death, a move).",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -25,7 +25,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Imbue the board with Temporal Decay: all units lose 4 HP/turn. Your spells gain +2 per active turn. Rest of fight.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"

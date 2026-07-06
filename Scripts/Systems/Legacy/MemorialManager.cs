@@ -14,6 +14,10 @@ public class MemorialManager
 
     private readonly HexGridManager _grid;
 
+    /// <summary>Memorial tiles created since the last Tick (i.e. "this turn").
+    /// Read by summon_spirit_from_new_memorials; cleared each Tick.</summary>
+    public readonly List<TileData> CreatedSinceLastTick = new();
+
     public MemorialManager(HexGridManager grid)
     {
         _grid = grid;
@@ -36,6 +40,7 @@ public class MemorialManager
         var strength = DetermineStrength(deceased);
 
         tile.Memorial = new MemorialData(name, wasAlly, strength, ownerTeamId);
+        CreatedSinceLastTick.Add(tile);
         OnMemorialCreated?.Invoke(tile);
     }
 
@@ -52,7 +57,15 @@ public class MemorialManager
         }
 
         tile.Memorial = new MemorialData(sourceName, wasAlly, strength, ownerTeamId);
+        CreatedSinceLastTick.Add(tile);
         OnMemorialCreated?.Invoke(tile);
+    }
+
+    /// <summary>Public strengthening for card effects (strengthen_all_memorials). Same rule as overlap-strengthening: caps at Strong.</summary>
+    public void StrengthenMemorial(TileData tile)
+    {
+        if (tile?.Memorial == null) return;
+        Strengthen(tile);
     }
 
     // ── Called by Hallowed Ground / Memorial Garden card effects ────
@@ -108,6 +121,8 @@ public class MemorialManager
     // ── Called at start of each turn ────────────────────────────────
     public void Tick()
     {
+        CreatedSinceLastTick.Clear();
+
         // Grid may not be assigned yet at first tick — skip silently
         if (_grid?.Tiles == null) return;
 

@@ -46,6 +46,12 @@ public sealed class GameState
     public int LastDamageDealt = 0;   // set by DealDamageEffect after each hit
     public int LastGriefSpent = 0;    // set by GriefDischargeDamageEffect
 
+    /// <summary>Combined StrengthValue of memorials consumed by the most recent consume_memorials_for_champion step. Read by summon_spirit_scaled.</summary>
+    public int LastMemorialStrengthConsumed = 0;
+
+    /// <summary>Tiles where friendly spirits have fallen this combat. Appended by HandleUnitDeath; read by summon_spirit_from_all_memorials_and_death_sites.</summary>
+    public List<Vector2I> SpiritDeathTiles = new();
+
     // ── Chronomancer systems ─────────────────────────────────────────────────
 
     /// <summary>

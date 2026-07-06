@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_prophecy",
-	"status": "wip",
+	"status": "ready",
 	"name": "Prophecy",
 	"school": "Chronomancer",
 	"rarity": "Rare",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Schedule: end of your 2nd turn from now, deal 14 to all enemies. Spend 1 Foresight to Fast-Forward.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -31,7 +31,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Look at top 4; set 2 aside. Next turn they're in hand and cost 1 less.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"

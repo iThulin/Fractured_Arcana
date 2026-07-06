@@ -1,6 +1,6 @@
 {
 	"id": "adept_field_step",
-	"status": "wip",
+	"status": "ready",
 	"name": "Field Step",
 	"school": "Adept",
 	"rarity": "Common",

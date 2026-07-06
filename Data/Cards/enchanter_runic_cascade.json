@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_runic_cascade",
-	"status": "wip",
+	"status": "ready",
 	"name": "Runic Cascade",
 	"school": "Enchanter",
 	"rarity": "Uncommon",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph within 4. When it triggers, it prepares a copy of itself on 2 adjacent tiles.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {
@@ -30,7 +30,7 @@
 		"speed": "Instant",
 		"rules_text": "Swap the positions of 2 of your prepared glyphs (their effects move with them).",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

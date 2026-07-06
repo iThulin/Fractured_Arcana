@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_maze_of_mirrors",
-	"status": "wip",
+	"status": "ready",
 	"name": "Maze of Mirrors",
 	"school": "Enchanter",
 	"rarity": "Rare",
@@ -10,8 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Create 4 illusory copies of yourself on nearby tiles (2 HP each). Enemies target you and the copies at random. A destroyed copy triggers its tile's glyph. Lasts 3 turns.",
 		"tags": [
-			"enchantment",
-			"charm"
+			"enchant"
 		],
 		"targeting": {
 			"type": "self"
@@ -30,7 +29,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Link all prepared glyphs on the board into a network. Triggering any one triggers them all in sequence, each with +1 cumulative damage.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

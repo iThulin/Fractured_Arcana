@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_temporal_anchor",
-	"status": "wip",
+	"status": "ready",
 	"name": "Temporal Anchor",
 	"school": "Chronomancer",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Mark your tile. For 2 turns you may snap back here as a free Reaction.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -26,7 +26,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Deal 4. If 2nd+ spell this turn, deal 8. If 3rd+, also draw a card.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "unit",

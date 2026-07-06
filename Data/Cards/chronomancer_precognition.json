@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_precognition",
-	"status": "wip",
+	"status": "ready",
 	"name": "Precognition",
 	"school": "Chronomancer",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Look at the top 3 cards. Keep 1 (costs 1 less), discard the rest. Gain 1 Foresight.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -28,7 +28,7 @@
 		"speed": "Instant",
 		"rules_text": "Target ally gains +2 movement this turn.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "unit",

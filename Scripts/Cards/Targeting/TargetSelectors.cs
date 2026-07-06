@@ -559,3 +559,34 @@ public sealed class SelectElementTileTarget : ITargetSelector
         return true;
     }
 }
+
+/// <summary>
+/// Selects the memorial tile nearest to the caster. Used by upgrade tiers that
+/// summon "at the nearest other memorial" — by resolution time the primary
+/// memorial has been consumed, so the nearest remaining one IS the other.
+/// JSON: { "type": "nearest_memorial" }
+/// </summary>
+public sealed class SelectNearestMemorialTarget : ITargetSelector
+{
+    public bool Select(GameState s, Entity caster, out TargetSet targets)
+    {
+        targets = new TargetSet();
+        if (s?.Grid == null || s.Memorials == null) return false;
+
+        var casterUnit = TargetingHelpers.FindCasterUnit(s, caster);
+        if (casterUnit?.CurrentTile == null) return false;
+
+        var center = casterUnit.CurrentTile.Axial;
+        TileData best = null;
+        int bestDist = int.MaxValue;
+        foreach (var tile in s.Memorials.GetAllMemorials())
+        {
+            int dist = s.Grid.Distance(center, tile.Axial);
+            if (dist < bestDist) { bestDist = dist; best = tile; }
+        }
+
+        if (best == null) return false;
+        targets.Items.Add(best);
+        return true;
+    }
+}

@@ -1,6 +1,6 @@
 {
 	"id": "adept_blink",
-	"status": "wip",
+	"status": "ready",
 	"name": "Blink",
 	"school": "Adept",
 	"rarity": "Common",

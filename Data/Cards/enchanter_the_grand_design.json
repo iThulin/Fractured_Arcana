@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_the_grand_design",
-	"status": "wip",
+	"status": "ready",
 	"name": "The Grand Design",
 	"school": "Enchanter",
 	"rarity": "Legendary",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "For the rest of the fight: whenever you prepare a glyph it is also prepared on all tiles within 1, and all your glyphs trigger twice.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {
@@ -28,7 +28,7 @@
 		"speed": "Instant",
 		"rules_text": "Prepare your glyph effects on every tile within 3 of you. Enemies in this zone deal half damage, take 2 per tile moved, and cannot teleport. Lasts 2 turns.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

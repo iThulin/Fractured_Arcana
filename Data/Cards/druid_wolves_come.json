@@ -1,6 +1,6 @@
 {
 	"id": "druid_wolves_come",
-	"status": "wip",
+	"status": "ready",
 	"name": "Wolves Come",
 	"school": "Druid",
 	"rarity": "Uncommon",
@@ -10,9 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Summon a Wolf beside living ground (12HP 5DMG 2SPD).",
 		"tags": [
-			"growth",
-			"summon",
-			"beast"
+			"growth"
 		],
 		"targeting": {
 			"type": "tile",
@@ -32,8 +30,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Summon Crows at the target tile (6HP 2DMG 4SPD).",
 		"tags": [
-			"summon",
-			"flock"
+			"growth"
 		],
 		"targeting": {
 			"type": "tile",

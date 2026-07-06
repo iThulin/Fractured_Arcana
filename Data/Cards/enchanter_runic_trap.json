@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_runic_trap",
-	"status": "wip",
+	"status": "ready",
 	"name": "Runic Trap",
 	"school": "Enchanter",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters, deal 5 damage.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {
@@ -29,7 +29,7 @@
 		"speed": "Instant",
 		"rules_text": "Move 2. Leave a glyph on your origin tile: the next ally to step on it gains 2 shield.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

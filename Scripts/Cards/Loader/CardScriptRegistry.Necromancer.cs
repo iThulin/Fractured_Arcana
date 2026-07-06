@@ -180,11 +180,12 @@ public static partial class CardScriptRegistry
         // { "type": "consume_memorials_for_champion", "count": 2, "range": 3 }
         RegisterEffect("consume_memorials_for_champion", n =>
         {
-            // For now, consume the nearest N memorials within range
-            // The champion summon is a separate summon_spirit step
+            // Consumes the nearest N memorials within range of the caster,
+            // sparing the cast's target tile (the champion rises there), and
+            // records combined strength for summon_spirit_scaled.
             int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 2;
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 3;
-            return new ConsumeMemorialEffect().WithTag("Terrain"); // simplified: consumes target memorial
+            return new ConsumeMemorialsForChampionEffect(count, range).WithTag("Terrain");
         });
 
         // Imbue target tile as Memorial Ground
@@ -448,13 +449,242 @@ public static partial class CardScriptRegistry
             return new HollowMantleLeafEffect(turns, armor).WithTag("Transform");
         });
 
-        // Walk Between 
-        // { "type": "hollow_mantle_bonus_armor", "turns": n, "armor": n, "bonus_armor": n }
+        // Walk Between (Hollow Mantle tier 4): spells heal all spirits while active.
+        // { "type": "walk_between", "turns": 2, "spirit_heal_on_cast": 3 }
+        // (Was a miswired hollow_mantle duplicate — fixed 2026-07-06.)
         RegisterEffect("walk_between", n =>
         {
             int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 2;
-            int armor = n.TryGetProperty("armor", out var a) ? a.GetInt32() : 14;
-            return new HollowMantleLeafEffect(turns, armor).WithTag("Transform");
+            int heal = n.TryGetProperty("spirit_heal_on_cast", out var h) ? h.GetInt32() : 3;
+            return new WalkBetweenLeafEffect(turns, heal).WithTag("Transform");
         });
+
+        // ═══════════════════════════════════════════════════════════
+        // Upgrade-tier backlog (2026-07-06) — contracts in
+        // docs/card_effect_backlog.md
+        // ═══════════════════════════════════════════════════════════
+
+        // { "type": "pull_to_memorial", "range": 6 }
+        RegisterEffect("pull_to_memorial", n =>
+            new PullToMemorialEffect(
+                n.TryGetProperty("range", out var r) ? r.GetInt32() : 6).WithTag("Movement"));
+
+        // { "type": "pull_all_to_memorial", "range": 3, "tiles": 1 }
+        RegisterEffect("pull_all_to_memorial", n =>
+            new PullAllToMemorialEffect(
+                n.TryGetProperty("range", out var r) ? r.GetInt32() : 3,
+                n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 1).WithTag("Movement"));
+
+        // { "type": "push_all_from_memorial", "tiles": 2, "collision_damage": 2 }
+        RegisterEffect("push_all_from_memorial", n =>
+            new PushAllFromMemorialEffect(
+                n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 2,
+                n.TryGetProperty("collision_damage", out var c) ? c.GetInt32() : 0).WithTag("Movement"));
+
+        // { "type": "push_all_to_memorial", "damage_before": 5, "damage_on_land": 4 }
+        RegisterEffect("push_all_to_memorial", n =>
+            new PushAllToMemorialEffect(
+                n.TryGetProperty("damage_before", out var db) ? db.GetInt32() : 0,
+                n.TryGetProperty("damage_on_land", out var dl) ? dl.GetInt32() : 0).WithTag("Movement"));
+
+        // { "type": "mark_on_death_memorial", "strength": "strong" }
+        RegisterEffect("mark_on_death_memorial", n =>
+        {
+            string strengthStr = n.TryGetProperty("strength", out var sv) ? sv.GetString() : "strong";
+            var strength = strengthStr switch
+            {
+                "faint" => MemorialStrength.Faint,
+                "solid" => MemorialStrength.Solid,
+                _ => MemorialStrength.Strong
+            };
+            return new MarkOnDeathMemorialEffect(strength).WithTag("Status");
+        });
+
+        // { "type": "commune_all_memorials", "range": 3, "draw_per": 1, "grief_per": 1,
+        //   "summon_per": { "unit": "Spirit", "hp": 8, "damage": 4, "speed": 1 }, "consume": false }
+        RegisterEffect("commune_all_memorials", n =>
+        {
+            int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 3;
+            int drawPer = n.TryGetProperty("draw_per", out var d) ? d.GetInt32() : 1;
+            int griefPer = n.TryGetProperty("grief_per", out var g) ? g.GetInt32() : 1;
+            bool consume = !n.TryGetProperty("consume", out var c) || c.GetBoolean();
+            string summonUnit = null;
+            int sHp = 8, sDmg = 4, sSpd = 1;
+            if (n.TryGetProperty("summon_per", out var sp) && sp.ValueKind == JsonValueKind.Object)
+            {
+                summonUnit = sp.TryGetProperty("unit", out var su) ? su.GetString() : "Spirit";
+                sHp = sp.TryGetProperty("hp", out var sh) ? sh.GetInt32() : 8;
+                sDmg = sp.TryGetProperty("damage", out var sd) ? sd.GetInt32() : 4;
+                sSpd = sp.TryGetProperty("speed", out var ss) ? ss.GetInt32() : 1;
+            }
+            return new CommuneAllMemorialsEffect(range, drawPer, griefPer, consume,
+                summonUnit, sHp, sDmg, sSpd).WithTag("Grief");
+        });
+
+        // { "type": "create_memorial_ground_area", "radius": 1, "duration": 5, "summon_discount": 2, "spirit_regen": 2 }
+        RegisterEffect("create_memorial_ground_area", n =>
+            new CreateMemorialGroundAreaEffect(
+                n.TryGetProperty("radius", out var r) ? r.GetInt32() : 1,
+                n.TryGetProperty("duration", out var d) ? d.GetInt32() : 5,
+                n.TryGetProperty("summon_discount", out var sd) ? sd.GetInt32() : 2,
+                n.TryGetProperty("spirit_regen", out var sr) ? sr.GetInt32() : 0).WithTag("Terrain"));
+
+        // { "type": "armor_per_grief_spent", "amount_per": 1 }
+        RegisterEffect("armor_per_grief_spent", n =>
+            new ArmorPerGriefSpentEffect(
+                n.TryGetProperty("amount_per", out var a) ? a.GetInt32() : 1).WithTag("Defense"));
+
+        // { "type": "grief_per_damage", "damage_per_grief": 3 }
+        RegisterEffect("grief_per_damage", n =>
+            new GriefPerDamageEffect(
+                n.TryGetProperty("damage_per_grief", out var d) ? d.GetInt32() : 3).WithTag("Grief"));
+
+        // { "type": "heal_fraction_of_total_damage", "fraction": 1.0 }
+        RegisterEffect("heal_fraction_of_total_damage", n =>
+            new HealFractionOfTotalDamageEffect(
+                n.TryGetProperty("fraction", out var f) ? f.GetSingle() : 1.0f).WithTag("Heal"));
+
+        // { "type": "heal_equal_to_damage_dealt" } — full-fraction alias
+        RegisterEffect("heal_equal_to_damage_dealt", _ =>
+            new HealFractionOfTotalDamageEffect(1.0f).WithTag("Heal"));
+
+        // { "type": "heal_most_damaged_spirit", "amount": 4 }
+        RegisterEffect("heal_most_damaged_spirit", n =>
+            new HealMostDamagedSpiritEffect(
+                n.TryGetProperty("amount", out var a) ? a.GetInt32() : 4).WithTag("Heal"));
+
+        // { "type": "grief_overflow_heal_spirits" }
+        RegisterEffect("grief_overflow_heal_spirits", _ =>
+            new GriefOverflowHealSpiritsEffect().WithTag("Heal"));
+
+        // { "type": "damage_equal_to_missing_hp" }
+        RegisterEffect("damage_equal_to_missing_hp", _ =>
+            new DamageEqualToMissingHpEffect().WithTag("Damage"));
+
+        // { "type": "dirge_pulse_global", "damage": 4, "push": 2, "collision_damage": 3, "adjacent_spirit_multiplier": 2 }
+        RegisterEffect("dirge_pulse_global", n =>
+            new DirgePulseGlobalEffect(
+                n.TryGetProperty("damage", out var d) ? d.GetInt32() : 4,
+                n.TryGetProperty("push", out var p) ? p.GetInt32() : 0,
+                n.TryGetProperty("collision_damage", out var c) ? c.GetInt32() : 0,
+                n.TryGetProperty("adjacent_spirit_multiplier", out var m) ? m.GetInt32() : 1).WithTag("Damage"));
+
+        // { "type": "teleport_all_spirits_to_nearest_memorial" }
+        RegisterEffect("teleport_all_spirits_to_nearest_memorial", _ =>
+            new TeleportAllSpiritsToNearestMemorialEffect().WithTag("Movement"));
+
+        // { "type": "damage_per_memorial", "amount_per": 1 } — targeted variant
+        RegisterEffect("damage_per_memorial", n =>
+            new TargetedDamagePerMemorialEffect(
+                n.TryGetProperty("amount_per", out var a) ? a.GetInt32() : 1).WithTag("Damage"));
+
+        // { "type": "spirit_swap_with_nearest_enemy" }
+        RegisterEffect("spirit_swap_with_nearest_enemy", _ =>
+            new SpiritSwapWithNearestEnemyEffect().WithTag("Movement"));
+
+        // { "type": "last_rite_aoe", "damage": 7, "spirit_strike": 5, "summon_on_kill": {...} }
+        RegisterEffect("last_rite_aoe", n =>
+        {
+            int damage = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 7;
+            int strike = n.TryGetProperty("spirit_strike", out var st) ? st.GetInt32() : 0;
+            string unit = null;
+            int hp = 8, dmg = 4, spd = 1;
+            if (n.TryGetProperty("summon_on_kill", out var sk) && sk.ValueKind == JsonValueKind.Object)
+            {
+                unit = sk.TryGetProperty("unit", out var su) ? su.GetString() : "Spirit";
+                hp = sk.TryGetProperty("hp", out var sh) ? sh.GetInt32() : 8;
+                dmg = sk.TryGetProperty("damage", out var sd2) ? sd2.GetInt32() : 4;
+                spd = sk.TryGetProperty("speed", out var ss) ? ss.GetInt32() : 1;
+            }
+            return new LastRiteAoeEffect(damage, strike, unit, hp, dmg, spd).WithTag("Damage");
+        });
+
+        // { "type": "mass_departure", "damage": 7, "push": 2, "collision_damage": 2, "memorial_strength": "strong" }
+        RegisterEffect("mass_departure", n =>
+        {
+            string strengthStr = n.TryGetProperty("memorial_strength", out var ms) ? ms.GetString() : "strong";
+            var strength = strengthStr switch
+            {
+                "faint" => MemorialStrength.Faint,
+                "solid" => MemorialStrength.Solid,
+                _ => MemorialStrength.Strong
+            };
+            return new MassDepartureEffect(
+                n.TryGetProperty("damage", out var d) ? d.GetInt32() : 7,
+                n.TryGetProperty("push", out var p) ? p.GetInt32() : 2,
+                n.TryGetProperty("collision_damage", out var c) ? c.GetInt32() : 0,
+                strength).WithTag("Damage");
+        });
+
+        // { "type": "draw_per_memorial_global", "count_per": 1 }
+        RegisterEffect("draw_per_memorial_global", n =>
+            new DrawPerMemorialGlobalEffect(
+                n.TryGetProperty("count_per", out var c) ? c.GetInt32() : 1).WithTag("CardDraw"));
+
+        // { "type": "strengthen_all_memorials" }
+        RegisterEffect("strengthen_all_memorials", _ =>
+            new StrengthenAllMemorialsEffect().WithTag("Terrain"));
+
+        // { "type": "summon_spirit_scaled", "unit": "...", "base_hp": 28, "base_damage": 10,
+        //   "hp_per_strength": 4, "damage_per_strength": 2, "speed": 1 }
+        RegisterEffect("summon_spirit_scaled", n =>
+            new SummonSpiritScaledEffect(
+                n.TryGetProperty("unit", out var u) ? u.GetString() : "Revenant_Champion",
+                n.TryGetProperty("base_hp", out var h) ? h.GetInt32() : 24,
+                n.TryGetProperty("base_damage", out var d) ? d.GetInt32() : 8,
+                n.TryGetProperty("hp_per_strength", out var hs) ? hs.GetInt32() : 0,
+                n.TryGetProperty("damage_per_strength", out var ds) ? ds.GetInt32() : 0,
+                n.TryGetProperty("speed", out var sp) ? sp.GetInt32() : 1).WithTag("Summon"));
+
+        // { "type": "consume_all_memorials_for_champions", "range": 3, "unit": "...", "base_hp": 24, "base_damage": 8, "speed": 1 }
+        RegisterEffect("consume_all_memorials_for_champions", n =>
+            new ConsumeAllMemorialsForChampionsEffect(
+                n.TryGetProperty("range", out var r) ? r.GetInt32() : 3,
+                n.TryGetProperty("unit", out var u) ? u.GetString() : "Revenant_Champion",
+                n.TryGetProperty("base_hp", out var h) ? h.GetInt32() : 24,
+                n.TryGetProperty("base_damage", out var d) ? d.GetInt32() : 8,
+                n.TryGetProperty("speed", out var sp) ? sp.GetInt32() : 1).WithTag("Summon"));
+
+        // { "type": "summon_spirit_from_new_memorials", "unit": "Spirit", "hp": 8, "damage": 4, "speed": 1 }
+        RegisterEffect("summon_spirit_from_new_memorials", n =>
+            new SummonSpiritFromNewMemorialsEffect(
+                n.TryGetProperty("unit", out var u) ? u.GetString() : "Spirit",
+                n.TryGetProperty("hp", out var h) ? h.GetInt32() : 8,
+                n.TryGetProperty("damage", out var d) ? d.GetInt32() : 4,
+                n.TryGetProperty("speed", out var sp) ? sp.GetInt32() : 1).WithTag("Summon"));
+
+        // { "type": "summon_spirit_from_all_memorials_and_death_sites", ... }
+        RegisterEffect("summon_spirit_from_all_memorials_and_death_sites", n =>
+            new SummonSpiritFromAllMemorialsAndDeathSitesEffect(
+                n.TryGetProperty("unit", out var u) ? u.GetString() : "Spirit",
+                n.TryGetProperty("base_hp", out var h) ? h.GetInt32() : 4,
+                n.TryGetProperty("damage", out var d) ? d.GetInt32() : 6,
+                n.TryGetProperty("speed", out var sp) ? sp.GetInt32() : 1,
+                n.TryGetProperty("hp_per_spirit", out var hps) && hps.GetBoolean(),
+                n.TryGetProperty("on_arrive_advance", out var oa) ? oa.GetInt32() : 0,
+                n.TryGetProperty("inherit_memorial_name", out var im) && im.GetBoolean(),
+                n.TryGetProperty("bonus_damage_per_strength", out var bd) ? bd.GetInt32() : 0).WithTag("Summon"));
+
+        // { "type": "imbue_path_memorial", "move": 3, "phase": true }
+        RegisterEffect("imbue_path_memorial", n =>
+            new ImbuePathMemorialEffect(
+                n.TryGetProperty("move", out var m) ? m.GetInt32() : 3,
+                n.TryGetProperty("phase", out var p) && p.GetBoolean()).WithTag("Movement"));
+
+        // { "type": "draw_per_memorial_passed", "count_per": 1 }
+        RegisterEffect("draw_per_memorial_passed", n =>
+            new PerMemorialPassedEffect(
+                n.TryGetProperty("count_per", out var c) ? c.GetInt32() : 1,
+                grantArmor: false).WithTag("CardDraw"));
+
+        // { "type": "armor_per_memorial_passed", "amount_per": 2 }
+        RegisterEffect("armor_per_memorial_passed", n =>
+            new PerMemorialPassedEffect(
+                n.TryGetProperty("amount_per", out var a) ? a.GetInt32() : 2,
+                grantArmor: true).WithTag("Defense"));
+
+        // Targeter: nearest memorial tile to the caster.
+        // { "type": "nearest_memorial" }
+        RegisterTargeter("nearest_memorial", _ => new SelectNearestMemorialTarget());
     }
 }

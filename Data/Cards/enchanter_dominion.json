@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_dominion",
-	"status": "wip",
+	"status": "ready",
 	"name": "Dominion",
 	"school": "Enchanter",
 	"rarity": "Rare",
@@ -10,8 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Name every enemy within 2 of the target for 1 turn (half damage, cannot move). Gain 2 Weave.",
 		"tags": [
-			"enchantment",
-			"charm"
+			"enchant"
 		],
 		"targeting": {
 			"type": "tile",
@@ -46,8 +45,7 @@
 		"speed": "Instant",
 		"rules_text": "Prepare wards on a 2-tile radius around you. Allies on them gain 4 armor and 3 shield. Lasts 3 turns.",
 		"tags": [
-			"enchantment",
-			"ward"
+			"enchant"
 		],
 		"targeting": {
 			"type": "self"

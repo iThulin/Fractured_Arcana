@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_compel",
-	"status": "wip",
+	"status": "ready",
 	"name": "Compel",
 	"school": "Enchanter",
 	"rarity": "Common",
@@ -10,8 +10,7 @@
 		"speed": "Instant",
 		"rules_text": "Pull an enemy 2 tiles toward you. If it lands on one of your glyphs, trigger it.",
 		"tags": [
-			"enchantment",
-			"charm"
+			"enchant"
 		],
 		"targeting": {
 			"type": "unit",
@@ -30,7 +29,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less. Draw 1 card.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

@@ -32,6 +32,8 @@ public static class ElementColors
         "temporal" => new Color("#1ABC9C"),
         "enchant"  => new Color("#E91E8C"),
         "construct"=> new Color("#F39C12"),
+        "growth"   => new Color("#2E8B57"),
+        "glyph"    => new Color("#C0A860"),
         _          => new Color("#888888"),
     };
 
@@ -48,6 +50,8 @@ public static class ElementColors
         "temporal" => "Temporal",
         "enchant"  => "Enchant",
         "construct"=> "Construct",
+        "growth"   => "Growth",
+        "glyph"    => "Glyph",
         _ => tag,
     };
 

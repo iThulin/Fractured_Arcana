@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_dispel_walk",
-	"status": "wip",
+	"status": "ready",
 	"name": "Dispel Walk",
 	"school": "Enchanter",
 	"rarity": "Common",
@@ -10,8 +10,7 @@
 		"speed": "Instant",
 		"rules_text": "Move 2. Remove 1 buff from each enemy you pass adjacent to.",
 		"tags": [
-			"enchantment",
-			"charm"
+			"enchant"
 		],
 		"targeting": {
 			"type": "self"
@@ -36,7 +35,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Deal 4 damage per prepared glyph you control (minimum 4).",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

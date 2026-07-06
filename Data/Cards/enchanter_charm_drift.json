@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_charm_drift",
-	"status": "wip",
+	"status": "ready",
 	"name": "Charm Drift",
 	"school": "Enchanter",
 	"rarity": "Common",
@@ -10,8 +10,7 @@
 		"speed": "Instant",
 		"rules_text": "Push an enemy 2 tiles in a direction you choose. If it lands on one of your glyphs, trigger it.",
 		"tags": [
-			"enchantment",
-			"charm"
+			"enchant"
 		],
 		"targeting": {
 			"type": "unit",
@@ -30,8 +29,7 @@
 		"speed": "Instant",
 		"rules_text": "Prepare a glyph on a tile within 4. Allies on this tile gain +4 armor. Lasts 3 turns. Gain 1 Weave.",
 		"tags": [
-			"enchantment",
-			"ward"
+			"enchant"
 		],
 		"targeting": {
 			"type": "tile",

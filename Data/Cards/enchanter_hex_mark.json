@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_hex_mark",
-	"status": "wip",
+	"status": "ready",
 	"name": "Hex Mark",
 	"school": "Enchanter",
 	"rarity": "Common",
@@ -10,8 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Apply Hex to an enemy (weakened, -damage) for 2 turns. Gain 1 Weave.",
 		"tags": [
-			"enchantment",
-			"charm"
+			"enchant"
 		],
 		"targeting": {
 			"type": "unit",
@@ -40,8 +39,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph within 4. Allies on it deal +2 damage. Lasts 3 turns.",
 		"tags": [
-			"enchantment",
-			"ward"
+			"enchant"
 		],
 		"targeting": {
 			"type": "tile",

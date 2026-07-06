@@ -1,6 +1,6 @@
 {
   "id": "adept_counterspell",
-  "status": "wip",
+  "status": "ready",
   "name": "Counterspell",
   "school": "Adept",
   "rarity": "Uncommon",

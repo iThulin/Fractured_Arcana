@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_afterimage",
-	"status": "wip",
+	"status": "ready",
 	"name": "Afterimage",
 	"school": "Chronomancer",
 	"rarity": "Uncommon",
@@ -10,7 +10,7 @@
 		"speed": "Instant",
 		"rules_text": "Create an Echo of your last-cast spell — it resolves again at half value.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -26,7 +26,7 @@
 		"speed": "Reaction",
 		"rules_text": "As you cast another spell: that spell is cast a second time.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"

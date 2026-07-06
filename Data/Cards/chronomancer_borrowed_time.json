@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_borrowed_time",
-	"status": "wip",
+	"status": "ready",
 	"name": "Borrowed Time",
 	"school": "Chronomancer",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Instant",
 		"rules_text": "Move 3 tiles. If 2nd+ action this turn, draw a card.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -45,7 +45,7 @@
 		"speed": "Reaction",
 		"rules_text": "When an enemy casts: that enemy is Slowed and you gain 1 Foresight.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "unit",

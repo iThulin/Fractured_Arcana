@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_fate_weaver",
-	"status": "wip",
+	"status": "ready",
 	"name": "Fate Weaver",
 	"school": "Enchanter",
 	"rarity": "Rare",
@@ -10,7 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph within 4. Whenever any spell is cast within 3 tiles of it, draw 1 card. Lasts 3 turns.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {
@@ -32,7 +32,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph on every unoccupied tile within 2 of you. Each deals 2 damage when an enemy enters.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

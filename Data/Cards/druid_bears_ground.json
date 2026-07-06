@@ -1,6 +1,6 @@
 {
 	"id": "druid_bears_ground",
-	"status": "wip",
+	"status": "ready",
 	"name": "The Bear's Ground",
 	"school": "Druid",
 	"rarity": "Rare",
@@ -10,9 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "At a patch of Old Growth, a Bear emerges (24HP 7DMG 1SPD).",
 		"tags": [
-			"growth",
-			"summon",
-			"beast"
+			"growth"
 		],
 		"targeting": {
 			"type": "tile",

@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_binding_chains",
-	"status": "wip",
+	"status": "ready",
 	"name": "Binding Chains",
 	"school": "Enchanter",
 	"rarity": "Uncommon",
@@ -10,8 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Name an enemy for 2 turns: it deals half damage and cannot move. Gain 1 Weave.",
 		"tags": [
-			"enchantment",
-			"charm"
+			"enchant"
 		],
 		"targeting": {
 			"type": "unit",
@@ -40,7 +39,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Prepare a glyph within 4. When an enemy enters, deal 5 and heal you for 5.",
 		"tags": [
-			"enchantment",
+			"enchant",
 			"glyph"
 		],
 		"targeting": {

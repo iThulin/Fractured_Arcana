@@ -998,3 +998,52 @@ public class AvatarAuraEffect : PersistentEffect
         s.Log($"[Avatar] Spell deals +{BonusDamage} bonus damage.");
     }
 }
+
+
+/// <summary>
+/// Elemental Sight / Grand Confluence (Worldshaper tiers 3-4): reads the land —
+/// gains one attunement charge per distinct element imbued on tiles within
+/// radius of the caster. Bypasses cast-driven opposition reduction (it is a
+/// reading, not a casting) via ElementalAttunement.GainCharge.
+/// JSON: { "type": "attunement_per_nearby_element", "radius": 3 }
+/// </summary>
+public sealed class AttunementPerNearbyElementEffect : EffectBase
+{
+	public int Radius;
+	public AttunementPerNearbyElementEffect(int radius) { Radius = radius; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		var casterUnit = s?.ActiveCasterUnit;
+		if (casterUnit?.CurrentTile == null || s.Grid == null)
+			return;
+		if (casterUnit.Attunement is not ElementalAttunement attunement)
+		{
+			s.Log("[ElementalSight] Caster has no elemental attunement.");
+			return;
+		}
+
+		var center = casterUnit.CurrentTile.Axial;
+		var found = new HashSet<ElementTag>();
+		foreach (var kvp in s.Grid.Tiles)
+		{
+			if (s.Grid.Distance(center, kvp.Key) > Radius)
+				continue;
+			ElementTag? tag = kvp.Value.ElementType switch
+			{
+				TileElementType.Fire => ElementTag.Fire,
+				TileElementType.Frost => ElementTag.Ice,
+				TileElementType.Lightning => ElementTag.Storm,
+				TileElementType.Earth => ElementTag.Earth,
+				_ => null
+			};
+			if (tag.HasValue)
+				found.Add(tag.Value);
+		}
+
+		foreach (var tag in found)
+			attunement.GainCharge(tag, 1);
+
+		s.Log($"[ElementalSight] {found.Count} element(s) read from the land — +1 charge each.");
+	}
+}

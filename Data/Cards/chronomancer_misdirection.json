@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_misdirection",
-	"status": "wip",
+	"status": "ready",
 	"name": "Misdirection",
 	"school": "Chronomancer",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Reaction",
 		"rules_text": "When an enemy targets you with a spell: redirect it to a random other enemy.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -26,7 +26,7 @@
 		"speed": "Reaction",
 		"rules_text": "When an enemy moves to attack an ally: redirect its charge to a tile you pick within 2.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "tile",

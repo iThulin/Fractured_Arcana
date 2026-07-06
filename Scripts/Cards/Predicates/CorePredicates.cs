@@ -470,3 +470,36 @@ public sealed class SpellsCastThisTurnPredicate : IPredicate
     public bool IsSatisfied(GameState s, Entity caster) =>
         s?.SpellsCastThisTurn >= Threshold;
 }
+
+
+/// <summary>
+/// True when the primary target currently has the given status (Supercooled:
+/// "shatters frozen enemies").
+/// JSON: { "type": "target_has_status", "status": "frozen" }
+/// </summary>
+public sealed class TargetHasStatusPredicate : IPredicate
+{
+    public string Status;
+    public TargetHasStatusPredicate(string status) { Status = status; }
+
+    public bool Evaluate(PredicateContext ctx)
+    {
+        if (ctx?.Targets == null || ctx.Targets.Items.Count == 0 || string.IsNullOrEmpty(Status))
+            return false;
+
+        foreach (var obj in ctx.Targets.Items)
+        {
+            var unit = obj switch
+            {
+                Unit u => u,
+                TileData td => td.Occupant,
+                _ => null
+            };
+            if (unit != null)
+                return unit.HasStatus(Status);
+        }
+        return false;
+    }
+
+    public bool IsSatisfied(GameState s, Entity caster) => false; // needs a target set
+}

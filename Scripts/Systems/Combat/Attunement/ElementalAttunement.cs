@@ -93,6 +93,22 @@ public class ElementalAttunement : ISchoolAttunement
 			Charges[key] = 0;
 	}
 
+	/// <summary>
+	/// Direct charge gain outside the cast pipeline (attunement_per_nearby_element —
+	/// reading the land, not casting). No opposition reduction; fires the same UI
+	/// events as cast-driven gains, including threshold events.
+	/// </summary>
+	public void GainCharge(ElementTag element, int amount = 1)
+	{
+		int oldValue = Charges[element];
+		Charges[element] = Math.Min(oldValue + amount, MaxCharges);
+		if (Charges[element] == oldValue)
+			return;
+		OnChargeChanged?.Invoke(element, Charges[element]);
+		for (int i = oldValue + 1; i <= Charges[element]; i++)
+			OnThresholdReached?.Invoke(element, i);
+	}
+
 	// ── Called when a spell with element tags is cast ────────────────
 	public List<AttunementEffect> OnSpellCast(string[] tags)
 	{

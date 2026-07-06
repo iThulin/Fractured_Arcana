@@ -1,0 +1,131 @@
+# Fractured Arcana — Build Order v3
+
+*Sequencing roadmap · 2026-07-06 · SUPERSEDES the sequencing in guild_expansion_action_plan (the "Guild of Wizards" six-phase plan). That document's guiding principles survive; its phase contents do not — it predates the single-world refactor, Court & Council, the unit registry, the overworld spell system, and the 2026-07-03 ballot rulings.*
+
+*Scope anchored in: single_world_refactor_v2 · court_council_system_v1_1 · archmage_unique_units_v1_2 · combat_ui_v2_1 · combat_environments_v1_1 · companion_item_systems_v2_1 · overworld_spell_system_v1_1.*
+
+---
+
+## 1. Where the Codebase Actually Is (audited 2026-07-06)
+
+| Track | Doc | Status in code |
+| --- | --- | --- |
+| World (1a–1c) | single_world_refactor §8 | **Done.** WorldGenerator, world array, StrategicView, expedition windows, zoom, corruption drain reading world tiles. |
+| World (Phase 2, living world) | single_world_refactor §8 | **Done / in verification.** CouncilTick + CorruptionSpread + kingdom drift live. |
+| Council C1–C3 | court_council §14 | **Done and verified** (C3 fully: call-ins, petitions, obligation decay, ledger persistence). |
+| Council C4 (Word Spreads) | court_council §14 | **Substantially complete.** Verification queue open: Sessions C, D, F + remaining regressions. |
+| Council C5–C6 | court_council §14 | **Not started.** CouncilTick line 264 explicitly defers thresholds to C5. |
+| Units U1–U6 | archmage_unique_units §13 | **Not started.** EnemyArchetypeData enum still drives spawns; no UnitRegistry, no Data/Units. |
+| Combat UI V1–V5 | combat_ui §14 | **Not started.** PriorityManager/stack exists in RulesManager (player-side), console-only. |
+| Environments E1–E3 | combat_environments §9 | **Not started.** R19 step costs LANDED (OverworldMovementCost has Hills/Desert/Tundra/Snow cases, tuned past the starting values). R4 deletion NOT done — ReclassifyTerrainPerRegion body still in WorldGenerator.cs. |
+| Companions K1–K5 | companion_item_systems §10 | **Not started.** ComputePartyBaseHP exists but is the OLD formula (full BaseHP, no floor/2, no loyalty bonus) — K1 is a change, not a creation. No injury state, no hiring halls, no Muster screen. |
+| Items Q1–Q5 | companion_item_systems §10 | **Q1 partial.** Equipment loadouts apply at spawn (BuildEquipmentLoadouts); passive dispatch still the old ItemPassiveTag path. Q2 blocked on U3. |
+| Spells S1–S6 | overworld_spell §14 | **Not started.** No Data/OverworldSpells, no GrimoireState. |
+| Card content | — | 162 cards: Elementalist set `ready` (20), all seven other schools `wip` (142, Adept and Tinker included). Tinker set complete per handoff package — merge + flip statuses. |
+| Authored content | — | Thin everywhere: 2 encounter pools, 2 negotiations, 6 buildings, 15 regions (most with nothing to route to). |
+
+**Explicitly deferred by ruling (do not build):** settlement combat module (R11, spec frozen in combat_environments §6), Grand Rituals (R14, interface frozen), campus interactions with spells (R6 — the campus rework owns them), arcane arc-signatures (v1 lock), enemy card-casting (follow-on after R3 stack).
+
+---
+
+## 2. Sequencing Principles
+
+1. **Finish the open thread before opening the next.** C4's verification queue is half-run; an unverified echo pipeline under three new systems is unfindable-bug territory.
+2. **Dependency edges are the order.** U1–U2 → V2 · U3 → V3 and Q2 · E1 → V4 · U6 → V5 · C5 → C6 · Tier C climaxes (C6) consume the negotiation encounter loader.
+3. **Migrations before content.** The U-track exists so that eight rosters, item procs, and future bosses land on one dispatcher. Author nothing against the enum that will die.
+4. **One playable loop at all times** (the one principle carried verbatim from the old plan). Every phase below ends at a verifiable state; U1's exit is behavioral parity, so the loop never breaks.
+5. **Design rulings are gates, not chores.** Where a phase has a "ruling due" flag, the ruling happens before the code.
+
+---
+
+## 3. Phase A — Close the Books (short)
+
+*Goal: no open verification, no queued patches, canonical card statuses.*
+
+- Finish the C4 verification queue: Sessions C, D, F + remaining regressions (E3 boundary landing first, it was mid-flight).
+- Rule the Finding 2 question (courier-station echo delay no-op under current tick ordering) — it decides whether Courier Station's court effect ships in C5 or gets respecced.
+- Land the queued live patches: delete ReclassifyTerrainPerRegion + its palette cache (R4); WorldDebug `k.Stance` already noted; CameraController HandleZoom clamp crash reproduction.
+- Merge the Tinker handoff package; flip Tinker card statuses `wip → ready`.
+- **The three-standing-systems ruling** (KingdomStance derived / FactionReputation / court standing): due here, because C5 (next-but-one) consumes it and K5's fitness vector reads it. This is the phase's real deliverable; everything else is closeout.
+
+**Exit:** C4 marked verified in the doc trail; ruling recorded; repo has no queued patches.
+
+---
+
+## 4. Phase B — The Reading Game (units + combat UI core)
+
+*Goal: enemies are data, abilities are on the stack, and the HUD can say so. This is the largest phase and the prerequisite for almost everything downstream (item triggers, boss content, corrupted variants, environment context).*
+
+Ordered deliverables:
+
+1. **V1** (no dependencies — start immediately, even in parallel with Phase A): canvas_items stretch + 1920×1080 design space, hand-bound migration, layout redistribution. Cheapest moment is before new elements exist.
+2. **U1**: UnitRegistry + UnitDefinition + five generic_* definitions + loader aliases + PendingEnemySpawn replacement. Exit = behavioral parity on one encounter of each tier + serialization round-trip.
+3. **U2**: BehaviorKey dispatch + the five tags + stalker. (This retires the deferred Druid wildlife dispatcher thread — it lands here as `pack`/`scout` etc., not as its own build.)
+4. **V2** (needs U1–U2): EnemyRosterRow, nameplates, faction-tinted bars, inspect blocks, threat-range overlay, deployment intel upgrade, ScoutReportPanel name pass-through.
+5. **U3** (the phase's heavy lift, R3 stack-first): stack objects, priority windows, auto-pass/stops, Long Table keys, conductor roster end-to-end. The existing PriorityManager is the foundation; U3 makes enemy triggers first-class on it.
+6. **V3** (tracks U3): ability state widgets, aura extents, log grammar via FormatLogLine, stack panel, R22 damage preview (real-resolver simulation mode).
+7. **Q1 completion** (independent, fits in the cracks): assert stat parity item-by-item at spawn — the "mostly broken" baseline fixed and *asserted*, so Q2 has a floor to stand on.
+
+**Exit:** Deathburst enters the stack, auto-passes with zero clicks when no response is held; a mixed line+elite encounter reads at every ladder rung; all pre-existing encounters fight identically to pre-migration.
+
+**Deliberately not in this phase:** rosters beyond the conductor (U4–U5), corrupted variants (U6), boss frame (V5), context strip (V4 — needs E1).
+
+---
+
+## 5. Phase C — People and Things (the demand economy)
+
+*Goal: the "I hire good people" pillar becomes mechanical: pool HP with loyalty, injury as the third demand, hiring in the world, item passives on the shared bus, and the intrigue tier of the court game.*
+
+1. **K1**: rewrite ComputePartyBaseHP to the v2.1 formula — `20 + Σ floor(BaseHP/2) + loyalty bonus (Devoted +2, Sworn +4)` — with pool readout at launch. Small diff, big tuning consequence; do it before K2 so injury math tunes against the real pool.
+2. **K2**: injury/death triggers (§5b tiers, Sworn −10 death) + infirmary recovery on the lunation tick (Training Grounds interim host per R24).
+3. **Q2** (needs U3, now done): item passives migrate to the trigger bus. One OnAttack, one OnSpawn, one Aura item through the shared handler map; procs in the log grammar.
+4. **Q3**: CorruptionWard/HazardWard + overworld/court passive families + the tier×2 cap and floor-1 rule.
+5. **K3**: recruitment v2 — hiring halls, procedural candidate matrix, dossier panel, rescue-POI recruits; campus-menu recruiting retired. Includes the **Muster screen** (§8) — party + loadout + (later) grimoire in one surface. Build Muster here even though grimoire slots are empty until Phase D; it's the natural host.
+6. **C5** (gated on the Phase A standing ruling): Rumor/Discredit, Exposure thresholds, Scandal/Expulsion, Imprisonment → Prison POI rescue, Court a Courtier + Patron token wiring into negotiation pools.
+
+**Exit:** a tier-2 wipe injures per the rolls and understaffs the next two lunations; a hired procedural candidate is visibly different from their cell-twin; CorruptionWard measurably reduces attrition under the cap; exposure 10 spawns a rescue expedition that works.
+
+**Watch item (from companion doc §1):** demand ratio 1.5–2× fieldable companions is a first-class tuning target from the moment K2+C5 both exist — this is the first phase where the player can be genuinely understaffed.
+
+---
+
+## 6. Phase D — The Magic Layer and the Court's Climax
+
+*Goal: wizards feel like wizards between fights, and the council layer completes its arc into the archmage pipeline.*
+
+1. **S1–S2**: spell schema/registry/GrimoireState/Essence pool → Grimoire panel, Essence bar, cast mode, player-school innates. (S1's save round-trip assertion is non-negotiable — the EchoesInFlight precedent.)
+2. **S3**: all eight school sets + companion-granted casting (+1 Essence, Adept waiver) — this retroactively enriches every K3 hiring decision.
+3. **U4–U5**: the remaining seven faction rosters + their ability keys, landing per-roster with V3's widgets already live.
+4. **E1–E3**: TerrainThemeMap + FrostSteppe/SunbakedBarrens; FeatureInjector (river edges, bridges, coasts, roads); corruption overlays. Then **V4** context strip (valence tags everywhere; Witnessed badge stays deferred with R11).
+5. **S4–S5**: acquisition (lore POIs, negotiation deals, scrolls) + echo/corruption integration (SpellcraftAid/Transgression, Parley Compulsion end-to-end).
+6. **C6**: Tier C interactive climaxes preloaded from court state; Broker the Compact → Allied; standing gates on Unite/Coerce; Astrologer agent + deflection + Expose the Agent; Hall of Records renown.
+
+**Exit:** the doc-specified full arc — build a court from Unknown to Trusted across a cycle and Unite an archmage entirely through the council layer — plus an Overt necromantic cast landing a traceable echo, plus every generator terrain launching onto a real theme.
+
+---
+
+## 7. Later (sketched, not scheduled)
+
+- **U6 + V5**: corrupted variant selector, Keeper bleed-through, boss retinues, betrayal second-phase swaps, boss frame. Then the **archmagi-as-units** content pass (explicitly after combat_ui per units §9).
+- **Q4–Q5**: city markets, favor redemptions, blighted items + Workshop Cleanse, 8 authored relics; enchanting tiers + signature binding.
+- **K4–K5**: loyalty delta hooks, Trusted perks, ArcStage signatures; fitness vector into court missions (blocked on the CouncilVocab casing verification).
+- **Card content push**: 142 `wip` → `ready` school by school — schedule as authoring blocks, one school per block, against live telemetry.
+- **Authored content debt**: encounter pools and negotiations for the 13 regions that have none; buildings 6 → the campus rework's target set.
+- **The campus rework** (R6): owns spell grants/upgrades, Essence modifiers, infirmary's final home, building set. Blocked on its own design doc — the old guild_campus_v2 is pre-refactor and should be superseded, not implemented.
+- **Settlement combat un-defer** (R11): E4–E5 + §6d echo escalations, spec frozen.
+- **Grand Rituals** (R14): frozen interface, later cycle.
+- **Weather layer**: owns snow/sand movement mechanics (R19's costs are placeholders for it) and returns Stormcall.
+- **Cycle endgame / final battle**: the convergence doc predates the Kassian/Conjunction frame in the newer docs; needs its own supersession pass before any endgame build.
+- Unruled: enemy overworld casting (spell doc §15 #10); Tinker construct/summon convergence into UnitRegistry (units §14 #7, "after U6").
+
+---
+
+## 8. Risks Specific to This Ordering
+
+| Risk | Note |
+| --- | --- |
+| U3 scope (stack-first, per R3 against the units doc's own recommendation) | It is the critical path for V3, Q2, and all roster content. If it balloons, everything queues behind it. Mitigation: U3's scope is exactly one roster's keys; resist landing U4 keys "while in there." |
+| Phase B is UI+plumbing with little new player-facing content | Accepted: it is the enabling investment for every content phase after it. The Tinker/card status merge in Phase A keeps some content motion visible. |
+| Three new systems (units, spells, injuries) all writing save data | Save-file paranoia rule applies to each: round-trip assertion per new struct, including mid-expedition saves, before the phase closes. |
+| Demand-economy tuning (K2 + C5 + envoys) can strand a playtest roster | Tune the injury durations and death percentages against the 1.5–2× ratio target, and keep the Sworn armor visible in the dossier so the player can reason about risk. |
+| The old action plan's phase names still circulate | This document supersedes its sequencing; mark the old doc superseded in the repo per the one-authoritative-doc rule. |

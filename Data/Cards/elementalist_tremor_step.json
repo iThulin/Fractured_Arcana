@@ -17,7 +17,7 @@
 		},
 		"effect": {
 			"type": "imbue_path",
-			"element": "stone",
+			"element": "earth",
 			"move": 2,
 			"armor_per_tile": 3
 		}
@@ -100,7 +100,7 @@
 						"steps": [
 							{
 								"type": "imbue_path",
-								"element": "stone",
+								"element": "earth",
 								"move": 3,
 								"armor_per_tile": 4
 							},
@@ -179,7 +179,7 @@
 						"steps": [
 							{
 								"type": "imbue_path",
-								"element": "stone",
+								"element": "earth",
 								"move": 3,
 								"armor_per_tile": 4
 							},
@@ -273,7 +273,7 @@
 						"steps": [
 							{
 								"type": "imbue_path",
-								"element": "stone",
+								"element": "earth",
 								"move": 4,
 								"armor_per_tile": 5
 							},

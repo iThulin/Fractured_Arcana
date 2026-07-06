@@ -1,6 +1,6 @@
 {
 	"id": "druid_heart_of_the_wood",
-	"status": "wip",
+	"status": "ready",
 	"name": "Heart of the Wood",
 	"school": "Druid",
 	"rarity": "Legendary",
@@ -10,9 +10,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Seed Thicket within 1, then a Bear and a Wolf emerge. Gain 1 Wilding.",
 		"tags": [
-			"growth",
-			"summon",
-			"beast"
+			"growth"
 		],
 		"targeting": {
 			"type": "tile",
@@ -47,9 +45,7 @@
 		"speed": "Sorcery",
 		"rules_text": "Two Wolves emerge beside living ground (12HP 5DMG 2SPD each).",
 		"tags": [
-			"growth",
-			"summon",
-			"beast"
+			"growth"
 		],
 		"targeting": {
 			"type": "tile",

@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_sands_of_time",
-	"status": "wip",
+	"status": "ready",
 	"name": "Sands of Time",
 	"school": "Chronomancer",
 	"rarity": "Common",
@@ -10,7 +10,7 @@
 		"speed": "Instant",
 		"rules_text": "Advance one of your scheduled spells — it resolves at the end of this turn.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
@@ -25,7 +25,7 @@
 		"speed": "Reaction",
 		"rules_text": "When an enemy casts: that spell resolves one turn later instead of now.",
 		"tags": [
-			"time"
+			"temporal"
 		],
 		"targeting": {
 			"type": "self"
