@@ -29,7 +29,7 @@ public partial class HexGridManager
             return result;  // no AP = no highlights
 
         var start = unit.CurrentTile.Axial;
-        int budget = unit.Stats.BaseSpeed;  // always BaseSpeed, not MovePoints
+        int budget = unit.EffectiveMovement(unit.Stats.BaseSpeed);  // BaseSpeed, adjusted for movement statuses
 
         var frontier = new Queue<(Vector2I coord, int costUsed)>();
         var bestCost = new Dictionary<Vector2I, int> { [start] = 0 };
@@ -82,7 +82,7 @@ public partial class HexGridManager
             return result;
 
         var start = unit.CurrentTile.Axial;
-        int maxMove = unit.MoveRange;
+        int maxMove = unit.EffectiveMoveRange;   // MoveRange, adjusted for movement statuses
 
         // Priority queue: (coord, costSoFar) ordered by lowest cost first
         var frontier = new PriorityQueue<Vector2I, int>();

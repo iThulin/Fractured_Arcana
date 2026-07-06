@@ -687,6 +687,13 @@ public partial class CombatManager : Node3D
         {
             if (current is Unit unit)
             {
+                // The Dance (last_rite tier 4): while the caster carries `dancing`,
+                // Shift+click swaps the selected eligible mover with this unit
+                // (another eligible mover, or any enemy) as a free action.
+                if (Input.IsKeyPressed(Key.Shift) && selectedUnit != null
+                    && TryDanceSwap(selectedUnit, unit))
+                    return;
+
                 if (unit.IsPlayerControlled)
                 {
                     inspectedEnemyUnit = null;
@@ -1115,6 +1122,75 @@ public partial class CombatManager : Node3D
         foreach (var coord in currentMoveTiles)
             grid.GetTileView(coord)?.SetMoveHighlight(false);
         currentMoveTiles.Clear();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // The Dance (necromancer_last_rite tier 4)
+    // ───────────────────────────────────────────────────────────────────────
+    // "This turn: you and all spirits may swap positions with each other or any
+    // enemy as free actions." The bottom half applies `dancing` (duration 1) to
+    // the caster; TickStatuses expires it at the caster's next turn start, so it
+    // lasts exactly the turn it was cast. While it is up, a swap is a free action
+    // (no AP / move-point cost). Gesture: select an eligible mover, then Shift+
+    // click the swap target.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>The living player unit currently carrying `dancing`, or null.</summary>
+    private Unit DanceCaster()
+    {
+        foreach (var u in playerUnits)
+            if (u != null && u.Stats.IsAlive && u.HasStatus("dancing"))
+                return u;
+        return null;
+    }
+
+    /// <summary>A mover eligible to dance: the dancing caster itself, or one of
+    /// its living spirits.</summary>
+    private static bool IsDanceEligible(Unit u, Unit caster)
+    {
+        if (u == null || caster == null || !u.Stats.IsAlive)
+            return false;
+        if (u == caster)
+            return true;
+        return u.IsSpirit && u.SummonerTeamId == caster.TeamId;
+    }
+
+    /// <summary>Free position swap for The Dance. `mover` must be an eligible
+    /// mover; `target` may be another eligible mover or any living enemy.
+    /// Returns true iff the swap was performed.</summary>
+    private bool TryDanceSwap(Unit mover, Unit target)
+    {
+        var caster = DanceCaster();
+        if (caster == null)
+            return false;
+        if (mover == null || target == null || mover == target)
+            return false;
+        if (!IsDanceEligible(mover, caster))
+            return false;
+
+        // Enemy defined by team, not IsPlayerControlled, so non-spirit friendly
+        // summons (colossi, etc.) are correctly excluded rather than swappable.
+        bool targetIsEnemy = target.Stats.IsAlive && target.TeamId != caster.TeamId;
+        if (!IsDanceEligible(target, caster) && !targetIsEnemy)
+            return false;
+        if (mover.CurrentTile == null || target.CurrentTile == null)
+            return false;
+
+        var moverTile = mover.CurrentTile;
+        var targetTile = target.CurrentTile;
+        moverTile.ClearOccupant(mover);
+        targetTile.ClearOccupant(target);
+        mover.PlaceOnTile(targetTile);
+        target.PlaceOnTile(moverTile);
+
+        combatUI?.AppendActionLog($"The Dance: {mover.Name} swaps with {target.Name}.");
+        GD.Print($"[Dance] {mover.Name} <-> {target.Name} (free action).");
+
+        ClearMoveTiles();
+        ShowMoveTilesWithCost(selectedUnit);
+        RefreshSelectedUnitUI();
+        RefreshPlayerUnitBar();
+        return true;
     }
 
     private void TryMartialAttack(Unit attacker, Unit target)
@@ -1865,7 +1941,12 @@ public partial class CombatManager : Node3D
 
     private async System.Threading.Tasks.Task PerformAttack(Unit enemy, Unit target)
     {
-        int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5;
+        int dmg = enemy.ModifyOutgoingAttackDamage(enemy.AttackDamage > 0 ? enemy.AttackDamage : 5);
+        if (dmg <= 0)
+        {
+            combatUI?.AppendActionLog($"{enemy.Name}'s attack misses {target.Name}.");
+            return;
+        }
 
         string msg = $"{enemy.Name} attacks {target.Name} for {dmg} damage.";
         GD.Print(msg);
@@ -1914,7 +1995,13 @@ public partial class CombatManager : Node3D
             return;
         }
 
-        int dmg = (enemy.AttackDamage > 0 ? enemy.AttackDamage : 4) + bonusDamage;
+        int dmg = enemy.ModifyOutgoingAttackDamage(
+            (enemy.AttackDamage > 0 ? enemy.AttackDamage : 4) + bonusDamage);
+        if (dmg <= 0)
+        {
+            combatUI?.AppendActionLog($"{enemy.Name}'s shot misses {target.Name}.");
+            return;
+        }
 
         string msg = $"{enemy.Name} shoots {target.Name} for {dmg} damage.";
         GD.Print(msg);
@@ -1990,6 +2077,28 @@ public partial class CombatManager : Node3D
                 GD.Print(msg);
                 combatUI?.AppendActionLog(msg);
             }
+            // ── Ball Lightning (Chain Lightning tier 4) ──────────────────────
+            // The marked unit crackles: 6 damage to it and to up to 3 of its
+            // allies within 3 tiles, every turn while the status holds.
+            if (unit.HasStatus("ball_lightning") && unit.CurrentTile != null && grid != null)
+            {
+                const int ballDmg = 6;
+                var struck = new List<Unit> { unit };
+                foreach (var ally in State.UnitsInPlay
+                    .Where(a => a != null && a != unit && a.Stats.IsAlive
+                        && a.TeamId == unit.TeamId && a.CurrentTile != null
+                        && grid.Distance(unit.CurrentTile.Axial, a.CurrentTile.Axial) <= 3)
+                    .OrderBy(a => grid.Distance(unit.CurrentTile.Axial, a.CurrentTile.Axial))
+                    .Take(3))
+                    struck.Add(ally);
+
+                foreach (var victim in struck)
+                {
+                    victim.ApplyDamage(ballDmg);
+                    combatUI?.AppendActionLog($"Ball lightning arcs to {victim.Name} for {ballDmg}.");
+                }
+            }
+
             // ── Poison (max HP drain per turn) ───────────────────────────────
             if (unit.HasStatus("poisoned") && unit.Stats.PoisonDrainPerTurn > 0)
             {
@@ -3172,19 +3281,31 @@ public partial class CombatManager : Node3D
         }
 
         // ── Normal: nearest living player unit ───────────────────────────────
+        // Untargetable units (Walk Between) are skipped entirely. Taunting units
+        // (Iron/Fortress Colossus) win ties and near-ties: a taunter within +1
+        // of the true nearest distance is preferred.
         Unit best = null;
         int bestDist = int.MaxValue;
+        Unit bestTaunter = null;
+        int bestTauntDist = int.MaxValue;
         foreach (var player in playerUnits)
         {
             if (player == null || !IsInstanceValid(player))
                 continue;
             if (!player.Stats.IsAlive || player.CurrentTile == null)
                 continue;
+            if (player.HasStatus("untargetable"))
+                continue;
 
             int dist = grid.Distance(enemy.CurrentTile, player.CurrentTile);
             if (dist < bestDist)
             { bestDist = dist; best = player; }
+            if (player.IsTaunting && dist < bestTauntDist)
+            { bestTauntDist = dist; bestTaunter = player; }
         }
+
+        if (bestTaunter != null && bestTauntDist <= bestDist + 1)
+            return bestTaunter;
         return best;
     }
 
@@ -3192,6 +3313,14 @@ public partial class CombatManager : Node3D
     {
         State.OnSummonRequested = (unitKind, tile, teamId) =>
         {
+            // Canonical lowercase key for matching. The spawn switch and the
+            // bestiary/tinker lookups already normalize case; this makes the
+            // post-spawn config riders (colossus_absorb, armor, body colors)
+            // case-insensitive too, so a capitalized card kind (e.g. Shield_Wall)
+            // can never spawn-then-silently-skip its rider. `unitKind` is kept
+            // raw for the display-name derivation, which relies on its casing.
+            string kindKey = unitKind.ToLowerInvariant();
+
             PackedScene scene = null;
             int hp = 10;
             int speed = 0;
@@ -3254,7 +3383,23 @@ public partial class CombatManager : Node3D
                         scene = DummyUnitScene;
                         hp = 30;
                         speed = 1;
-                        armor = unitKind == "colossus_empowered" ? 8 : 5;
+                        armor = kindKey == "colossus_empowered" ? 8 : 5;
+                        break;
+
+                    // Terraform tier 3: "iron-clad — taunts adjacent enemies".
+                    case "colossus_iron":
+                        scene = DummyUnitScene;
+                        hp = 30;
+                        speed = 1;
+                        armor = 8;
+                        break;
+
+                    // Terraform tier 4: "living fortress — massive, mobile, devastating".
+                    case "colossus_fortress":
+                        scene = DummyUnitScene;
+                        hp = 40;
+                        speed = 2;
+                        armor = 8;
                         break;
 
                     case "decoy":
@@ -3371,16 +3516,23 @@ public partial class CombatManager : Node3D
             if (!isWildlife && IsTinkerConstructKind(unitKind))
                 ConfigureTinkerConstruct(unit, unitKind, teamId, schematicBonus);
 
-            if (unitKind is "colossus" or "colossus_empowered")
+            if (kindKey is "colossus" or "colossus_empowered")
                 unit.ApplyStatus("colossus_absorb", 999);
+
+            // Iron/Fortress Colossus: taunts — enemies prefer it (FindNearestPlayerUnit).
+            if (kindKey is "colossus_iron" or "colossus_fortress")
+            {
+                unit.ApplyStatus("colossus_absorb", 999);
+                unit.IsTaunting = true;
+            }
 
             // Persistent marker so the death hook can leave a carcass (same pattern as colossus_absorb)
             if (isWildlife)
                 unit.ApplyStatus("wildlife", 999);
 
-            if (unitKind.Contains("pillar") || unitKind.Contains("boulder"))
+            if (kindKey.Contains("pillar") || kindKey.Contains("boulder"))
                 unit.SetBodyColor(UITheme.SummonColorPillar);
-            else if (unitKind is "spirit" or "spirit_wall" or "revenant"
+            else if (kindKey is "spirit" or "spirit_wall" or "revenant"
                 or "revenant_champion" or "revenant_elder" or "covenant_elder"
                 or "ossuary" or "ossuary_shrine" or "ossuary_garden"
                 or "soul_well" or "memorial_seat" or "covenant_seat")
@@ -3389,7 +3541,7 @@ public partial class CombatManager : Node3D
             }
             else if (isWildlife)
                 unit.SetBodyColor(UITheme.SummonColorFriendly); // TODO: add UITheme.SummonColorWildlife (a green)
-            else if (unitKind is "arcaneconstruct" or "arcane_construct"
+            else if (kindKey is "arcaneconstruct" or "arcane_construct"
                 or "livingspell" or "living_spell" or "illusion")
                 unit.SetBodyColor(UITheme.SummonColorFriendly);
             else if (isPlayerControlled)

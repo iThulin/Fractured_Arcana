@@ -368,8 +368,14 @@ public sealed class AdvanceAllSpiritsEffect : EffectBase
 			{
 				// Already adjacent — attack. Capture the tile first: Die() clears it.
 				var victimTile = nearestEnemy.CurrentTile;
-				nearestEnemy.ApplyDamage(spirit.AttackDamage);
-				s.Log($"[AdvanceSpirits] {spirit.Name} attacks {nearestEnemy.Name} for {spirit.AttackDamage}.");
+				int spiritDmg = spirit.ModifyOutgoingAttackDamage(spirit.AttackDamage);
+				if (spiritDmg <= 0)
+				{
+					s.Log($"[AdvanceSpirits] {spirit.Name}'s attack misses {nearestEnemy.Name}.");
+					continue;
+				}
+				nearestEnemy.ApplyDamage(spiritDmg);
+				s.Log($"[AdvanceSpirits] {spirit.Name} attacks {nearestEnemy.Name} for {spiritDmg}.");
 
 				// On-kill riders (Call to Purpose and upgrades) — consumed here because
 				// spirits only ever attack through this effect.

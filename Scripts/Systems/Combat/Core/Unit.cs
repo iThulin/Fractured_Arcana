@@ -376,24 +376,11 @@ public partial class Unit : Node3D
         // Tick statuses first so expired ones don't affect this turn
         TickStatuses();
 
-        // Now apply movement/action restrictions from still-active statuses
-        if (HasStatus("frozen") || HasStatus("stunned"))
-        {
-            CurrentActionPoints = 0;
-            Stats.MovePoints = 0;
-        }
-        else if (HasStatus("rooted"))
-        {
-            Stats.MovePoints = 0;
-            // AP unchanged — rooted unit can still cast
-        }
-        else if (HasStatus("slowed"))
-        {
-            Stats.MovePoints = Math.Max(0, Stats.MovePoints / 2);
-            // AP unchanged — slowed unit can still act, just moves less
-        }
-
-        if (HasStatus("bound"))
+        // Action lockouts: frozen/stunned/bound zero AP so the unit can neither
+        // act nor move (movement needs AP). rooted/slowed are NOT handled here —
+        // they only restrict movement, which is now enforced read-side via
+        // Unit.EffectiveMovement so a rooted unit keeps its AP for casting.
+        if (HasStatus("frozen") || HasStatus("stunned") || HasStatus("bound"))
         {
             CurrentActionPoints = 0;
             Stats.MovePoints = 0;
@@ -494,7 +481,7 @@ public partial class Unit : Node3D
             return false;
 
         int pathCost = grid.GetMoveCostTo(this, dest);
-        if (pathCost < 0 || pathCost > MoveRange)
+        if (pathCost < 0 || pathCost > EffectiveMoveRange)
             return false;
 
 
@@ -532,6 +519,13 @@ public partial class Unit : Node3D
             }
         }
 
+        // Shrouded: incoming hits are capped at 5 ("max 5 damage per hit").
+        if (HasStatus("shrouded") && amount > 5)
+        {
+            GD.Print($"{Name} is Shrouded — {amount} damage capped to 5.");
+            amount = 5;
+        }
+
         int remaining = amount;
 
         if (Stats.Shield > 0)
@@ -549,7 +543,15 @@ public partial class Unit : Node3D
         }
 
         if (remaining > 0)
+        {
+            // Immortal (Eternal Flame): would-be-lethal damage leaves 1 HP.
+            if (HasStatus("immortal") && remaining >= Stats.Health)
+            {
+                remaining = Math.Max(0, Stats.Health - 1);
+                GD.Print($"{Name} is Immortal — survives at 1 HP.");
+            }
             Stats.Health = Math.Max(0, Stats.Health - remaining);
+        }
 
         RefreshHealthBar();
         GD.Print($"{Name} HP:{Stats.Health}/{Stats.MaxHealth} Shield:{Stats.Shield} Armor:{Stats.Armor}");
@@ -664,6 +666,17 @@ public partial class Unit : Node3D
         {
             // no immediate effect, but checked at cast time by DealDamageEffect
         }
+        else if (status == "hasted")
+        {
+            // Mirror of slowed: immediate action/movement surge.
+            CurrentActionPoints += 1;
+            Stats.MovePoints += 1;
+        }
+        else if (status == "temporal_drag")
+        {
+            // "Half movement" (the spells-cost+1 half awaits enemy casting — R3 follow-on).
+            Stats.MovePoints /= 2;
+        }
 
         GD.Print($"{Name} gains {status} for {duration} turn(s).");
         _healthBar?.RefreshStatuses(Stats.StatusEffects);
@@ -673,6 +686,27 @@ public partial class Unit : Node3D
     {
         return Stats.StatusEffects.ContainsKey(status) && Stats.StatusEffects[status] > 0;
     }
+
+    /// <summary>
+    /// Attacker-side status modifiers on outgoing ATTACK damage (not spells).
+    /// Blinded: the attack misses entirely (deterministic, per house preference).
+    /// Weakened: −2 damage, floor 0. Called by PerformAttack/PerformRangedAttack
+    /// and the spirit attack in AdvanceAllSpiritsEffect.
+    /// </summary>
+    public int ModifyOutgoingAttackDamage(int damage)
+    {
+        if (HasStatus("blinded"))
+        {
+            GD.Print($"{Name} is Blinded — the attack goes wide.");
+            return 0;
+        }
+        if (HasStatus("weakened"))
+            damage = Math.Max(0, damage - 2);
+        return damage;
+    }
+
+    /// <summary>Iron/Fortress Colossus: enemies prefer attacking this unit when it is nearly as close as their natural target. Read by FindNearestPlayerUnit.</summary>
+    public bool IsTaunting = false;
 
     public void RemoveStatus(string statusName)
     {
@@ -735,6 +769,38 @@ public partial class Unit : Node3D
     }
 
     public bool CanMove() => CurrentActionPoints >= 1 && Stats.IsAlive;
+
+    /// <summary>
+    /// Single source of truth for how far this unit may move right now, given a
+    /// caller-supplied base budget. Every movement path (reachable-tile highlight,
+    /// cost map, and the TryMoveTo commit) must route its base budget through here
+    /// so movement-affecting statuses are honored consistently.
+    ///
+    /// Historically these statuses only wrote Stats.MovePoints, which no movement
+    /// code read — so rooted/slowed/temporal_drag were inert. This centralizes the
+    /// rule on the read side instead. NOTE: non-status movement modifiers (Dash /
+    /// TempBuff / spirit grants) still write the dead MovePoints field and are NOT
+    /// yet folded in here — that needs the per-turn-pool decision.
+    /// </summary>
+    public int EffectiveMovement(int baseBudget)
+    {
+        // Hard stops: no movement at all this turn.
+        if (HasStatus("frozen") || HasStatus("stunned") || HasStatus("bound")
+            || HasStatus("rooted"))
+            return 0;
+
+        int budget = baseBudget;
+        if (HasStatus("slowed") || HasStatus("temporal_drag"))
+            budget = Math.Max(1, budget / 2);   // "half movement"
+        if (HasStatus("hasted"))
+            budget += 1;
+
+        return Math.Max(0, budget);
+    }
+
+    /// <summary>Status-adjusted per-move reach (base MoveRange). Used by the cost
+    /// map and the move commit; the reachable-tile highlight passes BaseSpeed.</summary>
+    public int EffectiveMoveRange => EffectiveMovement(MoveRange);
 
     // Selection visual methods
     private void CreateSelectionRing()

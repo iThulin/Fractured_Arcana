@@ -63,6 +63,71 @@ public static class CardVerifier
         "growth", "glyph"
     };
 
+    /// <summary>
+    /// Statuses with a real consumer in code (behavioral) or a sanctioned
+    /// marker role. A status in a card but not here applies and silently does
+    /// nothing — the same bug class as an unregistered effect key.
+    /// Audited 2026-07-06; keep in sync with Unit.ApplyStatus/ApplyDamage,
+    /// the CombatManager status tick, CombatManager.TryDanceSwap, and
+    /// ApplyStatusToAllSpiritsEffect.
+    /// Markers: delayed (Postpone's visible companion), mana_taxed (awaits
+    /// enemy casting, R3 follow-on), named (Weave mark; silence passive).
+    /// </summary>
+    private static readonly HashSet<string> KnownStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // behavioral
+        "frozen", "rooted", "slowed", "stunned", "bound", "poisoned", "burn",
+        "haunted", "arcane_mark", "chaining", "empowered", "weakened", "hasted",
+        "blinded", "shrouded", "immortal", "untargetable", "temporal_drag",
+        "ball_lightning", "wildlife", "dominated", "illusion", "marked", "decoy",
+        "wizard_charging", "colossus_absorb", "silenced", "cursed", "geas", "hexed",
+        // The Dance (last_rite tier 4): gates the free-swap gesture in
+        // CombatManager.TryDanceSwap while the caster carries it.
+        "dancing",
+        // spirit-flag statuses (apply_status_to_all_spirits special-cases)
+        "undying_turn", "undying_full_restore", "invulnerable", "vigil",
+        // sanctioned markers
+        "delayed", "mana_taxed", "named"
+    };
+
+    /// <summary>
+    /// Valid summon kinds (lowercased), audited 2026-07-06. Two resolvers feed
+    /// this set: most kinds go through the OnSummonRequested switch; wildlife
+    /// (summon_wildlife) instead routes through GrowthManager.SummonWildlifeAt,
+    /// whose valid inputs are the bestiary keys — appended at run time by
+    /// LoadBestiaryKinds — plus the "auto" sentinel (host terrain picks the
+    /// kind). A kind not known here reaches neither resolver and summons nothing.
+    /// </summary>
+    private static readonly HashSet<string> KnownSummonKinds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "stone_pillar", "boulder", "earth_elemental", "earth_elemental_armored",
+        "colossus", "colossus_empowered", "colossus_iron", "colossus_fortress",
+        "decoy", "shield_wall", "shield_wall_heavy",
+        "spirit", "spirit_wall", "revenant", "revenant_champion", "revenant_elder",
+        "covenant_elder", "ossuary", "ossuary_shrine", "ossuary_garden", "soul_well",
+        "memorial_seat", "covenant_seat",
+        "arcaneconstruct", "arcane_construct", "livingspell", "living_spell", "illusion",
+        "drone", "turret", "cannon", "grand_turret", "siege_engine", "sentinel",
+        "lattice_node", "familiar", "tinker_barrier", "tinker_colossus", "foundry",
+        // summon_wildlife sentinel — GrowthManager resolves it to a terrain-appropriate kind
+        "auto"
+    };
+
+    /// <summary>Loads wildlife kind ids from the bestiary into KnownSummonKinds.</summary>
+    private static void LoadBestiaryKinds()
+    {
+        using var f = FileAccess.Open("res://Data/Bestiary/bestiary.json", FileAccess.ModeFlags.Read);
+        if (f == null) return;
+        try
+        {
+            var root = JsonDocument.Parse(f.GetAsText()).RootElement;
+            if (root.ValueKind == JsonValueKind.Object)
+                foreach (var prop in root.EnumerateObject())
+                    KnownSummonKinds.Add(prop.Name);
+        }
+        catch { /* malformed bestiary is its own problem, not the verifier's */ }
+    }
+
     // ── Per-run state ───────────────────────────────────────────────
     private sealed class RunState
     {
@@ -84,6 +149,7 @@ public static class CardVerifier
     public static bool RunAndReport()
     {
         CardScriptRegistry.RegisterBuiltins(); // idempotent — factories are keyed assignments
+        LoadBestiaryKinds();
 
         var run = new RunState();
 
@@ -262,7 +328,11 @@ public static class CardVerifier
                         {
                             string sv = value.GetString();
                             if (!string.IsNullOrEmpty(sv))
+                            {
                                 run.StatusInventory[sv] = run.StatusInventory.GetValueOrDefault(sv) + 1;
+                                if (!KnownStatuses.Contains(sv))
+                                    run.Errors.Add($"{where} — status '{sv}' has no handler in code (would apply and do nothing)");
+                            }
                         }
                     }
                     ci++;
@@ -299,7 +369,7 @@ public static class CardVerifier
         }
 
         CheckElementProperty(n, path, run);
-        CollectInventory(n, type, run);
+        CollectInventory(n, type, path, run);
 
         // Composite recursion
         switch (type)
@@ -420,24 +490,58 @@ public static class CardVerifier
             run.Errors.Add($"{path} — unknown element '{element}' (valid: {string.Join(", ", ValidElements)})");
     }
 
-    private static void CollectInventory(JsonElement n, string type, RunState run)
+    private static void CollectInventory(JsonElement n, string type, string path, RunState run)
     {
-        // Status strings are free-form in the schema; the report inventories them
-        // so drift ("hasted" vs "haste") is visible at a glance rather than enforced
-        // against a list that lives nowhere canonical yet.
+        // Statuses are validated against KnownStatuses (audited 2026-07-06):
+        // an unknown status applies and silently does nothing.
         if (n.TryGetProperty("status", out var s) && s.ValueKind == JsonValueKind.String)
         {
             string key = s.GetString();
             if (!string.IsNullOrEmpty(key))
+            {
                 run.StatusInventory[key] = run.StatusInventory.GetValueOrDefault(key) + 1;
+                if (!KnownStatuses.Contains(key))
+                    run.Errors.Add($"{path} — status '{key}' has no handler in code (would apply and do nothing)");
+            }
         }
 
-        if (type == "summon" && n.TryGetProperty("unit", out var u) && u.ValueKind == JsonValueKind.String)
+        // Summon kinds are validated against KnownSummonKinds (OnSummonRequested
+        // switch + bestiary + sentinels): an unknown kind reaches no resolver
+        // and summons nothing.
+        if (n.TryGetProperty("unit", out var u) && u.ValueKind == JsonValueKind.String)
         {
             string kind = u.GetString() ?? "";
-            run.SummonInventory[kind] = run.SummonInventory.GetValueOrDefault(kind) + 1;
+            if (type == "summon")
+                run.SummonInventory[kind] = run.SummonInventory.GetValueOrDefault(kind) + 1;
+            if (kind.Length > 0 && IsSummonLikeEffect(type) && !KnownSummonKinds.Contains(kind))
+                run.Errors.Add($"{path} — summon kind '{kind}' has no resolver (would summon nothing)");
+        }
+
+        // Nested summon specs (commune_all_memorials.summon_per, last_rite_aoe.summon_on_kill)
+        foreach (var specKey in new[] { "summon_per", "summon_on_kill" })
+        {
+            if (n.TryGetProperty(specKey, out var spec) && spec.ValueKind == JsonValueKind.Object
+                && spec.TryGetProperty("unit", out var su) && su.ValueKind == JsonValueKind.String)
+            {
+                string kind = su.GetString() ?? "";
+                if (kind.Length > 0 && !KnownSummonKinds.Contains(kind))
+                    run.Errors.Add($"{path}.{specKey} — summon kind '{kind}' unknown to OnSummonRequested (would summon nothing)");
+            }
         }
     }
+
+    /// <summary>Effect types whose "unit" param names a summon kind to validate.
+    /// Most resolve through OnSummonRequested; summon_wildlife instead routes
+    /// through GrowthManager (bestiary keys + the "auto" sentinel). Spirit-family
+    /// effects configure stats afterward but still resolve the kind through the
+    /// same handler.</summary>
+    private static bool IsSummonLikeEffect(string type)
+        => type == "summon"
+        || type == "summon_wildlife"
+        || type.StartsWith("summon_spirit", StringComparison.Ordinal)
+        || type == "consume_all_memorials_for_champions"
+        || type == "commune_all_memorials"
+        || type == "last_rite_aoe";
 
     // ═══════════════════════════════════════════════════════════════
     // Report
