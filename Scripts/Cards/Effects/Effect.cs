@@ -577,7 +577,10 @@ public sealed class DamageByHandSizeEffect : EffectBase
 	}
 }
 
-/// <summary>Dual-purpose movement primitive: when targets is empty/self, grants the caster N move points; when targets contains units, pushes each target N tiles away from the caster.</summary>
+/// <summary>Dual-purpose movement primitive: when targets is empty/self, grants the
+/// caster +N move range for the turn (the movespeed currency — mobility only, spent
+/// through the unit's own AP-gated moves and honored by EffectiveMovement); when
+/// targets contains units, pushes each target N tiles away from the caster.</summary>
 public sealed class DashEffect : EffectBase
 {
 	public int Tiles;
@@ -589,11 +592,13 @@ public sealed class DashEffect : EffectBase
 		if (targets == null || targets.Items.Count == 0 ||
 			(targets.Items.Count == 1 && targets.Items[0] is Entity))
 		{
-			// Self-movement — grant move points
+			// Self-movement — grant movespeed (per-turn move-range bonus). Previously
+			// this wrote Stats.MovePoints, which no movement code read, so every
+			// self-Dash card was inert. BonusMoveRange is read by EffectiveMovement.
 			if (casterUnit != null)
 			{
-				casterUnit.Stats.MovePoints += Tiles;
-				s.Log($"[Dash] {casterUnit.Name} gains {Tiles} move points (now {casterUnit.Stats.MovePoints}).");
+				casterUnit.Stats.BonusMoveRange += Tiles;
+				s.Log($"[Dash] {casterUnit.Name} gains +{Tiles} move range this turn (now +{casterUnit.Stats.BonusMoveRange}).");
 			}
 		}
 		else

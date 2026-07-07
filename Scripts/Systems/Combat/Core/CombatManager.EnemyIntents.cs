@@ -750,7 +750,7 @@ public partial class CombatManager
             return;
 
         int pathCost = grid.GetMoveCostTo(enemy, nextStep);
-        if (pathCost < 0 || pathCost > enemy.MoveRange)
+        if (pathCost < 0 || pathCost > enemy.EffectiveMoveRange)   // unified: honors rooted/slowed/grants
             return;
 
         if (enemy.TryMoveTo(grid, nextStep))

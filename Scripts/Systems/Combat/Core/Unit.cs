@@ -32,7 +32,8 @@ public sealed class Stats
     public int Mana;
 
     public int BaseSpeed;
-    public int MovePoints;
+    public int MovePoints;          // legacy pool — no longer read for gating; see EffectiveMovement
+    public int BonusMoveRange;      // movespeed currency: per-turn move-range grant, reset in StartTurn
     public bool HasMoved;
     public bool HasActed;
     public bool HasPlayedCardThisTurn = false;
@@ -369,6 +370,7 @@ public partial class Unit : Node3D
         CurrentActionPoints = MaxActionPoints;
         Stats.HasActed = false;
         Stats.MovePoints = Stats.BaseSpeed;
+        Stats.BonusMoveRange = 0;   // movespeed grants last one turn
 
         Stats.Mana = Stats.MaxMana;
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
@@ -636,19 +638,15 @@ public partial class Unit : Node3D
         else
             Stats.StatusEffects[status] = duration;
 
-        // Apply status immediately
-        if (status == "frozen")
+        // Apply status immediately.
+        // rooted and slowed are enforced READ-SIDE in EffectiveMovement (reach → 0 /
+        // halved) and must NOT touch AP here: rooted has to leave AP for casting, and
+        // slowed already halves reach — also halving AP would double-nerf it (this was
+        // a regression once EffectiveMovement took over the slow math).
+        if (status == "frozen" || status == "bound")
+            // frozen: can't act or move this turn. bound: same, plus immune to cleanse
+            // (see CanBeFreed). Movement is separately zeroed via EffectiveMovement.
             CurrentActionPoints = 0;
-        else if (status == "rooted")
-            Stats.MovePoints = 0;  // can still cast, can't move
-        else if (status == "slowed")
-            CurrentActionPoints = Math.Max(0, CurrentActionPoints / 2);
-        else if (status == "bound")
-        {
-            // Cannot act or be freed until next player turn — zero AP, immune to cleanse
-            CurrentActionPoints = 0;
-            Stats.MovePoints = 0;
-        }
         else if (status == "poisoned")
         {
             Stats.PoisonDrainPerTurn = Math.Max(Stats.PoisonDrainPerTurn, duration);
@@ -668,14 +666,15 @@ public partial class Unit : Node3D
         }
         else if (status == "hasted")
         {
-            // Mirror of slowed: immediate action/movement surge.
+            // AP currency: an extra action this turn. (Wizard → extra move, since
+            // casting is mana-gated; martial → extra move or attack.) Movement reach
+            // is a separate currency and is NOT touched here.
             CurrentActionPoints += 1;
-            Stats.MovePoints += 1;
         }
         else if (status == "temporal_drag")
         {
-            // "Half movement" (the spells-cost+1 half awaits enemy casting — R3 follow-on).
-            Stats.MovePoints /= 2;
+            // Half movement — enforced read-side in EffectiveMovement (no MovePoints
+            // write). The spells-cost+1 half still awaits enemy casting (R3 follow-on).
         }
 
         GD.Print($"{Name} gains {status} for {duration} turn(s).");
@@ -789,17 +788,23 @@ public partial class Unit : Node3D
             || HasStatus("rooted"))
             return 0;
 
-        int budget = baseBudget;
+        // Movespeed currency: per-turn move-range grants from Dash-style self-move
+        // spells (Stats.BonusMoveRange, reset each turn). This is the mobility-only
+        // lever — it raises reach-per-move but grants no extra actions, so it never
+        // hands a martial a free attack. AP (the action-count lever, e.g. `hasted`)
+        // is deliberately NOT folded in here; the two currencies stay separate.
+        int budget = baseBudget + Stats.BonusMoveRange;
+
         if (HasStatus("slowed") || HasStatus("temporal_drag"))
-            budget = Math.Max(1, budget / 2);   // "half movement"
-        if (HasStatus("hasted"))
-            budget += 1;
+            budget = Math.Max(1, budget / 2);   // "half movement" halves grants too
 
         return Math.Max(0, budget);
     }
 
-    /// <summary>Status-adjusted per-move reach (base MoveRange). Used by the cost
-    /// map and the move commit; the reachable-tile highlight passes BaseSpeed.</summary>
+    /// <summary>The unit's status-adjusted per-move reach (base `MoveRange` + movespeed
+    /// grants). This is the single per-move-reach value ALL movement paths read — the
+    /// highlight (`GetReachableTiles`), the cost map (`GetReachableTilesWithCost`), the
+    /// commit (`TryMoveTo`), and the SPD stat. `BaseSpeed` drives the AP count, not reach.</summary>
     public int EffectiveMoveRange => EffectiveMovement(MoveRange);
 
     // Selection visual methods

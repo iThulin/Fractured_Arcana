@@ -397,9 +397,9 @@ public sealed class AdvanceAllSpiritsEffect : EffectBase
 			else
 			{
 				// Move toward enemy
-				spirit.Stats.MovePoints = Tiles;
+				spirit.Stats.BonusMoveRange = Tiles;   // movespeed currency (read by EffectiveMovement)
 				s.Log($"[AdvanceSpirits] {spirit.Name} advances {Tiles} toward {nearestEnemy.Name}.");
-				// Actual pathfinding movement is handled by the movement system — we set move points here
+				// Actual pathfinding movement is handled by the movement system
 			}
 		}
 	}
@@ -2885,7 +2885,7 @@ public sealed class ImbuePathMemorialEffect : EffectBase
 		};
 
 		casterUnit.OnTileLeft += onLeave;
-		casterUnit.Stats.MovePoints += MoveTiles;
+		casterUnit.Stats.BonusMoveRange += MoveTiles;   // movespeed currency
 		if (Phase)
 			casterUnit.IsPhasing = true;
 

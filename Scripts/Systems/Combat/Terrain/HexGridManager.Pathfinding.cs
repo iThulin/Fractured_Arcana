@@ -29,7 +29,7 @@ public partial class HexGridManager
             return result;  // no AP = no highlights
 
         var start = unit.CurrentTile.Axial;
-        int budget = unit.EffectiveMovement(unit.Stats.BaseSpeed);  // BaseSpeed, adjusted for movement statuses
+        int budget = unit.EffectiveMoveRange;  // unified per-move reach (MoveRange + grants, status-adjusted)
 
         var frontier = new Queue<(Vector2I coord, int costUsed)>();
         var bestCost = new Dictionary<Vector2I, int> { [start] = 0 };

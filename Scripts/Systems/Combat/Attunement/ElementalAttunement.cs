@@ -7,10 +7,13 @@ using System.Collections.Generic;
 //
 // Purpose:        The Elementalist school mechanic — 4 counters
 //                 (Fire, Ice, Storm, Earth) with opposition
-//                 pairs (Fire↔Ice, Storm↔Earth), per-turn decay,
-//                 and four tier thresholds (1: +1 dmg; 2: auto-
-//                 imbue; 3: enhanced effect; 4: burst AoE then
-//                 reset to 0). Other schools will get their own
+//                 pairs (Fire↔Ice, Storm↔Earth) and four tier
+//                 thresholds (1: +1 dmg; 2: auto-imbue; 3:
+//                 enhanced effect; 4: burst AoE then reset to 0).
+//                 Charges persist across turns — per-turn decay
+//                 was removed 2026-07-06 (Decay() is a no-op);
+//                 charges fall only via opposition or a burst.
+//                 Other schools will get their own
 //                 ISchoolAttunement implementations later.
 // Layer:          System
 // Collaborators:  Unit.cs (each Elementalist unit owns one),
@@ -156,16 +159,17 @@ public class ElementalAttunement : ISchoolAttunement
 	}
 
 	// ── Turn decay ──────────────────────────────────────────────────
+	/// <summary>
+	/// No-op by design (2026-07-06). Per-turn decay was removed: with charges also
+	/// dropping via opposition on every paired-element cast, the double erosion made
+	/// building to the tier-2/3/4 thresholds unreliable in play. Charges now persist
+	/// across turns and only fall via opposition (<see cref="OnSpellCast"/>) or a
+	/// tier-4 burst reset. Decay() is kept to satisfy ISchoolAttunement and the
+	/// shared per-turn Attunement.Decay() call; other schools still decay normally.
+	/// </summary>
 	public void Decay()
 	{
-		foreach (var key in new[] { ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth })
-		{
-			if (Charges[key] > 0)
-			{
-				Charges[key]--;
-				OnChargeChanged?.Invoke(key, Charges[key]);
-			}
-		}
+		// Intentionally does nothing — see summary.
 	}
 
 	// ── Query methods ───────────────────────────────────────────────

@@ -600,11 +600,15 @@ public sealed class AvatarTransformEffect : EffectBase
         casterUnit.Stats.Armor += Armor;
         casterUnit.RefreshHealthBar();
 
-        // Apply bonus speed
+        // Apply bonus speed. BaseSpeed += is a permanent boost (affects the
+        // BaseSpeed-based reachable highlight); BonusMoveRange makes it register
+        // in the commit + cost-map paths this turn too. NOTE: the permanent half
+        // only reaches the commit path once movement baselines are unified
+        // (BaseSpeed vs MoveRange) — see docs/movement_effects_refactor.md.
         if (BonusSpeed > 0)
         {
             casterUnit.Stats.BaseSpeed += BonusSpeed;
-            casterUnit.Stats.MovePoints += BonusSpeed;
+            casterUnit.Stats.BonusMoveRange += BonusSpeed;
         }
 
         // Apply imbue path for movement trails

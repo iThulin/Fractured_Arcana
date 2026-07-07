@@ -53,7 +53,12 @@ public abstract class PersistentEffect
 // ElementalistEffects.cs, NecromancerEffects.cs, ArcanistEffects.cs,
 // EnchanterEffects.cs, ChronomancerEffects.cs, Tinker*.cs.
 
-/// <summary>Multi-turn movement buff, tracked as a PersistentEffect.</summary>
+/// <summary>Multi-turn movespeed buff, tracked as a PersistentEffect. Because
+/// <c>BonusMoveRange</c> resets every <c>StartTurn</c> and this ticks AFTER that reset
+/// (StartTurn precedes the ActiveEffects tick in the turn-start sequence), the buff is
+/// RE-APPLIED each turn for its duration. No cleanup subtract is needed — expiry just
+/// stops the re-application, and the reset clears the value. The cast-time grant covers
+/// the first turn; this covers turns 2..N.</summary>
 public class MovementBuffEffect : PersistentEffect
 {
     private readonly Unit _unit;
@@ -70,11 +75,10 @@ public class MovementBuffEffect : PersistentEffect
     public override void Tick(GameState s)
     {
         TurnsRemaining--;
-        if (TurnsRemaining <= 0 && _unit != null && Godot.GodotObject.IsInstanceValid(_unit))
+        if (TurnsRemaining >= 1 && _unit != null && Godot.GodotObject.IsInstanceValid(_unit))
         {
-            _unit.Stats.MovePoints = Math.Max(0, _unit.Stats.MovePoints - _amount);
+            _unit.Stats.BonusMoveRange += _amount;   // re-apply for this turn (after StartTurn reset)
             _unit.RefreshHealthBar();
-            s.Log($"[MovementBuff] Expired on {_unit.Name}.");
         }
     }
 }

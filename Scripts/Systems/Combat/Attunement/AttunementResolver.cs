@@ -157,8 +157,11 @@ public static class AttunementResolver
 				{
 					if (unit == null || !unit.Stats.IsAlive) continue;
 					if (unit.TeamId == castingUnit.TeamId) continue;
-					unit.Stats.MovePoints = Math.Max(0, unit.Stats.MovePoints - 2);
-					log.Add($"  Quake slows {unit.Name} (-2 movement)");
+					// Cross-turn slow: applied on the player turn, must bite on the enemy's
+					// turn — use the `slowed` status (survives their StartTurn reset), not a
+					// BonusMoveRange write (which would be wiped). EffectiveMovement halves it.
+					unit.ApplyStatus("slowed", 1);
+					log.Add($"  Quake slows {unit.Name}");
 				}
 				castingUnit.Stats.Armor += 6;
 				castingUnit.RefreshHealthBar();

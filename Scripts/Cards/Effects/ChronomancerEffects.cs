@@ -236,26 +236,15 @@ public sealed class TempBuffEffect : EffectBase
 			switch (Stat)
 			{
 				case "movement":
-					unit.Stats.MovePoints += Amount;
+					// Movespeed currency (BonusMoveRange, per-turn, auto-resets in StartTurn).
+					// The immediate grant covers this turn; multi-turn buffs re-apply via
+					// MovementBuffEffect. No end-of-turn cleanup needed — the reset handles it.
+					unit.Stats.BonusMoveRange += Amount;
 					unit.RefreshHealthBar();
-					s.Log($"[TempBuff] {unit.Name} +{Amount} movement (now {unit.Stats.MovePoints}).");
+					s.Log($"[TempBuff] {unit.Name} +{Amount} move range for {Turns} turn(s).");
 
-					if (Turns == 1)
+					if (Turns > 1)
 					{
-						// Single-turn: clean up at end of this turn
-						int captured = Amount;
-						var capturedUnit = unit;
-						s.OnTurnEndCleanups ??= new List<Action>();
-						s.OnTurnEndCleanups.Add(() =>
-						{
-							capturedUnit.Stats.MovePoints =
-								Math.Max(0, capturedUnit.Stats.MovePoints - captured);
-							capturedUnit.RefreshHealthBar();
-						});
-					}
-					else
-					{
-						// Multi-turn: use a PersistentEffect for proper duration tracking
 						s.ActiveEffects ??= new List<PersistentEffect>();
 						s.ActiveEffects.Add(new MovementBuffEffect(unit, Amount, Turns));
 					}

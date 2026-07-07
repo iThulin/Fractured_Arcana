@@ -493,7 +493,13 @@ public partial class CombatUI : CanvasLayer
 			string armor = unit.Stats.Armor > 0 ? $"ARM {unit.Stats.Armor}  " : "";
 			string shield = unit.Stats.Shield > 0 ? $"SHD {unit.Stats.Shield}  " : "";
 			string ap = !isEnemy && unit.MaxActionPoints > 0 ? $"AP {apPips}  " : "";
-			string spd = $"SPD {unit.Stats.BaseSpeed}";
+			// SPD = the real per-move reach (MoveRange + movespeed grants, adjusted for
+			// rooted/slowed) — the same value every movement path uses. Shows base→eff
+			// when buffed/debuffed so Dash/Imbue/stance changes are visible.
+			int spdEff = unit.EffectiveMoveRange;
+			string spd = spdEff != unit.MoveRange
+				? $"SPD {unit.MoveRange}→{spdEff}"
+				: $"SPD {unit.MoveRange}";
 			_statLine.Text = $"{armor}{shield}{ap}{spd}";
 		}
 

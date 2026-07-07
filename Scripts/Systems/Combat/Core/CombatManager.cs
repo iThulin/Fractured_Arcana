@@ -1446,7 +1446,7 @@ public partial class CombatManager : Node3D
         // ── Skirmish: free move after attack ──────────────────────────────
         if (stance?.SpecialTag == StanceSpecialTag.SkirmishDash)
         {
-            attacker.Stats.MovePoints += stance.SpecialTagValue;
+            attacker.Stats.BonusMoveRange += stance.SpecialTagValue;
             combatUI?.AppendActionLog($"[Skirmish] {attacker.Name} gains " +
                                       $"{stance.SpecialTagValue} free move points.");
             // Recalculate reachable tiles
@@ -1673,6 +1673,7 @@ public partial class CombatManager : Node3D
                     continue;
                 unit.DeckData?.Draw(extraTurn.ExtraDraw);
                 unit.Stats.MovePoints = unit.Stats.BaseSpeed;
+                unit.Stats.BonusMoveRange = 0;
                 unit.CurrentActionPoints = unit.MaxActionPoints;
             }
 
@@ -1721,9 +1722,9 @@ public partial class CombatManager : Node3D
         if (stance == null)
             return;
 
-        // Speed bonus
+        // Speed bonus (per-turn stance passive → movespeed currency)
         if (stance.PassiveSpeedBonus != 0)
-            unit.Stats.MovePoints += stance.PassiveSpeedBonus;
+            unit.Stats.BonusMoveRange += stance.PassiveSpeedBonus;
 
         // Armor bonus/penalty — temporary for this turn
         // We track the net stance armor separately to avoid double-applying
@@ -1885,7 +1886,7 @@ public partial class CombatManager : Node3D
 
         // Only move there if it's within this turn's movement range
         int pathCost = grid.GetMoveCostTo(enemy, nextStep);
-        if (pathCost < 0 || pathCost > enemy.MoveRange)
+        if (pathCost < 0 || pathCost > enemy.EffectiveMoveRange)   // unified: honors rooted/slowed/grants
         {
             // First step is too far for one AP spend — shouldn't happen
             // since BFS neighbors are always adjacent, but guard anyway
@@ -4096,6 +4097,13 @@ public partial class CombatManager : Node3D
             selectedUnit?.SyncManaToBar();
             RefreshSelectedUnitUI();
             RefreshPlayerUnitBar();
+            // A cast may have changed movement (Dash/Imbue grant BonusMoveRange) or
+            // position — recompute the move zone so the new range shows immediately.
+            if (selectedUnit != null)
+            {
+                ClearMoveTiles();
+                ShowMoveTilesWithCost(selectedUnit);
+            }
             deckUiManager?.RefreshAffordability();
             RefreshDeckCounts();
         }

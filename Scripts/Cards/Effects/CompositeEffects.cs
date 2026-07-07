@@ -431,9 +431,9 @@ public sealed class ImbuePathEffect : EffectBase
 
         casterUnit.OnTileLeft += onLeave;
 
-        // Grant the movement
-        casterUnit.Stats.MovePoints += MoveTiles;
-        s.Log($"[ImbuePath] {casterUnit.Name} gains {MoveTiles} move. Tiles left behind will be imbued with {Element}.");
+        // Grant the movement (movespeed currency — read by EffectiveMovement)
+        casterUnit.Stats.BonusMoveRange += MoveTiles;
+        s.Log($"[ImbuePath] {casterUnit.Name} gains +{MoveTiles} move range this turn. Tiles left behind will be imbued with {Element}.");
 
         // Also imbue the starting tile
         if (casterUnit.CurrentTile != null)
