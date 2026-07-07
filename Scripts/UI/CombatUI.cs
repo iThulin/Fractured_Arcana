@@ -170,6 +170,7 @@ public partial class CombatUI : CanvasLayer
 			AnchorTop = 0f,
 			AnchorRight = 0f,
 			AnchorBottom = 0f,
+			OffsetTop = HudManager.BarHeight, // clear the global top bar
 			OffsetRight = LeftPanelWidth,
 			GrowHorizontal = Control.GrowDirection.End,
 			GrowVertical = Control.GrowDirection.End,
@@ -332,6 +333,7 @@ public partial class CombatUI : CanvasLayer
 			AnchorTop = 0f,
 			AnchorRight = 1f,
 			AnchorBottom = 0f,
+			OffsetTop = HudManager.BarHeight, // clear the global top bar
 			OffsetLeft = -RightPanelWidth,
 			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.End,

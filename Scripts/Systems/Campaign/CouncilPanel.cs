@@ -181,7 +181,8 @@ public partial class CouncilPanel : CanvasLayer
         {
             child.QueueFree();
         }
-        if (CouncilTick.RecentReports.Count == 0)
+        var reports = cycle.Council.Reports;
+        if (reports.Count == 0)
         {
             var none = new Label { Text = "No dispatches yet. Send an envoy; word returns when the moon turns." };
             none.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
@@ -190,18 +191,32 @@ public partial class CouncilPanel : CanvasLayer
         }
         else
         {
-            int start = Mathf.Max(0, CouncilTick.RecentReports.Count - 8);
-            for (int i = start; i < CouncilTick.RecentReports.Count; i++)
+            // Flatten the structured report to display rows: a gold
+            // "— Lunation N —" header whenever the lunation changes, then each
+            // attributed line. Show the tail (last 8 rows, headers included).
+            var rows = new List<(bool IsHeader, string Text)>();
+            int last = int.MinValue;
+            foreach (var r in reports)
+            {
+                if (r.Lunation != last)
+                {
+                    rows.Add((true, $"— Lunation {r.Lunation} —"));
+                    last = r.Lunation;
+                }
+                rows.Add((false, r.Text));
+            }
+
+            int start = Mathf.Max(0, rows.Count - 8);
+            for (int i = start; i < rows.Count; i++)
             {
                 var line = new Label
                 {
-                    Text = CouncilTick.RecentReports[i],
+                    Text = rows[i].Text,
                     AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 };
-                bool isHeader = CouncilTick.RecentReports[i].StartsWith("—");
                 line.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
                 line.AddThemeColorOverride("font_color",
-                    isHeader ? UITheme.Gold : UITheme.TextSecondary);
+                    rows[i].IsHeader ? UITheme.Gold : UITheme.TextSecondary);
                 _reportBox.AddChild(line);
             }
         }
@@ -302,6 +317,41 @@ public partial class CouncilPanel : CanvasLayer
             exp.AddThemeColorOverride("font_color",
                 court.Exposure >= 3 ? UITheme.Danger : UITheme.TextDim);
             v.AddChild(exp);
+        }
+
+        // Recent word at this court (D2 court-card history). Every attributed
+        // Herald's Report line tagged to this kingdom — echo landings, mission
+        // outcomes, and festering debts alike; guild-wide lines (KingdomId "")
+        // are excluded. Deliberately NOT echoes-only: if a Word-Spreads-only
+        // feed is wanted later, add a source field to HeraldReport and filter
+        // on it here — additive, so old saves default it with no migration.
+        var courtLines = new List<HeraldReport>();
+        foreach (var r in cycle.Council.Reports)
+        {
+            if (r.KingdomId == court.KingdomId)
+            {
+                courtLines.Add(r);
+            }
+        }
+        if (courtLines.Count > 0)
+        {
+            var wordHeader = new Label { Text = "  Word at court:" };
+            wordHeader.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            wordHeader.AddThemeColorOverride("font_color", UITheme.Violet);
+            v.AddChild(wordHeader);
+
+            int wordStart = Mathf.Max(0, courtLines.Count - 4);
+            for (int i = wordStart; i < courtLines.Count; i++)
+            {
+                var wl = new Label
+                {
+                    Text = $"    L{courtLines[i].Lunation}  {courtLines[i].Text}",
+                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                };
+                wl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+                wl.AddThemeColorOverride("font_color", UITheme.TextDim);
+                v.AddChild(wl);
+            }
         }
 
         // Mission status or dispatch flow.
@@ -456,25 +506,58 @@ public partial class CouncilPanel : CanvasLayer
         if (selDef != null && selDef.NeedsTargetCourtier)
         {
             bool isPetition = selDef.Id == CouncilMissions.PetitionMinor;
-            var targets = isPetition
-                ? CouncilLedger.PetitionTargets(court)
-                : court.Courtiers;
+            bool isCourtship = selDef.Id == CouncilMissions.CourtCourtier;
 
-            AddFlowLabel(v, isPetition ? "Petition of:" : "Recipient:");
+            List<CourtierState> targets;
+            if (isPetition)
+            {
+                targets = CouncilLedger.PetitionTargets(court);
+            }
+            else if (isCourtship)
+            {
+                // Eligible to swear: regard >= floor and not already this
+                // court's patron. Resolution enforces the same floor + slots.
+                targets = new List<CourtierState>();
+                foreach (var c in court.Courtiers)
+                {
+                    if (c.Regard >= 2 && court.PatronCourtierId != c.Id)
+                    {
+                        targets.Add(c);
+                    }
+                }
+            }
+            else
+            {
+                targets = court.Courtiers;
+            }
+
+            AddFlowLabel(v, isPetition ? "Petition of:" : (isCourtship ? "Court:" : "Recipient:"));
             var targetRow = new HBoxContainer();
             targetRow.AddThemeConstantOverride("separation", 6);
             v.AddChild(targetRow);
 
             if (targets.Count == 0)
             {
-                AddFlowLabel(v, "  No receptive courtier holds a favor-granting office.");
+                AddFlowLabel(v, isCourtship
+                    ? "  No courtier's regard runs deep enough to court (needs +2)."
+                    : "  No receptive courtier holds a favor-granting office.");
             }
             foreach (var c in targets)
             {
                 string cid = c.Id;
-                string label = isPetition
-                    ? $"{c.DisplayName} — {CouncilTick.OfficeDisplay(c.Office)} ({CouncilLedger.OfficeToFavorType(c.Office)})"
-                    : c.DisplayName;
+                string label;
+                if (isPetition)
+                {
+                    label = $"{c.DisplayName} — {CouncilTick.OfficeDisplay(c.Office)} ({CouncilLedger.OfficeToFavorType(c.Office)})";
+                }
+                else if (isCourtship)
+                {
+                    label = $"{c.DisplayName} — {CouncilTick.OfficeDisplay(c.Office)} (Regard +{c.Regard})";
+                }
+                else
+                {
+                    label = c.DisplayName;
+                }
                 AddSelectButton(targetRow, label, _selTargetCourtierId == cid,
                     () => { _selTargetCourtierId = cid; RefreshAll(); });
             }

@@ -24,7 +24,15 @@ public static class NegotiationContext
     /// <summary>Archetype of the NPC (C4 echo routing for deal deeds).
     /// Set alongside EncounterId before the scene swap.</summary>
     public static string NpcArchetype = "";
-    
+
+    /// <summary>Kingdom whose territory the negotiation was triggered in,
+    /// or "" for non-kingdom tiles (wilds, convergence). Set at trigger
+    /// time by ExpeditionManager. Drives BOTH the starting-tension lookup
+    /// (court standing for kingdom NPCs) and the deal-deed echo route on
+    /// return. Distinct from the authored FactionId, which stays the
+    /// non-kingdom faction key.</summary>
+    public static string OriginKingdomId = "";
+
 
     // ── Output (set by NegotiationScene on completion) ──────────────────
     public static bool HasResult = false;
@@ -52,5 +60,6 @@ public static class NegotiationContext
         EncounterId = "";
         HexCoordKey = "";
         NpcArchetype = "";
+        OriginKingdomId = "";
     }
 }

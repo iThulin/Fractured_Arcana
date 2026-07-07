@@ -156,6 +156,7 @@ public class WorldWindowBuilder
         PoiKind.Outpost => OverworldHex.POIType.Outpost,
         PoiKind.Seat => OverworldHex.POIType.Outpost,
         PoiKind.Settlement => OverworldHex.POIType.Outpost,
+        PoiKind.Prison => OverworldHex.POIType.Prison,
         _ => OverworldHex.POIType.None,
     };
 }

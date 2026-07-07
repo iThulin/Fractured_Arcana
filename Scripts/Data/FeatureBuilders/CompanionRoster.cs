@@ -153,6 +153,10 @@ public static class CompanionRoster
         // (single-source; never a flag on Companion).
         if (CouncilQueries.IsOnMission(companionId)) return false;
 
+        // Envoys imprisoned after a Scandal spiral are held until rescued —
+        // derived from CouncilState.Imprisoned, same single-source discipline.
+        if (CouncilQueries.IsImprisoned(companionId)) return false;
+
         if (save.ActivePartyCompanionIds.Contains(companionId)) return false;
         if (save.ActivePartyCompanionIds.Count >= save.MaxPartySize) return false;
 

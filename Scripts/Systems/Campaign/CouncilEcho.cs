@@ -88,7 +88,7 @@ public static class CouncilEcho
     /// Regard to routed courtiers (up to 1 minor / 2 major), dissipate with
     /// a report line when no courtier matches, and report buried
     /// (cancelled) stories. Removes landed echoes from flight.</summary>
-    public static void LandEchoes(CycleState cycle, List<string> lines)
+    public static void LandEchoes(CycleState cycle, List<HeraldReport> reports)
     {
         var council = cycle?.Council;
         if (council == null || council.EchoesInFlight.Count == 0)
@@ -123,14 +123,24 @@ public static class CouncilEcho
 
             if (echo.Cancelled)
             {
-                lines.Add($"A story bound for {courtName} — {deed} — was quietly buried before it landed.");
+                reports.Add(new HeraldReport
+                {
+                    Lunation = now,
+                    KingdomId = echo.KingdomId,
+                    Text = $"A story bound for {courtName} — {deed} — was quietly buried before it landed.",
+                });
                 continue;
             }
 
             var targets = RouteTargets(court, echo);
             if (targets.Count == 0)
             {
-                lines.Add($"A tale of {deed} reached {courtName}, but found no ears that cared.");
+                reports.Add(new HeraldReport
+                {
+                    Lunation = now,
+                    KingdomId = echo.KingdomId,
+                    Text = $"A tale of {deed} reached {courtName}, but found no ears that cared.",
+                });
                 continue;
             }
 
@@ -141,10 +151,18 @@ public static class CouncilEcho
                 names.Add($"{c.DisplayName} the {CouncilTick.OfficeDisplay(c.Office)} " +
                           $"(Regard {(c.Regard > 0 ? "+" : "")}{c.Regard})");
             }
-            string verb = echo.Valence > 0 ? "approves" : "takes offense";
+            bool plural = targets.Count > 1;
+            string verb = echo.Valence > 0
+                ? (plural ? "approve" : "approves")
+                : (plural ? "take offense" : "takes offense");
             string joined = string.Join("; ", names);
-            lines.Add($"Word reaches {courtName} of {deed}: {joined} {(targets.Count > 1 ? verb.Replace("s", "") : verb)}. " +
-                      $"Standing: {court.Band()}.");
+            reports.Add(new HeraldReport
+            {
+                Lunation = now,
+                KingdomId = echo.KingdomId,
+                Text = $"Word reaches {courtName} of {deed}: {joined} {verb}. " +
+                       $"Standing: {court.Band()}.",
+            });
         }
         SaveManager.MarkDirty();
     }

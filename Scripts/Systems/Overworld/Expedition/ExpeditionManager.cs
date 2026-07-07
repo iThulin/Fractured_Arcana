@@ -678,6 +678,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 TriggerNegotiationEncounter(hex, coord);
                 break;
 
+            case OverworldHex.POIType.Prison:
+                // Imprisonment rescue (§8): storming the gaol is a combat. Winning
+                // releases the captive — handled on combat return in
+                // RestoreFromCombat via ReleaseImprisonedAt(resultHex). Routes
+                // through the ordinary scout->commit path so difficulty scaling and
+                // patrol attribution behave normally.
+                OpenScoutReport(coord, hex);
+                break;
+
             case OverworldHex.POIType.Outpost:
                 // Full-heal checkpoint + grants a staging point (world-scale reward).
                 CurrentHP = MaxHP;
@@ -849,6 +858,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             GrantStagingPointAt(resultHex); // securing a seat/settlement via combat can grant staging
             ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters.");
             EmitCombatDeed(router, resultHex);
+            ReleaseImprisonedAt(resultHex); // if this was a prison, free the captive
         }
         else
         {
@@ -953,6 +963,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         NegotiationContext.EncounterId = encounter.Id;
         NegotiationContext.HexCoordKey = $"{coord.X},{coord.Y}";
         NegotiationContext.NpcArchetype = encounter.Archetype.ToString();
+        // Kingdom of the tile we're standing on — drives court-standing
+        // starting tension and the deal-deed echo route. "" for wilds.
+        NegotiationContext.OriginKingdomId = KingdomIdAt(coord);
 
         var router = EncounterRouter.Instance;
         if (router != null)
@@ -978,28 +991,37 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (NegotiationContext.DealAccepted)
         {
             GoldEarned = Mathf.Max(0, GoldEarned + NegotiationContext.GoldDelta);
-            string f = NegotiationContext.FactionId;
             var cycle = SaveManager.ActiveSave?.Cycle;
-            if (!string.IsNullOrEmpty(f) && cycle != null)
+            string kingdom = NegotiationContext.OriginKingdomId;
+            bool kingdomAligned = cycle != null &&
+                                  !string.IsNullOrEmpty(kingdom) &&
+                                  cycle.Kingdoms.ContainsKey(kingdom);
+            if (kingdomAligned)
             {
-                if (cycle.Kingdoms.ContainsKey(f))
+                // Kingdom-aligned: the deal echoes to the court (C4). Routed
+                // on OriginKingdomId (the tile's kingdom), NOT the authored
+                // FactionId — encounter JSONs carry non-kingdom faction keys,
+                // so keying on FactionId here was structurally dead (Session D).
+                // FactionReputation no longer stores kingdom feeling; court
+                // standing is the single source of truth.
+                int rep = NegotiationContext.ReputationDelta;
+                if (rep != 0)
                 {
-                    // Kingdom-aligned: the deal echoes to the court (C4).
-                    // FactionReputation no longer stores kingdom feeling —
-                    // court standing is the single source of truth.
-                    int rep = NegotiationContext.ReputationDelta;
-                    if (rep != 0)
-                    {
-                        string tag = (rep > 0 ? CouncilEcho.DealFair : CouncilEcho.DealExploit)
-                                     + ":" + NegotiationContext.NpcArchetype;
-                        string toast = CouncilEcho.EmitDeed(cycle, f, tag, rep > 0, isMajor: false);
-                        if (toast != null)
-                            ShowInfo(toast);
-                    }
+                    string tag = (rep > 0 ? CouncilEcho.DealFair : CouncilEcho.DealExploit)
+                                 + ":" + NegotiationContext.NpcArchetype;
+                    string toast = CouncilEcho.EmitDeed(cycle, kingdom, tag, rep > 0, isMajor: false);
+                    if (toast != null)
+                        ShowInfo(toast);
                 }
-                else if (SaveManager.ActiveSave != null)
+            }
+            else if (SaveManager.ActiveSave != null)
+            {
+                // Non-kingdom faction (wilds, convergence, faction-specific
+                // NPC): FactionReputation keeps its job, keyed by the
+                // encounter's authored FactionId.
+                string f = NegotiationContext.FactionId;
+                if (!string.IsNullOrEmpty(f))
                 {
-                    // Non-kingdom faction: FactionReputation keeps its job.
                     var repDict = SaveManager.ActiveSave.FactionReputation;
                     repDict[f] = repDict.TryGetValue(f, out int cur)
                         ? cur + NegotiationContext.ReputationDelta
@@ -1104,7 +1126,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var hudPanel = new PanelContainer
         {
             OffsetLeft = 12,
-            OffsetTop = 12,
+            OffsetTop = 12 + HudManager.BarHeight, // clear the global top bar
             OffsetRight = 300,
             OffsetBottom = 12,
         };
@@ -1167,8 +1189,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             GrowHorizontal = Control.GrowDirection.Begin,
             OffsetLeft = -150,
             OffsetRight = -12,
-            OffsetTop = 12,
-            OffsetBottom = 52,
+            OffsetTop = 12 + HudManager.BarHeight, // clear the global top bar
+            OffsetBottom = 52 + HudManager.BarHeight,
         };
         _extractButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         UITheme.ApplyButtonStyle(_extractButton, isPrimary: true);
@@ -1187,8 +1209,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             GrowHorizontal = Control.GrowDirection.Begin,
             OffsetLeft = -150,
             OffsetRight = -12,
-            OffsetTop = 60,
-            OffsetBottom = 100,
+            OffsetTop = 60 + HudManager.BarHeight, // clear the global top bar
+            OffsetBottom = 100 + HudManager.BarHeight,
         };
         _ledgerButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         UITheme.ApplyButtonStyle(_ledgerButton, isPrimary: false);
@@ -1544,6 +1566,37 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
         }
         return (false, "That favor has no field effect yet.");
+    }
+
+    /// <summary>If the resolved tile is a Prison holding a guild envoy, free
+    /// them: remove the ImprisonedEnvoy record and return the companion to the
+    /// recruited pool (AddToParty-eligible again via the derived guard). Keyed
+    /// by matching the world POI index, so only the correct captive is freed.</summary>
+    private void ReleaseImprisonedAt(Vector2I resultHex)
+    {
+        var council = SaveManager.ActiveSave?.Cycle?.Council;
+        if (council == null || council.Imprisoned.Count == 0)
+            return;
+        if (!_window.TryLocalToWorld(resultHex, out int col, out int row))
+            return;
+        int poiIdx = _world.GetTile(col, row).PoiIndex;
+        if (poiIdx < 0)
+            return;
+
+        ImprisonedEnvoy freed = null;
+        foreach (var e in council.Imprisoned)
+        {
+            if (e.PrisonPoiIndex == poiIdx)
+            { freed = e; break; }
+        }
+        if (freed == null)
+            return;
+
+        council.Imprisoned.Remove(freed);
+        var envoy = SaveManager.ActiveSave.Companions.Find(c => c.Id == freed.CompanionId);
+        string name = envoy?.Name ?? freed.CompanionId;
+        SaveManager.MarkDirty();
+        ShowInfo($"{name} is freed from the gaol and returns to the guild's ranks.");
     }
 
     /// <summary>Emit at most ONE echo for a won combat (C4 §7a), priority:

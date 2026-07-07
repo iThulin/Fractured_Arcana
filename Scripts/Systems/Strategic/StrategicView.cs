@@ -166,9 +166,9 @@ public partial class StrategicView : Node2D
             AnchorRight = 0f,
             AnchorBottom = 0f,
             OffsetLeft = 16,
-            OffsetTop = 16,
+            OffsetTop = 16 + HudManager.BarHeight, // clear the global top bar
             OffsetRight = 196,
-            OffsetBottom = 56,
+            OffsetBottom = 56 + HudManager.BarHeight,
         };
         campusBtn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         UITheme.ApplyButtonStyle(campusBtn, isPrimary: false);
@@ -185,9 +185,9 @@ public partial class StrategicView : Node2D
             AnchorRight = 0f,
             AnchorBottom = 0f,
             OffsetLeft = 204,
-            OffsetTop = 16,
+            OffsetTop = 16 + HudManager.BarHeight, // clear the global top bar
             OffsetRight = 324,
-            OffsetBottom = 56,
+            OffsetBottom = 56 + HudManager.BarHeight,
         };
         councilBtn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         UITheme.ApplyButtonStyle(councilBtn, isPrimary: false);
@@ -208,8 +208,8 @@ public partial class StrategicView : Node2D
                 GrowHorizontal = Control.GrowDirection.Begin,
                 OffsetLeft = -260,
                 OffsetRight = -16,
-                OffsetTop = 16,
-                OffsetBottom = 84,
+                OffsetTop = 16 + HudManager.BarHeight, // clear the global top bar
+                OffsetBottom = 84 + HudManager.BarHeight,
             };
             calPanel.AddThemeStyleboxOverride("panel",
                 UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Gold));
@@ -282,9 +282,9 @@ public partial class StrategicView : Node2D
             AnchorRight = 0f,
             AnchorBottom = 0f,
             OffsetLeft = 16,
-            OffsetTop = 64,
+            OffsetTop = 64 + HudManager.BarHeight, // clear the global top bar
             OffsetRight = 16,
-            OffsetBottom = 96,
+            OffsetBottom = 96 + HudManager.BarHeight,
         };
         row.AddThemeConstantOverride("separation", 6);
         _hud.AddChild(row);

@@ -67,7 +67,8 @@ public class NegotiationState
     // ── Init ─────────────────────────────────────────────────────────────
 
     public void Initialize(NegotiationEncounterData data, CardSchool wizardSchool,
-                           List<Companion> party, int factionReputation = 0)
+                           List<Companion> party, int factionReputation = 0,
+                           int patronConnectionTokens = 0)
     {
         Data = data;
         NpcPatience = data.BasePatience;
@@ -85,6 +86,15 @@ public class NegotiationState
 
         // Build token pool from wizard school + companions
         BuildTokenPool(wizardSchool, party);
+
+        // Court patron backing (C5): a courtier secured as the guild's Patron
+        // at this kingdom's court lends their name at the table. Applied here,
+        // not inside BuildTokenPool, because that method clears the pool first.
+        if (patronConnectionTokens > 0)
+        {
+            TokenPool[LeverageToken.Connections] += patronConnectionTokens;
+            AddLog($"A patron at court backs you: +{patronConnectionTokens} Connections.");
+        }
 
         AddLog($"Negotiation begins. {data.NpcName} presents their terms.");
         AddLog(data.OpeningText);

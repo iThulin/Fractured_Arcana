@@ -151,7 +151,7 @@ public static class CouncilLedger
     /// -1 Regard with the creditor courtier every ObligationDecayPeriod
     /// lunations. Called from CouncilTick.Tick before mission resolution.
     /// Appends attributed lines for the Herald's Report.</summary>
-    public static void TickObligationDecay(CycleState cycle, List<string> lines)
+    public static void TickObligationDecay(CycleState cycle, List<HeraldReport> reports)
     {
         var council = cycle?.Council;
         if (council == null || council.Ledger.Count == 0)
@@ -186,9 +186,14 @@ public static class CouncilLedger
             }
 
             creditor.Regard = Mathf.Clamp(creditor.Regard - 1, -3, 3);
-            lines.Add($"An unpaid debt festers at {favor.KingdomId}: " +
-                      $"{creditor.DisplayName} the {creditor.Office} grows colder " +
-                      $"(Regard {creditor.Regard}). [{favor.SourceDescription}]");
+            reports.Add(new HeraldReport
+            {
+                Lunation = now,
+                KingdomId = favor.KingdomId,
+                Text = $"An unpaid debt festers at {favor.KingdomId}: " +
+                       $"{creditor.DisplayName} the {creditor.Office} grows colder " +
+                       $"(Regard {creditor.Regard}). [{favor.SourceDescription}]",
+            });
         }
     }
 

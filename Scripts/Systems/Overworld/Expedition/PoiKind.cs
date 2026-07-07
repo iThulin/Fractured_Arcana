@@ -43,4 +43,8 @@ public enum PoiKind
     Settlement,
     /// <summary>The convergence seat — Kassian's seat, the endgame objective (world-scale only).</summary>
     Convergence,
+    /// <summary>An Imprisonment gaol (§8) — a rescue-combat site holding a captured
+    /// guild envoy until stormed. Sited near the imprisoning kingdom's capital
+    /// (world-scale only).</summary>
+    Prison,
 }

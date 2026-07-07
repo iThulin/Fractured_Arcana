@@ -749,6 +749,52 @@ public static class WorldGenerator
         world.Tiles[idx] = t;
     }
 
+    /// <summary>Runtime POI creation for systems outside worldgen (the council tick
+    /// siting an Imprisonment gaol). Anchors on the kingdom's Seat, then places the
+    /// POI on the nearest kingdom-owned, non-settlement, unoccupied land tile
+    /// (WildTilesOfKingdom is land-only — water carries no KingdomId). Marks the POI
+    /// discovered and reveals its tile so the marker shows and the rescue is
+    /// reachable, and RETURNS the new POI index for the caller to back-reference.
+    /// Returns -1 if the kingdom has no seat or no free wild tile.</summary>
+    public static int SiteRuntimePoi(WorldData world, PoiKind kind, string kingdomId)
+    {
+        if (world == null || string.IsNullOrEmpty(kingdomId))
+            return -1;
+
+        int capX = -1, capY = -1;
+        foreach (var poi in world.Pois)
+        {
+            if (poi.Kind == PoiKind.Seat && poi.KingdomId == kingdomId)
+            { capX = poi.X; capY = poi.Y; break; }
+        }
+        if (capX < 0)
+            return -1; // no seat (convergence, or malformed) — cannot anchor
+
+        int bestX = -1, bestY = -1, bestDist = int.MaxValue;
+        foreach (var (x, y) in WildTilesOfKingdom(world, kingdomId))
+        {
+            if (world.GetTile(x, y).PoiIndex >= 0)
+                continue; // occupied
+            int d = HexCoord.OffsetDistance(capX, capY, x, y);
+            if (d < bestDist)
+            { bestDist = d; bestX = x; bestY = y; }
+        }
+        if (bestX < 0)
+            return -1; // no free wild tile in the kingdom
+
+        int index = world.Pois.Count;
+        AddPoi(world, bestX, bestY, kind, kingdomId, grantsStaging: false);
+        world.Pois[index].Discovered = true; // WorldPoi is a class — mutate in place
+
+        var t = world.GetTile(bestX, bestY);
+        if (t.Discovery == TileDiscovery.Unseen)
+        {
+            t.Discovery = TileDiscovery.Charted;
+            world.SetTile(bestX, bestY, t);
+        }
+        return index;
+    }
+
     // ── 8. Staging ───────────────────────────────────────────────────────
     private static void SeedStaging(WorldData world, (int x, int y) start, Params p,
                                     RandomNumberGenerator rng)

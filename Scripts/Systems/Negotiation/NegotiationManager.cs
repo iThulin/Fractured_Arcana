@@ -68,16 +68,55 @@ public partial class NegotiationManager : Control
 
         var party = CompanionRoster.GetActiveParty();
         var school = PlayerSession.SelectedSchool;
+        // Starting reputation: kingdom NPCs derive it from court standing
+        // (single source of truth per the standing ruling); non-kingdom
+        // factions keep the FactionReputation ledger. OriginKingdomId is
+        // set at trigger time — the negotiation scene can't resolve the
+        // tile's kingdom on its own.
         int factionRep = 0;
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        string originKingdom = NegotiationContext.OriginKingdomId;
+        if (cycle != null && !string.IsNullOrEmpty(originKingdom) &&
+            cycle.Council != null && cycle.Council.Courts.ContainsKey(originKingdom))
+        {
+            factionRep = CouncilQueries.NegotiationReputationFor(cycle, originKingdom);
+        }
+        else if (SaveManager.ActiveSave != null &&
+                 !string.IsNullOrEmpty(_data.FactionId) &&
+                 SaveManager.ActiveSave.FactionReputation.TryGetValue(_data.FactionId, out int rep))
+        {
+            factionRep = rep;
+        }
+
+        GD.Print($"[Negotiation] origin='{NegotiationContext.OriginKingdomId}', " +
+                 $"factionRep={factionRep}, startTension will reflect it.");     
 
         _state = new NegotiationState();
         _state.OnTensionChanged += OnTensionChanged;
         _state.OnLogEntry += AppendLog;
         _state.OnResolved += OnNegotiationResolved;
 
-        _state.Initialize(_data, school, party, factionRep);
+        // Court patron (C5): a courtier secured as the guild's Patron at the
+        // origin kingdom's court lends backing at the table — +1 Connections,
+        // flat (legible/deterministic; no archetype scaling in v1). Reuses the
+        // origin court already resolved above for factionRep. Dormant until the
+        // Court-a-Courtier mission writes PatronCourtierId.
+        int patronTokens = 0;
+        if (cycle?.Council != null && !string.IsNullOrEmpty(originKingdom) &&
+            cycle.Council.Courts.TryGetValue(originKingdom, out var originCourt) &&
+            !string.IsNullOrEmpty(originCourt.PatronCourtierId) &&
+            originCourt.GetCourtier(originCourt.PatronCourtierId) != null)
+        {
+            patronTokens = 1;
+        }
 
-        _titleLabel.Text = _data.Title;
+        _state.Initialize(_data, school, party, factionRep, patronTokens);
+
+        GD.Print($"[Negotiation] opened at tension={_state.Tension} " +
+                 $"(zone {_state.Zone}), from factionRep={factionRep}, " +
+                 $"encounter.StartingTension={_data.StartingTension}.");
+
+        _titleLabel.Text = _data.Title;     
         _npcNameLabel.Text = _data.NpcName;
         _openingLabel.Text = _data.OpeningText;
 

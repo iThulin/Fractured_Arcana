@@ -150,6 +150,12 @@ public class CourtState
     /// and the standing band is capped at Received.</summary>
     public int MissionFreezeLunations = 0;
 
+    /// <summary>Institutional standing damage from Scandal (§8), subtracted
+    /// from StandingScore. Persists as a lasting mark, recovered only by
+    /// out-earning it with courtier Regard. Save-adjacent — round-trip
+    /// asserted. OPEN TUNING (unruled): whether it should decay over time.</summary>
+    public int StandingPenalty = 0;
+
     // ── Derived standing (never serialized as truth) ─────────────────────
 
     /// <summary>Σ (Regard × Influence) over all courtiers.</summary>
@@ -160,7 +166,7 @@ public class CourtState
         {
             score += c.Regard * c.Influence;
         }
-        return score;
+        return score - StandingPenalty;
     }
 
     /// <summary>Standing band per §3b, honoring the Unknown flag and the
@@ -264,6 +270,17 @@ public class EnvoyMission
     public bool Recalled = false;
 }
 
+/// <summary>A guild envoy imprisoned after Imprisonment (§8). The mission is
+/// over; the companion is NOT in the active pool and NOT on a mission — held
+/// until the rescue POI resolves. Save-adjacent (round-trip asserted).</summary>
+public class ImprisonedEnvoy
+{
+    public string CompanionId = "";
+    public string KingdomId = "";
+    public int PrisonPoiIndex = -1;   // index into WorldData.Pois; -1 until sited
+    public int LunationImprisoned = 0;
+}
+
 /// <summary>A deed's echo traveling toward a court (§7). Lands and
 /// applies Regard on the lunation tick when LandsOnLunation is reached.</summary>
 public class EchoEvent
@@ -326,4 +343,13 @@ public class CouncilState
     /// List rather than Queue for clean System.Text.Json round-trips;
     /// consume from index 0.</summary>
     public List<InterjectionEvent> PendingInterjections = new();
+
+    /// <summary>Envoys held captive after Imprisonment, awaiting rescue.</summary>
+    public List<ImprisonedEnvoy> Imprisoned = new();
+
+    /// <summary>Persisted Herald's Report, newest last. Structured so lines carry
+    /// KingdomId (court-card echo history queries on it) and Lunation (display
+    /// grouping) instead of parsing interpolated prose. Cycle-tier: BeginNewCycle
+    /// replaces CycleState wholesale, correctly wiping the report with the timeline.</summary>
+    public List<HeraldReport> Reports = new();
 }
