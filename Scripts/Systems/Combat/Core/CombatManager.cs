@@ -53,7 +53,8 @@ public partial class CombatManager : Node3D
     // stores the pending enemy spawn parameters so we can defer spawning until after the player commits their deployment.
     private struct PendingEnemySpawn
     {
-        public EnemyArchetype Archetype;  // ← drives stats, AI, and intel label
+        public EnemyArchetype Archetype;  // ← drives stats, AI, and intel label (enum dies in U2)
+        public UnitDefinition Def;        // ← U1 seam: resolved def; spawns rekey off this in U2
         public int MaxHealth;
         public int Health;
         public int BaseSpeed;
@@ -3019,6 +3020,7 @@ public partial class CombatManager : Node3D
             pendingEnemySpawns.Add(new PendingEnemySpawn
             {
                 Archetype = archetype,
+                Def = UnitRegistry.ForArchetype(archetype),
                 MaxHealth = hp,
                 Health = hp,
                 BaseSpeed = EnemyArchetypeData.GetBaseSpeed(archetype),
@@ -3061,6 +3063,7 @@ public partial class CombatManager : Node3D
             pendingEnemySpawns.Add(new PendingEnemySpawn
             {
                 Archetype = archetype,
+                Def = UnitRegistry.ForArchetype(archetype),
                 MaxHealth = hp,
                 Health = hp,
                 BaseSpeed = EnemyArchetypeData.GetBaseSpeed(archetype),

@@ -1,0 +1,8 @@
+{
+  "id": "generic_wizard",
+  "threatLabel": "Wizard",
+  "maxHealth": 12, "baseSpeed": 1, "armor": 0,
+  "attackRange": 5, "attackDamage": 9, "preferredDistance": 4,
+  "behaviorKey": "ranged_charge",
+  "colorR": 0.9, "colorG": 0.9, "colorB": 0.1
+}

@@ -13,12 +13,13 @@
 | World (1a–1c) | single_world_refactor §8 | **Done.** WorldGenerator, world array, StrategicView, expedition windows, zoom, corruption drain reading world tiles. |
 | World (Phase 2, living world) | single_world_refactor §8 | **Done / in verification.** CouncilTick + CorruptionSpread + kingdom drift live. |
 | Council C1–C3 | court_council §14 | **Done and verified** (C3 fully: call-ins, petitions, obligation decay, ledger persistence). |
-| Council C4 (Word Spreads) | court_council §14 | **Substantially complete.** Verification queue open: Sessions C, D, F + remaining regressions. |
+| Council C4 (Word Spreads) | court_council §14 | **Done and verified (2026-07-08).** Verification queue (Sessions C, D, F + regressions) run and passed. |
 | Council C5 | court_council §14 | **Done (2026-07-08).** Exposure ladder + Scandal/Expulsion/Imprisonment thresholds; Imprisonment → Prison POI rescue (release keyed on stable world coords, not a `Pois` list index); Court a Courtier + **archetype-typed** Patron token feeding the negotiation pool; Rumor/Discredit. Save round-trip assertions for HeraldReport / CourtState.StandingPenalty / ImprisonedEnvoy (`CouncilSaveAssert`, debug-panel button). |
 | Council C6 | court_council §14 | **Not started — scoped.** Tier C climaxes, Broker the Compact → Allied, Unite/Coerce standing gates, Astrologer agent + deflection + Expose the Agent, Hall of Records renown. Hard deps (negotiation encounter system, ArchmageDisposition, C1–C5) all met → buildable now despite its Phase-D placement. See `docs/council_c6_scope.md`. |
-| Units U1–U6 | archmage_unique_units §13 | **Not started.** EnemyArchetypeData enum still drives spawns; no UnitRegistry, no Data/Units. |
+| Units U1 | archmage_unique_units §13 | **Done (2026-07-08).** UnitRegistry + UnitDefinition + Data/Units/generic_* (5 defs at verified stat parity); EnemyArchetypeData is now a facade over the registry; EncounterPoolLoader resolves unit-id aliases; PendingEnemySpawn carries the resolved Def (U2 seam). Parity + round-trip assertion wired ("Assert Units" debug button). |
+| Units U2–U6 | archmage_unique_units §13 | **Not started.** U2 next: BehaviorKey dispatch + tags + stalker — deletes the EnemyArchetype enum and rekeys spawns off the Def. |
 | Combat UI V1–V5 | combat_ui §14 | **Not started.** PriorityManager/stack exists in RulesManager (player-side), console-only. |
-| Environments E1–E3 | combat_environments §9 | **Not started.** R19 step costs LANDED (OverworldMovementCost has Hills/Desert/Tundra/Snow cases, tuned past the starting values). R4 deletion NOT done — ReclassifyTerrainPerRegion body still in WorldGenerator.cs. |
+| Environments E1–E3 | combat_environments §9 | **Not started.** R19 step costs LANDED (OverworldMovementCost has Hills/Desert/Tundra/Snow cases, tuned past the starting values). R4 deletion **DONE (2026-07-08)** — ReclassifyTerrainPerRegion + its palette cache removed from WorldGenerator.cs. |
 | Companions K1–K5 | companion_item_systems §10 | **Not started.** ComputePartyBaseHP exists but is the OLD formula (full BaseHP, no floor/2, no loyalty bonus) — K1 is a change, not a creation. No injury state, no hiring halls, no Muster screen. |
 | Items Q1–Q5 | companion_item_systems §10 | **Q1 partial.** Equipment loadouts apply at spawn (BuildEquipmentLoadouts); passive dispatch still the old ItemPassiveTag path. Q2 blocked on U3. |
 | Spells S1–S6 | overworld_spell §14 | **Not started.** No Data/OverworldSpells, no GrimoireState. |
@@ -43,13 +44,13 @@
 
 *Goal: no open verification, no queued patches, canonical card statuses.*
 
-- Finish the C4 verification queue: Sessions C, D, F + remaining regressions (E3 boundary landing first, it was mid-flight).
-- Rule the Finding 2 question (courier-station echo delay no-op under current tick ordering) — it decides whether Courier Station's court effect ships in C5 or gets respecced.
-- Land the queued live patches: delete ReclassifyTerrainPerRegion + its palette cache (R4); WorldDebug `k.Stance` already noted; CameraController HandleZoom clamp crash reproduction.
-- Merge the Tinker handoff package; flip Tinker card statuses `wip → ready`.
-- **The three-standing-systems ruling** (KingdomStance derived / FactionReputation / court standing): due here, because C5 (next-but-one) consumes it and K5's fitness vector reads it. This is the phase's real deliverable; everything else is closeout.
+- ✅ **Done (2026-07-08).** C4 verification queue run and passed: Sessions C, D, F + regressions (E3 boundary landing).
+- **Removed from Phase A scope (2026-07-08).** The Finding 2 question (courier-station echo delay — verified a no-op under current tick ordering) is deferred: Courier Station is being reworked entirely, and the rework owns its court effect. No longer a Phase A gate.
+- ✅ **Done (2026-07-08).** Queued live patches landed: R4 (ReclassifyTerrainPerRegion + palette cache deleted, dead call removed); WorldDebug `k.Stance` clear (no references); CameraController HandleZoom clamp present.
+- ✅ **Done.** Tinker handoff merged; all Tinker card statuses `ready`.
+- ✅ **Done.** The three-standing-systems ruling: KingdomStance is derived-only (stored Stance removed → `CouncilQueries.StanceFor`); FactionReputation survives for non-kingdom factions; court standing is the single source of truth. The phase's real deliverable.
 
-**Exit:** C4 marked verified in the doc trail; ruling recorded; repo has no queued patches.
+**Exit — MET (2026-07-08).** C4 verified in the doc trail; the standing ruling recorded; queued patches landed; Finding 2 descoped (Courier Station rework owns it). **Phase A closed.**
 
 ---
 
@@ -60,7 +61,7 @@
 Ordered deliverables:
 
 1. **V1** (no dependencies — start immediately, even in parallel with Phase A): canvas_items stretch + 1920×1080 design space, hand-bound migration, layout redistribution. Cheapest moment is before new elements exist.
-2. **U1**: UnitRegistry + UnitDefinition + five generic_* definitions + loader aliases + PendingEnemySpawn replacement. Exit = behavioral parity on one encounter of each tier + serialization round-trip.
+2. **U1 — DONE 2026-07-08.** UnitRegistry + UnitDefinition + five generic_* definitions + loader aliases + PendingEnemySpawn Def seam. Stats moved to Data/Units JSON behind a facade (zero call-site change → parity by construction); parity+round-trip asserted via the "Assert Units" debug button. Playtest exit (one encounter per tier reads identically) is the user's to confirm in-engine.
 3. **U2**: BehaviorKey dispatch + the five tags + stalker. (This retires the deferred Druid wildlife dispatcher thread — it lands here as `pack`/`scout` etc., not as its own build.)
 4. **V2** (needs U1–U2): EnemyRosterRow, nameplates, faction-tinted bars, inspect blocks, threat-range overlay, deployment intel upgrade, ScoutReportPanel name pass-through.
 5. **U3** (the phase's heavy lift, R3 stack-first): stack objects, priority windows, auto-pass/stops, Long Table keys, conductor roster end-to-end. The existing PriorityManager is the foundation; U3 makes enemy triggers first-class on it.

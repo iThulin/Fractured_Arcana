@@ -166,15 +166,6 @@ public static class WorldGenerator
                      (string.IsNullOrEmpty(archmageId) ? " (no archmage)" : $" (archmage {archmageId})"));
         }
 
-        // ── 5b. Per-region terrain: reclassify each land tile through its
-        // kingdom's region palette, reusing the SHARED continuous field's
-        // elevation/moisture (already stored per tile). The field stays global
-        // so terrain flows seamlessly across borders; only the *interpretation*
-        // varies by region, so a glacial kingdom reads icy/mountainous and a
-        // verdant one reads wet/forested without hard seams. Water is preserved
-        // so coastlines + territory assignment stay stable.
-        //ReclassifyTerrainPerRegion(world, kingdoms);
-
         // ── 5c. Stamp Hills/Mountain from the final (uplifted) elevation,
         // AFTER the per-region repaint so the mountain structure is globally
         // coherent. Lowlands keep their regional identity; biome Volcanic is
@@ -286,76 +277,6 @@ public static class WorldGenerator
         new() { TerrainName = "Forest",   MinMoisture = 0.55f },
         new() { TerrainName = "Grassland" },
     };
-
-    /// <summary>Reclassify each LAND tile's terrain through its kingdom's region
-    /// palette, reusing the shared field's stored elevation/moisture. Water tiles
-    /// are left untouched so coastlines and territory stay stable. Kingdoms whose
-    /// region has no palette (or that fail to load) keep the default-classified
-    /// terrain. This is what gives each region its visual identity without
-    /// reintroducing noise seams — the field is shared, only classification varies.</summary>
-    private static void ReclassifyTerrainPerRegion(WorldData world,
-        Dictionary<string, KingdomState> kingdoms)
-    {
-        // Cache each kingdom's LAND palette once (water rules stripped so we never
-        // turn a land tile into water under a different palette).
-        var landPaletteByKingdom = new Dictionary<string, List<OverworldPaletteRule>>();
-        foreach (var kvp in kingdoms)
-        {
-            string regionId = kvp.Value.TemplateRegionId;
-            if (string.IsNullOrEmpty(regionId))
-                continue;
-
-            var def = RegionLoader.LoadOrDefault(regionId);
-            if (def == null || def.BaseTerrain == null || !def.BaseTerrain.HasPalette)
-                continue;
-
-            var landRules = def.BaseTerrain.Palette
-                .Where(r => !TerrainClass.IsWater(r.Terrain))
-                .ToList();
-            if (landRules.Count == 0)
-                continue;
-
-            // Guarantee a catch-all so every land tile classifies to something.
-            if (!landRules.Any(r => r.MaxElevation == null && r.MinElevation == null &&
-                                    r.MaxMoisture == null && r.MinMoisture == null))
-            {
-                landRules.Add(new OverworldPaletteRule { TerrainName = "Grassland" });
-            }
-            landPaletteByKingdom[kvp.Key] = landRules;
-        }
-
-        if (landPaletteByKingdom.Count == 0)
-            return; // no region palettes available — keep default terrain
-
-        // A throwaway field instance only to reuse ClassifyByPalette (pure function
-        // of the rules + e/m; no sampling here since e/m are already stored).
-        var classifier = new OverworldField(0);
-
-        for (int y = 0; y < world.Height; y++)
-        {
-            for (int x = 0; x < world.Width; x++)
-            {
-                int idx = y * world.Width + x;
-                var tile = world.Tiles[idx];
-
-                // Preserve water AND coast — coastlines and territory depend on it.
-                if (tile.IsWater || tile.IsCoast)
-                    continue;
-                if (string.IsNullOrEmpty(tile.KingdomId))
-                    continue;
-                if (!landPaletteByKingdom.TryGetValue(tile.KingdomId, out var rules))
-                    continue;
-
-                var newTerrain = classifier.ClassifyByPalette(rules, tile.Elevation, tile.Moisture);
-                if (TerrainClass.IsWater(newTerrain))
-                    continue; // never introduce water mid-territory
-                tile.Terrain = newTerrain;
-                world.Tiles[idx] = tile;
-            }
-        }
-
-        GD.Print($"[WorldGen] Reclassified terrain for {landPaletteByKingdom.Count} region palette(s).");
-    }
 
     private static List<OverworldPaletteRule> DefaultWorldPalette() => new()
     {

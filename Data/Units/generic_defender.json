@@ -1,0 +1,8 @@
+{
+  "id": "generic_defender",
+  "threatLabel": "Defender",
+  "maxHealth": 25, "baseSpeed": 1, "armor": 5,
+  "attackRange": 1, "attackDamage": 4, "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "colorR": 0.2, "colorG": 0.5, "colorB": 0.9
+}

@@ -187,7 +187,7 @@ public static class EncounterPoolLoader
 
         foreach (var slot in group.Enemies)
         {
-            if (Enum.TryParse<EnemyArchetype>(slot.Archetype, ignoreCase: true, out var archetype))
+            if (UnitRegistry.TryResolveArchetype(slot.Archetype, out var archetype))
             {
                 float slotMult = groupMult * (slot.DifficultyMult <= 0f ? 1f : slot.DifficultyMult);
                 def.Enemies.Add(new EnemySlot(archetype, slotMult));
@@ -236,7 +236,7 @@ public static class EncounterPoolLoader
 
         foreach (var slot in comp.Enemies)
         {
-            if (Enum.TryParse<EnemyArchetype>(slot.Archetype, ignoreCase: true, out var archetype))
+            if (UnitRegistry.TryResolveArchetype(slot.Archetype, out var archetype))
                 def.Enemies.Add(new EnemySlot(archetype, difficultyMult));
             else
                 GD.PrintErr($"EncounterPoolLoader: Unknown archetype '{slot.Archetype}' in {comp.Name}");

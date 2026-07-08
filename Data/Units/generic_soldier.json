@@ -1,0 +1,8 @@
+{
+  "id": "generic_soldier",
+  "threatLabel": "Soldier",
+  "maxHealth": 20, "baseSpeed": 2, "armor": 0,
+  "attackRange": 1, "attackDamage": 5, "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "colorR": 1.0, "colorG": 0.25, "colorB": 0.25
+}

@@ -1638,6 +1638,15 @@ public partial class CampusScreen : Control
         assertRtBtn.Pressed += () => CouncilSaveAssert.AssertAll();
         grid.AddChild(assertRtBtn);
 
+        var assertUnitsBtn = new Button
+        {
+            Text = "Assert Units",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        assertUnitsBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        assertUnitsBtn.Pressed += () => UnitRegistry.AssertParityAndRoundTrip();
+        grid.AddChild(assertUnitsBtn);
+
         return panel;       
     }
 
