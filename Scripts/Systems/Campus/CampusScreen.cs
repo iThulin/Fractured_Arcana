@@ -68,6 +68,8 @@ public partial class CampusScreen : Control
 
     public override void _Ready()
     {
+        PlayerDeckSave.UseDebugDeck = false; // campus is the real-deck home; debug routing off
+        if (SaveManager.ActiveSave == null) SaveManager.AutoLoadLast(); // boot/dev: fall back to last save
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
         CallDeferred(nameof(BuildUI));
     }
@@ -1646,6 +1648,24 @@ public partial class CampusScreen : Control
         assertUnitsBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         assertUnitsBtn.Pressed += () => UnitRegistry.AssertParityAndRoundTrip();
         grid.AddChild(assertUnitsBtn);
+
+        var combatDebugBtn = new Button
+        {
+            Text = "Combat Debug",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        combatDebugBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        combatDebugBtn.Pressed += () => CombatDebugLauncher.Toggle(grid);
+        grid.AddChild(combatDebugBtn);
+
+        var assertDeckBtn = new Button
+        {
+            Text = "Assert Deck Split",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        assertDeckBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        assertDeckBtn.Pressed += () => CombatDebugLauncher.AssertDeckSplit();
+        grid.AddChild(assertDeckBtn);
 
         return panel;       
     }

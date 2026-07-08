@@ -158,6 +158,64 @@ public static class StarterDeckLoader
         GD.Print($"[StarterDeckLoader] Seeded {save.PlayerDeck.Cards.Count} OwnedCards into PlayerDeckSave.");
     }
 
+    /// <summary>Seed the DEBUG/scratch deck with a fresh starter deck for `school`,
+    /// APPENDING new owned copies to the shared collection (never wiping it, unlike
+    /// SeedStarterDeck) and filling DebugDeckInstanceIds. No-op once the debug deck has
+    /// cards. Lets the combat debug launcher always present a class-appropriate deck to
+    /// test and edit, even on a save whose real deck is empty.</summary>
+    public static void SeedDebugStarterDeck(GuildSaveData save, CardSchool school)
+    {
+        if (save == null) return;
+        save.PlayerDeck ??= new PlayerDeckSave();
+        if (save.PlayerDeck.DebugDeckInstanceIds.Count > 0) return;
+
+        var newCards = new List<OwnedCard>();
+        var newIds = new List<string>();
+        var entries = LoadEntries(school) ?? new List<StarterEntry>();
+        foreach (var entry in entries)
+        {
+            var bp = CardDatabase.Blueprints.Find(b =>
+                string.Equals(b.Id, entry.Id, StringComparison.OrdinalIgnoreCase));
+            if (bp == null) continue;
+            for (int i = 0; i < entry.Count; i++)
+            {
+                var owned = new OwnedCard
+                {
+                    BlueprintId = bp.Id,
+                    InstanceId = Guid.NewGuid().ToString("N"),
+                    Grafts = new List<string>(),
+                    IsStarter = true,
+                };
+                newCards.Add(owned);
+                newIds.Add(owned.InstanceId);
+            }
+        }
+
+        if (newIds.Count == 0)
+        {
+            GD.PrintErr("[StarterDeckLoader] SeedDebugStarterDeck: starter entries missing — seeding 10 random.");
+            var random = CardDatabase.BuildRandomDeck(school, 10);
+            foreach (var card in random)
+            {
+                var bp = CardDatabase.Blueprints.Find(b =>
+                    b.Prebuilt == card || b.Id == $"{card.TopHalf?.School}:{card.TopHalf?.Name}|{card.BottomHalf?.Name}");
+                var owned = new OwnedCard
+                {
+                    BlueprintId = bp?.Id ?? card.BlueprintId ?? card.CardName,
+                    InstanceId = Guid.NewGuid().ToString("N"),
+                    Grafts = new List<string>(),
+                    IsStarter = true,
+                };
+                newCards.Add(owned);
+                newIds.Add(owned.InstanceId);
+            }
+        }
+
+        save.PlayerDeck.DebugCards = newCards;
+        save.PlayerDeck.DebugDeckInstanceIds = newIds;
+        GD.Print($"[StarterDeckLoader] Seeded debug deck: {newIds.Count} card(s) for {school}.");
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────
 
     private static List<StarterEntry> LoadEntries(CardSchool school)

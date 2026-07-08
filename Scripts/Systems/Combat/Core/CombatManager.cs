@@ -214,7 +214,12 @@ public partial class CombatManager : Node3D
         RefreshPhaseUI();
         RefreshSelectedUnitUI();
 
-        if (EncounterRouter.Instance != null)
+        if (PlayerSession.DebugCombat)
+        {
+            CombatCompleted += (bool won) => CombatDebugLauncher.ReturnToCampus(this);
+            GD.Print("CombatManager: debug fight — CombatCompleted returns to campus.");
+        }
+        else if (EncounterRouter.Instance != null)
         {
             CombatCompleted += (bool won) => EncounterRouter.Instance.OnCombatFinished(won);
             GD.Print("GameRunner: Wired CombatCompleted to EncounterRouter.");

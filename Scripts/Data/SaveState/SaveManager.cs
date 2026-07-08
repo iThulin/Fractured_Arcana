@@ -240,6 +240,35 @@ public static class SaveManager
         return true;
     }
 
+    /// <summary>Load the most-recently-saved slot into ActiveSave when none is active,
+    /// so the game and the combat debugger always have a save to work with. No-op if a
+    /// save is already loaded — a slot the player explicitly picked always wins.</summary>
+    public static bool AutoLoadLast()
+    {
+        if (ActiveSave != null) return true;
+
+        int best = -1;
+        ulong bestTime = 0;
+        for (int i = 0; i < MAX_SLOTS; i++)
+        {
+            ulong t = 0;
+            string ledger = GetLedgerPath(i);
+            string cycle = GetCyclePath(i);
+            if (FileAccess.FileExists(ledger)) t = System.Math.Max(t, FileAccess.GetModifiedTime(ledger));
+            if (FileAccess.FileExists(cycle)) t = System.Math.Max(t, FileAccess.GetModifiedTime(cycle));
+            if (t > 0 && (best < 0 || t > bestTime)) { best = i; bestTime = t; }
+        }
+
+        if (best < 0)
+        {
+            GD.Print("SaveManager: AutoLoadLast — no saves found.");
+            return false;
+        }
+        bool ok = Load(best);
+        GD.Print($"SaveManager: AutoLoadLast → slot {best} ({(ok ? "loaded" : "failed")}).");
+        return ok;
+    }
+
     /// <summary>
     /// Assemble a GuildSaveData envelope from a slot's two files.
     /// The ledger is required (with .bak fallback). A missing cycle file

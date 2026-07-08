@@ -18,7 +18,7 @@ using Godot;
 //                 own backdrops) whenever they're open.
 //
 //                 v1 contents — Gold + Lunation readouts, Return to
-//                 Campus (strategic-map only) + Council + Menu buttons —
+//                 Campus (menu screens only) + Council + Menu buttons —
 //                 and deliberately easy to extend (add readouts in
 //                 BuildBar's left cluster, buttons in the right).
 // Layer:          System (autoload)
@@ -44,7 +44,7 @@ public partial class HudManager : Node
     private CanvasLayer _layer;
     private Label _goldLabel;
     private Label _lunationLabel;
-    private Button _returnButton; // gated: strategic map only (see RefreshVisibility)
+    private Button _returnButton; // gated by ShouldShowReturnToCampus (menu screens only)
 
     private int _lastGold = int.MinValue;
     private int _lastLunation = int.MinValue;
@@ -114,9 +114,9 @@ public partial class HudManager : Node
         row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
         // ── Right: global nav buttons (extend here) ──────────────────────
-        // Return to Campus is a scene-warp, so it is gated to the strategic map
-        // in RefreshVisibility — it must never offer an exit out of combat,
-        // expeditions, or negotiation, nor sit redundantly on the campus itself.
+        // Return to Campus is a scene-warp shown on menu screens (see
+        // ShouldShowReturnToCampus): the strategic map and the card/deck utility
+        // screens, hidden in combat, expeditions, negotiations, and on campus.
         _returnButton = AddNavButton(row, "Return to Campus",
             () => GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn"));
         AddNavButton(row, "Council", () => CouncilScreen.Toggle(GetTree().Root));
@@ -195,20 +195,30 @@ public partial class HudManager : Node
         }
         _layer.Visible = SaveManager.ActiveSave != null && !IsHiddenScene();
 
-        // Return to Campus only makes sense on the strategic map. Gating it here
-        // (rather than always-on) keeps it from warping the player out of combat,
-        // an expedition, or a negotiation, and off the campus where it's moot.
+        // Return to Campus shows on menu/utility screens (deck editor, card upgrade,
+        // library, the strategic map, etc.) but is hidden where it would abandon an
+        // active activity — combat, an expedition, a negotiation — or is moot (the
+        // campus itself). The pre-game menus already hide the whole bar.
         if (_returnButton != null)
         {
-            _returnButton.Visible = IsStrategicScene();
+            _returnButton.Visible = ShouldShowReturnToCampus();
         }
     }
 
-    private bool IsStrategicScene()
+    /// <summary>True on menu screens where a one-click hop to campus is safe. False in
+    /// combat, expeditions, and negotiations (it would abandon them) and on the campus
+    /// itself (redundant). Scene matched by file path, like IsHiddenScene.</summary>
+    private bool ShouldShowReturnToCampus()
     {
         var current = GetTree().CurrentScene;
         string lower = (current?.SceneFilePath ?? "").ToLower();
-        return lower.Contains("strategicscene");
+        if (lower.Contains("campus") || lower.Contains("expedition") ||
+            lower.Contains("battlefield") || lower.Contains("combat") ||
+            lower.Contains("negotiation"))
+        {
+            return false;
+        }
+        return true;
     }
 
     private bool IsHiddenScene()

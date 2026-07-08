@@ -1,0 +1,429 @@
+using Godot;
+using System;
+using System.Collections.Generic;
+
+// ============================================================
+// CombatDebugLauncher.cs  (dev tooling)
+//
+// Purpose:        A configurable combat test-launcher so encounters
+//                 can be exercised without walking the overworld loop.
+//                 Pick the player's school, the encounter tier, the map
+//                 terrain, a per-archetype enemy count, and a difficulty
+//                 multiplier; "Launch Combat" builds an EncounterDefinition,
+//                 sets the same EncounterContextCarrier the overworld router
+//                 uses, and swaps to Battlefield.tscn. Doubles as the U1
+//                 "one encounter per tier reads identically" harness.
+// Layer:          UI (dev overlay)
+// Collaborators:  EncounterContextCarrier / EncounterDefinition (combat
+//                 input), UnitRegistry (enemy labels), PlayerSession
+//                 (school / debug flags), UITheme.
+// See:            build_order_v3 §4 (Phase B). Dev-only; not shipped UI.
+// ============================================================
+
+/// <summary>Dev overlay that assembles an EncounterDefinition from dropdowns and
+/// launches Battlefield.tscn. Open/close via <see cref="Toggle"/>; Esc closes.</summary>
+public partial class CombatDebugLauncher : CanvasLayer
+{
+    private const string BattlefieldScene = "res://Scenes/Combat/Battlefield.tscn";
+    private const string CampusScene = "res://Scenes/Campus/CampusScene.tscn";
+
+    private static CombatDebugLauncher _instance;
+    public static bool IsOpen => _instance != null && IsInstanceValid(_instance);
+
+    private OptionButton _schoolOpt;
+    private OptionButton _tierOpt;
+    private OptionButton _mapOpt;
+    private SpinBox _diffSpin;
+    private CheckBox _skipDeployChk;
+    private Label _status;
+    private readonly Dictionary<EnemyArchetype, SpinBox> _enemySpins = new();
+    private readonly List<(CheckBox chk, Companion comp)> _allyChecks = new();
+
+    public static void Toggle(Node host)
+    {
+        if (IsOpen) { _instance.QueueFree(); _instance = null; return; }
+        if (host == null) return;
+        _instance = new CombatDebugLauncher { Name = "CombatDebugLauncher", Layer = 200 };
+        host.AddChild(_instance);
+    }
+
+    public static void Close()
+    {
+        if (IsOpen) { _instance.QueueFree(); _instance = null; }
+    }
+
+    /// <summary>Return from a debug-launched fight to the campus, clearing the debug
+    /// flags so a later real encounter routes normally. Called by combat-end wiring
+    /// and by the pause menu's Forfeit when PlayerSession.DebugCombat is set.</summary>
+    public static void ReturnToCampus(Node ctx)
+    {
+        PlayerSession.DebugCombat = false;
+        PlayerSession.DebugMode = false;
+        PlayerSession.SkipDeployment = false;
+        PlayerDeckSave.UseDebugDeck = false;
+        CompanionRoster.DebugPartyOverride = null;
+        CompanionLoader.ClearCache();
+        ctx?.GetTree()?.ChangeSceneToFile(CampusScene);
+    }
+
+    public override void _Ready() => CallDeferred(nameof(BuildUI));
+    public override void _ExitTree() { if (_instance == this) _instance = null; }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.Escape })
+        {
+            Close();
+            GetViewport().SetInputAsHandled();
+        }
+    }
+
+    private void BuildUI()
+    {
+        var backdrop = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
+        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(backdrop);
+        var shade = new ColorRect { Color = UITheme.BgOverlay };
+        shade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        backdrop.AddChild(shade);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0.5f, AnchorTop = 0.5f, AnchorRight = 0.5f, AnchorBottom = 0.5f,
+            GrowHorizontal = Control.GrowDirection.Both, GrowVertical = Control.GrowDirection.Both,
+            OffsetLeft = -280, OffsetRight = 280, OffsetTop = -330, OffsetBottom = 330,
+        };
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
+        backdrop.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 20);
+        margin.AddThemeConstantOverride("margin_right", 20);
+        margin.AddThemeConstantOverride("margin_top", 16);
+        margin.AddThemeConstantOverride("margin_bottom", 14);
+        panel.AddChild(margin);
+
+        var root = new VBoxContainer();
+        root.AddThemeConstantOverride("separation", 10);
+        margin.AddChild(root);
+
+        var title = new Label { Text = "Combat Debug Launcher" };
+        title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeLarge);
+        title.AddThemeColorOverride("font_color", UITheme.Gold);
+        root.AddChild(title);
+        root.AddChild(new HSeparator());
+
+        var scroll = new ScrollContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+        };
+        root.AddChild(scroll);
+        var sm = new MarginContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkBegin,
+        };
+        scroll.AddChild(sm);
+        var form = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        form.AddThemeConstantOverride("separation", 8);
+        sm.AddChild(form);
+
+        _schoolOpt = AddEnumDropdown(form, "Player school:", Enum.GetValues(typeof(CardSchool)),
+            Convert.ToInt32(PlayerSession.SelectedSchool));
+        _tierOpt = AddEnumDropdown(form, "Tier:", Enum.GetValues(typeof(EncounterTier)),
+            (int)EncounterTier.Battle);
+        _mapOpt = AddEnumDropdown(form, "Map / terrain:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
+            (int)OverworldHex.TerrainType.Grassland);
+        _diffSpin = AddSpin(form, "Difficulty ×:", 0.5, 3.0, 0.25, 1.0);
+
+        form.AddChild(new HSeparator());
+        AddSectionLabel(form, "Player deck & cards:");
+        var deckNote = new Label
+        {
+            Text = "Debug combat uses a SEPARATE scratch deck, not your real one. \"Edit Debug Deck\" opens the editor on that scratch deck (seeded from the selected class's starter the first time). Upgrades apply to owned cards and are shared.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        deckNote.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        deckNote.AddThemeColorOverride("font_color", UITheme.TextDim);
+        form.AddChild(deckNote);
+        var deckRow = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        deckRow.AddThemeConstantOverride("separation", 6);
+        deckRow.AddChild(MakeDebugDeckEditButton());
+        deckRow.AddChild(MakeNavButton("Upgrade Cards", "res://Scenes/UI/CardUpgradeScreen.tscn"));
+        deckRow.AddChild(MakeNavButton("Card Library", "res://Scenes/UI/CardLibrary.tscn"));
+        form.AddChild(deckRow);
+        var resetDeckBtn = new Button
+        {
+            Text = "Reset Debug Deck (reseed selected class starter)",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        resetDeckBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        UITheme.ApplyButtonStyle(resetDeckBtn, isPrimary: false);
+        resetDeckBtn.Pressed += ResetDebugDeck;
+        form.AddChild(resetDeckBtn);
+
+        form.AddChild(new HSeparator());
+        AddSectionLabel(form, "Enemies — count of each:");
+        foreach (EnemyArchetype a in Enum.GetValues(typeof(EnemyArchetype)))
+        {
+            string label = "  " + UnitRegistry.ForArchetype(a).ThreatLabel + ":";
+            _enemySpins[a] = AddSpin(form, label, 0, 8, 1, DefaultCount(a));
+        }
+        form.AddChild(new HSeparator());
+
+        AddSectionLabel(form, "Allies — bring companions (real cards + stats):");
+        foreach (var comp in CompanionLoader.LoadAll())
+        {
+            var chk = new CheckBox { Text = $"  {comp.Name} — {comp.School}" };
+            chk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            form.AddChild(chk);
+            _allyChecks.Add((chk, comp));
+        }
+        form.AddChild(new HSeparator());
+
+        _skipDeployChk = new CheckBox { Text = "Skip deployment (jump straight in)", ButtonPressed = true };
+        _skipDeployChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_skipDeployChk);
+
+        _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _status.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        _status.AddThemeColorOverride("font_color", UITheme.TextDim);
+        form.AddChild(_status);
+
+        root.AddChild(new HSeparator());
+        var btnRow = new HBoxContainer();
+        btnRow.AddThemeConstantOverride("separation", 10);
+        root.AddChild(btnRow);
+
+        var launch = new Button { Text = "Launch Combat", CustomMinimumSize = new Vector2(170, 38) };
+        UITheme.ApplyButtonStyle(launch, isPrimary: true);
+        launch.Pressed += OnLaunch;
+        btnRow.AddChild(launch);
+
+        var close = new Button { Text = "Close  [Esc]", CustomMinimumSize = new Vector2(120, 38) };
+        UITheme.ApplyButtonStyle(close, isPrimary: false);
+        close.Pressed += Close;
+        btnRow.AddChild(close);
+    }
+
+    private void OnLaunch()
+    {
+        var tier = (EncounterTier)_tierOpt.GetSelectedId();
+        var terrain = ((OverworldHex.TerrainType)_mapOpt.GetSelectedId()).ToString();
+        float diff = (float)_diffSpin.Value;
+
+        var def = new EncounterDefinition
+        {
+            Id = "debug_launch",
+            DisplayName = "Debug Encounter",
+            Tier = tier,
+            RegionId = "debug",
+            TerrainType = terrain,
+            DifficultyMult = diff,
+        };
+
+        int total = 0;
+        foreach (var kvp in _enemySpins)
+        {
+            int n = (int)kvp.Value.Value;
+            for (int i = 0; i < n; i++)
+            {
+                def.Enemies.Add(new EnemySlot(kvp.Key, diff));
+            }
+            total += n;
+        }
+
+        if (total == 0)
+        {
+            _status.Text = "Add at least one enemy before launching.";
+            _status.AddThemeColorOverride("font_color", UITheme.Danger);
+            return;
+        }
+
+        var party = new List<Companion>();
+        foreach (var (chk, comp) in _allyChecks)
+        {
+            if (chk.ButtonPressed) party.Add(comp);
+        }
+        CompanionRoster.DebugPartyOverride = party.Count > 0 ? party : null;
+
+        PlayerSession.SelectedSchool = (CardSchool)_schoolOpt.GetSelectedId();
+        PlayerSession.DebugCombat = true;
+        PlayerSession.DebugMode = true;
+        PlayerSession.SkipDeployment = _skipDeployChk.ButtonPressed;
+        SeedDebugDeckIfEmpty((CardSchool)_schoolOpt.GetSelectedId());
+        PlayerDeckSave.UseDebugDeck = true;
+
+        EncounterContextCarrier.Set(def);
+        EncounterContextCarrier.SetContext(terrain, tier);
+
+        GD.Print($"[CombatDebug] Launch: {total} enemy(ies), tier={tier}, terrain={terrain}, " +
+                 $"diff={diff}, school={PlayerSession.SelectedSchool}, skipDeploy={_skipDeployChk.ButtonPressed}.");
+
+        _instance = null; // scene swap frees us
+        GetTree().ChangeSceneToFile(BattlefieldScene);
+    }
+
+    // ── UI helpers ────────────────────────────────────────────────────────
+
+    private OptionButton AddEnumDropdown(VBoxContainer form, string label, Array values, int selectedId)
+    {
+        var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        row.AddThemeConstantOverride("separation", 8);
+        row.AddChild(MakeLabel(label, 150));
+
+        var opt = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        foreach (var v in values)
+        {
+            opt.AddItem(v.ToString(), Convert.ToInt32(v));
+        }
+        for (int i = 0; i < opt.ItemCount; i++)
+        {
+            if (opt.GetItemId(i) == selectedId) { opt.Selected = i; break; }
+        }
+        row.AddChild(opt);
+        form.AddChild(row);
+        return opt;
+    }
+
+    private SpinBox AddSpin(VBoxContainer form, string label, double min, double max, double step, double val)
+    {
+        var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        row.AddThemeConstantOverride("separation", 8);
+        row.AddChild(MakeLabel(label, 150));
+
+        var spin = new SpinBox
+        {
+            MinValue = min, MaxValue = max, Step = step, Value = val,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        row.AddChild(spin);
+        form.AddChild(row);
+        return spin;
+    }
+
+    private Label MakeLabel(string text, int minWidth)
+    {
+        var l = new Label { Text = text, CustomMinimumSize = new Vector2(minWidth, 0) };
+        l.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        l.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        return l;
+    }
+
+    private void AddSectionLabel(VBoxContainer form, string text)
+    {
+        var l = new Label { Text = text };
+        l.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        l.AddThemeColorOverride("font_color", UITheme.Gold);
+        form.AddChild(l);
+    }
+
+    /// <summary>A button that jumps to one of the existing deck/card scenes. Those
+    /// screens edit the persistent save, which is exactly what debug combat draws,
+    /// so no separate card picker is needed. They return to campus on exit; reopen
+    /// the launcher from there. ChangeSceneToFile frees this overlay with the scene.</summary>
+    private Button MakeNavButton(string text, string scenePath)
+    {
+        var b = new Button { Text = text, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        b.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        UITheme.ApplyButtonStyle(b, isPrimary: false);
+        b.Pressed += () => GetTree().ChangeSceneToFile(scenePath);
+        return b;
+    }
+
+    /// <summary>Opens the existing Deck Editor pointed at the DEBUG deck: seeds it from
+    /// the real deck on first use, flips UseDebugDeck so the editor edits the scratch
+    /// list, then navigates. Campus._Ready flips it back on return.</summary>
+    private Button MakeDebugDeckEditButton()
+    {
+        var b = new Button { Text = "Edit Debug Deck", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        b.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        UITheme.ApplyButtonStyle(b, isPrimary: false);
+        b.Pressed += () =>
+        {
+            SeedDebugDeckIfEmpty((CardSchool)_schoolOpt.GetSelectedId());
+            PlayerDeckSave.UseDebugDeck = true;
+            GetTree().ChangeSceneToFile("res://Scenes/UI/DeckEditor.tscn");
+        };
+        return b;
+    }
+
+    private static void SeedDebugDeckIfEmpty(CardSchool school)
+    {
+        // Default the scratch deck to the selected class's starter — appended to the
+        // shared owned collection, never touching the real deck. No-op once it has cards.
+        StarterDeckLoader.SeedDebugStarterDeck(SaveManager.ActiveSave, school);
+    }
+
+    /// <summary>Clear the scratch deck and reseed it from the currently-selected class's
+    /// starter. Also drops the owned copies that belonged only to the old debug deck
+    /// (never the real deck's cards) so repeated resets don't bloat the collection.</summary>
+    private void ResetDebugDeck()
+    {
+        var save = SaveManager.ActiveSave;
+        var pd = save?.PlayerDeck;
+        if (pd == null)
+        {
+            return;
+        }
+
+        // Full reset of the scratch collection (separate from the real one) — no
+        // accumulation across resets.
+        pd.DebugCards = new List<OwnedCard>();
+        pd.DebugDeckInstanceIds = new List<string>();
+
+        // One-time cleanup: earlier builds appended debug starter copies into the REAL
+        // collection, leaving orphaned starter duplicates in the stash. Drop starter
+        // cards not slotted in the real deck; the real deck itself is untouched.
+        var inRealDeck = new HashSet<string>(pd.RealActiveDeckInstanceIds);
+        int before = pd.RealCards.Count;
+        pd.RealCards.RemoveAll(c => c.IsStarter && !inRealDeck.Contains(c.InstanceId));
+        int purged = before - pd.RealCards.Count;
+
+        var school = (CardSchool)_schoolOpt.GetSelectedId();
+        StarterDeckLoader.SeedDebugStarterDeck(save, school);
+
+        if (_status != null)
+        {
+            _status.Text = $"Debug deck reset to {school} starter ({pd.DebugDeckInstanceIds.Count} cards)" +
+                (purged > 0 ? $"; purged {purged} orphaned starter duplicate(s) from the real stash." : ".");
+            _status.AddThemeColorOverride("font_color", UITheme.Success);
+        }
+    }
+
+    /// <summary>Verify the deck split serializes safely: the real deck still uses the
+    /// legacy "activeDeckInstanceIds" key (old saves keep their deck), the debug deck is
+    /// separate, and both survive a round-trip through the real save options.</summary>
+    public static bool AssertDeckSplit()
+    {
+        var src = new PlayerDeckSave
+        {
+            RealActiveDeckInstanceIds = new List<string> { "real_1", "real_2" },
+            DebugDeckInstanceIds = new List<string> { "dbg_1" },
+        };
+        string json = System.Text.Json.JsonSerializer.Serialize(src, SaveManager.JsonOptions);
+        var rt = System.Text.Json.JsonSerializer.Deserialize<PlayerDeckSave>(json, SaveManager.JsonOptions);
+        bool ok = json.Contains("activeDeckInstanceIds")
+                  && !json.Contains("realActiveDeckInstanceIds")
+                  && json.Contains("\"cards\":") && !json.Contains("\"realCards\":")
+                  && rt != null && rt.RealActiveDeckInstanceIds.Count == 2
+                  && rt.DebugDeckInstanceIds.Count == 1
+                  && rt.RealActiveDeckInstanceIds[0] == "real_1";
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<PlayerDeckSave>(
+            "{\"activeDeckInstanceIds\":[\"old_a\",\"old_b\",\"old_c\"]}", SaveManager.JsonOptions);
+        bool compat = legacy != null && legacy.RealActiveDeckInstanceIds.Count == 3
+                      && legacy.DebugDeckInstanceIds.Count == 0;
+        GD.Print($"[DeckSplit] round-trip {(ok ? "OK" : "FAIL")}, legacy-compat {(compat ? "OK" : "FAIL")}.");
+        if (!(ok && compat)) GD.PushError("[DeckSplit] Assertion FAILED — deck save split is unsafe.");
+        return ok && compat;
+    }
+
+    private static int DefaultCount(EnemyArchetype a) => a switch
+    {
+        EnemyArchetype.Soldier => 1,
+        EnemyArchetype.Ranger => 1,
+        EnemyArchetype.Wizard => 1,
+        _ => 0,
+    };
+}

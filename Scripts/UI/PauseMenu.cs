@@ -115,14 +115,22 @@ public partial class PauseMenu : Control
 
     private void OnForfeitCombatPressed()
     {
+        PauseManager.Instance?.ClosePauseMenu();
+
+        // Debug-launched fights have no overworld run to return to — go to campus
+        // (resetting the debug flags) instead of the blank-screen overworld exit.
+        if (PlayerSession.DebugCombat)
+        {
+            CombatDebugLauncher.ReturnToCampus(this);
+            return;
+        }
+
         if (EncounterRouter.Instance != null)
         {
-            PauseManager.Instance?.ClosePauseMenu();
             EncounterRouter.Instance.OnCombatFinished(playerWon: false);
         }
         else
         {
-            PauseManager.Instance?.ClosePauseMenu();
             GetTree().ChangeSceneToFile(
                 EncounterRouter.Instance?.OverworldScenePath
                 ?? OverworldScenePath);

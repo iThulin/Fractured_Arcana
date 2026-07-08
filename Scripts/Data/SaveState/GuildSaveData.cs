@@ -223,14 +223,63 @@ public class GuildSaveData
 /// </summary>
 public class PlayerDeckSave
 {
-    /// <summary>Every card the player owns this cycle, across all copies.</summary>
-    public List<OwnedCard> Cards = new();
+    /// <summary>Every card in the REAL owned collection this cycle. Serialized under
+    /// the original "cards" key for save compatibility. Accessed via the
+    /// <see cref="Cards"/> routing property, never directly.</summary>
+    [JsonPropertyName("cards")]
+    public List<OwnedCard> RealCards = new();
 
-    /// <summary>
-    /// InstanceIds of cards currently slotted into the active run deck.
-    /// Min: 10. Max: 20. All other owned cards are in the stash.
-    /// </summary>
-    public List<string> ActiveDeckInstanceIds = new();
+    /// <summary>The debug/scratch owned collection — the cards that back the debug deck
+    /// only. Separate so seeding or resetting the scratch deck never duplicates into the
+    /// real collection. New key; old saves default it empty.</summary>
+    public List<OwnedCard> DebugCards = new();
+
+    /// <summary>The live owned collection every call site uses (hydration, deck editor,
+    /// crafting). Routes to the debug collection when <see cref="UseDebugDeck"/> is set,
+    /// else the real one. Not serialized — the two backing lists are.</summary>
+    [JsonIgnore]
+    public List<OwnedCard> Cards
+    {
+        get => UseDebugDeck ? DebugCards : RealCards;
+        set
+        {
+            if (UseDebugDeck) DebugCards = value ?? new List<OwnedCard>();
+            else RealCards = value ?? new List<OwnedCard>();
+        }
+    }
+
+    /// <summary>InstanceIds of cards slotted into the REAL active run deck.
+    /// Serialized under the original "activeDeckInstanceIds" key so existing saves
+    /// keep their deck. Min 10 / Max 20. Read/written through the
+    /// <see cref="ActiveDeckInstanceIds"/> routing property, never directly.</summary>
+    [JsonPropertyName("activeDeckInstanceIds")]
+    public List<string> RealActiveDeckInstanceIds = new();
+
+    /// <summary>InstanceIds of the debug/scratch deck used only by the combat debug
+    /// launcher. Kept separate so testing a deck never edits the real one. New saves
+    /// gain this key; old saves default it empty.</summary>
+    public List<string> DebugDeckInstanceIds = new();
+
+    /// <summary>When set, <see cref="ActiveDeckInstanceIds"/> routes to the debug deck
+    /// instead of the real one — so the existing deck editor and combat both target the
+    /// scratch deck with zero call-site changes. Static and NOT serialized: defaults
+    /// false, resets on quit and whenever the campus loads. Set by CombatDebugLauncher.</summary>
+    [JsonIgnore]
+    public static bool UseDebugDeck = false;
+
+    /// <summary>The live deck list every existing call site reads and writes. Routes to
+    /// the debug deck when <see cref="UseDebugDeck"/> is set, else the real deck. Not
+    /// serialized — the two backing lists above are.</summary>
+    [JsonIgnore]
+    public List<string> ActiveDeckInstanceIds
+    {
+        get => UseDebugDeck ? DebugDeckInstanceIds : RealActiveDeckInstanceIds;
+        set
+        {
+            if (UseDebugDeck) DebugDeckInstanceIds = value ?? new List<string>();
+            else RealActiveDeckInstanceIds = value ?? new List<string>();
+        }
+    }
 
     // Deck size limits enforced by PlayerDeckService.
     public const int MinDeckSize = 10;

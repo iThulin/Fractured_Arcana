@@ -102,8 +102,14 @@ public static class CompanionRoster
     /// <summary>
     /// Get companions currently in the active party (chosen for next run).
     /// </summary>
+    /// <summary>Debug-only party override set by CombatDebugLauncher. When non-null,
+    /// GetActiveParty returns this synthetic list so a standalone fight can field
+    /// arbitrary companions. Cleared on return to campus.</summary>
+    public static List<Companion> DebugPartyOverride = null;
+
     public static List<Companion> GetActiveParty()
     {
+        if (DebugPartyOverride != null) return DebugPartyOverride;
         var save = SaveManager.ActiveSave;
         if (save == null) return new List<Companion>();
         return save.Companions

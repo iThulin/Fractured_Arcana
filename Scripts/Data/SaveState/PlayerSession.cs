@@ -56,6 +56,11 @@ public static class PlayerSession
     public static bool StartWithSplinters = false;
     public static bool SkipDeployment = false;
 
+    /// <summary>Set by CombatDebugLauncher: this fight was launched standalone, so
+    /// win/lose/forfeit returns to the campus instead of the (absent) overworld
+    /// run. Reset on return. Prevents the blank-screen exit from a debug fight.</summary>
+    public static bool DebugCombat = false;
+
     // Force a specific POI type for the next encounter (-1 = no override)
     public static int ForceNextEncounterType = -1;
 
