@@ -1628,6 +1628,16 @@ public partial class CampusScreen : Control
         dumpRegardBtn.Pressed += () => CouncilDebug.DumpRegard();
         grid.AddChild(dumpRegardBtn);
 
+        // ── Save-adjacency round-trip assertions (CouncilSaveAssert.cs) ──
+        var assertRtBtn = new Button
+        {
+            Text = "Assert Round-Trips",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        assertRtBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        assertRtBtn.Pressed += () => CouncilSaveAssert.AssertAll();
+        grid.AddChild(assertRtBtn);
+
         return panel;       
     }
 

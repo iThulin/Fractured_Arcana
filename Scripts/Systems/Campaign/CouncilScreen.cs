@@ -5,18 +5,51 @@ using System.Collections.Generic;
 // CouncilScreen.cs
 //
 // Purpose:        The fully-built-out Court & Council presentation
-//                 screen — successor to CouncilPanel's testing UI.
-//                 Opens as a global overlay from anywhere (keybind
-//                 or top-bar button). Layout follows the design
-//                 sketch: a KINGDOM BANNER TAB-STRIP across the top,
-//                 the selected court's courtiers as ARCHED PORTRAIT
-//                 frames, a compact ACTIONS row, and a full-width
-//                 RUMOUR RIBBON along the bottom.
+//                 screen. Opens as a global overlay from anywhere
+//                 (keybind or top-bar button). Layout follows the
+//                 design sketch: a KINGDOM BANNER TAB-STRIP across
+//                 the top, the selected court's courtiers as ARCHED
+//                 PORTRAIT frames, a compact ACTIONS row, and a
+//                 full-width RUMOUR RIBBON along the bottom.
 //
-//                 v1 scope: VIEW surface. Because it can open over
-//                 combat/expeditions, Actions are live only outside
-//                 combat/POI events (ActionsLockReason) and dispatch
-//                 through a host-wired OnActionRequested hook.
+//                 Dispatch is NATIVE: the Actions row shows one
+//                 button per mission in the catalog; pressing one
+//                 opens a compact modal that runs the real flow
+//                 (envoy -> target -> confirm). Recall of the active
+//                 mission lives inline in the same row. The old
+//                 host-wired OnActionRequested delegation is retired
+//                 (see "RETIREMENT" note below).
+//
+//                 Action availability is contextual: live only
+//                 outside combat and POI events.
+//                   - Combat/negotiation: EncounterRouter
+//                     .HasPendingReturn (derived).
+//                   - POI event panels: EncounterLockout, set by the
+//                     owning scene (one-line integrations).
+//
+//                 Global-dispatch guards (over the old testing UI):
+//                   - On expedition, in-party companions cannot be
+//                     dispatched (deploy-time HP/loadout would
+//                     silently desync). Off expedition, unchanged.
+//                   - A court under Expulsion freeze refuses
+//                     dispatch outright (MissionFreezeLunations).
+//                   - Imprisoned companions are excluded.
+//                 Commit-time re-validation is COMPLETE: the modal
+//                 can sit open across a lunation boundary, so
+//                 ConfirmDispatch re-checks the target courtier
+//                 (courtship +2 floor / petition office can lapse)
+//                 and Recall re-checks the encounter lock. Target
+//                 filtering is single-sourced through
+//                 ValidDispatchTargets so render and commit cannot
+//                 diverge.
+//
+//                 RETIREMENT: OnActionRequested and the four action-
+//                 id consts are GONE. Any host that wired them
+//                 (StrategicView) must have that wiring removed —
+//                 grep for "OnActionRequested", "ActionDispatchEnvoy",
+//                 "ActionPresentGifts", "ActionCourtCourtier",
+//                 "ActionGatherIntel" and delete those references or
+//                 the compile breaks.
 //
 //                 Placeholders (flagged, not stubs):
 //                   - Portrait arches are top-rounded initial tiles
@@ -27,26 +60,23 @@ using System.Collections.Generic;
 //                     lines yet.
 // Layer:          UI (global overlay)
 // Collaborators:  CouncilState.cs, CouncilTick.cs (name/office
-//                 helpers), CouncilQueries, UITheme.cs,
+//                 helpers), CouncilMissions.cs (catalog),
+//                 CouncilLedger.cs (petition targets), CouncilQueries,
+//                 CompanionRoster.cs (party removal), UITheme.cs,
 //                 ArchmageRegistry.cs, EncounterRouter.cs, SaveManager.
-// See:            court_council_system_v1_1.docx §3, §6, §8
+// See:            court_council_system_v1_1.docx §3, §5, §6, §8
 // ============================================================
 
 /// <summary>Global Court &amp; Council overlay. Kingdom banner tabs select the
 /// court; courtiers show as arched portraits; a rumour ribbon runs along the
-/// bottom. Open/close via <see cref="Toggle"/>.</summary>
+/// bottom. The action row dispatches natively via a modal. Open/close via
+/// <see cref="Toggle"/>.</summary>
 public partial class CouncilScreen : CanvasLayer
 {
     private static CouncilScreen _instance;
 
     /// <summary>True while the screen is on-screen.</summary>
     public static bool IsOpen => _instance != null && IsInstanceValid(_instance);
-
-    /// <summary>Host hook for the Actions column: (kingdomId, actionId). The
-    /// strategic view (and any other safe host) wires this to the real dispatch
-    /// flow. Availability is decided by ActionsLockReason(), not by whether the
-    /// hook is wired — buttons are disabled with a reason during encounters.</summary>
-    public static System.Action<string, string> OnActionRequested;
 
     /// <summary>Set true by scenes while a POI event panel is open (narrative
     /// card, scout report) — the one encounter state a global overlay can't
@@ -65,18 +95,8 @@ public partial class CouncilScreen : CanvasLayer
         {
             return "The council waits — resolve the event before you.";
         }
-        if (OnActionRequested == null)
-        {
-            return "Council actions are taken from the strategic view.";
-        }
         return null;
     }
-
-    // Action ids the buttons emit (stable strings; host maps them to real flow).
-    public const string ActionDispatchEnvoy = "dispatch_envoy";
-    public const string ActionPresentGifts = "present_gifts";
-    public const string ActionCourtCourtier = "court_courtier";
-    public const string ActionGatherIntel = "gather_intelligence";
 
     private const int PortraitColumns = 4;
     private const int RumourTail = 3;
@@ -85,6 +105,15 @@ public partial class CouncilScreen : CanvasLayer
     private int _selectedIndex = 0;
     private readonly List<string> _courtIds = new();
     private readonly List<Button> _tabButtons = new();
+
+    // Dispatch-modal state (one flow at a time, for the current court).
+    private bool _flowOpen = false;
+    private string _selMissionId = null;
+    private string _selCompanionId = null;
+    private string _selTargetCourtierId = null;
+    private Control _flowOverlay;
+    private Label _flowTitle;
+    private VBoxContainer _flowBody;
 
     // Header widgets.
     private Label _kingdomNameLabel;
@@ -152,7 +181,16 @@ public partial class CouncilScreen : CanvasLayer
         switch (key.Keycode)
         {
             case Key.Escape:
-                Close();
+                // A live dispatch modal swallows Escape first — close it, not the
+                // whole screen.
+                if (_flowOpen)
+                {
+                    CloseFlow();
+                }
+                else
+                {
+                    Close();
+                }
                 GetViewport().SetInputAsHandled();
                 break;
             case Key.Left:
@@ -303,7 +341,7 @@ public partial class CouncilScreen : CanvasLayer
             };
             btn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
             int captured = i;
-            btn.Pressed += () => { _selectedIndex = captured; RefreshAll(); };
+            btn.Pressed += () => { _selectedIndex = captured; CloseFlow(); RefreshAll(); };
             _tabStrip.AddChild(btn);
             _tabButtons.Add(btn);
         }
@@ -417,6 +455,7 @@ public partial class CouncilScreen : CanvasLayer
             return;
         }
         _selectedIndex = (_selectedIndex + dir + _courtIds.Count) % _courtIds.Count;
+        CloseFlow();
         RefreshAll();
     }
 
@@ -673,6 +712,10 @@ public partial class CouncilScreen : CanvasLayer
         _rumourBox.AddChild(l);
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // Actions row — native dispatch launchers + inline recall
+    // ══════════════════════════════════════════════════════════════════════
+
     private void RefreshActions(CycleState cycle, CourtState court)
     {
         foreach (var child in _actionBox.GetChildren())
@@ -680,57 +723,495 @@ public partial class CouncilScreen : CanvasLayer
             child.QueueFree();
         }
 
+        var save = SaveManager.ActiveSave;
+        string encLock = ActionsLockReason();
+
+        // ── A mission is already afield at this court: status + recall ───────
         var mission = CouncilQueries.MissionAt(court.KingdomId);
         if (mission != null)
         {
             var envoy = cycle.Companions.Find(c => c.Id == mission.CompanionId);
-            var def = CouncilMissions.Get(mission.MissionType);
+            var mdef = CouncilMissions.Get(mission.MissionType);
             _statusLabel.Text = mission.Recalled
-                ? $"{envoy?.Name ?? mission.CompanionId} is travelling home."
-                : $"{envoy?.Name ?? mission.CompanionId} — {def?.DisplayName ?? mission.MissionType}, " +
+                ? $"{envoy?.Name ?? mission.CompanionId} is travelling home " +
+                  $"({mission.LunationsRemaining} lunation)."
+                : $"{envoy?.Name ?? mission.CompanionId} — {mdef?.DisplayName ?? mission.MissionType}, " +
                   $"{mission.LunationsRemaining} lunation(s) left.";
+            if (encLock != null)
+            {
+                _statusLabel.Text += $"   ·   {encLock}";
+            }
+
+            if (!mission.Recalled)
+            {
+                var recallBtn = new Button
+                {
+                    Text = "Recall Envoy",
+                    CustomMinimumSize = new Vector2(0, 32),
+                    SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                    Disabled = encLock != null,
+                    TooltipText = encLock ?? "Bring the envoy home; the mission yields nothing.",
+                };
+                recallBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+                UITheme.ApplyButtonStyle(recallBtn, isPrimary: false);
+                recallBtn.Pressed += () =>
+                {
+                    // Re-check the lock at commit — the screen is global, so an
+                    // encounter or POI panel may have opened since this rendered.
+                    if (ActionsLockReason() != null)
+                    {
+                        RefreshAll();
+                        return;
+                    }
+                    mission.Recalled = true;
+                    mission.LunationsRemaining = 1; // travel home
+                    SaveManager.Save();
+                    RefreshAll();
+                };
+                _actionBox.AddChild(recallBtn);
+            }
+            return; // one mission per court — no dispatch while one is live
         }
-        else if (!string.IsNullOrEmpty(court.PatronCourtierId))
+
+        // ── Idle: status line, then one launcher button per mission ─────────
+        if (!string.IsNullOrEmpty(court.PatronCourtierId))
         {
             var patron = court.GetCourtier(court.PatronCourtierId);
             _statusLabel.Text = patron != null
-                ? $"Patron at court: {patron.DisplayName}."
+                ? $"Patron at court: {patron.DisplayName}. No envoy afield."
                 : "No envoy afield here.";
         }
         else
         {
             _statusLabel.Text = "No envoy afield here.";
         }
+        if (encLock != null)
+        {
+            _statusLabel.Text += $"   ·   {encLock}";
+        }
+        else if (court.MissionFreezeLunations > 0)
+        {
+            _statusLabel.Text += $"   ·   The court's doors are closed " +
+                                 $"({court.MissionFreezeLunations} lunation(s) remain).";
+        }
 
-        string reason = ActionsLockReason();
-        _statusLabel.Text += reason != null ? $"   ·   {reason}" : "";
+        var bandNow = court.Band();
+        int embassyTier = CouncilQueries.EmbassyTier(save);
+        bool capFull = cycle.Council.ActiveMissions.Count >= CouncilQueries.EnvoyCap(save);
 
-        AddActionButton(court, "Dispatch Envoy", ActionDispatchEnvoy,
-            "Send a companion to hold the guild's presence at this court.");
-        AddActionButton(court, "Present Gifts", ActionPresentGifts,
-            "A gift matched to a courtier's tastes can warm a cold room.");
-        AddActionButton(court, "Court a Courtier", ActionCourtCourtier,
-            "Cultivate a receptive power into a sworn patron.");
-        AddActionButton(court, "Gather Intelligence", ActionGatherIntel,
-            "Work the shadows — chart the ground, uncover a secret. Raises exposure.");
+        foreach (var def in CouncilMissions.All)
+        {
+            // Per-mission availability, in priority order. Encounter lock and the
+            // Expulsion freeze dominate; then contact/standing/embassy gating; then
+            // the shared envoy cap. Gold and envoy/target validity are checked in
+            // the modal and re-checked at commit.
+            string lockReason = encLock;
+            if (lockReason == null && court.MissionFreezeLunations > 0)
+            {
+                lockReason = "the court is closed to the guild";
+            }
+            if (lockReason == null && def.RequiresContact && !court.HasContact)
+            {
+                lockReason = "requires contact";
+            }
+            if (lockReason == null && bandNow < def.MinBand)
+            {
+                lockReason = $"requires {def.MinBand} standing";
+            }
+            if (lockReason == null && embassyTier < def.RequiredEmbassyTier)
+            {
+                lockReason = $"requires Embassy tier {def.RequiredEmbassyTier}";
+            }
+            if (lockReason == null && capFull)
+            {
+                lockReason = "no envoys free";
+            }
+
+            string missionId = def.Id;
+            var btn = new Button
+            {
+                Text = $"{def.DisplayName} ({def.Lunations}◐, {def.GoldCost}g)",
+                CustomMinimumSize = new Vector2(0, 32),
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                Disabled = lockReason != null,
+                TooltipText = lockReason ?? def.Blurb,
+                ClipText = true,
+            };
+            btn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            UITheme.ApplyButtonStyle(btn, isPrimary: lockReason == null);
+            btn.Pressed += () => OpenFlow(missionId);
+            _actionBox.AddChild(btn);
+        }
     }
 
-    private void AddActionButton(CourtState court, string label, string actionId, string flavour)
+    // ══════════════════════════════════════════════════════════════════════
+    // Dispatch modal — envoy -> (target) -> confirm, for the chosen mission
+    // ══════════════════════════════════════════════════════════════════════
+
+    private void OpenFlow(string missionId)
     {
-        string lockReason = ActionsLockReason();
+        _selMissionId = missionId;
+        _selCompanionId = null;
+        _selTargetCourtierId = null;
+        _flowOpen = true;
+        if (_flowOverlay != null)
+        {
+            _flowOverlay.QueueFree();
+            _flowOverlay = null;
+        }
+        BuildFlowOverlay();
+        RefreshFlow();
+    }
+
+    private void CloseFlow()
+    {
+        _flowOpen = false;
+        _selMissionId = null;
+        _selCompanionId = null;
+        _selTargetCourtierId = null;
+        if (_flowOverlay != null)
+        {
+            _flowOverlay.QueueFree();
+            _flowOverlay = null;
+        }
+    }
+
+    private void BuildFlowOverlay()
+    {
+        var dim = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
+        dim.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(dim); // added after the main panel -> renders on top
+        _flowOverlay = dim;
+
+        var shade = new ColorRect { Color = UITheme.BgOverlay };
+        shade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        dim.AddChild(shade);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0.5f,
+            AnchorTop = 0.5f,
+            AnchorRight = 0.5f,
+            AnchorBottom = 0.5f,
+            GrowHorizontal = Control.GrowDirection.Both,
+            GrowVertical = Control.GrowDirection.Both,
+            OffsetLeft = -300,
+            OffsetRight = 300,
+            OffsetTop = -260,
+            OffsetBottom = 260,
+        };
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
+        dim.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 18);
+        margin.AddThemeConstantOverride("margin_right", 18);
+        margin.AddThemeConstantOverride("margin_top", 16);
+        margin.AddThemeConstantOverride("margin_bottom", 14);
+        panel.AddChild(margin);
+
+        var v = new VBoxContainer();
+        v.AddThemeConstantOverride("separation", 8);
+        margin.AddChild(v);
+
+        _flowTitle = new Label();
+        _flowTitle.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        _flowTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+        v.AddChild(_flowTitle);
+        v.AddChild(new HSeparator());
+
+        var scroll = new ScrollContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+        };
+        v.AddChild(scroll);
+
+        var sm = new MarginContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkBegin, // Compatibility rule
+        };
+        scroll.AddChild(sm);
+
+        _flowBody = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        _flowBody.AddThemeConstantOverride("separation", 6);
+        sm.AddChild(_flowBody);
+    }
+
+    /// <summary>Rebuild the modal body for the current selection state. The mission
+    /// is fixed (chosen by the launcher button); this picks envoy and, if needed,
+    /// target, then confirms.</summary>
+    private void RefreshFlow()
+    {
+        if (_flowBody == null)
+        {
+            return;
+        }
+        foreach (var child in _flowBody.GetChildren())
+        {
+            child.QueueFree();
+        }
+
+        var cycle = Cycle;
+        var court = SelectedCourt();
+        var save = SaveManager.ActiveSave;
+        var def = _selMissionId != null ? CouncilMissions.Get(_selMissionId) : null;
+        if (cycle == null || court == null || save == null || def == null)
+        {
+            CloseFlow();
+            return;
+        }
+
+        _flowTitle.Text = $"{def.DisplayName} — {CouncilTick.CourtDisplayName(cycle, court.KingdomId)}";
+        AddFlowLabel(def.Blurb, UITheme.TextSecondary);
+
+        // 1. Envoy selection. On expedition, in-party companions are NOT
+        // dispatchable (deploy-time HP/loadout would desync); imprisoned and
+        // already-afield companions are excluded outright.
+        AddFlowLabel("Envoy:", UITheme.Gold);
+        bool onExpedition = PlayerSession.IsOnExpedition;
+        bool anyCompanion = false;
+        foreach (var c in cycle.Companions)
+        {
+            if (!c.IsRecruited || c.IsPermadead)
+            {
+                continue;
+            }
+            if (CouncilQueries.IsOnMission(c.Id) || CouncilQueries.IsImprisoned(c.Id))
+            {
+                continue;
+            }
+            bool inParty = save.ActivePartyCompanionIds.Contains(c.Id);
+            bool blocked = onExpedition && inParty;
+            anyCompanion = anyCompanion || !blocked;
+
+            string label = c.Name + (inParty ? " (in party)" : "");
+            AddSelectButton(label, _selCompanionId == c.Id,
+                () => { _selCompanionId = c.Id; RefreshFlow(); },
+                disabled: blocked,
+                tooltip: blocked ? "In the field with you — cannot be dispatched mid-expedition." : null);
+        }
+        if (!anyCompanion)
+        {
+            AddFlowLabel("  No companions free to send.", UITheme.TextDim);
+        }
+
+        // 2. Target courtier, if the mission needs one. Single-sourced through
+        // ValidDispatchTargets so this render and the commit re-check can't drift.
+        if (def.NeedsTargetCourtier)
+        {
+            bool isPetition = def.Id == CouncilMissions.PetitionMinor;
+            bool isCourtship = def.Id == CouncilMissions.CourtCourtier;
+            var targets = ValidDispatchTargets(court, def.Id);
+
+            AddFlowLabel(isPetition ? "Petition of:" : (isCourtship ? "Court:" : "Recipient:"), UITheme.Gold);
+            if (targets.Count == 0)
+            {
+                AddFlowLabel(isCourtship
+                    ? "  No courtier's regard runs deep enough to court (needs +2)."
+                    : "  No receptive courtier holds a favor-granting office.", UITheme.TextDim);
+            }
+            foreach (var c in targets)
+            {
+                string cid = c.Id;
+                string label;
+                if (isPetition)
+                {
+                    label = $"{c.DisplayName} — {CouncilTick.OfficeDisplay(c.Office)} " +
+                            $"({CouncilLedger.OfficeToFavorType(c.Office)})";
+                }
+                else if (isCourtship)
+                {
+                    label = $"{c.DisplayName} — {CouncilTick.OfficeDisplay(c.Office)} (Regard +{c.Regard})";
+                }
+                else
+                {
+                    label = c.DisplayName;
+                }
+                AddSelectButton(label, _selTargetCourtierId == cid,
+                    () => { _selTargetCourtierId = cid; RefreshFlow(); });
+            }
+        }
+
+        // 3. Confirm / cancel.
+        _flowBody.AddChild(new HSeparator());
+        var confirmRow = new HBoxContainer();
+        confirmRow.AddThemeConstantOverride("separation", 10);
+        _flowBody.AddChild(confirmRow);
+
+        bool ready = _selCompanionId != null &&
+                     (!def.NeedsTargetCourtier || _selTargetCourtierId != null);
+        bool affordable = save.Gold >= def.GoldCost;
+
+        var confirmBtn = new Button
+        {
+            Text = affordable ? $"Send ({def.GoldCost}g)" : $"Need {def.GoldCost}g",
+            CustomMinimumSize = new Vector2(140, 32),
+            Disabled = !ready || !affordable,
+        };
+        confirmBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        UITheme.ApplyButtonStyle(confirmBtn, isPrimary: ready && affordable);
+        confirmBtn.Pressed += () => ConfirmDispatch(save, cycle, court);
+        confirmRow.AddChild(confirmBtn);
+
+        var cancelBtn = new Button { Text = "Cancel", CustomMinimumSize = new Vector2(100, 32) };
+        cancelBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        UITheme.ApplyButtonStyle(cancelBtn, isPrimary: false);
+        cancelBtn.Pressed += () => CloseFlow();
+        confirmRow.AddChild(cancelBtn);
+    }
+
+    /// <summary>The set of courtiers a mission may target, single-sourced so
+    /// render-time filtering and commit-time re-validation can never diverge.
+    /// Caller ensures the mission actually needs a target.</summary>
+    private static List<CourtierState> ValidDispatchTargets(CourtState court, string missionId)
+    {
+        if (missionId == CouncilMissions.PetitionMinor)
+        {
+            return CouncilLedger.PetitionTargets(court);
+        }
+        if (missionId == CouncilMissions.CourtCourtier)
+        {
+            var list = new List<CourtierState>();
+            foreach (var c in court.Courtiers)
+            {
+                if (c.Regard >= 2 && court.PatronCourtierId != c.Id)
+                {
+                    list.Add(c);
+                }
+            }
+            return list;
+        }
+        return court.Courtiers;
+    }
+
+    private void ConfirmDispatch(GuildSaveData save, CycleState cycle, CourtState court)
+    {
+        var def = CouncilMissions.Get(_selMissionId);
+        if (def == null || _selCompanionId == null)
+        {
+            return;
+        }
+        // Re-validate EVERYTHING at commit — the modal is global and may have sat
+        // open across a lunation boundary since it was rendered.
+        if (ActionsLockReason() != null)
+        {
+            return;
+        }
+        if (court.MissionFreezeLunations > 0)
+        {
+            return;
+        }
+        if (save.Gold < def.GoldCost)
+        {
+            return;
+        }
+        if (cycle.Council.ActiveMissions.Count >= CouncilQueries.EnvoyCap(save))
+        {
+            return;
+        }
+        if (CouncilQueries.MissionAt(court.KingdomId) != null)
+        {
+            return; // one mission per court
+        }
+        if (def.RequiresContact && !court.HasContact)
+        {
+            return;
+        }
+        if (court.Band() < def.MinBand)
+        {
+            return;
+        }
+        if (CouncilQueries.EmbassyTier(save) < def.RequiredEmbassyTier)
+        {
+            return;
+        }
+        if (CouncilQueries.IsOnMission(_selCompanionId) ||
+            CouncilQueries.IsImprisoned(_selCompanionId))
+        {
+            return;
+        }
+        if (PlayerSession.IsOnExpedition &&
+            save.ActivePartyCompanionIds.Contains(_selCompanionId))
+        {
+            return; // in-party guard, re-checked at commit
+        }
+        // Target re-validation: a courtship target can fall below +2 or become the
+        // patron, and a petition office can lapse, while the modal sat open. Re-
+        // filter from the same source as render and require the selection present.
+        if (def.NeedsTargetCourtier)
+        {
+            if (_selTargetCourtierId == null)
+            {
+                return;
+            }
+            bool targetStillValid = false;
+            foreach (var t in ValidDispatchTargets(court, def.Id))
+            {
+                if (t.Id == _selTargetCourtierId)
+                {
+                    targetStillValid = true;
+                    break;
+                }
+            }
+            if (!targetStillValid)
+            {
+                return;
+            }
+        }
+
+        save.Gold -= def.GoldCost;
+
+        // Envoys leave the expedition pool: instant dispatch (v1.1 ruling).
+        CompanionRoster.RemoveFromParty(_selCompanionId);
+
+        cycle.Council.ActiveMissions.Add(new EnvoyMission
+        {
+            CompanionId = _selCompanionId,
+            KingdomId = court.KingdomId,
+            MissionType = def.Id,
+            LunationsRemaining = def.Lunations,
+            TargetCourtierId = _selTargetCourtierId ?? "",
+            Recalled = false,
+        });
+
+        GD.Print($"[Council] Dispatched {_selCompanionId} to {court.KingdomId} " +
+                 $"({def.Id}, {def.Lunations} lunation(s), {def.GoldCost}g).");
+
+        CloseFlow();
+        SaveManager.Save();
+        RefreshAll();
+    }
+
+    // ── Modal-flow UI helpers ────────────────────────────────────────────
+
+    private void AddFlowLabel(string text, Color color)
+    {
+        var lbl = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        lbl.AddThemeColorOverride("font_color", color);
+        _flowBody.AddChild(lbl);
+    }
+
+    private void AddSelectButton(string text, bool selected, System.Action onPress,
+                                 bool disabled = false, string tooltip = null)
+    {
         var btn = new Button
         {
-            Text = label,
-            CustomMinimumSize = new Vector2(0, 32),
+            Text = text,
+            ToggleMode = true,
+            ButtonPressed = selected,
+            Disabled = disabled,
+            CustomMinimumSize = new Vector2(0, 28),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            Disabled = lockReason != null,
-            TooltipText = lockReason ?? flavour,
+            TooltipText = tooltip ?? "",
+            ClipText = true,
         };
         btn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
-        UITheme.ApplyButtonStyle(btn, isPrimary: lockReason == null);
-        string kid = court.KingdomId;
-        btn.Pressed += () => OnActionRequested?.Invoke(kid, actionId);
-        _actionBox.AddChild(btn);
+        UITheme.ApplyButtonStyle(btn, isPrimary: selected);
+        btn.Pressed += () => onPress();
+        _flowBody.AddChild(btn);
     }
 
     private void RefreshFooter(CycleState cycle, CourtState court, CourtStandingBand band)

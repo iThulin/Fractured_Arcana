@@ -158,41 +158,10 @@ public partial class StrategicView : Node2D
         _hud = new CanvasLayer { Name = "StrategicHud" };
         AddChild(_hud);
 
-        var campusBtn = new Button
-        {
-            Text = "Return to Campus",
-            AnchorLeft = 0f,
-            AnchorTop = 0f,
-            AnchorRight = 0f,
-            AnchorBottom = 0f,
-            OffsetLeft = 16,
-            OffsetTop = 16 + HudManager.BarHeight, // clear the global top bar
-            OffsetRight = 196,
-            OffsetBottom = 56 + HudManager.BarHeight,
-        };
-        campusBtn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
-        UITheme.ApplyButtonStyle(campusBtn, isPrimary: false);
-        
-        campusBtn.Pressed += () =>
-            GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
-        _hud.AddChild(campusBtn);
-
-        var councilBtn = new Button
-        {
-            Text = "Council",
-            AnchorLeft = 0f,
-            AnchorTop = 0f,
-            AnchorRight = 0f,
-            AnchorBottom = 0f,
-            OffsetLeft = 204,
-            OffsetTop = 16 + HudManager.BarHeight, // clear the global top bar
-            OffsetRight = 324,
-            OffsetBottom = 56 + HudManager.BarHeight,
-        };
-        councilBtn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
-        UITheme.ApplyButtonStyle(councilBtn, isPrimary: false);
-        councilBtn.Pressed += () => CouncilPanel.Toggle(this);
-        _hud.AddChild(councilBtn);
+        // Return-to-Campus and Council now live on the global top bar
+        // (HudManager); removed from this per-screen HUD to avoid duplicate
+        // buttons on the strategic map. The top bar's Return-to-Campus is gated
+        // to this scene, so exit-to-campus availability is unchanged.
 
         // ── Calendar readout: the doomsday clock, top-right ──────────────
         var cycle = SaveManager.ActiveSave?.Cycle;

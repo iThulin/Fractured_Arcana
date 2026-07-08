@@ -43,7 +43,11 @@ public static class SaveManager
     /// </summary>
     public const int CURRENT_VERSION = 100;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    /// <summary>Canonical save serialization options — the single path every
+    /// persisted structure travels. Public so round-trip assertions
+    /// (CouncilSaveAssert, save-file-paranoia rule) exercise the REAL options,
+    /// not a stand-in that could drift from these.</summary>
+    public static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,

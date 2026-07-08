@@ -14,7 +14,8 @@
 | World (Phase 2, living world) | single_world_refactor §8 | **Done / in verification.** CouncilTick + CorruptionSpread + kingdom drift live. |
 | Council C1–C3 | court_council §14 | **Done and verified** (C3 fully: call-ins, petitions, obligation decay, ledger persistence). |
 | Council C4 (Word Spreads) | court_council §14 | **Substantially complete.** Verification queue open: Sessions C, D, F + remaining regressions. |
-| Council C5–C6 | court_council §14 | **Not started.** CouncilTick line 264 explicitly defers thresholds to C5. |
+| Council C5 | court_council §14 | **Done (2026-07-08).** Exposure ladder + Scandal/Expulsion/Imprisonment thresholds; Imprisonment → Prison POI rescue (release keyed on stable world coords, not a `Pois` list index); Court a Courtier + **archetype-typed** Patron token feeding the negotiation pool; Rumor/Discredit. Save round-trip assertions for HeraldReport / CourtState.StandingPenalty / ImprisonedEnvoy (`CouncilSaveAssert`, debug-panel button). |
+| Council C6 | court_council §14 | **Not started — scoped.** Tier C climaxes, Broker the Compact → Allied, Unite/Coerce standing gates, Astrologer agent + deflection + Expose the Agent, Hall of Records renown. Hard deps (negotiation encounter system, ArchmageDisposition, C1–C5) all met → buildable now despite its Phase-D placement. See `docs/council_c6_scope.md`. |
 | Units U1–U6 | archmage_unique_units §13 | **Not started.** EnemyArchetypeData enum still drives spawns; no UnitRegistry, no Data/Units. |
 | Combat UI V1–V5 | combat_ui §14 | **Not started.** PriorityManager/stack exists in RulesManager (player-side), console-only. |
 | Environments E1–E3 | combat_environments §9 | **Not started.** R19 step costs LANDED (OverworldMovementCost has Hills/Desert/Tundra/Snow cases, tuned past the starting values). R4 deletion NOT done — ReclassifyTerrainPerRegion body still in WorldGenerator.cs. |
@@ -81,7 +82,7 @@ Ordered deliverables:
 3. **Q2** (needs U3, now done): item passives migrate to the trigger bus. One OnAttack, one OnSpawn, one Aura item through the shared handler map; procs in the log grammar.
 4. **Q3**: CorruptionWard/HazardWard + overworld/court passive families + the tier×2 cap and floor-1 rule.
 5. **K3**: recruitment v2 — hiring halls, procedural candidate matrix, dossier panel, rescue-POI recruits; campus-menu recruiting retired. Includes the **Muster screen** (§8) — party + loadout + (later) grimoire in one surface. Build Muster here even though grimoire slots are empty until Phase D; it's the natural host.
-6. **C5** (gated on the Phase A standing ruling): Rumor/Discredit, Exposure thresholds, Scandal/Expulsion, Imprisonment → Prison POI rescue, Court a Courtier + Patron token wiring into negotiation pools.
+6. **C5 — DONE 2026-07-08** (was gated on the Phase A standing ruling): Rumor/Discredit, Exposure thresholds, Scandal/Expulsion, Imprisonment → Prison POI rescue, Court a Courtier + Patron token wiring into negotiation pools. See §1 status row.
 
 **Exit:** a tier-2 wipe injures per the rolls and understaffs the next two lunations; a hired procedural candidate is visibly different from their cell-twin; CorruptionWard measurably reduces attrition under the cap; exposure 10 spawns a rescue expedition that works.
 
@@ -98,7 +99,7 @@ Ordered deliverables:
 3. **U4–U5**: the remaining seven faction rosters + their ability keys, landing per-roster with V3's widgets already live.
 4. **E1–E3**: TerrainThemeMap + FrostSteppe/SunbakedBarrens; FeatureInjector (river edges, bridges, coasts, roads); corruption overlays. Then **V4** context strip (valence tags everywhere; Witnessed badge stays deferred with R11).
 5. **S4–S5**: acquisition (lore POIs, negotiation deals, scrolls) + echo/corruption integration (SpellcraftAid/Transgression, Parley Compulsion end-to-end).
-6. **C6**: Tier C interactive climaxes preloaded from court state; Broker the Compact → Allied; standing gates on Unite/Coerce; Astrologer agent + deflection + Expose the Agent; Hall of Records renown.
+6. **C6**: Tier C interactive climaxes preloaded from court state; Broker the Compact → Allied; standing gates on Unite/Coerce; Astrologer agent + deflection + Expose the Agent; Hall of Records renown. **Scoped in `docs/council_c6_scope.md` (2026-07-08); dependencies met, so buildable ahead of the rest of Phase D if the council track keeps priority.**
 
 **Exit:** the doc-specified full arc — build a court from Unknown to Trusted across a cycle and Unite an archmage entirely through the council layer — plus an Overt necromantic cast landing a traceable echo, plus every generator terrain launching onto a real theme.
 

@@ -7,7 +7,8 @@ using Godot;
 //                 top-bar HUD — the always-present strip across the
 //                 top of gameplay screens carrying key resource
 //                 readouts (Gold, Lunation) and global nav buttons
-//                 (Council, Menu). Mirrors PauseManager's pattern:
+//                 (Return to Campus, Council, Menu). Mirrors PauseManager's
+//                 pattern:
 //                 a CanvasLayer hosted on the tree root, context-
 //                 aware visibility inferred from the current scene.
 //
@@ -16,10 +17,10 @@ using Godot;
 //                 so those cover it (and block its clicks via their
 //                 own backdrops) whenever they're open.
 //
-//                 v1 contents are a sensible default — Gold + Lunation
-//                 readouts, Council + Menu buttons — and deliberately
-//                 easy to extend (add readouts in BuildBar's left
-//                 cluster, buttons in the right).
+//                 v1 contents — Gold + Lunation readouts, Return to
+//                 Campus (strategic-map only) + Council + Menu buttons —
+//                 and deliberately easy to extend (add readouts in
+//                 BuildBar's left cluster, buttons in the right).
 // Layer:          System (autoload)
 // Collaborators:  PauseManager.cs (Menu button -> OpenPauseMenu),
 //                 CouncilScreen.cs (Council button -> Toggle),
@@ -43,6 +44,7 @@ public partial class HudManager : Node
     private CanvasLayer _layer;
     private Label _goldLabel;
     private Label _lunationLabel;
+    private Button _returnButton; // gated: strategic map only (see RefreshVisibility)
 
     private int _lastGold = int.MinValue;
     private int _lastLunation = int.MinValue;
@@ -112,6 +114,11 @@ public partial class HudManager : Node
         row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
         // ── Right: global nav buttons (extend here) ──────────────────────
+        // Return to Campus is a scene-warp, so it is gated to the strategic map
+        // in RefreshVisibility — it must never offer an exit out of combat,
+        // expeditions, or negotiation, nor sit redundantly on the campus itself.
+        _returnButton = AddNavButton(row, "Return to Campus",
+            () => GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn"));
         AddNavButton(row, "Council", () => CouncilScreen.Toggle(GetTree().Root));
         AddNavButton(row, "Menu", () => PauseManager.Instance?.OpenPauseMenu());
 
@@ -128,13 +135,14 @@ public partial class HudManager : Node
         return l;
     }
 
-    private void AddNavButton(HBoxContainer row, string text, System.Action onPressed)
+    private Button AddNavButton(HBoxContainer row, string text, System.Action onPressed)
     {
         var btn = new Button { Text = text, CustomMinimumSize = new Vector2(96, 0) };
         btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         UITheme.ApplyButtonStyle(btn, isPrimary: false);
         btn.Pressed += () => onPressed();
         row.AddChild(btn);
+        return btn;
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -186,6 +194,21 @@ public partial class HudManager : Node
             return;
         }
         _layer.Visible = SaveManager.ActiveSave != null && !IsHiddenScene();
+
+        // Return to Campus only makes sense on the strategic map. Gating it here
+        // (rather than always-on) keeps it from warping the player out of combat,
+        // an expedition, or a negotiation, and off the campus where it's moot.
+        if (_returnButton != null)
+        {
+            _returnButton.Visible = IsStrategicScene();
+        }
+    }
+
+    private bool IsStrategicScene()
+    {
+        var current = GetTree().CurrentScene;
+        string lower = (current?.SceneFilePath ?? "").ToLower();
+        return lower.Contains("strategicscene");
     }
 
     private bool IsHiddenScene()

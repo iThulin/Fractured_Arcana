@@ -97,20 +97,25 @@ public partial class NegotiationManager : Control
         _state.OnResolved += OnNegotiationResolved;
 
         // Court patron (C5): a courtier secured as the guild's Patron at the
-        // origin kingdom's court lends backing at the table — +1 Connections,
-        // flat (legible/deterministic; no archetype scaling in v1). Reuses the
-        // origin court already resolved above for factionRep. Dormant until the
-        // Court-a-Courtier mission writes PatronCourtierId.
+        // origin kingdom's court lends backing at the table — +1 leverage token
+        // of THEIR archetype's type (§ Court a Courtier), so who you courted
+        // shapes the bonus. Reuses the origin court resolved above for factionRep.
+        // Dormant until the Court-a-Courtier mission writes PatronCourtierId.
+        LeverageToken patronToken = LeverageToken.Connections;
         int patronTokens = 0;
         if (cycle?.Council != null && !string.IsNullOrEmpty(originKingdom) &&
             cycle.Council.Courts.TryGetValue(originKingdom, out var originCourt) &&
-            !string.IsNullOrEmpty(originCourt.PatronCourtierId) &&
-            originCourt.GetCourtier(originCourt.PatronCourtierId) != null)
+            !string.IsNullOrEmpty(originCourt.PatronCourtierId))
         {
-            patronTokens = 1;
+            var patron = originCourt.GetCourtier(originCourt.PatronCourtierId);
+            if (patron != null)
+            {
+                patronTokens = 1;
+                patronToken = PatronTokenForArchetype(patron.Archetype);
+            }
         }
 
-        _state.Initialize(_data, school, party, factionRep, patronTokens);
+        _state.Initialize(_data, school, party, factionRep, patronToken, patronTokens);
 
         GD.Print($"[Negotiation] opened at tension={_state.Tension} " +
                  $"(zone {_state.Zone}), from factionRep={factionRep}, " +
@@ -123,6 +128,24 @@ public partial class NegotiationManager : Control
         RefreshTensionBar();
         RefreshTerms();
         RefreshTokenButtons();
+    }
+
+    /// <summary>Maps a Patron courtier's archetype to the leverage token they
+    /// lend at the table (§ Court a Courtier: "+1 token of their archetype's
+    /// type"). Archetype strings are CourtVocab ids, shared verbatim with the
+    /// negotiation NPC archetypes; unknown/blank falls back to Connections.</summary>
+    private static LeverageToken PatronTokenForArchetype(string archetype)
+    {
+        switch (archetype)
+        {
+            case "Merchant":    return LeverageToken.Offering;
+            case "Commander":   return LeverageToken.Intimidate;
+            case "Scholar":     return LeverageToken.Insight;
+            case "Idealist":    return LeverageToken.Charm;
+            case "Opportunist": return LeverageToken.Persuade;
+            case "Survivor":    return LeverageToken.Connections;
+            default:            return LeverageToken.Connections;
+        }
     }
 
     // ── UI building ──────────────────────────────────────────────────────

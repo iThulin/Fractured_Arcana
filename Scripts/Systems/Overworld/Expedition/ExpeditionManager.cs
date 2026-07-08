@@ -1579,14 +1579,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         if (!_window.TryLocalToWorld(resultHex, out int col, out int row))
             return;
-        int poiIdx = _world.GetTile(col, row).PoiIndex;
-        if (poiIdx < 0)
-            return;
 
+        // Match the resolved tile against the gaol's stored world coordinates.
+        // Each runtime prison sits on its own unoccupied tile, so (col,row)
+        // identifies it uniquely and survives any mutation of WorldData.Pois —
+        // unlike the list index this used to key on.
         ImprisonedEnvoy freed = null;
         foreach (var e in council.Imprisoned)
         {
-            if (e.PrisonPoiIndex == poiIdx)
+            if (e.PrisonX == col && e.PrisonY == row)
             { freed = e; break; }
         }
         if (freed == null)

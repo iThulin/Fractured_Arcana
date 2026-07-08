@@ -53,6 +53,7 @@ public static class CouncilMissions
     public const string GatherIntelligence = "gather_intelligence";
     public const string PetitionMinor = "petition_minor";
     public const string CourtCourtier = "court_courtier";
+    public const string SpreadRumor = "spread_rumor";
 
     public static readonly List<CouncilMissionDef> All = new()
     {
@@ -92,6 +93,14 @@ public static class CouncilMissions
             RequiresContact = true, NeedsTargetCourtier = true,
             MinBand = CourtStandingBand.Welcome, RequiredEmbassyTier = 1,
             Blurb = "Cultivate a receptive power into a sworn Patron whose name lends weight at the negotiating table in this kingdom's territory. Requires deep personal regard (+2).",
+        },
+        new CouncilMissionDef
+        {
+            Id = SpreadRumor, DisplayName = "Spread Rumor / Discredit",
+            Lunations = 2, GoldCost = 60,
+            RequiresContact = true, NeedsTargetCourtier = true,
+            MinBand = CourtStandingBand.Welcome, RequiredEmbassyTier = 0,
+            Blurb = "Undermine a courtier you cannot win over: on success their Influence at court falls by 1. Clumsy work rebounds and lifts them instead. Raises Exposure sharply.",
         },
     };
 
@@ -304,14 +313,17 @@ public static class CouncilTick
             exposureBefore[court.KingdomId] = court.Exposure;
         }
 
-        // Which courts ran an intelligence-class mission this lunation — those
-        // courts skip idle exposure decay (§13 step 5). NOTE (C5): when Rumor /
-        // Discredit missions land, add them to this set too, or their exposure
-        // gain is decayed away the same tick and never crosses a threshold.
+        // Which courts ran an intrigue-class mission this lunation — those courts
+        // skip idle exposure decay (§13 step 5), or the Exposure a mission raises
+        // would be shed the same tick and never cross a threshold. Both Gather
+        // Intelligence and Spread Rumor / Discredit raise Exposure, so both shield
+        // their court from decay this tick.
         var intelCourts = new HashSet<string>();
         foreach (var m in council.ActiveMissions)
         {
-            if (m.MissionType == CouncilMissions.GatherIntelligence && !m.Recalled)
+            if (!m.Recalled &&
+                (m.MissionType == CouncilMissions.GatherIntelligence ||
+                 m.MissionType == CouncilMissions.SpreadRumor))
             {
                 intelCourts.Add(m.KingdomId);
             }
@@ -417,6 +429,9 @@ public static class CouncilTick
                 break;
             case CouncilMissions.CourtCourtier:
                 ResolveCourtship(cycle, court, lun, mission, envoyName, courtName, reports);
+                break;
+            case CouncilMissions.SpreadRumor:
+                ResolveSpreadRumor(court, lun, mission, envoy, envoyName, courtName, reports);
                 break;
         }
 
@@ -571,6 +586,50 @@ public static class CouncilTick
             : (secretFound ? "" : " The court's secrets stayed buried, and questions were asked.");
         Emit(reports, lun, court.KingdomId,
             $"{envoyName} worked the shadows of {courtName}: {intel}.{secret} " +
+            $"(Exposure {court.Exposure}/10.)");
+    }
+
+    private static void ResolveSpreadRumor(CourtState court, int lun, EnvoyMission mission,
+        Companion envoy, string envoyName, string courtName, List<HeraldReport> reports)
+    {
+        court.HasContact = true;
+
+        // Resolution-time backstop for the Welcome gate — standing may have
+        // slipped since dispatch, and not every dispatch path is UI-gated.
+        if (court.Band() < CourtStandingBand.Welcome)
+        {
+            Emit(reports, lun, court.KingdomId,
+                $"{envoyName}'s whispers at {courtName} found no purchase — the guild's " +
+                $"standing does not yet move the court's talk.");
+            return;
+        }
+
+        var target = court.GetCourtier(mission.TargetCourtierId);
+        if (target == null)
+        {
+            Emit(reports, lun, court.KingdomId,
+                $"{envoyName}'s rumor at {courtName} had no subject left to name.");
+            return;
+        }
+
+        // Intrigue roll (~60% base, better with a capable envoy). Success discredits
+        // the target: Influence -1 (weight at court, floor 1). Failure rebounds +1
+        // (ceiling 3) as the smear is traced back — the doc's "Influence +/-1".
+        // Exposure rises +2 on a clean job, +3 when fingers point at the guild.
+        int roll = (int)(GD.Randi() % 100) + 15 * FitnessMod(envoy);
+        bool success = roll >= 40;
+
+        int delta = success ? -1 : +1;
+        target.Influence = Mathf.Clamp(target.Influence + delta, 1, 3);
+        court.Exposure = Mathf.Clamp(court.Exposure + (success ? 2 : 3), 0, 10);
+
+        string verdict = success
+            ? $"the whispers took root — {FirstName(target.DisplayName)} the " +
+              $"{OfficeDisplay(target.Office)} loses weight at court (Influence {target.Influence})"
+            : $"the smear was traced to the guild and rebounded — {FirstName(target.DisplayName)} " +
+              $"the {OfficeDisplay(target.Office)} stands the stronger for it (Influence {target.Influence})";
+        Emit(reports, lun, court.KingdomId,
+            $"{envoyName} moved to discredit a power at {courtName}: {verdict}. " +
             $"(Exposure {court.Exposure}/10.)");
     }
 
@@ -803,11 +862,17 @@ public static class CouncilTick
             return;
         }
 
+        // Persist the gaol's stable tile coordinates, not the Pois list index:
+        // poiIndex is a transient handle used only to read the coords back here,
+        // while the rescue matches on world position, which never shifts.
+        var prisonPoi = cycle.World.Pois[poiIndex];
+
         cycle.Council.Imprisoned.Add(new ImprisonedEnvoy
         {
             CompanionId = caughtId,
             KingdomId = court.KingdomId,
-            PrisonPoiIndex = poiIndex,
+            PrisonX = prisonPoi.X,
+            PrisonY = prisonPoi.Y,
             LunationImprisoned = lun,
         });
         SaveManager.MarkDirty();

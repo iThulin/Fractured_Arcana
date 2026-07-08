@@ -277,7 +277,13 @@ public class ImprisonedEnvoy
 {
     public string CompanionId = "";
     public string KingdomId = "";
-    public int PrisonPoiIndex = -1;   // index into WorldData.Pois; -1 until sited
+
+    /// <summary>Stable world coordinates of the rescue Prison POI's tile,
+    /// (-1,-1) until sited. Keyed on the tile position, NOT a WorldData.Pois
+    /// list index, so the record survives any reordering or removal of that
+    /// list — the gaol's tile never moves.</summary>
+    public int PrisonX = -1;
+    public int PrisonY = -1;
     public int LunationImprisoned = 0;
 }
 
