@@ -371,15 +371,18 @@ public sealed class TectonicShatterEffect : EffectBase
             // Remove any unit occupying the obstacle (summons like stone pillars)
             if (tile.Occupant != null)
             {
-                string unitName = tile.Occupant.Name.ToString().ToLowerInvariant();
+                // Captured once — the 999 is lethal by design, and death cleanup
+                // clears tile.Occupant before the log line (2026-07-09 sweep).
+                var pillar = tile.Occupant;
+                string unitName = pillar.Name.ToString().ToLowerInvariant();
                 bool isPillar = unitName.Contains("pillar") ||
                                 unitName.Contains("boulder") ||
-                                tile.Occupant.Stats.BaseSpeed == 0;
+                                pillar.Stats.BaseSpeed == 0;
 
                 if (isPillar)
                 {
-                    tile.Occupant.ApplyDamage(999);
-                    s.Log($"[TectonicShatter] Destroyed {tile.Occupant.Name} at {tile.Axial}.");
+                    pillar.ApplyDamage(999);
+                    s.Log($"[TectonicShatter] Destroyed {pillar.Name} at {tile.Axial}.");
                 }
             }
 

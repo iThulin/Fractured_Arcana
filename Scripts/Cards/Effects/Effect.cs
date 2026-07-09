@@ -284,22 +284,25 @@ public sealed class DealDamageEffect : EffectBase
 				hit++;
 				victim = u;
 			}
+			// Occupant captured BEFORE ApplyDamage: a lethal hit clears
+			// tile.Occupant during death cleanup, so re-reads after the damage
+			// NRE'd on kills and left victim null (2026-07-09 sweep).
 			else if (obj is TileData td && td.Occupant != null)
 			{
-				td.Occupant.ApplyDamage(totalDamage);
-				s.Log($"HIT tile occupant {td.Occupant.Name} on {td.Axial}");
-				hit++;
 				victim = td.Occupant;
+				victim.ApplyDamage(totalDamage);
+				s.Log($"HIT tile occupant {victim.Name} on {td.Axial}");
+				hit++;
 			}
 			else if (obj is HexTile tileView)
 			{
 				var tileData = ResolveTileDataFromView(s, tileView);
 				if (tileData != null && tileData.Occupant != null)
 				{
-					tileData.Occupant.ApplyDamage(totalDamage);
-					s.Log($"HIT tile occupant {tileData.Occupant.Name} on {tileData.Axial}");
-					hit++;
 					victim = tileData.Occupant;
+					victim.ApplyDamage(totalDamage);
+					s.Log($"HIT tile occupant {victim.Name} on {tileData.Axial}");
+					hit++;
 				}
 			}
 
@@ -1244,13 +1247,18 @@ public sealed class ImbueTileEffect : EffectBase
 
 			s.Log($"[ImbueTile] {tile.Axial} imbued with {Element} ({elementType}).");
 
-			if (BonusDamage > 0 && tile.Occupant != null && tile.Occupant.TeamId != 0)
+			// Capture the occupant ONCE: if the imbue damage is lethal, death
+			// cleanup clears tile.Occupant between ApplyDamage and the log line
+			// (NRE, 2026-07-09 — surfaced once drop-on-unit made direct casts
+			// at enemies routine).
+			var victim = tile.Occupant;
+			if (BonusDamage > 0 && victim != null && victim.TeamId != 0)
 			{
 				var casterUnit = FindCasterUnit(s, caster);
 				int bonusSpellDmg = casterUnit?.BonusSpellDamage ?? 0;
 				int totalImbueDmg = BonusDamage + bonusSpellDmg;
-				tile.Occupant.ApplyDamage(totalImbueDmg);
-				s.Log($"[ImbueTile] {Element} deals {totalImbueDmg} to {tile.Occupant.Name}.");
+				victim.ApplyDamage(totalImbueDmg);
+				s.Log($"[ImbueTile] {Element} deals {totalImbueDmg} to {victim.Name}.");
 			}
 		}
 	}
@@ -1644,11 +1652,13 @@ public sealed class RaiseTerrainEffect : EffectBase
 			tile.ApplyTerrainModifier("rubble");
 			s.Grid.ApplyVisualToTile(tile);
 
-			// Push any unit on the tile (ground rising under them)
-			if (tile.Occupant != null)
+			// Push any unit on the tile (ground rising under them).
+			// Captured once — lethal crush clears tile.Occupant mid-block.
+			var crushed = tile.Occupant;
+			if (crushed != null)
 			{
-				tile.Occupant.ApplyDamage(HeightIncrease * 2);
-				s.Log($"[RaiseTerrain] {tile.Occupant.Name} crushed by rising ground for {HeightIncrease * 2} damage.");
+				crushed.ApplyDamage(HeightIncrease * 2);
+				s.Log($"[RaiseTerrain] {crushed.Name} crushed by rising ground for {HeightIncrease * 2} damage.");
 			}
 
 			s.Log($"[RaiseTerrain] {tile.Axial} raised by {HeightIncrease} (now height {tile.Height}), imbued with earth, rubble created.");

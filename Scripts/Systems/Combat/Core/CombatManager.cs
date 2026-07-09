@@ -1455,15 +1455,17 @@ public partial class CombatManager : Node3D
         {
             foreach (var neighbor in grid.GetNeighbors(attacker.CurrentTile.Axial))
             {
-                var nTile = grid.GetTile(neighbor);
-                if (nTile?.Occupant == null)
+                // Captured once — lethal splash clears Occupant before the log
+                // line (2026-07-09 sweep).
+                var splashVictim = grid.GetTile(neighbor)?.Occupant;
+                if (splashVictim == null)
                     continue;
-                if (nTile.Occupant == target)
+                if (splashVictim == target)
                     continue;        // already hit
-                if (nTile.Occupant.TeamId == attacker.TeamId)
+                if (splashVictim.TeamId == attacker.TeamId)
                     continue; // skip allies
-                nTile.Occupant.ApplyDamage(damage);
-                combatUI?.AppendActionLog($"[Reckless] {nTile.Occupant.Name} takes {damage} damage.");
+                splashVictim.ApplyDamage(damage);
+                combatUI?.AppendActionLog($"[Reckless] {splashVictim.Name} takes {damage} damage.");
             }
         }
 
