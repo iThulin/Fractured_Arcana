@@ -60,9 +60,16 @@ using System.Threading.Tasks;
 //                   or on the stack: killing The Final Service last
 //                   must not declare victory before Deathburst
 //                   resolves and the Honored Dead rise.
-//                 - Response-hand check reads the ACTIVE deck only
-//                   (deckManager.Hand). Multi-unit reaction hands are
-//                   V3 UX territory; logged as a known limitation.
+//                 - Response-hand check scans EVERY living arcane
+//                   unit's hand against ITS OWN mana (2026-07-09;
+//                   retires the active-deck-only v1 limitation —
+//                   which, with State.Mana[Me] synced to the
+//                   SELECTED unit, made the window nearly unopenable
+//                   in real play). The window auto-selects the
+//                   responder; clicking a friendly unit mid-window
+//                   switches. A POOLED response strip (all castable
+//                   Reactions across units in one surface) remains
+//                   V3 tranche-2 UX.
 //
 // Layer:          System (combat rules)
 // Collaborators:  RulesManager.cs (GameStack/PriorityManager/Resolver),
@@ -80,11 +87,14 @@ public sealed class EnemyTriggeredAbility : Ability
 {
     /// <summary>Display source for stack/log lines, e.g. "The Final Service".</summary>
     public string SourceName = "";
+    /// <summary>One-line effect description for the V3 stack strip (§7c).</summary>
+    public string IntelLine = "";
 
-    public EnemyTriggeredAbility(string name, string sourceName, IEffect effect)
+    public EnemyTriggeredAbility(string name, string sourceName, IEffect effect, string intelLine = "")
     {
         Name = name;
         SourceName = sourceName;
+        IntelLine = intelLine;
         Speed = PlaySpeed.Instant;
         Effects = new[] { effect };
     }
@@ -239,7 +249,7 @@ public partial class CombatManager
                 if (effect == null)
                     continue;
 
-                var ability = new EnemyTriggeredAbility(t.Def.Name, t.SourceName, effect);
+                var ability = new EnemyTriggeredAbility(t.Def.Name, t.SourceName, effect, t.Def.IntelDescription);
                 State.Stack.Push(new StackItem
                 {
                     Ability = ability,
@@ -260,15 +270,23 @@ public partial class CombatManager
                 var top = State.Stack.PeekTop();
                 string topName = top?.Ability?.Name ?? "?";
 
+                // V3 (§7c): the strip renders whatever is on the stack — even
+                // during auto-pass it plays through visibly with zero input.
+                combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: false);
+
                 await OpenTriggerPriorityWindow(topName);
 
                 // The response may have COUNTERED/changed things — re-check.
                 if (State.Stack.IsEmpty)
                     break;
 
+                combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: false);
                 GD.Print($"[Stack] Resolving {State.Stack.PeekTop()?.Ability?.Name} " +
                          $"(size before: {State.StackCount()}).");
                 State.Resolver.ResolveTop(State);
+
+                // Readability beat — the strip is legible while it plays through.
+                await ToSignal(GetTree().CreateTimer(0.3f), "timeout");
 
                 // A resolution can kill units (future keys) → queue more triggers.
                 while (_pendingTriggers.Count > 0)
@@ -282,7 +300,7 @@ public partial class CombatManager
                         continue;
                     State.Stack.Push(new StackItem
                     {
-                        Ability = new EnemyTriggeredAbility(t.Def.Name, t.SourceName, eff),
+                        Ability = new EnemyTriggeredAbility(t.Def.Name, t.SourceName, eff, t.Def.IntelDescription),
                         Caster = Opp,
                         Snapshot = new EffectSnapshot(),
                     });
@@ -300,9 +318,26 @@ public partial class CombatManager
 
         // The stack settled — evaluate combat end that was deferred while
         // triggers were outstanding (Final Service killed last, etc.).
+        combatUI?.HideStackStrip();
         CheckCombatEnd();
         RefreshEnemyRoster();
         RefreshPlayerUnitBar();
+    }
+
+    /// <summary>V3: (source, name, one-line effect) per stack object, top-down.
+    /// Enemy triggers carry their own source + intel; card halves show the
+    /// caster's name and the half name.</summary>
+    private List<(string, string, string)> BuildStackSnapshot()
+    {
+        var items = new List<(string, string, string)>();
+        foreach (var item in State.Stack.Items)   // Stack.Items iterates top-down
+        {
+            if (item?.Ability is EnemyTriggeredAbility eta)
+                items.Add((eta.SourceName, eta.Name, eta.IntelLine));
+            else if (item?.Ability != null)
+                items.Add((item.Caster?.Name ?? "?", item.Ability.Name, "(response)"));
+        }
+        return items;
     }
 
     // ── Priority window ──────────────────────────────────────────────────────
@@ -313,7 +348,8 @@ public partial class CombatManager
     private async Task OpenTriggerPriorityWindow(string topName)
     {
         bool stopSet = PlayerSession.DebugStopOnTriggers;
-        bool holdsResponse = PlayerHoldsCastableReaction();
+        var responder = FindReactionResponder();
+        bool holdsResponse = responder != null;
 
         if (!stopSet && !holdsResponse)
         {
@@ -323,31 +359,80 @@ public partial class CombatManager
 
         _priorityWindowOpen = true;
         _priorityPassed = false;
-        string why = holdsResponse ? "you hold a response" : "stop set";
+        string why = holdsResponse ? $"{responder.Name} holds a response" : "stop set";
         GD.Print($"[Priority] window OPEN on {topName} ({why}).");
-        combatUI?.ShowPriorityPrompt($"{topName} on the stack — respond (Reaction) or pass");
 
+        // Auto-select the responder so their hand is on screen and their mana is
+        // synced (SelectUnit does both). Click any other friendly mid-window to
+        // switch responders — see OnLeftMouseReleased's window branch.
+        if (responder != null && responder != selectedUnit)
+        {
+            GD.Print($"[Priority] auto-selected {responder.Name} (holds a response).");
+            combatUI?.AppendActionLog($"{responder.Name} can respond.");
+            SelectUnit(responder);
+            if (currentPhase != CombatPhase.PlayerTurn)
+                ClearMoveTiles();   // enemy-phase window: no move affordance
+        }
+        // V3 (§7c): the strip itself is the window — Pass button enabled.
+        combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: true);
+
+        int lastCount = State.StackCount();
         while (!_priorityPassed)
         {
             // Keep the window until the player passes, per R3: priority is
             // theirs until surrendered (a response cast does not auto-pass —
             // they may hold another Reaction).
             await ToSignal(GetTree(), "process_frame");
+
+            // Re-render on stack growth so a cast response appears immediately.
+            int c = State.StackCount();
+            if (c != lastCount)
+            {
+                lastCount = c;
+                combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: true);
+            }
         }
 
         _priorityWindowOpen = false;
-        combatUI?.HidePriorityPrompt();
+        combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: false);
         GD.Print($"[Priority] passed on {topName}.");
     }
 
-    /// <summary>Castable = Reaction speed AND the active caster can pay. Reads the
-    /// active deck's hand only (v1 limitation, logged in the header).</summary>
-    private bool PlayerHoldsCastableReaction()
+    /// <summary>True when ANY living arcane player unit holds a castable Reaction.
+    /// (2026-07-09: the active-deck-only v1 limitation is retired — the gate now
+    /// scans every hand with per-unit mana. Pooled response strip stays V3 UX.)</summary>
+    private bool PlayerHoldsCastableReaction() => FindReactionResponder() != null;
+
+    /// <summary>First living player unit holding a castable Reaction-speed half.
+    /// The selected unit wins ties so auto-select never yanks a valid selection;
+    /// otherwise party order. Null when nobody can respond.</summary>
+    private Unit FindReactionResponder()
     {
-        if (deckManager == null)
+        if (selectedUnit != null && IsInstanceValid(selectedUnit)
+            && selectedUnit.Stats.IsAlive && UnitHoldsCastableReaction(selectedUnit))
+            return selectedUnit;
+
+        foreach (var unit in playerUnits)
+        {
+            if (unit == null || unit == selectedUnit || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
+                continue;
+            if (UnitHoldsCastableReaction(unit))
+                return unit;
+        }
+        return null;
+    }
+
+    /// <summary>Castable = Reaction speed AND this unit can act AND this unit can
+    /// pay from ITS OWN mana (or holds a Fate free reaction, mirroring
+    /// Rules.CanCast's bypass so the window opens whenever the cast would land).</summary>
+    private bool UnitHoldsCastableReaction(Unit unit)
+    {
+        if (unit.IsMartial || unit.DeckData == null || !unit.CanAct())
             return false;
 
-        foreach (var card in deckManager.Hand)
+        bool freeReaction = unit.Attunement is FateAttunement fate && fate.HasFreeReaction;
+
+        foreach (var card in unit.DeckData.Hand)
         {
             if (card == null)
                 continue;
@@ -355,11 +440,24 @@ public partial class CombatManager
             {
                 if (half == null || half.Speed != PlaySpeed.Reaction)
                     continue;
-                if (half.CanPlay(State, Me))
+                if (freeReaction || UnitCanPlay(half, unit))
                     return true;
             }
         }
         return false;
+    }
+
+    /// <summary>half.CanPlay evaluated against a SPECIFIC unit's mana. ManaCost.CanPay
+    /// treats State.ActiveCasterUnit as authoritative (RuntimeInterfaces.cs), so pin
+    /// it for the check and restore — without this, the fallback reads State.Mana[Me],
+    /// which SelectUnit syncs to whatever unit happens to be selected (the root cause
+    /// of the v3 checklist-4 defect). Conditions are pure; CanPay only reads.</summary>
+    private bool UnitCanPlay(CardHalf half, Unit unit)
+    {
+        var prev = State.ActiveCasterUnit;
+        State.ActiveCasterUnit = unit;
+        try { return half.CanPlay(State, Me); }
+        finally { State.ActiveCasterUnit = prev; }
     }
 }
 
@@ -391,7 +489,11 @@ public sealed class RequiemEffect : IEffect
             return;
         }
         _carrier.AttackDamage += _amount;
-        string msg = $"[{_carrier.Name}] Requiem: +{_amount} damage (now {_carrier.AttackDamage}).";
+        int stacks = _carrier.AbilityUseCounts.TryGetValue("requiem", out var n) ? n + 1 : 1;
+        _carrier.AbilityUseCounts["requiem"] = stacks;
+        // V3 (§9): fixed grammar via FormatLogLine — [Source] Ability: effect (state).
+        string msg = UIContent.FormatLogLine(_carrier.Name, "Requiem",
+            $"+{_amount} damage", $"{stacks} stack{(stacks == 1 ? "" : "s")}, now {_carrier.AttackDamage}");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
     }
@@ -438,9 +540,10 @@ public sealed class DeathburstEffect : IEffect
                 spawned++;
         }
 
+        // V3 (§9): fixed grammar via FormatLogLine.
         string msg = spawned > 0
-            ? $"[{_sourceName}] Deathburst: the guests arrive — {spawned} risen."
-            : $"[{_sourceName}] Deathburst: no room at the table — nothing rises.";
+            ? UIContent.FormatLogLine(_sourceName, "Deathburst", $"{spawned} Honored Dead rise")
+            : UIContent.FormatLogLine(_sourceName, "Deathburst", "no room at the table — nothing rises");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
     }

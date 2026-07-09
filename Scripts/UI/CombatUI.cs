@@ -120,6 +120,11 @@ public partial class CombatUI : CanvasLayer
 	private bool _pendingDeploymentMode = false;
 	private bool _deploymentModePending = false;
 
+	/// <summary>True once BuildUI has run. CombatManager's skip-deploy handoff
+	/// waits on this before pushing selection/roster state (2026-07-09) — calls
+	/// that land before the build either drop silently or hit empty panels.</summary>
+	public bool IsBuilt => _built;
+
 	// ── Status display map ───────────────────────────────────────────────
 	private static readonly Dictionary<string, (string symbol, Color color)> StatusDisplay = new()
 	{
@@ -159,7 +164,7 @@ public partial class CombatUI : CanvasLayer
 			return;
 		if (_endTurnButton == null || !_endTurnButton.Visible || _endTurnButton.Disabled)
 			return;
-		if (_priorityPrompt != null && _priorityPrompt.Visible)
+		if (StackWindowInteractive)
 			return;
 		if ((_deckPopup?.Visible ?? false) || (_gravePopup?.Visible ?? false) || (_logPopup?.Visible ?? false))
 			return;
@@ -198,6 +203,18 @@ public partial class CombatUI : CanvasLayer
 
 		if (_deploymentModePending)
 			ApplyDeploymentMode();
+
+		// Roster replay (2026-07-09): RefreshEnemyRoster calls that arrived
+		// before the build used to drop silently — the skip-deploy handoff's
+		// roster load was lost until the next damage event re-refreshed it.
+		if (_lastRosterEnemies != null)
+			RefreshEnemyRoster(_lastRosterEnemies);
+
+		// Phase banner / hint replay (2026-07-09): same pre-build drop.
+		if (_lastPhaseText != null)
+			SetPhaseText(_lastPhaseText);
+		if (_lastHintText != null)
+			SetHintText(_lastHintText);
 	}
 	// ════════════════════════════════════════════════════════════════════
 	// Left panel
@@ -567,75 +584,127 @@ public partial class CombatUI : CanvasLayer
 
 	// ── Phase / hint ─────────────────────────────────────────────────────
 
+	// Pending-replay (2026-07-09): phase/hint pushed before BuildUI used to
+	// drop silently — skip-deploy launches showed a blank top banner all of
+	// round 1 (RefreshPhaseUI fires from the handoff, pre-build; the next
+	// re-push only comes at the round-2 phase change).
+	private string _lastPhaseText;
+	private string _lastHintText;
+
 	public void SetPhaseText(string text)
 	{
+		_lastPhaseText = text;
 		if (_phaseLabel != null)
 			_phaseLabel.Text = text.ToUpper();
 	}
 
 	public void SetHintText(string text)
 	{
+		_lastHintText = text;
 		if (_hintLabel != null)
 			_hintLabel.Text = text;
 	}
 
-	// ── U3: priority prompt (INTERIM — combat_ui_v2 §7c's stack panel owns
-	// the real surface; this is the minimal socket so the R3 window is usable) ──
+	// ── V3: the stack panel (§7c) — replaces the U3 interim prompt ─────────
+	// Compact vertical strip, center-right above the hand: pending stack
+	// objects top-down (source · name · one-line effect), resolving object
+	// highlighted. Interactive only while the player holds priority; during
+	// auto-pass it plays through with ZERO input.
 
-	private PanelContainer _priorityPrompt;
-	private Label _priorityLabel;
+	private PanelContainer _stackPanel;
+	private VBoxContainer _stackList;
+	private Button _stackPassBtn;
 
-	/// <summary>Shows the trigger-response prompt (bottom-center). Created lazily
-	/// on first use; the Pass button emits <see cref="PriorityPassPressed"/>.</summary>
-	public void ShowPriorityPrompt(string text)
+	private void EnsureStackPanel()
 	{
-		if (_priorityPrompt == null)
+		if (_stackPanel != null)
+			return;
+
+		_stackPanel = new PanelContainer
 		{
-			// V1: top-center, below the banner — the bottom-center slot now
-			// belongs to the hand, and a stack event reads naturally where the
-			// V3 stack strip will live.
-			_priorityPrompt = new PanelContainer
+			Name = "StackPanel",
+			AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 1f, AnchorBottom = 1f,
+			OffsetLeft = -12 - 320, OffsetRight = -12,
+			OffsetTop = -12 - 380, OffsetBottom = -12 - 80,
+			GrowHorizontal = Control.GrowDirection.Begin,
+			GrowVertical = Control.GrowDirection.Begin,
+			Visible = false,
+		};
+		_stackPanel.AddThemeStyleboxOverride("panel",
+			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
+		AddChild(_stackPanel);
+
+		var margin = new MarginContainer();
+		margin.AddThemeConstantOverride("margin_left", 8);
+		margin.AddThemeConstantOverride("margin_right", 8);
+		margin.AddThemeConstantOverride("margin_top", 6);
+		margin.AddThemeConstantOverride("margin_bottom", 6);
+		_stackPanel.AddChild(margin);
+
+		var vbox = new VBoxContainer();
+		vbox.AddThemeConstantOverride("separation", 4);
+		margin.AddChild(vbox);
+
+		var header = MakeLabel("─ THE STACK ─", UITheme.FontSizeSmall, UITheme.Gold);
+		header.HorizontalAlignment = HorizontalAlignment.Center;
+		vbox.AddChild(header);
+
+		_stackList = new VBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+		_stackList.AddThemeConstantOverride("separation", 3);
+		vbox.AddChild(_stackList);
+
+		_stackPassBtn = new Button { Text = "Pass", CustomMinimumSize = new Vector2(0, 32) };
+		UITheme.ApplyButtonStyle(_stackPassBtn, isPrimary: true);
+		_stackPassBtn.Pressed += () => EmitSignal(SignalName.PriorityPassPressed);
+		vbox.AddChild(_stackPassBtn);
+	}
+
+	/// <summary>Renders the strip from top-of-stack down. <paramref name="items"/>
+	/// = (source, name, effect); index 0 is the top (resolving next, highlighted).
+	/// <paramref name="interactive"/> shows the Pass button (player holds priority);
+	/// otherwise the strip is display-only and plays through with zero input.</summary>
+	public void ShowStackStrip(List<(string source, string name, string effect)> items, bool interactive)
+	{
+		EnsureStackPanel();
+
+		foreach (Node child in _stackList.GetChildren())
+			child.QueueFree();
+
+		for (int i = 0; i < items.Count; i++)
+		{
+			var (source, name, effect) = items[i];
+			bool top = i == 0;
+
+			var line1 = MakeLabel($"{name} — {source}", UITheme.FontSizeSmall,
+				top ? UITheme.Gold : UITheme.TextSecondary);
+			_stackList.AddChild(line1);
+
+			if (!string.IsNullOrEmpty(effect))
 			{
-				AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0f, AnchorBottom = 0f,
-				OffsetLeft = -260, OffsetRight = 260,
-				OffsetTop = HudManager.BarHeight + 48,
-				OffsetBottom = HudManager.BarHeight + 98,
-				GrowHorizontal = Control.GrowDirection.Both,
-				GrowVertical = Control.GrowDirection.End,
-			};
-			_priorityPrompt.AddThemeStyleboxOverride("panel",
-				UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
+				var line2 = MakeLabel(effect, UITheme.FontSizeSmall - 1,
+					top ? UITheme.TextPrimary : UITheme.TextDim);
+				line2.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+				_stackList.AddChild(line2);
+			}
 
-			var row = new HBoxContainer();
-			row.AddThemeConstantOverride("separation", 12);
-			_priorityPrompt.AddChild(row);
-
-			_priorityLabel = new Label
-			{
-				SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-				VerticalAlignment = VerticalAlignment.Center,
-				AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			};
-			_priorityLabel.AddThemeColorOverride("font_color", UITheme.Gold);
-			row.AddChild(_priorityLabel);
-
-			var passBtn = new Button { Text = "Pass", CustomMinimumSize = new Vector2(90, 34) };
-			UITheme.ApplyButtonStyle(passBtn, isPrimary: true);
-			passBtn.Pressed += () => EmitSignal(SignalName.PriorityPassPressed);
-			row.AddChild(passBtn);
-
-			AddChild(_priorityPrompt);
+			if (i < items.Count - 1)
+				_stackList.AddChild(MakeDivider(UITheme.VioletDim));
 		}
 
-		_priorityLabel.Text = text;
-		_priorityPrompt.Visible = true;
+		_stackPassBtn.Visible = interactive;
+		_stackPanel.Visible = items.Count > 0;
 	}
 
-	public void HidePriorityPrompt()
+	public void HideStackStrip()
 	{
-		if (_priorityPrompt != null)
-			_priorityPrompt.Visible = false;
+		if (_stackPanel != null)
+			_stackPanel.Visible = false;
 	}
+
+	/// <summary>True while the strip is interactive — the Enter-to-end-turn guard
+	/// reads this so Enter can never blind-pass a stack window.</summary>
+	public bool StackWindowInteractive =>
+		_stackPanel != null && _stackPanel.Visible && _stackPassBtn.Visible;
 
 	// ── Deployment mode ──────────────────────────────────────────────────
 
@@ -936,10 +1005,13 @@ public partial class CombatUI : CanvasLayer
 
 	public void RefreshEnemyRoster(List<Unit> enemies)
 	{
+		// Store BEFORE the built-check (2026-07-09): a call arriving before
+		// BuildUI is remembered and replayed at the end of the build instead
+		// of dropping silently.
+		_lastRosterEnemies = enemies;
+
 		if (_enemyRosterBox == null)
 			return;
-
-		_lastRosterEnemies = enemies;
 
 		foreach (Node child in _enemyRosterBox.GetChildren())
 			child.QueueFree();
@@ -995,6 +1067,21 @@ public partial class CombatUI : CanvasLayer
 
 			if (enemy.Stats.IsAlive)
 			{
+				// V3 charge dot (§8): ranged_charge units telegraph their cycle —
+				// hollow ○ = will begin channelling, filled ✸ = releases next
+				// activation. Replaces the implicit every-other-turn counting.
+				if (enemy.BehaviorKey == "ranged_charge")
+				{
+					bool charged = enemy.HasStatus("wizard_charging");
+					var chargeDot = MakeLabel(charged ? "✸" : "○", UITheme.FontSizeSmall,
+						charged ? UITheme.ChargeReady : UITheme.ChargeSpent);
+					chargeDot.TooltipText = charged
+						? "Charged — releases its blast next activation"
+						: "Will begin channelling";
+					chargeDot.CustomMinimumSize = new Vector2(14, 0);
+					row.AddChild(chargeDot);
+				}
+
 				// Ability chips (§6): one icon per ability, tooltip = telegraph.
 				foreach (var ab in enemy.Abilities)
 				{

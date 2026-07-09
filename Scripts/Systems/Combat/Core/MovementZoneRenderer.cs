@@ -33,8 +33,23 @@ public partial class MovementZoneRenderer : Node3D
 
     // ── Runtime ───────────────────────────────────────────────────────────
     private MeshInstance3D _borderMesh;
-    private ImmediateMesh _immediateMesh;
-    private StandardMaterial3D _lineMaterial;
+
+    // Resources created at construction, NOT in _Ready (2026-07-09): the
+    // skip-deploy handoff calls Clear()/ShowPlayerZone() before this node has
+    // entered the tree — round-1 StartPlayerTurn NRE'd at Clear() in every
+    // version of the handoff (the root cause of the "first turn never
+    // auto-selects" defect chain). Resources are tree-independent, so they are
+    // safe to build here; the NODES (_borderMesh, _costLabel) still build in
+    // _Ready and their uses are null-guarded.
+    private ImmediateMesh _immediateMesh = new ImmediateMesh();
+    private StandardMaterial3D _lineMaterial = new StandardMaterial3D
+    {
+        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+        NoDepthTest = true,
+        VertexColorUseAsAlbedo = true,
+        CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+    };
 
     private HashSet<Vector2I> _reachableSet = new();
     private Dictionary<Vector2I, int> _costMap = new();
@@ -59,16 +74,10 @@ public partial class MovementZoneRenderer : Node3D
 
     public override void _Ready()
     {
-        _immediateMesh = new ImmediateMesh();
-        _lineMaterial = new StandardMaterial3D
-        {
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            NoDepthTest = true,
-            VertexColorUseAsAlbedo = true,
-            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-        };
-
+        // _immediateMesh / _lineMaterial are field-initialized (see above) so
+        // pre-tree calls from the skip-deploy handoff can't NRE. Any zone data
+        // written before this point is already in the mesh — the MeshInstance
+        // picks it up the moment it's created here.
         _borderMesh = new MeshInstance3D
         {
             Mesh = _immediateMesh,
@@ -150,6 +159,9 @@ public partial class MovementZoneRenderer : Node3D
             ? "1 AP"
             : $"1 AP  ({stepCost}/{baseSpeed} steps)";
 
+        if (_costLabel == null)
+            return;   // pre-_Ready call — label doesn't exist yet
+
         var tileData = grid.GetTile(axial);
         float tileY = tileData != null ? tileData.Height * 0.5f + 0.8f : 0.8f;
         var worldPos = grid.AxialToWorld(axial);
@@ -163,7 +175,10 @@ public partial class MovementZoneRenderer : Node3D
 
     public void HideCostLabel()
     {
-        _costLabel.Visible = false;
+        // Null-guard: _costLabel is built in _Ready; the handoff can call
+        // through here before this node enters the tree.
+        if (_costLabel != null)
+            _costLabel.Visible = false;
         _lastHoveredTile = new Vector2I(int.MinValue, int.MinValue);
     }
 

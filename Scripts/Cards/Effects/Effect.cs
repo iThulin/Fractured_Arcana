@@ -181,10 +181,19 @@ public abstract class EffectBase : IEffect
 	}
 
 	// ── Shared helper: find the caster's Unit in the game ───────────
+	// 2026-07-09: ActiveCasterUnit is authoritative when set — with per-unit
+	// decks, PlayerA can be ANY party caster (a companion), not the main
+	// character. This mirrors TargetingHelpers.FindCasterUnit; the old
+	// PlayerA→PlayerUnit mapping made every companion spell resolve centered
+	// on the main character. Resolver.ResolveTop pins ActiveCasterUnit from
+	// StackItem.CasterUnit so stack-deferred casts (Reaction responses in
+	// trigger windows) resolve against the right unit too.
 	protected static Unit FindCasterUnit(GameState s, Entity caster)
 	{
 		if (s == null)
 			return null;
+		if (s.ActiveCasterUnit != null && caster == s.PlayerA)
+			return s.ActiveCasterUnit;
 		// PlayerA maps to PlayerUnit
 		if (caster == s.PlayerA)
 			return s.PlayerUnit;

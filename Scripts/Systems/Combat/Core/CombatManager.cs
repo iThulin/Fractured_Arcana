@@ -77,6 +77,10 @@ public partial class CombatManager : Node3D
     private List<Unit> enemyUnits = new();
     private bool _pruneNeeded;
 
+    /// <summary>Latch so the per-frame CheckCombatEnd deferral prints once per
+    /// episode instead of every frame (see CheckCombatEnd).</summary>
+    private bool _combatEndDeferLogged;
+
     // ── Selection state ─────────────────────────────────────────────────────
     private Unit selectedUnit = null;
     private Unit inspectedEnemyUnit = null;
@@ -419,7 +423,88 @@ public partial class CombatManager : Node3D
             if (deckManager != null && deckManager.GetActiveDeck() == unit.DeckData)
                 deckManager.DrawCards(0);
         };
+
+        // Skip-deploy handoff: decks now exist, so Round 1 can actually draw.
+        if (_pendingSkipDeployTurnStart)
+        {
+            _pendingSkipDeployTurnStart = false;
+
+            // Fix v4 (2026-07-09): the round-1 StartPlayerTurn THROWS in the
+            // skip-deploy context (round 2+ runs the same code clean) — the
+            // exception aborted this whole deferred call, killing the select
+            // and roster sync in every prior version. The banner at the end of
+            // StartPlayerTurn never printing was the tell. Caught and printed
+            // to the OUTPUT panel (GD.Print, not PrintErr) so it can't hide in
+            // the Errors tab again; the eager sync runs regardless.
+            try
+            {
+                StartPlayerTurn();
+                deckManager?.DrawCards(0);   // sync the hand UI (same as round transitions)
+            }
+            catch (Exception e)
+            {
+                GD.Print($"[SkipDeploy] StartPlayerTurn THREW (round-1 handoff): {e}");
+                GD.PrintErr($"[SkipDeploy] StartPlayerTurn THREW (round-1 handoff): {e.Message}");
+            }
+
+            // EAGER — select + roster push. CombatUI's pending-replay applies
+            // whatever lands before BuildUI at build time.
+            try
+            {
+                if (playerUnits.Count > 0 && playerUnits[0] != null)
+                    SelectUnit(playerUnits[0]);
+                RefreshEnemyRoster();
+                GD.Print("[SkipDeploy] eager sync OK (selected + roster pushed).");
+            }
+            catch (Exception e)
+            {
+                GD.Print($"[SkipDeploy] eager sync THREW: {e}");
+                GD.PrintErr($"[SkipDeploy] eager sync THREW: {e.Message}");
+            }
+
+            // LATE — re-sync after CombatUI reports built, for surfaces with no
+            // pending path (the attunement panel wires "Unit: none" otherwise).
+            _ = FinishSkipDeployHandoffAsync();
+        }
     }
+
+    /// <summary>Skip-deploy handoff, late stage: wait for CombatUI.BuildUI
+    /// (deferred on its side), then re-push selection + roster so the first
+    /// turn starts fully armed. Fire-and-forget task: exceptions here are
+    /// INVISIBLE unless caught — hence the entry print (distinguishes a stale
+    /// build from a dead task) and the catch-all.</summary>
+    private async System.Threading.Tasks.Task FinishSkipDeployHandoffAsync()
+    {
+        try
+        {
+            GD.Print("[SkipDeploy] handoff waiting for CombatUI build...");
+            int guard = 0;
+            while ((combatUI == null || !combatUI.IsBuilt) && guard++ < 60)
+                await ToSignal(GetTree(), "process_frame");
+            if (guard >= 60)
+                GD.PrintErr("[SkipDeploy] CombatUI never reported built — syncing anyway.");
+
+            // One extra frame: the attunement-section wire is its own deferred
+            // chain that resolves just after BuildUI.
+            await ToSignal(GetTree(), "process_frame");
+
+            if (playerUnits.Count > 0 && playerUnits[0] != null)
+                SelectUnit(playerUnits[0]);
+            RefreshEnemyRoster();
+            RefreshSelectedUnitUI();
+            RefreshPlayerUnitBar();
+            RefreshDeckCounts();
+            GD.Print("[SkipDeploy] handoff UI sync complete — unit selected, roster loaded.");
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[SkipDeploy] handoff sync FAILED: {e}");
+        }
+    }
+
+    /// <summary>Skip-deployment mode: set by SpawnTestUnits, consumed by
+    /// InitializeUnitDecks — the first turn must not start before decks exist.</summary>
+    private bool _pendingSkipDeployTurnStart = false;
 
     private List<Card> BuildCompanionCardList()
     {
@@ -769,7 +854,22 @@ public partial class CombatManager : Node3D
         if (isInDeploymentPhase)
             return;
         if (currentPhase != CombatPhase.PlayerTurn)
+        {
+            // U3 window (2026-07-09): while a trigger priority window is open
+            // during the enemy phase, a click on a friendly unit switches the
+            // responder (selection only — movement/attacks stay phase-gated).
+            if (_priorityWindowOpen)
+            {
+                var clicked = GetUnitUnderMouse();
+                if (clicked != null && clicked.IsPlayerControlled && clicked.Stats.IsAlive)
+                {
+                    GD.Print($"[Priority] responder switched to {clicked.Name}.");
+                    SelectUnit(clicked);
+                    ClearMoveTiles();   // no move affordance in an enemy-phase window
+                }
+            }
             return;
+        }
 
         float dragDist = screenPos.DistanceTo(_dragStartScreenPos);
         bool wasDrag = dragDist > DragThresholdPixels;
@@ -1770,6 +1870,14 @@ public partial class CombatManager : Node3D
     {
         if (currentPhase != CombatPhase.PlayerTurn)
             return;
+        // U3 hardening (2026-07-09): the trigger drain awaits _priorityPassed —
+        // ending the turn mid-window would race the drain loop. Pass first.
+        if (_priorityWindowOpen)
+        {
+            combatUI?.AppendActionLog("Resolve the stack first (Pass).");
+            GD.Print("[Priority] End Turn blocked — window open.");
+            return;
+        }
         EndPlayerTurn();
     }
 
@@ -2377,9 +2485,17 @@ public partial class CombatManager : Node3D
         // once the stack settles.
         if (State != null && TriggersOutstanding)
         {
-            GD.Print("[CombatEnd] deferred — triggers outstanding on the stack.");
+            // Latched (2026-07-09): PruneDeadUnits re-arms _pruneNeeded, so this
+            // check runs per-frame from the first kill on — one line per deferral
+            // episode is evidence; hundreds are noise.
+            if (!_combatEndDeferLogged)
+            {
+                GD.Print("[CombatEnd] deferred — triggers outstanding on the stack.");
+                _combatEndDeferLogged = true;
+            }
             return false;
         }
+        _combatEndDeferLogged = false;
 
         bool allEnemiesDead = true;
         bool allPlayersDead = true;
@@ -3021,7 +3137,13 @@ public partial class CombatManager : Node3D
             if (PlayerSession.DebugMode && PlayerSession.SkipDeployment)
             {
                 AutoPlaceUnits();
-                StartPlayerTurn();
+                // Fix (2026-07-09): do NOT start the turn here. This runs
+                // synchronously inside _Ready, but InitializeUnitDecks is a
+                // CallDeferred that hasn't run yet — Round 1's DrawToFull hit
+                // DeckData == null and drew nothing, so the player's first
+                // playable turn was Round 2 (the "one turn delay" in skip
+                // mode). InitializeUnitDecks starts the turn when decks exist.
+                _pendingSkipDeployTurnStart = true;
             }
             else
             {
@@ -3761,6 +3883,14 @@ public partial class CombatManager : Node3D
         if (loadout == null)
             return;
 
+        // Q1 completion (Phase B): capture the pre-apply baseline so the
+        // parity assertion below can verify every bonus actually landed —
+        // the item system's "mostly broken" era gets a floor Q2 can stand on.
+        int baseMaxHP = unit.Stats.MaxHealth, baseMaxMana = unit.Stats.MaxMana;
+        int baseArmor = unit.Stats.Armor, baseSpeed = unit.Stats.BaseSpeed;
+        int baseAtkDmg = unit.AttackDamage, baseAtkRng = unit.AttackRange;
+        int baseShield = unit.Stats.Shield;
+
         // ── Stat modifiers ────────────────────────────────────────────────
         if (loadout.BonusMaxHP > 0)
         {
@@ -3812,6 +3942,34 @@ public partial class CombatManager : Node3D
                      $"+HP:{loadout.BonusMaxHP} +Mana:{loadout.BonusMaxMana} " +
                      $"+Armor:{loadout.BonusArmor} +Spd:{loadout.BonusBaseSpeed} " +
                      $"Passives:{loadout.Passives.Count}");
+
+        // ── Q1 parity assertion: expected = baseline + loadout, verified stat
+        // by stat at spawn. Fails LOUDLY (PushError) — a silently-dropped item
+        // bonus is exactly the defect class this exists to catch.
+        int expShieldBonus = 0;
+        foreach (var (tag, value) in loadout.Passives)
+            if (tag == ItemPassiveTag.StartCombatWithShield)
+                expShieldBonus += value;
+
+        var mismatches = new List<string>();
+        void Check(string stat, int expected, int actual)
+        { if (expected != actual) mismatches.Add($"{stat}: expected {expected}, got {actual}"); }
+
+        Check("MaxHP", baseMaxHP + Math.Max(0, loadout.BonusMaxHP), unit.Stats.MaxHealth);
+        Check("MaxMana", baseMaxMana + Math.Max(0, loadout.BonusMaxMana), unit.Stats.MaxMana);
+        Check("Armor", baseArmor + Math.Max(0, loadout.BonusArmor), unit.Stats.Armor);
+        Check("Speed", baseSpeed + loadout.BonusBaseSpeed, unit.Stats.BaseSpeed);
+        Check("AtkDmg", baseAtkDmg + loadout.BonusAttackDamage, unit.AttackDamage);
+        Check("AtkRng", baseAtkRng + loadout.BonusAttackRange, unit.AttackRange);
+        Check("Shield", baseShield + expShieldBonus, unit.Stats.Shield);
+        Check("SpellDmg", loadout.BonusSpellDamage, unit.BonusSpellDamage);
+        Check("PassiveCount", loadout.Passives.Count, unit.EquipmentPassives.Count);
+
+        if (mismatches.Count > 0)
+            GD.PushError($"[Q1 Parity] {unit.Name} loadout '{unitId}' MISMATCH — " +
+                         string.Join("; ", mismatches));
+        else if (loadout.Passives.Count > 0 || HasAnyBonus(loadout))
+            GD.Print($"[Q1 Parity] {unit.Name}: loadout '{unitId}' verified item-for-item.");
     }
 
     private static bool HasAnyBonus(ResolvedLoadout l) =>

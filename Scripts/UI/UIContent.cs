@@ -88,4 +88,12 @@ public static class UIContent
 
     private static string Capitalize(string s)
         => string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
+
+    /// <summary>V3 (§9): THE ability log grammar — [Source] AbilityName: effect (state).
+    /// Every ability handler routes through this so eight rosters don't invent
+    /// eight formats. Movement/attack lines keep their terse forms.</summary>
+    public static string FormatLogLine(string source, string ability, string effect, string state = null)
+        => string.IsNullOrEmpty(state)
+            ? $"[{source}] {ability}: {effect}"
+            : $"[{source}] {ability}: {effect} ({state})";
 }

@@ -90,6 +90,9 @@ public partial class Unit : Node3D
     /// Shared defs are stateless; per-unit ability STATE (stacking bonuses etc.)
     /// lives on the unit's own stats, which handlers mutate.</summary>
     public List<UnitAbilityDef> Abilities = new();
+    /// <summary>V3: per-ability use counters (Requiem stacks etc.) — combat-
+    /// transient state for log grammar + §8 state chips. Keyed by ability Key.</summary>
+    public readonly Dictionary<string, int> AbilityUseCounts = new();
     /// <summary>V2: "line"/"elite"/"boss"/"summon" — roster markers + nameplate policy.</summary>
     public string Role = "line";
     /// <summary>V2: owning archmage id ("" = none) — faction tinting.</summary>

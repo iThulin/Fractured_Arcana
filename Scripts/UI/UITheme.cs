@@ -177,6 +177,10 @@ public static class UITheme
     public const float HandCardGapFactor = 1.8f;       // gap = card width ×
     public const float HandMaxArcDegrees = 25f;
 
+    // ── V3 ability state chips (combat_ui_v2 §8/§12) ──
+    public static readonly Color ChargeReady = new Color(1.0f, 0.6f, 0.2f);   // filled — firing this activation
+    public static readonly Color ChargeSpent = new Color(0.5f, 0.5f, 0.55f);  // hollow — charging
+
     // ── V2 roster role markers (combat_ui_v2 §6) ──
     public static readonly Color RoleLine = new Color(0.55f, 0.55f, 0.6f);
     public static readonly Color RoleElite = new Color(0.95f, 0.75f, 0.25f);

@@ -42,6 +42,14 @@ public sealed class StackItem
     public TargetSet Targets;
     public EffectSnapshot Snapshot;
     public Card SourceCard;
+
+    /// <summary>The UNIT that cast this item, captured at cast time (2026-07-09).
+    /// The Entity alone can't identify the caster — PlayerA covers the whole
+    /// party. Resolver.ResolveTop pins GameState.ActiveCasterUnit to this for
+    /// the resolution, so stack-deferred casts (Reaction responses in trigger
+    /// windows) resolve centered on their actual caster. Null for enemy
+    /// triggered abilities and AI casts.</summary>
+    public Unit CasterUnit;
 }
 
 public sealed class GameStack
@@ -109,8 +117,24 @@ public sealed class Resolver
         var item = _stack.Pop();
         s.LastResolvedItem = item;
 
-        foreach (var eff in item.Ability.Effects)
-            eff.Resolve(s, item.Caster, item.Targets, item.Snapshot);
+        // Pin the acting unit for this resolution (2026-07-09): effects and
+        // targeting resolve "the caster" through ActiveCasterUnit. For casts
+        // resolved immediately it is already set (and identical); for casts
+        // that sat on the stack (Reaction responses) it was cleared after the
+        // cast, and without the pin resolution fell back to the MAIN player
+        // character. Restored afterward so nested/queued resolutions are clean.
+        var prevCaster = s.ActiveCasterUnit;
+        if (item.CasterUnit != null && GodotObject.IsInstanceValid(item.CasterUnit))
+            s.ActiveCasterUnit = item.CasterUnit;
+        try
+        {
+            foreach (var eff in item.Ability.Effects)
+                eff.Resolve(s, item.Caster, item.Targets, item.Snapshot);
+        }
+        finally
+        {
+            s.ActiveCasterUnit = prevCaster;
+        }
 
         _bus.Emit("AbilityResolved", item);
 
@@ -162,7 +186,8 @@ public static class Rules
         }
 
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
-        var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap };
+        var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap,
+                                   CasterUnit = s.ActiveCasterUnit };
 
         s.Stack.Push(item);
         s.Priority.OnStackItemAdded();
@@ -245,7 +270,8 @@ public static class Rules
         }
 
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
-        var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap, SourceCard = sourceCard };
+        var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap,
+                                   SourceCard = sourceCard, CasterUnit = s.ActiveCasterUnit };
 
         s.Stack.Push(item);
         s.Priority.OnStackItemAdded();
