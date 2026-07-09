@@ -56,6 +56,12 @@ public static class PlayerSession
     public static bool StartWithSplinters = false;
     public static bool SkipDeployment = false;
 
+    /// <summary>U3 "stop" (units doc §5): when set, every enemy trigger opens an
+    /// interactive priority window even with no Reaction card in hand. The test
+    /// lever for watching the stack pause; normal play leaves this off so
+    /// auto-pass costs zero clicks.</summary>
+    public static bool DebugStopOnTriggers = false;
+
     /// <summary>Set by CombatDebugLauncher: this fight was launched standalone, so
     /// win/lose/forfeit returns to the campus instead of the (absent) overworld
     /// run. Reset on return. Prevents the blank-screen exit from a debug fight.</summary>

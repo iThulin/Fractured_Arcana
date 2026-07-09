@@ -86,6 +86,10 @@ public partial class Unit : Node3D
     public string BehaviorKey = "";
     /// <summary>Composable behavior modifiers (pack/bulwark/charge/scout/immobile) — units doc §4a.</summary>
     public List<string> BehaviorTags = new();
+    /// <summary>Triggered abilities from the UnitDefinition (units doc §5, U3).
+    /// Shared defs are stateless; per-unit ability STATE (stacking bonuses etc.)
+    /// lives on the unit's own stats, which handlers mutate.</summary>
+    public List<UnitAbilityDef> Abilities = new();
     public int AttackRange = 1;   // 1 = melee; >1 = ranged
     public int AttackDamage = 5;   // base damage per attack
 

@@ -24,11 +24,12 @@ public partial class DeckUiManager : Node2D
 	[Export] public PackedScene CardUIPackedScene;
 	[Export] public PackedScene DropSlotScene;
 
-	// ── Bounding box for the hand — adjust these exports per screen ───────
-	[Export] public float HandBoundLeft = 0.25f;  // fraction of screen width
-	[Export] public float HandBoundRight = 0.75f;  // fraction of screen width
-	[Export] public float HandBoundBottom = 0.92f;  // fraction of screen height (leaves room for bottom bar)
-	[Export] public float HandBoundTop = 0.65f;  // fraction of screen height (cards don't go above this)
+	// V1 (combat_ui_v2 §4): the old HandBound* screen-fraction exports are
+	// deleted — they were dead (PositionHandCards never read them) and were
+	// the documented GetVisibleRect trap. Hand geometry now comes from the
+	// UITheme design-space constants (HandReserve*/HandCard*/HandArc*).
+	// Under canvas_items stretch, GetVisibleRect().Size IS design space, so
+	// the arc math below is resolution-independent by construction.
 
 	private DeckManager deckManager;
 	private Control handUIContainer;
@@ -216,31 +217,31 @@ public partial class DeckUiManager : Node2D
 		if (count == 0)
 			return;
 
+		// Design-space size (canvas_items stretch: constant 1920×1080, wider
+		// under aspect=expand on ultrawide — the reserves stay edge-anchored).
 		Vector2 screen = GetViewport().GetVisibleRect().Size;
 
-		float leftReserve = 290f;
-		float rightReserve = 230f;
-		float boxLeft = leftReserve;
-		float boxRight = screen.X - rightReserve;
+		float boxLeft = UITheme.HandReserveLeft;
+		float boxRight = screen.X - UITheme.HandReserveRight;
 		float boxCenterX = boxLeft + (boxRight - boxLeft) * 0.5f;
 
-		float cardW = 200f;
-		float cardH = 300f;
+		float cardW = UITheme.HandCardWidth;
+		float cardH = UITheme.HandCardHeight;
 
 		// Cards flush with screen bottom
-		float cardBotY = screen.Y - cardH * 0.15f;
+		float cardBotY = screen.Y - cardH * UITheme.HandBottomInsetFactor;
 		float cardCenterY = cardBotY - cardH * 0.5f;
 
 		// Very large radius = very flat arc = cards stay low and barely rotate
-		float radius = screen.Y * 1.8f;
+		float radius = screen.Y * UITheme.HandArcRadiusFactor;
 
 		Vector2 arcCenter = new Vector2(boxCenterX, cardCenterY + radius);
 
 		// Wider gap between cards
-		float desiredGap = cardW * 1.8f;
+		float desiredGap = cardW * UITheme.HandCardGapFactor;
 		float halfChord = desiredGap * (count - 1) * 0.5f;
 		float arcSpanRad = 2f * Mathf.Asin(Mathf.Clamp(halfChord / radius, 0f, 1f));
-		float arcSpan = Mathf.Clamp(arcSpanRad, Mathf.DegToRad(1f), Mathf.DegToRad(25f));
+		float arcSpan = Mathf.Clamp(arcSpanRad, Mathf.DegToRad(1f), Mathf.DegToRad(UITheme.HandMaxArcDegrees));
 
 		float angleStart = count > 1 ? -arcSpan / 2f : 0f;
 		float angleStep = count > 1 ? arcSpan / (count - 1) : 0f;

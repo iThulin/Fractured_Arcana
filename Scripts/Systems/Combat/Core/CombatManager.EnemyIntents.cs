@@ -645,6 +645,11 @@ public partial class CombatManager
 
     private async Task RunEnemyTurn()
     {
+        // U3: settle any triggers queued since the last drain (deaths from the
+        // player's turn resolve their stack before enemies act — e.g. terrain
+        // ticks killing a Wake-Keeper's ally at the turn boundary).
+        await DrainTriggerStackAsync();
+
         var snapshot = enemyUnits.ToList();
         foreach (var enemy in snapshot)
         {
@@ -713,6 +718,10 @@ public partial class CombatManager
 
             await ExecuteIntent(enemy);
 
+            // U3: an intent's kills queue triggers — resolve the stack (with
+            // priority windows) before the next enemy acts.
+            await DrainTriggerStackAsync();
+
             if (enemy != null && IsInstanceValid(enemy))
             {
                 enemy.CurrentIntent = null;
@@ -725,6 +734,10 @@ public partial class CombatManager
 
         GD.Print("=== Enemy Turn End ===");
         enemyPhaseRunning = false;
+
+        // U3: settle stragglers BEFORE planning, so units risen by Deathburst
+        // this turn lock visible intents for the coming player turn.
+        await DrainTriggerStackAsync();
 
         // Lock next round's plans NOW so they're visible all player turn.
         PlanAllEnemyIntents();

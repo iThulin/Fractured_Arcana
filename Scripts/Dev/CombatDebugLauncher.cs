@@ -35,6 +35,7 @@ public partial class CombatDebugLauncher : CanvasLayer
     private OptionButton _mapOpt;
     private SpinBox _diffSpin;
     private CheckBox _skipDeployChk;
+    private CheckBox _stopOnTriggersChk;
     private Label _status;
     private readonly Dictionary<string, SpinBox> _enemySpins = new();  // unit id → count (U2: registry-driven)
     private readonly List<(CheckBox chk, Companion comp)> _allyChecks = new();
@@ -190,6 +191,14 @@ public partial class CombatDebugLauncher : CanvasLayer
         _skipDeployChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         form.AddChild(_skipDeployChk);
 
+        _stopOnTriggersChk = new CheckBox
+        {
+            Text = "Stop on enemy triggers (U3 stack windows, even w/o Reactions)",
+            ButtonPressed = PlayerSession.DebugStopOnTriggers,
+        };
+        _stopOnTriggersChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_stopOnTriggersChk);
+
         _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _status.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         _status.AddThemeColorOverride("font_color", UITheme.TextDim);
@@ -256,6 +265,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         PlayerSession.DebugCombat = true;
         PlayerSession.DebugMode = true;
         PlayerSession.SkipDeployment = _skipDeployChk.ButtonPressed;
+        PlayerSession.DebugStopOnTriggers = _stopOnTriggersChk.ButtonPressed;
         SeedDebugDeckIfEmpty((CardSchool)_schoolOpt.GetSelectedId());
         PlayerDeckSave.UseDebugDeck = true;
 

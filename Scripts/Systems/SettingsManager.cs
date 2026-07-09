@@ -58,6 +58,11 @@ public partial class SettingsManager : Node
 
         if (IsEmbedded)
             GD.Print("[Settings] Running in editor — window resize/move skipped.");
+
+        // V1 (combat_ui_v2 §4 / R21): enforce the minimum window size the
+        // 1920×1080 design space is guaranteed readable at. Safe in-editor
+        // (min-size on the embedded window is a no-op).
+        GetWindow().MinSize = new Vector2I(UITheme.MinWindowWidth, UITheme.MinWindowHeight);
     }
 
     private void ForceWindowToPrimaryScreen()

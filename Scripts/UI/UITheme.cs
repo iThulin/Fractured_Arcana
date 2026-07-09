@@ -150,6 +150,33 @@ public static class UITheme
     public static readonly Color TileRangeInterior = new Color(0.70f, 0.48f, 1.00f, 0.70f);
     public static readonly Color TileRangeBorder = new Color(0.55f, 0.38f, 0.90f, 0.25f);
     public static readonly Color TileGlyph = new Color(0.65f, 0.25f, 1.00f, 1f);
+    // ════════════════════════════════════════════════════════════
+    // V1 DESIGN SPACE (combat_ui_v2 §4 ruling, R20/R21)
+    // canvas_items stretch, 1920×1080 base, 1280×720 minimum window.
+    // ALL UI code positions in design space — these constants replace
+    // per-node screen-fraction exports (the DeckUiManager trap).
+    // ════════════════════════════════════════════════════════════
+
+    public const int DesignWidth = 1920;
+    public const int DesignHeight = 1080;
+    public const int MinWindowWidth = 1280;
+    public const int MinWindowHeight = 720;
+
+    // Hand-fan region (design px) — replaces DeckUiManager's dead
+    // screen-fraction exports; the fan centers between these reserves.
+    // SYMMETRIC reserves so the fan centers on the true screen center
+    // (V1 fix: 570/350 read visibly off-center). Bottom-row tiling at 1920:
+    // ticker 12–372 · deck 380–476 · fan 484–1436 (center 960) · grave
+    // 1444–1540 · End Turn 1728–1908.
+    public const float HandReserveLeft = 484f;    // clears bottom-left block + deck button
+    public const float HandReserveRight = 484f;   // symmetric; clears grave + End Turn
+    public const float HandCardWidth = 200f;
+    public const float HandCardHeight = 300f;
+    public const float HandBottomInsetFactor = 0.15f;  // card height below screen bottom
+    public const float HandArcRadiusFactor = 1.8f;     // arc radius = design height ×
+    public const float HandCardGapFactor = 1.8f;       // gap = card width ×
+    public const float HandMaxArcDegrees = 25f;
+
     public static readonly Color TileThreat = new Color(0.85f, 0.25f, 0.20f, 0.45f);
     /// <summary>Locked-but-unrevealed intent footprint — the kind-tier reticle
     /// (you always see WHERE an enemy aims; the reveal tier adds how hard).</summary>

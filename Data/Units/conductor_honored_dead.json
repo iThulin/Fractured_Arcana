@@ -1,0 +1,9 @@
+{
+  "id": "conductor_honored_dead",
+  "threatLabel": "Honored Dead",
+  "maxHealth": 16, "baseSpeed": 2, "armor": 0,
+  "attackRange": 1, "attackDamage": 4, "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": ["pack"],
+  "colorR": 0.36, "colorG": 0.23, "colorB": 0.48
+}

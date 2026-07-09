@@ -59,10 +59,35 @@ public class UnitDefinition
         return false;
     }
 
+    /// <summary>Triggered abilities (units doc §5, U3). Hard cap two per unit —
+    /// the item system's two-effect legibility ceiling applied to enemies.
+    /// Additive schema change: JSONs without the field deserialize empty.</summary>
+    public List<UnitAbilityDef> Abilities = new();
+
     public float ColorR = 1.0f;
     public float ColorG = 0.25f;
     public float ColorB = 0.25f;
 
     /// <summary>Body colour reconstructed from the RGB components.</summary>
     public Color BodyColor => new Color(ColorR, ColorG, ColorB);
+}
+
+/// <summary>One triggered ability on a UnitDefinition (units doc §5): a data KEY
+/// dispatched by the handler map in CombatManager.Triggers, a TRIGGER from the
+/// bounded taxonomy (onSpawn/onDeath/onAllyDeath/onAttack/onStruck/onTurnEnd/
+/// everyNRounds — auras are states, not events, and do not use this), a display
+/// name for stack/log lines, and free-form string params (parsed by the handler).</summary>
+public class UnitAbilityDef
+{
+    public string Key = "";
+    public string Trigger = "";
+    public string Name = "";
+    public string IntelDescription = "";
+    public Dictionary<string, string> Params = new();
+
+    public int GetIntParam(string key, int fallback)
+        => Params.TryGetValue(key, out var v) && int.TryParse(v, out var n) ? n : fallback;
+
+    public string GetStringParam(string key, string fallback)
+        => Params.TryGetValue(key, out var v) && !string.IsNullOrEmpty(v) ? v : fallback;
 }

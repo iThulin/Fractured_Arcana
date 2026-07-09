@@ -45,10 +45,10 @@
 				"name": "long_table_watch",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "conductor_honored_dead"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "conductor_honored_dead"
 					}
 				]
 			},
@@ -56,10 +56,10 @@
 				"name": "table_runners",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "conductor_wake_keeper"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "conductor_honored_dead"
 					}
 				]
 			}
@@ -69,13 +69,13 @@
 				"name": "the_honored_dead",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "conductor_honored_dead"
 					},
 					{
-						"archetype": "Brute"
+						"archetype": "conductor_honored_dead"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "conductor_wake_keeper"
 					}
 				]
 			},
@@ -83,13 +83,13 @@
 				"name": "table_wardens",
 				"enemies": [
 					{
-						"archetype": "Defender"
+						"archetype": "conductor_wake_keeper"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "conductor_wake_keeper"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "conductor_honored_dead"
 					}
 				]
 			},
@@ -97,13 +97,13 @@
 				"name": "final_service",
 				"enemies": [
 					{
-						"archetype": "Brute"
+						"archetype": "conductor_final_service"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "conductor_honored_dead"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "conductor_wake_keeper"
 					}
 				]
 			}
@@ -113,16 +113,16 @@
 				"name": "the_last_round",
 				"enemies": [
 					{
-						"archetype": "Brute"
+						"archetype": "conductor_final_service"
 					},
 					{
-						"archetype": "Brute"
+						"archetype": "conductor_honored_dead"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "conductor_honored_dead"
 					},
 					{
-						"archetype": "Defender"
+						"archetype": "conductor_wake_keeper"
 					}
 				]
 			},
@@ -130,16 +130,16 @@
 				"name": "full_house",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "conductor_wake_keeper"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "conductor_wake_keeper"
 					},
 					{
-						"archetype": "Brute"
+						"archetype": "conductor_honored_dead"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "conductor_honored_dead"
 					}
 				]
 			}
@@ -149,13 +149,13 @@
 				"name": "closing_time",
 				"enemies": [
 					{
-						"archetype": "Brute"
+						"archetype": "conductor_honored_dead"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "conductor_honored_dead"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "conductor_wake_keeper"
 					}
 				]
 			}

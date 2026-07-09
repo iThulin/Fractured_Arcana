@@ -192,6 +192,16 @@ public static class UnitRegistry
         {
             "pack", "bulwark", "charge", "scout", "immobile",
         };
+        // U3: ability audit — keys against the trigger-bus handler map, triggers
+        // against the bounded taxonomy (units doc §5), hard cap two per unit.
+        var knownAbilityKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "requiem", "deathburst",
+        };
+        var knownTriggers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "onSpawn", "onDeath", "onAllyDeath", "onAttack", "onStruck", "onTurnEnd", "everyNRounds",
+        };
         foreach (var def in _cache.Values)
         {
             if (!knownKeys.Contains(def.BehaviorKey))
@@ -207,15 +217,38 @@ public static class UnitRegistry
                     ok = false;
                 }
             }
+            if (def.Abilities.Count > 2)
+            {
+                sb.AppendLine($"  {def.Id}: {def.Abilities.Count} abilities (hard cap 2)");
+                ok = false;
+            }
+            foreach (var ab in def.Abilities)
+            {
+                if (!knownAbilityKeys.Contains(ab.Key))
+                {
+                    sb.AppendLine($"  {def.Id}: UNKNOWN ability Key '{ab.Key}'");
+                    ok = false;
+                }
+                if (!knownTriggers.Contains(ab.Trigger))
+                {
+                    sb.AppendLine($"  {def.Id}: UNKNOWN ability Trigger '{ab.Trigger}'");
+                    ok = false;
+                }
+            }
         }
 
-        // Round-trip a definition WITH tags through the loader's own options.
+        // Round-trip a definition WITH tags + an ability through the loader's options.
         var probe = new UnitDefinition
         {
             Id = "rt_probe", ThreatLabel = "Probe", MaxHealth = 33, BaseSpeed = 2,
             Armor = 1, AttackRange = 2, AttackDamage = 6, PreferredDistance = 2,
             BehaviorKey = "melee_advance",
             BehaviorTags = new List<string> { "pack", "scout" },
+            Abilities = new List<UnitAbilityDef>
+            {
+                new() { Key = "requiem", Trigger = "onAllyDeath", Name = "Requiem",
+                        Params = new Dictionary<string, string> { { "amount", "2" } } },
+            },
             ColorR = 0.1f, ColorG = 0.6f, ColorB = 0.9f,
         };
         var rt = JsonSerializer.Deserialize<UnitDefinition>(
@@ -223,8 +256,11 @@ public static class UnitRegistry
         bool rok = rt != null && rt.Id == probe.Id && rt.MaxHealth == probe.MaxHealth &&
                    rt.AttackDamage == probe.AttackDamage && rt.BehaviorKey == probe.BehaviorKey &&
                    rt.BehaviorTags.Count == 2 && rt.HasTag("pack") && rt.HasTag("scout") &&
+                   rt.Abilities.Count == 1 && rt.Abilities[0].Key == "requiem" &&
+                   rt.Abilities[0].Trigger == "onAllyDeath" &&
+                   rt.Abilities[0].GetIntParam("amount", 0) == 2 &&
                    Mathf.IsEqualApprox(rt.ColorB, probe.ColorB);
-        sb.AppendLine(rok ? "  UnitDefinition round-trip (incl. tags): OK" : "  UnitDefinition round-trip: FAIL");
+        sb.AppendLine(rok ? "  UnitDefinition round-trip (incl. tags + abilities): OK" : "  UnitDefinition round-trip: FAIL");
         ok &= rok;
 
         // U1 JSONs have no behaviorTags key — must deserialize to empty list, not null.

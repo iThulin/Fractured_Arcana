@@ -50,16 +50,22 @@ public partial class CombatUI : CanvasLayer
 	[Signal] public delegate void EndTurnPressedEventHandler();
 	[Signal] public delegate void UnitButtonPressedEventHandler(int unitIndex);
 	[Signal] public delegate void EnemyButtonPressedEventHandler(int unitIndex);
+	/// <summary>U3: the player surrenders priority during an enemy-trigger window.</summary>
+	[Signal] public delegate void PriorityPassPressedEventHandler();
 
-	// ── Layout constants ─────────────────────────────────────────────────
+	// ── Layout constants (design-space px — V1 resolution ruling) ────────
 	private const int LeftPanelWidth = 280;
 	private const int RightPanelWidth = 220;
 	private const int PanelPadding = 10;
 	private const int BarHeight = 10;
 	private const int ManaBarHeight = 8;
-	private const int LogLineCount = 6;
+	private const int LogLineCount = 3;          // V1: 3-line ticker (was 6-line panel section)
+	private const int LogHistoryCap = 200;       // full-history popup buffer
 	private const int UnitButtonWidth = 110;
 	private const int EnemyBarWidth = 90;
+	private const int BottomLeftWidth = 360;     // party chips + ticker block (chips may overflow right — they sit above the deck button's row, so nothing collides until 5+ chips)
+	private const int EndTurnWidth = 180;
+	private const int FlankButtonWidth = 96;     // deck/grave beside the fan
 
 	// ── Left panel nodes ─────────────────────────────────────────────────
 	private PanelContainer _leftPanel;
@@ -100,6 +106,10 @@ public partial class CombatUI : CanvasLayer
 
 	// ── Log ring buffer ──────────────────────────────────────────────────
 	private readonly Queue<string> _logQueue = new Queue<string>();
+	// V1: full history behind the ticker (click to open), capped.
+	private readonly List<string> _logHistory = new List<string>();
+	private PopupPanel _logPopup;
+	private ItemList _logHistoryList;
 
 	// ── Pending state for calls that arrive before BuildUI fires ─────────
 	private List<EnemyIntelEntry> _pendingIntel = null;
@@ -136,14 +146,45 @@ public partial class CombatUI : CanvasLayer
 		CallDeferred(nameof(BuildUI));
 	}
 
+	/// <summary>V1: Enter / keypad-Enter ends the turn (or confirms deployment —
+	/// same morph as the button). The bottom-right corner is a long mouse trip
+	/// every turn; the key is the fix. Suppressed while any popup or the U3
+	/// priority prompt is open so Enter can never blind-pass a stack window.</summary>
+	public override void _UnhandledInput(InputEvent @event)
+	{
+		if (@event is not InputEventKey { Pressed: true, Echo: false } key)
+			return;
+		if (key.Keycode != Key.Enter && key.Keycode != Key.KpEnter)
+			return;
+		if (_endTurnButton == null || !_endTurnButton.Visible || _endTurnButton.Disabled)
+			return;
+		if (_priorityPrompt != null && _priorityPrompt.Visible)
+			return;
+		if ((_deckPopup?.Visible ?? false) || (_gravePopup?.Visible ?? false) || (_logPopup?.Visible ?? false))
+			return;
+
+		if (_endTurnButton.Text == "Confirm Deployment")
+			EmitSignal(SignalName.ConfirmDeploymentPressed);
+		else
+			EmitSignal(SignalName.EndTurnPressed);
+		GetViewport().SetInputAsHandled();
+	}
+
 	private void BuildUI()
 	{
 		if (_built)
 			return;
 		_built = true;
 
+		// V1 layout (combat_ui_v2 §5): banner top-center, End Turn bottom-right,
+		// log ticker + party chips bottom-left, hint + deck/grave flanking the
+		// bottom-center hand, left panel slimmed to unit card + attunement.
+		BuildTopBanner();
 		BuildLeftPanel();
 		BuildRightPanel();
+		BuildBottomLeft();
+		BuildBottomRight();
+		BuildBottomCenter();
 		BuildPopups();
 
 		RedrawLog();
@@ -191,12 +232,7 @@ public partial class CombatUI : CanvasLayer
 		vbox.AddThemeConstantOverride("separation", 6);
 		margin.AddChild(vbox);
 
-		// ── Phase ───────────────────────────────────────────────────
-		_phaseLabel = MakeLabel("", UITheme.FontSizeSmall, UITheme.Violet);
-		_phaseLabel.HorizontalAlignment = HorizontalAlignment.Center;
-		vbox.AddChild(_phaseLabel);
-
-		vbox.AddChild(MakeDivider(UITheme.Violet));
+		// (V1: phase banner moved to top center — BuildTopBanner.)
 
 		// ── Unit name ────────────────────────────────────────────────
 		_unitNameLabel = MakeLabel("—", UITheme.FontSizeLarge, UITheme.TextPrimary);
@@ -240,16 +276,95 @@ public partial class CombatUI : CanvasLayer
 		GD.Print($"[CombatUI] AttunementSection built: {_attunementSection != null}");
 		vbox.AddChild(_attunementSection);
 
-		// ── Action log ───────────────────────────────────────────────
-		vbox.AddChild(MakeDivider());
+		// (V1: log, party chips, deck/grave, and End Turn all moved out — the
+		// left column stops being a junk drawer. §5: log+party → bottom left,
+		// deck/grave → flanking the hand, End Turn → bottom right.)
+	}
 
-		var logHeader = MakeLabel("─ LOG ─", UITheme.FontSizeSmall, UITheme.TextDim);
-		logHeader.HorizontalAlignment = HorizontalAlignment.Center;
-		vbox.AddChild(logHeader);
+	// ════════════════════════════════════════════════════════════════════
+	// V1: top-center banner (phase line; V4 adds the context strip below)
+	// ════════════════════════════════════════════════════════════════════
+
+	private void BuildTopBanner()
+	{
+		var banner = new PanelContainer
+		{
+			Name = "TopBanner",
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0f, AnchorBottom = 0f,
+			OffsetLeft = -260, OffsetRight = 260,
+			OffsetTop = HudManager.BarHeight + 6,
+			GrowHorizontal = Control.GrowDirection.Both,
+			GrowVertical = Control.GrowDirection.End,
+		};
+		banner.AddThemeStyleboxOverride("panel",
+			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Violet));
+		AddChild(banner);
+
+		var margin = new MarginContainer { Name = "Margin" };
+		margin.AddThemeConstantOverride("margin_left", PanelPadding);
+		margin.AddThemeConstantOverride("margin_right", PanelPadding);
+		margin.AddThemeConstantOverride("margin_top", 4);
+		margin.AddThemeConstantOverride("margin_bottom", 4);
+		banner.AddChild(margin);
+
+		var vbox = new VBoxContainer { Name = "VBox" };
+		vbox.AddThemeConstantOverride("separation", 2);
+		margin.AddChild(vbox);
+
+		_phaseLabel = MakeLabel("", UITheme.FontSizeNormal, UITheme.Violet);
+		_phaseLabel.HorizontalAlignment = HorizontalAlignment.Center;
+		vbox.AddChild(_phaseLabel);
+
+		// Hint line rides the banner (V1 fix: its first home above the fan sat
+		// exactly on the card tops — unreadable and mid-hand). V4's context
+		// strip takes this slot later; the hint then moves or dies.
+		_hintLabel = MakeLabel("", UITheme.FontSizeSmall, UITheme.TextDim);
+		_hintLabel.Name = "HintLabel";
+		_hintLabel.HorizontalAlignment = HorizontalAlignment.Center;
+		_hintLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		vbox.AddChild(_hintLabel);
+	}
+
+	// ════════════════════════════════════════════════════════════════════
+	// V1: bottom-left — party chips above a 3-line log ticker (click = full
+	// history popup)
+	// ════════════════════════════════════════════════════════════════════
+
+	private void BuildBottomLeft()
+	{
+		var block = new VBoxContainer
+		{
+			Name = "BottomLeft",
+			AnchorLeft = 0f, AnchorRight = 0f, AnchorTop = 1f, AnchorBottom = 1f,
+			OffsetLeft = 12, OffsetRight = 12 + BottomLeftWidth,
+			OffsetTop = -12, OffsetBottom = -12,
+			GrowHorizontal = Control.GrowDirection.End,
+			GrowVertical = Control.GrowDirection.Begin,
+		};
+		block.AddThemeConstantOverride("separation", 6);
+		AddChild(block);
+
+		// Party chips — slim row above the ticker (§5: ambient awareness).
+		_playerUnitBar = new HBoxContainer { Name = "UnitBar" };
+		_playerUnitBar.AddThemeConstantOverride("separation", 4);
+		block.AddChild(_playerUnitBar);
+
+		// Log ticker — 3 lines, panel-backed, clickable for full history.
+		var logPanel = new PanelContainer { Name = "LogTicker" };
+		logPanel.AddThemeStyleboxOverride("panel",
+			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.VioletDim));
+		block.AddChild(logPanel);
+
+		var logMargin = new MarginContainer { Name = "Margin" };
+		logMargin.AddThemeConstantOverride("margin_left", 8);
+		logMargin.AddThemeConstantOverride("margin_right", 8);
+		logMargin.AddThemeConstantOverride("margin_top", 4);
+		logMargin.AddThemeConstantOverride("margin_bottom", 4);
+		logPanel.AddChild(logMargin);
 
 		_logBox = new VBoxContainer { Name = "LogBox" };
 		_logBox.AddThemeConstantOverride("separation", 2);
-		_logBox.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
+		logMargin.AddChild(_logBox);
 
 		_logLines = new Label[LogLineCount];
 		for (int i = 0; i < LogLineCount; i++)
@@ -257,57 +372,67 @@ public partial class CombatUI : CanvasLayer
 			var lbl = MakeLabel("", UITheme.FontSizeSmall,
 				i == LogLineCount - 1 ? UITheme.TextPrimary : UITheme.TextDim);
 			lbl.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			lbl.CustomMinimumSize = new Vector2(BottomLeftWidth - 20, 0);
 			_logLines[i] = lbl;
 			_logBox.AddChild(lbl);
 		}
-		vbox.AddChild(_logBox);
 
-		// ── Party section ────────────────────────────────────────────
-		vbox.AddChild(MakeDivider());
+		// Click catcher — the whole ticker opens the scrollable history.
+		var clickCatcher = new Button
+		{
+			Name = "LogClickCatcher",
+			Flat = true,
+			Text = "",
+			TooltipText = "Click for full combat log",
+			MouseFilter = Control.MouseFilterEnum.Stop,
+		};
+		clickCatcher.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		clickCatcher.AddThemeStyleboxOverride("normal", new StyleBoxEmpty());
+		clickCatcher.AddThemeStyleboxOverride("hover", new StyleBoxEmpty());
+		clickCatcher.AddThemeStyleboxOverride("pressed", new StyleBoxEmpty());
+		clickCatcher.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
+		clickCatcher.Pressed += OnLogTickerPressed;
+		logPanel.AddChild(clickCatcher);
+	}
 
-		var partyHeader = MakeLabel("─ PARTY ─", UITheme.FontSizeSmall, UITheme.TextDim);
-		partyHeader.HorizontalAlignment = HorizontalAlignment.Center;
-		vbox.AddChild(partyHeader);
+	// ════════════════════════════════════════════════════════════════════
+	// V1: bottom-right — End Turn / Confirm Deployment, standard tactics
+	// corner position
+	// ════════════════════════════════════════════════════════════════════
 
-		_playerUnitBar = new HBoxContainer { Name = "UnitBar" };
-		_playerUnitBar.AddThemeConstantOverride("separation", 4);
-		_playerUnitBar.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-		vbox.AddChild(_playerUnitBar);
+	private void BuildBottomRight()
+	{
+		var block = new VBoxContainer
+		{
+			Name = "BottomRight",
+			AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 1f, AnchorBottom = 1f,
+			OffsetLeft = -12 - EndTurnWidth, OffsetRight = -12,
+			OffsetTop = -12, OffsetBottom = -12,
+			GrowHorizontal = Control.GrowDirection.Begin,
+			GrowVertical = Control.GrowDirection.Begin,
+		};
+		block.AddThemeConstantOverride("separation", 6);
+		AddChild(block);
 
-		// ── Deck / Grave row ─────────────────────────────────────────
-		var deckRow = new HBoxContainer { Name = "DeckRow" };
-		deckRow.AddThemeConstantOverride("separation", 6);
-		vbox.AddChild(deckRow);
-
-		_deckButton = MakeSmallButton("Deck —");
-		_deckButton.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-		_deckButton.Pressed += OnDeckButtonPressed;
-		deckRow.AddChild(_deckButton);
-
-		_graveButton = MakeSmallButton("Grave —");
-		_graveButton.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-		_graveButton.Pressed += OnGraveButtonPressed;
-		deckRow.AddChild(_graveButton);
-
-		// ── Confirm Deployment (hidden by default) ───────────────────
+		// Confirm Deployment (hidden by default; End Turn also morphs as today)
 		_confirmDeploymentButton = new Button
 		{
 			Name = "ConfirmDeployBtn",
 			Text = "Confirm Deployment",
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			Visible = false,
+			CustomMinimumSize = new Vector2(EndTurnWidth, 40),
 		};
 		UITheme.ApplyButtonStyle(_confirmDeploymentButton, isPrimary: true);
 		_confirmDeploymentButton.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
 		_confirmDeploymentButton.Pressed += () => EmitSignal(SignalName.ConfirmDeploymentPressed);
-		vbox.AddChild(_confirmDeploymentButton);
+		block.AddChild(_confirmDeploymentButton);
 
-		// ── End Turn ─────────────────────────────────────────────────
 		_endTurnButton = new Button
 		{
 			Name = "EndTurnButton",
 			Text = "End Turn",
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			TooltipText = "Enter",
+			CustomMinimumSize = new Vector2(EndTurnWidth, 48),
 		};
 		StyleEndTurnButton(_endTurnButton);
 		_endTurnButton.Pressed += () =>
@@ -317,7 +442,43 @@ public partial class CombatUI : CanvasLayer
 			else
 				EmitSignal(SignalName.EndTurnPressed);
 		};
-		vbox.AddChild(_endTurnButton);
+		block.AddChild(_endTurnButton);
+	}
+
+	// ════════════════════════════════════════════════════════════════════
+	// V1: bottom-center — hint line above the fan, deck/grave flanking it
+	// ════════════════════════════════════════════════════════════════════
+
+	private void BuildBottomCenter()
+	{
+		// (V1 fix: the hint line moved into the top banner — above the fan it
+		// sat on the card tops.)
+
+		// Deck / Grave counters flank the fan left/right (§5) — placed just
+		// INSIDE the hand reserves so they never collide with cards, the
+		// bottom-left block, or the End Turn corner (see UITheme tiling note).
+		_deckButton = MakeSmallButton("Deck —");
+		_deckButton.Name = "DeckButton";
+		_deckButton.AnchorLeft = 0f; _deckButton.AnchorRight = 0f;
+		_deckButton.AnchorTop = 1f; _deckButton.AnchorBottom = 1f;
+		_deckButton.OffsetLeft = UITheme.HandReserveLeft - 8 - FlankButtonWidth;
+		_deckButton.OffsetRight = UITheme.HandReserveLeft - 8;
+		_deckButton.OffsetTop = -52; _deckButton.OffsetBottom = -14;
+		_deckButton.GrowVertical = Control.GrowDirection.Begin;
+		_deckButton.Pressed += OnDeckButtonPressed;
+		AddChild(_deckButton);
+
+		_graveButton = MakeSmallButton("Grave —");
+		_graveButton.Name = "GraveButton";
+		_graveButton.AnchorLeft = 1f; _graveButton.AnchorRight = 1f;
+		_graveButton.AnchorTop = 1f; _graveButton.AnchorBottom = 1f;
+		_graveButton.OffsetLeft = -(UITheme.HandReserveRight - 8);
+		_graveButton.OffsetRight = -(UITheme.HandReserveRight - 8 - FlankButtonWidth);
+		_graveButton.OffsetTop = -52; _graveButton.OffsetBottom = -14;
+		_graveButton.GrowHorizontal = Control.GrowDirection.Begin;
+		_graveButton.GrowVertical = Control.GrowDirection.Begin;
+		_graveButton.Pressed += OnGraveButtonPressed;
+		AddChild(_graveButton);
 	}
 
 	// ════════════════════════════════════════════════════════════════════
@@ -383,6 +544,14 @@ public partial class CombatUI : CanvasLayer
 		_graveList.CustomMinimumSize = new Vector2(220, 300);
 		_gravePopup.AddChild(_graveList);
 		AddChild(_gravePopup);
+
+		// V1: full combat-log history (ticker click).
+		_logPopup = new PopupPanel { Name = "LogPopup" };
+		_logHistoryList = new ItemList { Name = "LogHistoryList" };
+		_logHistoryList.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		_logHistoryList.CustomMinimumSize = new Vector2(520, 420);
+		_logPopup.AddChild(_logHistoryList);
+		AddChild(_logPopup);
 	}
 
 	// ════════════════════════════════════════════════════════════════════
@@ -401,6 +570,64 @@ public partial class CombatUI : CanvasLayer
 	{
 		if (_hintLabel != null)
 			_hintLabel.Text = text;
+	}
+
+	// ── U3: priority prompt (INTERIM — combat_ui_v2 §7c's stack panel owns
+	// the real surface; this is the minimal socket so the R3 window is usable) ──
+
+	private PanelContainer _priorityPrompt;
+	private Label _priorityLabel;
+
+	/// <summary>Shows the trigger-response prompt (bottom-center). Created lazily
+	/// on first use; the Pass button emits <see cref="PriorityPassPressed"/>.</summary>
+	public void ShowPriorityPrompt(string text)
+	{
+		if (_priorityPrompt == null)
+		{
+			// V1: top-center, below the banner — the bottom-center slot now
+			// belongs to the hand, and a stack event reads naturally where the
+			// V3 stack strip will live.
+			_priorityPrompt = new PanelContainer
+			{
+				AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0f, AnchorBottom = 0f,
+				OffsetLeft = -260, OffsetRight = 260,
+				OffsetTop = HudManager.BarHeight + 48,
+				OffsetBottom = HudManager.BarHeight + 98,
+				GrowHorizontal = Control.GrowDirection.Both,
+				GrowVertical = Control.GrowDirection.End,
+			};
+			_priorityPrompt.AddThemeStyleboxOverride("panel",
+				UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
+
+			var row = new HBoxContainer();
+			row.AddThemeConstantOverride("separation", 12);
+			_priorityPrompt.AddChild(row);
+
+			_priorityLabel = new Label
+			{
+				SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+				VerticalAlignment = VerticalAlignment.Center,
+				AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			};
+			_priorityLabel.AddThemeColorOverride("font_color", UITheme.Gold);
+			row.AddChild(_priorityLabel);
+
+			var passBtn = new Button { Text = "Pass", CustomMinimumSize = new Vector2(90, 34) };
+			UITheme.ApplyButtonStyle(passBtn, isPrimary: true);
+			passBtn.Pressed += () => EmitSignal(SignalName.PriorityPassPressed);
+			row.AddChild(passBtn);
+
+			AddChild(_priorityPrompt);
+		}
+
+		_priorityLabel.Text = text;
+		_priorityPrompt.Visible = true;
+	}
+
+	public void HidePriorityPrompt()
+	{
+		if (_priorityPrompt != null)
+			_priorityPrompt.Visible = false;
 	}
 
 	// ── Deployment mode ──────────────────────────────────────────────────
@@ -560,17 +787,36 @@ public partial class CombatUI : CanvasLayer
 		_logQueue.Enqueue(message);
 		while (_logQueue.Count > LogLineCount)
 			_logQueue.Dequeue();
+
+		_logHistory.Add(message);
+		if (_logHistory.Count > LogHistoryCap)
+			_logHistory.RemoveAt(0);
+
 		RedrawLog();
 	}
 
 	public void ClearActionLog()
 	{
 		_logQueue.Clear();
+		_logHistory.Clear();
 		if (_logLines == null)
 			return;
 		foreach (var lbl in _logLines)
 			if (lbl != null)
 				lbl.Text = "";
+	}
+
+	/// <summary>V1: ticker click — full scrollable history (§5).</summary>
+	private void OnLogTickerPressed()
+	{
+		if (_logPopup == null)
+			return;
+		_logHistoryList.Clear();
+		foreach (var line in _logHistory)
+			_logHistoryList.AddItem(line);
+		_logPopup.PopupCentered();
+		if (_logHistory.Count > 0)
+			_logHistoryList.EnsureCurrentIsVisible();
 	}
 
 	private void RedrawLog()

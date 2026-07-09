@@ -178,6 +178,7 @@ public partial class CombatManager : Node3D
         {
             combatUI.ConfirmDeploymentPressed += OnConfirmDeploymentPressed;
             combatUI.EndTurnPressed += OnEndTurnPressed;
+            combatUI.PriorityPassPressed += OnPriorityPassPressed;   // U3 trigger window
 
             // Unit bar buttons select the corresponding unit
             combatUI.UnitButtonPressed += OnUnitBarButtonPressed;
@@ -2142,6 +2143,11 @@ public partial class CombatManager : Node3D
         GD.Print(deathMsg);
         combatUI?.AppendActionLog(deathMsg);
 
+        // U3: queue death-driven triggers (onDeath/onAllyDeath) while the corpse
+        // still has a tile — "when the unit dies, before removal" (units doc §5).
+        // Queuing only; the drain runs at the next safe async point.
+        QueueDeathTriggers(unit);
+
         HonoredDeadService.RecordDeath(unit);
         if (unit.IsConstruct)          // ← feed Schematics on any construct loss
             RegisterConstructLoss(unit);
@@ -2226,6 +2232,10 @@ public partial class CombatManager : Node3D
         RefreshEnemyRoster();
     }
 
+    /// <summary>Public action-log access for ability effects (Triggers partial's
+    /// effect classes live outside CombatManager and can't reach combatUI).</summary>
+    public void AppendCombatLog(string message) => combatUI?.AppendActionLog(message);
+
     private void PruneDeadUnits()
     {
         PruneList(playerUnits);
@@ -2290,6 +2300,16 @@ public partial class CombatManager : Node3D
 
     private bool CheckCombatEnd()
     {
+        // U3: defer while death triggers are pending or on the stack — killing
+        // The Final Service last must not declare victory before Deathburst
+        // resolves and the Honored Dead rise. DrainTriggerStackAsync re-checks
+        // once the stack settles.
+        if (State != null && TriggersOutstanding)
+        {
+            GD.Print("[CombatEnd] deferred — triggers outstanding on the stack.");
+            return false;
+        }
+
         bool allEnemiesDead = true;
         bool allPlayersDead = true;
 
@@ -3160,6 +3180,7 @@ public partial class CombatManager : Node3D
             unit.DefinitionId = p.Def.Id;
             unit.BehaviorKey = p.Def.BehaviorKey;
             unit.BehaviorTags = new List<string>(p.Def.BehaviorTags);
+            unit.Abilities = p.Def.Abilities;   // defs are stateless — share, don't copy
             unit.AttackRange = p.AttackRange;
             unit.AttackDamage = p.AttackDamage;
             unit.MaxActionPoints = p.BaseSpeed;
@@ -3346,6 +3367,14 @@ public partial class CombatManager : Node3D
             // can never spawn-then-silently-skip its rider. `unitKind` is kept
             // raw for the display-name derivation, which relies on its casing.
             string kindKey = unitKind.ToLowerInvariant();
+
+            // ── U3: registry-resolved units (Deathburst, Fabricate, future keys) ──
+            // Checked FIRST: if the kind is a UnitRegistry id, spawn a full
+            // definition-driven unit (behavior key, tags, abilities, colours)
+            // exactly like SpawnAndPlaceEnemies does — the summon seam and the
+            // deployment path produce indistinguishable units (units doc §12).
+            if (UnitRegistry.TryResolveId(unitKind, out var registryId))
+                return SpawnRegistryUnit(registryId, tile, teamId);
 
             PackedScene scene = null;
             int hp = 10;
@@ -3585,6 +3614,63 @@ public partial class CombatManager : Node3D
             GD.Print($"[Summon] Spawned {suffix} at {tile.Axial} (HP:{hp} SPD:{speed} ARM:{armor})");
             return unit;
         };
+    }
+
+    /// <summary>U3: spawns a fully definition-driven unit through the summon seam
+    /// (Deathburst, Fabricate, future ability keys). Mirrors SpawnAndPlaceEnemies'
+    /// config exactly — behavior key, tags, abilities, colour, death wiring — so
+    /// risen units fight identically to deployed ones. Base stats only: the
+    /// difficulty mult applies at encounter spawn, not to mid-fight summons
+    /// (they're an ability's output, not an encounter slot — ruling logged).</summary>
+    private Unit SpawnRegistryUnit(string unitId, TileData tile, int teamId)
+    {
+        var def = UnitRegistry.Get(unitId);
+        var unit = DummyUnitScene.Instantiate<Unit>();
+        unit.IsPlayerControlled = (teamId == 0);
+        unit.TeamId = teamId;
+        unit.StartMaxHealth = def.MaxHealth;
+        unit.StartHealth = def.MaxHealth;
+        unit.StartBaseSpeed = def.BaseSpeed;
+        unit.StartMaxMana = 0;
+        unit.StartMana = 0;
+        unit.StartArmor = def.Armor;
+        unit.StartShield = 0;
+
+        AddChild(unit);
+        unit.OnDied += HandleUnitDeath;
+        unit.PlaceOnTile(tile);
+        unit.MaxActionPoints = def.BaseSpeed;
+        unit.CurrentActionPoints = unit.MaxActionPoints;
+
+        int sameKind = 1;
+        foreach (var u in enemyUnits)
+            if (u != null && IsInstanceValid(u) && u.DefinitionId == def.Id)
+                sameKind++;
+        foreach (var u in playerUnits)
+            if (u != null && IsInstanceValid(u) && u.DefinitionId == def.Id)
+                sameKind++;
+
+        unit.Name = sameKind > 1 ? $"{def.ThreatLabel}_{sameKind}" : def.ThreatLabel;
+        unit.DisplayName = unit.Name;
+        unit.DefinitionId = def.Id;
+        unit.BehaviorKey = def.BehaviorKey;
+        unit.BehaviorTags = new List<string>(def.BehaviorTags);
+        unit.Abilities = def.Abilities;
+        unit.AttackRange = def.AttackRange;
+        unit.AttackDamage = def.AttackDamage;
+        unit.SetBodyColor(def.BodyColor);
+        unit.RefreshNameLabel();
+
+        if (teamId == 0)
+            playerUnits.Add(unit);
+        else
+            enemyUnits.Add(unit);
+        State.UnitsInPlay.Add(unit);
+
+        GD.Print($"[Summon] Registry unit {def.Id} rises at {tile.Axial} " +
+                 $"(HP:{def.MaxHealth} SPD:{def.BaseSpeed} ARM:{def.Armor}).");
+        RefreshEnemyRoster();
+        return unit;
     }
 
     /// <summary>
@@ -3870,6 +3956,22 @@ public partial class CombatManager : Node3D
         if (half == null)
         { State.Log("Dropped half was null."); return; }
 
+        // ── U3: priority-window speed gate ────────────────────────────────
+        // While a trigger window is open, only Reaction-speed halves may be
+        // cast (they land ON TOP of the trigger and resolve first). Outside a
+        // window, casting during the enemy phase stays blocked.
+        if (_priorityWindowOpen && half.Speed != PlaySpeed.Reaction)
+        {
+            combatUI?.AppendActionLog("Only Reaction-speed cards can respond.");
+            GD.Print($"[Priority] rejected {half.Name} — not Reaction speed.");
+            return;
+        }
+        if (!_priorityWindowOpen && currentPhase == CombatPhase.EnemyTurn)
+        {
+            GD.Print($"[Cast] rejected {half.Name} — enemy turn, no open window.");
+            return;
+        }
+
         if (selectedUnit != null && !selectedUnit.CanAct())
         {
             GD.Print($"{selectedUnit.Name} is frozen and cannot act!");
@@ -4102,8 +4204,14 @@ public partial class CombatManager : Node3D
                 }
             }
 
-            while (!State.Stack.IsEmpty)
-                State.Resolver.ResolveTop(State);
+            // U3: while a priority window is open, the trigger drain loop owns
+            // resolution — the response stays ON the stack (above the trigger)
+            // and resolves when the player passes. Otherwise drain as before.
+            if (!_priorityWindowOpen)
+            {
+                while (!State.Stack.IsEmpty)
+                    State.Resolver.ResolveTop(State);
+            }
 
             if (State.ActiveEffects != null && selectedUnit != null)
                 foreach (var effect in State.ActiveEffects.ToList())
@@ -4111,6 +4219,12 @@ public partial class CombatManager : Node3D
                         effect.OnSpellResolved(State, selectedUnit, targets);
 
             RefreshEnemyRoster();
+
+            // U3: kills during this cast queued death triggers — resolve their
+            // stack (with priority windows) now. No-op when nothing is queued;
+            // guarded against re-entry while a window-owned drain runs.
+            if (!_priorityWindowOpen)
+                KickTriggerDrain();
 
             if (deckManager != null && cardUi.CardInstance != null)
             {
