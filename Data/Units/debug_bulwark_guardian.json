@@ -1,0 +1,9 @@
+{
+  "id": "debug_bulwark_guardian",
+  "threatLabel": "Bulwark Guardian (dbg)",
+  "maxHealth": 26, "baseSpeed": 1, "armor": 4,
+  "attackRange": 1, "attackDamage": 4, "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": ["bulwark"],
+  "colorR": 0.35, "colorG": 0.35, "colorB": 0.75
+}

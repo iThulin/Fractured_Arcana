@@ -48,6 +48,43 @@ using System.Threading.Tasks;
 //                   before, so decoys now bait LOCKED attacks that
 //                   keep swinging at the decoy's tile.
 //
+//                 U2 — BEHAVIOR DISPATCH + TAGS (units doc §4/4a):
+//                 - PlanIntent dispatches on Unit.BehaviorKey via a
+//                   string → handler map (the EnemyArchetype enum is
+//                   deleted). Unknown keys warn once, fall back to
+//                   melee_advance. New key: melee_hunt_wounded (the
+//                   doc's 'stalker') — targets the lowest-current-HP
+//                   player unit instead of the nearest.
+//                 - BehaviorTags compose around the base routine:
+//                     pack    — +1 dmg while adjacent to a living
+//                               pack ally, checked at STRIKE time
+//                               (splitting the pack before execution
+//                               denies the bonus — same counterplay
+//                               grammar as tile-locking); movement
+//                               steps prefer pack-adjacent tiles on
+//                               distance ties.
+//                     bulwark — will not move while an adjacent ally
+//                               is below half HP (plants; still
+//                               strikes if its mark is in reach).
+//                     charge  — melee sprint: takes steps until
+//                               adjacent or AP runs out (legacy
+//                               routines step once per turn); +1 dmg
+//                               when it moved and arrived.
+//                     scout   — re-aims at plan time to a target
+//                               outside radius 2 when 2+ player units
+//                               crowd within 2 ("breaks off");
+//                               movement steps prefer flanking tiles
+//                               (adjacent to the mark, not adjacent
+//                               to other player units) on ties.
+//                     immobile— never moves (turrets, rooted growths).
+//                 - Telegraph honesty: EnemyIntent.Value is the
+//                   plan-time ESTIMATE (base + tag bonuses as the
+//                   board stood at planning); EnemyIntent.BaseValue
+//                   is the untagged base, and execution recomputes
+//                   tag bonuses against the board the player left.
+//                   Untagged units: BaseValue == Value, identical to
+//                   pre-U2 behaviour by construction.
+//
 // Layer:          System (combat AI)
 // Collaborators:  CombatManager.cs (main partial: enemy/player unit
 //                 lists, movement helpers, UI refresh, FindNearest-
@@ -84,8 +121,12 @@ public class EnemyIntent
     public Vector2I? TargetTile;
     /// <summary>Tiles painted as threatened when revealed.</summary>
     public List<Vector2I> ThreatTiles = new();
-    /// <summary>Damage / armor value shown when revealed.</summary>
+    /// <summary>Damage / armor value shown when revealed — the plan-time telegraph,
+    /// including behavior-tag bonuses as estimated at planning.</summary>
     public int Value;
+    /// <summary>Untagged base value. Execution recomputes tag bonuses from this
+    /// against the board as the player left it (U2). Equals Value for untagged units.</summary>
+    public int BaseValue;
     /// <summary>Full details visible (value + threat tiles). Kind glyph shows regardless when ShowIntentKindByDefault.</summary>
     public bool Revealed;
 }
@@ -120,6 +161,12 @@ public partial class CombatManager
 
     private readonly HashSet<Vector2I> _paintedThreatTiles = new();
 
+    /// <summary>Floating reticle glyphs over threatened tiles, keyed by coord.
+    /// Markers, not tints — the threat TINT layers under the move-zone overlay
+    /// and disappears whenever the locked tile is inside the player's movement
+    /// range (which, for shots aimed at player units, is nearly always).</summary>
+    private readonly Dictionary<Vector2I, Label3D> _threatMarkers = new();
+
     // ════════════════════════════════════════════════════════════════════════
     // PLANNING — runs at the end of each enemy phase (and once after
     // deployment), so intents are visible for the entire player turn.
@@ -149,22 +196,34 @@ public partial class CombatManager
         RefreshThreatTiles();
     }
 
+    // ── U2: BehaviorKey → planner map. The catalog here must stay in sync with
+    // UnitRegistry.AssertParityAndRoundTrip's knownKeys oracle. Adding a roster
+    // key (units doc §13, U3+) = one entry here + one handler method.
+    private Dictionary<string, Func<Unit, EnemyIntent>> _behaviorPlanners;
+    private readonly HashSet<string> _warnedBehaviorKeys = new();
+
     private EnemyIntent PlanIntent(Unit enemy)
     {
-        switch (enemy.EnemyArchetype)
+        _behaviorPlanners ??= new Dictionary<string, Func<Unit, EnemyIntent>>(StringComparer.OrdinalIgnoreCase)
         {
-            case EnemyArchetype.Brute:
-                return PlanBrute(enemy);
-            case EnemyArchetype.Defender:
-                return PlanDefender(enemy);
-            case EnemyArchetype.Ranger:
-                return PlanRanger(enemy);
-            case EnemyArchetype.Wizard:
-                return PlanWizard(enemy);
-            case EnemyArchetype.Soldier:
-            default:
-                return PlanSoldier(enemy);
+            { "melee_advance",           PlanSoldier },
+            { "melee_target_highest_hp", PlanBrute },
+            { "hold_until_near",         PlanDefender },
+            { "ranged_kite",             PlanRanger },
+            { "ranged_charge",           PlanWizard },
+            { "melee_hunt_wounded",      PlanStalker },   // units doc §4 'stalker'
+        };
+
+        if (!_behaviorPlanners.TryGetValue(enemy.BehaviorKey ?? "", out var planner))
+        {
+            // Fail loudly once per unknown key, then run the safest routine.
+            // The registry assertion catches authored typos before they get here.
+            if (_warnedBehaviorKeys.Add(enemy.BehaviorKey ?? ""))
+                GD.PrintErr($"[EnemyAI] Unknown BehaviorKey '{enemy.BehaviorKey}' on {enemy.Name} — falling back to melee_advance.");
+            planner = PlanSoldier;
         }
+
+        return ApplyPlanTags(enemy, planner(enemy));
     }
 
     private EnemyIntent PlanSoldier(Unit enemy)
@@ -174,14 +233,157 @@ public partial class CombatManager
             return null;
 
         var tile = target.CurrentTile.Axial;
+        int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5;
         return new EnemyIntent
         {
             Kind = IntentKind.Attack,
             TargetUnit = target,
             TargetTile = tile,
             ThreatTiles = { tile },
-            Value = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5
+            Value = dmg,
+            BaseValue = dmg
         };
+    }
+
+    /// <summary>The units doc's 'stalker' routine: ignores nearest-target selection
+    /// and hunts the lowest-current-HP player unit — assassin pressure that punishes
+    /// leaving a wounded unit exposed. Spell-level target overrides (RedirectAll,
+    /// decoy auras) still apply — they rewrite reality, not preference. Taunting
+    /// does NOT divert it: taunt is a nearest-selection nudge, and ignoring
+    /// nearest-selection is this key's entire identity (ruling logged here).</summary>
+    private EnemyIntent PlanStalker(Unit enemy)
+    {
+        var target = FindTargetOverride(enemy);
+
+        if (target == null)
+        {
+            int worstHp = int.MaxValue;
+            foreach (var player in playerUnits)
+            {
+                if (player == null || !IsInstanceValid(player))
+                    continue;
+                if (!player.Stats.IsAlive || player.CurrentTile == null)
+                    continue;
+                if (player.HasStatus("untargetable"))
+                    continue;
+                if (player.Stats.Health < worstHp)
+                { worstHp = player.Stats.Health; target = player; }
+            }
+        }
+
+        if (target?.CurrentTile == null)
+            return null;
+
+        // Targeting evidence for console transcripts (Session F finding: absolute
+        // current HP is the metric — a full-HP 14/14 companion outranks a wounded
+        // 15/20 wizard. Doc-specified; kill-proximity, not wound-seeking.)
+        GD.Print($"[Stalker] {enemy.Name} marks {target.Name} " +
+                 $"({target.Stats.Health}/{target.Stats.MaxHealth} HP — lowest current).");
+
+        var tile = target.CurrentTile.Axial;
+        int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5;
+        return new EnemyIntent
+        {
+            Kind = IntentKind.Attack,
+            TargetUnit = target,
+            TargetTile = tile,
+            ThreatTiles = { tile },
+            Value = dmg,
+            BaseValue = dmg
+        };
+    }
+
+    // ── U2: plan-time tag pass — retargeting + telegraph estimates ──────────
+
+    /// <summary>Applies behavior-tag effects that belong to PLANNING: the scout
+    /// break-off retarget, and telegraph (Value) estimates for pack/charge.
+    /// Execution recomputes damage bonuses from BaseValue against the real board.</summary>
+    private EnemyIntent ApplyPlanTags(Unit enemy, EnemyIntent intent)
+    {
+        if (intent == null || enemy.BehaviorTags.Count == 0)
+            return intent;
+
+        bool isStrike = intent.Kind is IntentKind.Attack or IntentKind.RangedAttack;
+
+        // scout: when 2+ player units crowd within 2 tiles, break off — re-aim at
+        // the nearest player unit OUTSIDE that radius (the flank target). If every
+        // living target is crowding it, keep the original mark.
+        if (isStrike && enemy.HasBehaviorTag("scout") && enemy.CurrentTile != null)
+        {
+            int crowding = 0;
+            foreach (var player in playerUnits)
+            {
+                if (player == null || !IsInstanceValid(player) || !player.Stats.IsAlive || player.CurrentTile == null)
+                    continue;
+                if (grid.Distance(enemy.CurrentTile, player.CurrentTile) <= 2)
+                    crowding++;
+            }
+
+            if (crowding >= 2)
+            {
+                Unit flankTarget = null;
+                int bestDist = int.MaxValue;
+                foreach (var player in playerUnits)
+                {
+                    if (player == null || !IsInstanceValid(player) || !player.Stats.IsAlive || player.CurrentTile == null)
+                        continue;
+                    if (player.HasStatus("untargetable"))
+                        continue;
+                    int d = grid.Distance(enemy.CurrentTile, player.CurrentTile);
+                    if (d > 2 && d < bestDist)
+                    { bestDist = d; flankTarget = player; }
+                }
+
+                if (flankTarget != null)
+                {
+                    var flankTile = flankTarget.CurrentTile.Axial;
+                    intent.TargetUnit = flankTarget;
+                    intent.TargetTile = flankTile;
+                    intent.ThreatTiles.Clear();
+                    intent.ThreatTiles.Add(flankTile);
+                }
+            }
+        }
+
+        // Telegraph estimates for damage tags (melee strikes only). These are
+        // estimates by design — the locked VALUE the player reads; execution
+        // recomputes against the board they rearranged.
+        if (intent.Kind == IntentKind.Attack && enemy.CurrentTile != null)
+        {
+            int estimate = intent.BaseValue;
+
+            if (enemy.HasBehaviorTag("pack") &&
+                CountAdjacentPackAllies(enemy, enemy.CurrentTile.Axial) > 0)
+                estimate += 1;
+
+            if (enemy.HasBehaviorTag("charge") && intent.TargetTile.HasValue)
+            {
+                int dist = grid.Distance(enemy.CurrentTile.Axial, intent.TargetTile.Value);
+                if (dist > 1 && dist - 1 <= enemy.MaxActionPoints)
+                    estimate += 1;
+            }
+
+            intent.Value = estimate;
+        }
+
+        return intent;
+    }
+
+    /// <summary>Living pack-tagged allies adjacent to <paramref name="coord"/>
+    /// (excluding the unit itself). Both the damage check and the movement
+    /// preference read this.</summary>
+    private int CountAdjacentPackAllies(Unit unit, Vector2I coord)
+    {
+        int count = 0;
+        foreach (var neighbor in grid.GetNeighbors(coord))
+        {
+            var occ = grid.GetTile(neighbor)?.Occupant;
+            if (occ == null || occ == unit)
+                continue;
+            if (occ.TeamId == unit.TeamId && occ.Stats.IsAlive && occ.HasBehaviorTag("pack"))
+                count++;
+        }
+        return count;
     }
 
     private EnemyIntent PlanBrute(Unit enemy)
@@ -201,13 +403,15 @@ public partial class CombatManager
             return null;
 
         var tile = target.CurrentTile.Axial;
+        int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5;
         return new EnemyIntent
         {
             Kind = IntentKind.Attack,
             TargetUnit = target,
             TargetTile = tile,
             ThreatTiles = { tile },
-            Value = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5
+            Value = dmg,
+            BaseValue = dmg
         };
     }
 
@@ -219,13 +423,15 @@ public partial class CombatManager
             var occ = grid.GetTile(neighbor)?.Occupant;
             if (occ != null && occ.TeamId != enemy.TeamId && occ.Stats.IsAlive)
             {
+                int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5;
                 return new EnemyIntent
                 {
                     Kind = IntentKind.Attack,
                     TargetUnit = occ,
                     TargetTile = neighbor,
                     ThreatTiles = { neighbor },
-                    Value = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5
+                    Value = dmg,
+                    BaseValue = dmg
                 };
             }
         }
@@ -235,7 +441,8 @@ public partial class CombatManager
         {
             Kind = IntentKind.Guard,
             TargetUnit = enemy,
-            Value = GuardArmorValue
+            Value = GuardArmorValue,
+            BaseValue = GuardArmorValue
         };
     }
 
@@ -246,13 +453,15 @@ public partial class CombatManager
             return null;
 
         var tile = target.CurrentTile.Axial;
+        int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 4;
         return new EnemyIntent
         {
             Kind = IntentKind.RangedAttack,
             TargetUnit = target,
             TargetTile = tile,
             ThreatTiles = { tile },
-            Value = enemy.AttackDamage > 0 ? enemy.AttackDamage : 4
+            Value = dmg,
+            BaseValue = dmg
         };
     }
 
@@ -263,12 +472,14 @@ public partial class CombatManager
         if (enemy.HasStatus("wizard_charging") && enemy.ChannelTile.HasValue)
         {
             var locked = enemy.ChannelTile.Value;
+            int rdmg = (enemy.AttackDamage > 0 ? enemy.AttackDamage : 4) + ChannelReleaseBonus;
             return new EnemyIntent
             {
                 Kind = IntentKind.Release,
                 TargetTile = locked,
                 ThreatTiles = { locked },
-                Value = (enemy.AttackDamage > 0 ? enemy.AttackDamage : 4) + ChannelReleaseBonus
+                Value = rdmg,
+                BaseValue = rdmg
             };
         }
 
@@ -277,13 +488,15 @@ public partial class CombatManager
             return null;
 
         var tile = target.CurrentTile.Axial;
+        int dmg = (enemy.AttackDamage > 0 ? enemy.AttackDamage : 4) + ChannelReleaseBonus;
         return new EnemyIntent
         {
             Kind = IntentKind.Channel,
             TargetUnit = target,
             TargetTile = tile,
             ThreatTiles = { tile },
-            Value = (enemy.AttackDamage > 0 ? enemy.AttackDamage : 4) + ChannelReleaseBonus
+            Value = dmg,
+            BaseValue = dmg
         };
     }
 
@@ -356,9 +569,13 @@ public partial class CombatManager
     }
 
     /// <summary>
-    /// Repaints threat highlights from the union of all REVEALED intents.
-    /// Public so death handling and player-side effects can refresh after
-    /// changing the board (call from HandleUnitDeath).
+    /// Repaints threat highlights from all locked intents. Two tiers (info-tier
+    /// change 2026-07-08, from Session F confusion — a locked shot whiffing on a
+    /// tile the player never knew was threatened): when ShowIntentKindByDefault,
+    /// EVERY locked tile paints as a dim reticle (the kind tier now includes
+    /// WHERE); revealed intents paint hot. Hidden-intent mode (kind flag off)
+    /// keeps the old reveal-only behaviour. Public so death handling and
+    /// player-side effects can refresh after changing the board.
     /// </summary>
     public void RefreshThreatTiles()
     {
@@ -366,23 +583,59 @@ public partial class CombatManager
             grid?.GetTileView(coord)?.SetThreatHighlight(false);
         _paintedThreatTiles.Clear();
 
+        foreach (var marker in _threatMarkers.Values)
+        {
+            if (marker != null && IsInstanceValid(marker))
+                marker.QueueFree();
+        }
+        _threatMarkers.Clear();
+
+        // Merge first (OR on revealed) so an unrevealed intent sharing a tile
+        // with a revealed one can never downgrade the hot tint to dim.
+        var tiles = new Dictionary<Vector2I, bool>();
         foreach (var enemy in enemyUnits)
         {
             if (!IsValidActor(enemy) || enemy.CurrentIntent == null)
                 continue;
-            if (!enemy.CurrentIntent.Revealed)
+
+            bool revealed = enemy.CurrentIntent.Revealed;
+            if (!revealed && !ShowIntentKindByDefault)
                 continue;
 
             foreach (var coord in enemy.CurrentIntent.ThreatTiles)
+                tiles[coord] = tiles.TryGetValue(coord, out bool r) ? (r || revealed) : revealed;
+        }
+
+        foreach (var kvp in tiles)
+        {
+            var view = grid?.GetTileView(kvp.Key);
+            if (view != null)
             {
-                var view = grid?.GetTileView(coord);
-                if (view != null)
-                {
-                    view.SetThreatHighlight(true);
-                    _paintedThreatTiles.Add(coord);
-                }
+                view.SetThreatHighlight(true, kvp.Value);
+                SpawnThreatMarker(view, kvp.Key, kvp.Value);
+                _paintedThreatTiles.Add(kvp.Key);
             }
         }
+    }
+
+    /// <summary>Creates the floating reticle over a threatened tile. Label3D via
+    /// the proven glyph-label pattern (billboard, NoDepthTest, CallDeferred
+    /// add_child per README §8) — sits above terrain, grass, and every tile-tint
+    /// overlay, so it stays readable inside the player's move zone.</summary>
+    private void SpawnThreatMarker(HexTile view, Vector2I coord, bool revealed)
+    {
+        var marker = new Label3D
+        {
+            Name = "ThreatReticle",
+            Text = "◆",   // proven-render glyph set (see IntentGlyph note)
+            FontSize = 44,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            NoDepthTest = true,
+            Position = new Vector3(0f, 0.85f, 0f),
+            Modulate = revealed ? UITheme.TileThreatReticle : UITheme.TileThreatReticleDim,
+        };
+        _threatMarkers[coord] = marker;
+        view.CallDeferred("add_child", marker);
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -483,8 +736,9 @@ public partial class CombatManager
         if (intent == null)
         {
             // No plan (spawned mid-round, or planning found no target) —
-            // fall back to one fresh soldier-style decision, unannounced.
-            intent = PlanSoldier(enemy);
+            // fall back to one fresh decision, unannounced. U2: routed through
+            // PlanIntent so the unit's own key/tags apply, not a soldier default.
+            intent = PlanIntent(enemy);
             if (intent == null)
                 return;
         }
@@ -517,17 +771,180 @@ public partial class CombatManager
             return;
 
         var tile = intent.TargetTile.Value;
+        bool chargedIn = false;
 
         if (grid.Distance(enemy.CurrentTile.Axial, tile) > 1)
-            await MoveTowardTile(enemy, tile);
+        {
+            if (!MayMove(enemy, out string plantReason))
+            {
+                if (plantReason != null)
+                {
+                    GD.Print(plantReason);
+                    combatUI?.AppendActionLog(plantReason);
+                }
+            }
+            else if (enemy.HasBehaviorTag("charge"))
+            {
+                // charge: sprint the full AP budget toward the mark instead of the
+                // legacy single step; the +1 lands only if it MOVED and ARRIVED.
+                bool moved = await SprintTowardTile(enemy, tile);
+                chargedIn = moved && IsValidActor(enemy) &&
+                            grid.Distance(enemy.CurrentTile.Axial, tile) <= 1;
+            }
+            else
+            {
+                await MoveTowardTile(enemy, tile);
+            }
+        }
 
         if (!IsValidActor(enemy))
             return;
 
         if (grid.Distance(enemy.CurrentTile.Axial, tile) <= 1)
-            await StrikeTile(enemy, tile, intent.Value, ranged: false);
+        {
+            // U2: recompute tag bonuses against the board as the player left it.
+            // Tag-evidence lines are GD.Print-mirrored: console transcripts are the
+            // verification medium (u2_verification.md), and AppendActionLog alone
+            // is invisible there — caught in Session B, 2026-07-08.
+            int dmg = intent.BaseValue;
+            if (enemy.HasBehaviorTag("pack") &&
+                CountAdjacentPackAllies(enemy, enemy.CurrentTile.Axial) > 0)
+            {
+                dmg += 1;
+                string packMsg = $"{enemy.Name} strikes with the pack (+1).";
+                GD.Print(packMsg);
+                combatUI?.AppendActionLog(packMsg);
+            }
+            if (chargedIn)
+            {
+                dmg += 1;
+                string chargeMsg = $"{enemy.Name} charges in (+1)!";
+                GD.Print(chargeMsg);
+                combatUI?.AppendActionLog(chargeMsg);
+            }
+            await StrikeTile(enemy, tile, dmg, ranged: false);
+        }
         else
             combatUI?.AppendActionLog($"{enemy.Name} can't reach its mark.");
+    }
+
+    // ── U2: movement gates + tag-aware stepping ─────────────────────────────
+
+    /// <summary>Movement gate for immobile/bulwark. False = the unit stays put
+    /// this activation; <paramref name="reason"/> carries the log line (null for
+    /// immobile — a turret not moving is not news).</summary>
+    private bool MayMove(Unit enemy, out string reason)
+    {
+        reason = null;
+
+        if (enemy.HasBehaviorTag("immobile"))
+            return false;
+
+        // bulwark: plants while an adjacent ally is below half HP.
+        if (enemy.HasBehaviorTag("bulwark") && enemy.CurrentTile != null)
+        {
+            foreach (var neighbor in grid.GetNeighbors(enemy.CurrentTile.Axial))
+            {
+                var occ = grid.GetTile(neighbor)?.Occupant;
+                if (occ == null || occ == enemy || occ.TeamId != enemy.TeamId)
+                    continue;
+                if (occ.Stats.IsAlive && occ.Stats.Health * 2 < occ.Stats.MaxHealth)
+                {
+                    reason = $"{enemy.Name} plants itself in front of {occ.Name}.";
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>One pathfinder step toward <paramref name="goal"/>, with pack/scout
+    /// destination preference applied on DISTANCE TIES only — a tag never trades
+    /// progress toward the mark for formation (units doc §4a: "when movement
+    /// options tie").</summary>
+    private TileData ChooseStepTowardTile(Unit enemy, Vector2I goal)
+    {
+        var baseline = grid.GetFirstStepToward(enemy, goal);
+        if (baseline == null)
+            return null;
+        if (!enemy.HasBehaviorTag("pack") && !enemy.HasBehaviorTag("scout"))
+            return baseline;
+
+        int baselineDist = grid.Distance(baseline.Axial, goal);
+        var best = baseline;
+        int bestScore = StepPreferenceScore(enemy, baseline.Axial, goal);
+
+        foreach (var n in grid.GetNeighbors(enemy.CurrentTile.Axial))
+        {
+            var tile = grid.GetTile(n);
+            if (tile == null || !tile.CanEnter(enemy))
+                continue;
+            if (grid.Distance(n, goal) != baselineDist)
+                continue; // ties only
+            int score = StepPreferenceScore(enemy, n, goal);
+            if (score > bestScore)
+            { bestScore = score; best = tile; }
+        }
+
+        return best;
+    }
+
+    private int StepPreferenceScore(Unit enemy, Vector2I coord, Vector2I goal)
+    {
+        int score = 0;
+
+        if (enemy.HasBehaviorTag("pack"))
+            score += 2 * CountAdjacentPackAllies(enemy, coord);
+
+        if (enemy.HasBehaviorTag("scout") && grid.Distance(coord, goal) <= 1)
+        {
+            // Flanking destination: adjacent to the mark, NOT adjacent to any
+            // OTHER player unit (the mark's occupant doesn't count against it).
+            bool exposed = false;
+            foreach (var n in grid.GetNeighbors(coord))
+            {
+                if (n == goal)
+                    continue;
+                var occ = grid.GetTile(n)?.Occupant;
+                if (occ != null && occ.TeamId != enemy.TeamId && occ.Stats.IsAlive)
+                { exposed = true; break; }
+            }
+            if (!exposed)
+                score += 3;
+        }
+
+        return score;
+    }
+
+    /// <summary>charge: step toward the goal until adjacent, out of AP, or blocked.
+    /// Each step re-pathfinds (honors terrain costs, rooted/slowed via TryMoveTo's
+    /// own gates). Returns whether the unit moved at all.</summary>
+    private async Task<bool> SprintTowardTile(Unit enemy, Vector2I goal)
+    {
+        bool moved = false;
+        const int SafetyCap = 12;
+
+        for (int i = 0; i < SafetyCap; i++)
+        {
+            if (!IsValidActor(enemy) || grid.Distance(enemy.CurrentTile.Axial, goal) <= 1)
+                break;
+
+            var next = ChooseStepTowardTile(enemy, goal);
+            if (next == null || !enemy.TryMoveTo(grid, next))
+                break;
+
+            moved = true;
+            await ToSignal(GetTree().CreateTimer(0.15f), "timeout");
+        }
+
+        if (moved)
+        {
+            string sprintMsg = $"{enemy.Name} charges toward its mark!";
+            GD.Print(sprintMsg);
+            combatUI?.AppendActionLog(sprintMsg);
+        }
+        return moved;
     }
 
     // ── Ranged: kite relative to the remembered unit, shoot the LOCKED TILE ──
@@ -541,7 +958,8 @@ public partial class CombatManager
 
         // Reposition relative to the living target if it still exists —
         // orientation only; the shot stays locked to the tile.
-        if (IsValidActor(intent.TargetUnit))
+        // U2: immobile turrets and planted bulwarks skip the kiting move.
+        if (IsValidActor(intent.TargetUnit) && MayMove(enemy, out string kiteGate))
         {
             int dist = grid.Distance(enemy.CurrentTile, intent.TargetUnit.CurrentTile);
             int preferred = enemy.AttackRange;
@@ -580,7 +998,8 @@ public partial class CombatManager
             return;
 
         // Reposition relative to the remembered target (old wizard behaviour).
-        if (IsValidActor(intent.TargetUnit))
+        // U2: immobile/planted-bulwark units channel from where they stand.
+        if (IsValidActor(intent.TargetUnit) && MayMove(enemy, out string channelGate))
         {
             int dist = grid.Distance(enemy.CurrentTile, intent.TargetUnit.CurrentTile);
             int preferred = enemy.AttackRange;
@@ -647,6 +1066,21 @@ public partial class CombatManager
     {
         if (!IsValidActor(enemy))
             return;
+
+        // U2: immobile/planted-bulwark units brace in place, skipping the
+        // reposition — the plant IS the guard.
+        if (!MayMove(enemy, out string guardGate))
+        {
+            if (guardGate != null)
+            {
+                GD.Print(guardGate);
+                combatUI?.AppendActionLog(guardGate);
+            }
+            enemy.Stats.Armor += intent.Value;
+            enemy.RefreshHealthBar();
+            combatUI?.AppendActionLog($"{enemy.Name} braces (+{intent.Value} armor).");
+            return;
+        }
 
         // Reposition toward the most allies (old defender logic, opportunistic
         // attack removed — Guard does exactly what it telegraphed, nothing else).
@@ -739,13 +1173,14 @@ public partial class CombatManager
         await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
     }
 
-    /// <summary>Move one step toward a coordinate (tile-chase variant of MoveToward).</summary>
+    /// <summary>Move one step toward a coordinate (tile-chase variant of MoveToward).
+    /// U2: routes through ChooseStepTowardTile so pack/scout tile preference applies.</summary>
     private async Task MoveTowardTile(Unit enemy, Vector2I goal)
     {
         if (!IsValidActor(enemy))
             return;
 
-        var nextStep = grid.GetFirstStepToward(enemy, goal);
+        var nextStep = ChooseStepTowardTile(enemy, goal);
         if (nextStep == null)
             return;
 

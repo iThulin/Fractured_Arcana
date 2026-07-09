@@ -196,7 +196,7 @@ public sealed class PeekIntentEffect : EffectBase
 				? string.Join(", ", unit.Stats.StatusEffects.Keys)
 				: "none";
 			s.Log($"  {unit.Name}: {unit.Stats.Health}/{unit.Stats.MaxHealth}HP " +
-				  $"| Archetype={unit.EnemyArchetype} | Status=[{statuses}]");
+				  $"| Unit={unit.DefinitionId} | Status=[{statuses}]");
 		}
 	}
 }

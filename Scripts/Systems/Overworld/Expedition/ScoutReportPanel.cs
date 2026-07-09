@@ -12,7 +12,7 @@ using System.Collections.Generic;
 //                 to the fight. Two buttons: Engage / Retreat.
 // Layer:          UI
 // Collaborators:  EncounterDefinition.cs (data source),
-//                 EnemyArchetypeData.cs (threat labels/colors),
+//                 UnitRegistry.cs (threat labels/colors),
 //                 UITheme.cs (styling),
 //                 OverworldRunManager.cs (callback owner)
 // See:            README §5a — POI engagement rules
@@ -181,11 +181,14 @@ public partial class ScoutReportPanel : Control
             child.QueueFree();
 
         // Tally by display name so duplicates show "Soldier ×2" etc.
+        // U2: labels/colors come from the unit definition — unique unit names
+        // flow through to scout reports for free (units doc §11).
         var tally = new Dictionary<string, (int count, Color color)>();
         foreach (var slot in encounter.Enemies)
         {
-            string label = EnemyArchetypeData.GetThreatLabel(slot.Archetype);
-            Color color = EnemyArchetypeData.GetBodyColor(slot.Archetype);
+            var def = UnitRegistry.Get(slot.UnitId);
+            string label = def.ThreatLabel;
+            Color color = def.BodyColor;
             if (tally.TryGetValue(label, out var entry))
                 tally[label] = (entry.count + 1, color);
             else

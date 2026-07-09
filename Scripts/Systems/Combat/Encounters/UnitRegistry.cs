@@ -1,28 +1,32 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 // ============================================================
-// UnitRegistry.cs  (U1)
+// UnitRegistry.cs  (U1 · U2)
 //
 // Purpose:        Process-wide loader + registry for UnitDefinitions
 //                 (Data/Units/*.json), mirroring ItemDatabase's idiom.
 //                 The single place combat resolves a unit's stats,
-//                 keyed by id. Also holds the EnemyArchetype -> id alias
-//                 table so the legacy enum (and authored encounter JSON
-//                 that names archetypes) keeps resolving during U1; the
-//                 enum is removed in U2.
+//                 keyed by id. Holds the legacy-name alias table
+//                 ("Soldier" → generic_soldier) so authored encounter
+//                 JSON that still names archetypes keeps resolving.
+//                 U2: the EnemyArchetype enum is deleted; all lookups
+//                 are string-keyed. Resolution order for authored
+//                 tokens: exact unit id → legacy alias → fail loudly
+//                 (units doc §6 step 2).
 // Layer:          Loader
-// Collaborators:  UnitDefinition.cs, EnemyArchetype.cs (facade),
-//                 EncounterPoolLoader.cs (alias resolution),
-//                 CombatManager.cs (spawn).
-// See:            build_order_v3 §4 (U1)
+// Collaborators:  UnitDefinition.cs, EncounterPoolLoader.cs (token
+//                 resolution), CombatManager.cs (spawn),
+//                 CombatDebugLauncher.cs (AllIds roster).
+// See:            build_order_v3 §4 (U2)
 // ============================================================
 
 /// <summary>Loads and caches UnitDefinitions. Lazy load on first access;
 /// robust to missing data (logs, returns a non-null default so combat never
-/// null-refs). Legacy EnemyArchetype resolves through the alias table.</summary>
+/// null-refs). Legacy archetype names resolve through the alias table.</summary>
 public static class UnitRegistry
 {
     private const string UNITS_DIR = "res://Data/Units/";
@@ -34,14 +38,15 @@ public static class UnitRegistry
         PropertyNameCaseInsensitive = true,
     };
 
-    // Legacy enum -> canonical unit id. Alias only; the enum dies in U2.
-    private static readonly Dictionary<EnemyArchetype, string> ArchetypeToId = new()
+    // Legacy archetype name -> canonical unit id. Keeps every existing region
+    // and archmage pool JSON ("archetype": "Soldier") working unmodified.
+    private static readonly Dictionary<string, string> LegacyAliases = new(StringComparer.OrdinalIgnoreCase)
     {
-        { EnemyArchetype.Soldier,  "generic_soldier" },
-        { EnemyArchetype.Brute,    "generic_brute" },
-        { EnemyArchetype.Defender, "generic_defender" },
-        { EnemyArchetype.Ranger,   "generic_ranger" },
-        { EnemyArchetype.Wizard,   "generic_wizard" },
+        { "Soldier",  "generic_soldier" },
+        { "Brute",    "generic_brute" },
+        { "Defender", "generic_defender" },
+        { "Ranger",   "generic_ranger" },
+        { "Wizard",   "generic_wizard" },
     };
 
     private static readonly Dictionary<string, UnitDefinition> _cache = new();
@@ -105,40 +110,47 @@ public static class UnitRegistry
         return _fallback;
     }
 
-    public static string IdForArchetype(EnemyArchetype a) =>
-        ArchetypeToId.TryGetValue(a, out var id) ? id : "generic_soldier";
-
-    /// <summary>Definition for a legacy archetype via the alias table. Never null.</summary>
-    public static UnitDefinition ForArchetype(EnemyArchetype a) => Get(IdForArchetype(a));
-
-    /// <summary>Resolve an authored token — a legacy enum name ("Soldier") OR a
-    /// unit id ("generic_soldier") — to an EnemyArchetype for the loader. Enum
-    /// names win; unit ids fall back through the alias table. (Loader aliases.)</summary>
-    public static bool TryResolveArchetype(string token, out EnemyArchetype archetype)
+    /// <summary>All loaded unit ids, sorted — the debug launcher's roster.</summary>
+    public static IReadOnlyList<string> AllIds
     {
-        if (Enum.TryParse(token, ignoreCase: true, out archetype))
+        get { LoadAll(); return _cache.Keys.OrderBy(k => k, StringComparer.Ordinal).ToList(); }
+    }
+
+    /// <summary>Resolve an authored token — an exact unit id ("generic_soldier",
+    /// "conductor_honored_dead") OR a legacy archetype name ("Soldier") — to a
+    /// canonical unit id. Resolution order per units doc §6 step 2: exact id
+    /// first, legacy alias second, false (caller names the offending pool) last.</summary>
+    public static bool TryResolveId(string token, out string unitId)
+    {
+        LoadAll();
+        unitId = "";
+        if (string.IsNullOrWhiteSpace(token))
+            return false;
+
+        if (_cache.ContainsKey(token))
         {
+            unitId = token;
             return true;
         }
-        foreach (var kvp in ArchetypeToId)
+
+        if (LegacyAliases.TryGetValue(token.Trim(), out var aliased) && _cache.ContainsKey(aliased))
         {
-            if (string.Equals(kvp.Value, token, StringComparison.OrdinalIgnoreCase))
-            {
-                archetype = kvp.Key;
-                return true;
-            }
+            unitId = aliased;
+            return true;
         }
-        archetype = EnemyArchetype.Soldier;
+
         return false;
     }
 
-    // ── Verification (U1 exit: parity + serialization round-trip) ──────────
+    // ── Verification (U1 parity + round-trip; U2 adds tags + key catalog) ───
 
     /// <summary>Assert every generic_* def loaded from JSON matches the stats the
-    /// old EnemyArchetypeData hardcoded (parity), and that a UnitDefinition
-    /// survives a JSON round-trip. Prints PASS/FAIL; PushErrors on failure. The
-    /// expected table below is the test oracle — the ONLY place the old numbers
-    /// still live. Wired to the CampusScreen debug panel.</summary>
+    /// old EnemyArchetypeData hardcoded (parity), that a UnitDefinition survives a
+    /// JSON round-trip (including BehaviorTags), that every loaded def's
+    /// BehaviorKey is in the dispatcher's catalog, and that legacy alias
+    /// resolution works. Prints PASS/FAIL; PushErrors on failure. The expected
+    /// table below is the test oracle — the ONLY place the old numbers still
+    /// live. Wired to the CampusScreen debug panel.</summary>
     public static bool AssertParityAndRoundTrip()
     {
         LoadAll();
@@ -168,15 +180,64 @@ public static class UnitRegistry
             ok &= m;
         }
 
-        // Round-trip one definition through the same options the loader uses.
-        var probe = Get("generic_wizard");
+        // U2: every loaded def's BehaviorKey must be in the dispatcher catalog —
+        // a typo in an authored JSON should fail HERE, not silently soldier-fallback
+        // in a fight. Keep in sync with CombatManager.EnemyIntents' handler map.
+        var knownKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "melee_advance", "melee_target_highest_hp", "hold_until_near",
+            "ranged_kite", "ranged_charge", "melee_hunt_wounded",
+        };
+        var knownTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "pack", "bulwark", "charge", "scout", "immobile",
+        };
+        foreach (var def in _cache.Values)
+        {
+            if (!knownKeys.Contains(def.BehaviorKey))
+            {
+                sb.AppendLine($"  {def.Id}: UNKNOWN BehaviorKey '{def.BehaviorKey}'");
+                ok = false;
+            }
+            foreach (var tag in def.BehaviorTags)
+            {
+                if (!knownTags.Contains(tag))
+                {
+                    sb.AppendLine($"  {def.Id}: UNKNOWN BehaviorTag '{tag}'");
+                    ok = false;
+                }
+            }
+        }
+
+        // Round-trip a definition WITH tags through the loader's own options.
+        var probe = new UnitDefinition
+        {
+            Id = "rt_probe", ThreatLabel = "Probe", MaxHealth = 33, BaseSpeed = 2,
+            Armor = 1, AttackRange = 2, AttackDamage = 6, PreferredDistance = 2,
+            BehaviorKey = "melee_advance",
+            BehaviorTags = new List<string> { "pack", "scout" },
+            ColorR = 0.1f, ColorG = 0.6f, ColorB = 0.9f,
+        };
         var rt = JsonSerializer.Deserialize<UnitDefinition>(
             JsonSerializer.Serialize(probe, JsonOptions), JsonOptions);
         bool rok = rt != null && rt.Id == probe.Id && rt.MaxHealth == probe.MaxHealth &&
                    rt.AttackDamage == probe.AttackDamage && rt.BehaviorKey == probe.BehaviorKey &&
+                   rt.BehaviorTags.Count == 2 && rt.HasTag("pack") && rt.HasTag("scout") &&
                    Mathf.IsEqualApprox(rt.ColorB, probe.ColorB);
-        sb.AppendLine(rok ? "  UnitDefinition round-trip: OK" : "  UnitDefinition round-trip: FAIL");
+        sb.AppendLine(rok ? "  UnitDefinition round-trip (incl. tags): OK" : "  UnitDefinition round-trip: FAIL");
         ok &= rok;
+
+        // U1 JSONs have no behaviorTags key — must deserialize to empty list, not null.
+        bool aok = Get("generic_soldier").BehaviorTags != null;
+        sb.AppendLine(aok ? "  Additive-schema (missing tags → empty): OK" : "  Additive-schema: FAIL (null tags)");
+        ok &= aok;
+
+        // Legacy alias resolution (the loader's contract).
+        bool lok = TryResolveId("Soldier", out var lid) && lid == "generic_soldier" &&
+                   TryResolveId("generic_wizard", out var did) && did == "generic_wizard" &&
+                   !TryResolveId("no_such_unit", out _);
+        sb.AppendLine(lok ? "  Alias resolution (name→id, id→id, junk→fail): OK" : "  Alias resolution: FAIL");
+        ok &= lok;
 
         sb.AppendLine(ok ? "RESULT: ALL PASSED" : "RESULT: FAILURES ABOVE");
         GD.Print(sb.ToString());

@@ -102,6 +102,7 @@ public partial class HexTile : Node3D
     private bool rangeHighlighted = false;
     private bool rangeBorderHighlighted = false;
     private bool threatHighlighted = false;
+    private bool threatRevealed = true;   // hot vs dim threat tint (see SetThreatHighlight)
 
     /// <summary>Colour used when a draggable card is hovered over this tile during targeting.</summary>
     [Export] public Color DragHoverColor = UITheme.TileDragHover;
@@ -502,10 +503,14 @@ public partial class HexTile : Node3D
             RefreshVisualState(); // restore base/range/target state
     }
 
-    /// <summary>Toggles the threat-tile tint (revealed enemy intent footprint). Lowest layer in the highlight stack.</summary>
-    public void SetThreatHighlight(bool on)
+    /// <summary>Toggles the threat-tile tint (enemy intent footprint). Lowest layer
+    /// in the highlight stack. Two tiers: <paramref name="revealed"/> = hot
+    /// (UITheme.TileThreat, full details known); unrevealed = dim reticle
+    /// (UITheme.TileThreatDim — you see WHERE it aims, not how hard).</summary>
+    public void SetThreatHighlight(bool on, bool revealed = true)
     {
         threatHighlighted = on;
+        threatRevealed = revealed;
         RefreshVisualState();
     }
 
@@ -520,7 +525,10 @@ public partial class HexTile : Node3D
         Color tint = new Color(0f, 0f, 0f, 0f);
 
         if (threatHighlighted)
-            tint = tint.Lerp(UITheme.TileThreat, UITheme.TileThreat.A);
+        {
+            var threat = threatRevealed ? UITheme.TileThreat : UITheme.TileThreatDim;
+            tint = tint.Lerp(threat, threat.A);
+        }
 
         if (deploymentHighlighted)
             tint = tint.Lerp(UITheme.TileDeployHighlight, 0.55f);

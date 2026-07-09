@@ -51,16 +51,17 @@ public partial class CombatManager : Node3D
     private Dictionary<Unit, Vector2I> originalDeployCoords = new();
 
     // stores the pending enemy spawn parameters so we can defer spawning until after the player commits their deployment.
+    // U2: the resolved UnitDefinition is the identity; the flat fields beside it
+    // are the ROLLED (difficulty-scaled) stats, which may differ from Def's bases.
     private struct PendingEnemySpawn
     {
-        public EnemyArchetype Archetype;  // ← drives stats, AI, and intel label (enum dies in U2)
-        public UnitDefinition Def;        // ← U1 seam: resolved def; spawns rekey off this in U2
+        public UnitDefinition Def;        // ← resolved definition: id, behavior key/tags, label, colour
         public int MaxHealth;
         public int Health;
         public int BaseSpeed;
         public int Armor;
         public int AttackRange;           // ← needed by ranged AI
-        public int AttackDamage;          // ← archetype-specific damage
+        public int AttackDamage;          // ← rolled damage (difficulty-scaled)
         public Color BodyColor;
         public string NamePrefix;
     }
@@ -2985,7 +2986,7 @@ public partial class CombatManager : Node3D
         {
             entries.Add(new EnemyIntelEntry
             {
-                ThreatLabel = EnemyArchetypeData.GetThreatLabel(p.Archetype),
+                ThreatLabel = p.Def.ThreatLabel,
                 MaxHealth = p.MaxHealth,
                 BaseSpeed = p.BaseSpeed,
                 Armor = p.Armor,
@@ -3006,11 +3007,11 @@ public partial class CombatManager : Node3D
         // Default mix: one Soldier, one Ranger, one Wizard.
         // Gives immediate variety and exercises all three AI behaviors.
         // Swap these out per encounter type once EncounterDefinition exists.
-        var composition = new EnemyArchetype[]
+        var composition = new string[]
         {
-            EnemyArchetype.Soldier,
-            EnemyArchetype.Ranger,
-            EnemyArchetype.Wizard,
+            "generic_soldier",
+            "generic_ranger",
+            "generic_wizard",
         };
 
         // Trim or pad to TestEnemyCount so the inspector export still controls battle size
@@ -3020,20 +3021,18 @@ public partial class CombatManager : Node3D
 
         for (int i = 0; i < count; i++)
         {
-            var archetype = composition[i];
-            int hp = EnemyArchetypeData.GetMaxHealth(archetype);
+            var def = UnitRegistry.Get(composition[i]);
             pendingEnemySpawns.Add(new PendingEnemySpawn
             {
-                Archetype = archetype,
-                Def = UnitRegistry.ForArchetype(archetype),
-                MaxHealth = hp,
-                Health = hp,
-                BaseSpeed = EnemyArchetypeData.GetBaseSpeed(archetype),
-                Armor = EnemyArchetypeData.GetArmor(archetype),
-                AttackRange = EnemyArchetypeData.GetAttackRange(archetype),
-                AttackDamage = EnemyArchetypeData.GetAttackDamage(archetype),
-                BodyColor = EnemyArchetypeData.GetBodyColor(archetype),
-                NamePrefix = EnemyArchetypeData.GetThreatLabel(archetype),
+                Def = def,
+                MaxHealth = def.MaxHealth,
+                Health = def.MaxHealth,
+                BaseSpeed = def.BaseSpeed,
+                Armor = def.Armor,
+                AttackRange = def.AttackRange,
+                AttackDamage = def.AttackDamage,
+                BodyColor = def.BodyColor,
+                NamePrefix = def.ThreatLabel,
             });
         }
 
@@ -3052,7 +3051,7 @@ public partial class CombatManager : Node3D
 
         foreach (var slot in def.Enemies)
         {
-            var archetype = slot.Archetype;
+            var unitDef = UnitRegistry.Get(slot.UnitId);
             float mult = slot.DifficultyMult;
 
             // Option B: HP on a softened (sqrt) curve so high mults don't create
@@ -3062,21 +3061,20 @@ public partial class CombatManager : Node3D
             float hpMult = Mathf.Sqrt(mult);
             float dmgMult = mult;
 
-            int hp = Mathf.RoundToInt(EnemyArchetypeData.GetMaxHealth(archetype) * hpMult);
-            int dmg = Mathf.RoundToInt(EnemyArchetypeData.GetAttackDamage(archetype) * dmgMult);
+            int hp = Mathf.RoundToInt(unitDef.MaxHealth * hpMult);
+            int dmg = Mathf.RoundToInt(unitDef.AttackDamage * dmgMult);
 
             pendingEnemySpawns.Add(new PendingEnemySpawn
             {
-                Archetype = archetype,
-                Def = UnitRegistry.ForArchetype(archetype),
+                Def = unitDef,
                 MaxHealth = hp,
                 Health = hp,
-                BaseSpeed = EnemyArchetypeData.GetBaseSpeed(archetype),
-                Armor = EnemyArchetypeData.GetArmor(archetype),
-                AttackRange = EnemyArchetypeData.GetAttackRange(archetype),
+                BaseSpeed = unitDef.BaseSpeed,
+                Armor = unitDef.Armor,
+                AttackRange = unitDef.AttackRange,
                 AttackDamage = dmg,
-                BodyColor = EnemyArchetypeData.GetBodyColor(archetype),
-                NamePrefix = EnemyArchetypeData.GetThreatLabel(archetype),
+                BodyColor = unitDef.BodyColor,
+                NamePrefix = unitDef.ThreatLabel,
             });
         }
 
@@ -3154,12 +3152,14 @@ public partial class CombatManager : Node3D
             unit.PlaceOnTile(tile);
 
             unit.Name = $"{p.NamePrefix}_{i + 1}";
-            int sameTypeCount = sorted.Count(s => s.Archetype == p.Archetype);
+            int sameTypeCount = sorted.Count(s => s.Def.Id == p.Def.Id);
             unit.Name = sameTypeCount > 1
-                ? $"{p.NamePrefix}_{sorted.Take(i + 1).Count(s => s.Archetype == p.Archetype)}"
+                ? $"{p.NamePrefix}_{sorted.Take(i + 1).Count(s => s.Def.Id == p.Def.Id)}"
                 : p.NamePrefix;
             unit.DisplayName = unit.Name;
-            unit.EnemyArchetype = p.Archetype;
+            unit.DefinitionId = p.Def.Id;
+            unit.BehaviorKey = p.Def.BehaviorKey;
+            unit.BehaviorTags = new List<string>(p.Def.BehaviorTags);
             unit.AttackRange = p.AttackRange;
             unit.AttackDamage = p.AttackDamage;
             unit.MaxActionPoints = p.BaseSpeed;
@@ -3262,7 +3262,12 @@ public partial class CombatManager : Node3D
         SeedAttunementFromStartingTile();
     }
 
-    private Unit FindNearestPlayerUnit(Unit enemy)
+    /// <summary>Spell-level target overrides — RedirectAll (attack a random fellow
+    /// enemy) and RedirectAura decoys. Returns null when no override applies.
+    /// U2: extracted from FindNearestPlayerUnit so behavior keys that ignore
+    /// nearest-selection (melee_hunt_wounded) still honor these effects — they
+    /// rewrite reality, not target preference.</summary>
+    private Unit FindTargetOverride(Unit enemy)
     {
         if (enemy == null || !IsInstanceValid(enemy) || enemy.CurrentTile == null)
             return null;
@@ -3278,7 +3283,7 @@ public partial class CombatManager : Node3D
                     ? (int)(GD.Randi() % (uint)otherEnemies.Count) : 0];
         }
 
-        // ── RedirectAura: decoy in range overrides nearest player ─────────────
+        // ── RedirectAura: decoy in range overrides normal targeting ───────────
         var aura = State.ActiveEffects?
             .OfType<RedirectAuraPersistentEffect>()
             .FirstOrDefault(a => !a.IsExpired);
@@ -3288,6 +3293,18 @@ public partial class CombatManager : Node3D
             if (decoy != null)
                 return decoy;
         }
+
+        return null;
+    }
+
+    private Unit FindNearestPlayerUnit(Unit enemy)
+    {
+        if (enemy == null || !IsInstanceValid(enemy) || enemy.CurrentTile == null)
+            return null;
+
+        var overrideTarget = FindTargetOverride(enemy);
+        if (overrideTarget != null)
+            return overrideTarget;
 
         // ── Normal: nearest living player unit ───────────────────────────────
         // Untargetable units (Walk Between) are skipped entirely. Taunting units

@@ -1,0 +1,9 @@
+{
+  "id": "debug_scout_flanker",
+  "threatLabel": "Scout Flanker (dbg)",
+  "maxHealth": 12, "baseSpeed": 3, "armor": 0,
+  "attackRange": 1, "attackDamage": 4, "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": ["scout"],
+  "colorR": 0.2, "colorG": 0.7, "colorB": 0.6
+}

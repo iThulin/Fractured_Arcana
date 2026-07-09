@@ -1,0 +1,9 @@
+{
+  "id": "debug_charge_boar",
+  "threatLabel": "Charging Boar (dbg)",
+  "maxHealth": 14, "baseSpeed": 3, "armor": 0,
+  "attackRange": 1, "attackDamage": 5, "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": ["charge"],
+  "colorR": 0.55, "colorG": 0.3, "colorB": 0.1
+}

@@ -1,0 +1,9 @@
+{
+  "id": "debug_pack_hound",
+  "threatLabel": "Pack Hound (dbg)",
+  "maxHealth": 15, "baseSpeed": 3, "armor": 0,
+  "attackRange": 1, "attackDamage": 4, "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": ["pack"],
+  "colorR": 0.85, "colorG": 0.45, "colorB": 0.15
+}

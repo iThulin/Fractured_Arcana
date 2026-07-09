@@ -12,7 +12,7 @@ using System.Collections.Generic;
 // Collaborators:  EncounterRouter.cs (creator),
 //                 EncounterPoolLoader.cs (data source),
 //                 CombatManager.cs (consumer),
-//                 EnemyArchetype.cs (composition refs)
+//                 UnitRegistry.cs (slot ids resolve here)
 // See:            README §3 — combat dispatch pipeline
 // ============================================================
 
@@ -27,11 +27,13 @@ public enum EncounterTier
 }
 
 /// <summary>
-/// A single enemy slot in an encounter composition.
+/// A single enemy slot in an encounter composition. U2: keyed by canonical
+/// UnitRegistry id (already resolved from any legacy archetype name by
+/// EncounterPoolLoader — CombatManager never sees unresolved tokens).
 /// </summary>
 public struct EnemySlot
 {
-    public EnemyArchetype Archetype;
+    public string UnitId;
 
     /// <summary>
     /// Optional stat multiplier from the region's enemyDifficultyMult.
@@ -39,9 +41,9 @@ public struct EnemySlot
     /// </summary>
     public float DifficultyMult;
 
-    public EnemySlot(EnemyArchetype archetype, float difficultyMult = 1.0f)
+    public EnemySlot(string unitId, float difficultyMult = 1.0f)
     {
-        Archetype = archetype;
+        UnitId = unitId;
         DifficultyMult = difficultyMult;
     }
 }

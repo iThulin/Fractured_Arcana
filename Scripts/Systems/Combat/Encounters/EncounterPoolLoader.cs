@@ -15,12 +15,16 @@ using System.Text.Json.Serialization;
 // Layer:          Loader
 // Collaborators:  RegionDefinition.cs (host JSON file),
 //                 EncounterDefinition.cs (produced output),
-//                 EnemyArchetype.cs (composition string → enum),
+//                 UnitRegistry.cs (token → unit id resolution),
 //                 EncounterRouter.cs (caller)
 // See:            README §4.2 (Adding a Region)
 // ============================================================
 
-/// <summary>Raw JSON shape for one enemy slot in a pool's composition list. The <c>archetype</c> string must match an <see cref="EnemyArchetype"/> enum name (case-insensitive).</summary>
+/// <summary>Raw JSON shape for one enemy slot in a pool's composition list. The
+/// <c>archetype</c> string is either an exact UnitRegistry id ("generic_soldier",
+/// "conductor_honored_dead") or a legacy archetype name ("Soldier") resolved
+/// through the registry's alias table (units doc §6 step 2). The JSON key stays
+/// "archetype" so every authored pool keeps working unmodified.</summary>
 public class EnemySlotData
 {
     [JsonPropertyName("archetype")]
@@ -187,14 +191,14 @@ public static class EncounterPoolLoader
 
         foreach (var slot in group.Enemies)
         {
-            if (UnitRegistry.TryResolveArchetype(slot.Archetype, out var archetype))
+            if (UnitRegistry.TryResolveId(slot.Archetype, out var unitId))
             {
                 float slotMult = groupMult * (slot.DifficultyMult <= 0f ? 1f : slot.DifficultyMult);
-                def.Enemies.Add(new EnemySlot(archetype, slotMult));
+                def.Enemies.Add(new EnemySlot(unitId, slotMult));
             }
             else
             {
-                GD.PrintErr($"EncounterPoolLoader: Unknown archetype '{slot.Archetype}' in archmage group {arch.Id}/{group.Name}");
+                GD.PrintErr($"EncounterPoolLoader: Unknown unit '{slot.Archetype}' in archmage group {arch.Id}/{group.Name}");
             }
         }
 
@@ -236,10 +240,10 @@ public static class EncounterPoolLoader
 
         foreach (var slot in comp.Enemies)
         {
-            if (UnitRegistry.TryResolveArchetype(slot.Archetype, out var archetype))
-                def.Enemies.Add(new EnemySlot(archetype, difficultyMult));
+            if (UnitRegistry.TryResolveId(slot.Archetype, out var unitId))
+                def.Enemies.Add(new EnemySlot(unitId, difficultyMult));
             else
-                GD.PrintErr($"EncounterPoolLoader: Unknown archetype '{slot.Archetype}' in {comp.Name}");
+                GD.PrintErr($"EncounterPoolLoader: Unknown unit '{slot.Archetype}' in pool composition '{comp.Name}'");
         }
 
         return def;
@@ -268,17 +272,17 @@ public static class EncounterPoolLoader
 
         var slots = tier switch
         {
-            EncounterTier.Skirmish => new[] { EnemyArchetype.Soldier, EnemyArchetype.Ranger },
-            EncounterTier.Siege => new[] { EnemyArchetype.Brute, EnemyArchetype.Defender,
-                                              EnemyArchetype.Ranger, EnemyArchetype.Wizard },
-            EncounterTier.Ambush => new[] { EnemyArchetype.Soldier, EnemyArchetype.Ranger,
-                                              EnemyArchetype.Soldier },
-            _ => new[] { EnemyArchetype.Soldier, EnemyArchetype.Ranger,
-                                              EnemyArchetype.Wizard },  // Battle default
+            EncounterTier.Skirmish => new[] { "generic_soldier", "generic_ranger" },
+            EncounterTier.Siege => new[] { "generic_brute", "generic_defender",
+                                              "generic_ranger", "generic_wizard" },
+            EncounterTier.Ambush => new[] { "generic_soldier", "generic_ranger",
+                                              "generic_soldier" },
+            _ => new[] { "generic_soldier", "generic_ranger",
+                                              "generic_wizard" },  // Battle default
         };
 
-        foreach (var a in slots)
-            def.Enemies.Add(new EnemySlot(a, difficultyMult));
+        foreach (var id in slots)
+            def.Enemies.Add(new EnemySlot(id, difficultyMult));
 
         return def;
     }

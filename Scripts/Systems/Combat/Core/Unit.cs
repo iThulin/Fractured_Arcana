@@ -79,10 +79,24 @@ public partial class Unit : Node3D
     public List<(ItemPassiveTag tag, int value)> EquipmentPassives = new();
     public int BonusSpellDamage = 0;   // from wizard weapon/trinket
 
-    // ── Combat archetype (set by CombatManager at spawn time) ───────────────
-    public EnemyArchetype EnemyArchetype = EnemyArchetype.Soldier;
+    // ── Combat definition (set by CombatManager at spawn time, U2) ──────────
+    /// <summary>UnitRegistry id this enemy was spawned from ("" for player units).</summary>
+    public string DefinitionId = "";
+    /// <summary>AI routine key, dispatched by CombatManager.EnemyIntents.PlanIntent.</summary>
+    public string BehaviorKey = "";
+    /// <summary>Composable behavior modifiers (pack/bulwark/charge/scout/immobile) — units doc §4a.</summary>
+    public List<string> BehaviorTags = new();
     public int AttackRange = 1;   // 1 = melee; >1 = ranged
     public int AttackDamage = 5;   // base damage per attack
+
+    /// <summary>Case-insensitive behavior tag test.</summary>
+    public bool HasBehaviorTag(string tag)
+    {
+        foreach (var t in BehaviorTags)
+            if (string.Equals(t, tag, StringComparison.OrdinalIgnoreCase))
+                return true;
+        return false;
+    }
 
     // ── Martial companion fields ─────────────────────────────────────────────
     public bool IsMartial = false;

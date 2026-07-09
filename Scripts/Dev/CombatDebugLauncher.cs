@@ -36,7 +36,7 @@ public partial class CombatDebugLauncher : CanvasLayer
     private SpinBox _diffSpin;
     private CheckBox _skipDeployChk;
     private Label _status;
-    private readonly Dictionary<EnemyArchetype, SpinBox> _enemySpins = new();
+    private readonly Dictionary<string, SpinBox> _enemySpins = new();  // unit id → count (U2: registry-driven)
     private readonly List<(CheckBox chk, Companion comp)> _allyChecks = new();
 
     public static void Toggle(Node host)
@@ -165,10 +165,14 @@ public partial class CombatDebugLauncher : CanvasLayer
 
         form.AddChild(new HSeparator());
         AddSectionLabel(form, "Enemies — count of each:");
-        foreach (EnemyArchetype a in Enum.GetValues(typeof(EnemyArchetype)))
+        // U2: registry-driven roster — every Data/Units/*.json shows up here
+        // automatically, which is exactly the harness the U2 exit criterion
+        // ("a debug encounter fielding tagged units") needs.
+        foreach (string id in UnitRegistry.AllIds)
         {
-            string label = "  " + UnitRegistry.ForArchetype(a).ThreatLabel + ":";
-            _enemySpins[a] = AddSpin(form, label, 0, 8, 1, DefaultCount(a));
+            var def = UnitRegistry.Get(id);
+            string tags = def.BehaviorTags.Count > 0 ? $" [{string.Join(",", def.BehaviorTags)}]" : "";
+            _enemySpins[id] = AddSpin(form, $"  {def.ThreatLabel}{tags}:", 0, 8, 1, DefaultCount(id));
         }
         form.AddChild(new HSeparator());
 
@@ -419,11 +423,11 @@ public partial class CombatDebugLauncher : CanvasLayer
         return ok && compat;
     }
 
-    private static int DefaultCount(EnemyArchetype a) => a switch
+    private static int DefaultCount(string unitId) => unitId switch
     {
-        EnemyArchetype.Soldier => 1,
-        EnemyArchetype.Ranger => 1,
-        EnemyArchetype.Wizard => 1,
+        "generic_soldier" => 1,
+        "generic_ranger" => 1,
+        "generic_wizard" => 1,
         _ => 0,
     };
 }

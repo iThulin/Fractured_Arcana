@@ -1,0 +1,9 @@
+{
+  "id": "debug_turret",
+  "threatLabel": "Bolt Turret (dbg)",
+  "maxHealth": 16, "baseSpeed": 0, "armor": 2,
+  "attackRange": 4, "attackDamage": 5, "preferredDistance": 4,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": ["immobile"],
+  "colorR": 0.6, "colorG": 0.55, "colorB": 0.2
+}

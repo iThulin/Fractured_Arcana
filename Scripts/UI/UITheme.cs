@@ -151,6 +151,15 @@ public static class UITheme
     public static readonly Color TileRangeBorder = new Color(0.55f, 0.38f, 0.90f, 0.25f);
     public static readonly Color TileGlyph = new Color(0.65f, 0.25f, 1.00f, 1f);
     public static readonly Color TileThreat = new Color(0.85f, 0.25f, 0.20f, 0.45f);
+    /// <summary>Locked-but-unrevealed intent footprint — the kind-tier reticle
+    /// (you always see WHERE an enemy aims; the reveal tier adds how hard).</summary>
+    public static readonly Color TileThreatDim = new Color(0.85f, 0.25f, 0.20f, 0.18f);
+    /// <summary>Floating reticle glyph over a threatened tile — revealed (hot) tier.
+    /// A marker, not a tint: tile tints get buried under the move-zone overlay
+    /// when the locked tile sits inside the player's movement range.</summary>
+    public static readonly Color TileThreatReticle = new Color(1.0f, 0.35f, 0.28f, 1f);
+    /// <summary>Floating reticle glyph — locked-but-unrevealed (dim) tier.</summary>
+    public static readonly Color TileThreatReticleDim = new Color(0.95f, 0.5f, 0.4f, 0.65f);
 
     // ════════════════════════════════════════════════════════════
     // COMBAT TILE BASE COLORS
