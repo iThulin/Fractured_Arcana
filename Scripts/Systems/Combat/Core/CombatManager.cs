@@ -179,6 +179,7 @@ public partial class CombatManager : Node3D
             combatUI.ConfirmDeploymentPressed += OnConfirmDeploymentPressed;
             combatUI.EndTurnPressed += OnEndTurnPressed;
             combatUI.PriorityPassPressed += OnPriorityPassPressed;   // U3 trigger window
+            combatUI.EnemyRowHovered += OnEnemyRowHovered;           // V2 roster hover → threat overlay
 
             // Unit bar buttons select the corresponding unit
             combatUI.UnitButtonPressed += OnUnitBarButtonPressed;
@@ -273,6 +274,17 @@ public partial class CombatManager : Node3D
                 current = current.GetParent();
             }
         }
+
+        // Fix (2026-07-09): a unit killed WHILE hovered gets freed by the prune,
+        // leaving _hoveredUnit as a disposed wrapper. Touching it threw every
+        // frame, and the exception aborted _Process before the reassignment —
+        // wedging the error loop permanently. (Surfaced by the drop-on-unit fix:
+        // the mouse now legitimately rests on models mid-kill.) Same guard for
+        // hitUnit: the corpse's collider can outlive the death by a frame.
+        if (_hoveredUnit != null && !IsInstanceValid(_hoveredUnit))
+            _hoveredUnit = null;
+        if (hitUnit != null && (!IsInstanceValid(hitUnit) || !hitUnit.Stats.IsAlive))
+            hitUnit = null;
 
         if (hitUnit != _hoveredUnit)
         {
@@ -906,23 +918,80 @@ public partial class CombatManager : Node3D
         RefreshPlayerUnitBar();
     }
 
+    /// <summary>V2 threat-range overlay (combat_ui_v2 §7a, as superseded): every
+    /// tile this enemy could reach-AND-attack next turn — movement envelope
+    /// (tag-adjusted: immobile stays put) expanded by AttackRange. Pure
+    /// arithmetic over the same reachability the AI uses; zero simulation.
+    /// Complements the locked-intent reticles: reticle = THIS turn's committed
+    /// strike, this zone = NEXT turn's possibility space.</summary>
     private void ShowEnemyThreatZone(Unit enemy)
     {
         if (_zoneRenderer == null || enemy?.CurrentTile == null)
             return;
 
-        // Temporarily give enemy enough AP to show their threat range
-        int savedAP = enemy.CurrentActionPoints;
-        int savedMax = enemy.MaxActionPoints;
-        enemy.MaxActionPoints = enemy.Stats.BaseSpeed;
-        enemy.CurrentActionPoints = enemy.Stats.BaseSpeed;
+        var reach = new HashSet<Vector2I> { enemy.CurrentTile.Axial };
 
-        var reachable = grid.GetReachableTiles(enemy);
+        if (!enemy.HasBehaviorTag("immobile"))
+        {
+            // Temporarily give enemy enough AP to show their movement envelope
+            int savedAP = enemy.CurrentActionPoints;
+            int savedMax = enemy.MaxActionPoints;
+            enemy.MaxActionPoints = enemy.Stats.BaseSpeed;
+            enemy.CurrentActionPoints = enemy.Stats.BaseSpeed;
 
-        enemy.CurrentActionPoints = savedAP;
-        enemy.MaxActionPoints = savedMax;
+            foreach (var coord in grid.GetReachableTiles(enemy))
+                reach.Add(coord);
 
-        _zoneRenderer.ShowEnemyZone(reachable, grid);
+            enemy.CurrentActionPoints = savedAP;
+            enemy.MaxActionPoints = savedMax;
+        }
+
+        // Expand by attack range — ring BFS from every reachable tile. Attacks
+        // don't care about walkability (ranged shoots over gaps), only that the
+        // tile exists.
+        var threat = new HashSet<Vector2I>(reach);
+        var frontier = new List<Vector2I>(reach);
+        for (int r = 0; r < enemy.AttackRange; r++)
+        {
+            var next = new List<Vector2I>();
+            foreach (var c in frontier)
+            {
+                foreach (var n in grid.GetNeighbors(c))
+                {
+                    if (grid.GetTile(n) == null)
+                        continue;
+                    if (threat.Add(n))
+                        next.Add(n);
+                }
+            }
+            frontier = next;
+        }
+
+        _zoneRenderer.ShowEnemyZone(threat, grid);
+    }
+
+    /// <summary>V2: hovering a roster row = hovering the unit in-world (§6).</summary>
+    private void OnEnemyRowHovered(int index, bool entering)
+    {
+        if (index < 0 || index >= enemyUnits.Count)
+            return;
+        var enemy = enemyUnits[index];
+        if (enemy == null || !IsInstanceValid(enemy))
+            return;
+
+        if (entering && enemy.Stats.IsAlive)
+        {
+            enemy.SetHovered(true);
+            ShowEnemyThreatZone(enemy);
+        }
+        else
+        {
+            enemy.SetHovered(false);
+            if (selectedUnit != null)
+                ShowMoveTilesWithCost(selectedUnit);
+            else
+                _zoneRenderer?.Clear();
+        }
     }
 
     /// <summary>Returns the axial coord of the tile currently under the mouse, or null.</summary>
@@ -3011,6 +3080,8 @@ public partial class CombatManager : Node3D
                 BaseSpeed = p.BaseSpeed,
                 Armor = p.Armor,
                 BodyColor = p.BodyColor,
+                Role = p.Def.Role,               // V2
+                Intel = p.Def.IntelDescription,  // V2
             });
         }
         return entries;
@@ -3181,6 +3252,8 @@ public partial class CombatManager : Node3D
             unit.BehaviorKey = p.Def.BehaviorKey;
             unit.BehaviorTags = new List<string>(p.Def.BehaviorTags);
             unit.Abilities = p.Def.Abilities;   // defs are stateless — share, don't copy
+            unit.Role = p.Def.Role;
+            unit.FactionId = p.Def.FactionId;
             unit.AttackRange = p.AttackRange;
             unit.AttackDamage = p.AttackDamage;
             unit.MaxActionPoints = p.BaseSpeed;
@@ -3656,6 +3729,8 @@ public partial class CombatManager : Node3D
         unit.BehaviorKey = def.BehaviorKey;
         unit.BehaviorTags = new List<string>(def.BehaviorTags);
         unit.Abilities = def.Abilities;
+        unit.Role = def.Role;
+        unit.FactionId = def.FactionId;
         unit.AttackRange = def.AttackRange;
         unit.AttackDamage = def.AttackDamage;
         unit.SetBodyColor(def.BodyColor);

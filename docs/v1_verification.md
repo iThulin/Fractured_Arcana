@@ -22,6 +22,12 @@
 - Hand reserves made symmetric (484/484, was 570/350) — fan now centers on x=960 exactly; ticker narrowed to 360 to make room.
 - **Enter / keypad-Enter ends the turn** (confirms deployment during deploy — same morph as the button). Suppressed while the priority prompt or any popup is open, so Enter can never blind-pass a U3 stack window. Button tooltip says "Enter".
 
+## Results (2026-07-09)
+
+**PASSED on Mac (Retina) and 4K Windows (3840×2160) — V1 marked done in build_order_v3.** Enter-to-end-turn, banner hint, centered fan, layout redistribution all confirmed.
+
+**Open watch item — ultrawide (3440×1440):** hand reads visibly left-offset despite the `[HandFan]` canary proving design-space center is exact (viewport 2580×1080, center 1290 = screen/2). Diagnostics shipped: paired `[HandFan]` lines now print both the math center AND the global rendered card span — if globalCenter ≠ mathCenter, an ancestor canvas transform is the culprit; if they match, the likely explanation is the WINDOW itself (SettingsManager parks windowed mode at position (10,10) — a 3440 window on a wider monitor sits hard left, shifting the composition ~195px left of monitor center). Candidate fix if confirmed: center the window on the monitor when applying windowed resolutions. To debug with live hardware; not a V1 gate.
+
 ## Known deferrals
 
 - Context strip (terrain/kingdom/witnessed/corruption line under the banner) is V4 by design.

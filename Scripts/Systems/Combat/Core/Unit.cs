@@ -90,6 +90,10 @@ public partial class Unit : Node3D
     /// Shared defs are stateless; per-unit ability STATE (stacking bonuses etc.)
     /// lives on the unit's own stats, which handlers mutate.</summary>
     public List<UnitAbilityDef> Abilities = new();
+    /// <summary>V2: "line"/"elite"/"boss"/"summon" — roster markers + nameplate policy.</summary>
+    public string Role = "line";
+    /// <summary>V2: owning archmage id ("" = none) — faction tinting.</summary>
+    public string FactionId = "";
     public int AttackRange = 1;   // 1 = melee; >1 = ranged
     public int AttackDamage = 5;   // base damage per attack
 

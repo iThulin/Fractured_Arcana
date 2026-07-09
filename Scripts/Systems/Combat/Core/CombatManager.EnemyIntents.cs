@@ -657,6 +657,7 @@ public partial class CombatManager
                 continue;
 
             CombatCamera?.FocusOn(enemy);
+            combatUI?.SetActiveEnemy(enemy);   // V2: roster row = enemy-phase progress bar
             await ToSignal(GetTree().CreateTimer(EnemyFocusBeat), "timeout");
 
             // ── Negate (Adept Counterspell): the action is cancelled outright ──
@@ -734,6 +735,7 @@ public partial class CombatManager
 
         GD.Print("=== Enemy Turn End ===");
         enemyPhaseRunning = false;
+        combatUI?.SetActiveEnemy(null);   // V2: clear the acting-row marker
 
         // U3: settle stragglers BEFORE planning, so units risen by Deathburst
         // this turn lock visible intents for the coming player turn.

@@ -222,6 +222,12 @@ public static class UnitRegistry
                 sb.AppendLine($"  {def.Id}: {def.Abilities.Count} abilities (hard cap 2)");
                 ok = false;
             }
+            // V2: role must be in the §3 vocabulary (missing → "line" default).
+            if (def.Role != "line" && def.Role != "elite" && def.Role != "boss" && def.Role != "summon")
+            {
+                sb.AppendLine($"  {def.Id}: UNKNOWN Role '{def.Role}'");
+                ok = false;
+            }
             foreach (var ab in def.Abilities)
             {
                 if (!knownAbilityKeys.Contains(ab.Key))

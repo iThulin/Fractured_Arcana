@@ -93,6 +93,7 @@ public partial class CombatUI : CanvasLayer
 	private bool _unitPending = false;
 
 	private VBoxContainer _attunementSection;
+	private VBoxContainer _inspectBlock;   // V2: enemy behavior/ability/faction blocks
 
 	// ── Right panel nodes ────────────────────────────────────────────────
 	private PanelContainer _rightPanel;
@@ -267,6 +268,12 @@ public partial class CombatUI : CanvasLayer
 		_statusIconRow.AddThemeConstantOverride("separation", 4);
 		_statusIconRow.Alignment = BoxContainer.AlignmentMode.Center;
 		vbox.AddChild(_statusIconRow);
+
+		// ── V2 inspect block (enemies only): behavior line, ability blocks,
+		// role/faction line (combat_ui_v2 §7b) ───────────────────────
+		_inspectBlock = new VBoxContainer { Name = "InspectBlock", Visible = false };
+		_inspectBlock.AddThemeConstantOverride("separation", 4);
+		vbox.AddChild(_inspectBlock);
 
 		// Attunement slot — populated by SchoolAttunementUI.UseExternalContainer()
 		vbox.AddChild(MakeDivider(UITheme.VioletDim));
@@ -683,6 +690,7 @@ public partial class CombatUI : CanvasLayer
 			if (_stanceLine != null)
 				_stanceLine.Visible = false;
 			ClearStatusIcons();
+			RefreshInspectBlock(null, false);   // V2: hide enemy blocks
 			return;
 		}
 
@@ -746,6 +754,67 @@ public partial class CombatUI : CanvasLayer
 		}
 
 		RefreshStatusIcons(unit.Stats.StatusEffects);
+		RefreshInspectBlock(unit, isEnemy);
+	}
+
+	/// <summary>V2 (§7b): three enemy-only blocks — plain-language behavior line
+	/// from BehaviorKey + tags, one block per ability (icon, name, intel), and
+	/// the role/faction line. Strings live in UIContent — content, not code.</summary>
+	private void RefreshInspectBlock(Unit unit, bool isEnemy)
+	{
+		if (_inspectBlock == null)
+			return;
+
+		foreach (Node child in _inspectBlock.GetChildren())
+			child.QueueFree();
+
+		if (!isEnemy)
+		{
+			_inspectBlock.Visible = false;
+			return;
+		}
+		_inspectBlock.Visible = true;
+
+		_inspectBlock.AddChild(MakeDivider(UITheme.VioletDim));
+
+		// Behavior line — rules and reach, plain language.
+		var behavior = MakeLabel(
+			UIContent.DescribeBehavior(unit.BehaviorKey, unit.BehaviorTags),
+			UITheme.FontSizeSmall, UITheme.TextSecondary);
+		behavior.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		_inspectBlock.AddChild(behavior);
+
+		// One block per ability: icon + name, then the telegraph sentence.
+		foreach (var ab in unit.Abilities)
+		{
+			var nameLine = MakeLabel(
+				$"{UIContent.AbilityIcon(ab.Key)} {ab.Name}",
+				UITheme.FontSizeSmall, UITheme.Gold);
+			_inspectBlock.AddChild(nameLine);
+
+			if (!string.IsNullOrEmpty(ab.IntelDescription))
+			{
+				var intel = MakeLabel(ab.IntelDescription, UITheme.FontSizeSmall, UITheme.TextDim);
+				intel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+				_inspectBlock.AddChild(intel);
+			}
+		}
+
+		// Role · faction line ("Elite · The Long Table").
+		string factionName = "";
+		if (!string.IsNullOrEmpty(unit.FactionId)
+			&& ArchmageRegistry.Get(unit.FactionId) is { } arch)
+			factionName = arch.FactionName;
+
+		string roleLine = string.IsNullOrEmpty(factionName)
+			? UIContent.RoleDisplay(unit.Role)
+			: $"{UIContent.RoleDisplay(unit.Role)} · {factionName}";
+		var role = MakeLabel(roleLine, UITheme.FontSizeSmall,
+			unit.Role == "elite" ? UITheme.RoleElite
+			: unit.Role == "boss" ? UITheme.RoleBoss
+			: UITheme.TextDim);
+		role.HorizontalAlignment = HorizontalAlignment.Center;
+		_inspectBlock.AddChild(role);
 	}
 
 	// ── Status icons ─────────────────────────────────────────────────────
@@ -847,12 +916,30 @@ public partial class CombatUI : CanvasLayer
 		}
 	}
 
-	// ── Enemy roster ─────────────────────────────────────────────────────
+	// ── Enemy roster v2 (combat_ui_v2 §6) ────────────────────────────────
+
+	/// <summary>V2: roster hover — index + entering. CombatManager wires this to
+	/// the threat-range overlay (hovering a row = hovering the unit in-world).</summary>
+	[Signal] public delegate void EnemyRowHoveredEventHandler(int unitIndex, bool entering);
+
+	private List<Unit> _lastRosterEnemies;
+	private Unit _activeRosterEnemy;
+
+	/// <summary>V2: highlights the currently-acting enemy's row during the enemy
+	/// phase — the roster doubles as the phase's progress bar. Null clears.</summary>
+	public void SetActiveEnemy(Unit enemy)
+	{
+		_activeRosterEnemy = enemy;
+		if (_lastRosterEnemies != null)
+			RefreshEnemyRoster(_lastRosterEnemies);
+	}
 
 	public void RefreshEnemyRoster(List<Unit> enemies)
 	{
 		if (_enemyRosterBox == null)
 			return;
+
+		_lastRosterEnemies = enemies;
 
 		foreach (Node child in _enemyRosterBox.GetChildren())
 			child.QueueFree();
@@ -863,30 +950,76 @@ public partial class CombatUI : CanvasLayer
 			if (enemy == null)
 				continue;
 
-			var row = new HBoxContainer { Name = $"Enemy_{i}" };
-			row.AddThemeConstantOverride("separation", 5);
+			bool isActive = enemy == _activeRosterEnemy && enemy.Stats.IsAlive;
 
+			var row = new HBoxContainer { Name = $"Enemy_{i}" };
+			row.AddThemeConstantOverride("separation", 4);
+
+			// Role marker (§6): Line dot, Elite chevron, Boss crest. The active
+			// marker overrides it with ▶ during that unit's activation.
+			Color roleCol = enemy.Role == "elite" ? UITheme.RoleElite
+						 : enemy.Role == "boss" ? UITheme.RoleBoss
+						 : UITheme.RoleLine;
+			var marker = MakeLabel(
+				isActive ? "▶" : UIContent.RoleMarker(enemy.Role),
+				UITheme.FontSizeSmall,
+				isActive ? UITheme.Gold : roleCol);
+			marker.CustomMinimumSize = new Vector2(14, 0);
+			marker.HorizontalAlignment = HorizontalAlignment.Center;
+			row.AddChild(marker);
+
+			// Nameplate policy (§6/§11): Line units carry ThreatLabel + spawn
+			// index (already baked into unit.Name); Elite/Boss read as names.
 			var btn = new Button
 			{
 				Text = enemy.Stats.IsAlive ? enemy.Name : $"✕ {enemy.Name}",
 				Disabled = !enemy.Stats.IsAlive,
 				CustomMinimumSize = new Vector2(80, 0),
 				SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+				TooltipText = enemy.Stats.IsAlive
+					? UIContent.DescribeBehavior(enemy.BehaviorKey, enemy.BehaviorTags)
+					: "",
 			};
 			btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
 			if (!enemy.Stats.IsAlive)
 				btn.Modulate = UITheme.TextDim;
+			else if (enemy.Role == "elite" || enemy.Role == "boss")
+				btn.Modulate = roleCol;
 
 			int capturedIndex = i;
 			btn.Pressed += () => EmitSignal(SignalName.EnemyButtonPressed, capturedIndex);
+			// V2: row hover = world hover (threat-range overlay).
+			btn.MouseEntered += () => EmitSignal(SignalName.EnemyRowHovered, capturedIndex, true);
+			btn.MouseExited += () => EmitSignal(SignalName.EnemyRowHovered, capturedIndex, false);
 			row.AddChild(btn);
 
 			if (enemy.Stats.IsAlive)
 			{
+				// Ability chips (§6): one icon per ability, tooltip = telegraph.
+				foreach (var ab in enemy.Abilities)
+				{
+					var chip = MakeLabel(UIContent.AbilityIcon(ab.Key),
+						UITheme.FontSizeSmall, UITheme.Gold);
+					chip.TooltipText = $"{ab.Name}: {ab.IntelDescription}";
+					chip.CustomMinimumSize = new Vector2(14, 0);
+					row.AddChild(chip);
+				}
+
+				// HP bar (§6): faction-tinted at low saturation so the roster
+				// doubles as a faction read; generics keep the health gradient.
 				float pct = (float)enemy.Stats.Health / enemy.Stats.MaxHealth;
-				Color barCol = pct > 0.5f
-					? UITheme.Success.Lerp(UITheme.Warning, (1f - pct) * 2f)
-					: UITheme.Warning.Lerp(UITheme.Danger, (0.5f - pct) * 2f);
+				Color barCol;
+				if (!string.IsNullOrEmpty(enemy.FactionId)
+					&& ArchmageRegistry.Get(enemy.FactionId) is { } arch)
+				{
+					barCol = new Color(arch.FactionColorHex).Lerp(UITheme.TextPrimary, 0.25f);
+				}
+				else
+				{
+					barCol = pct > 0.5f
+						? UITheme.Success.Lerp(UITheme.Warning, (1f - pct) * 2f)
+						: UITheme.Warning.Lerp(UITheme.Danger, (0.5f - pct) * 2f);
+				}
 
 				var bar = new ProgressBar
 				{
@@ -939,6 +1072,15 @@ public partial class CombatUI : CanvasLayer
 			var row = new HBoxContainer();
 			row.AddThemeConstantOverride("separation", 5);
 
+			// V2: role marker on deployment intel too.
+			var marker = MakeLabel(UIContent.RoleMarker(entry.Role),
+				UITheme.FontSizeSmall,
+				entry.Role == "elite" ? UITheme.RoleElite
+				: entry.Role == "boss" ? UITheme.RoleBoss
+				: UITheme.RoleLine);
+			marker.CustomMinimumSize = new Vector2(12, 0);
+			row.AddChild(marker);
+
 			var swatch = new ColorRect
 			{
 				Color = entry.BodyColor,
@@ -952,6 +1094,8 @@ public partial class CombatUI : CanvasLayer
 			var lbl = MakeLabel(txt, UITheme.FontSizeSmall, UITheme.TextSecondary);
 			lbl.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 			lbl.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			if (!string.IsNullOrEmpty(entry.Intel))
+				lbl.TooltipText = entry.Intel;
 			row.AddChild(lbl);
 
 			_enemyRosterBox.AddChild(row);

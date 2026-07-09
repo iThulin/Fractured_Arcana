@@ -64,6 +64,21 @@ public class UnitDefinition
     /// Additive schema change: JSONs without the field deserialize empty.</summary>
     public List<UnitAbilityDef> Abilities = new();
 
+    /// <summary>V2 (units doc §3): "line", "elite", "boss", or "summon". Drives
+    /// roster role markers, nameplate policy, and (later) reward-roll bonuses.
+    /// Missing = "line" — every pre-V2 JSON is a line unit.</summary>
+    public string Role = "line";
+
+    /// <summary>Owning archmage id ("conductor") or "" for generics/debug.
+    /// Drives faction tinting in the roster and the §11 tint legend.</summary>
+    public string FactionId = "";
+
+    /// <summary>One sentence for the scout report and the inspect panel (§3).</summary>
+    public string IntelDescription = "";
+
+    public bool IsElite => string.Equals(Role, "elite", System.StringComparison.OrdinalIgnoreCase);
+    public bool IsBoss  => string.Equals(Role, "boss",  System.StringComparison.OrdinalIgnoreCase);
+
     public float ColorR = 1.0f;
     public float ColorG = 0.25f;
     public float ColorB = 0.25f;

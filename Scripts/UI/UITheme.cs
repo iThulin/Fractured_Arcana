@@ -177,6 +177,11 @@ public static class UITheme
     public const float HandCardGapFactor = 1.8f;       // gap = card width ×
     public const float HandMaxArcDegrees = 25f;
 
+    // ── V2 roster role markers (combat_ui_v2 §6) ──
+    public static readonly Color RoleLine = new Color(0.55f, 0.55f, 0.6f);
+    public static readonly Color RoleElite = new Color(0.95f, 0.75f, 0.25f);
+    public static readonly Color RoleBoss = new Color(0.9f, 0.3f, 0.5f);
+
     public static readonly Color TileThreat = new Color(0.85f, 0.25f, 0.20f, 0.45f);
     /// <summary>Locked-but-unrevealed intent footprint — the kind-tier reticle
     /// (you always see WHERE an enemy aims; the reveal tier adds how hard).</summary>

@@ -230,7 +230,8 @@ public partial class DeckUiManager : Node2D
 		// per viewport size change. boxCenter must equal screen.X/2 exactly —
 		// if it doesn't, or this line never appears, the fan math isn't the
 		// code you think it is.
-		if (screen != _lastFanScreen)
+		bool logFanDiag = screen != _lastFanScreen;
+		if (logFanDiag)
 		{
 			_lastFanScreen = screen;
 			GD.Print($"[HandFan] viewport={screen} box={boxLeft}..{boxRight} " +
@@ -276,6 +277,26 @@ public partial class DeckUiManager : Node2D
 
 			if (card is CardUi cardUi)
 				cardUi.SetRestTransform(card.Position, card.Rotation);
+		}
+
+		// Second half of the diagnostic: where the cards ACTUALLY landed, in
+		// GLOBAL canvas coords. If mathCenter is right but globalCenter is
+		// shifted, an ancestor transform (HandUI/DeckUI/canvas) is the culprit,
+		// not the fan math.
+		if (logFanDiag && count > 0)
+		{
+			float minX = float.MaxValue, maxX = float.MinValue;
+			foreach (Node child in handUIContainer.GetChildren())
+			{
+				if (child is not Control c)
+					continue;
+				var r = c.GetGlobalRect();
+				minX = Mathf.Min(minX, r.Position.X);
+				maxX = Mathf.Max(maxX, r.End.X);
+			}
+			GD.Print($"[HandFan] global card span {minX:0}..{maxX:0} " +
+					 $"globalCenter={(minX + maxX) * 0.5f:0} " +
+					 $"containerGlobal={handUIContainer.GlobalPosition}");
 		}
 
 		UpdateCardCounts();

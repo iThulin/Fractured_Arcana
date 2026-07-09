@@ -136,8 +136,22 @@ public partial class CardDropHandler : Node3D
 
     private HexTile GetParentHexTile(Node node)
     {
-        while (node != null && node is not HexTile)
+        while (node != null)
+        {
+            if (node is HexTile tile)
+                return tile;
+
+            // Fix (2026-07-09): dropping a card ON A UNIT resolves to the tile
+            // the unit stands on. Unit collision bodies share ray layer 1 with
+            // tiles, so a drop over an enemy's bounding box used to swallow the
+            // ray, resolve no tile, and silently eat the cast — the player had
+            // to hit the sliver of tile around the model. Drag-hover highlight
+            // gets the same fix for free (this resolver feeds both).
+            if (node is Unit unit)
+                return unit.CurrentTile?.TileView;
+
             node = node.GetParent();
-        return node as HexTile;
+        }
+        return null;
     }
 }

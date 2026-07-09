@@ -4,6 +4,9 @@
   "maxHealth": 55, "baseSpeed": 1, "armor": 2,
   "attackRange": 1, "attackDamage": 9, "preferredDistance": 1,
   "behaviorKey": "melee_target_highest_hp",
+  "role": "elite",
+  "factionId": "conductor",
+  "intelDescription": "Killing it is mandatory and costly — the Long Table's thesis in one unit.",
   "abilities": [
     {
       "key": "deathburst",

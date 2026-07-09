@@ -4,6 +4,9 @@
   "maxHealth": 12, "baseSpeed": 2, "armor": 0,
   "attackRange": 3, "attackDamage": 3, "preferredDistance": 3,
   "behaviorKey": "ranged_kite",
+  "role": "line",
+  "factionId": "conductor",
+  "intelDescription": "Keeps the tab. Every ally that falls makes its next shot heavier.",
   "abilities": [
     {
       "key": "requiem",

@@ -17,9 +17,11 @@ using Godot;
 /// <summary>Pre-spawn intel row shown in CombatUI's deployment-mode roster. Carries archetype label + display stats, no live Unit reference (the unit doesn't exist yet).</summary>
 public struct EnemyIntelEntry
 {
-    public string ThreatLabel; // "Soldier", "Brute", "Defender", "Skirmisher"
+    public string ThreatLabel; // unique unit name ("Honored Dead"), not archetype genus
     public int MaxHealth;
     public int BaseSpeed;
     public int Armor;
     public Color BodyColor;
+    public string Role;        // V2: "line"/"elite"/"boss" — deployment role marker
+    public string Intel;       // V2: one-line IntelDescription for the tooltip
 }

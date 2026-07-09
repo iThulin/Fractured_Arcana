@@ -5,5 +5,8 @@
   "attackRange": 1, "attackDamage": 4, "preferredDistance": 1,
   "behaviorKey": "melee_advance",
   "behaviorTags": ["pack"],
+  "role": "line",
+  "factionId": "conductor",
+  "intelDescription": "The regulars, standing shoulder to shoulder the way they always did at the bar. Stronger beside their own.",
   "colorR": 0.36, "colorG": 0.23, "colorB": 0.48
 }
