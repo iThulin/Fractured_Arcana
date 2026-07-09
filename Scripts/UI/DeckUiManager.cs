@@ -33,6 +33,7 @@ public partial class DeckUiManager : Node2D
 
 	private DeckManager deckManager;
 	private Control handUIContainer;
+	private Vector2 _lastFanScreen = Vector2.Zero;  // fan-math diagnostic (print on change)
 
 	private bool _isRefreshing = false;
 	private bool _refreshPending = false;
@@ -224,6 +225,17 @@ public partial class DeckUiManager : Node2D
 		float boxLeft = UITheme.HandReserveLeft;
 		float boxRight = screen.X - UITheme.HandReserveRight;
 		float boxCenterX = boxLeft + (boxRight - boxLeft) * 0.5f;
+
+		// Diagnostic (stale-assembly canary + widescreen evidence): prints once
+		// per viewport size change. boxCenter must equal screen.X/2 exactly —
+		// if it doesn't, or this line never appears, the fan math isn't the
+		// code you think it is.
+		if (screen != _lastFanScreen)
+		{
+			_lastFanScreen = screen;
+			GD.Print($"[HandFan] viewport={screen} box={boxLeft}..{boxRight} " +
+					 $"center={boxCenterX} (screen/2={screen.X * 0.5f})");
+		}
 
 		float cardW = UITheme.HandCardWidth;
 		float cardH = UITheme.HandCardHeight;
