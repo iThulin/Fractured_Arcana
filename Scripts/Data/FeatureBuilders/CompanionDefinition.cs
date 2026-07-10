@@ -34,6 +34,24 @@ public class Companion
     public int Loyalty = 50;             // 0-100
     public int ArcStage = 0;             // 0 = not started, 1-3 in progress, 4 complete
 
+    // ── Injury (K2, §5b) ─────────────────────────────────────────────────
+    // Lunations left in the infirmary. >0 = excluded from all three demands
+    // (expedition, court dispatch — recovery IS the third). Serialized;
+    // round-trip asserted in CompanionInjurySystem.
+    public int InjuredLunationsRemaining = 0;
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsInjured => InjuredLunationsRemaining > 0;
+
+    // ── Expedition HP (K2.5 ruling, 2026-07-09) ──────────────────────────
+    // Combat HP persists BETWEEN fights within one expedition: unit HP is
+    // the fights, the party pool is the journey. -1 = fresh/full. 0 = downed
+    // in a WON fight — stabilized, cannot field again this expedition.
+    // Set on combat end, consumed at spawn, resolved by the extraction
+    // infirmary check (below 25% of BaseHP → recovery time), reset at
+    // expedition launch/end. Serialized for mid-expedition saves.
+    public int ExpeditionHP = -1;
+
     // ── Unit class ───────────────────────────────────────────────────────
     // "Arcane" = wizard-type (card-based, has mana)
     // "Fighter" = melee martial
@@ -77,4 +95,35 @@ public class Companion
     // ── Recruitment ──────────────────────────────────────────────────────
     public int RecruitmentCost = 100;    // gold
     public string UnlockCondition = "";  // human-readable; gameplay logic in Phase 3
+
+    // ── Loyalty tiers (K1, 2026-07-09) ───────────────────────────────────
+    // Bands per companion_item_systems v1 (locked, carried in v2.1 §2):
+    // Wary 0–24 / Hired 25–49 / Trusted 50–74 / Devoted / Sworn.
+    // ASSUMPTION (flagged in docs/k1_verification.md): the docs never pin the
+    // Devoted/Sworn split numerically — 75–89 / 90–100 are K1 starting values.
+    // Tune HERE; K4 (Trusted perks, Sworn signatures) and §6 envoy fitness
+    // must read tiers through this same helper, never re-derive.
+    public const int TrustedThreshold = 50;
+    public const int DevotedThreshold = 75;
+    public const int SwornThreshold = 90;
+
+    public LoyaltyTier GetLoyaltyTier() =>
+        Loyalty >= SwornThreshold ? LoyaltyTier.Sworn
+        : Loyalty >= DevotedThreshold ? LoyaltyTier.Devoted
+        : Loyalty >= TrustedThreshold ? LoyaltyTier.Trusted
+        : Loyalty >= 25 ? LoyaltyTier.Hired
+        : LoyaltyTier.Wary;
+
+    /// <summary>§4a pool-HP loyalty bonus: Devoted +2, Sworn +4 — "the personal
+    /// ceiling made literal." All other tiers contribute no bonus.</summary>
+    public int LoyaltyPoolBonus() => GetLoyaltyTier() switch
+    {
+        LoyaltyTier.Sworn => 4,
+        LoyaltyTier.Devoted => 2,
+        _ => 0,
+    };
 }
+
+/// <summary>Companion loyalty bands. See Companion.GetLoyaltyTier for the
+/// thresholds and the K1 assumption on the Devoted/Sworn split.</summary>
+public enum LoyaltyTier { Wary, Hired, Trusted, Devoted, Sworn }

@@ -105,6 +105,10 @@ public partial class EncounterRouter : Node
     /// </summary>
     public void SetCurrentTier(EncounterTier tier) => _currentTier = tier;
 
+    /// <summary>K2 (§5b): boss contexts roll death at 40% — the expedition
+    /// return path reads the tier of the combat it's returning from.</summary>
+    public EncounterTier CurrentTier => _currentTier;
+
     private int CalculateGoldRewardForTier(EncounterTier tier) => tier switch
     {
         EncounterTier.Skirmish => (int)GD.RandRange(8, 15),

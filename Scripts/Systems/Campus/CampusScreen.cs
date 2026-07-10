@@ -1897,14 +1897,25 @@ public partial class CampusScreen : Control
             var info = MakeVBox(2);
             info.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             bool inParty = save.ActivePartyCompanionIds.Contains(c.Id);
-            string badge = c.IsRecruited ? (inParty ? "  [PARTY]" : "  [ROSTER]") : $"  [{c.RecruitmentCost}g]";
+            // K2 (§5b): the infirmary must be VISIBLE — injured companions
+            // won't field, and the player learns that here, not from a
+            // missing unit in the next fight.
+            string badge = c.IsInjured
+                ? $"  [INFIRMARY — {c.InjuredLunationsRemaining} lunation{(c.InjuredLunationsRemaining == 1 ? "" : "s")}]"
+                : c.IsRecruited ? (inParty ? "  [PARTY]" : "  [ROSTER]") : $"  [{c.RecruitmentCost}g]";
 
             var nameLabel = new Label { Text = $"{c.Name}{badge}" };
             nameLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusNameFontSize);
-            nameLabel.AddThemeColorOverride("font_color", UITheme.TextPrimary); // ← add this
+            nameLabel.AddThemeColorOverride("font_color",
+                c.IsInjured ? UITheme.Danger : UITheme.TextPrimary);
             info.AddChild(nameLabel);
 
-            var subLabel = new Label { Text = $"{c.School}  ·  {c.PersonalityTrait}  ·  Loyalty: {c.Loyalty}" };
+            var subLabel = new Label
+            {
+                Text = c.IsInjured
+                    ? $"{c.School}  ·  {c.PersonalityTrait}  ·  Loyalty: {c.Loyalty}  ·  ✚ recovering — excluded from expeditions and court duty"
+                    : $"{c.School}  ·  {c.PersonalityTrait}  ·  Loyalty: {c.Loyalty}"
+            };
             subLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
             subLabel.Modulate = UITheme.CompanionSubText;
             info.AddChild(subLabel);

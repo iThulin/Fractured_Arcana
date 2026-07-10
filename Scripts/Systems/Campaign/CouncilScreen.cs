@@ -978,6 +978,13 @@ public partial class CouncilScreen : CanvasLayer
             {
                 continue;
             }
+            // K2 (§5b): injured companions are out of all three demands —
+            // recovering at the infirmary, not dispatchable. Same outright
+            // exclusion as imprisoned/afield.
+            if (c.IsInjured)
+            {
+                continue;
+            }
             if (CouncilQueries.IsOnMission(c.Id) || CouncilQueries.IsImprisoned(c.Id))
             {
                 continue;

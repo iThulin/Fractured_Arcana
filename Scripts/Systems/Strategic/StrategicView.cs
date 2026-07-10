@@ -1315,6 +1315,39 @@ public partial class StrategicView : Node2D
         AddDeployStat(vbox, "Territory", kingdomLabel);
         AddDeployStat(vbox, "Operating range", $"~{DeployWindowRadius * 2} tiles across");
 
+        // K2 (§5b): party manifest — who actually deploys, who's in the
+        // infirmary. Without this the injury system was invisible outside
+        // the log and a missing companion in the first fight was a surprise.
+        var deploySave = SaveManager.ActiveSave;
+        if (deploySave != null)
+        {
+            var fielded = new System.Collections.Generic.List<string>();
+            var infirmary = new System.Collections.Generic.List<string>();
+            foreach (var cid in deploySave.ActivePartyCompanionIds)
+            {
+                var comp = deploySave.Companions.Find(x => x.Id == cid && x.IsRecruited && !x.IsPermadead);
+                if (comp == null)
+                    continue;
+                if (comp.IsInjured)
+                    infirmary.Add($"{comp.Name} ({comp.InjuredLunationsRemaining} lun.)");
+                else
+                    fielded.Add(comp.Name);
+            }
+            AddDeployStat(vbox, "Party",
+                fielded.Count > 0 ? "Wizard + " + string.Join(", ", fielded) : "The wizard, alone");
+            if (infirmary.Count > 0)
+            {
+                var injWarn = new Label
+                {
+                    Text = $"✚ Infirmary: {string.Join(", ", infirmary)} — recovering, will not deploy.",
+                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                };
+                injWarn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+                injWarn.AddThemeColorOverride("font_color", UITheme.Danger);
+                vbox.AddChild(injWarn);
+            }
+        }
+
         // Corruption warning if the staging tile is corrupted.
         if (tile.Corruption >= 20)
         {
@@ -1391,6 +1424,9 @@ public partial class StrategicView : Node2D
             CouncilTick.Tick(cycle);
             // The living world advances one lunation: corruption spreads.
             CorruptionSpread.Tick(cycle.World, cycle.Campaign, cycle.Kingdoms);
+            // K2 (§5b/R24): infirmary recovery — injured companions heal one
+            // lunation per tick at the campus (Training Grounds interim host).
+            CompanionInjurySystem.TickRecovery(SaveManager.ActiveSave);
         }
 
         // ── Did this tip the cycle into the Grand Conjunction? ──────────────

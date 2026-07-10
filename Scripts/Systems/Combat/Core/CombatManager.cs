@@ -2322,6 +2322,21 @@ public partial class CombatManager : Node3D
         GD.Print(deathMsg);
         combatUI?.AppendActionLog(deathMsg);
 
+        // K2.5: a companion downed on expedition is stabilized at 0 — out for
+        // the rest of the expedition, infirmary check at extraction. If this
+        // fight is LOST, the §5b wipe rolls decide their fate instead.
+        if (unit.IsPlayerControlled && !string.IsNullOrEmpty(unit.CompanionId)
+            && unit.CompanionId != "wizard" && PlayerSession.IsOnExpedition)
+        {
+            var downedComp = SaveManager.ActiveSave?.Companions?.Find(c => c.Id == unit.CompanionId);
+            if (downedComp != null)
+            {
+                downedComp.ExpeditionHP = 0;
+                GD.Print($"[ExpeditionHP] {downedComp.Name} downed — stabilized at 0, " +
+                         "out for the rest of this expedition.");
+            }
+        }
+
         // U3: queue death-driven triggers (onDeath/onAllyDeath) while the corpse
         // still has a tile — "when the unit dies, before removal" (units doc §5).
         // Queuing only; the drain runs at the next safe async point.
@@ -2479,6 +2494,13 @@ public partial class CombatManager : Node3D
 
     private bool CheckCombatEnd()
     {
+        // Already ended (2026-07-09): this is re-invoked by the enemy-turn tail
+        // and the per-frame prune loop after the phase is decided — without the
+        // guard, DEFEAT/VICTORY emitted CombatCompleted repeatedly (observed:
+        // 4× on one loss, re-rolling the router's gold each time).
+        if (currentPhase == CombatPhase.Victory || currentPhase == CombatPhase.Defeat)
+            return true;
+
         // U3: defer while death triggers are pending or on the stack — killing
         // The Final Service last must not declare victory before Deathburst
         // resolves and the Honored Dead rise. DrainTriggerStackAsync re-checks
@@ -2515,6 +2537,28 @@ public partial class CombatManager : Node3D
             GD.Print("=== VICTORY ===");
             combatUI?.AppendActionLog("Victory!");
             CombatTelemetry.EndFight(true, roundNumber);
+
+            // K2.5 (ruled 2026-07-09): unit HP is the fights — surviving
+            // companions carry their remaining HP into the next fight of
+            // this expedition. (Downed companions were stabilized at 0 in
+            // HandleUnitDeath; the wizard's stand-in is the party pool.)
+            if (PlayerSession.IsOnExpedition && SaveManager.ActiveSave != null)
+            {
+                foreach (var u in playerUnits)
+                {
+                    if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive)
+                        continue;
+                    if (string.IsNullOrEmpty(u.CompanionId) || u.CompanionId == "wizard")
+                        continue;
+                    var comp = SaveManager.ActiveSave.Companions?.Find(c => c.Id == u.CompanionId);
+                    if (comp == null)
+                        continue;
+                    comp.ExpeditionHP = u.Stats.Health;
+                    GD.Print($"[ExpeditionHP] {comp.Name} leaves the fight at " +
+                             $"{u.Stats.Health}/{u.Stats.MaxHealth} — carried to the next one.");
+                }
+            }
+
             EmitSignal(SignalName.CombatCompleted, true);   // ← ADD THIS
             return true;
         }
@@ -2893,6 +2937,16 @@ public partial class CombatManager : Node3D
             unit.DisplayName = companion.Name;
 
             unit.CompanionId = companion.Id;
+
+            // K2.5: carry expedition HP into this fight. GetActiveParty already
+            // filtered out stabilized (0) companions, so this is always ≥1.
+            if (PlayerSession.IsOnExpedition && companion.ExpeditionHP >= 0)
+            {
+                unit.Stats.Health = Mathf.Clamp(companion.ExpeditionHP, 1, unit.Stats.MaxHealth);
+                unit.RefreshHealthBar();
+                GD.Print($"[ExpeditionHP] {companion.Name} fields at " +
+                         $"{unit.Stats.Health}/{unit.Stats.MaxHealth} (carried from earlier fights).");
+            }
 
             if (isMartial)
             {

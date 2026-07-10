@@ -112,8 +112,14 @@ public static class CompanionRoster
         if (DebugPartyOverride != null) return DebugPartyOverride;
         var save = SaveManager.ActiveSave;
         if (save == null) return new List<Companion>();
+        // K2 (§5b): injured companions are excluded from all three demands —
+        // they cannot be fielded (this filter also covers negotiation tokens
+        // and combat spawns, which all read the party through here).
+        // K2.5: mid-expedition, a companion stabilized at 0 (downed in a won
+        // fight) is out for the REST of the expedition.
         return save.Companions
-            .Where(c => save.ActivePartyCompanionIds.Contains(c.Id) && !c.IsPermadead)
+            .Where(c => save.ActivePartyCompanionIds.Contains(c.Id) && !c.IsPermadead && !c.IsInjured
+                        && !(PlayerSession.IsOnExpedition && c.ExpeditionHP == 0))
             .ToList();
     }
 

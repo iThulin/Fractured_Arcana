@@ -43,6 +43,11 @@ public partial class ExpeditionManager : Node2D
     public int StepsRemaining { get; set; }
     public int CurrentHP { get; set; }
     public int MaxHP { get; set; }
+
+    /// <summary>Casualty summary from the most recent §5b wipe roll, consumed
+    /// by FailExpedition's banner so the human cost is visible at the moment
+    /// of failure (K2 UX).</summary>
+    private string _casualtyNote;
     public int GoldEarned { get; set; }
     public int SplinterEarned { get; set; }
     public int EncountersWon { get; set; }
@@ -182,6 +187,10 @@ public partial class ExpeditionManager : Node2D
         }
         else
         {
+            // K2.5: fresh expedition — everyone starts whole. (Combat returns
+            // take the other branch and must NOT reset carried HP.)
+            CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
+
             _party.Initialize(_grid, _fog, _window.PartyStartLocal);
             // Reveal-on-deploy: the staging tile and its vision write to World.
             WriteVisibleToWorld();
@@ -831,7 +840,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     private void RestoreFromCombat(EncounterRouter router)
     {
         StepsRemaining = router.SavedStepsRemaining;
-        CurrentHP = router.SavedCurrentHP;
+        // K1 clamp (2026-07-09): MaxHP was recomputed in _Ready from the LIVE
+        // roster — a companion permadying in the combat we're returning from
+        // shrinks the pool, and the saved HP must not exceed the new ceiling.
+        CurrentHP = Mathf.Min(router.SavedCurrentHP, MaxHP);
         GoldEarned = router.SavedGoldEarned;
         SplinterEarned = router.SavedSplinterEarned;
         EncountersWon = router.SavedEncountersWon;
@@ -862,15 +874,34 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
         else
         {
-            CurrentHP -= router.DamageTaken;
-            if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
-                CurrentHP = Mathf.Max(1, CurrentHP);
+            // K2 (§5b): a LOST combat downs the whole fielded party (defeat
+            // requires allPlayersDead in CheckCombatEnd) — one roll each at the
+            // combat hex's territory tier; boss encounters roll at 40%.
+            _casualtyNote = CompanionInjurySystem.ApplyWipe(SaveManager.ActiveSave,
+                TerritoryTierAt(resultHex),
+                bossContext: router.CurrentTier == EncounterTier.Boss,
+                "defeated in combat");
+
             if (_grid.Hexes.TryGetValue(resultHex, out var hex))
             { hex.POIConsumed = true; hex.RefreshVisuals(); }
             ConsumeWorldPoi(resultHex);
-            if (CurrentHP <= 0)
-            { CurrentHP = 0; FailExpedition("Defeated in the field."); return; }
-            ShowInfo($"Defeated... Lost {router.DamageTaken} HP.");
+
+            // RULED (2026-07-09): defeat ENDS the expedition. The old path
+            // subtracted router.DamageTaken (which arrived as 0) and carried on
+            // — a fully dead party "respawned" at full pool. A party that lost
+            // everyone does not keep exploring. GodModeHP (debug) is the only
+            // escape: the run survives at 1 HP.
+            if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
+            {
+                CurrentHP = Mathf.Max(1, CurrentHP - router.DamageTaken);
+                ShowInfo("Defeated... (GodMode: the expedition staggers on.)");
+            }
+            else
+            {
+                CurrentHP = 0;
+                FailExpedition("Your party was defeated in the field.", injuriesAlreadyRolled: true);
+                return;
+            }
         }
 
         router.HasPendingReturn = false;
@@ -1055,18 +1086,36 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             EncounterRouter.Instance.HasPendingReturn = false;
         }
 
+        // K2.5 ruling: extraction infirmary check — who came home broken?
+        // Stabilized (downed in a won fight) → 1–2 lunations; below 25% of
+        // BaseHP → 1. Resets ExpeditionHP. No death risk on extraction.
+        string extractCasualties = CompanionInjurySystem.ApplyExtractionCheck(SaveManager.ActiveSave);
+
         BankResources(extracted: true);
-        ShowInfo($"Extracted. Gold: {GoldEarned}, Splinters: {SplinterEarned}, Encounters: {EncountersWon}.");
+        ShowInfo($"Extracted. Gold: {GoldEarned}, Splinters: {SplinterEarned}, Encounters: {EncountersWon}." +
+                 $"{(string.IsNullOrEmpty(extractCasualties) ? "" : " " + extractCasualties)}");
         ShowReturnButton();
         EmitSignal(SignalName.ExpeditionEnded, true);
     }
 
-    private void FailExpedition(string reason)
+    private void FailExpedition(string reason, bool injuriesAlreadyRolled = false)
     {
         if (ExpeditionComplete)
             return;
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
+
+        // K2 (§5b): the pool hit 0 — an expedition wipe. One roll per fielded
+        // companion at the territory tier under the party's feet. Skipped when
+        // the combat-loss return already rolled this wipe (one roll per wipe).
+        if (!injuriesAlreadyRolled)
+            _casualtyNote = CompanionInjurySystem.ApplyWipe(SaveManager.ActiveSave,
+                TerritoryTierAt(_party?.CurrentCoord ?? Vector2I.Zero),
+                bossContext: false, reason);
+
+        // K2.5: expedition over — the wipe rolls above are the injury
+        // accounting on this path; carried HP just clears.
+        CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
 
         if (EncounterRouter.Instance != null)
         {
@@ -1076,7 +1125,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // Failure still banks DISCOVERY (it's in World) but forfeits unbanked gold.
         BankResources(extracted: false);
-        ShowInfo($"Expedition failed: {reason} Discoveries retained; unbanked spoils lost.");
+        // The casualty note makes the human cost part of the banner — WHO was
+        // hurt and for how long, not just that the run died (K2 UX).
+        string casualties = string.IsNullOrEmpty(_casualtyNote) ? "" : $" {_casualtyNote}";
+        ShowInfo($"Expedition failed: {reason} Discoveries retained; unbanked spoils lost.{casualties}");
+        _casualtyNote = null;
         ShowReturnButton();
         EmitSignal(SignalName.ExpeditionEnded, false);
     }
@@ -1409,6 +1462,21 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _ => 1.5f,   // tier 3+
         };
         return regionMult * tierFactor;
+    }
+
+    /// <summary>K2 (§5b): territory tier (1–3) at a window-local tile — the
+    /// injury/death roll severity. Same kingdom lookup as DifficultyMultAt;
+    /// unclaimed ground rolls at tier 1.</summary>
+    private int TerritoryTierAt(Vector2I local)
+    {
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return 1;
+        string kid = _world.GetTile(col, row).KingdomId ?? "";
+        if (string.IsNullOrEmpty(kid) ||
+            SaveManager.ActiveSave?.Cycle?.Kingdoms == null ||
+            !SaveManager.ActiveSave.Cycle.Kingdoms.TryGetValue(kid, out var ks))
+            return 1;
+        return Mathf.Clamp(ks.Tier, 1, 3);
     }
 
     /// <summary>Map a stored grid-local coord through the window (identity — the
@@ -1762,6 +1830,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
     }
 
+    /// <summary>K1 (companion_item_systems v2.1 §4a): PartyPool = 20 (wizard
+    /// base) + Σ per-companion floor(BaseHP/2) + loyalty bonus (Devoted +2,
+    /// Sworn +4). Replaces the old full-BaseHP sum. Reads only serialized
+    /// fields (BaseHP, Loyalty, roster ids) → deterministic across save/load.
+    /// Prints the per-companion breakdown at launch (§10 K1 "pool readout").</summary>
     private int ComputePartyBaseHP()
     {
         const int WizardBaseHP = 20;
@@ -1769,12 +1842,22 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var save = SaveManager.ActiveSave;
         if (save == null)
             return total;
+
+        var readout = new System.Text.StringBuilder($"[PartyPool] wizard {WizardBaseHP}");
         foreach (var id in save.ActivePartyCompanionIds)
         {
-            var c = save.Companions.Find(c => c.Id == id && c.IsRecruited && !c.IsPermadead);
-            if (c != null)
-                total += c.BaseHP;
+            // K2: injured companions aren't fielded → no pool contribution.
+            var c = save.Companions.Find(c => c.Id == id && c.IsRecruited && !c.IsPermadead && !c.IsInjured);
+            if (c == null)
+                continue;
+            int contribution = c.BaseHP / 2;   // floor — int division, BaseHP ≥ 0
+            int bonus = c.LoyaltyPoolBonus();
+            total += contribution + bonus;
+            readout.Append($" + {c.Name} {contribution + bonus} (⌊{c.BaseHP}/2⌋" +
+                           $"{(bonus > 0 ? $" +{bonus} {c.GetLoyaltyTier()}" : "")})");
         }
+        readout.Append($" = {total}");
+        GD.Print(readout.ToString());
         return total;
     }
 
