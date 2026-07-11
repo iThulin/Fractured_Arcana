@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Time Lord",
 		"mana": 4,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Permanent: at the start of each turn, Rewind OR Fast-Forward one event (a spell, a death, a move).",
 		"tags": [
 			"temporal"
@@ -22,7 +22,7 @@
 	"bottom": {
 		"name": "Entropy",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Imbue the board with Temporal Decay: all units lose 4 HP/turn. Your spells gain +2 per active turn. Rest of fight.",
 		"tags": [
 			"temporal"

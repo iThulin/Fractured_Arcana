@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Spell Prism",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Create a Prism on a tile within 2 (8 HP). When a spell passes through its line of sight it splits: resolve once on the original target and once on the nearest enemy within 2 of the Prism.",
 		"tags": [
 			"arcane"
@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "Charged Conduit",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Imbue a tile: the next spell cast from this tile gains +2 damage per charge you have, then consumes all charge.",
 		"tags": [
 			"arcane"

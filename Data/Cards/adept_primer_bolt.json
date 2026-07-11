@@ -7,19 +7,33 @@
 	"top": {
 		"name": "Primer Bolt",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal damage equal to distance to target (min 2, max 6).",
 		"tags": [],
-		"targeting": { "type": "unit", "range": 7, "los": true, "enemies_only": true },
-		"effect": { "type": "damage_by_distance", "min": 2, "max": 6 }
+		"targeting": {
+			"type": "unit",
+			"range": 7,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage_by_distance",
+			"min": 2,
+			"max": 6
+		}
 	},
 	"bottom": {
 		"name": "Quick Step",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Move 2 tiles.",
 		"tags": [],
-		"targeting": { "type": "self" },
-		"effect": { "type": "move", "tiles": 2 }
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "move",
+			"tiles": 2
+		}
 	}
 }

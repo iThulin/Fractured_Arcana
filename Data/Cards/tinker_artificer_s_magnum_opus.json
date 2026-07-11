@@ -1,36 +1,36 @@
 {
-  "id": "tinker_artificer_s_magnum_opus",
-  "status": "ready",
-  "name": "Artificer's Magnum Opus",
-  "school": "Tinker",
-  "rarity": "Legendary",
-  "top": {
-    "name": "Artificer's Magnum Opus",
-    "mana": 5,
-    "speed": "Sorcery",
-    "rules_text": "Deploy the Arcanomechanical Colossus on an empty tile within 2 (40 HP, 13 DMG, 2 SPD, range 3). Each activation it fabricates a free Drone; when destroyed it detonates for 6 damage to adjacent enemies.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "tinker_colossus",
-      "count": 1
-    }
-  },
-  "bottom": {
-    "name": "Full Salvo",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Every ready construct you control immediately fires at the nearest enemy within its range (Heat included).",
-    "tags": [],
-    "targeting": {
-      "type": "none"
-    },
-    "effect": {
-      "type": "construct_volley"
-    }
-  }
+	"id": "tinker_artificer_s_magnum_opus",
+	"status": "ready",
+	"name": "Artificer's Magnum Opus",
+	"school": "Tinker",
+	"rarity": "Legendary",
+	"top": {
+		"name": "Artificer's Magnum Opus",
+		"mana": 5,
+		"speed": "Studied",
+		"rules_text": "Deploy the Arcanomechanical Colossus on an empty tile within 2 (40 HP, 13 DMG, 2 SPD, range 3). Each activation it fabricates a free Drone; when destroyed it detonates for 6 damage to adjacent enemies.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "tinker_colossus",
+			"count": 1
+		}
+	},
+	"bottom": {
+		"name": "Full Salvo",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Every ready construct you control immediately fires at the nearest enemy within its range (Heat included).",
+		"tags": [],
+		"targeting": {
+			"type": "none"
+		},
+		"effect": {
+			"type": "construct_volley"
+		}
+	}
 }

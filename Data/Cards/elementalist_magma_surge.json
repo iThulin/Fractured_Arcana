@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Magma Surge",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 6 damage. Imbue target tile and adjacent ring with Fire. Enemies on fire tiles take 3 extra damage.",
 		"tags": [
 			"fire",
@@ -50,7 +50,7 @@
 	"bottom": {
 		"name": "Forge Strike",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Requires Fire tile. Gain 6 armor. Deal 5 damage to adjacent enemies.",
 		"tags": [
 			"fire",

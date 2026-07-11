@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Static Field",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Imbue target tile and ring at radius 2 with Storm. Enemies crossing Storm tiles take 2 damage per tile.",
 		"tags": [
 			"storm"
@@ -43,7 +43,7 @@
 	"bottom": {
 		"name": "Avalanche",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Deal 5 damage to all enemies in a line (4). Push each enemy 1 tile backward.",
 		"tags": [
 			"ice"

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Focused Strike",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 6 damage (range 3).",
 		"tags": [],
 		"targeting": {
@@ -24,7 +24,7 @@
 	"bottom": {
 		"name": "Brace",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 2 armor.",
 		"tags": [],
 		"targeting": {

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Chain Lightning",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 6 damage to target. Chains to 2 nearest enemies (3 damage each).",
 		"tags": [
 			"storm"
@@ -53,7 +53,7 @@
 	"bottom": {
 		"name": "Lightning Rod",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Imbue your tile and ring at 2 with Storm. Gain 2 shield per Storm tile imbued.",
 		"tags": [
 			"storm"

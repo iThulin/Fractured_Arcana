@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Eldritch Catalyst",
 		"mana": 0,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Your next spell this turn also hits 1 additional enemy (nearest within 2).",
 		"tags": [
 			"arcane"
@@ -25,7 +25,7 @@
 	"bottom": {
 		"name": "Charge Siphon",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 4 damage. Gain 1 charge per buff on the target (min 1).",
 		"tags": [
 			"arcane"

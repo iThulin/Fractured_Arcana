@@ -17,12 +17,13 @@ using System;
 // ============================================================
 
 /// <summary>
-/// When an ability can resolve relative to the stack.
-/// <c>Sorcery</c> may only be cast on your own turn at sorcery speed.
-/// <c>Instant</c> may be cast at any time it is your priority.
-/// <c>Reaction</c> may be cast in response to another effect resolving (used by channel variants).
+/// When an ability can be played (two-speed ruling, 2026-07-10).
+/// <c>Studied</c> may only be cast on your own turn, main phase.
+/// <c>Reflex</c> may be cast on your turn OR in any reaction window during the
+/// enemy phase (reserve mana to respond; the Chronomancer's Time Bank persists).
+/// Legacy JSON vocabulary (Sorcery/Instant/Reaction) is mapped by ParseSpeed.
 /// </summary>
-public enum PlaySpeed { Sorcery, Instant, Reaction }
+public enum PlaySpeed { Studied, Reflex }
 
 /// <summary>
 /// A physical card instance. Each Card has up to two halves (top / bottom) and a
@@ -67,7 +68,7 @@ public abstract class Ability
     public string Name;
 
     /// <summary>Speed at which the ability may be played. See <see cref="PlaySpeed"/>.</summary>
-    public PlaySpeed Speed = PlaySpeed.Sorcery;
+    public PlaySpeed Speed = PlaySpeed.Studied;
 
     /// <summary>Costs that must be paid to cast (mana, life, exile-a-card, etc.). Empty array means free.</summary>
     public ICost[] Costs = Array.Empty<ICost>();

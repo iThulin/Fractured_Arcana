@@ -1,38 +1,38 @@
 {
-  "id": "tinker_the_foundry",
-  "status": "ready",
-  "name": "The Foundry",
-  "school": "Tinker",
-  "rarity": "Legendary",
-  "top": {
-    "name": "The Foundry",
-    "mana": 4,
-    "speed": "Sorcery",
-    "rules_text": "Raise the Foundry on an empty tile within 2 (30 HP, immobile). While it stands, all your constructs gain +2 damage.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "foundry",
-      "count": 1
-    }
-  },
-  "bottom": {
-    "name": "Artificer's Doctrine",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Your next 3 constructs deploy with +3 HP and +3 damage.",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "master_schematic",
-      "charges": 3,
-      "amount": 3
-    }
-  }
+	"id": "tinker_the_foundry",
+	"status": "ready",
+	"name": "The Foundry",
+	"school": "Tinker",
+	"rarity": "Legendary",
+	"top": {
+		"name": "The Foundry",
+		"mana": 4,
+		"speed": "Studied",
+		"rules_text": "Raise the Foundry on an empty tile within 2 (30 HP, immobile). While it stands, all your constructs gain +2 damage.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "foundry",
+			"count": 1
+		}
+	},
+	"bottom": {
+		"name": "Artificer's Doctrine",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Your next 3 constructs deploy with +3 HP and +3 damage.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "master_schematic",
+			"charges": 3,
+			"amount": 3
+		}
+	}
 }

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Mire",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Seed growth within 2 of the target, then root enemies on living ground there for 1 turn.",
 		"tags": [
 			"growth"
@@ -36,7 +36,7 @@
 	"bottom": {
 		"name": "Sink",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Slow target for 2 turns and deal 2 damage, +1 per growth stage under it.",
 		"tags": [
 			"growth"

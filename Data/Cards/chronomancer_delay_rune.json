@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Delay Rune",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Target enemy's next action is postponed 1 turn.",
 		"tags": [
 			"temporal"
@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "Slow Field",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Apply Temporal Drag to enemies within 1: half movement, spells cost +1.",
 		"tags": [
 			"temporal"
@@ -164,7 +164,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Temporal Drag (3) within 2. Enemies cannot Reaction-cast in the field."
+					"value": "Temporal Drag (3) within 2. Enemies cannot Reflex-cast in the field."
 				}
 			]
 		},

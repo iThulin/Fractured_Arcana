@@ -349,7 +349,7 @@ public partial class CardUi : Control
     {
         if (mana != null) mana.Text = (half?.ManaCost ?? 0).ToString();
         if (name != null) name.Text = half?.Name ?? "";
-        if (speed != null) speed.Text = half?.Speed.ToString() ?? "Sorcery";
+        if (speed != null) speed.Text = half?.Speed.ToString() ?? "Studied";
         if (rules != null) rules.Text = half?.RulesText ?? "";
         PopulateElementTags(elementTags, half);
     }

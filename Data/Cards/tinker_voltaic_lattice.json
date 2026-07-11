@@ -1,41 +1,41 @@
 {
-  "id": "tinker_voltaic_lattice",
-  "status": "ready",
-  "name": "Voltaic Lattice",
-  "school": "Tinker",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Voltaic Lattice",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deploy a Lattice Node on an empty tile within 2 (6 HP). Friendly constructs within 2 tiles gain +2 damage each round.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "lattice_node",
-      "count": 1
-    }
-  },
-  "bottom": {
-    "name": "Disruption Field",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Project a disruption zone (radius 2) on target tile for 3 turns: enemies inside take 3 damage and are slowed each round.",
-    "tags": [],
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "disruption_field",
-      "radius": 2,
-      "damage": 3,
-      "slows": true,
-      "turns": 3
-    }
-  }
+	"id": "tinker_voltaic_lattice",
+	"status": "ready",
+	"name": "Voltaic Lattice",
+	"school": "Tinker",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Voltaic Lattice",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deploy a Lattice Node on an empty tile within 2 (6 HP). Friendly constructs within 2 tiles gain +2 damage each round.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "lattice_node",
+			"count": 1
+		}
+	},
+	"bottom": {
+		"name": "Disruption Field",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Project a disruption zone (radius 2) on target tile for 3 turns: enemies inside take 3 damage and are slowed each round.",
+		"tags": [],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "disruption_field",
+			"radius": 2,
+			"damage": 3,
+			"slows": true,
+			"turns": 3
+		}
+	}
 }

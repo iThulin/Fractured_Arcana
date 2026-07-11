@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Blink",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Teleport to any empty tile within 3.",
 		"tags": [],
 		"targeting": {
@@ -21,7 +21,7 @@
 	"bottom": {
 		"name": "Fade",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Teleport to any empty tile within 2. Gain 2 shield.",
 		"tags": [],
 		"targeting": {

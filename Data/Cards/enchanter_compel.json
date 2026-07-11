@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Compel",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Pull an enemy 2 tiles toward you. If it lands on one of your glyphs, trigger it.",
 		"tags": [
 			"enchant"
@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "Sigil of Focus",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less. Draw 1 card.",
 		"tags": [
 			"enchant",

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Dominion",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Name every enemy within 2 of the target for 1 turn (half damage, cannot move). Gain 2 Weave.",
 		"tags": [
 			"enchant"
@@ -42,7 +42,7 @@
 	"bottom": {
 		"name": "Sanctuary",
 		"mana": 3,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Prepare wards on a 2-tile radius around you. Allies on them gain 4 armor and 3 shield. Lasts 3 turns.",
 		"tags": [
 			"enchant"

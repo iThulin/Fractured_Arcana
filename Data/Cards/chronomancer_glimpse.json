@@ -7,8 +7,8 @@
 	"top": {
 		"name": "Glimpse",
 		"mana": 0,
-		"speed": "Instant",
-		"rules_text": "Reveal the next action of all enemies within 6. Gain 1 Foresight.",
+		"speed": "Reflex",
+		"rules_text": "Reveal the next action of all enemies within 6.",
 		"tags": [
 			"temporal"
 		],
@@ -16,22 +16,13 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "sequence",
-			"steps": [
-				{
-					"type": "peek_intent"
-				},
-				{
-					"type": "gain_foresight",
-					"amount": 1
-				}
-			]
+			"type": "peek_intent"
 		}
 	},
 	"bottom": {
 		"name": "Ward of Hours",
 		"mana": 1,
-		"speed": "Reaction",
+		"speed": "Reflex",
 		"rules_text": "When you would be hit: gain 6 shield until your next turn.",
 		"tags": [
 			"temporal"
@@ -133,7 +124,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When you would be hit: gain 8 shield and deal 3 back to the attacker."
+					"value": "When you would be hit: gain 8 shield; the attacker takes 3."
 				}
 			]
 		},
@@ -164,7 +155,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 10 shield; the first time it breaks, re-apply 10 and deal 3 back."
+					"value": "When you would be hit: gain 10 shield; the first time it breaks, re-apply 10. Attackers take 3."
 				}
 			]
 		},

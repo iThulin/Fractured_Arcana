@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Wolves Come",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Summon a Wolf beside living ground (12HP 5DMG 2SPD).",
 		"tags": [
 			"growth"
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "Eyes in the Trees",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Summon Crows at the target tile (6HP 2DMG 4SPD).",
 		"tags": [
 			"growth"

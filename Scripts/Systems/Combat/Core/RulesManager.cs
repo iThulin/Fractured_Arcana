@@ -115,7 +115,6 @@ public sealed class Resolver
         if (_stack.IsEmpty)
             return;
         var item = _stack.Pop();
-        s.LastResolvedItem = item;
 
         // Pin the acting unit for this resolution (2026-07-09): effects and
         // targeting resolve "the caster" through ActiveCasterUnit. For casts
@@ -136,6 +135,12 @@ public sealed class Resolver
             s.ActiveCasterUnit = prevCaster;
         }
 
+        // Set AFTER the effect loop (2026-07-10): "last resolved" must mean the
+        // PREVIOUS spell while an item is resolving. Assigning before the loop
+        // made rewind_last / echo / replicate effects re-resolve their own item
+        // (infinite recursion -> stack-overflow crash with no log).
+        s.LastResolvedItem = item;
+
         _bus.Emit("AbilityResolved", item);
 
         if (item.Ability is CardHalf half && half.ConsumesCardOnResolve)
@@ -148,16 +153,16 @@ public static class Rules
 
     public static bool CanCast(Ability a, GameState s, Entity caster)
     {
-        if (a.Speed == PlaySpeed.Sorcery && s.Step != "Main")
+        if (a.Speed == PlaySpeed.Studied && s.Step != "Main")
             return false;
 
-        if (a.Speed == PlaySpeed.Reaction)
+        if (a.Speed != PlaySpeed.Studied && s.EnemyPhaseContext)
         {
             var casterUnit = s.UnitsInPlay?.Find(u => u != null && u.Name == caster.Name);
             if (casterUnit?.Attunement is FateAttunement fate && fate.HasFreeReaction)
             {
-                // Free Reaction — skip the CanPlay cost check for this path only.
-                // ConsumeFreeReaction() is called in TryCastWithTargets after Pay().
+                // Free response (full bank) — skip the cost check for this path only.
+                // Enemy-phase gated so a leftover grant can't discount your own turn.
                 return true;
             }
         }
@@ -178,7 +183,7 @@ public static class Rules
         foreach (var c in a.Costs)
             c.Pay(s, caster);
 
-        if (a.Speed == PlaySpeed.Reaction)
+        if (a.Speed != PlaySpeed.Studied && s.EnemyPhaseContext)
         {
             var casterUnit = s.UnitsInPlay?.Find(u => u != null && u.Name == caster.Name);
             if (casterUnit?.Attunement is FateAttunement fate && fate.HasFreeReaction)
@@ -242,17 +247,31 @@ public static class Rules
             }
         }
 
-        // ── Foresight: Instant/Reaction cost reduction at Foresight >= 2 ───────────
-        if ((a.Speed == PlaySpeed.Instant || a.Speed == PlaySpeed.Reaction)
-            && s.ActiveCasterUnit?.Attunement is FateAttunement fate)
+        // (2026-07-10 Time Bank tuning): the Foresight >= 2 Instant/Reaction discount
+        // is RETIRED — cheaper casts fed leftover mana straight back into the bank,
+        // a feedback loop that kept the bank pegged at 4 (playtest-confirmed).
+
+        // Full bank free response (2026-07-10): the preselected path never
+        // honored HasFreeReaction — it bypassed the affordability check but
+        // still paid, and never consumed the grant. Now: skip payment entirely
+        // and consume. Enemy-phase + non-Sorcery gated, mirroring CanCast.
+        bool freeResponse = false;
+        if (a.Speed != PlaySpeed.Studied && s.EnemyPhaseContext)
         {
-            manaDiscount += fate.GetInstantCostReduction();
+            var freeUnit = s.UnitsInPlay?.Find(u => u != null && u.Name == caster.Name);
+            if (freeUnit?.Attunement is FateAttunement freeFate && freeFate.HasFreeReaction)
+            {
+                freeResponse = true;
+                freeFate.ConsumeFreeReaction();
+                s.Log($"[TimeBank] Full-bank free response — {a.Name} costs nothing.");
+            }
         }
 
         // Pay at full price, then refund the discount.
         // This avoids needing to mutate ManaCost internals.
-        foreach (var c in a.Costs)
-            c.Pay(s, caster);
+        if (!freeResponse)
+            foreach (var c in a.Costs)
+                c.Pay(s, caster);
 
         if (manaDiscount > 0 && s.Mana.ContainsKey(caster))
         {

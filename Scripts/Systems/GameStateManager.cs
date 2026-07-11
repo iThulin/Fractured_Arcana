@@ -35,6 +35,11 @@ public sealed class GameState
     public StackItem LastResolvedItem;
     public int SpellsCastThisTurn = 0;
 
+    /// <summary>True while the enemy phase is executing. Reaction costs may be
+    /// paid from banked Foresight (Time Bank, 2026-07-10) only in this context.
+    /// Set in RunEnemyTurn; cleared in StartPlayerTurn.</summary>
+    public bool EnemyPhaseContext = false;
+
     /// <summary>True while the current cast is a channeled (upgraded) variant. Set at cast in CombatManager's channel resolution; read by the IsChanneled predicate.</summary>
     public bool LastCastWasChannel = false;
 

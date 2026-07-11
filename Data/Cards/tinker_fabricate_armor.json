@@ -1,46 +1,46 @@
 {
-  "id": "tinker_fabricate_armor",
-  "status": "ready",
-  "name": "Fabricate Armor",
-  "school": "Tinker",
-  "rarity": "Common",
-  "top": {
-    "name": "Fabricate Armor",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Gain 5 armor. If you control a construct, gain 7 instead.",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "conditional",
-      "if": {
-        "type": "has_construct"
-      },
-      "then": {
-        "type": "armor",
-        "amount": 7
-      },
-      "else": {
-        "type": "armor",
-        "amount": 5
-      }
-    }
-  },
-  "bottom": {
-    "name": "Salvage",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Scrap a construct you control within range 3: gain armor equal to its remaining HP and draw 1 card.",
-    "tags": [],
-    "targeting": {
-      "type": "unit",
-      "range": 3
-    },
-    "effect": {
-      "type": "salvage_construct",
-      "draw": 1
-    }
-  }
+	"id": "tinker_fabricate_armor",
+	"status": "ready",
+	"name": "Fabricate Armor",
+	"school": "Tinker",
+	"rarity": "Common",
+	"top": {
+		"name": "Fabricate Armor",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 5 armor. If you control a construct, gain 7 instead.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "has_construct"
+			},
+			"then": {
+				"type": "armor",
+				"amount": 7
+			},
+			"else": {
+				"type": "armor",
+				"amount": 5
+			}
+		}
+	},
+	"bottom": {
+		"name": "Salvage",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Scrap a construct you control within range 3: gain armor equal to its remaining HP and draw 1 card.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 3
+		},
+		"effect": {
+			"type": "salvage_construct",
+			"draw": 1
+		}
+	}
 }

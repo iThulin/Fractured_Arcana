@@ -1,60 +1,60 @@
 {
-  "id": "tinker_shock_net",
-  "status": "ready",
-  "name": "Shock Net",
-  "school": "Tinker",
-  "rarity": "Common",
-  "top": {
-    "name": "Shock Net",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Root target enemy for 1 turn. If it stands beside one of your constructs, it also takes 4 damage.",
-    "tags": [],
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "apply_status",
-          "status": "rooted",
-          "duration": 1
-        },
-        {
-          "type": "conditional",
-          "if": {
-            "type": "target_adjacent_to_construct"
-          },
-          "then": {
-            "type": "damage",
-            "amount": 4
-          },
-          "else": {
-            "type": "empty"
-          }
-        }
-      ]
-    }
-  },
-  "bottom": {
-    "name": "Wire Trap",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Arm a hidden trap on a tile within 2. The first enemy to enter takes 5 damage and is rooted for 1 turn.",
-    "tags": [],
-    "targeting": {
-      "type": "tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "place_trap",
-      "damage": 5,
-      "status": "rooted",
-      "duration": 1
-    }
-  }
+	"id": "tinker_shock_net",
+	"status": "ready",
+	"name": "Shock Net",
+	"school": "Tinker",
+	"rarity": "Common",
+	"top": {
+		"name": "Shock Net",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Root target enemy for 1 turn. If it stands beside one of your constructs, it also takes 4 damage.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "apply_status",
+					"status": "rooted",
+					"duration": 1
+				},
+				{
+					"type": "conditional",
+					"if": {
+						"type": "target_adjacent_to_construct"
+					},
+					"then": {
+						"type": "damage",
+						"amount": 4
+					},
+					"else": {
+						"type": "empty"
+					}
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Wire Trap",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Arm a hidden trap on a tile within 2. The first enemy to enter takes 5 damage and is rooted for 1 turn.",
+		"tags": [],
+		"targeting": {
+			"type": "tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "place_trap",
+			"damage": 5,
+			"status": "rooted",
+			"duration": 1
+		}
+	}
 }

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Thermal Vent",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Destroy a Fire tile. Deal 5 damage to all enemies within 2 tiles of it. Gain 1 mana.",
 		"tags": [
 			"fire"
@@ -41,7 +41,7 @@
 	"bottom": {
 		"name": "Glacial Rift",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Imbue a line of 3 tiles with Ice. Enemies on those tiles frozen for 1 turn.",
 		"tags": [
 			"ice"

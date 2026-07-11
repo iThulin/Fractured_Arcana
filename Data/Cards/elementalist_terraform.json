@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Terraform",
 		"mana": 4,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Reshape 3-tile radius to match your highest element. Push enemies to edge, deal 6 damage. Imbue all tiles.",
 		"tags": [
 			"fire",
@@ -30,7 +30,7 @@
 	"bottom": {
 		"name": "Elemental Colossus",
 		"mana": 4,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Summon the Colossus (30HP 5ARM 1SPD) on target tile. Gain 4 armor.",
 		"tags": [
 			"earth"

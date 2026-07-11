@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Lava Flow",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Imbue a line (2) of fire in target direction. Push enemies 2 tiles and deal 3 damage per tile.",
 		"tags": [
 			"fire",
@@ -46,7 +46,7 @@
 	"bottom": {
 		"name": "Earth Anchor",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Requires Stone tile. Root yourself. Gain 7 armor.",
 		"tags": [
 			"earth"

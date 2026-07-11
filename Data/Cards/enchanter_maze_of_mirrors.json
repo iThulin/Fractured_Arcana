@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Maze of Mirrors",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Create 4 illusory copies of yourself on nearby tiles (2 HP each). Enemies target you and the copies at random. A destroyed copy triggers its tile's glyph. Lasts 3 turns.",
 		"tags": [
 			"enchant"
@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "Web of Fate",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Link all prepared glyphs on the board into a network. Triggering any one triggers them all in sequence, each with +1 cumulative damage.",
 		"tags": [
 			"enchant",

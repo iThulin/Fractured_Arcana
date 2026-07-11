@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Rewind",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Re-cast your last resolved spell with its original targets. Spend 1 Foresight.",
 		"tags": [
 			"temporal"
@@ -23,7 +23,7 @@
 	"bottom": {
 		"name": "Temporal Shield",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 7 shield. When it breaks, restore your HP to its value at cast.",
 		"tags": [
 			"temporal"

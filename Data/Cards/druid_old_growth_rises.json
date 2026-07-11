@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Old Growth Rises",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Advance living tiles within 2 of the target, then root enemies on living ground there for 1 turn.",
 		"tags": [
 			"growth"
@@ -37,7 +37,7 @@
 	"bottom": {
 		"name": "Something Is Coming",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "At a patch of Old Growth, summon the wildlife the land calls for.",
 		"tags": [
 			"growth"

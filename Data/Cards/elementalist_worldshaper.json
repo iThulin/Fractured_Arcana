@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Worldshaper",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Imbue all tiles within 3 with your highest attunement element. Deal 3 damage per tile imbued.",
 		"tags": [
 			"fire",
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "Elemental Read",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Draw 1 card. Gain 1 mana for each unique element imbued on tiles within 3.",
 		"tags": [
 			"fire",

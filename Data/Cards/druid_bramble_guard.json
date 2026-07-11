@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Bramble Guard",
 		"mana": 1,
-		"speed": "Reaction",
+		"speed": "Reflex",
 		"rules_text": "Gain 6 armor and root enemies on living ground within 1 for 1 turn.",
 		"tags": [
 			"growth"
@@ -33,7 +33,7 @@
 	"bottom": {
 		"name": "Thornskin",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 6 shield.",
 		"tags": [
 			"growth"

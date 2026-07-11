@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Overgrow",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Advance all living tiles within 2 of the target by one stage.",
 		"tags": [
 			"growth"
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "Thrash",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Push target 2 tiles, dealing 3 damage per tile moved.",
 		"tags": [
 			"growth"

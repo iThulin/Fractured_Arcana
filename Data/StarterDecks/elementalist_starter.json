@@ -15,7 +15,11 @@
 		},
 		{
 			"id": "elementalist_lava_flow",
-			"count": 2
+			"count": 1
+		},
+		{
+			"id": "elementalist_frost_shard",
+			"count": 1
 		},
 		{
 			"id": "elementalist_frost_step",

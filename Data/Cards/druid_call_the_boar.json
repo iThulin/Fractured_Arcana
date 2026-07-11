@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Call the Boar",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "A Boar charges from living ground (14HP 6DMG 3SPD).",
 		"tags": [
 			"growth"
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "Gore",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Push target 2 tiles, dealing 4 damage per tile moved.",
 		"tags": [
 			"growth"

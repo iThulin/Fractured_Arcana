@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Frost Lance",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 7 damage. If target is on Ice terrain, freeze for 1 turn.",
 		"tags": [
 			"ice"
@@ -47,7 +47,7 @@
 	"bottom": {
 		"name": "Stone Wall",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Requires Stone tile. Create Stone pillar on target tile. Gain 4 armor.",
 		"tags": [
 			"earth"

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Ensnaring Web",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Prepare a web of glyphs on a 2-tile radius within 4. Enemies that enter are slowed 1 turn. Lasts 3 turns.",
 		"tags": [
 			"enchant",
@@ -30,7 +30,7 @@
 	"bottom": {
 		"name": "Rearm",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Refresh all of your triggered glyphs (they become active again). Gain 2 Weave.",
 		"tags": [
 			"enchant",

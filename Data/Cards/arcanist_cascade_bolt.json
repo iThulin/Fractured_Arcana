@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Cascade Bolt",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 7 damage. Gain 1 charge. If you have 3+ charge, chain 3 damage to the nearest other enemy.",
 		"tags": [
 			"arcane"
@@ -55,7 +55,7 @@
 	"bottom": {
 		"name": "Arcane Recall",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Spend 1 charge. Return a card from your discard to your hand.",
 		"tags": [
 			"arcane"

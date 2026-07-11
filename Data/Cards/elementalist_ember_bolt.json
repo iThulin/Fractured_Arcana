@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Ember Bolt",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 4 damage. Imbue target tile with Fire.",
 		"tags": [
 			"fire"
@@ -36,7 +36,7 @@
 	"bottom": {
 		"name": "Stone Skin",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 5 shield. If standing on Stone terrain gain 5 armor instead.",
 		"tags": [
 			"earth"

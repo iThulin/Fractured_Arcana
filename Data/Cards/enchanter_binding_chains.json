@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Binding Chains",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Name an enemy for 2 turns: it deals half damage and cannot move. Gain 1 Weave.",
 		"tags": [
 			"enchant"
@@ -36,7 +36,7 @@
 	"bottom": {
 		"name": "Drain Glyph",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 4. When an enemy enters, deal 5 and heal you for 5.",
 		"tags": [
 			"enchant",

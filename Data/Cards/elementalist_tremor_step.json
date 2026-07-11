@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Tremor Step",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Move 2. Imbue tiles with Stone. Gain 3 armor per tile moved.",
 		"tags": [
 			"earth"
@@ -25,7 +25,7 @@
 	"bottom": {
 		"name": "Static Burst",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Deal 3 damage to all adjacent enemies. Imbue their tiles with Storm.",
 		"tags": [
 			"storm"

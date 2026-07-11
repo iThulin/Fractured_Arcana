@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Runic Cascade",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 4. When it triggers, it prepares a copy of itself on 2 adjacent tiles.",
 		"tags": [
 			"enchant",
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "Glyph Warp",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Swap the positions of 2 of your prepared glyphs (their effects move with them).",
 		"tags": [
 			"enchant",

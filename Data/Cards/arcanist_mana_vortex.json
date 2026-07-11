@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Mana Vortex",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Create a Mana Vortex on a tile within 4. Enemies on it pay +1 mana for spells; allies on it deal +2. Lasts 2 turns.",
 		"tags": [
 			"arcane"
@@ -28,7 +28,7 @@
 	"bottom": {
 		"name": "Chain Catalyst",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 4 damage. If it kills, or you have 4+ charge, chain 2 to the nearest enemy.",
 		"tags": [
 			"arcane"

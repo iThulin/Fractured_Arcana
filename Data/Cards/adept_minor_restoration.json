@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Minor Restoration",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Heal target self or ally for 4 HP.",
 		"tags": [],
 		"targeting": {
@@ -24,7 +24,7 @@
 	"bottom": {
 		"name": "Cleanse",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Remove all negative status effects from self or target ally.",
 		"tags": [],
 		"targeting": {

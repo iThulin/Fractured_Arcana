@@ -7,8 +7,8 @@
 	"top": {
 		"name": "Temporal Anchor",
 		"mana": 2,
-		"speed": "Sorcery",
-		"rules_text": "Mark your tile. For 2 turns you may snap back here as a free Reaction.",
+		"speed": "Studied",
+		"rules_text": "Mark your tile. For 2 turns you may snap back here as a free Reflex.",
 		"tags": [
 			"temporal"
 		],
@@ -23,7 +23,7 @@
 	"bottom": {
 		"name": "Paradox Bolt",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 4. If 2nd+ spell this turn, deal 8. If 3rd+, also draw a card.",
 		"tags": [
 			"temporal"
@@ -86,7 +86,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Mark your tile. For 3 turns snap back as a free Reaction."
+					"value": "Mark your tile. For 3 turns snap back as a free Reflex."
 				},
 				{
 					"half": "bottom",
@@ -104,7 +104,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Mark your tile (3 turns). Snap back (free Reaction): heal 3, gain 1 Foresight."
+					"value": "Mark your tile (3 turns). Snap back (free Reflex): heal 3, gain 1 Foresight."
 				}
 			]
 		},

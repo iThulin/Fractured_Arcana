@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Arcane Echo",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Your next spell this turn also resolves on the nearest other enemy within 3 (the echo deals half).",
 		"tags": [
 			"arcane"
@@ -25,7 +25,7 @@
 	"bottom": {
 		"name": "Disrupt",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 5 damage. The target's spells cost 1 more for 2 turns.",
 		"tags": [
 			"arcane"

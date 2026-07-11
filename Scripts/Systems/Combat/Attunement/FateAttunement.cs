@@ -1,3 +1,4 @@
+using Godot;
 using System;
 
 // ============================================================
@@ -69,10 +70,6 @@ public class FateAttunement : ISchoolAttunement
     /// </summary>
     public void Decay() { }
 
-    // ── Passive query — called by RulesManager when costing an Instant ──
-    /// <summary>Returns 1 (mana cost reduction) when Foresight >= 2, else 0.</summary>
-    public int GetInstantCostReduction() => Charges >= 2 ? 1 : 0;
-
     // ── Called by GameRunner after each successful spell resolution ──
     /// <summary>
     /// Hook called by the combat runner immediately after a spell resolves
@@ -85,16 +82,9 @@ public class FateAttunement : ISchoolAttunement
     /// <param name="spellsThisTurn">Total spells cast by this unit this turn, including this one.</param>
     public void OnSpellCast(PlaySpeed speed, int spellsThisTurn)
     {
-        int gain = 0;
-
-        if (speed == PlaySpeed.Instant || speed == PlaySpeed.Reaction)
-            gain += 1;
-
-        if (spellsThisTurn >= 2)
-            gain += 1;
-
-        if (gain > 0)
-            GainCharges(gain);
+        // Time Bank (2026-07-10): passive per-cast Foresight is RETIRED.
+        // Foresight now comes from banking unspent mana at end of turn
+        // (BankUnspentMana) and from explicit gain_foresight card effects.
     }
 
     // ── Gain / spend ─────────────────────────────────────────────────
@@ -112,9 +102,35 @@ public class FateAttunement : ISchoolAttunement
         }
 
         SetCharges(next);
+        GD.Print($"[TimeBank] +{amount} Foresight: {previous} -> {Charges}.");
+    }
 
-        if (Charges >= BurstThreshold)
-            TriggerBurst();
+    /// <summary>Time Bank (2026-07-10, tick ruling same day): at end of the player
+    /// turn the bank gains 1 automatically — time passes whether spent or not —
+    /// PLUS any unspent mana (capped at MaxCharges). Holding mana is acceleration,
+    /// not a prerequisite for reacting. Called from EndPlayerTurn.</summary>
+    public void BankUnspentMana(int unspentMana)
+    {
+        int gain = 1 + Math.Max(0, unspentMana);
+        if (Charges >= MaxCharges)
+            return;
+        GD.Print(unspentMana > 0
+            ? $"[TimeBank] Time passes (+1) and {unspentMana} unspent mana banked."
+            : "[TimeBank] Time passes (+1).");
+        GainCharges(gain);
+    }
+
+    /// <summary>Time Bank (2026-07-10): a FULL bank at enemy-turn start grants one
+    /// free Reaction this phase (no reset — the bank still backs later reactions).
+    /// Called from RunEnemyTurn. Replaces the old burst-and-reset.</summary>
+    public void OnEnemyTurnStart()
+    {
+        HasFreeReaction = Charges >= MaxCharges;
+        if (HasFreeReaction)
+        {
+            GD.Print("[TimeBank] Full bank — first Reaction this enemy phase is free.");
+            OnBurstTriggered?.Invoke();
+        }
     }
 
     /// <summary>Spend Foresight charges (e.g. to upgrade redirect to chosen-target).</summary>
@@ -137,13 +153,6 @@ public class FateAttunement : ISchoolAttunement
     {
         Charges = Math.Clamp(value, 0, MaxCharges);
         OnChargeChanged?.Invoke(Charges);
-    }
-
-    private void TriggerBurst()
-    {
-        HasFreeReaction = true;
-        OnBurstTriggered?.Invoke();
-        SetCharges(0);
     }
 
     private static ForesightTier ChargeToTier(int charges) => charges switch

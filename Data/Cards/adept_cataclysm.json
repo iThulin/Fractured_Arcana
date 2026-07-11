@@ -1,36 +1,36 @@
 {
-  "id": "adept_cataclysm",
-  "status": "ready",
-  "name": "Cataclysm",
-  "school": "Adept",
-  "rarity": "Rare",
-  "top": {
-    "name": "Cataclysm",
-    "mana": 4,
-    "speed": "Sorcery",
-    "rules_text": "Deal 4 damage to ALL units within 3 tiles including allies.",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "aoe_all",
-      "radius": 3,
-      "damage": 4
-    }
-  },
-  "bottom": {
-    "name": "Aftershock",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Gain 1 mana for each enemy killed this turn.",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "mana_per_kill",
-      "amount_per": 1
-    }
-  }
+	"id": "adept_cataclysm",
+	"status": "ready",
+	"name": "Cataclysm",
+	"school": "Adept",
+	"rarity": "Rare",
+	"top": {
+		"name": "Cataclysm",
+		"mana": 4,
+		"speed": "Studied",
+		"rules_text": "Deal 4 damage to ALL units within 3 tiles including allies.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "aoe_all",
+			"radius": 3,
+			"damage": 4
+		}
+	},
+	"bottom": {
+		"name": "Aftershock",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Gain 1 mana for each enemy killed this turn.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "mana_per_kill",
+			"amount_per": 1
+		}
+	}
 }

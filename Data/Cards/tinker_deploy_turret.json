@@ -1,48 +1,48 @@
 {
-  "id": "tinker_deploy_turret",
-  "status": "ready",
-  "name": "Deploy Turret",
-  "school": "Tinker",
-  "rarity": "Common",
-  "top": {
-    "name": "Deploy Turret",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deploy a Turret on an empty tile within 2 (10 HP, 5 DMG, range 3). It auto-attacks the nearest enemy at the end of your turn.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "turret",
-      "count": 1
-    }
-  },
-  "bottom": {
-    "name": "Recalibrate",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Draw 1 card. If you control 2 or more constructs, draw 2 instead.",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "conditional",
-      "if": {
-        "type": "construct_count",
-        "min": 2
-      },
-      "then": {
-        "type": "draw",
-        "count": 2
-      },
-      "else": {
-        "type": "draw",
-        "count": 1
-      }
-    }
-  }
+	"id": "tinker_deploy_turret",
+	"status": "ready",
+	"name": "Deploy Turret",
+	"school": "Tinker",
+	"rarity": "Common",
+	"top": {
+		"name": "Deploy Turret",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deploy a Turret on an empty tile within 2 (10 HP, 5 DMG, range 3). It auto-attacks the nearest enemy at the end of your turn.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "turret",
+			"count": 1
+		}
+	},
+	"bottom": {
+		"name": "Recalibrate",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Draw 1 card. If you control 2 or more constructs, draw 2 instead.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "construct_count",
+				"min": 2
+			},
+			"then": {
+				"type": "draw",
+				"count": 2
+			},
+			"else": {
+				"type": "draw",
+				"count": 1
+			}
+		}
+	}
 }

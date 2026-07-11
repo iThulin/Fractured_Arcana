@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Written in the Stars",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Schedule: end of your 2nd turn from now, deal 14 to all enemies. Spend 1 Foresight to Fast-Forward.",
 		"tags": [
 			"temporal"
@@ -28,7 +28,7 @@
 	"bottom": {
 		"name": "Borrowed Future",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Look at top 4; set 2 aside. Next turn they're in hand and cost 1 less.",
 		"tags": [
 			"temporal"

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Overcharge",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Spend all charge (min 2). Deal 5 damage per charge spent to target. Lose 4 HP per charge spent.",
 		"tags": [
 			"arcane"
@@ -29,7 +29,7 @@
 	"bottom": {
 		"name": "Tome Bind",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Exile a card from your hand face up. Cast its top half for free once per turn while exiled.",
 		"tags": [
 			"arcane"

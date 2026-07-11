@@ -107,8 +107,10 @@
 				},
 				"speed": {
 					"type": "string",
-					"description": "When this half can be played.",
+					"description": "When this half can be played. Studied = your turn only; Reflex = your turn or any reaction window (two-speed ruling 2026-07-10). Sorcery/Instant/Reaction are legacy aliases still accepted by the loader (Sorcery→Studied, Instant/Reaction→Reflex).",
 					"enum": [
+						"Studied",
+						"Reflex",
 						"Sorcery",
 						"Instant",
 						"Reaction"
@@ -829,6 +831,141 @@
 				"slows": {
 					"type": "boolean",
 					"description": "When true, enemies pulsed by the zone are also slowed for 1 turn. Used by: disruption_field."
+				},
+				"armor_per": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"bonus": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"both_halves": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"casts": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"charge_cost": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"consume": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"cost_reduction": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"cumulative_bonus": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"damage_per": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"direction": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"echo_range": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"enemy_damage_reduction": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"exile_count": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"exile_on_lethal": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"extra_targets": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"half": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"heal_per": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"hp_per_mana": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"kind": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"look": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"mana": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"max_spend": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"per_stage": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"refund": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"replicate_both_halves": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"retain_buffs": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"retarget": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"scaling": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"scope": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"self_damage_per_charge": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"source": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"split": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"split_range": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"steal": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"to": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"trigger": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"trigger_count": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"trigger_glyph": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"trigger_glyph_on_death": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"trigger_glyphs": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"trigger_on_arrive": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"triggers": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"value": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"value_mult": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+				},
+				"wilding": {
+					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
 				}
 			}
 		},

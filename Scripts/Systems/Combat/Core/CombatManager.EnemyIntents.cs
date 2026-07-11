@@ -167,6 +167,10 @@ public partial class CombatManager
     /// range (which, for shots aimed at player units, is nearly always).</summary>
     private readonly Dictionary<Vector2I, Label3D> _threatMarkers = new();
 
+    /// <summary>Victim of the most recent ResolveStrike — read by the channel-release
+    /// slow rider so dodges/redirects carry the rider to the right unit (or nobody).</summary>
+    internal Unit LastStrikeVictim;
+
     // ════════════════════════════════════════════════════════════════════════
     // PLANNING — runs at the end of each enemy phase (and once after
     // deployment), so intents are visible for the entire player turn.
@@ -650,6 +654,14 @@ public partial class CombatManager
         // ticks killing a Wake-Keeper's ally at the turn boundary).
         await DrainTriggerStackAsync();
 
+        // Time Bank (2026-07-10): reaction costs may draw on banked Foresight for
+        // the rest of this phase; a FULL bank grants one free Reaction.
+        State.EnemyPhaseContext = true;
+        foreach (var pu in playerUnits)
+            if (pu != null && IsInstanceValid(pu) && pu.Stats.IsAlive
+                && pu.Attunement is FateAttunement fateWindow)
+                fateWindow.OnEnemyTurnStart();
+
         var snapshot = enemyUnits.ToList();
         foreach (var enemy in snapshot)
         {
@@ -1064,10 +1076,11 @@ public partial class CombatManager
         GD.Print($"{enemy.Name} releases a charged blast!");
         combatUI?.AppendActionLog($"{enemy.Name} releases a charged blast!");
 
-        var victim = grid.GetTile(tile)?.Occupant;
-        await StrikeTile(enemy, tile, intent.Value, ranged: true);
+        LastStrikeVictim = null;
+        await StrikeTile(enemy, tile, intent.Value, ranged: true, label: "Charged Blast");
 
-        // Slow rider applies to whoever was actually hit.
+        // Slow rider follows whoever was actually hit (dodge = nobody; redirect = new victim).
+        var victim = LastStrikeVictim;
         if (victim != null && IsInstanceValid(victim) && victim.Stats.IsAlive)
         {
             victim.ApplyStatus("slowed", 1);
@@ -1155,37 +1168,86 @@ public partial class CombatManager
     /// a player unit, the attacker's own ally (the push-into-harm payoff), or
     /// nothing (a visible whiff the player earned).
     /// </summary>
-    private async Task StrikeTile(Unit attacker, Vector2I tile, int damage, bool ranged)
+    private async Task StrikeTile(Unit attacker, Vector2I tile, int damage, bool ranged, string label = null)
     {
-        var victim = grid.GetTile(tile)?.Occupant;
-        string verb = ranged ? "shoots" : "strikes";
+        // R3 follow-on (2026-07-10): when anyone can actually respond, the strike
+        // enters the stack as a respondable object — dodge by vacating the tile,
+        // shield up, or redirect it. Otherwise resolve directly (pacing unchanged).
+        if (!_triggerDrainRunning
+            && (PlayerHoldsCastableReaction() || PlayerSession.DebugStopOnTriggers))
+        {
+            var victimNow = grid.GetTile(tile)?.Occupant;
+            string name = label ?? (ranged ? "Shot" : "Strike");
+            string intel = victimNow != null && IsInstanceValid(victimNow) && victimNow.Stats.IsAlive
+                ? $"{damage} damage → {victimNow.Name}"
+                : $"{damage} damage → tile ({tile.X}, {tile.Y})";
 
-        if (victim == null || !IsInstanceValid(victim) || !victim.Stats.IsAlive)
-        {
-            string whiff = $"{attacker.Name} {verb} at empty ground!";
-            GD.Print(whiff);
-            combatUI?.AppendActionLog(whiff);
-        }
-        else if (victim.TeamId == attacker.TeamId)
-        {
-            string ff = $"{attacker.Name} {verb} its own ally {victim.Name} for {damage}!";
-            GD.Print(ff);
-            combatUI?.AppendActionLog(ff);
-            victim.ApplyDamage(damage);
-        }
-        else
-        {
-            string hit = $"{attacker.Name} {verb} {victim.Name} for {damage} damage.";
-            GD.Print(hit);
-            combatUI?.AppendActionLog(hit);
-            victim.ApplyDamage(damage);
+            var ability = new EnemyTriggeredAbility(name, attacker.Name,
+                new EnemyStrikeEffect(this, attacker, tile, damage, ranged, victimNow), intel);
+            var strikeTargets = new TargetSet();
+            if (victimNow != null)
+                strikeTargets.Items.Add(victimNow);
+
+            State.Stack.Push(new StackItem
+            {
+                Ability = ability,
+                Caster = Opp,
+                Targets = strikeTargets,
+                Snapshot = new EffectSnapshot(),
+            });
+            State.Priority.OnStackItemAdded();
+
+            string entered = $"[Stack] {name} ({attacker.Name}) enters the stack (size {State.StackCount()}).";
+            GD.Print(entered);
+            combatUI?.AppendActionLog(entered);
+
+            await DrainTriggerStackAsync();
+            return;
         }
 
+        ResolveStrike(attacker, tile, damage, ranged, null);
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();
         RefreshPlayerUnitBar();
         RefreshDeckCounts();
         await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+    }
+
+    /// <summary>Applies a strike's damage. <paramref name="redirected"/> is non-null when a
+    /// Reaction replaced the victim — the strike then hits that unit directly wherever it
+    /// stands; otherwise the tile's occupant is re-read at resolution so a dodge whiffs.
+    /// Records <see cref="LastStrikeVictim"/> for riders (channel slow).</summary>
+    internal void ResolveStrike(Unit attacker, Vector2I tile, int damage, bool ranged, Unit redirected)
+    {
+        LastStrikeVictim = null;
+        Unit victim = redirected != null && IsInstanceValid(redirected) && redirected.Stats.IsAlive
+            ? redirected
+            : grid.GetTile(tile)?.Occupant;
+        string verb = ranged ? "shoots" : "strikes";
+        string attackerName = attacker != null && IsInstanceValid(attacker) ? attacker.Name : "The attack";
+
+        if (victim == null || !IsInstanceValid(victim) || !victim.Stats.IsAlive)
+        {
+            string whiff = $"{attackerName} {verb} at empty ground!";
+            GD.Print(whiff);
+            combatUI?.AppendActionLog(whiff);
+        }
+        else if (attacker != null && IsInstanceValid(attacker) && victim.TeamId == attacker.TeamId)
+        {
+            string ff = $"{attackerName} {verb} its own ally {victim.Name} for {damage}!";
+            GD.Print(ff);
+            combatUI?.AppendActionLog(ff);
+            victim.ApplyDamage(damage);
+            LastStrikeVictim = victim;
+        }
+        else
+        {
+            string hit = $"{attackerName} {verb} {victim.Name} for {damage} damage.";
+            GD.Print(hit);
+            combatUI?.AppendActionLog(hit);
+            victim.ApplyDamage(damage);
+            LastStrikeVictim = victim;
+        }
     }
 
     /// <summary>Move one step toward a coordinate (tile-chase variant of MoveToward).

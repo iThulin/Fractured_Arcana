@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Spores",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Poison target and adjacent enemies for 2 turns.",
 		"tags": [
 			"growth"
@@ -44,7 +44,7 @@
 	"bottom": {
 		"name": "Wither Touch",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Weaken target enemy for 2 turns.",
 		"tags": [
 			"growth"

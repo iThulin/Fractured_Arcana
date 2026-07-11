@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Omniscience",
 		"mana": 5,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile 3 random cards from your discard.",
 		"tags": [
 			"arcane"
@@ -23,8 +23,8 @@
 	"bottom": {
 		"name": "Arcane Apotheosis",
 		"mana": 3,
-		"speed": "Sorcery",
-		"rules_text": "Permanent: gain +1 charge per spell cast. Your Replicate copies also copy the bottom half. Spells that cost 3+ gain Reaction speed.",
+		"speed": "Studied",
+		"rules_text": "Permanent: gain +1 charge per spell cast. Your Replicate copies also copy the bottom half. Spells that cost 3+ gain Reflex speed.",
 		"tags": [
 			"arcane"
 		],
@@ -44,7 +44,7 @@
 			"half": "both",
 			"top_name": "Omniscience+",
 			"bottom_name": "Arcane Apotheosis+",
-			"description": "Omniscience exiles fewer cards. Apotheosis lowers the Reaction threshold.",
+			"description": "Omniscience exiles fewer cards. Apotheosis lowers the Reflex threshold.",
 			"changes": [
 				{
 					"half": "top",
@@ -64,7 +64,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Permanent: +1 charge per spell cast. Replicate copies the bottom half too. Spells costing 2+ gain Reaction speed."
+					"value": "Permanent: +1 charge per spell cast. Replicate copies the bottom half too. Spells costing 2+ gain Reflex speed."
 				}
 			]
 		},
@@ -100,7 +100,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Permanent: +2 charge per spell cast. Replicate copies the bottom half too. Spells costing 2+ gain Reaction speed."
+					"value": "Permanent: +2 charge per spell cast. Replicate copies the bottom half too. Spells costing 2+ gain Reflex speed."
 				}
 			]
 		},
@@ -138,7 +138,7 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Transcendent Mind",
-			"description": "Transcendent Mind: all spells gain Reaction speed.",
+			"description": "Transcendent Mind: all spells gain Reflex speed.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -148,7 +148,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Permanent: +2 charge per spell cast. Replicate copies the bottom half too. ALL your spells gain Reaction speed."
+					"value": "Permanent: +2 charge per spell cast. Replicate copies the bottom half too. ALL your spells gain Reflex speed."
 				}
 			]
 		},
@@ -202,7 +202,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Permanent: +2 charge per spell cast. Replicate copies both halves. All spells gain Reaction speed. Your first spell each turn is free."
+					"value": "Permanent: +2 charge per spell cast. Replicate copies both halves. All spells gain Reflex speed. Your first spell each turn is free."
 				}
 			]
 		}

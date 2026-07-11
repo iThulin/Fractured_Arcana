@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Forage",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Seed Sapling growth on target tile and its ring. Gain 1 Wilding.",
 		"tags": [
 			"growth"
@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "Provision",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Draw 2 cards.",
 		"tags": [
 			"growth"

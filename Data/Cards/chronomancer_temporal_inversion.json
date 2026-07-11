@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Temporal Inversion",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Reverse the order of all spells on the stack. The last to resolve now resolves first.",
 		"tags": [
 			"temporal"
@@ -22,7 +22,7 @@
 	"bottom": {
 		"name": "Phase Anchor",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Create 2 Phase tiles within 2. Teleport between them as a free action once/turn for 3 turns.",
 		"tags": [
 			"temporal"

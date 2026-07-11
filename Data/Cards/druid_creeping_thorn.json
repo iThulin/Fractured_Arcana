@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Creeping Thorn",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 3 damage, +2 per growth stage on the target's tile.",
 		"tags": [
 			"growth"
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "Snare",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Root enemies on living ground within 1 of you for 1 turn.",
 		"tags": [
 			"growth"

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Marginalia",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Look at the top 2 cards of your deck. Draw 1, put the other on the bottom. Gain 1 charge.",
 		"tags": [
 			"arcane"
@@ -33,7 +33,7 @@
 	"bottom": {
 		"name": "Arcane Lash",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 4 damage. Spend 1 charge to deal 4 more.",
 		"tags": [
 			"arcane"

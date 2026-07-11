@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Hexweed",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Weaken target for 2 turns and seed growth beneath it. Gain 1 Wilding.",
 		"tags": [
 			"growth"
@@ -38,7 +38,7 @@
 	"bottom": {
 		"name": "Wither",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Poison target enemy for 2 turns.",
 		"tags": [
 			"growth"

@@ -95,7 +95,7 @@ public sealed class EnemyTriggeredAbility : Ability
         Name = name;
         SourceName = sourceName;
         IntelLine = intelLine;
-        Speed = PlaySpeed.Instant;
+        Speed = PlaySpeed.Reflex;
         Effects = new[] { effect };
     }
 }
@@ -265,6 +265,10 @@ public partial class CombatManager
             }
 
             // Resolve with a priority window before each item.
+            // (2026-07-10 UX) One Pass covers the whole exchange: after the player
+            // passes, further windows are skipped while the stack only SHRINKS.
+            // Anything newly pushed (deaths mid-resolution) re-opens priority.
+            int windowSkipAtOrBelow = -1;
             while (!State.Stack.IsEmpty)
             {
                 var top = State.Stack.PeekTop();
@@ -274,7 +278,11 @@ public partial class CombatManager
                 // during auto-pass it plays through visibly with zero input.
                 combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: false);
 
-                await OpenTriggerPriorityWindow(topName);
+                if (State.StackCount() > windowSkipAtOrBelow)
+                {
+                    await OpenTriggerPriorityWindow(topName);
+                    windowSkipAtOrBelow = State.StackCount();
+                }
 
                 // The response may have COUNTERED/changed things — re-check.
                 if (State.Stack.IsEmpty)
@@ -305,6 +313,7 @@ public partial class CombatManager
                         Snapshot = new EffectSnapshot(),
                     });
                     State.Priority.OnStackItemAdded();
+                    windowSkipAtOrBelow = -1;   // new object → priority re-arms
                     string entered = $"[Stack] {t.Def.Name} ({t.SourceName}) enters the stack (size {State.StackCount()}).";
                     GD.Print(entered);
                     combatUI?.AppendActionLog(entered);
@@ -368,7 +377,7 @@ public partial class CombatManager
         if (responder != null && responder != selectedUnit)
         {
             GD.Print($"[Priority] auto-selected {responder.Name} (holds a response).");
-            combatUI?.AppendActionLog($"{responder.Name} can respond.");
+            combatUI?.AppendActionLog($"{responder.Name} can respond — cast a Reflex, or Pass to resolve.");
             SelectUnit(responder);
             if (currentPhase != CombatPhase.PlayerTurn)
                 ClearMoveTiles();   // enemy-phase window: no move affordance
@@ -390,6 +399,14 @@ public partial class CombatManager
             {
                 lastCount = c;
                 combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: true);
+
+                // (2026-07-10 UX) The cast just landed. If no further castable
+                // response is held, don't demand a Pass click — close the window.
+                if (!stopSet && FindReactionResponder() == null)
+                {
+                    GD.Print("[Priority] auto-close — no further responses held.");
+                    _priorityPassed = true;
+                }
             }
         }
 
@@ -438,7 +455,7 @@ public partial class CombatManager
                 continue;
             foreach (var half in new[] { card.TopHalf, card.BottomHalf })
             {
-                if (half == null || half.Speed != PlaySpeed.Reaction)
+                if (half == null || half.Speed == PlaySpeed.Studied)   // only Reflexes respond
                     continue;
                 if (freeReaction || UnitCanPlay(half, unit))
                     return true;
@@ -546,5 +563,42 @@ public sealed class DeathburstEffect : IEffect
             : UIContent.FormatLogLine(_sourceName, "Deathburst", "no room at the table — nothing rises");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
+    }
+}
+
+
+/// <summary>An enemy strike as a first-class stack object (R3 follow-on, 2026-07-10).
+/// Dodge = vacate the tile before resolution (the occupant is re-read); Redirect = a
+/// Reaction replaced StackItem.Targets with a DIFFERENT unit (RedirectEffect). The
+/// original victim still being listed just means nobody redirected.</summary>
+public sealed class EnemyStrikeEffect : IEffect
+{
+    private readonly CombatManager _cm;
+    private readonly Unit _attacker;
+    private readonly Vector2I _tile;
+    private readonly int _damage;
+    private readonly bool _ranged;
+    private readonly Unit _originalVictim;
+
+    public EnemyStrikeEffect(CombatManager cm, Unit attacker, Vector2I tile,
+                             int damage, bool ranged, Unit originalVictim)
+    {
+        _cm = cm; _attacker = attacker; _tile = tile;
+        _damage = damage; _ranged = ranged; _originalVictim = originalVictim;
+    }
+
+    public string[] Tags { get; private set; } = { "Ability", "Damage" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        Unit listed = null;
+        if (targets?.Items != null)
+            foreach (var o in targets.Items)
+                if (o is Unit u) { listed = u; break; }
+
+        Unit redirected = (listed != null && listed != _originalVictim) ? listed : null;
+        _cm.ResolveStrike(_attacker, _tile, _damage, _ranged, redirected);
     }
 }

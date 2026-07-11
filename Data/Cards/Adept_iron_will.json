@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Iron Will",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 5 armor. Cannot move this turn.",
 		"tags": [],
 		"targeting": {
@@ -31,7 +31,7 @@
 	"bottom": {
 		"name": "Shrug Off",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Remove all negative status effects. Gain 2 shield.",
 		"tags": [],
 		"targeting": {

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Deepening",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Seed growth within 1 of the target, then advance adjacent living tiles. Gain 1 Wilding.",
 		"tags": [
 			"growth"
@@ -35,7 +35,7 @@
 	"bottom": {
 		"name": "Tend",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 2 Wilding.",
 		"tags": [
 			"growth"

@@ -1,47 +1,47 @@
 {
-  "id": "tinker_grand_turret",
-  "status": "ready",
-  "name": "Grand Turret",
-  "school": "Tinker",
-  "rarity": "Rare",
-  "top": {
-    "name": "Grand Turret",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Deploy a Grand Turret on an empty tile within 2 (16 HP, 6 DMG, range 4). 1 turn setup. Its shots pierce every enemy along the line.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "grand_turret",
-      "count": 1
-    }
-  },
-  "bottom": {
-    "name": "Master Schematic",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Draw 3 cards. Your next 2 constructs deploy with +2 HP and +2 damage.",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "draw",
-          "count": 3
-        },
-        {
-          "type": "master_schematic",
-          "charges": 2,
-          "amount": 2
-        }
-      ]
-    }
-  }
+	"id": "tinker_grand_turret",
+	"status": "ready",
+	"name": "Grand Turret",
+	"school": "Tinker",
+	"rarity": "Rare",
+	"top": {
+		"name": "Grand Turret",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Deploy a Grand Turret on an empty tile within 2 (16 HP, 6 DMG, range 4). 1 turn setup. Its shots pierce every enemy along the line.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "grand_turret",
+			"count": 1
+		}
+	},
+	"bottom": {
+		"name": "Master Schematic",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Draw 3 cards. Your next 2 constructs deploy with +2 HP and +2 damage.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "draw",
+					"count": 3
+				},
+				{
+					"type": "master_schematic",
+					"charges": 2,
+					"amount": 2
+				}
+			]
+		}
+	}
 }

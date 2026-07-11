@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Spell Weave",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 5 damage. Your next spell this turn costs 1 less and deals +2.",
 		"tags": [
 			"arcane"
@@ -36,7 +36,7 @@
 	"bottom": {
 		"name": "Arcane Slide",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Move 2. Gain 1 charge.",
 		"tags": [
 			"arcane"

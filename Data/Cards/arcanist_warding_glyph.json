@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Warding Glyph",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 4 shield. Gain 1 charge.",
 		"tags": [
 			"arcane"
@@ -32,7 +32,7 @@
 	"bottom": {
 		"name": "Arcane Bolt",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 6 damage. If you have already cast a spell this turn, deal 2 more.",
 		"tags": [
 			"arcane"

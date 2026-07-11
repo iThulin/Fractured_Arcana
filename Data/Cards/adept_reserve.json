@@ -7,19 +7,29 @@
 	"top": {
 		"name": "Reserve",
 		"mana": 0,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Gain 2 mana.",
 		"tags": [],
-		"targeting": { "type": "self" },
-		"effect": { "type": "mana_gain", "amount": 2 }
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "mana_gain",
+			"amount": 2
+		}
 	},
 	"bottom": {
 		"name": "Study",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Draw 1 card.",
 		"tags": [],
-		"targeting": { "type": "self" },
-		"effect": { "type": "draw", "count": 1 }
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "draw",
+			"count": 1
+		}
 	}
 }

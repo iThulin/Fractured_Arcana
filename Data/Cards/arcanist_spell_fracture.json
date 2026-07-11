@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Spell Fracture",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 5 damage. Gain 1 charge per unique keyword on this card's other half.",
 		"tags": [
 			"arcane"
@@ -35,7 +35,7 @@
 	"bottom": {
 		"name": "Arcane Trap",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Create an Arcane Trap on a tile within 2. When an enemy enters, spend 1 charge to deal 7 damage.",
 		"tags": [
 			"arcane"

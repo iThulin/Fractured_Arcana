@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Primordial Surge",
 		"mana": 4,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Imbue ALL tiles in radius 4 with a random element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
 		"tags": [
 			"fire",
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "Cataclysm",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Remove imbuement from all tiles in radius 4. Deal 2 damage per tile cleared. Draw 1 card per 3 tiles cleared.",
 		"tags": [
 			"fire",

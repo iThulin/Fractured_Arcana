@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Storm Lord",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 5 damage to all enemies in a cone. Imbue all tiles in cone with Storm. Push hit enemies 2 tiles.",
 		"tags": [
 			"storm"
@@ -48,7 +48,7 @@
 	"bottom": {
 		"name": "Eye of the Storm",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 8 shield. All adjacent enemies are pushed 3 tiles outward.",
 		"tags": [
 			"storm"

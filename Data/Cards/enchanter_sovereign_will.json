@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Sovereign Pillars",
 		"mana": 4,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Permanently enchant 3 tiles as Sovereign Pillars: allies on them gain +2 to all stats, enemies adjacent deal 2 less and are Hexed if they end their turn there. Pillars cannot be destroyed.",
 		"tags": [
 			"enchant"
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "Puppeteer",
 		"mana": 3,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "For 2 turns: at the start of each enemy turn, you choose where each enemy moves (up to 2 tiles). Enemies moved onto your glyphs trigger them.",
 		"tags": [
 			"enchant"

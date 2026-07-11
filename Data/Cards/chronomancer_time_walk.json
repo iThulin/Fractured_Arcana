@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Time Walk",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Choose a tile within 4. End of each of the next 3 turns: deal 4 to whatever stands there.",
 		"tags": [
 			"temporal"
@@ -25,7 +25,7 @@
 	"bottom": {
 		"name": "Chrono Anchor Field",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Imbue tiles in range 2: enemies entering are Slowed and their next spell is Delayed.",
 		"tags": [
 			"temporal"

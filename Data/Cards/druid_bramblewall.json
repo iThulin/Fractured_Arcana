@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Bramblewall",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Seed Thicket within 1 of the target, then root enemies on living ground there for 1 turn.",
 		"tags": [
 			"growth"
@@ -36,7 +36,7 @@
 	"bottom": {
 		"name": "Lash Out",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 5 damage, +2 per growth stage on the target's tile.",
 		"tags": [
 			"growth"

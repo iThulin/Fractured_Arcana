@@ -1656,6 +1656,7 @@ public partial class CombatManager : Node3D
 
     private void StartPlayerTurn()
     {
+        State.EnemyPhaseContext = false;   // Time Bank: reaction costs revert to pure mana
 
         // Reset extra-turn flag and per-round tracking
         if (!_isExtraTurn)
@@ -1817,6 +1818,10 @@ public partial class CombatManager : Node3D
                 w.OnTurnEnd(State.Glyphs.CountFriendly(unit.TeamId) > 0);
 
             DiscardOverflowCards(unit);
+
+            // Time Bank (2026-07-10): unspent mana becomes Foresight.
+            if (unit.Attunement is FateAttunement fateBank)
+                fateBank.BankUnspentMana(unit.Stats.Mana);
 
             unit.Stats.Shield = 0;
             unit.RefreshHealthBar();
@@ -4246,13 +4251,15 @@ public partial class CombatManager : Node3D
         { State.Log("Dropped half was null."); return; }
 
         // ── U3: priority-window speed gate ────────────────────────────────
-        // While a trigger window is open, only Reaction-speed halves may be
-        // cast (they land ON TOP of the trigger and resolve first). Outside a
-        // window, casting during the enemy phase stays blocked.
-        if (_priorityWindowOpen && half.Speed != PlaySpeed.Reaction)
+        // Two-speed ruling (2026-07-10): while a trigger window is open, any
+        // NON-SORCERY half may be cast as a response (it lands ON TOP of the
+        // trigger and resolves first). Other schools opt in by reserving mana
+        // — which evaporates at turn start; the Chronomancer's bank persists.
+        // Outside a window, casting during the enemy phase stays blocked.
+        if (_priorityWindowOpen && half.Speed == PlaySpeed.Studied)
         {
-            combatUI?.AppendActionLog("Only Reaction-speed cards can respond.");
-            GD.Print($"[Priority] rejected {half.Name} — not Reaction speed.");
+            combatUI?.AppendActionLog("Studied spells cannot respond — only Reflexes.");
+            GD.Print($"[Priority] rejected {half.Name} — Studied speed.");
             return;
         }
         if (!_priorityWindowOpen && currentPhase == CombatPhase.EnemyTurn)

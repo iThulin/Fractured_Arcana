@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Spell Stitch",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Bind: play both halves of your next card this turn. The top resolves, then the bottom.",
 		"tags": [
 			"arcane"
@@ -23,7 +23,7 @@
 	"bottom": {
 		"name": "Arcane Drift",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Move 1 tile per spell cast this turn (max 4). Gain 2 armor per tile moved.",
 		"tags": [
 			"arcane"

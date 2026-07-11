@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Magnum Opus",
 		"mana": 4,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Choose a card in your hand. It becomes Perfected for the rest of the fight: both halves cost 0 and gain +3 to all damage and healing. Perfected cards are not discarded after use.",
 		"tags": [
 			"arcane"
@@ -24,7 +24,7 @@
 	"bottom": {
 		"name": "Arcane Singularity",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Create a Singularity Crystal on a tile (20 HP). All spells cast by anyone within 3 also resolve on the Singularity's tile. You gain 1 charge per spell that hits it.",
 		"tags": [
 			"arcane"
@@ -163,7 +163,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Choose 3 cards. They become Perfected: cost 0, +7 to all values, Reaction speed, draw 1 when played, never discarded."
+					"value": "Choose 3 cards. They become Perfected: cost 0, +7 to all values, Reflex speed, draw 1 when played, never discarded."
 				}
 			]
 		},

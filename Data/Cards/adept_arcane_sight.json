@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Arcane Sight",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Draw 2 cards.",
 		"tags": [],
 		"targeting": {
@@ -21,7 +21,7 @@
 	"bottom": {
 		"name": "Farsight",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 1 mana.",
 		"tags": [],
 		"targeting": {

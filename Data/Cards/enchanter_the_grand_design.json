@@ -7,7 +7,7 @@
 	"top": {
 		"name": "The Grand Design",
 		"mana": 4,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "For the rest of the fight: whenever you prepare a glyph it is also prepared on all tiles within 1, and all your glyphs trigger twice.",
 		"tags": [
 			"enchant",
@@ -25,7 +25,7 @@
 	"bottom": {
 		"name": "Absolute Territory",
 		"mana": 3,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Prepare your glyph effects on every tile within 3 of you. Enemies in this zone deal half damage, take 2 per tile moved, and cannot teleport. Lasts 2 turns.",
 		"tags": [
 			"enchant",

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Ragnarok",
 		"mana": 5,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 12 damage to all enemies. Imbue all tiles on the board with a random element.",
 		"tags": [
 			"fire",
@@ -42,7 +42,7 @@
 	"bottom": {
 		"name": "Phoenix Protocol",
 		"mana": 4,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 15 armor and 10 shield. Remove all debuffs. Imbue your tile with Fire.",
 		"tags": [
 			"fire"

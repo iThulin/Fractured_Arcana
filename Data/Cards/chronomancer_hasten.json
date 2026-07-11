@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Hasten",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "A spell you cast this turn resolves immediately, skipping the stack.",
 		"tags": [
 			"temporal"
@@ -22,13 +22,16 @@
 	"bottom": {
 		"name": "Hinder",
 		"mana": 2,
-		"speed": "Reaction",
-		"rules_text": "When an enemy casts: their spell drops to the bottom of the stack and resolves last.",
+		"speed": "Reflex",
+		"rules_text": "Postpone target enemy's next action by 1 turn.",
 		"tags": [
 			"temporal"
 		],
 		"targeting": {
-			"type": "self"
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
 		},
 		"effect": {
 			"type": "postpone",
@@ -85,7 +88,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Enemy spell resolves last; its caster is Slowed."
+					"value": "Postpone target enemy's next action 1 turn; the enemy is Slowed."
 				}
 			]
 		},
@@ -150,7 +153,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Enemy spell resolves 2 turns later; caster gets Temporal Drag (2)."
+					"value": "Postpone target enemy's next action 2 turns; it gains Temporal Drag (2)."
 				}
 			]
 		},
@@ -176,7 +179,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When enemies cast: ALL their stacked spells resolve last, in reverse order. Casters Slowed."
+					"value": "Postpone every enemy's next action 1 turn. All of them are Slowed."
 				}
 			]
 		},
@@ -189,7 +192,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Until end of turn, you may cast any spell from hand at Instant speed; the first costs 0 and resolves immediately."
+					"value": "Until end of turn, you may cast any spell from hand at Reflex speed; the first costs 0 and resolves immediately."
 				}
 			]
 		},
@@ -219,7 +222,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When enemies cast: suspend every enemy spell on the stack until your next turn. Gain 1 Foresight."
+					"value": "Suspend every enemy's next action until your next turn. Gain 1 Foresight."
 				}
 			]
 		}

@@ -2,19 +2,23 @@
 	"school": "Chronomancer",
 	"cards": [
 		{
-			"id": "chronomancer_precognition",
+			"id": "chronomancer_temporal_anchor",
 			"count": 2
+		},
+		{
+			"id": "chronomancer_split_second",
+			"count": 2
+		},
+		{
+			"id": "chronomancer_stolen_moment",
+			"count": 2
+		},
+		{
+			"id": "chronomancer_precognition",
+			"count": 1
 		},
 		{
 			"id": "chronomancer_glimpse",
-			"count": 2
-		},
-		{
-			"id": "chronomancer_time_walk",
-			"count": 2
-		},
-		{
-			"id": "chronomancer_borrowed_time",
 			"count": 1
 		},
 		{
@@ -22,11 +26,7 @@
 			"count": 1
 		},
 		{
-			"id": "chronomancer_hasten_and_hinder",
-			"count": 1
-		},
-		{
-			"id": "chronomancer_misdirection",
+			"id": "chronomancer_rewind",
 			"count": 1
 		}
 	]

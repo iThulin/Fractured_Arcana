@@ -856,10 +856,20 @@ public static class JsonCardLoader
     // ── ParseSpeed ──────────────────────────────────────────────────
     private static PlaySpeed ParseSpeed(JsonElement node)
     {
-        if (node.TryGetProperty("speed", out var s)
-            && Enum.TryParse<PlaySpeed>(s.GetString(), true, out var sp))
-            return sp;
-        return PlaySpeed.Sorcery;
+        if (node.TryGetProperty("speed", out var s))
+        {
+            switch ((s.GetString() ?? "").Trim().ToLowerInvariant())
+            {
+                case "studied":
+                case "sorcery":     // legacy vocabulary (pre two-speed ruling)
+                    return PlaySpeed.Studied;
+                case "reflex":
+                case "instant":     // legacy
+                case "reaction":    // legacy
+                    return PlaySpeed.Reflex;
+            }
+        }
+        return PlaySpeed.Studied;
     }
 
     /// <summary>Public entry point for CardUpgradeApplier to recompile patched JSON.</summary>

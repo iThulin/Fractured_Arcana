@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Frost Step",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Move 2. Imbue tiles with Ice. Gain 2 armor per tile.",
 		"tags": [
 			"ice"
@@ -25,7 +25,7 @@
 	"bottom": {
 		"name": "Updraft",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Push target enemy 2 tiles. If they collide deal 5.",
 		"tags": [
 			"storm"

@@ -1,0 +1,267 @@
+{
+	"id": "chronomancer_split_second",
+	"status": "ready",
+	"name": "Split Second",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Split Second",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 4 damage. If this is your 2nd+ spell this turn, draw a card.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 4
+				},
+				{
+					"type": "conditional",
+					"if": {
+						"type": "spells_cast_this_turn",
+						"threshold": 2
+					},
+					"then": {
+						"type": "draw",
+						"count": 1
+					},
+					"else": {
+						"type": "empty"
+					}
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Between Moments",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Move 2 tiles. Gain 1 Foresight.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 2
+				},
+				{
+					"type": "gain_foresight",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "top",
+			"top_name": "Split Second+",
+			"description": "Hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "spells_cast_this_turn",
+									"threshold": 2
+								},
+								"then": {
+									"type": "draw",
+									"count": 1
+								},
+								"else": {
+									"type": "empty"
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage. If this is your 2nd+ spell this turn, draw a card."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Sliver of Time",
+			"description": "A busy turn also draws.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "spells_cast_this_turn",
+									"threshold": 2
+								},
+								"then": {
+									"type": "draw",
+									"count": 1
+								},
+								"else": {
+									"type": "empty"
+								}
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "spells_cast_this_turn",
+									"threshold": 3
+								},
+								"then": {
+									"type": "gain_foresight",
+									"amount": 1
+								},
+								"else": {
+									"type": "empty"
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5. 2nd+ spell this turn: draw a card. 3rd+: gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Between Moments+",
+			"description": "Moves further.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move",
+								"tiles": 3
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 3 tiles. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Edge of the Second",
+			"description": "Foresight flows unconditionally.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Draw a card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Split Instant",
+			"description": "A crowded turn cuts twice as deep.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "conditional",
+								"if": {
+									"type": "spells_cast_this_turn",
+									"threshold": 2
+								},
+								"then": {
+									"type": "damage",
+									"amount": 9
+								},
+								"else": {
+									"type": "damage",
+									"amount": 7
+								}
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage (9 if this is your 2nd+ spell this turn). Draw a card."
+				}
+			]
+		}
+	]
+}

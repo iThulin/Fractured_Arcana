@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Infinity Loop",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Gain 5 charge. For the rest of this turn, charge costs are halved (round up).",
 		"tags": [
 			"arcane"
@@ -33,7 +33,7 @@
 	"bottom": {
 		"name": "Living Spell",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Exile a spell from your hand. Summon a Living Spell on target tile (HP = mana x5, DMG = mana x2) that casts the exiled spell on the nearest enemy each turn.",
 		"tags": [
 			"arcane"
@@ -118,7 +118,7 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Recursion",
-			"description": "Recursion: also makes all spells Reaction speed this turn.",
+			"description": "Recursion: also makes all spells Reflex speed this turn.",
 			"changes": [
 				{
 					"half": "top",
@@ -146,7 +146,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 6 charge. This turn: charge costs are 0 and all your spells gain Reaction speed."
+					"value": "Gain 6 charge. This turn: charge costs are 0 and all your spells gain Reflex speed."
 				}
 			]
 		},
@@ -204,7 +204,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 6 charge. This turn: charge costs 0, all spells Reaction speed. Recast your last spell for free."
+					"value": "Gain 6 charge. This turn: charge costs 0, all spells Reflex speed. Recast your last spell for free."
 				}
 			]
 		},

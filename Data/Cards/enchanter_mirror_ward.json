@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Mirror Ward",
 		"mana": 2,
-		"speed": "Reaction",
+		"speed": "Reflex",
 		"rules_text": "Prepare a glyph within 4. The next spell targeting a unit on this tile is reflected back at its caster.",
 		"tags": [
 			"enchant"
@@ -24,7 +24,7 @@
 	"bottom": {
 		"name": "Phase Shift",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Swap the positions of any 2 units within range 3. If either lands on a glyph, trigger it.",
 		"tags": [
 			"enchant"

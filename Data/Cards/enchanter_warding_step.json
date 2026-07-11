@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Warding Step",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Move 2. Gain 3 shield. Gain 1 Weave.",
 		"tags": [
 			"enchant"
@@ -36,7 +36,7 @@
 	"bottom": {
 		"name": "Tripwire",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 3. When an enemy enters, deal 4 and slow it 1 turn.",
 		"tags": [
 			"enchant",

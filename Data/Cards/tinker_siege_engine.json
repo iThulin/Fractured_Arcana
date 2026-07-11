@@ -1,37 +1,37 @@
 {
-  "id": "tinker_siege_engine",
-  "status": "ready",
-  "name": "Siege Engine",
-  "school": "Tinker",
-  "rarity": "Rare",
-  "top": {
-    "name": "Siege Engine",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Deploy a Siege Engine on an empty tile within 2 (20 HP, 10 DMG, range 6). Immobile; 2 turn setup.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "siege_engine",
-      "count": 1
-    }
-  },
-  "bottom": {
-    "name": "Emergency Scuttle",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Destroy all your constructs. Each detonates for 5 damage to adjacent enemies. Every loss advances your Schematics.",
-    "tags": [],
-    "targeting": {
-      "type": "none"
-    },
-    "effect": {
-      "type": "scuttle_constructs",
-      "blast": 5
-    }
-  }
+	"id": "tinker_siege_engine",
+	"status": "ready",
+	"name": "Siege Engine",
+	"school": "Tinker",
+	"rarity": "Rare",
+	"top": {
+		"name": "Siege Engine",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Deploy a Siege Engine on an empty tile within 2 (20 HP, 10 DMG, range 6). Immobile; 2 turn setup.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "siege_engine",
+			"count": 1
+		}
+	},
+	"bottom": {
+		"name": "Emergency Scuttle",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Destroy all your constructs. Each detonates for 5 damage to adjacent enemies. Every loss advances your Schematics.",
+		"tags": [],
+		"targeting": {
+			"type": "none"
+		},
+		"effect": {
+			"type": "scuttle_constructs",
+			"blast": 5
+		}
+	}
 }

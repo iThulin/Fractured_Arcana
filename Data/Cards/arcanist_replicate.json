@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Replicate",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Copy the last spell you cast this turn and cast the copy immediately with new targets. Costs 0.",
 		"tags": [
 			"arcane"
@@ -23,7 +23,7 @@
 	"bottom": {
 		"name": "Spell Surge",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 4 damage per spell you have cast this turn (including this). Minimum 2.",
 		"tags": [
 			"arcane"

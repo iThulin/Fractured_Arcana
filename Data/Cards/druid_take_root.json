@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Take Root",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Seed Sapling growth on target tile and its ring. Gain 1 Wilding.",
 		"tags": [
 			"growth"
@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "Quicken the Wood",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Force Thickets within 2 of the target to spread now.",
 		"tags": [
 			"growth"

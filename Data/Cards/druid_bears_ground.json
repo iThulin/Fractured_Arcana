@@ -7,7 +7,7 @@
 	"top": {
 		"name": "The Bear's Ground",
 		"mana": 4,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "At a patch of Old Growth, a Bear emerges (24HP 7DMG 1SPD).",
 		"tags": [
 			"growth"
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "Hold",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Root enemies on living ground within 2 for 2 turns, then gain 6 armor.",
 		"tags": [
 			"growth"

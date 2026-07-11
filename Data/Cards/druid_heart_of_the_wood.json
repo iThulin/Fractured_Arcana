@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Heart of the Wood",
 		"mana": 5,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Seed Thicket within 1, then a Bear and a Wolf emerge. Gain 1 Wilding.",
 		"tags": [
 			"growth"
@@ -42,7 +42,7 @@
 	"bottom": {
 		"name": "The Pack Answers",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Two Wolves emerge beside living ground (12HP 5DMG 2SPD each).",
 		"tags": [
 			"growth"

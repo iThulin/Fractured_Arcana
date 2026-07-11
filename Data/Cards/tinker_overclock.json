@@ -1,37 +1,37 @@
 {
-  "id": "tinker_overclock",
-  "status": "ready",
-  "name": "Overclock",
-  "school": "Tinker",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Overclock",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "A construct you control within range 3 acts twice this turn and gains 2 Heat. At its Burnout threshold it detonates.",
-    "tags": [],
-    "targeting": {
-      "type": "unit",
-      "range": 3
-    },
-    "effect": {
-      "type": "overclock",
-      "heat": 2
-    }
-  },
-  "bottom": {
-    "name": "Etched Ward",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Etch a rune on a tile within 2. The next construct deployed there enters with +3 HP and +3 damage.",
-    "tags": [],
-    "targeting": {
-      "type": "tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "etch_ward",
-      "amount": 3
-    }
-  }
+	"id": "tinker_overclock",
+	"status": "ready",
+	"name": "Overclock",
+	"school": "Tinker",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Overclock",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "A construct you control within range 3 acts twice this turn and gains 2 Heat. At its Burnout threshold it detonates.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 3
+		},
+		"effect": {
+			"type": "overclock",
+			"heat": 2
+		}
+	},
+	"bottom": {
+		"name": "Etched Ward",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Etch a rune on a tile within 2. The next construct deployed there enters with +3 HP and +3 damage.",
+		"tags": [],
+		"targeting": {
+			"type": "tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "etch_ward",
+			"amount": 3
+		}
+	}
 }

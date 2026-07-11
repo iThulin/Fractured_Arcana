@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Accelerando",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Until end of turn: each spell you cast costs 1 less and grants 1 Foresight.",
 		"tags": [
 			"temporal"
@@ -24,7 +24,7 @@
 	"bottom": {
 		"name": "Ritardando",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "All enemies are Slowed and their spells cost +1 this round.",
 		"tags": [
 			"temporal"

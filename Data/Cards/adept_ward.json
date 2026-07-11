@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Ward",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 3 shield.",
 		"tags": [],
 		"targeting": {
@@ -21,7 +21,7 @@
 	"bottom": {
 		"name": "Fortify",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 2 armor.",
 		"tags": [],
 		"targeting": {

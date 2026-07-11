@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Charm Drift",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Push an enemy 2 tiles in a direction you choose. If it lands on one of your glyphs, trigger it.",
 		"tags": [
 			"enchant"
@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "Ward Stone",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Prepare a glyph on a tile within 4. Allies on this tile gain +4 armor. Lasts 3 turns. Gain 1 Weave.",
 		"tags": [
 			"enchant"

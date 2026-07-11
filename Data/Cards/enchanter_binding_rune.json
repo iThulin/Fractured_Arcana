@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Binding Rune",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Prepare a glyph on a tile within 3. An enemy here at the start of its turn is rooted and takes 3 damage. Lasts 2 turns.",
 		"tags": [
 			"enchant",
@@ -29,7 +29,7 @@
 	"bottom": {
 		"name": "Sigil Link",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Link 2 of your prepared glyphs. When one triggers, the other triggers too.",
 		"tags": [
 			"enchant",

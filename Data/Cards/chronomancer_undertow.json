@@ -1,13 +1,13 @@
 {
 	"id": "chronomancer_undertow",
-	"status": "ready",
+	"status": "wip",
 	"name": "Undertow",
 	"school": "Chronomancer",
 	"rarity": "Uncommon",
 	"top": {
 		"name": "Undertow",
 		"mana": 2,
-		"speed": "Reaction",
+		"speed": "Reflex",
 		"rules_text": "When an enemy casts a spell: redirect it to any enemy you choose.",
 		"tags": [
 			"temporal"
@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "Riptide",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Choose: advance one of your scheduled spells, or postpone an enemy spell 1 turn.",
 		"tags": [
 			"temporal"

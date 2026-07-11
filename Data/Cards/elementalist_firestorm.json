@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Firestorm",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 5 damage to all enemies within 3. Imbue all tiles within 3 with Fire.",
 		"tags": [
 			"fire"
@@ -41,7 +41,7 @@
 	"bottom": {
 		"name": "Flash Freeze",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 4 damage to all enemies within 3. Freeze all enemies within 3 for 1 turn.",
 		"tags": [
 			"ice"

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Disintegrate",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Spend 3 charge. Deal 14 damage. If this is lethal, exile the target (it cannot be resurrected).",
 		"tags": [
 			"arcane"
@@ -28,7 +28,7 @@
 	"bottom": {
 		"name": "Arcane Nexus",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Create a Nexus on a tile (10 HP). While it exists, gain 1 charge at the start of each turn and your spells within 2 of it cost 1 less.",
 		"tags": [
 			"arcane"

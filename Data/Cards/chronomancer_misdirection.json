@@ -7,8 +7,8 @@
 	"top": {
 		"name": "Misdirection",
 		"mana": 2,
-		"speed": "Reaction",
-		"rules_text": "When an enemy targets you with a spell: redirect it to a random other enemy.",
+		"speed": "Reflex",
+		"rules_text": "When an enemy attacks you: redirect the attack to a random other enemy.",
 		"tags": [
 			"temporal"
 		],
@@ -23,18 +23,26 @@
 	"bottom": {
 		"name": "Sidestep",
 		"mana": 1,
-		"speed": "Reaction",
-		"rules_text": "When an enemy moves to attack an ally: redirect its charge to a tile you pick within 2.",
+		"speed": "Reflex",
+		"rules_text": "When an enemy attacks: teleport to an adjacent empty tile and gain 2 shield.",
 		"tags": [
 			"temporal"
 		],
 		"targeting": {
-			"type": "tile",
-			"range": 2
+			"type": "empty_tile",
+			"range": 1
 		},
 		"effect": {
-			"type": "redirect_charge",
-			"to": "chosen"
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "teleport"
+				},
+				{
+					"type": "shield",
+					"amount": 2
+				}
+			]
 		}
 	},
 	"upgrades": [
@@ -43,7 +51,7 @@
 			"half": "both",
 			"top_name": "Misdirection+",
 			"bottom_name": "Sidestep+",
-			"description": "Cheaper redirect; sidestep bites.",
+			"description": "Cheaper redirect; sturdier sidestep.",
 			"changes": [
 				{
 					"half": "top",
@@ -51,23 +59,17 @@
 					"value": 1
 				},
 				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "When an enemy targets you: redirect to a random other enemy. Gain 1 Foresight."
-				},
-				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "redirect_charge",
-								"to": "chosen"
+								"type": "teleport"
 							},
 							{
-								"type": "damage",
-								"amount": 3
+								"type": "shield",
+								"amount": 4
 							}
 						]
 					}
@@ -75,7 +77,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Redirect a charge within 2; attacker takes 3."
+					"value": "When an enemy attacks: teleport within 1 and gain 4 shield."
 				}
 			]
 		},
@@ -83,57 +85,50 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Sleight",
-			"description": "Redirect spells aimed at allies too.",
+			"description": "The trick pays for itself.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "targeting",
+					"field": "effect",
 					"value": {
-						"type": "unit",
-						"range": 6,
-						"los": false,
-						"enemies_only": false
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "redirect",
+								"to": "random_enemy"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "When an enemy targets you OR an ally: redirect to a random other enemy. +1 Foresight."
+					"value": "When an enemy attacks you: redirect it to a random other enemy. Gain 1 Foresight."
 				}
 			]
 		},
 		{
 			"tier": 2,
 			"half": "bottom",
-			"bottom_name": "Trip",
-			"description": "Trip: redirected attacker is Slowed.",
+			"bottom_name": "Slip Away",
+			"description": "Sidestep reaches further.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect",
+					"field": "targeting",
 					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "redirect_charge",
-								"to": "chosen"
-							},
-							{
-								"type": "damage",
-								"amount": 3
-							},
-							{
-								"type": "apply_status",
-								"status": "slowed",
-								"duration": 1
-							}
-						]
+						"type": "empty_tile",
+						"range": 2
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Redirect a charge within 2; attacker takes 3 and is Slowed."
+					"value": "When an enemy attacks: teleport within 2 and gain 4 shield."
 				}
 			]
 		},
@@ -145,6 +140,16 @@
 			"changes": [
 				{
 					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 6,
+						"los": false,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
 					"field": "effect",
 					"value": {
 						"type": "redirect",
@@ -154,20 +159,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Redirect the spell to ANY enemy you choose. Gain 1 Foresight."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "bottom",
-			"bottom_name": "Pratfall",
-			"description": "Redirect onto another enemy.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Redirect a charge so the attacker strikes another enemy instead. It takes 3 and is Slowed."
+					"value": "When an enemy attacks you: redirect the attack to ANY enemy you choose."
 				}
 			]
 		},
@@ -175,7 +167,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "The Long Con",
-			"description": "Redirect AND copy onto the new target.",
+			"description": "The trick feeds the bank.",
 			"changes": [
 				{
 					"half": "top",
@@ -188,8 +180,8 @@
 								"to": "chosen"
 							},
 							{
-								"type": "echo_last",
-								"value_mult": 1.0
+								"type": "gain_foresight",
+								"amount": 2
 							}
 						]
 					}
@@ -197,29 +189,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Redirect the spell to an enemy you choose, then make it hit a second chosen enemy too."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "bottom",
-			"bottom_name": "Total Misstep",
-			"description": "Redirect every melee this turn.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "redirect_all",
-						"to": "random_enemy",
-						"turns": 1
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Until your next turn, every enemy melee is redirected to a random other enemy."
+					"value": "Redirect the attack to an enemy you choose. Gain 2 Foresight."
 				}
 			]
 		}

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Temporal Sovereign",
 		"mana": 4,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Rest of fight: take a 2nd turn each round with 2 mana and 1 draw. Spend 2 Foresight.",
 		"tags": [
 			"temporal"
@@ -24,7 +24,7 @@
 	"bottom": {
 		"name": "Chronostasis",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "All enemies skip their next turn; their stacked spells are suspended. You act normally.",
 		"tags": [
 			"temporal"

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Grovekeeper",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Seed growth around you, heal 4, and draw a card. Gain 1 Wilding.",
 		"tags": [
 			"growth"
@@ -38,7 +38,7 @@
 	"bottom": {
 		"name": "Replenish",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Harvest living tiles within 2: draw 1 per tile consumed.",
 		"tags": [
 			"growth"

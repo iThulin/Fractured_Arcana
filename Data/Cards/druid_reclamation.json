@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Reclamation",
 		"mana": 4,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Force Thickets within 4 to spread, then advance living tiles within 2.",
 		"tags": [
 			"growth"
@@ -36,7 +36,7 @@
 	"bottom": {
 		"name": "Harvest the Field",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Harvest living tiles within 3: heal 2 and draw 1 per tile consumed.",
 		"tags": [
 			"growth"

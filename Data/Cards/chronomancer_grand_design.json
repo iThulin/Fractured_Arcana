@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Grand Design",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Schedule the next two spells you cast this turn to also re-resolve at the end of each of your next 2 turns.",
 		"tags": [
 			"temporal"
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "The Strings of Fate",
 		"mana": 4,
-		"speed": "Reaction",
+		"speed": "Reflex",
 		"rules_text": "Next enemy turn: every enemy action is redirected to a random other enemy.",
 		"tags": [
 			"temporal"

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Hex Mark",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Apply Hex to an enemy (weakened, -damage) for 2 turns. Gain 1 Weave.",
 		"tags": [
 			"enchant"
@@ -36,7 +36,7 @@
 	"bottom": {
 		"name": "Empower Rune",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 4. Allies on it deal +2 damage. Lasts 3 turns.",
 		"tags": [
 			"enchant"

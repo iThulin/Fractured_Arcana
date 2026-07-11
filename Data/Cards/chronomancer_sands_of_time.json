@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Hasten the Hour",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Advance one of your scheduled spells — it resolves at the end of this turn.",
 		"tags": [
 			"temporal"
@@ -21,14 +21,17 @@
 	},
 	"bottom": {
 		"name": "Drag",
-		"mana": 1,
-		"speed": "Reaction",
-		"rules_text": "When an enemy casts: that spell resolves one turn later instead of now.",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "Postpone target enemy's next action by 1 turn.",
 		"tags": [
 			"temporal"
 		],
 		"targeting": {
-			"type": "self"
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
 		},
 		"effect": {
 			"type": "postpone",
@@ -85,7 +88,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When an enemy casts: resolve 1 turn later; caster Slowed."
+					"value": "Postpone target enemy's next action 1 turn; the enemy is Slowed."
 				}
 			]
 		},
@@ -145,7 +148,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Enemy spell resolves 2 turns later; caster gets Temporal Drag (2)."
+					"value": "Postpone target enemy's next action 2 turns; it gains Temporal Drag (2)."
 				}
 			]
 		},
@@ -171,7 +174,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When enemies cast: ALL enemy spells on the stack resolve 1 turn later. Casters Slowed."
+					"value": "Postpone every enemy's next action 1 turn. All of them are Slowed."
 				}
 			]
 		},
@@ -234,7 +237,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When an enemy casts: that spell is shelved until you allow it. Gain 1 Foresight."
+					"value": "Shelve target enemy's next action — it acts only when you allow it. Gain 1 Foresight."
 				}
 			]
 		}

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "First Green",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Seed Sapling growth on target tile and its ring. Gain 1 Wilding.",
 		"tags": [
 			"growth"
@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "Take What's Offered",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Harvest living tiles within 2: heal 3 per tile consumed.",
 		"tags": [
 			"growth"

@@ -1,36 +1,36 @@
 {
-  "id": "tinker_drone_bay",
-  "status": "ready",
-  "name": "Drone Bay",
-  "school": "Tinker",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Drone Bay",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Deploy 2 Drones on empty tiles within 2 (6 HP, 3 DMG, range 2, 1 SPD). Drones advance and fire on their own.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "drone",
-      "count": 2
-    }
-  },
-  "bottom": {
-    "name": "Redirector Field",
-    "mana": 2,
-    "speed": "Instant",
-    "rules_text": "The next damage you would take is rerouted in full to your sturdiest construct.",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "redirector_field"
-    }
-  }
+	"id": "tinker_drone_bay",
+	"status": "ready",
+	"name": "Drone Bay",
+	"school": "Tinker",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Drone Bay",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Deploy 2 Drones on empty tiles within 2 (6 HP, 3 DMG, range 2, 1 SPD). Drones advance and fire on their own.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "drone",
+			"count": 2
+		}
+	},
+	"bottom": {
+		"name": "Redirector Field",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "The next damage you would take is rerouted in full to your sturdiest construct.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "redirector_field"
+		}
+	}
 }

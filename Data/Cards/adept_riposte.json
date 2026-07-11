@@ -1,62 +1,62 @@
 {
-  "id": "adept_riposte",
-  "status": "ready",
-  "name": "Riposte",
-  "school": "Adept",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Riposte",
-    "mana": 2,
-    "speed": "Reaction",
-    "rules_text": "Gain 3 shield. Until your next turn, any attacker that hits you takes 4 damage.",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "shield",
-          "amount": 3
-        },
-        {
-          "type": "retaliate",
-          "damage": 4
-        }
-      ]
-    }
-  },
-  "bottom": {
-    "name": "Counter",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Deal 3 damage. Gain 2 armor.",
-    "tags": [],
-    "targeting": {
-      "type": "unit",
-      "range": 3,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 3
-        },
-        {
-          "type": "retarget",
-          "targeting": {
-            "type": "self"
-          },
-          "do": {
-            "type": "armor",
-            "amount": 2
-          }
-        }
-      ]
-    }
-  }
+	"id": "adept_riposte",
+	"status": "ready",
+	"name": "Riposte",
+	"school": "Adept",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Riposte",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "Gain 3 shield. Until your next turn, any attacker that hits you takes 4 damage.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "shield",
+					"amount": 3
+				},
+				{
+					"type": "retaliate",
+					"damage": 4
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Counter",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 3 damage. Gain 2 armor.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 3,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 3
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "self"
+					},
+					"do": {
+						"type": "armor",
+						"amount": 2
+					}
+				}
+			]
+		}
+	}
 }

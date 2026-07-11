@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Bed Down",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Seed Sapling growth on your tile and ring, gain 4 armor. Gain 1 Wilding.",
 		"tags": [
 			"growth"
@@ -34,7 +34,7 @@
 	"bottom": {
 		"name": "Still Watch",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 1 Wilding and draw a card.",
 		"tags": [
 			"growth"

@@ -11,7 +11,11 @@
 		},
 		{
 			"id": "tinker_fabricate_armor",
-			"count": 2
+			"count": 1
+		},
+		{
+			"id": "tinker_deploy_cannon",
+			"count": 1
 		},
 		{
 			"id": "tinker_arc_bolt",

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Godot;
 
 // ============================================================
 // RuntimeInterfaces.cs
@@ -30,7 +32,15 @@ public sealed class ManaCost : ICost
     {
         // Active unit's mana is authoritative
         if (s.ActiveCasterUnit != null)
-            return s.ActiveCasterUnit.Stats.Mana >= Amount;
+        {
+            int available = s.ActiveCasterUnit.Stats.Mana;
+            // Time Bank (2026-07-10): during the enemy phase, banked Foresight
+            // backs the cost 1:1 — only Reactions are castable then, so the
+            // phase flag alone gates it.
+            if (s.EnemyPhaseContext && s.ActiveCasterUnit.Attunement is FateAttunement fateAvail)
+                available += fateAvail.Charges;
+            return available >= Amount;
+        }
 
         // Fallback for AI / scripted casts that don't set ActiveCasterUnit
         return s.Mana.TryGetValue(caster, out var m) && m >= Amount;
@@ -40,10 +50,21 @@ public sealed class ManaCost : ICost
     {
         if (s.ActiveCasterUnit != null)
         {
-            s.ActiveCasterUnit.TrySpendMana(Amount);
+            var u = s.ActiveCasterUnit;
+            int fromMana = Math.Min(Amount, u.Stats.Mana);
+            if (fromMana > 0)
+                u.TrySpendMana(fromMana);
+
+            int shortfall = Amount - fromMana;
+            if (shortfall > 0 && s.EnemyPhaseContext && u.Attunement is FateAttunement fatePay)
+            {
+                fatePay.SpendCharges(shortfall);
+                GD.Print($"[TimeBank] {u.Name} pays {shortfall} from Foresight (bank now {fatePay.Charges}).");
+            }
+
             // keep the dict in sync for any legacy reads
             if (s.Mana.ContainsKey(caster))
-                s.Mana[caster] = s.ActiveCasterUnit.Stats.Mana;
+                s.Mana[caster] = u.Stats.Mana;
         }
         else if (s.Mana.ContainsKey(caster))
         {

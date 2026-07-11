@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Boulder Hurl",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Requires Stone tile. Hurl a boulder at target. Deal 8 damage and push 2 tiles.",
 		"tags": [
 			"earth"
@@ -39,7 +39,7 @@
 	"bottom": {
 		"name": "Stone Barrier",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Summon 2 Stone pillars adjacent to you. Gain 6 armor.",
 		"tags": [
 			"earth"

@@ -65,12 +65,6 @@ public sealed class ScryEffect : EffectBase
 		if (casterUnit == null)
 		{ s.Log("[Scry] No active caster — no-op."); return; }
 
-		if (casterUnit.Attunement is FateAttunement fate)
-		{
-			fate.GainCharges(1);
-			s.Log($"[Scry] Foresight +1 (now {fate.Charges}).");
-		}
-
 		if (casterUnit.DeckData != null)
 		{
 			casterUnit.DeckData.Draw(Keep);
@@ -174,12 +168,6 @@ public sealed class PeekIntentEffect : EffectBase
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var casterUnit = s.ActiveCasterUnit;
-
-		if (casterUnit?.Attunement is FateAttunement fate)
-		{
-			fate.GainCharges(1);
-			s.Log($"[PeekIntent] Foresight +1 (now {fate.Charges}).");
-		}
 
 		if (s?.UnitsInPlay == null)
 			return;
@@ -688,6 +676,12 @@ public sealed class RewindLastEffect : EffectBase
 		if (last == null)
 		{
 			s.Log("[RewindLast] Nothing to rewind — no-op.");
+			return;
+		}
+
+		if (last.Ability?.Effects != null && last.Ability.Effects.OfType<RewindLastEffect>().Any())
+		{
+			s.Log("[RewindLast] Last spell contains a rewind — cannot rewind a rewind. No-op.");
 			return;
 		}
 

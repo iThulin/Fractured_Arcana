@@ -1,47 +1,47 @@
 {
-  "id": "adept_flare",
-  "status": "ready",
-  "name": "Flare",
-  "school": "Adept",
-  "rarity": "Common",
-  "top": {
-    "name": "Flare",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Deal 2 damage. Apply Blinded for 1 turn.",
-    "tags": [],
-    "targeting": {
-      "type": "unit",
-      "range": 5,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "damage",
-          "amount": 2
-        },
-        {
-          "type": "apply_status",
-          "status": "blinded",
-          "duration": 1
-        }
-      ]
-    }
-  },
-  "bottom": {
-    "name": "Illuminate",
-    "mana": 0,
-    "speed": "Instant",
-    "rules_text": "Reveal the condition, archetype, and status of every enemy.",
-    "tags": [],
-    "targeting": {
-      "type": "none"
-    },
-    "effect": {
-      "type": "peek_intent"
-    }
-  }
+	"id": "adept_flare",
+	"status": "ready",
+	"name": "Flare",
+	"school": "Adept",
+	"rarity": "Common",
+	"top": {
+		"name": "Flare",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 2 damage. Apply Blinded for 1 turn.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 5,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 2
+				},
+				{
+					"type": "apply_status",
+					"status": "blinded",
+					"duration": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Illuminate",
+		"mana": 0,
+		"speed": "Reflex",
+		"rules_text": "Reveal the condition, archetype, and status of every enemy.",
+		"tags": [],
+		"targeting": {
+			"type": "none"
+		},
+		"effect": {
+			"type": "peek_intent"
+		}
+	}
 }

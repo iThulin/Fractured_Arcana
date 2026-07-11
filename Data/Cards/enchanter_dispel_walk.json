@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Dispel Walk",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Move 2. Remove 1 buff from each enemy you pass adjacent to.",
 		"tags": [
 			"enchant"
@@ -32,7 +32,7 @@
 	"bottom": {
 		"name": "Glyph Bolt",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 4 damage per prepared glyph you control (minimum 4).",
 		"tags": [
 			"enchant",

@@ -1,37 +1,37 @@
 {
-  "id": "tinker_deploy_sentinel",
-  "status": "ready",
-  "name": "Deploy Sentinel",
-  "school": "Tinker",
-  "rarity": "Common",
-  "top": {
-    "name": "Deploy Sentinel",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deploy a Sentinel on an empty tile within 2 (8 HP, 1 DMG). It grants +2 armor to allies within 1 tile each round.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "sentinel",
-      "count": 1
-    }
-  },
-  "bottom": {
-    "name": "Repair Pulse",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Repair all constructs you control for 6 HP.",
-    "tags": [],
-    "targeting": {
-      "type": "none"
-    },
-    "effect": {
-      "type": "repair_constructs",
-      "amount": 6
-    }
-  }
+	"id": "tinker_deploy_sentinel",
+	"status": "ready",
+	"name": "Deploy Sentinel",
+	"school": "Tinker",
+	"rarity": "Common",
+	"top": {
+		"name": "Deploy Sentinel",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deploy a Sentinel on an empty tile within 2 (8 HP, 1 DMG). It grants +2 armor to allies within 1 tile each round.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "sentinel",
+			"count": 1
+		}
+	},
+	"bottom": {
+		"name": "Repair Pulse",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Repair all constructs you control for 6 HP.",
+		"tags": [],
+		"targeting": {
+			"type": "none"
+		},
+		"effect": {
+			"type": "repair_constructs",
+			"amount": 6
+		}
+	}
 }

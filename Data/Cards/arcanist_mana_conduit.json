@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Mana Conduit",
 		"mana": 0,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Gain 2 mana this turn. Gain 1 charge.",
 		"tags": [
 			"arcane"
@@ -32,7 +32,7 @@
 	"bottom": {
 		"name": "Surge Bolt",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 3 damage per spell you have cast this turn (including this). Minimum 3.",
 		"tags": [
 			"arcane"

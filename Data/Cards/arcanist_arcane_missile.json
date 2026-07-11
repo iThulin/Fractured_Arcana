@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Arcane Missile",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 3 damage to target. Gain 1 charge.",
 		"tags": [
 			"arcane"
@@ -35,7 +35,7 @@
 	"bottom": {
 		"name": "Focus",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Gain 2 charge. Draw 1 card.",
 		"tags": [
 			"arcane"

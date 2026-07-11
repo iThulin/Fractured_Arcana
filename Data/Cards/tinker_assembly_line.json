@@ -1,38 +1,38 @@
 {
-  "id": "tinker_assembly_line",
-  "status": "ready",
-  "name": "Assembly Line",
-  "school": "Tinker",
-  "rarity": "Rare",
-  "top": {
-    "name": "Assembly Line",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "For 3 turns: at the start of your turn a free Drone rolls off the line onto an empty tile beside you (respects your construct cap).",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "assembly_line",
-      "turns": 3
-    }
-  },
-  "bottom": {
-    "name": "Etched Masterwork",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Permanently rebuild a construct you control: +3 HP, +2 damage, +1 range.",
-    "tags": [],
-    "targeting": {
-      "type": "unit",
-      "range": 4
-    },
-    "effect": {
-      "type": "enhance_construct",
-      "hp": 3,
-      "damage": 2,
-      "range": 1
-    }
-  }
+	"id": "tinker_assembly_line",
+	"status": "ready",
+	"name": "Assembly Line",
+	"school": "Tinker",
+	"rarity": "Rare",
+	"top": {
+		"name": "Assembly Line",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "For 3 turns: at the start of your turn a free Drone rolls off the line onto an empty tile beside you (respects your construct cap).",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "assembly_line",
+			"turns": 3
+		}
+	},
+	"bottom": {
+		"name": "Etched Masterwork",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Permanently rebuild a construct you control: +3 HP, +2 damage, +1 range.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 4
+		},
+		"effect": {
+			"type": "enhance_construct",
+			"hp": 3,
+			"damage": 2,
+			"range": 1
+		}
+	}
 }

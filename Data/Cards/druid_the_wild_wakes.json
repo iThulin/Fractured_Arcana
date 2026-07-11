@@ -7,7 +7,7 @@
 	"top": {
 		"name": "The Wild Wakes",
 		"mana": 5,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Gain 4 Wilding, forcing a Riot: all living tiles advance and Old Growth calls wildlife.",
 		"tags": [
 			"growth"
@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "The Whole Wood Turns",
 		"mana": 4,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Advance living tiles within 3 of the target, root enemies there for 2 turns.",
 		"tags": [
 			"growth"

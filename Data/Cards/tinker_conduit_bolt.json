@@ -1,66 +1,66 @@
 {
-  "id": "tinker_conduit_bolt",
-  "status": "ready",
-  "name": "Conduit Bolt",
-  "school": "Tinker",
-  "rarity": "Common",
-  "top": {
-    "name": "Conduit Bolt",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Deal 4 damage. If you control a construct, deal 6 instead.",
-    "tags": [],
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "conditional",
-      "if": {
-        "type": "has_construct"
-      },
-      "then": {
-        "type": "damage",
-        "amount": 6
-      },
-      "else": {
-        "type": "damage",
-        "amount": 4
-      }
-    }
-  },
-  "bottom": {
-    "name": "Tinker Step",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Move 2 tiles. If you control a construct, gain 2 armor.",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "move",
-          "tiles": 2
-        },
-        {
-          "type": "conditional",
-          "if": {
-            "type": "has_construct"
-          },
-          "then": {
-            "type": "armor",
-            "amount": 2
-          },
-          "else": {
-            "type": "empty"
-          }
-        }
-      ]
-    }
-  }
+	"id": "tinker_conduit_bolt",
+	"status": "ready",
+	"name": "Conduit Bolt",
+	"school": "Tinker",
+	"rarity": "Common",
+	"top": {
+		"name": "Conduit Bolt",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 4 damage. If you control a construct, deal 6 instead.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "has_construct"
+			},
+			"then": {
+				"type": "damage",
+				"amount": 6
+			},
+			"else": {
+				"type": "damage",
+				"amount": 4
+			}
+		}
+	},
+	"bottom": {
+		"name": "Tinker Step",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Move 2 tiles. If you control a construct, gain 2 armor.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "move",
+					"tiles": 2
+				},
+				{
+					"type": "conditional",
+					"if": {
+						"type": "has_construct"
+					},
+					"then": {
+						"type": "armor",
+						"amount": 2
+					},
+					"else": {
+						"type": "empty"
+					}
+				}
+			]
+		}
+	}
 }

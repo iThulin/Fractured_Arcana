@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Spell Storm",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Cast the top halves of the top 3 cards of your deck for free, targeting enemies of your choice. Then discard them.",
 		"tags": [
 			"arcane"
@@ -24,7 +24,7 @@
 	"bottom": {
 		"name": "Arcane Convergence",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "This turn: each spell you cast also casts the top half of the next card in your deck for free.",
 		"tags": [
 			"arcane"

@@ -1,57 +1,57 @@
 {
-  "id": "tinker_arc_bolt",
-  "status": "ready",
-  "name": "Arc Bolt",
-  "school": "Tinker",
-  "rarity": "Common",
-  "top": {
-    "name": "Arc Bolt",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 5 damage. The bolt arcs through Conduit Links: each linked partner of the target takes 2.",
-    "tags": [],
-    "targeting": {
-      "type": "unit",
-      "range": 6,
-      "los": true,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "arc_damage",
-      "amount": 5,
-      "arc": 2
-    }
-  },
-  "bottom": {
-    "name": "Kinetic Plate",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Gain 4 armor. If you control a construct, also gain 4 shield.",
-    "tags": [],
-    "targeting": {
-      "type": "self"
-    },
-    "effect": {
-      "type": "sequence",
-      "steps": [
-        {
-          "type": "armor",
-          "amount": 4
-        },
-        {
-          "type": "conditional",
-          "if": {
-            "type": "has_construct"
-          },
-          "then": {
-            "type": "shield",
-            "amount": 4
-          },
-          "else": {
-            "type": "empty"
-          }
-        }
-      ]
-    }
-  }
+	"id": "tinker_arc_bolt",
+	"status": "ready",
+	"name": "Arc Bolt",
+	"school": "Tinker",
+	"rarity": "Common",
+	"top": {
+		"name": "Arc Bolt",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deal 5 damage. The bolt arcs through Conduit Links: each linked partner of the target takes 2.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "arc_damage",
+			"amount": 5,
+			"arc": 2
+		}
+	},
+	"bottom": {
+		"name": "Kinetic Plate",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 4 armor. If you control a construct, also gain 4 shield.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "armor",
+					"amount": 4
+				},
+				{
+					"type": "conditional",
+					"if": {
+						"type": "has_construct"
+					},
+					"then": {
+						"type": "shield",
+						"amount": 4
+					},
+					"else": {
+						"type": "empty"
+					}
+				}
+			]
+		}
+	}
 }

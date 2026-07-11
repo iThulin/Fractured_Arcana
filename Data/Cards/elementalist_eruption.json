@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Eruption",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 5 damage to target. Imbue target's tile with Fire.",
 		"tags": [
 			"fire"
@@ -35,7 +35,7 @@
 	"bottom": {
 		"name": "Gale Leap",
 		"mana": 1,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Move 3 tiles. Push adjacent enemies 1 tile away.",
 		"tags": [
 			"storm"

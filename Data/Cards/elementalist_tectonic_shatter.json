@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Tectonic Shatter",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Requires Stone tile. Shatter target's tile — deal 8 damage, create rubble, push adjacent enemies 2 tiles.",
 		"tags": [
 			"earth"
@@ -50,7 +50,7 @@
 	"bottom": {
 		"name": "Convergence",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Pull all enemies within 3 tiles toward you by 2. Gain 2 armor per enemy pulled.",
 		"tags": [
 			"earth"

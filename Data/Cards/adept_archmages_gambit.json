@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Archmage's Gambit",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Draw 3 cards. Gain 3 mana. Take 5 damage.",
 		"tags": [],
 		"targeting": {
@@ -34,7 +34,7 @@
 	"bottom": {
 		"name": "Desperate Measure",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal damage equal to cards in hand x2.",
 		"tags": [],
 		"targeting": {

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Avatar of Elements",
 		"mana": 4,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Transform for 3 turns: gain 7 armor, spells deal +3 damage and imbue target with random element. Leave elemental trails when moving.",
 		"tags": [
 			"fire",
@@ -29,7 +29,7 @@
 	"bottom": {
 		"name": "Maelstrom",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Create a storm zone (radius 3). Each turn deals 5 damage, pushes clockwise, imbues with Storm. Lasts 3 turns.",
 		"tags": [
 			"storm"

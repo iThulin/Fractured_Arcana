@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Glyph Network",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Trigger all of your prepared glyphs at once. Each deals its effect plus 1 bonus damage per other glyph triggered.",
 		"tags": [
 			"enchant",
@@ -25,7 +25,7 @@
 	"bottom": {
 		"name": "Spell Anchor",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 4. The next spell you cast while standing on it is cast twice.",
 		"tags": [
 			"enchant",

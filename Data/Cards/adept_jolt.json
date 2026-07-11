@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Jolt",
 		"mana": 1,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Deal 2 damage. Push target 1 tile.",
 		"tags": [],
 		"targeting": {
@@ -34,7 +34,7 @@
 	"bottom": {
 		"name": "Spark",
 		"mana": 0,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Gain 1 mana.",
 		"tags": [],
 		"targeting": {

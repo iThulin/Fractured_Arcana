@@ -273,7 +273,7 @@ public partial class SchoolAttunementUI : PanelContainer
 					BindTinker(tinkerAtt);
 				break;
 			case CardSchool.Chronomancer:
-				_titleLabel.Text = "Foresight";
+				_titleLabel.Text = "Time Bank";
 				BuildChronomancerUI();
 				if (_currentUnit?.Attunement is FateAttunement fateAtt)  // ← _currentUnit, not unit
 					BindChronomancer(fateAtt);
@@ -460,9 +460,11 @@ public partial class SchoolAttunementUI : PanelContainer
 
 		var nameLabel = new Label
 		{
-			Text = "Foresight:",
+			Text = "Bank:",
 			CustomMinimumSize = new Vector2(72, 0),
-			HorizontalAlignment = HorizontalAlignment.Left
+			HorizontalAlignment = HorizontalAlignment.Left,
+			MouseFilter = Control.MouseFilterEnum.Stop,
+			TooltipText = "Time passes: +1 banked at end of every turn, plus any unspent mana (max 4). During the enemy turn, Reflex spells can spend the bank as mana. A FULL bank makes your first Reflex each enemy phase free."
 		};
 		row.AddChild(nameLabel);
 
@@ -477,6 +479,7 @@ public partial class SchoolAttunementUI : PanelContainer
 		};
 		var fillStyle = new StyleBoxFlat { BgColor = SchoolColors.GetBorderColor(CardSchool.Chronomancer) };
 		_foresightBar.AddThemeStyleboxOverride("fill", fillStyle);
+		_foresightBar.TooltipText = "Time passes: +1 banked at end of every turn, plus any unspent mana (max 4). During the enemy turn, Reflex spells can spend the bank as mana. A FULL bank makes your first Reflex each enemy phase free.";
 		row.AddChild(_foresightBar);
 
 		_foresightTierLabel = new Label
@@ -493,7 +496,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	// private Label _foresightTierLabel;
 
 	private static readonly string[] ForesightTierLabels =
-		{ "", "glimpsed", "aware", "prescient", "FORESEEN!" };
+		{ "empty", "1/4", "2/4", "3/4", "FULL \u26a1" };
 
 	// ── Bind ─────────────────────────────────────────────────────────────────────
 	private void BindChronomancer(FateAttunement fate)
@@ -528,7 +531,7 @@ public partial class SchoolAttunementUI : PanelContainer
 			return;
 		var flashStyle = new StyleBoxFlat { BgColor = Colors.White };
 		_foresightBar.AddThemeStyleboxOverride("fill", flashStyle);
-		_foresightTierLabel.Text = "FORESEEN!";
+		_foresightTierLabel.Text = "FREE \u26a1";
 
 		var tween = CreateTween();
 		tween.TweenInterval(0.5f);

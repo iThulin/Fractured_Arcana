@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Afterimage",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Create an Echo of your last-cast spell — it resolves again at half value.",
 		"tags": [
 			"temporal"
@@ -23,7 +23,7 @@
 	"bottom": {
 		"name": "Recurrence",
 		"mana": 3,
-		"speed": "Reaction",
+		"speed": "Reflex",
 		"rules_text": "As you cast another spell: that spell is cast a second time.",
 		"tags": [
 			"temporal"

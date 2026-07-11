@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Quickening",
 		"mana": 3,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Target ally takes an extra action this turn. Spend 1 Foresight.",
 		"tags": [
 			"temporal"
@@ -27,7 +27,7 @@
 	"bottom": {
 		"name": "Lag",
 		"mana": 2,
-		"speed": "Instant",
+		"speed": "Reflex",
 		"rules_text": "Target enemy loses its next action (postponed 1 turn).",
 		"tags": [
 			"temporal"

@@ -1,40 +1,40 @@
 {
-  "id": "tinker_conduit_web",
-  "status": "ready",
-  "name": "Conduit Web",
-  "school": "Tinker",
-  "rarity": "Rare",
-  "top": {
-    "name": "Conduit Web",
-    "mana": 3,
-    "speed": "Sorcery",
-    "rules_text": "Weave Mirror links chaining the enemies in the area: when one is struck, its partners suffer half as backlash. Enemies crossing a strand take 3 damage.",
-    "tags": [],
-    "targeting": {
-      "type": "aoe",
-      "radius": 2,
-      "enemies_only": true
-    },
-    "effect": {
-      "type": "create_link",
-      "mode": "mirror",
-      "line_damage": 3
-    }
-  },
-  "bottom": {
-    "name": "Clockwork Familiar",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deploy a Familiar on an empty tile beside you (12 HP, 3 DMG, 2 SPD). Once per turn it echoes a spell you cast, while it lives.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 1
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "familiar",
-      "count": 1
-    }
-  }
+	"id": "tinker_conduit_web",
+	"status": "ready",
+	"name": "Conduit Web",
+	"school": "Tinker",
+	"rarity": "Rare",
+	"top": {
+		"name": "Conduit Web",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Weave Mirror links chaining the enemies in the area: when one is struck, its partners suffer half as backlash. Enemies crossing a strand take 3 damage.",
+		"tags": [],
+		"targeting": {
+			"type": "aoe",
+			"radius": 2,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "create_link",
+			"mode": "mirror",
+			"line_damage": 3
+		}
+	},
+	"bottom": {
+		"name": "Clockwork Familiar",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deploy a Familiar on an empty tile beside you (12 HP, 3 DMG, 2 SPD). Once per turn it echoes a spell you cast, while it lives.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 1
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "familiar",
+			"count": 1
+		}
+	}
 }

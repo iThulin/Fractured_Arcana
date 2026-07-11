@@ -1,37 +1,37 @@
 {
-  "id": "tinker_chainflex",
-  "status": "ready",
-  "name": "Chainflex",
-  "school": "Tinker",
-  "rarity": "Uncommon",
-  "top": {
-    "name": "Chainflex",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Forge Conduit Links chaining the units in the area, each to the next. Linked units split incoming damage.",
-    "tags": [],
-    "targeting": {
-      "type": "aoe",
-      "radius": 2
-    },
-    "effect": {
-      "type": "create_link",
-      "mode": "split"
-    }
-  },
-  "bottom": {
-    "name": "Redeploy",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Move a construct you control up to 3 tiles. It cannot act this turn.",
-    "tags": [],
-    "targeting": {
-      "type": "tile",
-      "range": 4
-    },
-    "effect": {
-      "type": "move",
-      "tiles": 3
-    }
-  }
+	"id": "tinker_chainflex",
+	"status": "ready",
+	"name": "Chainflex",
+	"school": "Tinker",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Chainflex",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Forge Conduit Links chaining the units in the area, each to the next. Linked units split incoming damage.",
+		"tags": [],
+		"targeting": {
+			"type": "aoe",
+			"radius": 2
+		},
+		"effect": {
+			"type": "create_link",
+			"mode": "split"
+		}
+	},
+	"bottom": {
+		"name": "Redeploy",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Move a construct you control up to 3 tiles. It cannot act this turn.",
+		"tags": [],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "move",
+			"tiles": 3
+		}
+	}
 }

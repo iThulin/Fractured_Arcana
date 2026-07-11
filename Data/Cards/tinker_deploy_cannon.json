@@ -1,39 +1,39 @@
 {
-  "id": "tinker_deploy_cannon",
-  "status": "ready",
-  "name": "Deploy Cannon",
-  "school": "Tinker",
-  "rarity": "Common",
-  "top": {
-    "name": "Deploy Cannon",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deploy a Cannon on an empty tile within 2 (8 HP, 8 DMG, range 5). 1 turn setup before it can fire.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 2
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "cannon",
-      "count": 1
-    }
-  },
-  "bottom": {
-    "name": "Mobile Barrier",
-    "mana": 1,
-    "speed": "Sorcery",
-    "rules_text": "Deploy a Barrier on an empty tile within 1 (8 HP). Blocks line of sight and movement.",
-    "tags": [],
-    "targeting": {
-      "type": "empty_tile",
-      "range": 1
-    },
-    "effect": {
-      "type": "summon",
-      "unit": "tinker_barrier",
-      "count": 1
-    }
-  }
+	"id": "tinker_deploy_cannon",
+	"status": "ready",
+	"name": "Deploy Cannon",
+	"school": "Tinker",
+	"rarity": "Common",
+	"top": {
+		"name": "Deploy Cannon",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deploy a Cannon on an empty tile within 2 (8 HP, 8 DMG, range 5). 1 turn setup before it can fire.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "cannon",
+			"count": 1
+		}
+	},
+	"bottom": {
+		"name": "Mobile Barrier",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deploy a Barrier on an empty tile within 1 (8 HP). Blocks line of sight and movement.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 1
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "tinker_barrier",
+			"count": 1
+		}
+	}
 }

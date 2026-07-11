@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Geas",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Lay a compulsion on an enemy for 2 turns: if it moves, it takes 6 damage. Gain 1 Weave.",
 		"tags": [
 			"enchant"
@@ -36,7 +36,7 @@
 	"bottom": {
 		"name": "Empowerment Field",
 		"mana": 2,
-		"speed": "Sorcery",
+		"speed": "Studied",
 		"rules_text": "Prepare wards on a 1-tile radius within 4. Allies on them deal +2 damage. Lasts 3 turns.",
 		"tags": [
 			"enchant"

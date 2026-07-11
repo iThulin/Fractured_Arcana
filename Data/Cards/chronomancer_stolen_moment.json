@@ -1,0 +1,168 @@
+{
+	"id": "chronomancer_stolen_moment",
+	"status": "ready",
+	"name": "Stolen Moment",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Stolen Moment",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 3 damage. Gain 1 Foresight.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 3
+				},
+				{
+					"type": "gain_foresight",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Slip",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "When an enemy attacks: teleport to an empty tile within 2.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "teleport"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "top",
+			"top_name": "Stolen Moment+",
+			"description": "Hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Quick Slip",
+			"description": "Slips further, armored.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "empty_tile",
+						"range": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "When an enemy attacks: teleport within 3 and gain 2 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Grand Theft",
+			"description": "Steals more time.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. Gain 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Perfect Slip",
+			"description": "The dodge is free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Free — when an enemy attacks: teleport within 3 and gain 2 shield."
+				}
+			]
+		}
+	]
+}
