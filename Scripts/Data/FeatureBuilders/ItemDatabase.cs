@@ -312,9 +312,9 @@ public static class EquipmentLoadout
                 resolved.BonusSpellDamage += def.Stats.SpellDamage;
 
                 // Q2 (§7a): a trigger-bus item routes through the shared
-                // dispatcher instead of the enum path. Its `Passive` string is
-                // the effect key; the enum ParsePassive returns None for it, so
-                // the two systems never both fire the same item.
+                // dispatcher, NOT the enum path. Its `Passive` string is the
+                // effect key; ParsePassive returns None for it, so the two
+                // systems never both fire the same item.
                 if (!string.IsNullOrEmpty(def.Trigger) &&
                     !string.Equals(def.Trigger, "none", System.StringComparison.OrdinalIgnoreCase))
                 {

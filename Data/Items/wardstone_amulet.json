@@ -1,0 +1,12 @@
+{
+  "id": "wardstone_amulet",
+  "name": "Wardstone Amulet",
+  "description": "A rune-cut stone that drinks the blight. Reduces corruption attrition by 3 per corrupted step (capped by the tile's corruption tier).",
+  "rarity": "Rare",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "corruption_ward",
+  "passiveValue": 3,
+  "goldValue": 120
+}

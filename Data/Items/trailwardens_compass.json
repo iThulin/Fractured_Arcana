@@ -1,0 +1,13 @@
+{
+  "id": "trailwardens_compass",
+  "name": "Trailwarden's Compass",
+  "description": "It always knows the driest path. -1 step cost crossing Swamp (never below 1).",
+  "rarity": "Uncommon",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "pathfinder",
+  "passiveValue": 1,
+  "passiveParam": "Swamp",
+  "goldValue": 85
+}

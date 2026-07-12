@@ -1,0 +1,12 @@
+{
+  "id": "cinderweave_cloak",
+  "name": "Cinderweave Cloak",
+  "description": "Woven against ash and mire. Reduces hazardous-terrain HP drain by 2 per step (never below 1).",
+  "rarity": "Uncommon",
+  "slot": "Armor",
+  "unitClass": "Any",
+  "stats": { "maxHP": 4 },
+  "passive": "hazard_ward",
+  "passiveValue": 2,
+  "goldValue": 90
+}

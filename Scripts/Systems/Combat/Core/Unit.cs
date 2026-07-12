@@ -45,6 +45,11 @@ public sealed class Stats
     // stores duration. Set when poisoned is applied, persists until combat ends.
     public int PoisonDrainPerTurn = 0;
 
+    // Total max HP eaten by poison this combat. The health bar keeps the
+    // ORIGINAL max as its full width and paints this span in a sickly color
+    // at the right end, so decay is visible as the effective max creeps left.
+    public int WitheredMaxHp = 0;
+
     public bool IsAlive => Health > 0;
 
     // Active status effects: name -> turns remaining
@@ -79,10 +84,9 @@ public partial class Unit : Node3D
     public List<(ItemPassiveTag tag, int value)> EquipmentPassives = new();
     public int BonusSpellDamage = 0;   // from wizard weapon/trinket
 
-    // ── Item trigger abilities (Q2, §7a) ────────────────────────────────────
-    /// <summary>Trigger-bus abilities granted by equipped items, fired through
-    /// the shared dispatcher (onSpawn/onAttack/aura). Populated at spawn from
-    /// the resolved loadout; separate from the legacy EquipmentPassives enum.</summary>
+    /// <summary>Q2 (§7a): trigger-bus abilities granted by equipped items, fired
+    /// through the shared dispatcher (onSpawn/onAttack/aura). Populated at spawn
+    /// from the resolved loadout; separate from the legacy EquipmentPassives.</summary>
     public List<ItemAbility> ItemAbilities = new();
 
     // ── Combat definition (set by CombatManager at spawn time, U2) ──────────
@@ -125,6 +129,8 @@ public partial class Unit : Node3D
     public StanceDefinition ActiveStance = null;
     public bool HasSwitchedStanceThisTurn = false;
     public bool HasAttackedThisCombat = false; // Ambush tracking
+    public bool HasAttackedThisTurn = false;   // Bulwark brace reads this at turn end
+    public int TilesMovedThisTurn = 0;         // Charge rider reads this on attack
 
     // ── Intent system ────────────────────────────────────────────────
     /// <summary>This unit's locked plan for the coming enemy phase. Null for player units and unplanned enemies.</summary>
@@ -376,7 +382,7 @@ public partial class Unit : Node3D
 
         _healthBar = GetNodeOrNull<HealthBarRoot>("HealthBarRoot");
         _healthBar?.Initialize(IsPlayerControlled);
-        _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield);
+        _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield, Stats.WitheredMaxHp);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
 
         InitializeAttunement();
@@ -400,6 +406,8 @@ public partial class Unit : Node3D
 
         CurrentActionPoints = MaxActionPoints;
         Stats.HasActed = false;
+        HasAttackedThisTurn = false;
+        TilesMovedThisTurn = 0;
         Stats.MovePoints = Stats.BaseSpeed;
         Stats.BonusMoveRange = 0;   // movespeed grants last one turn
 
@@ -517,8 +525,8 @@ public partial class Unit : Node3D
         if (pathCost < 0 || pathCost > EffectiveMoveRange)
             return false;
 
-
         TrySpendAP(1);
+        TilesMovedThisTurn += pathCost;   // Charge rider: distance covered this turn
         PlaceOnTile(dest);
         return true;
     }
@@ -653,7 +661,7 @@ public partial class Unit : Node3D
 
     public void RefreshHealthBar()
     {
-        _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield);
+        _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield, Stats.WitheredMaxHp);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
         _healthBar?.SetAP(CurrentActionPoints, MaxActionPoints, Stats.Armor, Stats.Shield);
         _healthBar?.RefreshStatuses(Stats.StatusEffects);
