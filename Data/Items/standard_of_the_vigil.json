@@ -1,0 +1,13 @@
+{
+  "id": "standard_of_the_vigil",
+  "name": "Standard of the Vigil",
+  "description": "A steady banner. Allies within 1 tile recover 2 HP at the start of each of your turns.",
+  "rarity": "Rare",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "regen_aura",
+  "passiveValue": 2,
+  "trigger": "aura",
+  "goldValue": 110
+}

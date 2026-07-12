@@ -1,0 +1,13 @@
+{
+  "id": "aegis_charm",
+  "name": "Aegis Charm",
+  "description": "A warded talisman. Gain 5 shield at the start of combat.",
+  "rarity": "Uncommon",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "shield_self",
+  "passiveValue": 5,
+  "trigger": "onSpawn",
+  "goldValue": 70
+}

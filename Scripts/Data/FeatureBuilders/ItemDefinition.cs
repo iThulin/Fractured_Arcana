@@ -101,8 +101,26 @@ public class ItemDefinition
     public string Passive = "None";    // maps to ItemPassiveTag enum name
     public int PassiveValue = 0;
 
-    // ── Economy ───────────────────────────────────────────────────────────
-    public int GoldValue = 50;   // base sell/buy price
+    // ── Trigger-bus passive (Q2, 2026-07-10) ──────────────────────────────
+    // §7a migration: an item can carry a triggered ability dispatched on the
+    // SAME handler map enemy abilities use (archmage_unique_units §5 taxonomy).
+    // When Trigger != "none", `Passive` is read as the effect KEY (lowercase,
+    // e.g. "apply_bleed") and PassiveValue as its magnitude — the old
+    // ItemPassiveTag enum path is skipped for that item (ParsePassive returns
+    // None for keys not in the enum, so the two systems never double-fire).
+    //   Trigger ∈ { "none", "onSpawn", "onAttack", "aura" }
+    public string Trigger = "none";
+}
+
+/// <summary>Q2: a triggered ability an item grants its wearer. Carried on the
+/// resolved loadout and copied onto Unit at spawn; fired by CombatManager
+/// through the shared trigger dispatcher (BuildTriggeredEffect).</summary>
+public class ItemAbility
+{
+    public string Key = "";       // effect key, e.g. "apply_bleed" / "shield_self" / "regen_aura"
+    public string Trigger = "";   // "onSpawn" | "onAttack" | "aura"
+    public int Value = 0;         // magnitude (from ItemDefinition.PassiveValue)
+    public string SourceName = ""; // item name, for log grammar ([Item] Key: effect)
 }
 
 /// <summary>

@@ -2168,6 +2168,27 @@ public partial class CampusScreen : Control
 
         ItemDatabase.LoadAll();
 
+        // Q2 (§7a) demo items — ensure the three trigger-bus exemplars exist
+        // even on an ESTABLISHED armory, so they're equippable for verification
+        // without a fresh save. Runs before the fresh-armory gate below.
+        bool grantedDemo = false;
+        foreach (var id in new[] { "aegis_charm", "duelists_brand", "standard_of_the_vigil" })
+        {
+            if (save.Armory.OwnedItems.Exists(i => i.DefinitionId == id))
+                continue;
+            var demoDef = ItemDatabase.Get(id);
+            if (demoDef != null)
+            {
+                save.Armory.AddItem(demoDef);
+                grantedDemo = true;
+            }
+        }
+        if (grantedDemo)
+        {
+            SaveManager.Save();
+            GD.Print("[Armory] Q2 demo items granted (Aegis Charm, Duelist's Brand, Standard of the Vigil).");
+        }
+
         // Only seed on a fresh armory
         if (save.Armory.OwnedItems.Count > 0)
             return;

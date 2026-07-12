@@ -256,6 +256,10 @@ public class ResolvedLoadout
 
     // All passive tags active on this unit (one per equipped item max)
     public List<(ItemPassiveTag tag, int value)> Passives = new();
+
+    // Q2 (§7a): trigger-bus abilities from equipped items — dispatched on the
+    // shared handler map in combat, NOT via the ItemPassiveTag switch above.
+    public List<ItemAbility> Abilities = new();
 }
 
 /// <summary>
@@ -307,7 +311,24 @@ public static class EquipmentLoadout
                 resolved.BonusAttackRange += def.Stats.AttackRange;
                 resolved.BonusSpellDamage += def.Stats.SpellDamage;
 
-                // Collect passive tag
+                // Q2 (§7a): a trigger-bus item routes through the shared
+                // dispatcher instead of the enum path. Its `Passive` string is
+                // the effect key; the enum ParsePassive returns None for it, so
+                // the two systems never both fire the same item.
+                if (!string.IsNullOrEmpty(def.Trigger) &&
+                    !string.Equals(def.Trigger, "none", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    resolved.Abilities.Add(new ItemAbility
+                    {
+                        Key = def.Passive,
+                        Trigger = def.Trigger,
+                        Value = def.PassiveValue,
+                        SourceName = def.Name,
+                    });
+                    continue;   // do NOT also add it to the enum Passives list
+                }
+
+                // Collect passive tag (legacy enum path — unmigrated items)
                 var tag = ItemDatabase.ParsePassive(def);
                 if (tag != ItemPassiveTag.None)
                     resolved.Passives.Add((tag, def.PassiveValue));

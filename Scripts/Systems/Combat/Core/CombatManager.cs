@@ -1666,6 +1666,16 @@ public partial class CombatManager : Node3D
         attacker.HasAttackedThisCombat = true;
         attacker.HasAttackedThisTurn = true;
 
+        // Q2 (§7a): onAttack item procs ride the trigger stack (auto-passing).
+        // Queued with the struck target captured; drained now unless a priority
+        // window already owns the drain. Fires only when the target survived.
+        if (target.Stats.IsAlive)
+        {
+            QueueItemAttackTriggers(attacker, target);
+            if (!_priorityWindowOpen)
+                KickTriggerDrain();
+        }
+
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();
         RefreshPlayerUnitBar();
@@ -1800,6 +1810,10 @@ public partial class CombatManager : Node3D
                 GD.Print("[PhaseTiles] Phase network expired.");
             }
         }
+
+        // Q2 (§7a): item AURAS (§5 states, not stack events) recompute here —
+        // regen auras heal adjacent allies at each of your turn starts.
+        ApplyItemAuras();
 
         ProcessStatusEffects(playerUnits);
         ApplyHazardDamage(playerUnits);
@@ -2301,6 +2315,15 @@ public partial class CombatManager : Node3D
                 int burnDmg = 3;
                 unit.ApplyDamage(burnDmg);
                 string msg = $"{unit.Name} takes {burnDmg} damage from Burn.";
+                GD.Print(msg);
+                combatUI?.AppendActionLog(msg);
+            }
+            // ── Bleed (Q2, 2 damage per turn) — applied by onAttack items ────
+            if (unit.HasStatus("bleed"))
+            {
+                int bleedDmg = 2;
+                unit.ApplyDamage(bleedDmg);
+                string msg = $"{unit.Name} takes {bleedDmg} damage from Bleed.";
                 GD.Print(msg);
                 combatUI?.AppendActionLog(msg);
             }
@@ -4053,6 +4076,11 @@ public partial class CombatManager : Node3D
         // ── Passive tags ──────────────────────────────────────────────────
         unit.EquipmentPassives = new List<(ItemPassiveTag, int)>(loadout.Passives);
 
+        // Q2 (§7a): trigger-bus item abilities — dispatched on the shared map,
+        // separate from the enum passives (so the Q1 parity assert below, which
+        // counts EquipmentPassives, stays valid). onSpawn fires at method end.
+        unit.ItemAbilities = new List<ItemAbility>(loadout.Abilities);
+
         // Apply immediate passives that take effect at combat start
         foreach (var (tag, value) in loadout.Passives)
         {
@@ -4101,6 +4129,10 @@ public partial class CombatManager : Node3D
                          string.Join("; ", mismatches));
         else if (loadout.Passives.Count > 0 || HasAnyBonus(loadout))
             GD.Print($"[Q1 Parity] {unit.Name}: loadout '{unitId}' verified item-for-item.");
+
+        // Q2 (§7a): onSpawn item triggers — fired AFTER the parity assert so the
+        // ward's shield doesn't read as a stat mismatch. Shared dispatcher + log.
+        FireItemSpawnTriggers(unit);
     }
 
     private static bool HasAnyBonus(ResolvedLoadout l) =>

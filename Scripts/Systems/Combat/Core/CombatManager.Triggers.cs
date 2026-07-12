@@ -95,7 +95,7 @@ public sealed class EnemyTriggeredAbility : Ability
         Name = name;
         SourceName = sourceName;
         IntelLine = intelLine;
-        Speed = PlaySpeed.Reflex;
+        Speed = PlaySpeed.Instant;
         Effects = new[] { effect };
     }
 }
@@ -105,16 +105,34 @@ public partial class CombatManager
     // ── Trigger queue ────────────────────────────────────────────────────────
 
     /// <summary>One queued trigger, context captured at queue time (the source
-    /// node may be freed before resolution).</summary>
+    /// node may be freed before resolution). Serves BOTH enemy ability triggers
+    /// (Def-keyed) and Q2 item triggers (ItemKey-keyed) — one queue, one drain,
+    /// one dispatcher (BuildTriggeredEffect).</summary>
     private sealed class QueuedTrigger
     {
+        // ── Enemy ability path ──
         public UnitAbilityDef Def;
-        public string SourceName;
         public int SourceTeam;
         public Vector2I SourceTile;
-        /// <summary>Living carrier for abilities that mutate their owner (Requiem).
-        /// Null for abilities whose owner is the dead unit (Deathburst).</summary>
+
+        // ── Shared ──
+        public string SourceName;
+        /// <summary>Living carrier for abilities that mutate their owner (Requiem)
+        /// or that carry an item (item triggers). Null for abilities whose owner
+        /// is the dead unit (Deathburst).</summary>
         public Unit Carrier;
+
+        // ── Q2 item path (set → this is an item trigger, not an enemy Def) ──
+        public string ItemKey;        // effect key when Def == null
+        public int ItemValue;         // magnitude
+        public Unit ItemTarget;       // captured target (apply_bleed)
+        public string DisplayName;    // item name for stack + log
+        public bool PlayerControlled; // caster side: true → Me, false → Opp
+
+        /// <summary>Key routed to the shared dispatcher: enemy Def.Key or item key.</summary>
+        public string DispatchKey => Def != null ? Def.Key : ItemKey;
+        public string StackName => Def != null ? Def.Name : DisplayName;
+        public string IntelLine => Def != null ? Def.IntelDescription : "(item)";
     }
 
     private readonly List<QueuedTrigger> _pendingTriggers = new();
@@ -186,24 +204,123 @@ public partial class CombatManager
     /// evaluation defers until the stack settles.</summary>
     private bool TriggersOutstanding => _pendingTriggers.Count > 0 || !State.Stack.IsEmpty;
 
-    // ── Handler map (ability Key → IEffect factory) ──────────────────────────
-    // Keep in sync with UnitRegistry.AssertParityAndRoundTrip's knownAbilityKeys.
-    // Adding a roster key (U4+) = one entry here + one effect class below.
+    // ── The shared dispatcher (ability key → IEffect factory) ────────────────
+    // ONE handler map for enemy abilities AND Q2 item passives (§7a: "the same
+    // handler map enemy abilities use"). Keep enemy keys in sync with
+    // UnitRegistry.AssertParityAndRoundTrip's knownAbilityKeys. Adding a key =
+    // one case here + one effect class below.
 
-    private IEffect BuildAbilityEffect(QueuedTrigger t)
+    private IEffect BuildTriggeredEffect(QueuedTrigger t)
     {
-        switch (t.Def.Key.ToLowerInvariant())
+        switch (t.DispatchKey.ToLowerInvariant())
         {
+            // ── Enemy roster keys (U3) ──
             case "requiem":
                 return new RequiemEffect(t.Carrier, t.Def.GetIntParam("amount", 2), this);
             case "deathburst":
                 return new DeathburstEffect(t.SourceTile, t.SourceTeam, t.SourceName,
                     t.Def.GetIntParam("count", 2),
                     t.Def.GetStringParam("unit", "conductor_honored_dead"), this);
+
+            // ── Item passive keys (Q2, §7a) ──
+            case "shield_self":
+                return new ItemShieldSelfEffect(t.ItemValue, t.Carrier, t.SourceName, this);
+            case "apply_bleed":
+                return new ItemBleedOnAttackEffect(t.ItemValue, t.ItemTarget, t.SourceName, this);
+
             default:
-                GD.PrintErr($"[Triggers] Unknown ability key '{t.Def.Key}' on {t.SourceName} — skipped. " +
-                            "(Registry assertion should have caught this.)");
+                GD.PrintErr($"[Triggers] Unknown trigger key '{t.DispatchKey}' on {t.SourceName} — skipped.");
                 return null;
+        }
+    }
+
+    // ── Q2 item-trigger call sites ───────────────────────────────────────────
+
+    /// <summary>Fires a unit's onSpawn item abilities INLINE at spawn — combat
+    /// hasn't started, so there is no priority window and no possible response
+    /// (§5's initial-state carve-out). Still routes through the shared
+    /// dispatcher + log grammar, satisfying the §7a "one dispatcher" rule.</summary>
+    private void FireItemSpawnTriggers(Unit unit)
+    {
+        if (unit?.ItemAbilities == null)
+            return;
+        foreach (var ab in unit.ItemAbilities)
+        {
+            if (!string.Equals(ab.Trigger, "onSpawn", StringComparison.OrdinalIgnoreCase))
+                continue;
+            var t = new QueuedTrigger
+            {
+                Carrier = unit, SourceName = ab.SourceName,
+                ItemKey = ab.Key, ItemValue = ab.Value,
+            };
+            var eff = BuildTriggeredEffect(t);
+            eff?.Resolve(State, unit.IsPlayerControlled ? Me : Opp, null, new EffectSnapshot());
+        }
+    }
+
+    /// <summary>Queues a unit's onAttack item abilities onto the trigger stack
+    /// after its attack resolves (§7a: item procs ride the stack, auto-passing).
+    /// Target captured at queue time. The caller kicks the drain.</summary>
+    private void QueueItemAttackTriggers(Unit attacker, Unit target)
+    {
+        if (attacker?.ItemAbilities == null || target == null || !target.Stats.IsAlive)
+            return;
+        foreach (var ab in attacker.ItemAbilities)
+        {
+            if (!string.Equals(ab.Trigger, "onAttack", StringComparison.OrdinalIgnoreCase))
+                continue;
+            _pendingTriggers.Add(new QueuedTrigger
+            {
+                Carrier = attacker,
+                SourceName = ab.SourceName,
+                ItemKey = ab.Key,
+                ItemValue = ab.Value,
+                ItemTarget = target,
+                DisplayName = ab.SourceName,
+                PlayerControlled = attacker.IsPlayerControlled,
+            });
+        }
+    }
+
+    /// <summary>Recomputes item AURAS (§5: states, not stack events). Called at
+    /// the start of each player turn. Regen auras heal adjacent allies — a pure
+    /// per-turn event, so no accumulation bookkeeping.</summary>
+    private void ApplyItemAuras()
+    {
+        foreach (var granter in playerUnits)
+        {
+            if (granter == null || !IsInstanceValid(granter) || !granter.Stats.IsAlive
+                || granter.CurrentTile == null || granter.ItemAbilities == null)
+                continue;
+            foreach (var ab in granter.ItemAbilities)
+            {
+                if (!string.Equals(ab.Trigger, "aura", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!string.Equals(ab.Key, "regen_aura", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                int healed = 0;
+                foreach (var neighbor in grid.GetNeighbors(granter.CurrentTile.Axial))
+                {
+                    var occ = grid.GetTile(neighbor)?.Occupant;
+                    if (occ == null || occ == granter || !occ.Stats.IsAlive)
+                        continue;
+                    if (occ.TeamId != granter.TeamId)
+                        continue;
+                    if (occ.Stats.Health >= occ.Stats.MaxHealth)
+                        continue;
+                    occ.Stats.Health = Math.Min(occ.Stats.MaxHealth, occ.Stats.Health + ab.Value);
+                    occ.RefreshHealthBar();
+                    healed++;
+                }
+                if (healed > 0)
+                {
+                    string msg = UIContent.FormatLogLine(ab.SourceName, "Aura",
+                        $"+{ab.Value} HP to {healed} ally(ies)");
+                    GD.Print(msg);
+                    AppendCombatLog(msg);
+                }
+            }
         }
     }
 
@@ -239,36 +356,32 @@ public partial class CombatManager
                 // on a Wake-Keeper that was itself killed by the same sweep).
                 if (t.Carrier != null && (!IsInstanceValid(t.Carrier) || !t.Carrier.Stats.IsAlive))
                 {
-                    string fizzle = $"[Stack] {t.Def.Name} ({t.SourceName}) fizzles — its source is gone.";
+                    string fizzle = $"[Stack] {t.StackName} ({t.SourceName}) fizzles — its source is gone.";
                     GD.Print(fizzle);
                     combatUI?.AppendActionLog(fizzle);
                     continue;
                 }
 
-                var effect = BuildAbilityEffect(t);
+                var effect = BuildTriggeredEffect(t);
                 if (effect == null)
                     continue;
 
-                var ability = new EnemyTriggeredAbility(t.Def.Name, t.SourceName, effect, t.Def.IntelDescription);
+                var ability = new EnemyTriggeredAbility(t.StackName, t.SourceName, effect, t.IntelLine);
                 State.Stack.Push(new StackItem
                 {
                     Ability = ability,
-                    Caster = Opp,
+                    Caster = t.PlayerControlled ? Me : Opp,
                     Targets = null,
                     Snapshot = new EffectSnapshot(),
                 });
                 State.Priority.OnStackItemAdded();
 
-                string entered = $"[Stack] {t.Def.Name} ({t.SourceName}) enters the stack (size {State.StackCount()}).";
+                string entered = $"[Stack] {t.StackName} ({t.SourceName}) enters the stack (size {State.StackCount()}).";
                 GD.Print(entered);
                 combatUI?.AppendActionLog(entered);
             }
 
             // Resolve with a priority window before each item.
-            // (2026-07-10 UX) One Pass covers the whole exchange: after the player
-            // passes, further windows are skipped while the stack only SHRINKS.
-            // Anything newly pushed (deaths mid-resolution) re-opens priority.
-            int windowSkipAtOrBelow = -1;
             while (!State.Stack.IsEmpty)
             {
                 var top = State.Stack.PeekTop();
@@ -278,11 +391,7 @@ public partial class CombatManager
                 // during auto-pass it plays through visibly with zero input.
                 combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: false);
 
-                if (State.StackCount() > windowSkipAtOrBelow)
-                {
-                    await OpenTriggerPriorityWindow(topName);
-                    windowSkipAtOrBelow = State.StackCount();
-                }
+                await OpenTriggerPriorityWindow(topName);
 
                 // The response may have COUNTERED/changed things — re-check.
                 if (State.Stack.IsEmpty)
@@ -303,18 +412,17 @@ public partial class CombatManager
                     _pendingTriggers.RemoveAt(0);
                     if (t.Carrier != null && (!IsInstanceValid(t.Carrier) || !t.Carrier.Stats.IsAlive))
                         continue;
-                    var eff = BuildAbilityEffect(t);
+                    var eff = BuildTriggeredEffect(t);
                     if (eff == null)
                         continue;
                     State.Stack.Push(new StackItem
                     {
-                        Ability = new EnemyTriggeredAbility(t.Def.Name, t.SourceName, eff, t.Def.IntelDescription),
-                        Caster = Opp,
+                        Ability = new EnemyTriggeredAbility(t.StackName, t.SourceName, eff, t.IntelLine),
+                        Caster = t.PlayerControlled ? Me : Opp,
                         Snapshot = new EffectSnapshot(),
                     });
                     State.Priority.OnStackItemAdded();
-                    windowSkipAtOrBelow = -1;   // new object → priority re-arms
-                    string entered = $"[Stack] {t.Def.Name} ({t.SourceName}) enters the stack (size {State.StackCount()}).";
+                    string entered = $"[Stack] {t.StackName} ({t.SourceName}) enters the stack (size {State.StackCount()}).";
                     GD.Print(entered);
                     combatUI?.AppendActionLog(entered);
                 }
@@ -377,7 +485,7 @@ public partial class CombatManager
         if (responder != null && responder != selectedUnit)
         {
             GD.Print($"[Priority] auto-selected {responder.Name} (holds a response).");
-            combatUI?.AppendActionLog($"{responder.Name} can respond — cast a Reflex, or Pass to resolve.");
+            combatUI?.AppendActionLog($"{responder.Name} can respond.");
             SelectUnit(responder);
             if (currentPhase != CombatPhase.PlayerTurn)
                 ClearMoveTiles();   // enemy-phase window: no move affordance
@@ -399,14 +507,6 @@ public partial class CombatManager
             {
                 lastCount = c;
                 combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: true);
-
-                // (2026-07-10 UX) The cast just landed. If no further castable
-                // response is held, don't demand a Pass click — close the window.
-                if (!stopSet && FindReactionResponder() == null)
-                {
-                    GD.Print("[Priority] auto-close — no further responses held.");
-                    _priorityPassed = true;
-                }
             }
         }
 
@@ -455,7 +555,7 @@ public partial class CombatManager
                 continue;
             foreach (var half in new[] { card.TopHalf, card.BottomHalf })
             {
-                if (half == null || half.Speed == PlaySpeed.Studied)   // only Reflexes respond
+                if (half == null || half.Speed != PlaySpeed.Reaction)
                     continue;
                 if (freeReaction || UnitCanPlay(half, unit))
                     return true;
@@ -566,39 +666,63 @@ public sealed class DeathburstEffect : IEffect
     }
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// Q2 item-trigger effects — §7a: items are abilities the wearer carries, on the
+// SAME dispatcher + stack + log grammar as enemy abilities.
+// ════════════════════════════════════════════════════════════════════════════
 
-/// <summary>An enemy strike as a first-class stack object (R3 follow-on, 2026-07-10).
-/// Dodge = vacate the tile before resolution (the occupant is re-read); Redirect = a
-/// Reaction replaced StackItem.Targets with a DIFFERENT unit (RedirectEffect). The
-/// original victim still being listed just means nobody redirected.</summary>
-public sealed class EnemyStrikeEffect : IEffect
+/// <summary>onSpawn item effect: the wearer gains N shield at combat start
+/// (the "shield-on-combat-start is OnSpawn" example from §7a). Resolves inline
+/// at spawn — see FireItemSpawnTriggers.</summary>
+public sealed class ItemShieldSelfEffect : IEffect
 {
+    private readonly int _amount;
+    private readonly Unit _carrier;
+    private readonly string _source;
     private readonly CombatManager _cm;
-    private readonly Unit _attacker;
-    private readonly Vector2I _tile;
-    private readonly int _damage;
-    private readonly bool _ranged;
-    private readonly Unit _originalVictim;
+    public ItemShieldSelfEffect(int amount, Unit carrier, string source, CombatManager cm)
+    { _amount = amount; _carrier = carrier; _source = source; _cm = cm; }
 
-    public EnemyStrikeEffect(CombatManager cm, Unit attacker, Vector2I tile,
-                             int damage, bool ranged, Unit originalVictim)
-    {
-        _cm = cm; _attacker = attacker; _tile = tile;
-        _damage = damage; _ranged = ranged; _originalVictim = originalVictim;
-    }
-
-    public string[] Tags { get; private set; } = { "Ability", "Damage" };
+    public string[] Tags { get; private set; } = { "Item", "Shield" };
     public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
     public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
 
     public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
-        Unit listed = null;
-        if (targets?.Items != null)
-            foreach (var o in targets.Items)
-                if (o is Unit u) { listed = u; break; }
+        if (_carrier == null || !GodotObject.IsInstanceValid(_carrier) || !_carrier.Stats.IsAlive)
+            return;
+        _carrier.Stats.Shield += _amount;
+        _carrier.RefreshHealthBar();
+        string msg = UIContent.FormatLogLine(_source, "Ward", $"+{_amount} shield to {_carrier.Name}");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
+    }
+}
 
-        Unit redirected = (listed != null && listed != _originalVictim) ? listed : null;
-        _cm.ResolveStrike(_attacker, _tile, _damage, _ranged, redirected);
+/// <summary>onAttack item effect: the wearer's melee attack applies Bleed to the
+/// struck target (the "Duelist's Brand: Bleed applied" example from §7a). Rides
+/// the stack, auto-passing. Bleed ticks in ProcessStatusEffects.</summary>
+public sealed class ItemBleedOnAttackEffect : IEffect
+{
+    private readonly int _turns;
+    private readonly Unit _target;
+    private readonly string _source;
+    private readonly CombatManager _cm;
+    public ItemBleedOnAttackEffect(int turns, Unit target, string source, CombatManager cm)
+    { _turns = turns; _target = target; _source = source; _cm = cm; }
+
+    public string[] Tags { get; private set; } = { "Item", "Debuff" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (_target == null || !GodotObject.IsInstanceValid(_target) || !_target.Stats.IsAlive)
+            return;
+        _target.ApplyStatus("bleed", _turns);
+        string msg = UIContent.FormatLogLine(_source, "Bleed",
+            $"applied to {_target.Name}", $"{_turns} turn{(_turns == 1 ? "" : "s")}");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
     }
 }

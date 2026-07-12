@@ -1,0 +1,13 @@
+{
+  "id": "duelists_brand",
+  "name": "Duelist's Brand",
+  "description": "An etched blade that opens wounds. Melee attacks make the target Bleed (2 turns).",
+  "rarity": "Uncommon",
+  "slot": "Weapon",
+  "unitClass": "Martial",
+  "stats": { "attackDamage": 1 },
+  "passive": "apply_bleed",
+  "passiveValue": 2,
+  "trigger": "onAttack",
+  "goldValue": 80
+}
