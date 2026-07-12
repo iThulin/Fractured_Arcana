@@ -8,12 +8,9 @@
 		"name": "Tectonic Shatter",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Requires Stone tile. Shatter target's tile — deal 8 damage, create rubble, push adjacent enemies 2 tiles.",
+		"rules_text": "Raise stone beneath the target, then shatter it: deal 7 damage, create rubble, push adjacent enemies 2 tiles.",
 		"tags": [
 			"earth"
-		],
-		"requires": [
-			"stone_tile"
 		],
 		"targeting": {
 			"type": "unit",
@@ -25,8 +22,12 @@
 			"type": "sequence",
 			"steps": [
 				{
+					"type": "imbue_tile",
+					"element": "earth"
+				},
+				{
 					"type": "damage",
-					"amount": 8
+					"amount": 7
 				},
 				{
 					"type": "create_rubble"
@@ -36,7 +37,8 @@
 					"targeting": {
 						"type": "ring",
 						"radius": 1,
-						"include_tiles": false
+						"include_tiles": false,
+						"enemies_only": true
 					},
 					"do": {
 						"type": "push",
@@ -96,7 +98,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Requires Stone tile. Deal 10 damage, create rubble, push adjacent enemies 2 tiles."
+					"value": "Raise and shatter: deal 9 damage, create rubble, push adjacent enemies 2 tiles."
 				},
 				{
 					"half": "bottom",

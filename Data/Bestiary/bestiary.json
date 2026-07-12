@@ -8,7 +8,7 @@
 			"beast",
 			"pack"
 		],
-		"notes": "Pack: gains +1 damage for each OTHER living Wolf its side controls. Mobile harasser; weak alone, dangerous in numbers."
+		"notes": "Pack (WIRED): +1 damage for each OTHER living pack ally its side controls. Mobile harasser; weak alone, dangerous in numbers."
 	},
 	"Bear": {
 		"hp": 24,
@@ -19,7 +19,7 @@
 			"beast",
 			"bulwark"
 		],
-		"notes": "Bulwark: high HP living wall that threatens every adjacent enemy. Slow. Emerges from Forest old growth."
+		"notes": "Bulwark (WIRED): if it does not attack this turn, it braces for +4 shield through the enemy turn. 1 AP: hit hard OR be tough. Emerges from Forest old growth."
 	},
 	"Boar": {
 		"hp": 14,
@@ -30,7 +30,9 @@
 			"beast",
 			"charge"
 		],
-		"notes": "Charge: a straight-line move into an enemy deals damage and pushes 1 tile. Fast line-breaker from grass/bramble."
+		"notes": "Charge (WIRED): covering 2+ tiles this turn before the hit adds +3 damage. 2 AP but 5-tile moves — a fast line-breaker that wants a running start.",
+		"ap": 2,
+		"moveRange": 5
 	},
 	"Crows": {
 		"hp": 6,

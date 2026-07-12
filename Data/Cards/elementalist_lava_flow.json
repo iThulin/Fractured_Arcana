@@ -47,12 +47,9 @@
 		"name": "Earth Anchor",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Requires Stone tile. Root yourself. Gain 7 armor.",
+		"rules_text": "Root yourself. Gain 6 armor. Imbue your tile with Stone.",
 		"tags": [
 			"earth"
-		],
-		"requires": [
-			"stone_tile"
 		],
 		"targeting": {
 			"type": "self"
@@ -62,12 +59,16 @@
 			"steps": [
 				{
 					"type": "armor",
-					"amount": 7
+					"amount": 6
 				},
 				{
 					"type": "apply_status",
 					"status": "rooted",
 					"duration": 1
+				},
+				{
+					"type": "imbue_tile",
+					"element": "earth"
 				}
 			]
 		}
@@ -98,7 +99,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Requires Stone tile. Root yourself. Gain 9 armor."
+					"value": "Root yourself. Gain 8 armor. Imbue your tile with Stone."
 				}
 			]
 		},

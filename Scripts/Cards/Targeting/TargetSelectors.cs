@@ -233,11 +233,13 @@ public sealed class SelectRingTarget : ITargetSelector
 {
     public int Radius;
     public bool IncludeTiles;
+    public bool EnemiesOnly;
 
-    public SelectRingTarget(int radius = 2, bool includeTiles = true)
+    public SelectRingTarget(int radius = 2, bool includeTiles = true, bool enemiesOnly = false)
     {
         Radius = radius;
         IncludeTiles = includeTiles;
+        EnemiesOnly = enemiesOnly;
     }
 
     public bool Select(GameState s, Entity caster, out TargetSet targets)
@@ -245,11 +247,12 @@ public sealed class SelectRingTarget : ITargetSelector
         targets = new TargetSet();
         if (s?.Grid == null) return false;
 
+        var casterUnit = TargetingHelpers.FindCasterUnit(s, caster);
+
         // Center: aim point if available, else caster
         Vector2I center;
         if (!TargetingHelpers.TryGetAim(s, out center))
         {
-            var casterUnit = TargetingHelpers.FindCasterUnit(s, caster);
             if (casterUnit?.CurrentTile == null) return false;
             center = casterUnit.CurrentTile.Axial;
         }
@@ -257,6 +260,17 @@ public sealed class SelectRingTarget : ITargetSelector
         foreach (var kvp in s.Grid.Tiles)
         {
             if (s.Grid.Distance(center, kvp.Key) != Radius) continue;
+
+            // Hostile rings collect enemy occupants only — never tiles, never
+            // the caster's own side (Spores self-poison, PT7 2026-07-12).
+            if (EnemiesOnly)
+            {
+                var occ = kvp.Value.Occupant;
+                if (occ != null && occ.Stats.IsAlive
+                    && TargetingHelpers.PassesTeamFilter(occ, casterUnit, true))
+                    targets.Items.Add(occ);
+                continue;
+            }
 
             if (IncludeTiles)
                 targets.Items.Add(kvp.Value);

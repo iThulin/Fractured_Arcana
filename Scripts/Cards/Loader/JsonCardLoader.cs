@@ -590,12 +590,13 @@ public static partial class CardScriptRegistry
             return new SelectConeTarget(range, enemiesOnly);
         });
 
-        // Ring selector: { "type": "ring", "radius": n, "include_tiles": bool }
+        // Ring selector: { "type": "ring", "radius": n, "include_tiles": bool, "enemies_only": bool }
         RegisterTargeter("ring", n =>
         {
             int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 2;
             bool includeTiles = n.TryGetProperty("include_tiles", out var it) ? it.GetBoolean() : true;
-            return new SelectRingTarget(radius, includeTiles);
+            bool enemiesOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
+            return new SelectRingTarget(radius, includeTiles, enemiesOnly);
         });
 
         // By tag selector: { "type": "by_tag", "tag": "fire", "enemies_only": bool }

@@ -65,6 +65,12 @@ public partial class HealthBarRoot : Node3D
     private StandardMaterial3D _hpMat;
     private StandardMaterial3D _manaMat;
 
+    // Withered (poison-eaten) max HP segment — lazily created twin of the
+    // HP fill, anchored to the RIGHT end of the bar in a sickly violet.
+    private MeshInstance3D _witherFill;
+    private StandardMaterial3D _witherMat;
+    private static readonly Color WitherColor = new Color(0.48f, 0.22f, 0.55f); // bruised violet
+
     private bool _isPlayer = true;
     private bool _isDetailed = false;
 
@@ -191,12 +197,29 @@ public partial class HealthBarRoot : Node3D
     }
 
     // ── HP ─────────────────────────────────────────────────────────
-    public void SetHealth(int current, int max, int armor, int shield)
+    /// <summary>withered = max HP eaten by poison. The bar keeps the ORIGINAL
+    /// max (max + withered) as its full width: current HP fills against that,
+    /// and the withered span is painted violet at the right end, so the
+    /// effective max visibly creeps across the bar as poison ticks.</summary>
+    public void SetHealth(int current, int max, int armor, int shield, int withered = 0)
     {
         if (!IsInstanceValid(this)) return;
 
-        float pct = max <= 0 ? 0f : Mathf.Clamp((float)current / max, 0f, 1f);
+        int originalMax = max + Mathf.Max(0, withered);
+        float pct = originalMax <= 0 ? 0f : Mathf.Clamp((float)current / originalMax, 0f, 1f);
         ResizeBar(_healthFill, _healthFillOriginX, pct);
+
+        // Withered segment (right-anchored)
+        float witherPct = originalMax <= 0 ? 0f
+            : Mathf.Clamp((float)Mathf.Max(0, withered) / originalMax, 0f, 1f);
+        if (witherPct > 0f && _witherFill == null)
+            CreateWitherFill();
+        if (_witherFill != null)
+        {
+            _witherFill.Visible = witherPct > 0f;
+            if (witherPct > 0f)
+                ResizeBarRight(_witherFill, _healthFillOriginX, witherPct);
+        }
 
         // Gradient: green → yellow → red
         Color hpColor;
@@ -212,7 +235,7 @@ public partial class HealthBarRoot : Node3D
 
         // HP text (only visible in detail mode)
         if (_healthText != null)
-            _healthText.Text = $"{current}/{max}";
+            _healthText.Text = withered > 0 ? $"{current}/{max} (\u2212{withered})" : $"{current}/{max}";
 
         // Detail line: armor + shield
         if (_detailText != null && _isDetailed)
@@ -284,6 +307,36 @@ public partial class HealthBarRoot : Node3D
     }
 
     // ── Private helpers ─────────────────────────────────────────────
+    private void CreateWitherFill()
+    {
+        if (_healthFill == null) return;
+        _witherFill = (MeshInstance3D)_healthFill.Duplicate();
+        _witherFill.Name = "WitherFill";
+        _healthFill.GetParent().AddChild(_witherFill);
+        _witherMat = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            AlbedoColor = WitherColor,
+        };
+        _witherFill.SetSurfaceOverrideMaterial(0, _witherMat);
+        // Nudge toward the camera so it wins the depth tie against the HP fill
+        _witherFill.Position = new Vector3(
+            _healthFillOriginX, _healthFill.Position.Y, _healthFill.Position.Z + 0.005f);
+    }
+
+    /// <summary>Like ResizeBar but keeps the RIGHT edge pinned — the withered
+    /// segment grows leftward as poison eats the max.</summary>
+    private void ResizeBarRight(MeshInstance3D fill, float originX, float pct)
+    {
+        if (fill == null) return;
+        float offset = (FullBarWidth * (1f - pct)) * 0.5f;
+        fill.Scale = new Vector3(pct, 1f, 1f);
+        fill.Position = new Vector3(
+            originX + offset,
+            fill.Position.Y,
+            fill.Position.Z);
+    }
+
     private void ResizeBar(MeshInstance3D fill, float originX, float pct)
     {
         if (fill == null) return;

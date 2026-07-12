@@ -8,12 +8,9 @@
 		"name": "Boulder Hurl",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Requires Stone tile. Hurl a boulder at target. Deal 8 damage and push 2 tiles.",
+		"rules_text": "Deal 6 damage and push 2 tiles (collisions deal 4). If you stand on Stone, deal 9 instead.",
 		"tags": [
 			"earth"
-		],
-		"requires": [
-			"stone_tile"
 		],
 		"targeting": {
 			"type": "unit",
@@ -25,13 +22,24 @@
 			"type": "sequence",
 			"steps": [
 				{
-					"type": "damage",
-					"amount": 8
+					"type": "conditional",
+					"if": {
+						"type": "caster_on_terrain",
+						"terrain": "stone"
+					},
+					"then": {
+						"type": "damage",
+						"amount": 9
+					},
+					"else": {
+						"type": "damage",
+						"amount": 6
+					}
 				},
 				{
 					"type": "push",
 					"tiles": 2,
-					"collision_damage": 5
+					"collision_damage": 4
 				}
 			]
 		}
@@ -83,7 +91,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Requires Stone tile. Deal 10 damage and push 2 tiles."
+					"value": "Deal 7 damage and push 2 (collisions 5). On Stone: deal 10 instead."
 				},
 				{
 					"half": "bottom",
@@ -111,7 +119,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 10 damage and push 2 tiles. No stone required."
+					"value": "Deal 9 damage and push 3 (collisions 5). On Stone: deal 12 instead."
 				}
 			]
 		},
@@ -159,7 +167,8 @@
 								"targeting": {
 									"type": "ring",
 									"radius": 1,
-									"include_tiles": false
+									"include_tiles": false,
+									"enemies_only": true
 								},
 								"do": {
 									"type": "damage",
@@ -250,7 +259,8 @@
 								"targeting": {
 									"type": "ring",
 									"radius": 1,
-									"include_tiles": false
+									"include_tiles": false,
+									"enemies_only": true
 								},
 								"do": {
 									"type": "damage",

@@ -48,12 +48,9 @@
 		"name": "Stone Wall",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Requires Stone tile. Create Stone pillar on target tile. Gain 4 armor.",
+		"rules_text": "Create a Stone pillar on target tile within 3. Gain 3 armor.",
 		"tags": [
 			"earth"
-		],
-		"requires": [
-			"stone_tile"
 		],
 		"targeting": {
 			"type": "tile",
@@ -74,7 +71,7 @@
 					},
 					"do": {
 						"type": "armor",
-						"amount": 4
+						"amount": 3
 					}
 				}
 			]
@@ -111,7 +108,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Requires Stone tile. Create Stone pillar on target tile. Gain 6 armor."
+					"value": "Create a Stone pillar on target tile within 3. Gain 5 armor."
 				}
 			]
 		},

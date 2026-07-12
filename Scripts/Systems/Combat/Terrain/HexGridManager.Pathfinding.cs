@@ -190,11 +190,17 @@ public partial class HexGridManager
     /// The start and end tiles themselves are not checked.
     /// </summary>
     public bool HasLineOfSight(Vector2I from, Vector2I to)
+        => FirstLosBlocker(from, to) == null;
+
+    /// <summary>Same trace as HasLineOfSight, but returns the first tile that
+    /// blocks the line (or null if the line is clear) so cast-failure feedback
+    /// can NAME the blocker — thicket growth, rock, crystal, LOS prop.</summary>
+    public TileData FirstLosBlocker(Vector2I from, Vector2I to)
     {
         // Use cube coordinate lerp to trace the line between hexes
         var steps = Distance(from, to);
         if (steps == 0)
-            return true;
+            return null;
 
         for (int i = 1; i < steps; i++)
         {
@@ -229,10 +235,10 @@ public partial class HexGridManager
             if (!Tiles.TryGetValue(coord, out var tile))
                 continue;
             if (tile.BlocksLineOfSight)
-                return false;
+                return tile;
         }
 
-        return true;
+        return null;
     }
 
     /// <summary>

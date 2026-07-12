@@ -1515,6 +1515,29 @@ public partial class CombatManager : Node3D
         // Armor-piercing
         bool ignoresArmor = stance?.AttackIgnoresArmor ?? false;
 
+        // ── Wildlife behavior tags (2026-07-12) ──────────────────────────
+        // Pack: +1 damage per OTHER living pack-tagged ally (wolves hunt together).
+        if (attacker.HasBehaviorTag("pack"))
+        {
+            int packmates = 0;
+            foreach (var u in State.UnitsInPlay)
+                if (u != null && u != attacker && u.Stats.IsAlive
+                    && u.TeamId == attacker.TeamId && u.HasBehaviorTag("pack"))
+                    packmates++;
+            if (packmates > 0)
+            {
+                damage += packmates;
+                combatUI?.AppendActionLog($"[Pack] {attacker.Name} +{packmates} — the pack hunts together.");
+            }
+        }
+
+        // Charge: momentum — 2+ tiles covered this turn before the hit = +3.
+        if (attacker.HasBehaviorTag("charge") && attacker.TilesMovedThisTurn >= 2)
+        {
+            damage += 3;
+            combatUI?.AppendActionLog($"[Charge] {attacker.Name} slams in with momentum — +3 damage.");
+        }
+
         // Marked target bonus
         int markedBonus = 0;
         if (target.HasStatus("marked"))
@@ -1641,6 +1664,7 @@ public partial class CombatManager : Node3D
 
         // ── Mark attack tracking ──────────────────────────────────────────
         attacker.HasAttackedThisCombat = true;
+        attacker.HasAttackedThisTurn = true;
 
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();
@@ -1824,6 +1848,16 @@ public partial class CombatManager : Node3D
                 fateBank.BankUnspentMana(unit.Stats.Mana);
 
             unit.Stats.Shield = 0;
+
+            // Bulwark (2026-07-12): a bear that did NOT attack this turn braces —
+            // shield that lives through the enemy turn (granted after the zeroing
+            // above, cleared by next turn's zeroing). Hit hard OR be tough.
+            if (unit.HasBehaviorTag("bulwark") && !unit.HasAttackedThisTurn && unit.Stats.IsAlive)
+            {
+                unit.Stats.Shield += 4;
+                combatUI?.AppendActionLog($"[Bulwark] {unit.Name} braces — +4 shield until your next turn.");
+            }
+
             unit.RefreshHealthBar();
 
             // Spirit on-kill riders last a single turn.
@@ -2297,8 +2331,11 @@ public partial class CombatManager : Node3D
             {
                 int drain = unit.Stats.PoisonDrainPerTurn;
 
-                // Reduce max HP permanently
+                // Reduce max HP permanently (WitheredMaxHp keeps the original
+                // width visible on the bar as a sickly right-end segment)
+                int beforeMax = unit.Stats.MaxHealth;
                 unit.Stats.MaxHealth = Math.Max(0, unit.Stats.MaxHealth - drain);
+                unit.Stats.WitheredMaxHp += beforeMax - unit.Stats.MaxHealth;
 
                 // Clamp current HP to the new max — this IS damage
                 if (unit.Stats.Health > unit.Stats.MaxHealth)
@@ -3849,7 +3886,32 @@ public partial class CombatManager : Node3D
 
             // Persistent marker so the death hook can leave a carcass (same pattern as colossus_absorb)
             if (isWildlife)
+            {
                 unit.ApplyStatus("wildlife", 999);
+
+                // Wildlife fights like a martial companion: select it, click an
+                // enemy in range to attack (PT7 — summoned Boar had no attack
+                // input; click fell through to InspectEnemy). Damage comes from
+                // the bestiary; default 5 if the def omits it.
+                unit.IsMartial = true;
+                unit.AttackRange = 1;
+                if (beast.Damage > 0)
+                    unit.AttackDamage = beast.Damage;
+
+                // Identity pass (2026-07-12): behavior tags drive pack/charge/
+                // bulwark riders; ap/moveRange decouple action count from reach
+                // (Boar: 2 AP but 5-tile moves — a fast line-breaker).
+                foreach (var t in beast.Tags)
+                    if (!unit.BehaviorTags.Contains(t))
+                        unit.BehaviorTags.Add(t);
+                if (beast.Ap > 0)
+                {
+                    unit.MaxActionPoints = beast.Ap;
+                    unit.CurrentActionPoints = beast.Ap;
+                }
+                if (beast.MoveRange > 0)
+                    unit.MoveRange = beast.MoveRange;
+            }
 
             if (kindKey.Contains("pillar") || kindKey.Contains("boulder"))
                 unit.SetBodyColor(UITheme.SummonColorPillar);
@@ -4247,6 +4309,14 @@ public partial class CombatManager : Node3D
         }
     }
 
+    /// <summary>Every failed card drop reports WHY — to the action log (player)
+    /// AND the console (playtest transcripts). PT8: silent failed drops.</summary>
+    private void CastFail(string msg)
+    {
+        GD.Print($"[CastFail] {msg}");
+        combatUI?.AppendActionLog($"✕ {msg}");
+    }
+
     private void OnCardDroppedOnTile(CardUi cardUi, bool isTop, HexTile tile)
     {
         _isCardBeingDragged = false;
@@ -4274,7 +4344,7 @@ public partial class CombatManager : Node3D
         }
         if (!_priorityWindowOpen && currentPhase == CombatPhase.EnemyTurn)
         {
-            GD.Print($"[Cast] rejected {half.Name} — enemy turn, no open window.");
+            CastFail($"{half.Name}: cannot cast — enemy turn, no reaction window open.");
             return;
         }
 
@@ -4297,7 +4367,7 @@ public partial class CombatManager : Node3D
                 int totalCost = half.ManaCost + ChannelResolver.ChannelManaCost;
                 if ((selectedUnit?.Stats.Mana ?? 0) < totalCost)
                 {
-                    combatUI?.AppendActionLog("Not enough mana to channel.");
+                    CastFail($"{half.Name}: not enough mana to channel ({selectedUnit?.Stats.Mana ?? 0}/{totalCost}).");
                     return;
                 }
                 resolvedHalf = channelHalf;
@@ -4323,7 +4393,7 @@ public partial class CombatManager : Node3D
                     .FirstOrDefault(u => u?.CurrentTile?.Axial == tile.Axial && u.Stats.IsAlive);
                 if (unit == null)
                 {
-                    combatUI?.AppendActionLog("No valid unit on that tile.");
+                    CastFail($"{resolvedHalf.Name}: no unit on tile {tile.Axial}.");
                     return;
                 }
                 if (selectedUnit?.CurrentTile != null)
@@ -4331,19 +4401,23 @@ public partial class CombatManager : Node3D
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial);
                     if (dist > ut.range)
                     {
-                        combatUI?.AppendActionLog("Target is out of range!");
-                        GD.Print($"[Cast] Out of range: dist={dist} range={ut.range}");
+                        CastFail($"{resolvedHalf.Name}: {unit.Name} is out of range ({dist} > {ut.range}).");
                         return;
                     }
                 }
                 if (!grid.HasLineOfSight(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial))
                 {
-                    combatUI?.AppendActionLog("No line of sight to target!");
+                    var blocker = grid.FirstLosBlocker(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial);
+                    string what = blocker == null ? "terrain"
+                        : blocker.GrowthStage >= 2 ? $"thicket growth at {blocker.Axial}"
+                        : !string.IsNullOrEmpty(blocker.ObstacleKind) ? $"{blocker.ObstacleKind} at {blocker.Axial}"
+                        : $"terrain at {blocker.Axial}";
+                    CastFail($"{resolvedHalf.Name}: no line of sight to {unit.Name} — blocked by {what}.");
                     return;
                 }
                 if (ut.enemyOnly && unit.TeamId == selectedUnit?.TeamId)
                 {
-                    combatUI?.AppendActionLog("Invalid target.");
+                    CastFail($"{resolvedHalf.Name}: must target an enemy.");
                     return;
                 }
                 targets.Items.Add(unit);
@@ -4352,13 +4426,13 @@ public partial class CombatManager : Node3D
             case SelectTileTarget tt:
                 var tileData = grid.GetTile(tile.Axial);
                 if (tileData == null)
-                { State.Log("Invalid tile."); return; }
+                { CastFail($"{resolvedHalf.Name}: invalid tile."); return; }
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, tile.Axial);
                     if (dist > tt.range)
                     {
-                        combatUI?.AppendActionLog("Target is out of range!");
+                        CastFail($"{resolvedHalf.Name}: tile is out of range ({dist} > {tt.range}).");
                         return;
                     }
                 }
@@ -4390,19 +4464,19 @@ public partial class CombatManager : Node3D
             case SelectEmptyTileTarget et:
                 var emptyTile = grid.GetTile(tile.Axial);
                 if (emptyTile == null)
-                { State.Log("Invalid tile."); return; }
+                { CastFail($"{resolvedHalf.Name}: invalid tile."); return; }
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, tile.Axial);
                     if (dist > et.Range)
                     {
-                        combatUI?.AppendActionLog("Target is out of range!");
+                        CastFail($"{resolvedHalf.Name}: tile is out of range ({dist} > {et.Range}).");
                         return;
                     }
                 }
                 if (emptyTile.Occupant != null)
                 {
-                    combatUI?.AppendActionLog("Target tile is occupied!");
+                    CastFail($"{resolvedHalf.Name}: that tile is occupied.");
                     return;
                 }
                 targets.Items.Add(emptyTile);
@@ -4416,8 +4490,7 @@ public partial class CombatManager : Node3D
 
         if (!CheckCastRequirements(resolvedHalf, targets, out var failMsg))
         {
-            GD.Print($"Cast blocked: {failMsg}");
-            combatUI?.AppendActionLog(failMsg);
+            CastFail($"{resolvedHalf.Name}: {failMsg}");
             return;
         }
 
@@ -4425,6 +4498,14 @@ public partial class CombatManager : Node3D
 
         var ok = Rules.TryCastWithTargets(resolvedHalf, State, Me, targets, cardUi.CardInstance);
         GD.Print($"Cast result={ok} manaNow={State.Mana[Me]}");
+
+        if (!ok)
+        {
+            if (State.Mana[Me] < resolvedHalf.ManaCost)
+                CastFail($"{resolvedHalf.Name}: not enough mana ({State.Mana[Me]}/{resolvedHalf.ManaCost}).");
+            else
+                CastFail($"{resolvedHalf.Name}: cast failed (cost or timing not payable).");
+        }
 
         if (ok)
         {

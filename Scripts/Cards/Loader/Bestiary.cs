@@ -25,6 +25,8 @@ public class WildlifeDef
     public int Damage = 0;
     public int Speed = 1;
     public int Armor = 0;
+    public int Ap = 0;        // 0 = default (AP = Speed). Boar: 2 AP but fast reach.
+    public int MoveRange = 0; // 0 = default (Unit export, 3). Tiles per move action.
     public List<string> Tags = new();
     public string Notes = "";
 }

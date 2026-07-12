@@ -193,7 +193,8 @@
 								"type": "retarget",
 								"targeting": {
 									"type": "ring",
-									"radius": 1
+									"radius": 1,
+									"enemies_only": true
 								},
 								"do": {
 									"type": "apply_status",
@@ -269,8 +270,9 @@
 							{
 								"type": "retarget",
 								"targeting": {
-									"type": "ring",
-									"radius": 2
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
 								},
 								"do": {
 									"type": "apply_status",

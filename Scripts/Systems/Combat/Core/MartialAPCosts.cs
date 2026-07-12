@@ -20,11 +20,16 @@ public static class MartialAPCosts
     /// <summary>Cost to move one tile on difficult terrain (rubble, lava, etc.).</summary>
     public const int MoveDifficult = 2;
 
-    /// <summary>Cost to make a melee attack (range 1).</summary>
-    public const int AttackMelee = 2;
+    /// <summary>Cost to make a melee attack (range 1). Ruling 2026-07-12:
+    /// moving a tile or fighting each costs one AP — a 1-AP Bear can attack,
+    /// a 2-AP Wolf can step-and-bite. Multi-attack per turn is allowed by the
+    /// economy (Boar 3 AP = up to 3 gores) — balance watch, not a bug.</summary>
+    public const int AttackMelee = 1;
 
-    /// <summary>Cost to make a ranged attack (range 2+).</summary>
-    public const int AttackRanged = 3;
+    /// <summary>Cost to make a ranged attack (range 2+). Ruling 2026-07-12:
+    /// ranged pays a one-AP premium over melee — a 3-AP shooter can move once
+    /// and shoot, or spend the whole turn repositioning to flank.</summary>
+    public const int AttackRanged = 2;
 
     /// <summary>Cost to switch stance (once per turn maximum).</summary>
     public const int SwitchStance = 1;
