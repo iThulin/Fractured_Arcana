@@ -8,7 +8,7 @@
 		"name": "Jolt",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 2 damage. Push target 1 tile.",
+		"rules_text": "Deal 3 damage. Push target 1 tile.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -21,7 +21,7 @@
 			"steps": [
 				{
 					"type": "damage",
-					"amount": 2
+					"amount": 3
 				},
 				{
 					"type": "push",
@@ -44,5 +44,185 @@
 			"type": "mana_gain",
 			"amount": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "More current on both faces.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "push",
+								"tiles": 1,
+								"collision_damage": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. Push target 1 tile."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 1
+							},
+							{
+								"type": "shield",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 mana and 1 shield."
+				}
+			],
+			"top_name": "Jolt+",
+			"bottom_name": "Spark+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The shock lingers.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "push",
+								"tiles": 1,
+								"collision_damage": 1
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. Push target 1 tile and Slow it for 1 turn."
+				}
+			],
+			"top_name": "Static Jolt"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Drawn from a deeper well.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "mana_gain",
+						"amount": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 mana."
+				}
+			],
+			"bottom_name": "Deep Spark"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Enough force to throw them into things.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "push",
+								"tiles": 2,
+								"collision_damage": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. Push target 2 tiles; collisions deal 3."
+				}
+			],
+			"top_name": "Arc Jolt"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "A textbook stun, delivered barehanded.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "push",
+								"tiles": 2,
+								"collision_damage": 3
+							},
+							{
+								"type": "apply_status",
+								"status": "stunned",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage. Push 2 tiles (collisions deal 3) and Stun for 1 turn."
+				}
+			],
+			"top_name": "Thunderclap"
+		}
+	]
 }

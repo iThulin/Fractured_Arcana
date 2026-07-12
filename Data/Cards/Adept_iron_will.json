@@ -49,5 +49,190 @@
 				}
 			]
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Harder to move, harder to mark.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 6
+							},
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 armor. Cannot move this turn."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "remove_status"
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Remove all negative statuses. Gain 3 shield."
+				}
+			],
+			"top_name": "Iron Will+",
+			"bottom_name": "Shrug Off+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Set like a milestone.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 7
+							},
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 7 armor. Cannot move this turn."
+				}
+			],
+			"top_name": "Stone Will"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Composure is armor too.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "remove_status"
+							},
+							{
+								"type": "shield",
+								"amount": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Remove all negative statuses. Gain 4 shield."
+				}
+			],
+			"bottom_name": "Deep Breath"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Hitting it hurts.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 8
+							},
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							},
+							{
+								"type": "retaliate",
+								"damage": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 8 armor (cannot move this turn). Attackers that hit you take 2."
+				}
+			],
+			"top_name": "Unbreakable"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "A wall that files paperwork.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 10
+							},
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							},
+							{
+								"type": "retaliate",
+								"damage": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 10 armor (cannot move this turn). Attackers that hit you take 3."
+				}
+			],
+			"top_name": "Adamant Form"
+		}
+	]
 }

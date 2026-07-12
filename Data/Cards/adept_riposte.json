@@ -58,5 +58,192 @@
 				}
 			]
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Answer in kind, then some.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 4
+							},
+							{
+								"type": "retaliate",
+								"damage": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 4 shield. Until your next turn, attackers that hit you take 4."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "armor",
+									"amount": 2
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 4 damage. Gain 2 armor."
+				}
+			],
+			"top_name": "Riposte+",
+			"bottom_name": "Counter+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The blade waits for them.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 4
+							},
+							{
+								"type": "retaliate",
+								"damage": 6
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 4 shield. Attackers that hit you take 6."
+				}
+			],
+			"top_name": "En Garde"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Trade on your terms.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "armor",
+									"amount": 2
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage. Gain 2 armor."
+				}
+			],
+			"bottom_name": "Cross Counter"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "They cannot afford to swing.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "retaliate",
+								"damage": 6
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Attackers that hit you take 6."
+				}
+			],
+			"top_name": "Perfect Riposte"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The answer arrives before the question.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "retaliate",
+								"damage": 8
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Attackers that hit you take 8."
+				}
+			],
+			"top_name": "Master's Riposte"
+		}
+	]
 }

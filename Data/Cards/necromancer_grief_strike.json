@@ -37,7 +37,7 @@
 	"bottom": {
 		"name": "Hollow Step",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 2 tiles. If you pass through or end on a memorial tile, draw a card.",
 		"tags": [
 			"necrotic"

@@ -25,14 +25,174 @@
 		"name": "Brace",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 2 armor.",
+		"rules_text": "Gain 3 armor.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
 		},
 		"effect": {
 			"type": "armor",
-			"amount": 2
+			"amount": 3
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Sharper blow, firmer stance.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 7
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage (range 3)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "armor",
+						"amount": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 armor."
+				}
+			],
+			"top_name": "Focused Strike+",
+			"bottom_name": "Brace+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The reach of a drilled lunge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 4,
+						"los": true,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage (range 4)."
+				}
+			],
+			"top_name": "Measured Strike"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Braced for anything.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 4
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 armor and 2 shield."
+				}
+			],
+			"bottom_name": "Set Stance"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Devastating up close.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "target_adjacent_to_caster"
+						},
+						"then": {
+							"type": "damage",
+							"amount": 11
+						},
+						"else": {
+							"type": "damage",
+							"amount": 8
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 8 damage (11 if the target is adjacent to you)."
+				}
+			],
+			"top_name": "Point-Blank Form"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The finish rewards the form.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 10
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "was_lethal"
+								},
+								"then": {
+									"type": "mana_gain",
+									"amount": 2
+								},
+								"else": {
+									"type": "empty"
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 10 damage. If this kills, gain 2 mana."
+				}
+			],
+			"top_name": "Killing Form"
+		}
+	]
 }

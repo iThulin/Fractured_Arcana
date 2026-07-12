@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Stutter Step",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 3 tiles. If 2nd+ action this turn, draw a card.",
 		"tags": [
 			"temporal"

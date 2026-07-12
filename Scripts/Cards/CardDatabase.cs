@@ -223,17 +223,29 @@ public static class CardDatabase
         var pool = Blueprints.Where(b => b.School == school).ToList();
         if (pool.Count == 0) return new List<Card>();
 
+        // Adept-as-neutral-pool ruling (2026-07-10): the LAST slot of every
+        // non-Adept school's draft always offers a card from the Adept pool —
+        // the shared fundamentals every school can reach. (The Adept class
+        // itself never drafts: EncounterRouter pays a splinter stipend instead.)
+        var neutralPool = school != CardSchool.Adept
+            ? Blueprints.Where(b => b.School == CardSchool.Adept).ToList()
+            : null;
+
         var result = new List<Card>();
         for (int i = 0; i < choices; i++)
         {
+            var slotPool = (neutralPool != null && neutralPool.Count > 0 && i == choices - 1)
+                ? neutralPool
+                : pool;
+
             double roll = rng.NextDouble();
             CardRarity target = roll < 0.50 ? CardRarity.Common
                             : roll < 0.80 ? CardRarity.Uncommon
                             : roll < 0.95 ? CardRarity.Rare
                             : CardRarity.Legendary;
 
-            var tierPool = pool.Where(b => b.Rarity == target).ToList();
-            if (tierPool.Count == 0) tierPool = pool;
+            var tierPool = slotPool.Where(b => b.Rarity == target).ToList();
+            if (tierPool.Count == 0) tierPool = slotPool;
             if (tierPool.Count == 0) continue;
 
             result.Add(Instantiate(tierPool[rng.Next(tierPool.Count)]));

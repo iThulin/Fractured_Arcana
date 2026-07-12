@@ -39,5 +39,161 @@
 			"tiles": 1,
 			"collision_damage": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "More muscle behind the shove.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "push",
+						"tiles": 3,
+						"collision_damage": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target enemy 3 tiles; collisions deal 2."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "push",
+						"tiles": 2,
+						"collision_damage": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push all adjacent enemies 2 tiles."
+				}
+			],
+			"top_name": "Force Push+",
+			"bottom_name": "Repulse+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Into the wall, with feeling.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "push",
+						"tiles": 3,
+						"collision_damage": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target enemy 3 tiles; collisions deal 4."
+				}
+			],
+			"top_name": "Slam"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "The room clears itself.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "push",
+								"tiles": 2,
+								"collision_damage": 2
+							},
+							{
+								"type": "damage",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push all adjacent enemies 2 tiles (collisions deal 2) and deal 2 damage."
+				}
+			],
+			"bottom_name": "Shockwave"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "A battering ram made of will.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 5,
+						"los": true,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "push",
+						"tiles": 3,
+						"collision_damage": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Range 5. Push target 3 tiles; collisions deal 5."
+				}
+			],
+			"top_name": "Kinetic Lance"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Nothing keeps its footing.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "push",
+								"tiles": 4,
+								"collision_damage": 5
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target 4 tiles (collisions deal 5). It is Slowed for 1 turn."
+				}
+			],
+			"top_name": "Irresistible Force"
+		}
+	]
 }

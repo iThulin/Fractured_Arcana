@@ -32,5 +32,130 @@
 			"type": "mana_per_kill",
 			"amount_per": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Bigger crater, richer harvest.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "aoe_all",
+						"radius": 3,
+						"damage": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage to ALL units within 3 tiles, including allies."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "mana_per_kill",
+						"amount_per": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 mana for each enemy killed this turn."
+				}
+			],
+			"top_name": "Cataclysm+",
+			"bottom_name": "Aftershock+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The circle widens.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "aoe_all",
+						"radius": 4,
+						"damage": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage to ALL units within 4 tiles, including allies."
+				}
+			],
+			"top_name": "Greater Cataclysm"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Ruin, itemized and collected.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "mana_per_kill",
+						"amount_per": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 mana for each enemy killed this turn."
+				}
+			],
+			"bottom_name": "Rich Aftershock"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Textbook annihilation.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "aoe_all",
+						"radius": 4,
+						"damage": 7
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage to ALL units within 4 tiles, including allies."
+				}
+			],
+			"top_name": "Devastation"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The Academy asks that you not.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "aoe_all",
+						"radius": 4,
+						"damage": 9
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 9 damage to ALL units within 4 tiles, including allies."
+				}
+			],
+			"top_name": "Worldbreaker"
+		}
+	]
 }

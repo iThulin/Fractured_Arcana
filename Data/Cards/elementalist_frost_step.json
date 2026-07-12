@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Frost Step",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 2. Imbue tiles with Ice. Gain 2 armor per tile.",
 		"tags": [
 			"ice"

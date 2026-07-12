@@ -25,7 +25,7 @@
 	"bottom": {
 		"name": "Haste",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Target ally gains +2 movement this turn.",
 		"tags": [
 			"temporal"

@@ -36,5 +36,160 @@
 		"effect": {
 			"type": "remove_status"
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Steadier hands.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "heal",
+						"amount": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Heal self or ally for 6 HP."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "remove_status"
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Cleanse negative statuses from self or ally. They gain 2 shield."
+				}
+			],
+			"top_name": "Restoration+",
+			"bottom_name": "Cleanse+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "A proper mending.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "heal",
+						"amount": 8
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Heal self or ally for 8 HP."
+				}
+			],
+			"top_name": "Restoration"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Poison has no purchase.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "remove_status"
+							},
+							{
+								"type": "heal",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Cleanse negative statuses from self or ally and heal 3 HP."
+				}
+			],
+			"bottom_name": "Purifying Touch"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Wounds close as if unmade.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 4,
+						"los": true,
+						"enemies_only": false
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "heal",
+						"amount": 9
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Heal self or ally within 4 tiles for 9 HP."
+				}
+			],
+			"top_name": "Greater Restoration"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The body remembers being whole.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "heal",
+								"amount": 12
+							},
+							{
+								"type": "remove_status"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Heal self or ally for 12 HP and cleanse their negative statuses."
+				}
+			],
+			"top_name": "Full Mending"
+		}
+	]
 }

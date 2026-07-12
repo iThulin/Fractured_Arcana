@@ -88,8 +88,24 @@ public partial class EncounterRouter : Node
 
         if (playerWon)
         {
-            // Show card reward screen — it routes to overworld when done
-            GetTree().ChangeSceneToFile("res://Scenes/UI/CardRewardScreen.tscn");
+            // Adept ruling (2026-07-10): the generalist never drafts on the road.
+            // Instead the splinter reward is DOUBLED — the Academy stipend — and
+            // deck building happens back at the campus (upgrades now; a splinter
+            // card-acquisition screen is the planned follow-on).
+            if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave?.SelectedSchool,
+                    ignoreCase: true, out var schoolForReward)
+                && schoolForReward == CardSchool.Adept)
+            {
+                SplinterReward *= 2;
+                GD.Print($"EncounterRouter: Adept stipend — no draft, splinters doubled to {SplinterReward}.");
+                GetTree().CreateTimer(2.0f).Timeout += () =>
+                    GetTree().ChangeSceneToFile(OverworldScenePath);
+            }
+            else
+            {
+                // Show card reward screen — it routes to overworld when done
+                GetTree().ChangeSceneToFile("res://Scenes/UI/CardRewardScreen.tscn");
+            }
         }
         else
         {

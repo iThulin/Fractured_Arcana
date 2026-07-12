@@ -22,7 +22,7 @@
 	"bottom": {
 		"name": "Redeploy",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move a construct you control up to 3 tiles. It cannot act this turn.",
 		"tags": [],
 		"targeting": {

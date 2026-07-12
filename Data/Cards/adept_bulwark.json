@@ -70,5 +70,208 @@
 				}
 			]
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Stronger wall, deeper draw.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon",
+								"unit": "Shield_Wall",
+								"count": 1
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "adjacent_to_target",
+									"include_tiles": false
+								},
+								"do": {
+									"type": "grant_armor",
+									"amount": 3
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Create a Shield Wall within 2. Adjacent allies gain +3 armor."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "heal",
+									"amount": 6
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Heal 6."
+				}
+			],
+			"top_name": "Bulwark+",
+			"bottom_name": "Siphon+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Further out, holding longer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Create a Shield Wall within 3. Adjacent allies gain +3 armor."
+				}
+			],
+			"top_name": "Rampart"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Their strength becomes yours.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "heal",
+									"amount": 7
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Heal 7."
+				}
+			],
+			"bottom_name": "Greater Siphon"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "It leaves them weaker, too.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "heal",
+									"amount": 7
+								}
+							},
+							{
+								"type": "apply_status",
+								"status": "weakened",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage, heal 7, and Weaken the target 1 turn."
+				}
+			],
+			"bottom_name": "Draining Siphon"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Vitality, transferred wholesale.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 9
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "heal",
+									"amount": 9
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 9 damage. Heal 9."
+				}
+			],
+			"bottom_name": "The Long Drink"
+		}
+	]
 }

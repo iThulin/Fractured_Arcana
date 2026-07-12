@@ -22,14 +22,188 @@
 		"name": "Farsight",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 1 mana.",
+		"rules_text": "Gain 1 mana. Draw a card.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
 		},
 		"effect": {
-			"type": "mana_gain",
-			"amount": 1
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "mana_gain",
+					"amount": 1
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The pages turn themselves.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 2
+							},
+							{
+								"type": "shield",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 2 cards. Gain 1 shield."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 mana. Draw a card."
+				}
+			],
+			"top_name": "Arcane Sight+",
+			"bottom_name": "Farsight+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Cards and intentions alike.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 2
+							},
+							{
+								"type": "peek_intent"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 2 cards. Reveal every enemy."
+				}
+			],
+			"top_name": "Read the Field"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "The well runs deeper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 mana. Draw a card."
+				}
+			],
+			"bottom_name": "Deep Sight"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Three moves ahead.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "draw",
+						"count": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 3 cards."
+				}
+			],
+			"top_name": "Scholar's Eye"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The whole library, at once.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 3
+							},
+							{
+								"type": "mana_gain",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 3 cards. Gain 1 mana."
+				}
+			],
+			"top_name": "Total Recall"
+		}
+	]
 }

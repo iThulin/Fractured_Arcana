@@ -40,5 +40,174 @@
 				}
 			]
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Further, safer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "empty_tile",
+						"range": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Teleport to any empty tile within 4."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport within 2. Gain 3 shield."
+				}
+			],
+			"top_name": "Blink+",
+			"bottom_name": "Fade+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Distance is a suggestion.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "empty_tile",
+						"range": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Teleport to any empty tile within 5."
+				}
+			],
+			"top_name": "Long Blink"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Gone before the blow lands.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "empty_tile",
+						"range": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport within 3. Gain 3 shield."
+				}
+			],
+			"bottom_name": "Ghost Fade"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Movement feeds the next spell.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "mana_gain",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Teleport within 5. Gain 1 mana."
+				}
+			],
+			"top_name": "Blink Momentum"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Anywhere is adjacent, given practice.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "empty_tile",
+						"range": 7
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Teleport to any empty tile within 7. Draw a card."
+				}
+			],
+			"top_name": "Translocation"
+		}
+	]
 }

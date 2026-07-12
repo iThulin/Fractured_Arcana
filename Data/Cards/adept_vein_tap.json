@@ -33,5 +33,165 @@
 			"type": "damage",
 			"amount": 2
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The vein runs rich.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 3
+							},
+							{
+								"type": "shield",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 3 mana and 1 shield."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 3 damage to all enemies within 3 tiles."
+				}
+			],
+			"top_name": "Vein Tap+",
+			"bottom_name": "Vein Pulse+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "More than the ledger expected.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "mana_gain",
+						"amount": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 4 mana."
+				}
+			],
+			"top_name": "Rich Vein"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "The whole field feels it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 3
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 3 damage to all enemies within 3 tiles and Slow them 1 turn."
+				}
+			],
+			"bottom_name": "Hard Pulse"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "A tremor from the source.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 4 damage to all enemies within 3 tiles and Slow them 1 turn."
+				}
+			],
+			"bottom_name": "Deep Pulse"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Raw power, briefly unbottled.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage to all enemies within 3 tiles and Slow them 1 turn."
+				}
+			],
+			"bottom_name": "The Opened Vein"
+		}
+	]
 }

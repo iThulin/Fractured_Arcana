@@ -23,7 +23,7 @@
 	"bottom": {
 		"name": "Arcane Drift",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 1 tile per spell cast this turn (max 4). Gain 2 armor per tile moved.",
 		"tags": [
 			"arcane"

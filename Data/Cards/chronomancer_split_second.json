@@ -45,7 +45,7 @@
 	"bottom": {
 		"name": "Between Moments",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 2 tiles. Gain 1 Foresight.",
 		"tags": [
 			"temporal"

@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Warding Step",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 2. Gain 3 shield. Gain 1 Weave.",
 		"tags": [
 			"enchant"

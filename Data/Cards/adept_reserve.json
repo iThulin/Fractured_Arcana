@@ -31,5 +31,162 @@
 			"type": "draw",
 			"count": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "A little extra, kept aside.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 2
+							},
+							{
+								"type": "shield",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 2 mana and 1 shield."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 1
+							},
+							{
+								"type": "mana_gain",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw a card. Gain 1 mana."
+				}
+			],
+			"top_name": "Reserve+",
+			"bottom_name": "Study+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The pocket goes deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "mana_gain",
+						"amount": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 3 mana."
+				}
+			],
+			"top_name": "Deep Reserve"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Reading pays twice.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "draw",
+						"count": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 2 cards."
+				}
+			],
+			"bottom_name": "Studied Mind"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Prepared for the long exchange.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 3
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 3 mana and 2 shield."
+				}
+			],
+			"top_name": "War Chest"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Somehow, there is always more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 4 mana. Draw a card."
+				}
+			],
+			"top_name": "Boundless Reserve"
+		}
+	]
 }

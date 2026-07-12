@@ -1,0 +1,41 @@
+{
+	"school": "Adept",
+	"cards": [
+		{
+			"id": "adept_magic_missile",
+			"count": 2
+		},
+		{
+			"id": "adept_focused_strike",
+			"count": 1
+		},
+		{
+			"id": "adept_jolt",
+			"count": 1
+		},
+		{
+			"id": "adept_force_push",
+			"count": 1
+		},
+		{
+			"id": "adept_ward",
+			"count": 1
+		},
+		{
+			"id": "adept_riposte",
+			"count": 1
+		},
+		{
+			"id": "adept_blink",
+			"count": 1
+		},
+		{
+			"id": "adept_field_step",
+			"count": 1
+		},
+		{
+			"id": "adept_arcane_sight",
+			"count": 1
+		}
+	]
+}

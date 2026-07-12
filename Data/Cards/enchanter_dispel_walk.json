@@ -7,7 +7,7 @@
 	"top": {
 		"name": "Dispel Walk",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 2. Remove 1 buff from each enemy you pass adjacent to.",
 		"tags": [
 			"enchant"

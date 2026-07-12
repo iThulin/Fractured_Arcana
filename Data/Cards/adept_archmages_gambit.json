@@ -46,5 +46,179 @@
 		"effect": {
 			"type": "damage_by_hand_size"
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The wager improves.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 3
+							},
+							{
+								"type": "mana_gain",
+								"amount": 3
+							},
+							{
+								"type": "self_damage",
+								"amount": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 3 cards. Gain 3 mana. Take 4 damage."
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal damage equal to cards in hand x2."
+				}
+			],
+			"top_name": "Gambit+",
+			"bottom_name": "Desperate Measure+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "More cards, same blood.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 4
+							},
+							{
+								"type": "mana_gain",
+								"amount": 3
+							},
+							{
+								"type": "self_damage",
+								"amount": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 4 cards. Gain 3 mana. Take 5 damage."
+				}
+			],
+			"top_name": "Double Down"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Armor for the all-in.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage_by_hand_size"
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "self"
+								},
+								"do": {
+									"type": "armor",
+									"amount": 2
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal damage equal to cards in hand x2. Gain 2 armor."
+				}
+			],
+			"bottom_name": "Measured Desperation"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Draws like a cheat, pays like one.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 4
+							},
+							{
+								"type": "mana_gain",
+								"amount": 4
+							},
+							{
+								"type": "self_damage",
+								"amount": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 4 cards. Gain 4 mana. Take 5 damage."
+				}
+			],
+			"top_name": "The House Always..."
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Everything on one number.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal damage equal to cards in hand x2, plus 5."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage_by_hand_size"
+							},
+							{
+								"type": "damage",
+								"amount": 5
+							}
+						]
+					}
+				}
+			],
+			"bottom_name": "All In"
+		}
+	]
 }

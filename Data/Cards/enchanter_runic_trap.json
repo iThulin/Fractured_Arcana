@@ -26,7 +26,7 @@
 	"bottom": {
 		"name": "Sigil Slide",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 2. Leave a glyph on your origin tile: the next ally to step on it gains 2 shield.",
 		"tags": [
 			"enchant",

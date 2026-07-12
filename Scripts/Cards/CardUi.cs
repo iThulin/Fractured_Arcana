@@ -338,9 +338,12 @@ public partial class CardUi : Control
         StyleManaPip($"{SplitTop}/NameBar/ManaPip", darkCol);
         StyleManaPip($"{SplitBot}/NameBar/ManaPip", darkCol);
 
-        // Channel badges — small indicator on the name bar
-        SetChannelBadge($"{SplitTop}/NameBar", top?.CanChannel ?? false);
-        SetChannelBadge($"{SplitBot}/NameBar", bottom?.CanChannel ?? false);
+        // (2026-07-10) Channel badge RETIRED from the split name bar: CanChannel
+        // defaults true on every half, so the ⟳ appeared on all ~328 halves —
+        // an always-on indicator carries no information and squeezed SpellName.
+        // The channel affordance lives in the full-card hover (ChannelStrip).
+        SetChannelBadge($"{SplitTop}/NameBar", false);
+        SetChannelBadge($"{SplitBot}/NameBar", false);
     }
 
     private void PopulateSplitHalf(CardHalf half,

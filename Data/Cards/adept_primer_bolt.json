@@ -25,7 +25,7 @@
 	"bottom": {
 		"name": "Quick Step",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 2 tiles.",
 		"tags": [],
 		"targeting": {
@@ -35,5 +35,159 @@
 			"type": "move",
 			"tiles": 2
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Farther bolt, longer stride.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "damage_by_distance",
+						"min": 3,
+						"max": 7
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal damage equal to distance to target (min 3, max 7)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "move",
+						"tiles": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 3 tiles."
+				}
+			],
+			"top_name": "Primer Bolt+",
+			"bottom_name": "Quick Step+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The arc extends.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 9,
+						"los": true,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "damage_by_distance",
+						"min": 3,
+						"max": 8
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Range 9. Deal damage equal to distance (min 3, max 8)."
+				}
+			],
+			"top_name": "Long Primer"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Move with your guard up.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move",
+								"tiles": 3
+							},
+							{
+								"type": "shield",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 3 tiles. Gain 1 shield."
+				}
+			],
+			"bottom_name": "Traveling Step"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Distance is the whole point.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "damage_by_distance",
+						"min": 4,
+						"max": 9
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Range 9. Deal damage equal to distance (min 4, max 9)."
+				}
+			],
+			"top_name": "Sniper's Primer"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Every tile of distance, weaponized.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 10,
+						"los": true,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "damage_by_distance",
+						"min": 5,
+						"max": 10
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Range 10. Deal damage equal to distance (min 5, max 10)."
+				}
+			],
+			"top_name": "The Perfect Arc"
+		}
+	]
 }

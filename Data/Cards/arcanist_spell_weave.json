@@ -36,7 +36,7 @@
 	"bottom": {
 		"name": "Arcane Slide",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 2. Gain 1 charge.",
 		"tags": [
 			"arcane"

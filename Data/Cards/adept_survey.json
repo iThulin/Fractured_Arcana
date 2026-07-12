@@ -8,19 +8,27 @@
 		"name": "Survey",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Draw 2 cards.",
+		"rules_text": "Draw a card. Reveal the next action of all enemies.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
 		},
 		"effect": {
-			"type": "draw",
-			"count": 2
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "draw",
+					"count": 1
+				},
+				{
+					"type": "peek_intent"
+				}
+			]
 		}
 	},
 	"bottom": {
 		"name": "Reconnoitre",
-		"mana": 1,
+		"mana": 0,
 		"speed": "Reflex",
 		"rules_text": "Gain 1 mana.",
 		"tags": [],
@@ -31,5 +39,184 @@
 			"type": "mana_gain",
 			"amount": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Eyes everywhere.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 2
+							},
+							{
+								"type": "peek_intent"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 2 cards. Reveal every enemy."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 1
+							},
+							{
+								"type": "shield",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 mana and 1 shield."
+				}
+			],
+			"top_name": "Survey+",
+			"bottom_name": "Reconnoitre+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Terrain is information too.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 2
+							},
+							{
+								"type": "peek_intent"
+							},
+							{
+								"type": "shield",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 2 cards, reveal every enemy, gain 1 shield."
+				}
+			],
+			"top_name": "Chart the Ground"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Knowledge pays for itself.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "mana_gain",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 mana. Draw a card."
+				}
+			],
+			"bottom_name": "Field Report"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Nothing moves unobserved.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 3
+							},
+							{
+								"type": "peek_intent"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 3 cards. Reveal every enemy."
+				}
+			],
+			"top_name": "Master Survey"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "See it all; hold it all.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 3
+							},
+							{
+								"type": "peek_intent"
+							},
+							{
+								"type": "mana_gain",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 3 cards, reveal every enemy, gain 1 mana."
+				}
+			],
+			"top_name": "The Whole Board"
+		}
+	]
 }

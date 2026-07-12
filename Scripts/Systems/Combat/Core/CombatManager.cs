@@ -2913,6 +2913,16 @@ public partial class CombatManager : Node3D
             wizard.MoveRange = 3;
             wizard.MaxActionPoints = wizard.Stats.BaseSpeed;      // ← add this
             wizard.CurrentActionPoints = wizard.MaxActionPoints;  // ← add this
+
+            // Adept identity (2026-07-10 ruling): raw capability, no engine —
+            // the generalist runs on 4 max mana instead of 3. Flat power that
+            // never scales; every other school gets an attunement engine instead.
+            if (PlayerSession.SelectedSchool == CardSchool.Adept)
+            {
+                wizard.Stats.MaxMana += 1;
+                wizard.Stats.Mana += 1;
+                GD.Print("[Adept] The curriculum has no gaps — 4 max mana.");
+            }
             playerUnits.Add(wizard);
         }
 

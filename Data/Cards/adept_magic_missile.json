@@ -8,7 +8,7 @@
 		"name": "Magic Missile",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 3 damage.",
+		"rules_text": "Deal 4 damage.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -18,7 +18,7 @@
 		},
 		"effect": {
 			"type": "damage",
-			"amount": 3
+			"amount": 4
 		}
 	},
 	"bottom": {
@@ -36,5 +36,157 @@
 			"type": "damage",
 			"amount": 2
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Drilled to hit harder on both faces.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 3 damage to all enemies within 2 tiles."
+				}
+			],
+			"top_name": "Magic Missile+",
+			"bottom_name": "Spread+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The missile finds its own path.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 7,
+						"los": false,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage, range 7, no line of sight needed."
+				}
+			],
+			"top_name": "Seeking Missile"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "The burst reaches further.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 3 damage to all enemies within 3 tiles."
+				}
+			],
+			"bottom_name": "Wide Spread"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Form so clean it leaves time to think.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Draw a card."
+				}
+			],
+			"top_name": "Missile Volley"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The textbook example, executed perfectly.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 8
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 8,
+						"los": false,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 8 damage, range 8, no line of sight. Draw a card."
+				}
+			],
+			"top_name": "The Perfect Missile"
+		}
+	]
 }

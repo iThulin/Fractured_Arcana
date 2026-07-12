@@ -8,28 +8,166 @@
 		"name": "Ward",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 3 shield.",
+		"rules_text": "Gain 4 shield.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
 		},
 		"effect": {
 			"type": "shield",
-			"amount": 3
+			"amount": 4
 		}
 	},
 	"bottom": {
 		"name": "Fortify",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 2 armor.",
+		"rules_text": "Gain 3 armor.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
 		},
 		"effect": {
 			"type": "armor",
-			"amount": 2
+			"amount": 3
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Thicker on both faces.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "shield",
+						"amount": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 shield."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "armor",
+						"amount": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 armor."
+				}
+			],
+			"top_name": "Ward+",
+			"bottom_name": "Fortify+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Light that scours as it shields.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "remove_status"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Remove your negative statuses."
+				}
+			],
+			"top_name": "Bright Ward"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Set like a keep.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "armor",
+						"amount": 5
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 5 armor."
+				}
+			],
+			"bottom_name": "Iron Fortify"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "The drilled guard, unbroken.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "shield",
+						"amount": 8
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 8 shield."
+				}
+			],
+			"top_name": "Aegis"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Striking it costs them.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 8
+							},
+							{
+								"type": "retaliate",
+								"damage": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 8 shield. Until your next turn, attackers that hit you take 3."
+				}
+			],
+			"top_name": "Bulwark Form"
+		}
+	]
 }

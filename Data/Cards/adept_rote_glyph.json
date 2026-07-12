@@ -41,5 +41,135 @@
 			"status": "arcane_mark",
 			"duration": 3
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Practiced strokes.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "place_glyph",
+						"damage": 4,
+						"status": "slowed",
+						"duration": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Place a Glyph within 3: the first enemy to enter takes 4 damage and is Slowed 1 turn."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "apply_status",
+						"status": "arcane_mark",
+						"duration": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Mark target enemy. The next spell that hits them deals 4 bonus damage."
+				}
+			],
+			"top_name": "Rote Glyph+",
+			"bottom_name": "Chalk Mark+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Drawn further, felt harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "empty_tile",
+						"range": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "place_glyph",
+						"damage": 5,
+						"status": "slowed",
+						"duration": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Place a Glyph within 4: 5 damage and Slowed 1 turn."
+				}
+			],
+			"top_name": "Practiced Glyph"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "A mark that bites deeper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Mark target enemy. The next spell that hits them deals 5 bonus damage."
+				}
+			],
+			"bottom_name": "Heavy Chalk"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "The lesson holds them still.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "place_glyph",
+						"damage": 6,
+						"status": "rooted",
+						"duration": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Place a Glyph within 4: 6 damage and Rooted 1 turn."
+				}
+			],
+			"top_name": "Binding Rote"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Muscle memory, weaponized.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "place_glyph",
+						"damage": 8,
+						"status": "stunned",
+						"duration": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Place a Glyph within 4: 8 damage and Stunned 1 turn."
+				}
+			],
+			"top_name": "Rote Perfected"
+		}
+	]
 }

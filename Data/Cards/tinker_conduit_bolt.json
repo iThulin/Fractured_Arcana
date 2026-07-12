@@ -34,7 +34,7 @@
 	"bottom": {
 		"name": "Tinker Step",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 2 tiles. If you control a construct, gain 2 armor.",
 		"tags": [],
 		"targeting": {

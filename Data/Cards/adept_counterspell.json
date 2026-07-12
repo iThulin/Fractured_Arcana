@@ -43,5 +43,190 @@
 				"type": "empty"
 			}
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Denial, with interest.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "negate_action"
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Negate target enemy's next action. Gain 2 shield."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "actions_negated_this_turn",
+							"min": 1
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "gain_mana",
+									"amount": 2
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						},
+						"else": {
+							"type": "empty"
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "If you negated an action this turn: gain 2 mana and draw a card."
+				}
+			],
+			"top_name": "Counterspell+",
+			"bottom_name": "Spell Drain+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The refusal stings.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "negate_action"
+							},
+							{
+								"type": "damage",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Negate target enemy's next action. It takes 3 damage."
+				}
+			],
+			"top_name": "Dispelling Word"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Their loss, your gain.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "actions_negated_this_turn",
+							"min": 1
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "gain_mana",
+									"amount": 2
+								},
+								{
+									"type": "draw",
+									"count": 1
+								},
+								{
+									"type": "shield",
+									"amount": 2
+								}
+							]
+						},
+						"else": {
+							"type": "empty"
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "If you negated an action this turn: gain 2 mana, draw a card, gain 2 shield."
+				}
+			],
+			"bottom_name": "Greater Drain"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Denied, and diminished.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "negate_action"
+							},
+							{
+								"type": "apply_status",
+								"status": "weakened",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Negate target enemy's next action. It is Weakened for 1 turn."
+				}
+			],
+			"top_name": "Silencing Word"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "No.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "(1 mana) Negate target enemy's next action. It is Weakened for 1 turn."
+				}
+			],
+			"top_name": "Absolute Denial"
+		}
+	]
 }

@@ -7,8 +7,8 @@
 	"top": {
 		"name": "Field Step",
 		"mana": 1,
-		"speed": "Reflex",
-		"rules_text": "Move 2 tiles. Gain 1 shield.",
+		"speed": "Studied",
+		"rules_text": "Move 2 tiles. Gain 2 shield.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -22,7 +22,7 @@
 				},
 				{
 					"type": "shield",
-					"amount": 1
+					"amount": 2
 				}
 			]
 		}
@@ -31,14 +31,181 @@
 		"name": "Sidestep",
 		"mana": 0,
 		"speed": "Reflex",
-		"rules_text": "Move 1 tile.",
+		"rules_text": "Step aside: teleport to an adjacent empty tile.",
 		"tags": [],
 		"targeting": {
-			"type": "self"
+			"type": "empty_tile",
+			"range": 1
 		},
 		"effect": {
-			"type": "move",
-			"tiles": 1
+			"type": "teleport"
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Faster feet, cooler head.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move",
+								"tiles": 3
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 3 tiles. Gain 2 shield."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "shield",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Step aside: teleport to an adjacent empty tile. Gain 1 shield."
+				}
+			],
+			"top_name": "Field Step+",
+			"bottom_name": "Sidestep+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Ground covered without exposure.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move",
+								"tiles": 3
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 3 tiles. Gain 3 shield."
+				}
+			],
+			"top_name": "Field March"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "A wider escape.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "empty_tile",
+						"range": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Step aside: teleport to an empty tile within 2. Gain 1 shield."
+				}
+			],
+			"bottom_name": "Slip Aside"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "They swing where you were.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport to an empty tile within 2. Gain 2 shield."
+				}
+			],
+			"bottom_name": "Phantom Step"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "The drilled dodge, perfected.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "teleport"
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Teleport within 2, gain 2 shield, draw a card."
+				}
+			],
+			"bottom_name": "Untouchable"
+		}
+	]
 }

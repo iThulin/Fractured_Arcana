@@ -35,7 +35,7 @@
 	"bottom": {
 		"name": "Gale Leap",
 		"mana": 1,
-		"speed": "Reflex",
+		"speed": "Studied",
 		"rules_text": "Move 3 tiles. Push adjacent enemies 1 tile away.",
 		"tags": [
 			"storm"

@@ -34,5 +34,162 @@
 			"type": "shield",
 			"amount": 4
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Guarding self and friend alike.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "shield",
+						"amount": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 5 shield."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "shield",
+						"amount": 5
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Grant an adjacent ally 5 shield."
+				}
+			],
+			"top_name": "Study Ward+",
+			"bottom_name": "Barrier+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Protection with a page turned.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 5
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 5 shield. Draw a card."
+				}
+			],
+			"top_name": "Quiet Study"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "The circle widens.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 2,
+						"los": true,
+						"enemies_only": false
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "shield",
+						"amount": 6
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Grant an ally within 2 tiles 6 shield."
+				}
+			],
+			"bottom_name": "Shared Barrier"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Armor beneath the shield.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "armor",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Grant an ally within 2 tiles 6 shield and 2 armor."
+				}
+			],
+			"bottom_name": "Warding Circle"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "No harm reaches the warded.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 8
+							},
+							{
+								"type": "remove_status"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Grant an ally within 2 tiles 8 shield and cleanse their negative statuses."
+				}
+			],
+			"bottom_name": "Sanctum"
+		}
+	]
 }
