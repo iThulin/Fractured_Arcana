@@ -154,10 +154,13 @@ public partial class OverworldPartyToken : Node2D
                 if (hex.IsWater)
                     continue;
 
-                // Edge-aware preview: the number is the TRUE cost (terrain ± road/ford);
-                // the colour signals a road (green) or an unbridged river ford (red).
+                // Edge-aware preview: the number is the TRUE cost (terrain ± road/ford,
+                // − Q3 Pathfinder); the colour signals a road (green) or an unbridged
+                // river ford (red). Same Pathfinder reduction the charge path applies —
+                // the preview can't diverge from the cost paid.
                 _grid.Hexes.TryGetValue(CurrentCoord, out var fromHex);
-                int cost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, CurrentCoord, neighborCoord);
+                int pathfinder = EquipmentLoadout.PartyPathfinder(hex.Terrain.ToString());
+                int cost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, CurrentCoord, neighborCoord, pathfinder);
                 bool edgeRoad = OverworldMovementCost.EdgeHasRoad(fromHex, CurrentCoord, neighborCoord);
                 bool edgeFord = OverworldMovementCost.EdgeHasUnbridgedRiver(fromHex, CurrentCoord, neighborCoord);
                 Color tint = edgeRoad ? UITheme.MoveHighlightCheap

@@ -495,11 +495,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (_grid.Hexes.TryGetValue(newCoord, out var hex))
         {
             hpDrain = GetTerrainHPDrain(hex.Terrain);
+            // Q3 (§4b): HazardWard reduces terrain drain, floored at 1 whenever the
+            // terrain drains at all — relief is bought, immunity does not exist.
+            if (hpDrain > 0)
+                hpDrain = Mathf.Max(1, hpDrain - EquipmentLoadout.PartyHazardWard());
             // Edge-aware step cost: destination terrain, cheapened by a road on the
             // traveled edge, surcharged by an unbridged river ford. Read the shared
-            // edge off the tile we're leaving (masks live on both sides).
+            // edge off the tile we're leaving (masks live on both sides). Q3 (§7b):
+            // Pathfinder cheapens the matching terrain (floor 1 inside StepCost).
             _grid.Hexes.TryGetValue(oldCoord, out var fromHex);
-            stepCost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, oldCoord, newCoord);
+            stepCost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, oldCoord, newCoord,
+                EquipmentLoadout.PartyPathfinder(hex.Terrain.ToString()));
         }
 
         if (!(PlayerSession.DebugMode && PlayerSession.UnlimitedSteps))
@@ -529,6 +535,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             int corruptionDrain = CorruptionDrainAt(newCoord);
             if (corruptionDrain > 0)
             {
+                // Q3 (§4b): CorruptionWard reduces the bleed, but Σ ward is CAPPED
+                // at (tile corruption tier × 2) and drain never drops below 1 —
+                // deep stacking is pointless past the tier you're actually walking.
+                int tier = CorruptionTierAt(newCoord);
+                int ward = Mathf.Min(EquipmentLoadout.PartyCorruptionWard(), tier * 2);
+                corruptionDrain = Mathf.Max(1, corruptionDrain - ward);
                 CurrentHP -= corruptionDrain;
                 ShowInfo($"The corruption sears you! Lost {corruptionDrain} HP.");
                 if (CurrentHP <= 0)
@@ -1515,6 +1527,23 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         return Mathf.Clamp(2 + (corruption - 30) * 8 / 70, 2, 10);
     }
 
+    /// <summary>Q3 (§4b): corruption TIER (1–3) of a tile, for the CorruptionWard
+    /// cap (tier × 2). Banded off the 0–100 world corruption; 0 below the 30 harm
+    /// threshold. Tier 1 (30–59) is fully wardable at the edge; tier 3 (90+)
+    /// always stings past any realistic ward.</summary>
+    private int CorruptionTierAt(Vector2I local)
+    {
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return 0;
+        if (!_world.TryIndex(col, row, out int idx))
+            return 0;
+        int c = _world.Tiles[idx].Corruption;
+        if (c < 30) return 0;
+        if (c < 60) return 1;
+        if (c < 90) return 2;
+        return 3;
+    }
+
     // ════════════════════════════════════════════════════════════════════
     // Favor call-ins (Court & Council C3, §4a)
     // ════════════════════════════════════════════════════════════════════
@@ -1868,6 +1897,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         EquipmentLoadout.BuildForRun(save.Armory, "wizard",
             save.ActivePartyCompanionIds ?? new List<string>());
+
+        // Q3 (§4b) readout — party traversal resistance at a glance, once at deploy.
+        int cw = EquipmentLoadout.PartyCorruptionWard();
+        int hw = EquipmentLoadout.PartyHazardWard();
+        if (cw > 0 || hw > 0)
+            GD.Print($"[PartyResist] CorruptionWard {cw}, HazardWard {hw} (+ Pathfinder per-terrain).");
     }
 
     private void EnsureEncounterRouter()

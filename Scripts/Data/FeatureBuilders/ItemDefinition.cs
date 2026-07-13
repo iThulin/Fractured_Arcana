@@ -101,6 +101,12 @@ public class ItemDefinition
     public string Passive = "None";    // maps to ItemPassiveTag enum name
     public int PassiveValue = 0;
 
+    // ── Overworld passive parameter (Q3, §7b) ─────────────────────────────
+    // Extra arg for keyed overworld passives that need one. Currently only
+    // Pathfinder uses it: PassiveParam names the terrain it cheapens (e.g.
+    // "Swamp", matching OverworldHex.TerrainType.ToString()). Empty otherwise.
+    public string PassiveParam = "";
+
     // ── Trigger-bus passive (Q2, §7a) ─────────────────────────────────────
     // When Trigger != "none", `Passive` is read as the effect KEY (lowercase,
     // e.g. "apply_bleed") and PassiveValue as its magnitude — the legacy

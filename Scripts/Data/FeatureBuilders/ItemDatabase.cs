@@ -260,6 +260,15 @@ public class ResolvedLoadout
     // Q2 (§7a): trigger-bus abilities from equipped items — dispatched on the
     // shared handler map in combat, NOT via the ItemPassiveTag switch above.
     public List<ItemAbility> Abilities = new();
+
+    // Q3 (§4b/§7b): overworld traversal-resistance passives — summed across the
+    // party and read during expedition traversal (attrition + step cost). These
+    // are inert in combat: not a trigger, not an ItemPassiveTag.
+    public int CorruptionWard = 0;
+    public int HazardWard = 0;
+    // Pathfinder step-cost reduction, keyed by terrain name
+    // (OverworldHex.TerrainType.ToString(), e.g. "Swamp").
+    public Dictionary<string, int> Pathfinder = new();
 }
 
 /// <summary>
@@ -278,6 +287,36 @@ public static class EquipmentLoadout
 
     public static ResolvedLoadout Get(string unitId)
         => _loadouts.TryGetValue(unitId, out var l) ? l : null;
+
+    // ── Q3 (§4b): party-summed traversal resistance ──────────────────────
+    // Every equipped item on every party member contributes; the sum is what
+    // expedition traversal reads. Absent loadouts contribute 0. §4b stacking:
+    // resistances add across the party (the cap/floor is applied at the call
+    // site in ExpeditionManager, not here).
+
+    public static int PartyCorruptionWard()
+    {
+        int sum = 0;
+        foreach (var l in _loadouts.Values) sum += l.CorruptionWard;
+        return sum;
+    }
+
+    public static int PartyHazardWard()
+    {
+        int sum = 0;
+        foreach (var l in _loadouts.Values) sum += l.HazardWard;
+        return sum;
+    }
+
+    /// <summary>Σ Pathfinder step-cost reduction for `terrain` across the whole
+    /// party. `terrain` is OverworldHex.TerrainType.ToString() (e.g. "Swamp").</summary>
+    public static int PartyPathfinder(string terrain)
+    {
+        int sum = 0;
+        foreach (var l in _loadouts.Values)
+            if (l.Pathfinder.TryGetValue(terrain, out int r)) sum += r;
+        return sum;
+    }
 
     /// <summary>
     /// Build resolved loadouts from ArmoryData for the current party
@@ -310,6 +349,22 @@ public static class EquipmentLoadout
                 resolved.BonusAttackDamage += def.Stats.AttackDamage;
                 resolved.BonusAttackRange += def.Stats.AttackRange;
                 resolved.BonusSpellDamage += def.Stats.SpellDamage;
+
+                // Q3 (§4b/§7b): overworld traversal-resistance passives route into
+                // dedicated party-summed fields, consumed during expedition
+                // traversal — NOT a combat trigger, NOT an ItemPassiveTag. Checked
+                // BEFORE the Q2 trigger block and the enum path so an overworld
+                // item is completely inert in combat.
+                string ovKey = (def.Passive ?? "").ToLowerInvariant();
+                if (ovKey == "corruption_ward") { resolved.CorruptionWard += def.PassiveValue; continue; }
+                if (ovKey == "hazard_ward")     { resolved.HazardWard    += def.PassiveValue; continue; }
+                if (ovKey == "pathfinder")
+                {
+                    string terrain = def.PassiveParam ?? "";
+                    resolved.Pathfinder.TryGetValue(terrain, out int cur);
+                    resolved.Pathfinder[terrain] = cur + def.PassiveValue;
+                    continue;
+                }
 
                 // Q2 (§7a): a trigger-bus item routes through the shared
                 // dispatcher, NOT the enum path. Its `Passive` string is the

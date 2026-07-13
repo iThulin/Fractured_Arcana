@@ -73,11 +73,16 @@ public static class OverworldMovementCost
 
     /// <summary>Full step cost for moving from `fromHex` across the shared edge into
     /// the destination terrain. fromHex may be null (e.g. window fringe) — then only
-    /// terrain cost applies.</summary>
+    /// terrain cost applies. `pathfinderReduction` (Q3 §7b) subtracts from the
+    /// terrain cost for a matching terrain; the final Max(1,…) keeps the floor-1
+    /// rule so Pathfinder never makes a move free ("relief is bought, immunity
+    /// does not exist"). Both callers (charge + preview) pass the same value so
+    /// the highlighted cost can't diverge from the cost paid.</summary>
     public static int StepCost(OverworldHex.TerrainType destTerrain,
-                               OverworldHex fromHex, Vector2I from, Vector2I to)
+                               OverworldHex fromHex, Vector2I from, Vector2I to,
+                               int pathfinderReduction = 0)
     {
-        int cost = TerrainStep(destTerrain);
+        int cost = TerrainStep(destTerrain) - Mathf.Max(0, pathfinderReduction);
 
         int d = EdgeDirection(from, to);
         if (d >= 0 && fromHex != null)

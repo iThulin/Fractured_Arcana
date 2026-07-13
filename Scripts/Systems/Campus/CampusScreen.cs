@@ -2168,11 +2168,14 @@ public partial class CampusScreen : Control
 
         ItemDatabase.LoadAll();
 
-        // Q2 (§7a) demo items — ensure the three trigger-bus exemplars exist
-        // even on an ESTABLISHED armory, so they're equippable for verification
-        // without a fresh save. Runs before the fresh-armory gate below.
+        // Q2 (§7a) + Q3 (§4b) demo items — ensure the six exemplars exist even on
+        // an ESTABLISHED armory, so they're equippable for verification without a
+        // fresh save. Q2: trigger-bus (aegis/duelist/standard). Q3: overworld
+        // traversal-resistance (wardstone/cinderweave/trailwarden). Runs before
+        // the fresh-armory gate below.
         bool grantedDemo = false;
-        foreach (var id in new[] { "aegis_charm", "duelists_brand", "standard_of_the_vigil" })
+        foreach (var id in new[] { "aegis_charm", "duelists_brand", "standard_of_the_vigil",
+                                   "wardstone_amulet", "cinderweave_cloak", "trailwardens_compass" })
         {
             if (save.Armory.OwnedItems.Exists(i => i.DefinitionId == id))
                 continue;
@@ -2186,7 +2189,7 @@ public partial class CampusScreen : Control
         if (grantedDemo)
         {
             SaveManager.Save();
-            GD.Print("[Armory] Q2 demo items granted (Aegis Charm, Duelist's Brand, Standard of the Vigil).");
+            GD.Print("[Armory] Q2/Q3 demo items granted (Aegis Charm, Duelist's Brand, Standard of the Vigil, Wardstone Amulet, Cinderweave Cloak, Trailwarden's Compass).");
         }
 
         // Only seed on a fresh armory
