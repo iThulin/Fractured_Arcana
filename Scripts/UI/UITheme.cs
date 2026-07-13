@@ -238,6 +238,14 @@ public static class UITheme
     public static readonly Color StatBarHealth = HealthGreen;
     public static readonly Color StatBarMove = Gold;
     public static readonly Color StatBarMana = ArcaneBlue;
+    // V2.2 (combat_ui §8): 2D HP-bar withered-max span; mirrors HealthBarRoot.WitherColor.
+    public static readonly Color WitherFill = new Color(0.48f, 0.22f, 0.55f, 1f);
+    // Threat overlay tiers (2026-07-13): blood-red darkening ramp. Level 0 = movement-
+    // only (reachable, no attack affordable); higher = more attacks landable on that tile.
+    public static readonly Color ThreatMoveOnly = new Color(0.55f, 0.30f, 0.28f, 1f); // faint desaturated
+    public static readonly Color ThreatTierLow  = new Color(0.82f, 0.22f, 0.20f, 1f); // 1 hit — bright red
+    public static readonly Color ThreatTierHigh = new Color(0.36f, 0.02f, 0.05f, 1f); // 3+ hits — blood dark
+    public const int ThreatMaxTier = 3;
 
     public const int CombatStatLabelFontSize = 10;
     public const int EnemyRosterButtonWidth = 90;

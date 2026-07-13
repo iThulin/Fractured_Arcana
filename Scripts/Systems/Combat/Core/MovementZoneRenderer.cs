@@ -24,6 +24,14 @@ public partial class MovementZoneRenderer : Node3D
     [Export] public Color PlayerColor = new Color(0.20f, 0.70f, 1.00f, 1.0f); // blue
     [Export] public Color EnemyColor = new Color(0.90f, 0.25f, 0.25f, 0.75f); // red
 
+    // ── Tiered threat walls (2026-07-13) ──────────────────────────────────
+    [Export] public float WallHeight = 0.6f;        // tallest tier ≈ half a unit's height
+    [Export] public float WallBaseAlphaMin = 0.35f; // movement-only wall base alpha
+    [Export] public float WallBaseAlphaMax = 0.70f; // multi-hit kill-zone wall base alpha
+    [Export] public float SkirtVoidDepth = 1.0f;    // fill skirt depth at map-edge / void faces
+    [Export] public float SkirtOutwardOffset = 0.03f; // push skirt off the riser (depth-tested; avoids z-fight)
+    [Export] public float PlayerLipHeight = 0.1f;   // player move-zone edge = subtle lip, not a wall
+
     // ── References ───────────────────────────────────────────────────────
     private HexGridManager _grid;
 
@@ -51,8 +59,21 @@ public partial class MovementZoneRenderer : Node3D
         CullMode = BaseMaterial3D.CullModeEnum.Disabled,
     };
 
+    // Fill/skirt material: depth-TESTED so the ground layer conforms to terrain and is
+    // occluded by foreground geometry (kills the floating-wall look). Walls keep _lineMaterial
+    // (NoDepthTest) so threat markers stay x-ray-visible.
+    private StandardMaterial3D _fillMaterial = new StandardMaterial3D
+    {
+        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+        NoDepthTest = false,
+        VertexColorUseAsAlbedo = true,
+        CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+    };
+
     private HashSet<Vector2I> _reachableSet = new();
     private Dictionary<Vector2I, int> _costMap = new();
+    private Dictionary<Vector2I, int> _threatLevels;
     private bool _isPlayerZone = true;
     private float _animOffset = 0f;
 
@@ -81,7 +102,8 @@ public partial class MovementZoneRenderer : Node3D
         _borderMesh = new MeshInstance3D
         {
             Mesh = _immediateMesh,
-            MaterialOverride = _lineMaterial,  // ← works on empty mesh
+            // No MaterialOverride: per-surface materials are set via SurfaceBegin(prim, mat)
+            // so the fill (depth-tested) and walls (NoDepthTest) can differ.
         };
         AddChild(_borderMesh);
 
@@ -116,7 +138,9 @@ public partial class MovementZoneRenderer : Node3D
         foreach (var k in costMap.Keys)
             _reachableSet.Add(k);
         _isPlayerZone = true;
+        _threatLevels = null;
         _lineMaterial.AlbedoColor = PlayerColor;
+        _fillMaterial.AlbedoColor = PlayerColor;
         HideCostLabel();
         RebuildMesh();
     }
@@ -126,9 +150,26 @@ public partial class MovementZoneRenderer : Node3D
     {
         _grid = grid;
         _reachableSet = reachable;
+        _threatLevels = null;
         _costMap.Clear();
         _isPlayerZone = false;
         _lineMaterial.AlbedoColor = EnemyColor;
+        _fillMaterial.AlbedoColor = EnemyColor;
+        HideCostLabel();
+        RebuildMesh();
+    }
+
+    /// <summary>Tiered threat zone: tile -> attacks-landable level (0 = movement only).
+    /// Fill darkens toward blood-red as the enemy can strike that tile more times.</summary>
+    public void ShowEnemyZone(Dictionary<Vector2I, int> threatLevels, HexGridManager grid)
+    {
+        _grid = grid;
+        _reachableSet = new HashSet<Vector2I>(threatLevels.Keys);
+        _threatLevels = threatLevels;
+        _costMap.Clear();
+        _isPlayerZone = false;
+        _lineMaterial.AlbedoColor = EnemyColor;
+        _fillMaterial.AlbedoColor = EnemyColor;
         HideCostLabel();
         RebuildMesh();
     }
@@ -138,6 +179,7 @@ public partial class MovementZoneRenderer : Node3D
     {
         _reachableSet.Clear();
         _costMap.Clear();
+        _threatLevels = null;
         _immediateMesh.ClearSurfaces();
         HideCostLabel();
     }
@@ -191,43 +233,66 @@ public partial class MovementZoneRenderer : Node3D
             return;
 
         // ── Pass 1: tile fill ─────────────────────────────────────────────
-        var fillColor = _isPlayerZone
-            ? new Color(PlayerColor.R, PlayerColor.G, PlayerColor.B, 0.18f)
-            : new Color(EnemyColor.R, EnemyColor.G, EnemyColor.B, 0.15f);
-
-        _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
-        foreach (var coord in _reachableSet)
-            DrawFilledHex(coord, fillColor);
+        _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles, _fillMaterial);
+        if (_isPlayerZone)
+        {
+            var fillColor = new Color(PlayerColor.R, PlayerColor.G, PlayerColor.B, 0.18f);
+            foreach (var coord in _reachableSet)
+                DrawFilledHex(coord, fillColor);
+        }
+        else if (_threatLevels != null && _threatLevels.Count > 0)
+        {
+            // Tiered blood-red fill by attacks-landable.
+            foreach (var coord in _reachableSet)
+                DrawFilledHex(coord, ThreatFillColor(
+                    _threatLevels.TryGetValue(coord, out var lv) ? lv : 0));
+        }
+        else
+        {
+            var fillColor = new Color(EnemyColor.R, EnemyColor.G, EnemyColor.B, 0.15f);
+            foreach (var coord in _reachableSet)
+                DrawFilledHex(coord, fillColor);
+        }
         _immediateMesh.SurfaceEnd();
 
         // ── Pass 2: border outline ────────────────────────────────────────
-        _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
+        // Tier-boundary walls: a wall rises at every step-up (and the outer edge),
+        // drawn once from the higher-tier side so nested rings well up toward the enemy.
+        // Player zone = one tier, so only the outer boundary gets a wall.
+        _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles, _lineMaterial);
         foreach (var coord in _reachableSet)
         {
+            int la = LevelAt(coord);
             for (int d = 0; d < 6; d++)
             {
-                var neighbor = coord + HexDirs[d];
-                if (_reachableSet.Contains(neighbor))
-                    continue;
-                DrawEdge(coord, d);
+                if (la > LevelAt(coord + HexDirs[d]))
+                    DrawWall(coord, d, la);
             }
         }
         _immediateMesh.SurfaceEnd();
     }
 
+    private static Color ThreatFillColor(int level)
+    {
+        if (level <= 0)
+            return new Color(UITheme.ThreatMoveOnly.R, UITheme.ThreatMoveOnly.G, UITheme.ThreatMoveOnly.B, 0.10f);
+        int maxT = Mathf.Max(1, UITheme.ThreatMaxTier);
+        float t = Mathf.Clamp((level - 1f) / Mathf.Max(1, maxT - 1), 0f, 1f);
+        Color c = UITheme.ThreatTierLow.Lerp(UITheme.ThreatTierHigh, t);
+        float alpha = 0.22f + 0.11f * Mathf.Min(level, maxT);
+        return new Color(c.R, c.G, c.B, alpha);
+    }
+
     private void DrawFilledHex(Vector2I coord, Color color)
     {
-        float tileY = LineHeight * 0.5f; // just above tile surface, below border
-        if (_grid != null)
-        {
-            var tileData = _grid.GetTile(coord);
-            if (tileData != null)
-                tileY = tileData.Height * 0.5f + 0.02f;
-        }
+        var tileData = _grid?.GetTile(coord);
+        float thisTop = tileData != null ? tileData.Height * 0.5f : 0f;
+        float tileY = thisTop + 0.02f; // lift the top face slightly
 
         var center2D = AxialToWorld2D(coord);
         var center3D = new Vector3(center2D.X, tileY, center2D.Y);
 
+        // Top face
         for (int i = 0; i < 6; i++)
         {
             var cA = center2D + HexCorner(i);
@@ -243,34 +308,98 @@ public partial class MovementZoneRenderer : Node3D
             _immediateMesh.SurfaceSetColor(color);
             _immediateMesh.SurfaceAddVertex(vB);
         }
+
+        // Skirts: wrap the fill down each exposed vertical face where this tile is
+        // taller than its neighbor, so terrain height steps don't leave bare gaps.
+        if (_grid == null)
+            return;
+        for (int d = 0; d < 6; d++)
+        {
+            var nb = _grid.GetTile(coord + HexDirs[d]);
+            float nbTop = nb != null ? nb.Height * 0.5f : thisTop - SkirtVoidDepth;
+            if (thisTop - nbTop <= 0.01f)
+                continue;
+
+            int edge = EdgeForDir[d];
+            var off = ((HexCorner(edge) + HexCorner((edge + 1) % 6)) * 0.5f).Normalized() * SkirtOutwardOffset;
+            var cA = center2D + HexCorner(edge) + off;
+            var cB = center2D + HexCorner((edge + 1) % 6) + off;
+            var tA = new Vector3(cA.X, tileY, cA.Y);
+            var tB = new Vector3(cB.X, tileY, cB.Y);
+            var bA = new Vector3(cA.X, nbTop, cA.Y);
+            var bB = new Vector3(cB.X, nbTop, cB.Y);
+
+            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(tA);
+            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(tB);
+            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(bB);
+            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(tA);
+            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(bB);
+            _immediateMesh.SurfaceSetColor(color); _immediateMesh.SurfaceAddVertex(bA);
+        }
     }
 
-    private void DrawEdge(Vector2I coord, int neighborDir)
+        /// <summary>Tier of a tile for wall stepping: threat level (0 = movement only),
+    /// 0 for any player-zone tile, or -1 when the tile is outside the zone.</summary>
+    private int LevelAt(Vector2I coord)
     {
-        float tileY = LineHeight;
+        if (!_reachableSet.Contains(coord))
+            return -1;
+        if (_isPlayerZone || _threatLevels == null)
+            return 0;
+        return _threatLevels.TryGetValue(coord, out var lv) ? lv : 0;
+    }
+
+    private float TierHeight(int tier)
+    {
+        if (_isPlayerZone)
+            return PlayerLipHeight;
+        int maxT = Mathf.Max(1, UITheme.ThreatMaxTier);
+        float f = Mathf.Clamp((float)tier / maxT, 0f, 1f);
+        return WallHeight * Mathf.Lerp(0.4f, 1f, f);   // movement-only short, kill-zone tall
+    }
+
+    private Color WallColor(int tier)
+    {
+        if (_isPlayerZone)
+            return PlayerColor;
+        if (tier <= 0)
+            return UITheme.ThreatMoveOnly;
+        int maxT = Mathf.Max(1, UITheme.ThreatMaxTier);
+        float t = Mathf.Clamp((tier - 1f) / Mathf.Max(1, maxT - 1), 0f, 1f);
+        return UITheme.ThreatTierLow.Lerp(UITheme.ThreatTierHigh, t);
+    }
+
+    private float WallBaseAlpha(int tier)
+    {
+        if (_isPlayerZone)
+            return 0.5f;
+        int maxT = Mathf.Max(1, UITheme.ThreatMaxTier);
+        float f = Mathf.Clamp((float)tier / maxT, 0f, 1f);
+        return Mathf.Lerp(WallBaseAlphaMin, WallBaseAlphaMax, f);
+    }
+
+    /// <summary>Animated dashed vertical wall along the edge of `coord` facing
+    /// `neighborDir`, rising to the tier's height and fading to transparent at the top.
+    /// Reuses the border dash scroll so the wall reads as a live telegraph.</summary>
+    private void DrawWall(Vector2I coord, int neighborDir, int tier)
+    {
+        float tileY = 0f;
         if (_grid != null)
         {
             var tileData = _grid.GetTile(coord);
             if (tileData != null)
-                tileY = tileData.Height * 0.5f + LineHeight;
+                tileY = tileData.Height * 0.5f + 0.02f;
         }
 
         var center2D = AxialToWorld2D(coord);
+        int edge = EdgeForDir[neighborDir];
+        var cA = center2D + HexCorner(edge);
+        var cB = center2D + HexCorner((edge + 1) % 6);
 
-        // HexDirs runs clockwise; corners run counter-clockwise. The edge facing
-        // axial direction d is the reflected index, not d itself.
-        int edge = EdgeForDir[neighborDir];          // = (6 - neighborDir) % 6
-        int cornerA = edge;
-        int cornerB = (edge + 1) % 6;
-
-        var cA = center2D + HexCorner(cornerA);
-        var cB = center2D + HexCorner(cornerB);
-        // ── everything below here is unchanged ──
         float edgeLen = cA.DistanceTo(cB);
         var start3D = new Vector3(cA.X, tileY, cA.Y);
         var end3D = new Vector3(cB.X, tileY, cB.Y);
         var edgeVec = (end3D - start3D).Normalized();
-        var perpDir = new Vector3(-edgeVec.Z, 0, edgeVec.X);
 
         float dashWorldLen = DashLength * edgeLen;
         float cycleLen = edgeLen / Mathf.Max(1f, Mathf.Round(edgeLen / (dashWorldLen * 1.5f)));
@@ -279,7 +408,12 @@ public partial class MovementZoneRenderer : Node3D
         float startOffset = (_animOffset * cycleLen * 2f) % cycleLen;
         float t = -startOffset;
 
-        var color = _isPlayerZone ? PlayerColor : EnemyColor;
+        float height = TierHeight(tier);
+        Color baseCol = WallColor(tier);
+        baseCol.A = WallBaseAlpha(tier);
+        Color topCol = baseCol;
+        topCol.A = 0f;
+        var up = new Vector3(0f, height, 0f);
 
         while (t < edgeLen)
         {
@@ -288,28 +422,19 @@ public partial class MovementZoneRenderer : Node3D
 
             if (dashEnd > dashStart + 0.001f)
             {
-                var p1 = start3D + edgeVec * dashStart;
-                var p2 = start3D + edgeVec * dashEnd;
-                var offset = perpDir * (LineWidth * 0.5f);
+                var b1 = start3D + edgeVec * dashStart;
+                var b2 = start3D + edgeVec * dashEnd;
+                var tt1 = b1 + up;
+                var tt2 = b2 + up;
 
-                var v1 = p1 - offset;
-                var v2 = p1 + offset;
-                var v3 = p2 + offset;
-                var v4 = p2 - offset;
+                // Two triangles (b1,b2,t2) + (b1,t2,t1); double-sided via CullMode.Disabled.
+                _immediateMesh.SurfaceSetColor(baseCol); _immediateMesh.SurfaceAddVertex(b1);
+                _immediateMesh.SurfaceSetColor(baseCol); _immediateMesh.SurfaceAddVertex(b2);
+                _immediateMesh.SurfaceSetColor(topCol);  _immediateMesh.SurfaceAddVertex(tt2);
 
-                _immediateMesh.SurfaceSetColor(color);
-                _immediateMesh.SurfaceAddVertex(v1);
-                _immediateMesh.SurfaceSetColor(color);
-                _immediateMesh.SurfaceAddVertex(v2);
-                _immediateMesh.SurfaceSetColor(color);
-                _immediateMesh.SurfaceAddVertex(v3);
-
-                _immediateMesh.SurfaceSetColor(color);
-                _immediateMesh.SurfaceAddVertex(v1);
-                _immediateMesh.SurfaceSetColor(color);
-                _immediateMesh.SurfaceAddVertex(v3);
-                _immediateMesh.SurfaceSetColor(color);
-                _immediateMesh.SurfaceAddVertex(v4);
+                _immediateMesh.SurfaceSetColor(baseCol); _immediateMesh.SurfaceAddVertex(b1);
+                _immediateMesh.SurfaceSetColor(topCol);  _immediateMesh.SurfaceAddVertex(tt2);
+                _immediateMesh.SurfaceSetColor(topCol);  _immediateMesh.SurfaceAddVertex(tt1);
             }
 
             t += cycleLen;

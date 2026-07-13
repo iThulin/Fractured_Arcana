@@ -26,7 +26,7 @@
 [ext_resource type="ArrayMesh" uid="uid://dso7537ufeda4" path="res://Assets/Terrain/PainterlyGrass/Tall Grass.tres" id="15_cm01p"]
 [ext_resource type="Script" uid="uid://dob22fy125iys" path="res://Scripts/Systems/Combat/Terrain/GrassMeshVariant.cs" id="16_6m6xa"]
 [ext_resource type="ArrayMesh" uid="uid://bv611trboi78r" path="res://Assets/Terrain/Painterly_Rocks/Rock_2.tres" id="16_q7oa6"]
-[ext_resource type="PackedScene" uid="uid://cl1s1lbvr48m" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
+[ext_resource type="PackedScene" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
 [ext_resource type="ArrayMesh" uid="uid://bnsgay2w2a4af" path="res://Assets/Terrain/Painterly_Rocks/Rock_3.tres" id="17_onrkg"]
 [ext_resource type="ArrayMesh" uid="uid://dqpvqfq1puuv1" path="res://Assets/Terrain/Painterly_Rocks/Rock_4.tres" id="18_6jt2h"]
 [ext_resource type="ArrayMesh" uid="uid://cffmwxp25vmf7" path="res://Assets/Terrain/Painterly_Rocks/Rock_5.tres" id="19_hodjo"]

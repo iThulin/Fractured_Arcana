@@ -749,7 +749,7 @@ public partial class CombatUI : CanvasLayer
 			_unitNameLabel.Text = "—";
 			_unitNameLabel.Modulate = UITheme.TextPrimary;
 			if (_hpBar != null)
-				SetBar(_hpBar, 1, 0, UITheme.StatBarHealth, UITheme.BgDeep);
+				SetHpBarWithered(_hpBar, 0, 1, 0, UITheme.StatBarHealth, UITheme.BgDeep);
 			if (_mpBar != null)
 				_mpBar.Visible = false;
 			if (_mpText != null)
@@ -768,14 +768,17 @@ public partial class CombatUI : CanvasLayer
 		_unitNameLabel.Text = isEnemy ? $"[Enemy]  {unit.Name}" : unit.Name;
 		_unitNameLabel.Modulate = isEnemy ? UITheme.Danger : UITheme.TextPrimary;
 
-		float hpPct = unit.Stats.MaxHealth <= 0 ? 0f
-			: Mathf.Clamp((float)unit.Stats.Health / unit.Stats.MaxHealth, 0f, 1f);
+		int hpWither = Mathf.Max(0, unit.Stats.WitheredMaxHp);
+		int hpOrigMax = Mathf.Max(1, unit.Stats.MaxHealth + hpWither);
+		float hpPct = Mathf.Clamp((float)unit.Stats.Health / hpOrigMax, 0f, 1f);
 		Color hpCol = hpPct > 0.5f
 			? UITheme.Success.Lerp(UITheme.Warning, (1f - hpPct) * 2f)
 			: UITheme.Warning.Lerp(UITheme.Danger, (0.5f - hpPct) * 2f);
-		SetBar(_hpBar, unit.Stats.MaxHealth, unit.Stats.Health, hpCol, UITheme.BgDeep);
+		SetHpBarWithered(_hpBar, unit.Stats.Health, unit.Stats.MaxHealth, hpWither, hpCol, UITheme.BgDeep);
 		if (_hpText != null)
-			_hpText.Text = $"{unit.Stats.Health}/{unit.Stats.MaxHealth}";
+			_hpText.Text = hpWither > 0
+				? $"{unit.Stats.Health}/{unit.Stats.MaxHealth} (−{hpWither})"
+				: $"{unit.Stats.Health}/{unit.Stats.MaxHealth}";
 
 		bool hasMana = unit.Stats.MaxMana > 0;
 		if (_mpBar != null)
@@ -1253,29 +1256,30 @@ public partial class CombatUI : CanvasLayer
 				vbox.AddChild(pipLbl);
 
 				// HP text
+				int chipWither = Mathf.Max(0, unit.Stats.WitheredMaxHp);
+				int chipOrigMax = Mathf.Max(1, unit.Stats.MaxHealth + chipWither);
 				var hpLbl = MakeLabel(
-					$"{unit.Stats.Health}/{unit.Stats.MaxHealth}",
+					chipWither > 0
+						? $"{unit.Stats.Health}/{unit.Stats.MaxHealth} (−{chipWither})"
+						: $"{unit.Stats.Health}/{unit.Stats.MaxHealth}",
 					UITheme.FontSizeSmall - 1, UITheme.TextSecondary);
 				hpLbl.HorizontalAlignment = HorizontalAlignment.Center;
 				vbox.AddChild(hpLbl);
 
-				// HP strip
-				float pct = (float)unit.Stats.Health / unit.Stats.MaxHealth;
+				// HP strip (V2.2: original max = full width, withered span painted)
+				float pct = Mathf.Clamp((float)unit.Stats.Health / chipOrigMax, 0f, 1f);
 				Color hpCol = pct > 0.5f
 					? UITheme.Success.Lerp(UITheme.Warning, (1f - pct) * 2f)
 					: UITheme.Warning.Lerp(UITheme.Danger, (0.5f - pct) * 2f);
 
 				var hpStrip = new ProgressBar
 				{
-					MaxValue = Mathf.Max(1, unit.Stats.MaxHealth),
-					Value = unit.Stats.Health,
 					ShowPercentage = false,
 					CustomMinimumSize = new Vector2(0, 4),
 					SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 				};
-				hpStrip.AddThemeStyleboxOverride("fill", MakeFillStyle(hpCol));
-				hpStrip.AddThemeStyleboxOverride("background", MakeFillStyle(UITheme.BgDeep));
 				vbox.AddChild(hpStrip);
+				SetHpBarWithered(hpStrip, unit.Stats.Health, unit.Stats.MaxHealth, chipWither, hpCol, UITheme.BgDeep);
 			}
 
 			// Invisible click catcher
@@ -1414,4 +1418,47 @@ public partial class CombatUI : CanvasLayer
 		bar.AddThemeStyleboxOverride("fill", MakeFillStyle(fillCol));
 		bar.AddThemeStyleboxOverride("background", MakeFillStyle(backCol));
 	}
+	/// <summary>V2.2 (combat_ui §8): HP bar with the withered-max span, matching the
+	/// in-world HealthBarRoot. Full width = original max (curMax + withered); current HP
+	/// fills against that; the withered span is painted bruised-violet, right-anchored,
+	/// via a lazily-created ColorRect so the effective max visibly shrinks.</summary>
+	private static void SetHpBarWithered(ProgressBar bar, int health, int curMax,
+		int withered, Color fillCol, Color backCol)
+	{
+		if (bar == null)
+			return;
+		withered = Mathf.Max(0, withered);
+		int originalMax = Mathf.Max(1, curMax + withered);
+		bar.MaxValue = originalMax;
+		bar.Value = Mathf.Clamp(health, 0, originalMax);
+		bar.AddThemeStyleboxOverride("fill", MakeFillStyle(fillCol));
+		bar.AddThemeStyleboxOverride("background", MakeFillStyle(backCol));
+
+		var overlay = bar.GetNodeOrNull<ColorRect>("WitherOverlay");
+		if (withered > 0)
+		{
+			if (overlay == null)
+			{
+				overlay = new ColorRect { Name = "WitherOverlay", MouseFilter = Control.MouseFilterEnum.Ignore };
+				bar.AddChild(overlay);
+			}
+			float frac = (float)withered / originalMax;
+			overlay.AnchorLeft = 1f - frac;
+			overlay.AnchorRight = 1f;
+			overlay.AnchorTop = 0f;
+			overlay.AnchorBottom = 1f;
+			overlay.OffsetLeft = 0f;
+			overlay.OffsetRight = 0f;
+			overlay.OffsetTop = 0f;
+			overlay.OffsetBottom = 0f;
+			overlay.Color = UITheme.WitherFill;
+			overlay.Visible = true;
+			GD.Print($"[WitherHUD] {health}/{curMax} (−{withered}) origMax={originalMax} frac={frac:F2}");
+		}
+		else if (overlay != null)
+		{
+			overlay.Visible = false;
+		}
+	}
+
 }

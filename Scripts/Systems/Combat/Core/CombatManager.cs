@@ -1029,45 +1029,76 @@ public partial class CombatManager : Node3D
         if (_zoneRenderer == null || enemy?.CurrentTile == null)
             return;
 
-        var reach = new HashSet<Vector2I> { enemy.CurrentTile.Axial };
+        // Tiered threat (2026-07-13). AP economy: 1 AP = one move of up to
+        // EffectiveMoveRange tiles; attack costs 1 (melee) / 2 (ranged) AP; multi-move
+        // + multi-attack allowed. A tile's level = the most attacks the enemy could land
+        // on a unit standing there next turn. Level 0 = reachable but no attack affordable
+        // (movement only) -> faint; higher -> blood-red.
+        int ap = Mathf.Max(0, enemy.MaxActionPoints);
+        int moveRange = Mathf.Max(1, enemy.EffectiveMoveRange);
+        int attackCost = Mathf.Max(1, MartialAPCosts.AttackCost(enemy.AttackRange));
+        int attackRange = Mathf.Max(1, enemy.AttackRange);
+        var start = enemy.CurrentTile.Axial;
 
-        if (!enemy.HasBehaviorTag("immobile"))
+        // Stand-tiles -> AP spent reaching them (moveActions = ceil(pathCost / moveRange)).
+        var standMoves = new Dictionary<Vector2I, int> { [start] = 0 };
+        if (ap > 0 && !enemy.HasBehaviorTag("immobile"))
         {
-            // Temporarily give enemy enough AP to show their movement envelope
-            int savedAP = enemy.CurrentActionPoints;
-            int savedMax = enemy.MaxActionPoints;
-            enemy.MaxActionPoints = enemy.Stats.BaseSpeed;
-            enemy.CurrentActionPoints = enemy.Stats.BaseSpeed;
-
-            foreach (var coord in grid.GetReachableTiles(enemy))
-                reach.Add(coord);
-
-            enemy.CurrentActionPoints = savedAP;
-            enemy.MaxActionPoints = savedMax;
+            foreach (var kv in grid.GetReachableTilesWithBudget(enemy, ap * moveRange))
+            {
+                int moves = Mathf.CeilToInt(kv.Value / (float)moveRange);
+                if (moves >= 1 && moves <= ap
+                    && (!standMoves.TryGetValue(kv.Key, out var m) || moves < m))
+                    standMoves[kv.Key] = moves;
+            }
         }
 
-        // Expand by attack range — ring BFS from every reachable tile. Attacks
-        // don't care about walkability (ranged shoots over gaps), only that the
-        // tile exists.
-        var threat = new HashSet<Vector2I>(reach);
-        var frontier = new List<Vector2I>(reach);
-        for (int r = 0; r < enemy.AttackRange; r++)
+        // Per-tile threat level = max over stand-tiles S (within attack range of T) of
+        // floor((AP - moves(S)) / attackCost). Baseline: every stand-tile is level 0.
+        var level = new Dictionary<Vector2I, int>();
+        foreach (var st in standMoves.Keys)
+            level[st] = 0;
+        foreach (var kv in standMoves)
+        {
+            int attacks = (ap - kv.Value) / attackCost;
+            if (attacks <= 0)
+                continue;
+            AddThreatFootprint(kv.Key, attackRange, attacks, level);
+        }
+        if (level.Count == 0)
+            level[start] = 0;
+
+        int maxLevel = 0;
+        foreach (var v in level.Values) if (v > maxLevel) maxLevel = v;
+        GD.Print($"[ThreatZone] {enemy.Name} AP={ap} moveRange={moveRange} atkCost={attackCost} atkRange={attackRange} tiles={level.Count} maxHits={maxLevel}");
+
+        _zoneRenderer.ShowEnemyZone(level, grid);
+    }
+
+    /// <summary>Rings 1..radius around center (attacks ignore walls — ranged shoots over
+    /// gaps). Raises each tile's threat level to <paramref name="attacks"/> if higher. The
+    /// center (the enemy's stand-tile) is excluded — a unit can't stand on it.</summary>
+    private void AddThreatFootprint(Vector2I center, int radius, int attacks,
+        Dictionary<Vector2I, int> level)
+    {
+        var seen = new HashSet<Vector2I> { center };
+        var frontier = new List<Vector2I> { center };
+        for (int r = 0; r < radius; r++)
         {
             var next = new List<Vector2I>();
-            foreach (var c in frontier)
+            foreach (var cc in frontier)
             {
-                foreach (var n in grid.GetNeighbors(c))
+                foreach (var n in grid.GetNeighbors(cc))
                 {
-                    if (grid.GetTile(n) == null)
+                    if (!seen.Add(n) || grid.GetTile(n) == null)
                         continue;
-                    if (threat.Add(n))
-                        next.Add(n);
+                    next.Add(n);
+                    if (!level.TryGetValue(n, out var prev) || attacks > prev)
+                        level[n] = attacks;
                 }
             }
             frontier = next;
         }
-
-        _zoneRenderer.ShowEnemyZone(threat, grid);
     }
 
     /// <summary>V2: hovering a roster row = hovering the unit in-world (§6).</summary>
