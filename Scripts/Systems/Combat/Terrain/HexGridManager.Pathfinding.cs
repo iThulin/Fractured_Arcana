@@ -128,6 +128,56 @@ public partial class HexGridManager
         return result;
     }
 
+    /// <summary>Cost map like <see cref="GetReachableTilesWithCost"/> but with an explicit
+    /// move-cost budget (tiered threat overlay: AP x EffectiveMoveRange for multi-move reach).
+    /// Includes the start tile at cost 0. Does NOT gate on current AP — it's a hypothetical
+    /// next-turn reach.</summary>
+    public Dictionary<Vector2I, int> GetReachableTilesWithBudget(Unit unit, int budget)
+    {
+        var result = new Dictionary<Vector2I, int>();
+        if (unit?.CurrentTile == null)
+            return result;
+
+        var start = unit.CurrentTile.Axial;
+        result[start] = 0;
+
+        var frontier = new PriorityQueue<Vector2I, int>();
+        var bestCost = new Dictionary<Vector2I, int> { [start] = 0 };
+        frontier.Enqueue(start, 0);
+
+        while (frontier.Count > 0)
+        {
+            var current = frontier.Dequeue();
+            int costSoFar = bestCost[current];
+
+            foreach (var neighbor in GetNeighbors(current))
+            {
+                if (!Tiles.TryGetValue(neighbor, out var tile))
+                    continue;
+                bool traversable = unit.IsPhasing
+                    || (tile.IsWalkable && !tile.IsBlocked
+                        && StepAllowed(current, neighbor)
+                        && (!tile.IsOccupied || neighbor == start));
+                if (!traversable)
+                    continue;
+
+                int stepCost = Mathf.Max(1, tile.MoveCost);
+                int newCost = costSoFar + stepCost;
+                if (newCost > budget)
+                    continue;
+                if (bestCost.TryGetValue(neighbor, out int old) && old <= newCost)
+                    continue;
+
+                bestCost[neighbor] = newCost;
+                frontier.Enqueue(neighbor, newCost);
+                if (neighbor != start && tile.CanEnter(unit))
+                    result[neighbor] = newCost;
+            }
+        }
+
+        return result;
+    }
+
     /// <summary>
     /// Returns the minimum movement point cost for the given unit to reach dest,
     /// respecting tile MoveCost. Returns -1 if unreachable.
