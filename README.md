@@ -99,28 +99,28 @@ FracturedArcana/
 │   └── UI/                         # CombatUI, menus, deck/card screens, NewGameScreen
 │
 └── Scripts/
-    ├── Cards/                      # Runtime card types, database, deck manager
-    │   └── Effects/  Loader/  Predicates/  Targeting/
-    ├── Data/
-    │   ├── FeatureBuilders/        # Loaders + definitions (regions, buildings, items…)
-    │   └── SaveState/              # GuildSaveData, SaveManager, session state
-    ├── Dev/  Style/  UI/
-    └── Systems/
-        ├── GameBootstrap.cs  GameStateManager.cs        # App lifecycle
-        ├── SettingsManager.cs  PauseManager.cs  TooltipManager.cs   # Autoloads
-        ├── Campaign/  Campus/  Negotiation/
-        ├── Combat/
-        │   ├── Core/               # CombatManager (+partials), Unit (+partials),
-        │   │                       # ChannelResolver, RulesManager, stances, conduit links
-        │   ├── Attunement/         # One file per school (incl. Grief)
-        │   ├── Constructs/  Encounters/  Glyphs/
-        │   └── Terrain/            # HexGridManager (+partials), HexTile, tilesets
-        ├── Legacy/                 # Memorial / honored-dead / growth meta-systems
-        ├── Overworld/
-        │   ├── WorldGen/           # Continent, climate, hydrology, roads, settlements
-        │   ├── Expedition/         # ExpeditionManager, fog of war, encounter routing
-        │   └── Grid/               # HexCoord, OverworldHex(Grid)
-        └── Strategic/              # StrategicView, factions, KingdomState
+	├── Cards/                      # Runtime card types, database, deck manager
+	│   └── Effects/  Loader/  Predicates/  Targeting/
+	├── Data/
+	│   ├── FeatureBuilders/        # Loaders + definitions (regions, buildings, items…)
+	│   └── SaveState/              # GuildSaveData, SaveManager, session state
+	├── Dev/  Style/  UI/
+	└── Systems/
+		├── GameBootstrap.cs  GameStateManager.cs        # App lifecycle
+		├── SettingsManager.cs  PauseManager.cs  TooltipManager.cs   # Autoloads
+		├── Campaign/  Campus/  Negotiation/
+		├── Combat/
+		│   ├── Core/               # CombatManager (+partials), Unit (+partials),
+		│   │                       # ChannelResolver, RulesManager, stances, conduit links
+		│   ├── Attunement/         # One file per school (incl. Grief)
+		│   ├── Constructs/  Encounters/  Glyphs/
+		│   └── Terrain/            # HexGridManager (+partials), HexTile, tilesets
+		├── Legacy/                 # Memorial / honored-dead / growth meta-systems
+		├── Overworld/
+		│   ├── WorldGen/           # Continent, climate, hydrology, roads, settlements
+		│   ├── Expedition/         # ExpeditionManager, fog of war, encounter routing
+		│   └── Grid/               # HexCoord, OverworldHex(Grid)
+		└── Strategic/              # StrategicView, factions, KingdomState
 ```
 
 > **`Data/` vs `Scripts/Data/`**: `Data/` contains JSON files you author as game content. `Scripts/Data/` contains C# classes that load and represent that data at runtime. Adding content = work in `Data/`. Changing data structures = work in `Scripts/Data/`.
@@ -139,7 +139,7 @@ Four layers flowing top-to-bottom. Never bypass a layer — effects don't touch 
 │  Data/Cards/*.json  Data/Regions/*.json  etc.       │
 │  Plain JSON. Authorable without building.           │
 └───────────────┬─────────────────────────────────────┘
-                │ loaded by
+				│ loaded by
 ┌───────────────▼─────────────────────────────────────┐
 │  REGISTRY / LOADER LAYER                            │
 │  CardScriptRegistry  JsonCardLoader  RegionLoader   │
@@ -147,7 +147,7 @@ Four layers flowing top-to-bottom. Never bypass a layer — effects don't touch 
 │  Parses JSON → C# objects. Caches results.          │
 │  Effects, targeters, predicates registered here.    │
 └───────────────┬─────────────────────────────────────┘
-                │ populates
+				│ populates
 ┌───────────────▼─────────────────────────────────────┐
 │  RUNTIME LAYER                                      │
 │  GameState  GameRunner  HexGridManager              │
@@ -155,7 +155,7 @@ Four layers flowing top-to-bottom. Never bypass a layer — effects don't touch 
 │  GuildSaveData  SaveManager                         │
 │  Live game state. No JSON parsing here.             │
 └───────────────┬─────────────────────────────────────┘
-                │ drives
+				│ drives
 ┌───────────────▼─────────────────────────────────────┐
 │  UI LAYER                                           │
 │  CombatUI  SchoolAttunementUI  CardLibraryUi        │
@@ -201,22 +201,22 @@ See [Section 5](#5-card-schema-reference) for the full schema. Quick-start examp
   "school": "Elementalist",
   "rarity": "Common",
   "top": {
-    "name": "Fireball",
-    "mana": 2,
-    "speed": "Sorcery",
-    "rules_text": "Deal 4 damage to target.",
-    "tags": ["fire"],
-    "targeting": { "type": "unit", "range": 4, "enemies_only": true },
-    "effect": { "type": "damage", "amount": 4 }
+	"name": "Fireball",
+	"mana": 2,
+	"speed": "Sorcery",
+	"rules_text": "Deal 4 damage to target.",
+	"tags": ["fire"],
+	"targeting": { "type": "unit", "range": 4, "enemies_only": true },
+	"effect": { "type": "damage", "amount": 4 }
   },
   "bottom": {
-    "name": "Ice Shield",
-    "mana": 1,
-    "speed": "Instant",
-    "rules_text": "Gain 3 armor.",
-    "tags": ["ice"],
-    "targeting": { "type": "self" },
-    "effect": { "type": "armor", "amount": 3 }
+	"name": "Ice Shield",
+	"mana": 1,
+	"speed": "Instant",
+	"rules_text": "Gain 3 armor.",
+	"tags": ["ice"],
+	"targeting": { "type": "self" },
+	"effect": { "type": "armor", "amount": 3 }
   }
 }
 ```
@@ -250,14 +250,14 @@ Create `Data/Regions/{regionid}.json`. The `id` field must match the filename (w
   "enemyDifficultyMult": 1.2,
   "goldRewardMult": 1.1,
   "biomes": [
-    {
-      "name": "Central Ruins",
-      "centerQ": 7,
-      "centerR": 7,
-      "radius": 4,
-      "primaryTerrain": "Ruins",
-      "secondaryTerrain": "Grassland"
-    }
+	{
+	  "name": "Central Ruins",
+	  "centerQ": 7,
+	  "centerR": 7,
+	  "radius": 4,
+	  "primaryTerrain": "Ruins",
+	  "secondaryTerrain": "Grassland"
+	}
   ]
 }
 ```
@@ -273,25 +273,25 @@ Encounter files are JSON arrays. Name them `{regionid}_encounters.json` for regi
 ```json
 [
   {
-    "id": "ruins_echo_01",
-    "title": "The Whispering Wall",
-    "terrain": "Ruins",
-    "isOneShot": true,
-    "flavorText": "A crumbling wall bears faint inscriptions.",
-    "choices": [
-      {
-        "id": "study",
-        "label": "Study the inscriptions",
-        "outcome": "You decipher a fragment of an old ward.",
-        "effects": [{ "type": "add_lore", "entryId": "old_ward_fragment" }]
-      },
-      {
-        "id": "leave",
-        "label": "Leave it alone",
-        "outcome": "Some things are better undisturbed.",
-        "effects": []
-      }
-    ]
+	"id": "ruins_echo_01",
+	"title": "The Whispering Wall",
+	"terrain": "Ruins",
+	"isOneShot": true,
+	"flavorText": "A crumbling wall bears faint inscriptions.",
+	"choices": [
+	  {
+		"id": "study",
+		"label": "Study the inscriptions",
+		"outcome": "You decipher a fragment of an old ward.",
+		"effects": [{ "type": "add_lore", "entryId": "old_ward_fragment" }]
+	  },
+	  {
+		"id": "leave",
+		"label": "Leave it alone",
+		"outcome": "Some things are better undisturbed.",
+		"effects": []
+	  }
+	]
   }
 ]
 ```
@@ -312,22 +312,22 @@ Create `Data/Buildings/{buildingid}.json`.
   "schoolAffinity": "",
   "description": "A yard where wizards and companions hone their skills between runs.",
   "tiers": [
-    {
-      "tier": 1,
-      "displayName": "Basic Training Grounds",
-      "goldCost": 80,
-      "requirements": [],
-      "passiveEffects": [{ "type": "run_start_buff", "stat": "mana", "amount": 1 }],
-      "activeEffects": []
-    },
-    {
-      "tier": 2,
-      "displayName": "Advanced Training Grounds",
-      "goldCost": 150,
-      "requirements": ["training_grounds:1"],
-      "passiveEffects": [{ "type": "run_start_buff", "stat": "mana", "amount": 2 }],
-      "activeEffects": []
-    }
+	{
+	  "tier": 1,
+	  "displayName": "Basic Training Grounds",
+	  "goldCost": 80,
+	  "requirements": [],
+	  "passiveEffects": [{ "type": "run_start_buff", "stat": "mana", "amount": 1 }],
+	  "activeEffects": []
+	},
+	{
+	  "tier": 2,
+	  "displayName": "Advanced Training Grounds",
+	  "goldCost": 150,
+	  "requirements": ["training_grounds:1"],
+	  "passiveEffects": [{ "type": "run_start_buff", "stat": "mana", "amount": 2 }],
+	  "activeEffects": []
+	}
   ]
 }
 ```
@@ -522,9 +522,9 @@ Every card JSON file requires a `"status"` field. The loader in `JsonCardLoader.
 ```powershell
 Get-ChildItem "Data\Cards\*.json" | ForEach-Object {
     $content = Get-Content $_.FullName -Raw | ConvertFrom-Json
-    if (-not $content.PSObject.Properties['status']) {
+	if (-not $content.PSObject.Properties['status']) {
         $json = Get-Content $_.FullName -Raw
-        $json = $json -replace '(\s*"id"\s*:\s*"[^"]*")', '$1,
+		$json = $json -replace '(\s*"id"\s*:\s*"[^"]*")', '$1,
   "status": "stub"'
         Set-Content $_.FullName $json
     }

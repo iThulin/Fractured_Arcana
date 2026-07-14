@@ -86,6 +86,8 @@ public class EternalLedger
     public string GuildName = "New Guild";
     public string CreatedAt = "";
     public string LastPlayedAt = "";
+    public CampusMapSaveData CampusMap = new();
+    //the ground layout of the campus scene
 
     // ── Anchored essence (the economy) ───────────────────────────────────
     /// <summary>Current spendable balance.</summary>

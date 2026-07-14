@@ -209,13 +209,15 @@ public static class SaveManager
 
     private static bool VerifyLedgerJson(string json)
     {
-        try { return JsonSerializer.Deserialize<EternalLedger>(json, JsonOptions) != null; }
+        try
+        { return JsonSerializer.Deserialize<EternalLedger>(json, JsonOptions) != null; }
         catch { return false; }
     }
 
     private static bool VerifyCycleJson(string json)
     {
-        try { return JsonSerializer.Deserialize<CycleState>(json, JsonOptions) != null; }
+        try
+        { return JsonSerializer.Deserialize<CycleState>(json, JsonOptions) != null; }
         catch { return false; }
     }
 
@@ -245,7 +247,8 @@ public static class SaveManager
     /// save is already loaded — a slot the player explicitly picked always wins.</summary>
     public static bool AutoLoadLast()
     {
-        if (ActiveSave != null) return true;
+        if (ActiveSave != null)
+            return true;
 
         int best = -1;
         ulong bestTime = 0;
@@ -254,9 +257,12 @@ public static class SaveManager
             ulong t = 0;
             string ledger = GetLedgerPath(i);
             string cycle = GetCyclePath(i);
-            if (FileAccess.FileExists(ledger)) t = System.Math.Max(t, FileAccess.GetModifiedTime(ledger));
-            if (FileAccess.FileExists(cycle)) t = System.Math.Max(t, FileAccess.GetModifiedTime(cycle));
-            if (t > 0 && (best < 0 || t > bestTime)) { best = i; bestTime = t; }
+            if (FileAccess.FileExists(ledger))
+                t = System.Math.Max(t, FileAccess.GetModifiedTime(ledger));
+            if (FileAccess.FileExists(cycle))
+                t = System.Math.Max(t, FileAccess.GetModifiedTime(cycle));
+            if (t > 0 && (best < 0 || t > bestTime))
+            { best = i; bestTime = t; }
         }
 
         if (best < 0)
@@ -300,6 +306,18 @@ public static class SaveManager
                         $"expected v{CURRENT_VERSION}. Incompatible save — not loaded.");
             return null;
         }
+
+        // ── Lazy migration: v100 saves made before CampusMap existed load with
+        // an empty Tiles list (the JSON simply has no campusMap key). Treat that
+        // the same way a missing cycle file is treated above — backfill rather
+        // than fail the load. Never runs again once a real layout is saved.
+        if (ledger.CampusMap == null || ledger.CampusMap.Tiles.Count == 0)
+        {
+            GD.Print($"SaveManager: Slot {slot} ledger predates the campus map — " +
+                     "generating a default layout.");
+            ledger.CampusMap = CampusMapSaveData.GenerateDefault();
+        }
+
 
         // ── Tier 2: the cycle (optional — between-cycles is valid) ──────
         var cycle = ReadJson<CycleState>(GetCyclePath(slot));
@@ -359,6 +377,7 @@ public static class SaveManager
                 GuildName = guildName,
                 CreatedAt = now,
                 LastPlayedAt = now,
+                CampusMap = CampusMapSaveData.GenerateDefault(),
             },
             Cycle = new CycleState
             {

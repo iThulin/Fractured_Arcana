@@ -44,6 +44,12 @@ public partial class CampusScreen : Control
     private VBoxContainer _companionContainer;
     private VBoxContainer _buildingContainer;
 
+    // Campus tab (hex map)
+    private CampusHexGrid _campusHexGrid;
+    private SubViewport _campusViewport;
+    private Label _campusSelectionLabel;
+    private string _campusPlacingBuildingId = null; // non-null while the player is siting a built-but-unplaced building
+
     // Armory tab
     private VBoxContainer _armoryContainer;
     private string _selectedArmoryUnitId = null;   // which unit we're equipping
@@ -69,7 +75,8 @@ public partial class CampusScreen : Control
     public override void _Ready()
     {
         PlayerDeckSave.UseDebugDeck = false; // campus is the real-deck home; debug routing off
-        if (SaveManager.ActiveSave == null) SaveManager.AutoLoadLast(); // boot/dev: fall back to last save
+        if (SaveManager.ActiveSave == null)
+            SaveManager.AutoLoadLast(); // boot/dev: fall back to last save
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
         CallDeferred(nameof(BuildUI));
     }
@@ -523,7 +530,8 @@ public partial class CampusScreen : Control
 
         var note = new Label
         {
-            Text = "Construct and upgrade buildings to gain permanent bonuses across all runs.",
+            Text = "Construct and upgrade buildings to gain permanent bonuses across all runs. " +
+                   "Built buildings must be sited on the map before their bonuses feel like a place.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -531,8 +539,59 @@ public partial class CampusScreen : Control
         layout.AddChild(note);
         layout.AddChild(new HSeparator());
 
+        var splitRow = new HBoxContainer();
+        splitRow.AddThemeConstantOverride("separation", 20);
+        layout.AddChild(splitRow);
+
+        // ── Left: the hex map ────────────────────────────────────────────
+        var mapCol = MakeVBox(6);
+        mapCol.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        splitRow.AddChild(mapCol);
+
+        _campusSelectionLabel = new Label { Text = "Click a building to select it." };
+        _campusSelectionLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        _campusSelectionLabel.Modulate = UITheme.CampusSubtleText;
+        mapCol.AddChild(_campusSelectionLabel);
+
+        var viewportContainer = new SubViewportContainer
+        {
+            Stretch = true,
+            CustomMinimumSize = new Vector2(560, 560),
+            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+        };
+        mapCol.AddChild(viewportContainer);
+
+        _campusViewport = new SubViewport
+        {
+            Size = new Vector2I(560, 560),
+            TransparentBg = true,
+        };
+        viewportContainer.AddChild(_campusViewport);
+
+        var camera = new Camera2D
+        {
+            Position = Vector2.Zero,
+            Zoom = new Vector2(0.75f, 0.75f), // rough fit for the default radius-5 disc; tune once on screen
+            Enabled = true,
+        };
+        _campusViewport.AddChild(camera);
+
+        _campusHexGrid = new CampusHexGrid();
+        _campusHexGrid.TileClicked += OnCampusTileClicked;
+        _campusHexGrid.BuildingClicked += OnCampusBuildingClicked;
+        _campusViewport.AddChild(_campusHexGrid);
+
+        var cancelPlaceBtn = MakeButton("Cancel Placement", 160, 32, UITheme.CampusBuildSmallFontSize, isPrimary: false);
+        cancelPlaceBtn.Pressed += CancelBuildingPlacement;
+        mapCol.AddChild(cancelPlaceBtn);
+
+        // ── Right: the existing build/upgrade list ───────────────────────
+        var listCol = MakeVBox(10);
+        listCol.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        splitRow.AddChild(listCol);
+
         _buildingContainer = MakeVBox(10);
-        layout.AddChild(_buildingContainer);
+        listCol.AddChild(_buildingContainer);
     }
 
     private void BuildArmoryTab(ScrollContainer scroll)
@@ -1609,7 +1668,7 @@ public partial class CampusScreen : Control
         _forceEncounterDropdown.ItemSelected += (idx) =>
             PlayerSession.ForceNextEncounterType =
                 _forceEncounterDropdown.GetItemId((int)idx);
-            grid.AddChild(_forceEncounterDropdown);
+        grid.AddChild(_forceEncounterDropdown);
 
         // ── C4 verification dumps (CouncilDebug.cs) ──────────────────────
         var dumpEchoesBtn = new Button
@@ -1667,7 +1726,7 @@ public partial class CampusScreen : Control
         assertDeckBtn.Pressed += () => CombatDebugLauncher.AssertDeckSplit();
         grid.AddChild(assertDeckBtn);
 
-        return panel;       
+        return panel;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1952,6 +2011,8 @@ public partial class CampusScreen : Control
 
     private void RefreshBuildingList()
     {
+        LoadCampusHexGrid();
+
         if (_buildingContainer == null)
             return;
         foreach (var child in _buildingContainer.GetChildren())
@@ -2063,8 +2124,100 @@ public partial class CampusScreen : Control
                 }
             }
 
+            // Built but not yet sited on the map — the map's hex slots are
+            // otherwise empty for this building. Placement is separate from
+            // tier progression (a building can be upgraded whether or not
+            // it's sited yet), so this is its own row/button.
+            if (buildingSave.Tier > 0 && !buildingSave.IsPlaced)
+            {
+                var placeRow = new HBoxContainer();
+                placeRow.AddThemeConstantOverride("separation", 8);
+                cardLayout.AddChild(placeRow);
+
+                var placeLbl = new Label { Text = "Not yet sited on the campus map." };
+                placeLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildTinyFontSize);
+                placeLbl.Modulate = UITheme.CampusSubtleText;
+                placeLbl.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+                placeRow.AddChild(placeLbl);
+
+                string capturedId = buildingSave.Id;
+                var placeBtn = new Button { Text = "Place on Map", CustomMinimumSize = new Vector2(110, 32) };
+                placeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+                placeBtn.Pressed += () => BeginPlacingBuilding(capturedId);
+                placeRow.AddChild(placeBtn);
+            }
+
             _buildingContainer.AddChild(card);
         }
+    }
+
+    // ── Campus hex map wiring ─────────────────────────────────────────────
+
+    /// <summary>(Re)loads the campus hex grid from the active save. Safe to call
+    /// repeatedly — CampusHexGrid.LoadFromSave clears and rebuilds its tiles.</summary>
+    private void LoadCampusHexGrid()
+    {
+        if (_campusHexGrid == null)
+            return;
+        var save = SaveManager.ActiveSave;
+        if (save == null)
+            return;
+
+        _campusHexGrid.LoadFromSave(save.Ledger.CampusMap, save.Ledger.Buildings);
+        _campusHexGrid.SetBuildMode(_campusPlacingBuildingId != null);
+    }
+
+    private void BeginPlacingBuilding(string buildingId)
+    {
+        _campusPlacingBuildingId = buildingId;
+        _campusHexGrid?.SetBuildMode(true);
+        var template = BuildingDatabase.GetTemplate(buildingId);
+        _campusSelectionLabel.Text = $"Click an empty tile to place {template?.Name ?? buildingId}.";
+    }
+
+    private void CancelBuildingPlacement()
+    {
+        _campusPlacingBuildingId = null;
+        _campusHexGrid?.SetBuildMode(false);
+        _campusSelectionLabel.Text = "Click a building to select it.";
+    }
+
+    private void OnCampusTileClicked(Vector2I axial)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null || _campusHexGrid == null)
+            return;
+
+        if (_campusPlacingBuildingId != null)
+        {
+            bool placed = _campusHexGrid.TryPlaceBuilding(_campusPlacingBuildingId, axial, save.Ledger.Buildings);
+            if (placed)
+            {
+                SaveManager.Save();
+                CancelBuildingPlacement();
+                RefreshBuildingList();
+            }
+            else
+            {
+                _campusSelectionLabel.Text = "That tile can't hold a building. Try another.";
+            }
+            return;
+        }
+
+        var hex = _campusHexGrid.GetHex(axial);
+        if (hex != null && string.IsNullOrEmpty(hex.BuildingId))
+            _campusSelectionLabel.Text = "Empty tile.";
+    }
+
+    private void OnCampusBuildingClicked(string buildingId, Vector2I axial)
+    {
+        if (_campusPlacingBuildingId != null)
+            return; // ignore selection clicks while mid-placement
+
+        var template = BuildingDatabase.GetTemplate(buildingId);
+        _campusSelectionLabel.Text = template != null
+            ? $"Selected: {template.Name}"
+            : $"Selected: {buildingId}";
     }
 
     private void RefreshGoldLabel()
