@@ -358,4 +358,20 @@ public class BuildingSaveData
     public int Tier = 0;                // 0 = not built, 1-3 = built tiers
     public string Category = "";
     public string SchoolAffinity = "";
+
+    // ── Campus map siting (spatial model — additive per the siege doc §5) ──
+    // Placement is separate from tier progression: a building can be built
+    // and upgraded before it's ever sited on the campus hex map. Old save
+    // JSON without these keys loads with safe defaults (unplaced at 0,0).
+    // Rotation / MaxIntegrity / CurrentIntegrity / IsDestroyed land here
+    // additively when the siege work starts (campus_siege_and_defense §5).
+
+    /// <summary>Axial q of the anchor hex on the campus map. Meaningless until <see cref="IsPlaced"/>.</summary>
+    public int Q = 0;
+
+    /// <summary>Axial r of the anchor hex on the campus map. Meaningless until <see cref="IsPlaced"/>.</summary>
+    public int R = 0;
+
+    /// <summary>True once the player has sited this building on the campus hex map.</summary>
+    public bool IsPlaced = false;
 }
