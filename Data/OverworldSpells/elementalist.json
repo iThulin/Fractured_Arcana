@@ -1,0 +1,52 @@
+[
+  {
+    "id": "elemental_sense",
+    "name": "Elemental Sense",
+    "school": "Elementalist",
+    "category": "Divination",
+    "isAttunement": true,
+    "isInnate": true,
+    "magnitude": "Subtle",
+    "effectKey": "elemental_sense",
+    "effectParams": { "radius": 3 },
+    "description": "Volcanic, Arcane Ground, water, and frozen terrain silhouettes through fog within 3 hexes. Terrain shape only, never POI contents."
+  },
+  {
+    "id": "force_path",
+    "name": "Force Path",
+    "school": "Elementalist",
+    "category": "Traversal",
+    "isInnate": true,
+    "essenceCost": 4,
+    "magnitude": "Overt",
+    "targetingType": "Tile",
+    "range": 1,
+    "effectKey": "force_path",
+    "description": "Open one impassable hex adjacent to the party — shatter a rockfall, freeze a crossing. The opened passage may be rough going."
+  },
+  {
+    "id": "tremorsense",
+    "name": "Tremorsense",
+    "school": "Elementalist",
+    "category": "Divination",
+    "isInnate": true,
+    "essenceCost": 3,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "tremorsense",
+    "effectParams": { "radius": 12 },
+    "description": "Chart every Mountain and Hills hex within 12 hexes — the earth's side of the argument."
+  },
+  {
+    "id": "ember_ward",
+    "name": "Ember Ward",
+    "school": "Elementalist",
+    "category": "Warding",
+    "essenceCost": 2,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "ember_ward",
+    "effectParams": { "steps": 8 },
+    "description": "Negate volcanic terrain HP drain for the next 8 steps."
+  }
+]

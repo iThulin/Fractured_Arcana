@@ -137,6 +137,12 @@ public class CycleState
     /// <summary>Minimum cards that must remain in the deck.</summary>
     public int MinDeckSize = 10;
 
+    // ── Overworld magic (S1) ─────────────────────────────────────────────
+    /// <summary>Known/prepared overworld spells, Essence pool, scrolls,
+    /// beacons. Spell knowledge is timeline knowledge — dies with the cycle.
+    /// See overworld_spell_system_v1_1 §5/§13 and GrimoireState.cs.</summary>
+    public GrimoireState Grimoire = new();
+
     // ── Faction reputation (the timeline forgets) ────────────────────────
     public Dictionary<string, int> FactionReputation = new();
 

@@ -79,6 +79,11 @@ public partial class ExpeditionManager : Node2D
     /// <summary>Two-step confirm for emergency extraction (W3 ruling).</summary>
     private ConfirmationDialog _emergencyConfirm;
 
+    // ── S2: overworld spellcasting (overworld_spell_system_v1_1) ─────────
+    private OverworldSpellManager _spells;
+    private GrimoirePanel _grimoirePanel;
+    private Label _essenceLabel;
+
     // ── Runtime resource state (rides EncounterRouter across combat) ─────
     public int StepsRemaining { get; set; }
     public int CurrentHP { get; set; }
@@ -172,7 +177,8 @@ public partial class ExpeditionManager : Node2D
         // placed, instead of 469 tiles at staging that the restore recenter
         // would immediately free. (Fresh deploys — and HardWindowMode, where
         // the party can never leave the base disc — build at staging.)
-        Vector2I initialCenter = (router != null && router.HasPendingReturn && !HardWindowMode)
+        bool pendingReturn = router != null && router.HasPendingReturn;
+        Vector2I initialCenter = (pendingReturn && !HardWindowMode)
             ? GridLocalOf(router.SavedPartyCoord)
             : _window.PartyStartLocal;
         _window.Build(_grid, initialCenter);
@@ -249,6 +255,19 @@ public partial class ExpeditionManager : Node2D
             if (PlayerSession.DebugMode && PlayerSession.NoFog)
                 RevealAllFog();
         }
+
+        // ── S2: overworld spellcasting — manager + Grimoire panel ────────
+        // Fresh deploys reset the Essence pool / cast counts / beacons;
+        // combat and negotiation returns keep them (they ride the save).
+        _spells = new OverworldSpellManager { Name = "SpellManager" };
+        AddChild(_spells);
+        _spells.Initialize(this, _grid, cycle.Grimoire, freshDeploy: !pendingReturn);
+        _spells.ApplyAttunement(_party.CurrentCoord);
+        WriteVisibleToWorld(); // attunement silhouettes chart immediately
+
+        _grimoirePanel = new GrimoirePanel { Name = "GrimoirePanel" };
+        GetHudCanvas().AddChild(_grimoirePanel);
+        _grimoirePanel.Initialize(_spells);
 
         // Narrative panel + pool (keyed to the staging kingdom)
         _narrativePanel = new NarrativeEncounterPanel { Visible = false };
@@ -588,6 +607,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 { CurrentHP = 0; FailExpedition("Stranded beyond your range."); return; }
             }
 
+            // S2: an active warding spell (Ember Ward) negates the terrain's
+            // bite entirely — bounded window, not immunity (G4).
+            if (hpDrain > 0 && OverworldSpellEffects.DrainSuppressed(hex.Terrain))
+            {
+                GD.Print($"[Spellcraft] Ward negates {hpDrain} terrain drain on {hex.Terrain}.");
+                hpDrain = 0;
+            }
+
             if (hpDrain > 0)
             {
                 CurrentHP -= hpDrain;
@@ -600,6 +627,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // the creeping edge, heavy in the convergence core — so the spreading
             // corruption is a hostile zone to route around, not stroll through.
             int corruptionDrain = CorruptionDrainAt(newCoord);
+            // S2: Purifying Rite suppresses corruption attrition for its
+            // window — bounded relief, never immunity (G4).
+            if (corruptionDrain > 0 && OverworldSpellEffects.CorruptionSuppressed())
+            {
+                GD.Print($"[Spellcraft] Purifying Rite holds — {corruptionDrain} corruption drain suppressed.");
+                corruptionDrain = 0;
+            }
             if (corruptionDrain > 0)
             {
                 // Q3 (§4b): CorruptionWard reduces the bleed, but Σ ward is CAPPED
@@ -644,6 +678,18 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _grid.Distance(_party.CurrentCoord, _windowCenterLocal) >= RecenterThreshold)
             RecenterWindow(_party.CurrentCoord);
 
+        // S2: spell-effect windows tick per committed step; Arcane Ground
+        // feeds the pool (+1, §5 — a terrain property); the school Attunement
+        // re-applies around the new position BEFORE the discovery write so
+        // its silhouettes chart in the same pass.
+        OverworldSpellEffects.TickStep();
+        if (_spells != null)
+        {
+            if (hex != null && hex.Terrain == OverworldHex.TerrainType.ArcaneGround)
+                _spells.AddEssence(1, "Arcane Ground");
+            _spells.ApplyAttunement(_party.CurrentCoord);
+        }
+
         // Reveal-on-move writes straight into World.
         WriteVisibleToWorld();
 
@@ -667,6 +713,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     private void OnHexClicked(Vector2I axial)
     {
         if (ExpeditionComplete)
+            return;
+        // S2: an active spell-targeting session consumes grid clicks first.
+        if (_spells != null && _spells.HandleHexClicked(axial))
             return;
         _party.TryMoveTo(axial);
     }
@@ -776,14 +825,21 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             case OverworldHex.POIType.Rest:
                 int heal = MaxHP / 4;
+                // S2: Campward (§8) — the armed charge makes this Rest heal
+                // +50% and grant +2 extra Essence, then is consumed.
+                bool campward = OverworldSpellEffects.ConsumeCampward();
+                if (campward)
+                    heal += MaxHP / 8;
                 CurrentHP = Mathf.Min(CurrentHP + heal, MaxHP);
+                _spells?.AddEssence(3 + (campward ? 2 : 0), campward ? "Rest + Campward" : "Rest");
                 hex.POIConsumed = true;
                 hex.RefreshVisuals();
                 ConsumeWorldPoi(coord);
                 int restSpl = SplinterDropTable.RestSite();
                 SplinterEarned += restSpl;
                 GoldEarned += 15;
-                ShowInfo($"Rest site. Recovered {heal} HP. +{restSpl} Arcane Splinters.");
+                ShowInfo($"Rest site{(campward ? " (Campward)" : "")}. Recovered {heal} HP. " +
+                         $"+{restSpl} Arcane Splinters.");
                 UpdateUI();
                 break;
 
@@ -807,6 +863,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             case OverworldHex.POIType.Outpost:
                 // Full-heal checkpoint + grants a staging point (world-scale reward).
                 CurrentHP = MaxHP;
+                _spells?.RestoreEssenceFull(); // S2: Outpost = full Essence (§5)
                 hex.POIConsumed = true;
                 hex.RefreshVisuals();
                 ConsumeWorldPoi(coord);
@@ -1240,6 +1297,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             EncounterRouter.Instance.HasPendingReturn = false;
         }
 
+        OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
+
         _casualtyNote = CompanionInjurySystem.ApplyWipe(SaveManager.ActiveSave,
             territoryTier: 2, bossContext: false, "emergency extraction");
         CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
@@ -1272,6 +1331,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             EncounterRouter.Instance.HasPendingReturn = false;
         }
 
+        OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
+
         // K2.5 ruling: extraction infirmary check — who came home broken?
         // Stabilized (downed in a won fight) → 1–2 lunations; below 25% of
         // BaseHP → 1. Resets ExpeditionHP. No death risk on extraction.
@@ -1302,6 +1363,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // K2.5: expedition over — the wipe rolls above are the injury
         // accounting on this path; carried HP just clears.
         CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
+        OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
 
         if (EncounterRouter.Instance != null)
         {
@@ -1408,6 +1470,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         vbox.AddChild(_stepLabel);
         _hpLabel = MakeHudLabel();
         vbox.AddChild(_hpLabel);
+        // S2: the second scarcity, read beside the first (§12).
+        _essenceLabel = MakeHudLabel();
+        _essenceLabel.AddThemeColorOverride("font_color", UITheme.EssenceText);
+        vbox.AddChild(_essenceLabel);
         vbox.AddChild(new HSeparator());
         _windowLabel = MakeHudLabel();
         vbox.AddChild(_windowLabel);
@@ -1563,6 +1629,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _hpLabel.Text = $"HP: {CurrentHP} / {MaxHP}";
         _hpLabel.Modulate = CurrentHP > MaxHP / 3 ? Colors.White : UITheme.OverworldLowResourceWarning;
 
+        // S2: the Essence pool, beside the other scarcities (§12).
+        var grimoire = SaveManager.ActiveSave?.Cycle?.Grimoire;
+        if (_essenceLabel != null && grimoire != null)
+        {
+            _essenceLabel.Text = $"Essence: {grimoire.EssenceCurrent} / {grimoire.EssenceMax}";
+            _essenceLabel.Modulate = grimoire.EssenceCurrent > 2
+                ? Colors.White : UITheme.OverworldLowResourceWarning;
+        }
+
         // W3: supply readout replaces the old fixed-window explored counter
         // (the loaded set now slides and grows — a ratio over it is noise).
         int supplyDist = SupplyDistanceAt(_party.CurrentCoord);
@@ -1580,6 +1655,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // W3: the button tells the truth about which extraction you'd get.
         if (_extractButton != null && !ExpeditionComplete)
             _extractButton.Text = OnSupplyAnchor() ? "Extract" : "Emergency Extract";
+
+        // S2: affordability / surcharge / active-effect readout.
+        _grimoirePanel?.Refresh();
     }
 
     private void ShowInfo(string message)
@@ -1692,6 +1770,121 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// window rebuild uses the same staging point, so local coords are stable
     /// even across slides: the local frame is a fixed translation of world axial).</summary>
     private Vector2I GridLocalOf(Vector2I savedLocal) => savedLocal;
+
+    // ════════════════════════════════════════════════════════════════════
+    // S2: spell façade — OverworldSpellManager dispatches effects into
+    // these; world mutation stays HERE (the manager owns decisions, not
+    // the world — overworld_spell_system §13).
+    // ════════════════════════════════════════════════════════════════════
+
+    public Vector2I PartyLocal => _party?.CurrentCoord ?? Vector2I.Zero;
+    public WorldData WorldRef => _world;
+    public WorldWindowBuilder WindowRef => _window;
+
+    public void SpellInfo(string message) => ShowInfo(message);
+    public void SpellRefreshHud() => UpdateUI();
+
+    public int SpellCorruptionTierAtParty()
+        => _party != null ? CorruptionTierAt(_party.CurrentCoord) : 0;
+
+    public string SpellKingdomAtParty()
+        => _party != null ? KingdomIdAt(_party.CurrentCoord) : "";
+
+    /// <summary>Heal the party pool (Mending Cant, Minor Working).</summary>
+    public void SpellHealParty(int amount)
+    {
+        CurrentHP = Mathf.Min(CurrentHP + Mathf.Max(0, amount), MaxHP);
+        UpdateUI();
+    }
+
+    /// <summary>Chart a hex disc into the world (Unseen → Charted only — G2;
+    /// never touches Charted/Explored). Optional terrain filter (Tremorsense).
+    /// Returns tiles charted; refreshes window silhouettes when > 0.</summary>
+    public int SpellChartHexRadius(int col, int row, int radius,
+        System.Collections.Generic.List<OverworldHex.TerrainType> terrainFilter = null)
+    {
+        int charted = 0;
+        foreach (var (c, r) in _world.Disc(col, row, radius))
+        {
+            if (!_world.TryIndex(c, r, out int idx))
+                continue;
+            if (terrainFilter != null && !terrainFilter.Contains(_world.Tiles[idx].Terrain))
+                continue;
+            if (_world.Tiles[idx].Discovery == TileDiscovery.Unseen)
+            {
+                _world.Tiles[idx].Discovery = TileDiscovery.Charted;
+                charted++;
+            }
+        }
+        if (charted > 0)
+        {
+            SaveManager.MarkDirty();
+            RefreshWindowSilhouettes();
+        }
+        return charted;
+    }
+
+    /// <summary>Force Path (Elementalist): open one impassable hex. Mountain
+    /// shatters to Hills; water freezes/fords to Marsh — passable but boggy,
+    /// the "may carry a hazard" clause priced as Marsh's HP drain. Writes the
+    /// WORLD tile: a physically opened passage persists for the cycle.</summary>
+    public bool SpellForcePath(Vector2I local)
+    {
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return false;
+        if (!_world.TryIndex(col, row, out int idx))
+            return false;
+
+        var t = _world.Tiles[idx].Terrain;
+        OverworldHex.TerrainType opened;
+        if (t == OverworldHex.TerrainType.Mountain)
+            opened = OverworldHex.TerrainType.Hills;
+        else if (TerrainClass.IsWater(t))
+            opened = OverworldHex.TerrainType.Marsh;
+        else
+            return false;
+
+        _world.Tiles[idx].Terrain = opened;
+        if (_grid.Hexes.TryGetValue(local, out var hexNode))
+        {
+            hexNode.Terrain = opened;
+            hexNode.RefreshVisuals();
+        }
+        SaveManager.MarkDirty();
+        return true;
+    }
+
+    /// <summary>Draw a Wayfarer's Beacon marker at a grid-local coord. The
+    /// marker is a direct grid child at a fixed position, so it survives
+    /// window slides (its hex node may unload; the mark remains — that is
+    /// the point of a beacon). Persistence lives in GrimoireState.</summary>
+    public void SpellDrawBeaconMarker(Vector2I local)
+    {
+        var marker = new Node2D { Name = "BeaconMarker", ZIndex = 6 };
+        var body = new Polygon2D
+        {
+            Polygon = new[]
+            {
+                new Vector2(0, -12), new Vector2(8, 0),
+                new Vector2(0, 12), new Vector2(-8, 0),
+            },
+            Color = UITheme.BeaconMark,
+        };
+        var outline = new Polygon2D
+        {
+            Polygon = new[]
+            {
+                new Vector2(0, -15), new Vector2(10.5f, 0),
+                new Vector2(0, 15), new Vector2(-10.5f, 0),
+            },
+            Color = new Color(0f, 0f, 0f, 0.7f),
+            ZIndex = -1,
+        };
+        marker.AddChild(outline);
+        marker.AddChild(body);
+        marker.Position = _grid.AxialToWorld(local);
+        _grid.AddChild(marker);
+    }
 
     // ════════════════════════════════════════════════════════════════════
     // W1: sliding window · W3: supply line

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "wildsense",
+    "name": "Wildsense",
+    "school": "Druid",
+    "category": "Divination",
+    "isAttunement": true,
+    "isInnate": true,
+    "magnitude": "Subtle",
+    "effectKey": "wildsense",
+    "description": "Forest and Swamp hexes silhouette at +2 fog radius; Rest sites within 4 hexes are revealed. (S3)"
+  },
+  {
+    "id": "verdant_passage",
+    "name": "Verdant Passage",
+    "school": "Druid",
+    "category": "Traversal",
+    "isInnate": true,
+    "essenceCost": 3,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "verdant_passage",
+    "effectParams": { "steps": 5 },
+    "description": "Forest and Swamp cost 1 step for the party's next 5 steps. Cost reduction, never refund."
+  },
+  {
+    "id": "beast_envoy",
+    "name": "Beast Envoy",
+    "school": "Druid",
+    "category": "Divination",
+    "isInnate": true,
+    "essenceCost": 2,
+    "magnitude": "Subtle",
+    "targetingType": "Path",
+    "range": 6,
+    "effectKey": "beast_envoy",
+    "description": "Send an animal scout along a drawn path of up to 6 hexes, charting as it goes. (S3 — path targeting)"
+  },
+  {
+    "id": "thornwall",
+    "name": "Thornwall",
+    "school": "Druid",
+    "category": "Conjuration",
+    "essenceCost": 3,
+    "magnitude": "Overt",
+    "targetingType": "Tile",
+    "range": 1,
+    "effectKey": "thornwall",
+    "effectParams": { "steps": 8 },
+    "description": "Patrols cannot enter the chosen adjacent hex for 8 party steps. (S3 — patrol APIs)"
+  }
+]

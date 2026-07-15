@@ -84,6 +84,12 @@ public static class OverworldMovementCost
     {
         int cost = TerrainStep(destTerrain) - Mathf.Max(0, pathfinderReduction);
 
+        // S2: active traversal spells (Verdant Passage) cap the terrain
+        // component. Applied HERE — the single source of truth — so the
+        // charge path and the preview path cannot diverge (G1: reduction
+        // within a bounded window, never a refund).
+        cost = OverworldSpellEffects.AdjustTerrainStep(destTerrain, cost);
+
         int d = EdgeDirection(from, to);
         if (d >= 0 && fromHex != null)
         {

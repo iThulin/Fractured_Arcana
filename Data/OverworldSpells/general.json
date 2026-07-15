@@ -1,0 +1,49 @@
+[
+  {
+    "id": "mending_cant",
+    "name": "Mending Cant",
+    "school": "General",
+    "category": "Warding",
+    "essenceCost": 2,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "mending_cant",
+    "effectParams": { "heal": 5 },
+    "description": "Heal 5 party HP. The Essence price is the cap; no per-expedition charge limit."
+  },
+  {
+    "id": "purifying_rite",
+    "name": "Purifying Rite",
+    "school": "General",
+    "category": "Warding",
+    "essenceCost": 3,
+    "magnitude": "Overt",
+    "targetingType": "None",
+    "effectKey": "purifying_rite",
+    "effectParams": { "steps": 10 },
+    "description": "Suppress corruption attrition for the party's next 10 steps."
+  },
+  {
+    "id": "wayfarers_beacon",
+    "name": "Wayfarer's Beacon",
+    "school": "General",
+    "category": "Divination",
+    "essenceCost": 1,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "wayfarers_beacon",
+    "description": "Mark the current tile; the mark stays visible for the rest of the expedition."
+  },
+  {
+    "id": "campward",
+    "name": "Campward",
+    "school": "General",
+    "category": "Warding",
+    "essenceCost": 2,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "campward",
+    "effectParams": { "bonusEssence": 2 },
+    "description": "The next Rest site used heals +50% and grants +2 additional Essence."
+  }
+]

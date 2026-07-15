@@ -1,0 +1,51 @@
+[
+  {
+    "id": "arcane_literacy",
+    "name": "Arcane Literacy",
+    "school": "Arcanist",
+    "category": "Divination",
+    "isAttunement": true,
+    "isInnate": true,
+    "magnitude": "Subtle",
+    "effectKey": "arcane_literacy",
+    "description": "Revealed POIs additionally show their reward category. (S3)"
+  },
+  {
+    "id": "scrying_lens",
+    "name": "Scrying Lens",
+    "school": "Arcanist",
+    "category": "Divination",
+    "isInnate": true,
+    "essenceCost": 3,
+    "magnitude": "Subtle",
+    "targetingType": "Tile",
+    "range": 6,
+    "effectKey": "scrying_lens",
+    "effectParams": { "radius": 3 },
+    "description": "Chart all tiles within radius 3 of any already-charted tile up to 6 hexes away. Repeated casts leapfrog the frontier."
+  },
+  {
+    "id": "identify",
+    "name": "Identify",
+    "school": "Arcanist",
+    "category": "Divination",
+    "isInnate": true,
+    "essenceCost": 2,
+    "magnitude": "Subtle",
+    "targetingType": "Tile",
+    "range": 6,
+    "effectKey": "identify",
+    "description": "Reveal a visible combat POI's full encounter composition before engaging. (S3)"
+  },
+  {
+    "id": "ley_tap",
+    "name": "Ley Tap",
+    "school": "Arcanist",
+    "category": "Conjuration",
+    "essenceCost": 0,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "ley_tap",
+    "description": "While on Arcane Ground: convert 1 step into 2 Essence."
+  }
+]

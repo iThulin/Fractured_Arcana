@@ -311,6 +311,14 @@ public static class UITheme
     public static readonly Color OverworldLowResourceWarning = Danger;
     public static readonly Color OverworldInfoLabelTint = Gold;
 
+    // ── Overworld spellcasting (S2, overworld_spell_system §12) ─────
+    public static readonly Color EssenceText = ArcaneBlue;
+    public static readonly Color SpellTargetHighlight = new Color(0.28f, 0.55f, 0.92f, 0.35f);
+    public static readonly Color MagnitudeSubtle = TextSecondary;
+    public static readonly Color MagnitudeOvert = Warning;
+    public static readonly Color MagnitudeGrand = Gold;
+    public static readonly Color BeaconMark = Gold;
+
 
     // ════════════════════════════════════════════════════════════
     // FACTION COLORS
