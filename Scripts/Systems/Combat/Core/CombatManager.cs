@@ -3341,8 +3341,55 @@ public partial class CombatManager : Node3D
             GD.Print("[CombatMap] No encounter terrain — using grid inspector defaults.");
         }
 
+        ApplyVistaBias(grid);
+
         grid.GenerateMap();
     }
+
+    /// <summary>
+    /// Maps the overworld neighbour terrains captured at launch
+    /// (EncounterContextCarrier.NeighborTerrains, one per hex direction) onto the
+    /// grid's per-direction vista bias, so the non-playable surround leans toward
+    /// what actually borders this fight on the world map — forest vista on the
+    /// side that touches forest, water past the rim on a lakeshore, and so on
+    /// (combat_environments §5 spatial storytelling). No context = no bias = the
+    /// vista purely continues the arena's own field.
+    /// </summary>
+    private static void ApplyVistaBias(HexGridManager grid)
+    {
+        grid.VistaTerrainBias.Clear();
+
+        var neighbors = EncounterContextCarrier.NeighborTerrains;
+        if (neighbors == null)
+            return;
+
+        for (int k = 0; k < 6 && k < neighbors.Length; k++)
+        {
+            var biased = VistaBiasFor(neighbors[k]);
+            if (biased.HasValue)
+                grid.VistaTerrainBias[k] = biased.Value;
+        }
+
+        if (grid.VistaTerrainBias.Count > 0)
+            GD.Print("[CombatMap] Vista bias: " + string.Join(", ",
+                System.Linq.Enumerable.Select(grid.VistaTerrainBias, kv => $"dir{kv.Key}={kv.Value}")));
+    }
+
+    /// <summary>
+    /// Overworld terrain name → the combat terrain the vista should lean toward.
+    /// Null = no distinct vista read (the surround just continues the arena):
+    /// Grassland/Road/Ruins map to nothing today, Desert waits on SunbakedBarrens.
+    /// </summary>
+    private static TileTerrainType? VistaBiasFor(string overworldTerrain) => overworldTerrain switch
+    {
+        "Forest" => TileTerrainType.Forest,
+        "Mountain" or "Hills" => TileTerrainType.Stone,
+        "Snow" or "Tundra" => TileTerrainType.Ice,
+        "Volcanic" => TileTerrainType.Lava,
+        "Water" or "Lake" or "Coast" or "Swamp" or "Marsh" => TileTerrainType.Water,
+        "ArcaneGround" => TileTerrainType.Arcane,
+        _ => null,
+    };
 
     private static HexGridManager.MapDensityPreset DensityForTier(EncounterTier tier) => tier switch
     {

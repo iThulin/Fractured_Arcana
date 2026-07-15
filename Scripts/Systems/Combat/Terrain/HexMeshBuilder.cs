@@ -212,7 +212,7 @@ public static class HexMeshBuilder
 
         for (int e = 0; e < 6; e++)
         {
-            var nE = grid.GetTile(tile.Axial + HexDirection.All[(6 - e) % 6]);
+            var nE = grid.GetTileOrVista(tile.Axial + HexDirection.All[(6 - e) % 6]);
             nbr[e] = nE;
             // Water never blends into land: the water tile stays flat at its own
             // surface to the boundary; the land neighbour drops/terraces to it.
@@ -432,7 +432,7 @@ public static class HexMeshBuilder
         float s = b / rho;
         float t = (rho - solidFactor) / (1f - solidFactor);
 
-        var nE = grid.GetTile(tile.Axial + HexDirection.All[(6 - e) % 6]);
+        var nE = grid.GetTileOrVista(tile.Axial + HexDirection.All[(6 - e) % 6]);
         bool waterEdge = nE != null &&
             ((tile.TerrainType == TileTerrainType.Water) != (nE.TerrainType == TileTerrainType.Water));
         bool blends = nE != null
@@ -583,8 +583,8 @@ public static class HexMeshBuilder
     {
         int threshold = grid.CliffHeightThreshold;
 
-        var tA = grid.GetTile(tile.Axial + HexDirection.All[(7 - cornerIndex) % 6]);
-        var tB = grid.GetTile(tile.Axial + HexDirection.All[(6 - cornerIndex) % 6]);
+        var tA = grid.GetTileOrVista(tile.Axial + HexDirection.All[(7 - cornerIndex) % 6]);
+        var tB = grid.GetTileOrVista(tile.Axial + HexDirection.All[(6 - cornerIndex) % 6]);
 
         bool p1 = tA != null, p2 = tB != null;
 
@@ -617,9 +617,9 @@ public static class HexMeshBuilder
     {
         float ownIdx = (int)tile.TerrainType;
 
-        var nE = grid.GetTile(tile.Axial + HexDirection.All[(6 - e) % 6]);
-        var nA = grid.GetTile(tile.Axial + HexDirection.All[(7 - e) % 6]);
-        var nB = grid.GetTile(tile.Axial + HexDirection.All[(5 - e) % 6]);
+        var nE = grid.GetTileOrVista(tile.Axial + HexDirection.All[(6 - e) % 6]);
+        var nA = grid.GetTileOrVista(tile.Axial + HexDirection.All[(7 - e) % 6]);
+        var nB = grid.GetTileOrVista(tile.Axial + HexDirection.All[(5 - e) % 6]);
 
         var indices = new Color(
             ownIdx,

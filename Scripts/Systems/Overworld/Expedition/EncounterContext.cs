@@ -46,12 +46,22 @@ public static class EncounterContextCarrier
     public static string SourceTerrain { get; private set; } = "";
     public static EncounterTier Tier { get; private set; } = EncounterTier.Battle;
 
+    /// <summary>Terrain of the six overworld hexes AROUND the combat source hex,
+    /// indexed by HexCoord.AxialDirections order — which matches the combat grid's
+    /// HexDirs 1:1, so no direction remapping is needed. Null when the launch has
+    /// no overworld context; individual entries may be null (off-map neighbour).
+    /// Consumed by CombatManager.ConfigureAndGenerateMap → HexGridManager.VistaTerrainBias,
+    /// so the non-playable vista ring leans toward what actually borders the fight
+    /// (combat_environments §5 spatial storytelling).</summary>
+    public static string[] NeighborTerrains { get; private set; } = null;
+
     public static void Set(EncounterDefinition def) => Current = def;
 
-    public static void SetContext(string sourceTerrain, EncounterTier tier)
+    public static void SetContext(string sourceTerrain, EncounterTier tier, string[] neighborTerrains = null)
     {
         SourceTerrain = sourceTerrain ?? "";
         Tier = tier;
+        NeighborTerrains = neighborTerrains;
     }
 
     public static void Clear()
@@ -59,5 +69,6 @@ public static class EncounterContextCarrier
         Current = null;
         SourceTerrain = "";
         Tier = EncounterTier.Battle;
+        NeighborTerrains = null;
     }
 }

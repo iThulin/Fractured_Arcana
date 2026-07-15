@@ -2,7 +2,9 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// HexGridManager.Visuals.cs — tile visual/material application, blended-mesh rebuild, obstacle + prop spawning
+// HexGridManager.Visuals.cs — tile visual/material application, blended-mesh rebuild, obstacle spawning.
+// (Legacy per-tile prop/tuft spawning removed 2026-07-15 — superseded by the
+// painterly scatter family: PainterlyGrass / Flowers / Rocks / Canopy.)
 // Partial of HexGridManager. Split out for navigability; behaviour-neutral.
 public partial class HexGridManager
 {
@@ -184,82 +186,6 @@ public partial class HexGridManager
         foreach (var tile in Tiles.Values)
         {
             tile.TileView?.RefreshLabel(tile);
-        }
-    }
-
-    // Tile Props
-
-    private void SpawnTerrainProps()
-    {
-        ClearTerrainProps();
-
-        foreach (var tile in Tiles.Values)
-        {
-            if (tile.TileView == null)
-                continue;
-
-            if (tile.IsBlocked)
-                continue;
-
-            if (tile.TerrainType == TileTerrainType.Grass)
-            {
-                SpawnGrassOnTile(tile, 0.65f, 1, 3);
-            }
-            else if (tile.TerrainType == TileTerrainType.Forest)
-            {
-                SpawnGrassOnTile(tile, 0.9f, 2, 4);
-            }
-        }
-    }
-
-    private void ClearTerrainProps()
-    {
-        Node parent = PropParent ?? this;
-
-        foreach (Node child in parent.GetChildren())
-        {
-            if (child.IsInGroup("generated_prop"))
-                child.QueueFree();
-        }
-    }
-
-    private void SpawnGrassOnTile(TileData tile, float spawnChance, int minCount, int maxCount)
-    {
-        if (_rng.Randf() > spawnChance)
-            return;
-
-        int count = _rng.RandiRange(minCount, maxCount);
-
-        for (int i = 0; i < count; i++)
-        {
-            PackedScene scene = GrassTuftScene;
-
-            if (GrassTuftSceneAlt != null && _rng.Randf() < 0.35f)
-                scene = GrassTuftSceneAlt;
-
-            if (scene == null)
-                continue;
-
-            var tuft = scene.Instantiate<Node3D>();
-
-            Node parent = PropParent ?? this;
-            parent.AddChild(tuft);
-
-            Vector3 basePos = tile.TileView.GlobalPosition;
-
-            float xOffset = _rng.RandfRange(-0.35f, 0.35f);
-            float zOffset = _rng.RandfRange(-0.35f, 0.35f);
-
-            tuft.GlobalPosition = basePos + new Vector3(xOffset, 0.05f, zOffset);
-
-            Vector3 rot = tuft.RotationDegrees;
-            rot.Y = _rng.RandfRange(0f, 360f);
-            tuft.RotationDegrees = rot;
-
-            float scale = _rng.RandfRange(0.85f, 1.2f);
-            tuft.Scale = new Vector3(scale, scale, scale);
-
-            tuft.AddToGroup("generated_prop");
         }
     }
 }

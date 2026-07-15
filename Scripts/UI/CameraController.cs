@@ -62,11 +62,21 @@ public partial class CameraController : Node3D
     [Export] public float RotationSpeed = 0.3f;
     /// <summary>Steepest the camera can tilt (looking straight down is -90).</summary>
     [Export] public float MinPitch = -75f;
-    /// <summary>Shallowest the camera can tilt. Kept ≤ -20° so the terrain-aware
-    /// zoom floor stays finite and the camera can never reach the horizon.</summary>
-    [Export] public float MaxPitch = -20f;
-    /// <summary>Extra slack (world units) added to the clamp bounds so the camera can drift slightly past the arena edge.</summary>
-    [Export] public float BoundsPad = 2f;
+    /// <summary>Shallowest the camera can tilt. -30° keeps the terrain-aware zoom
+    /// floor finite AND keeps near-level views off the table — at -20° the camera
+    /// could sit barely above the tallest tile and stare across the board at the
+    /// rim skirts edge-on, which reads as "under the world".</summary>
+    [Export] public float MaxPitch = -30f;
+    /// <summary>How far INSIDE the playable bounds the rig is kept (world units).
+    /// A positive inset stops the camera from parking on the arena edge and
+    /// staring past the vista rim — the surround is dressing, not a destination.
+    /// The old outward slack (BoundsPad) is gone for the same reason.</summary>
+    [Export] public float PanEdgeInset = 2.5f;
+    /// <summary>Maximum zoom as a fraction of the board span, resolved per map in
+    /// FrameGrid (never above MaxZoom). Keeps the pull-out ceiling proportional to
+    /// the arena so small maps can't be viewed from orbit — the vista ring reads
+    /// as landscape at mid range and as a floating island from a satellite.</summary>
+    [Export] public float MaxZoomSpanFactor = 0.85f;
     /// <summary>Vertical clearance (world units) the camera keeps above the tallest tile top.</summary>
     [Export] public float MinCameraClearance = 1.5f;
     /// <summary>Lerp rate of the glide toward a focused unit. Lower than MoveLerpSpeed so focus feels like a deliberate camera move, not a snap.</summary>
@@ -89,6 +99,10 @@ public partial class CameraController : Node3D
 
     // Smooth zoom: we track a target Z distance and lerp toward it
     private float _zoomTarget;
+
+    // Per-map zoom ceiling: min(MaxZoom, boardSpan × MaxZoomSpanFactor), set by
+    // FrameGrid. All zoom clamps use this, never raw MaxZoom.
+    private float _maxZoomDynamic = 30f;
 
     // Smooth pan: lerp the controller position toward a desired position
     private Vector3 _desiredPosition;
@@ -148,11 +162,14 @@ public partial class CameraController : Node3D
         _pitch = -35f;
         _pivot.RotationDegrees = new Vector3(_pitch, _yaw, 0f);
 
+        // Per-map zoom ceiling: proportional to the arena, capped by MaxZoom.
+        _maxZoomDynamic = Mathf.Clamp(boardSpan * MaxZoomSpanFactor, MinZoom + 4f, MaxZoom);
+
         // Start close (0.35 × span is the intended feel) but never closer than
         // the terrain-aware floor allows at the starting pitch.
         float startZoom = Mathf.Clamp(
             Mathf.Max(boardSpan * 0.35f, MinSafeZoom()),
-            MinZoom, MaxZoom);
+            MinZoom, _maxZoomDynamic);
         _camera.Position = new Vector3(0f, 0f, startZoom);
         _zoomTarget = startZoom;
 
@@ -199,10 +216,10 @@ public partial class CameraController : Node3D
                 _dragging = mb.Pressed;
 
             if (mb.ButtonIndex == MouseButton.WheelUp)
-                _zoomTarget = Mathf.Clamp(_zoomTarget - ZoomSpeed, MinZoom, MaxZoom);
+                _zoomTarget = Mathf.Clamp(_zoomTarget - ZoomSpeed, MinZoom, _maxZoomDynamic);
 
             if (mb.ButtonIndex == MouseButton.WheelDown)
-                _zoomTarget = Mathf.Clamp(_zoomTarget + ZoomSpeed, MinZoom, MaxZoom);
+                _zoomTarget = Mathf.Clamp(_zoomTarget + ZoomSpeed, MinZoom, _maxZoomDynamic);
 
             if (mb.ButtonIndex == MouseButton.Left && !mb.Pressed)
                 _cardDropHandler?.TryDropCardOnTile();
@@ -312,11 +329,15 @@ public partial class CameraController : Node3D
             }
         }
 
-        // Clamp to arena bounds
+        // Clamp INSIDE the arena bounds (inset, not outward slack): the rig stays
+        // over playable space, so the vista ring is always background, never floor.
+        // Degenerate guard: tiny maps clamp to their own centre.
+        float insetX = Mathf.Min(PanEdgeInset, (_boundsMax.X - _boundsMin.X) * 0.5f);
+        float insetZ = Mathf.Min(PanEdgeInset, (_boundsMax.Z - _boundsMin.Z) * 0.5f);
         _desiredPosition.X = Mathf.Clamp(_desiredPosition.X,
-            _boundsMin.X - BoundsPad, _boundsMax.X + BoundsPad);
+            _boundsMin.X + insetX, _boundsMax.X - insetX);
         _desiredPosition.Z = Mathf.Clamp(_desiredPosition.Z,
-            _boundsMin.Z - BoundsPad, _boundsMax.Z + BoundsPad);
+            _boundsMin.Z + insetZ, _boundsMax.Z - insetZ);
 
         // Smooth lerp toward desired (focus uses its own, gentler rate)
         float lerpRate = _focusing ? FocusLerpSpeed : MoveLerpSpeed;
@@ -335,8 +356,12 @@ public partial class CameraController : Node3D
         {
             _yaw -= _mouseDelta.X * RotationSpeed;
             _pitch -= _mouseDelta.Y * RotationSpeed;
-            _pitch = Mathf.Clamp(_pitch, MinPitch, MaxPitch);
         }
+
+        // Clamp UNCONDITIONALLY (not just inside the drag branch) so a stale
+        // scene-stored MaxPitch or any external pitch write is re-leashed every
+        // frame. A near-level pitch makes the safety zoom floor explode.
+        _pitch = Mathf.Clamp(_pitch, MinPitch, Mathf.Min(MaxPitch, -30f));
 
         _pivot.RotationDegrees = new Vector3(_pitch, _yaw, 0f);
     }
@@ -346,8 +371,12 @@ public partial class CameraController : Node3D
     {
         // Terrain-aware floor: at the current pitch, this is the closest zoom
         // that keeps the camera's world Y above the tallest tile + clearance.
+        // SAFETY WINS over the aesthetic ceiling: at shallow pitch the floor can
+        // exceed _maxZoomDynamic, and C#'s Math.Clamp THROWS when min > max
+        // (unlike GDScript's clamp) — so the ceiling must yield to the floor.
         float minSafe = MinSafeZoom();
-        _zoomTarget = Mathf.Clamp(_zoomTarget, minSafe, MaxZoom);
+        float ceiling = Mathf.Max(_maxZoomDynamic, minSafe);
+        _zoomTarget = Mathf.Clamp(_zoomTarget, minSafe, ceiling);
 
         Vector3 camPos = _camera.Position;
         camPos.Z = Mathf.Lerp(camPos.Z, _zoomTarget, ZoomLerpSpeed * delta);
@@ -366,7 +395,7 @@ public partial class CameraController : Node3D
     {
         float sin = Mathf.Sin(Mathf.DegToRad(Mathf.Abs(_pitch)));
         if (sin < 0.05f)
-            return MaxZoom; // defensive — MaxPitch should keep us far from here
+            return _maxZoomDynamic; // defensive — MaxPitch should keep us far from here
 
         float requiredRise = _boundsMax.Y + MinCameraClearance - Position.Y;
         if (requiredRise <= 0f)

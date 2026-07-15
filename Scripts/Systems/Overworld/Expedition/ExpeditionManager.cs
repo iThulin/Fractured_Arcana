@@ -805,8 +805,26 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // Persist discovery so far before leaving the scene.
         SaveManager.SaveIfDirty();
 
+        // Vista world-adjacency (combat_environments §5): capture what surrounds
+        // this fight on the overworld, per hex direction. HexCoord.AxialDirections
+        // matches the combat grid's HexDirs order 1:1, so index k here becomes
+        // vista side k in HexGridManager.VistaTerrainBias directly.
+        string[] neighborTerrains = null;
+        if (_grid != null)
+        {
+            neighborTerrains = new string[6];
+            var (q, r) = HexCoord.OffsetToAxial(hexCoord.X, hexCoord.Y);
+            for (int k = 0; k < HexCoord.AxialDirections.Length; k++)
+            {
+                var (dq, dr) = HexCoord.AxialDirections[k];
+                var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+                if (_grid.Hexes.TryGetValue(new Vector2I(nc, nr), out var nHex))
+                    neighborTerrains[k] = nHex.Terrain.ToString();
+            }
+        }
+
         EncounterContextCarrier.Set(encounterDef);
-        EncounterContextCarrier.SetContext(terrainType, encounterDef.Tier);
+        EncounterContextCarrier.SetContext(terrainType, encounterDef.Tier, neighborTerrains);
         router.SetCurrentTier(encounterDef.Tier);
 
         ShowInfo("Entering combat...");

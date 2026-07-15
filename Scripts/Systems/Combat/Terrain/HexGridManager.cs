@@ -184,10 +184,8 @@ public partial class HexGridManager : Node3D
     [Export] public float ArcaneNoiseAmp = 0.20f;
     [Export] public float ArcaneNoiseFreq = 0.30f;
 
-    // Prop import
+    // Parent for all scattered prop fields (painterly grass/flowers/rocks/canopy).
     [ExportGroup("Tile Props")]
-    [Export] public PackedScene GrassTuftScene;
-    [Export] public PackedScene GrassTuftSceneAlt;
     [Export] public Node3D PropParent;
 
     // Theme atmosphere (all optional; null = no-op, zero regression)
@@ -380,10 +378,15 @@ public partial class HexGridManager : Node3D
 
     private void CenterCameraOverGrid()
     {
-        var controller = GetNodeOrNull<CameraController>("../CameraController");
+        // Sibling path first; fall back to a tree-wide search so the camera is
+        // NEVER left on its placeholder bounds — unframed bounds are what let
+        // the rig pan off-board, zoom to orbit, and dip under the rim.
+        var controller = GetNodeOrNull<CameraController>("../CameraController")
+            ?? GetTree().Root.FindChild("CameraController", recursive: true, owned: false) as CameraController;
         if (controller == null)
         {
-            GD.PrintErr("CameraController not found at ../CameraController");
+            GD.PushError("[HexGridManager] CameraController not found anywhere in the tree — " +
+                "camera bounds/zoom limits NOT applied; the rig is running on placeholder bounds.");
             return;
         }
 
@@ -436,8 +439,15 @@ public partial class HexGridManager : Node3D
         EnsureReservedTilesArePlayable();
         EnsureConnectivityBetweenSpawns();
 
+        // Vista DATA must exist before the playable meshes build (edge tiles
+        // blend outward into it); vista MESHES build after ApplyTileVisuals,
+        // once _lastWorldFloor + the splat template exist. See HexGridManager.Vista.cs.
+        GenerateVistaRing(field);
+
         ApplyTileHeights();
         ApplyTileVisuals();
+        BuildVistaMeshes();
+        BuildArenaBoundary();
 
         if (_activeRecipe?.Atmosphere != null)
             ApplyRecipeAtmosphere(_activeRecipe.Atmosphere);
@@ -445,7 +455,6 @@ public partial class HexGridManager : Node3D
             ApplyThemeAtmosphere();
 
         SpawnObstacleVisuals();
-        //SpawnTerrainPropsFromManifest();
         SpawnPainterlyGrass();
         SpawnFlowerProps();
         SpawnRockProps();

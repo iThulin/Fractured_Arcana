@@ -6,9 +6,16 @@
 		"Road": "heathland",
 		"Ruins": "overgrown_ruins",
 		"Mountain": "highland_crags",
+		"Hills": "rolling_hills",
 		"Swamp": "wetlands",
+		"Marsh": "marsh_flats",
 		"ArcaneGround": "arcane_meadow",
 		"Volcanic": "volcanic_scar",
-		"Water": "coastal_shallows"
+		"Water": "coastal_shallows",
+		"Coast": "coastal_shallows",
+		"Lake": "lakeshore",
+		"Desert": "sunbaked_barrens",
+		"Tundra": "frost_steppe",
+		"Snow": "frozen_basin"
 	}
 }

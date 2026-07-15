@@ -27,19 +27,19 @@
 			0.93,
 			0.88
 		],
-		"sun_energy": 1.0,
+		"sun_energy": 1.2,
 		"ambient_color": [
 			0.55,
 			0.55,
-			0.60
+			0.6
 		],
-		"ambient_energy": 0.4,
+		"ambient_energy": 0.75,
 		"fog_color": [
-			0.70,
+			0.7,
 			0.72,
 			0.78
 		],
-		"fog_density": 0.012
+		"fog_density": 0.008
 	},
 	"features": [
 		{

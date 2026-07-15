@@ -171,6 +171,10 @@ public partial class HexGridManager : Node3D
             env.FogLightColor = a.Fog;
             env.FogDensity = a.FogDensity;
         }
+
+        // Outer vista rings + the backdrop plane melt toward this fog colour
+        // (see HexGridManager.Vista.cs).
+        ApplyHorizon(a.Fog);
     }
 
     // ── Param resolvers ─────────────────────────────────────────────────────

@@ -26,7 +26,7 @@ using System.Collections.Generic;
 // If your already-commented exports show tooltips, this is already on.)
 //
 // INTEGRATION: one line at the tail of GenerateMap(), after
-//   SpawnTerrainPropsFromManifest();
+//   SpawnObstacleVisuals();
 //       SpawnPainterlyGrass();
 // ============================================================
 
@@ -326,7 +326,9 @@ public partial class HexGridManager : Node3D
 
         var nbrGrass = new bool[6];
 
-        foreach (var tile in Tiles.Values)
+        // Playable tiles at full density, vista tiles at VistaScatterDensity
+        // (see HexGridManager.Vista.cs).
+        foreach (var (tile, scatterDensity) in ScatterTiles())
         {
             if (tile.TileView == null || tile.IsBlocked || !IsGrassy(tile))
                 continue;
@@ -334,15 +336,15 @@ public partial class HexGridManager : Node3D
             for (int k = 0; k < 6; k++)
             {
                 var nc = tile.Axial + HexDirs[k];
-                nbrGrass[k] = Tiles.TryGetValue(nc, out var nt)
-                              && nt.TileView != null && !nt.IsBlocked && IsGrassy(nt);
+                var nt = GetTileOrVista(nc); // vista counts — blades bleed into the surround
+                nbrGrass[k] = nt != null && nt.TileView != null && !nt.IsBlocked && IsGrassy(nt);
             }
 
             bool isForest = tile.TerrainType == TileTerrainType.Forest;
             int baseCount = isForest
                 ? Mathf.RoundToInt(GrassBladesPerTile * 1.35f)
                 : GrassBladesPerTile;
-            int count = Mathf.Max(0, Mathf.RoundToInt(baseCount * densityScalar));
+            int count = Mathf.Max(0, Mathf.RoundToInt(baseCount * densityScalar * scatterDensity));
 
             // X/Z come from the tile centre; Y is sampled per-blade below so
             // the carpet hugs the blended mesh instead of forming a flat shelf.

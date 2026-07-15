@@ -33,6 +33,7 @@ public partial class CombatDebugLauncher : CanvasLayer
     private OptionButton _schoolOpt;
     private OptionButton _tierOpt;
     private OptionButton _mapOpt;
+    private OptionButton _vistaOpt;  // debug vista border terrain (same as map = no bias)
     private SpinBox _diffSpin;
     private CheckBox _skipDeployChk;
     private CheckBox _stopOnTriggersChk;
@@ -135,6 +136,11 @@ public partial class CombatDebugLauncher : CanvasLayer
         _tierOpt = AddEnumDropdown(form, "Tier:", Enum.GetValues(typeof(EncounterTier)),
             (int)EncounterTier.Battle);
         _mapOpt = AddEnumDropdown(form, "Map / terrain:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
+            (int)OverworldHex.TerrainType.Grassland);
+        // Debug stand-in for overworld adjacency: pretends ALL six neighbouring
+        // world hexes are this terrain, so the vista ring leans toward it.
+        // Same as the map terrain = no bias (pure field continuation).
+        _vistaOpt = AddEnumDropdown(form, "Vista border:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
             (int)OverworldHex.TerrainType.Grassland);
         _diffSpin = AddSpin(form, "Difficulty ×:", 0.5, 3.0, 0.25, 1.0);
 
@@ -269,11 +275,23 @@ public partial class CombatDebugLauncher : CanvasLayer
         SeedDebugDeckIfEmpty((CardSchool)_schoolOpt.GetSelectedId());
         PlayerDeckSave.UseDebugDeck = true;
 
+        // Debug vista adjacency: if the vista-border terrain differs from the map
+        // terrain, pretend all six overworld neighbours are that terrain.
+        var vistaTerrain = ((OverworldHex.TerrainType)_vistaOpt.GetSelectedId()).ToString();
+        string[] neighborTerrains = null;
+        if (vistaTerrain != terrain)
+        {
+            neighborTerrains = new string[6];
+            for (int k = 0; k < 6; k++)
+                neighborTerrains[k] = vistaTerrain;
+        }
+
         EncounterContextCarrier.Set(def);
-        EncounterContextCarrier.SetContext(terrain, tier);
+        EncounterContextCarrier.SetContext(terrain, tier, neighborTerrains);
 
         GD.Print($"[CombatDebug] Launch: {total} enemy(ies), tier={tier}, terrain={terrain}, " +
-                 $"diff={diff}, school={PlayerSession.SelectedSchool}, skipDeploy={_skipDeployChk.ButtonPressed}.");
+                 $"vistaBorder={vistaTerrain}, diff={diff}, school={PlayerSession.SelectedSchool}, " +
+                 $"skipDeploy={_skipDeployChk.ButtonPressed}.");
 
         _instance = null; // scene swap frees us
         GetTree().ChangeSceneToFile(BattlefieldScene);

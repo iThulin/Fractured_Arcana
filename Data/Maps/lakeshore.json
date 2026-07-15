@@ -1,27 +1,27 @@
 {
-	"id": "wetlands",
-	"display_name": "Wetlands",
+	"id": "lakeshore",
+	"display_name": "Lakeshore",
 	"shape": {
 		"type": "blob",
-		"width": 10,
-		"height": 8,
+		"width": 11,
+		"height": 9,
 		"radius": 5,
-		"erosion": 0.5
+		"erosion": 0.4
 	},
 	"base_terrain": {
 		"elevation_frequency": 0.1,
-		"moisture_frequency": 0.13,
-		"detail_weight": 0.12,
-		"max_height_step": 1,
+		"moisture_frequency": 0.1,
+		"detail_weight": 0.15,
+		"max_height_step": 2,
 		"min_height_step": -2,
 		"palette": [
 			{
 				"terrain": "water",
-				"max_elevation": 0.36
+				"max_elevation": 0.18
 			},
 			{
 				"terrain": "forest",
-				"min_moisture": 0.5
+				"min_moisture": 0.62
 			},
 			{
 				"terrain": "grass"
@@ -30,23 +30,23 @@
 	},
 	"atmosphere": {
 		"sun_color": [
+			0.95,
+			0.97,
+			1.0
+		],
+		"sun_energy": 1.2,
+		"ambient_color": [
+			0.6,
+			0.66,
+			0.72
+		],
+		"ambient_energy": 0.85,
+		"fog_color": [
 			0.74,
 			0.8,
-			0.62
+			0.86
 		],
-		"sun_energy": 0.9,
-		"ambient_color": [
-			0.5,
-			0.56,
-			0.46
-		],
-		"ambient_energy": 0.95,
-		"fog_color": [
-			0.56,
-			0.62,
-			0.48
-		],
-		"fog_density": 0.016
+		"fog_density": 0.007
 	},
 	"features": [
 		{
@@ -54,10 +54,10 @@
 			"phase": "skeleton",
 			"at": "random",
 			"radius": [
-				2,
-				3
+				3,
+				4
 			],
-			"depth": 1
+			"depth": 2
 		},
 		{
 			"feature": "lake",
@@ -73,31 +73,21 @@
 			"feature": "stream",
 			"phase": "accent",
 			"from": "high_tile",
-			"length": 8
+			"length": 7
 		},
 		{
-			"feature": "stream",
+			"feature": "meadow",
 			"phase": "accent",
-			"from": "high_tile",
-			"length": 6
+			"at": "center",
+			"radius": 3
 		},
 		{
 			"feature": "scatter_copses",
 			"phase": "accent",
 			"count": [
-				4,
-				6
+				2,
+				3
 			],
-			"radius": [
-				1,
-				2
-			]
-		},
-		{
-			"feature": "patch",
-			"phase": "accent",
-			"at": "random",
-			"terrain": "water",
 			"radius": [
 				1,
 				2

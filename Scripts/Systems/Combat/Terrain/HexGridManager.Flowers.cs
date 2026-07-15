@@ -178,12 +178,14 @@ public partial class HexGridManager : Node3D
             return variantCount - 1;
         }
 
-        foreach (var tile in Tiles.Values)
+        // Playable tiles at full density, vista tiles at VistaScatterDensity
+        // (see HexGridManager.Vista.cs).
+        foreach (var (tile, scatterDensity) in ScatterTiles())
         {
             if (tile.TileView == null || tile.IsBlocked || !IsFlowerSurface(tile))
                 continue;
 
-            int count = Mathf.Max(0, Mathf.RoundToInt(FlowersPerTile * densityScalar));
+            int count = Mathf.Max(0, Mathf.RoundToInt(FlowersPerTile * densityScalar * scatterDensity));
             Vector3 top = tile.TileView.GlobalPosition;
 
             for (int i = 0; i < count; i++)

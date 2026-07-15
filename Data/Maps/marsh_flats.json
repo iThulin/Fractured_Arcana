@@ -1,0 +1,81 @@
+{
+	"id": "marsh_flats",
+	"display_name": "Marsh Flats",
+	"shape": {
+		"type": "blob",
+		"width": 11,
+		"height": 9,
+		"radius": 5,
+		"erosion": 0.5
+	},
+	"base_terrain": {
+		"elevation_frequency": 0.09,
+		"moisture_frequency": 0.12,
+		"detail_weight": 0.1,
+		"max_height_step": 1,
+		"min_height_step": -1,
+		"palette": [
+			{
+				"terrain": "water",
+				"max_elevation": 0.4
+			},
+			{
+				"terrain": "grass"
+			}
+		]
+	},
+	"atmosphere": {
+		"sun_color": [
+			0.82,
+			0.85,
+			0.78
+		],
+		"sun_energy": 0.95,
+		"ambient_color": [
+			0.6,
+			0.64,
+			0.58
+		],
+		"ambient_energy": 0.9,
+		"fog_color": [
+			0.72,
+			0.75,
+			0.68
+		],
+		"fog_density": 0.014
+	},
+	"features": [
+		{
+			"feature": "lake",
+			"phase": "accent",
+			"at": "random",
+			"radius": [
+				1,
+				2
+			],
+			"depth": 1
+		},
+		{
+			"feature": "lake",
+			"phase": "accent",
+			"at": "random",
+			"radius": [
+				1,
+				2
+			],
+			"depth": 1
+		},
+		{
+			"feature": "stream",
+			"phase": "accent",
+			"from": "high_tile",
+			"length": 8
+		},
+		{
+			"feature": "meadow",
+			"phase": "accent",
+			"at": "center",
+			"radius": 2
+		}
+	]
+}

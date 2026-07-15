@@ -7,7 +7,7 @@
 		"height": 9
 	},
 	"base_terrain": {
-		"elevation_frequency": 0.10,
+		"elevation_frequency": 0.1,
 		"moisture_frequency": 0.08,
 		"detail_weight": 0.15,
 		"max_height_step": 2,
@@ -15,7 +15,7 @@
 		"palette": [
 			{
 				"terrain": "water",
-				"max_elevation": 0.10
+				"max_elevation": 0.1
 			},
 			{
 				"terrain": "stone",
@@ -32,19 +32,19 @@
 			0.96,
 			0.88
 		],
-		"sun_energy": 1.1,
+		"sun_energy": 1.25,
 		"ambient_color": [
 			0.55,
 			0.58,
 			0.52
 		],
-		"ambient_energy": 0.45,
+		"ambient_energy": 0.8,
 		"fog_color": [
 			0.78,
-			0.80,
+			0.8,
 			0.74
 		],
-		"fog_density": 0.006
+		"fog_density": 0.005
 	},
 	"features": [
 		{

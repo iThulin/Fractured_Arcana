@@ -231,6 +231,23 @@ uniform float grid_line_softness : hint_range(0.001, 0.2) = 0.02;
 /** Grid line opacity. 0 = off. */
 uniform float grid_line_strength : hint_range(0.0, 1.0) = 0.4;
 
+// ── Vista de-emphasis (non-playable perimeter tiles) ───────────
+group_uniforms vista;
+/** PER-INSTANCE flag (Forward+ instance uniform), set to 1.0 by HexTile.MarkAsVista(). Vista tiles render without grid lines and slightly muted so the playable boundary stays readable. Playable tiles never set it (default 0 = no effect). */
+instance uniform float vista_fade : hint_range(0.0, 1.0) = 0.0;
+/** How far vista tiles desaturate toward grey. */
+uniform float vista_desaturation : hint_range(0.0, 1.0) = 0.3;
+/** How much vista tiles darken. */
+uniform float vista_darken : hint_range(0.0, 0.6) = 0.12;
+/** PER-INSTANCE horizon melt (0 = inner vista, 1 = outermost ring), set by HexTile.MarkAsVista from the ring index. Blends the tile toward horizon_color so the world dissolves into the atmosphere instead of ending on a rim. */
+instance uniform float vista_horizon : hint_range(0.0, 1.0) = 0.0;
+/** Colour the outer vista rings melt toward — set from code to the active theme's fog colour on every atmosphere apply. */
+uniform vec3 horizon_color : source_color = vec3(0.75, 0.78, 0.82);
+/** Horizon melt on vista tile TOP faces. Keep SUBTLE — the vista is close to the camera, and a strong colour melt at close range reads as frosted/icy geometry, not atmosphere. The scene fog handles the rest. */
+uniform float horizon_strength : hint_range(0.0, 1.0) = 0.18;
+/** Horizon melt on the outer SKIRT/void faces (the literal edge of the world). These can dissolve much harder than the tops — they're what reads as "the board ends here". */
+uniform float horizon_skirt_strength : hint_range(0.0, 1.0) = 0.85;
+
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
 varying vec4 v_indices;
@@ -447,7 +464,7 @@ void fragment() {
 		albedo = mix(albedo, skirt_color, is_skirt);
 	}
 
-	// ── Persistent hex grid lines (skip skirts) ──────────────────
+	// ── Persistent hex grid lines (skip skirts + vista tiles) ────
 	if (use_grid_lines) {
 		float apothem = grid_hex_radius * 0.8660254;
 		float hx = max(abs(dot(v_local_xz, vec2(0.8660254, 0.5))),
@@ -456,7 +473,22 @@ void fragment() {
 		float dist_to_edge = apothem - hx;
 		float line = 1.0 - smoothstep(grid_line_width, grid_line_width + grid_line_softness, dist_to_edge);
 		float top_face = smoothstep(0.45, 0.8, abs(geom.y));
-		albedo = mix(albedo, grid_line_color, line * grid_line_strength * top_face * (1.0 - is_skirt));
+		albedo = mix(albedo, grid_line_color, line * grid_line_strength * top_face * (1.0 - is_skirt) * (1.0 - vista_fade));
+	}
+
+	// ── Vista de-emphasis: mute non-playable perimeter tiles ─────
+	if (vista_fade > 0.001) {
+		float v_luma = dot(albedo, vec3(0.299, 0.587, 0.114));
+		vec3 muted = mix(albedo, vec3(v_luma), vista_desaturation) * (1.0 - vista_darken);
+		albedo = mix(albedo, muted, vista_fade);
+	}
+
+	// ── Horizon melt: outer vista rings dissolve toward the theme
+	//    fog colour — SUBTLE on top faces (close-range melt reads as
+	//    ice, not haze), STRONG on the skirt/void faces at the rim ──
+	if (vista_horizon > 0.001) {
+		float melt = vista_horizon * mix(horizon_strength, horizon_skirt_strength, is_skirt);
+		albedo = mix(albedo, horizon_color, melt);
 	}
 
 	ALBEDO = albedo;

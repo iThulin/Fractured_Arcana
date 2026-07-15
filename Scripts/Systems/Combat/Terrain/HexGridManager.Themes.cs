@@ -137,12 +137,16 @@ public partial class HexGridManager
 
             case MapTheme.ArcaneMeadow:
             default:
+                // Retuned 2026-07-15 for the Forward+ renderer (linear lighting):
+                // ambient carries more of the lift than on Compatibility, whose
+                // sRGB-space blending brightened shadowed blade faces for free.
+                // Rough conversion used: ambient energy ×~1.8, sun ×1.2, fog ×0.6.
                 sunColor = new Color(0.95f, 0.95f, 1.0f);
-                sunEnergy = 1.0f;
+                sunEnergy = 1.2f;
                 ambient = new Color(0.60f, 0.60f, 0.80f);
-                ambientEnergy = 0.4f;
+                ambientEnergy = 0.8f;
                 fogColor = new Color(0.70f, 0.70f, 0.90f);
-                fogDensity = 0.01f;
+                fogDensity = 0.006f;
                 break;
         }
 
@@ -160,6 +164,10 @@ public partial class HexGridManager
             env.FogLightColor = fogColor;
             env.FogDensity = fogDensity;
         }
+
+        // Outer vista rings + the backdrop plane melt toward this fog colour
+        // (see HexGridManager.Vista.cs).
+        ApplyHorizon(fogColor);
     }
 
     // Themes — these now layer ACCENTS on top of the field-derived base terrain.

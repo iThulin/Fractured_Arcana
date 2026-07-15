@@ -6,19 +6,19 @@
 		"radius": 5
 	},
 	"base_terrain": {
-		"elevation_frequency": 0.20,
+		"elevation_frequency": 0.14,
 		"moisture_frequency": 0.08,
-		"detail_weight": 0.30,
-		"max_height_step": 6,
+		"detail_weight": 0.22,
+		"max_height_step": 5,
 		"min_height_step": -3,
 		"palette": [
 			{
 				"terrain": "lava",
-				"max_elevation": 0.20
+				"max_elevation": 0.3
 			},
 			{
 				"terrain": "lava",
-				"min_elevation": 0.85
+				"min_elevation": 0.8
 			},
 			{
 				"terrain": "stone"
@@ -27,50 +27,84 @@
 	},
 	"atmosphere": {
 		"sun_color": [
-			1.00,
-			0.55,
-			0.20
+			1.0,
+			0.62,
+			0.42
 		],
-		"sun_energy": 1.2,
+		"sun_energy": 1.1,
 		"ambient_color": [
-			0.60,
-			0.28,
-			0.10
+			0.5,
+			0.34,
+			0.3
 		],
-		"ambient_energy": 0.5,
+		"ambient_energy": 0.85,
 		"fog_color": [
-			0.55,
-			0.25,
-			0.10
+			0.42,
+			0.26,
+			0.2
 		],
-		"fog_density": 0.022
+		"fog_density": 0.013
 	},
 	"features": [
 		{
-			"feature": "mountainside",
+			"feature": "patch",
 			"phase": "skeleton",
-			"peak": 5
+			"at": "random",
+			"terrain": "lava",
+			"radius": [
+				1,
+				2
+			]
+		},
+		{
+			"feature": "patch",
+			"phase": "skeleton",
+			"at": "random",
+			"terrain": "lava",
+			"radius": [
+				1,
+				2
+			]
+		},
+		{
+			"feature": "mountainside",
+			"phase": "skeleton"
 		},
 		{
 			"feature": "crevice",
-			"phase": "skeleton",
+			"phase": "accent",
 			"at": "random",
-			"dir": 2,
-			"length": 5,
-			"depth": 5
+			"length": [
+				4,
+				6
+			],
+			"depth": [
+				3,
+				4
+			]
+		},
+		{
+			"feature": "element_patch",
+			"phase": "accent",
+			"at": "random",
+			"element": "fire",
+			"radius": [
+				1,
+				2
+			],
+			"strength": 1.0
 		},
 		{
 			"feature": "carve_lane",
-			"phase": "skeleton",
-			"from": "player_anchor",
-			"to": "enemy_anchor",
-			"width": 0
+			"phase": "accent",
+			"width": 1
 		},
 		{
 			"feature": "rocky_outcrop",
 			"phase": "accent",
 			"at": "random",
-			"radius": 2
+			"radius": 1,
+			"chance": 0.6
 		}
 	]
 }

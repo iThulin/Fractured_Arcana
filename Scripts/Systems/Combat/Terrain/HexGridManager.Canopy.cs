@@ -207,21 +207,26 @@ public partial class HexGridManager : Node3D
             return variantCount - 1;
         }
 
-        foreach (var tile in Tiles.Values)
+        // Playable tiles at full density, vista tiles at VistaScatterDensity
+        // (see HexGridManager.Vista.cs).
+        foreach (var (tile, scatterDensity) in ScatterTiles())
         {
             if (tile.TileView == null || tile.IsBlocked || !IsCanopySurface(tile))
                 continue;
 
-            // Permanent where no unit ever reasonably stands: board edge or
+            // Permanent where no unit ever reasonably stands: VISTA canopy (it's
+            // the framing treeline and must never occlusion-fade), board edge, or
             // height-/walk-blocked forest. Computed per TILE (all its canopy
             // shares the flag), so an edge copse never fades.
+            bool isVista = VistaTiles.ContainsKey(tile.Axial);
             bool permanent =
-                (CanopyPermanentOnEdge && IsBoundaryTile(tile))
+                isVista
+                || (CanopyPermanentOnEdge && IsBoundaryTile(tile))
                 || tile.BlocksMovementByHeight
                 || !tile.IsWalkable;
             float permFlag = permanent ? 1f : 0f;
 
-            int count = Mathf.Max(0, Mathf.RoundToInt(CanopyPerTile * densityScalar));
+            int count = Mathf.Max(0, Mathf.RoundToInt(CanopyPerTile * densityScalar * scatterDensity));
             Vector3 top = tile.TileView.GlobalPosition;
 
             for (int i = 0; i < count; i++)

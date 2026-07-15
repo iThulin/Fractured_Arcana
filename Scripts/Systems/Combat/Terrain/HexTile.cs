@@ -336,6 +336,43 @@ public partial class HexTile : Node3D
         coordLabel.Text = $"({q}, {r})";
     }
 
+    /// <summary>Configures this tile as a non-playable VISTA tile (see
+    /// HexGridManager.Vista.cs): no collision on any layer (can't be hovered,
+    /// clicked, or card-targeted), no coordinate label, and the terrain splat's
+    /// per-instance `vista_fade` uniform set so grid lines vanish and the tile
+    /// renders de-emphasized. <paramref name="horizonBlend"/> (0 = inner ring,
+    /// 1 = outermost) drives the per-instance horizon melt toward the theme fog
+    /// colour. Call once, right after AddChild.</summary>
+    public void MarkAsVista(float horizonBlend = 0f)
+    {
+        var body = GetNodeOrNull<StaticBody3D>("StaticBody3D");
+        if (body != null)
+        {
+            body.CollisionLayer = 0;
+            body.CollisionMask = 0;
+        }
+
+        var area = GetNodeOrNull<Area3D>("Area3D");
+        if (area != null)
+        {
+            area.CollisionLayer = 0;
+            area.CollisionMask = 0;
+            area.Monitoring = false;
+            area.Monitorable = false;
+        }
+
+        var label = GetNodeOrNull<Label3D>("CoordLabel");
+        if (label != null)
+            label.Visible = false;
+
+        var mi = GetNodeOrNull<MeshInstance3D>("HexMesh");
+        if (mi != null)
+        {
+            mi.SetInstanceShaderParameter("vista_fade", 1.0f);
+            mi.SetInstanceShaderParameter("vista_horizon", Mathf.Clamp(horizonBlend, 0f, 1f));
+        }
+    }
+
     /// <summary>Sets the tile's resting albedo (legacy flat-colour path). In generated-mesh mode this is a no-op — terrain colour lives in the mesh's vertex data and textures.</summary>
     public void SetBaseColor(Color color)
     {
