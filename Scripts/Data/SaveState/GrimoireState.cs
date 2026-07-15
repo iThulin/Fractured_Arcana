@@ -63,6 +63,27 @@ public class GrimoireState
     /// Redrawn on scene build; cleared on fresh deploy.</summary>
     public List<string> ActiveBeacons = new();
 
+    // ── S3 expedition-scoped state ───────────────────────────────────────
+
+    /// <summary>Remnants (Necromancer): world "col,row" of every combat the
+    /// party has won this expedition. Deathsight marks them; Bone Scout and
+    /// Speak with the Fallen cast from them.</summary>
+    public List<string> ActiveRemnants = new();
+
+    /// <summary>Deployed Waystations (Tinker), world "col,row". One rest use
+    /// each; also a supply anchor while standing (W-track ruling #2).</summary>
+    public List<string> ActiveWaystations = new();
+
+    /// <summary>Last spell resolved this expedition — Emulate's target.</summary>
+    public string LastCastSpellId = "";
+
+    /// <summary>Parley Compulsion armed: the next patrol interception becomes
+    /// a negotiation. Once per expedition (the cast carries the cap).</summary>
+    public bool ParleyArmed = false;
+
+    /// <summary>Beguile armed: the next negotiation starts a band more favorable.</summary>
+    public bool BeguileArmed = false;
+
     // ── Expedition lifecycle ─────────────────────────────────────────────
 
     /// <summary>Fresh-deploy reset: full pool, no casts, no beacons. Combat
@@ -73,6 +94,11 @@ public class GrimoireState
         EssenceCurrent = essenceMax;
         PerExpeditionCastCounts.Clear();
         ActiveBeacons.Clear();
+        ActiveRemnants.Clear();
+        ActiveWaystations.Clear();
+        LastCastSpellId = "";
+        ParleyArmed = false;
+        BeguileArmed = false;
     }
 
     // ── Round-trip assertion (house rule for save-adjacent fields;
@@ -91,6 +117,11 @@ public class GrimoireState
         probe.PerExpeditionCastCounts["probe_spell"] = 2;
         probe.ActiveBeacons.Add("12,34");
         probe.ScrollInventory["probe_scroll"] = 3;
+        probe.ActiveRemnants.Add("56,78");
+        probe.ActiveWaystations.Add("9,10");
+        probe.LastCastSpellId = "probe_spell";
+        probe.ParleyArmed = true;
+        probe.BeguileArmed = true;
 
         var back = JsonSerializer.Deserialize<GrimoireState>(
             JsonSerializer.Serialize(probe, SaveManager.JsonOptions), SaveManager.JsonOptions);
@@ -100,7 +131,11 @@ public class GrimoireState
                   back.KnownSpellIds.Contains("probe_spell") &&
                   back.PerExpeditionCastCounts.TryGetValue("probe_spell", out int c) && c == 2 &&
                   back.ActiveBeacons.Contains("12,34") &&
-                  back.ScrollInventory.TryGetValue("probe_scroll", out int s) && s == 3;
+                  back.ScrollInventory.TryGetValue("probe_scroll", out int s) && s == 3 &&
+                  back.ActiveRemnants.Contains("56,78") &&
+                  back.ActiveWaystations.Contains("9,10") &&
+                  back.LastCastSpellId == "probe_spell" &&
+                  back.ParleyArmed && back.BeguileArmed;
 
         if (!ok)
             GD.PrintErr("[S1 RoundTrip] GrimoireState FAILED to round-trip through " +

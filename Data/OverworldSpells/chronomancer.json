@@ -1,0 +1,51 @@
+[
+  {
+    "id": "foreboding",
+    "name": "Foreboding",
+    "school": "Chronomancer",
+    "category": "Divination",
+    "isAttunement": true,
+    "isInnate": true,
+    "magnitude": "Subtle",
+    "effectKey": "foreboding",
+    "description": "Patrol tokens in sight display their pursuit vector when committed to a hunt."
+  },
+  {
+    "id": "retrace",
+    "name": "Retrace",
+    "school": "Chronomancer",
+    "category": "Traversal",
+    "isInnate": true,
+    "essenceCost": 4,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "oncePerExpedition": true,
+    "effectKey": "retrace",
+    "description": "Undo the party's last movement step — position restored, step refunded. Once per expedition, hard cap."
+  },
+  {
+    "id": "auspice",
+    "name": "Auspice",
+    "school": "Chronomancer",
+    "category": "Divination",
+    "isInnate": true,
+    "essenceCost": 3,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "auspice",
+    "description": "Preview the corruption's next ground: nearby clean tiles pressed by corrupted neighbours are marked."
+  },
+  {
+    "id": "stasis_snare",
+    "name": "Stasis Snare",
+    "school": "Chronomancer",
+    "category": "Evasion",
+    "essenceCost": 3,
+    "magnitude": "Overt",
+    "targetingType": "Tile",
+    "range": 8,
+    "effectKey": "stasis_snare",
+    "effectParams": { "steps": 6 },
+    "description": "Freeze one visible patrol in place for the party's next 6 steps. Delay, not removal."
+  }
+]

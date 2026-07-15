@@ -50,6 +50,60 @@ public static class OverworldSpellEffects
     /// <summary>Campward (§8): armed until the next Rest site consumes it.</summary>
     public static bool CampwardArmed = false;
 
+    // ── S3: patrol-facing state ──────────────────────────────────────────
+
+    /// <summary>Veil (Enchanter): steps of party imperceptibility remaining.
+    /// Patrols keep their routes; detection and interception simply fail (G3).</summary>
+    public static int VeilStepsLeft = 0;
+    public static bool VeilActive() => VeilStepsLeft > 0;
+
+    /// <summary>Attunement vision flags, set once per expedition by school
+    /// (Chronomancer → Foreboding pursuit vectors; Enchanter → True Names
+    /// identity labels). Read by PatrolToken each frame.</summary>
+    public static bool ForebodingVision = false;
+    public static bool TrueNamesVision = false;
+
+    private class HexBlock { public Vector2I Coord; public int StepsLeft; }
+    private static readonly List<HexBlock> _patrolBlocks = new();
+
+    private class Trap { public Vector2I Coord; public int StunSteps; }
+    private static readonly List<Trap> _traps = new();
+
+    /// <summary>Thornwall (Druid): patrols cannot enter this hex for N party
+    /// steps. Terrain denial, never removal (G3).</summary>
+    public static void AddPatrolBlock(Vector2I coord, int steps)
+        => _patrolBlocks.Add(new HexBlock { Coord = coord, StepsLeft = steps });
+
+    /// <summary>True if patrol pathing must treat this hex as impassable.</summary>
+    public static bool HexBlockedForPatrols(Vector2I coord)
+    {
+        foreach (var b in _patrolBlocks)
+            if (b.StepsLeft > 0 && b.Coord == coord)
+                return true;
+        return false;
+    }
+
+    /// <summary>Fulminant Charge (Tinker): rig a hex; the FIRST patrol to
+    /// enter is stunned. No expiry — a set charge waits (expedition-scoped).</summary>
+    public static void AddTrap(Vector2I coord, int stunSteps)
+        => _traps.Add(new Trap { Coord = coord, StunSteps = stunSteps });
+
+    /// <summary>Spring the trap at a coord, if any. Returns stun steps (0 = no
+    /// trap). Consumed on spring — one patrol only.</summary>
+    public static int ConsumeTrapAt(Vector2I coord)
+    {
+        for (int i = 0; i < _traps.Count; i++)
+        {
+            if (_traps[i].Coord == coord)
+            {
+                int stun = _traps[i].StunSteps;
+                _traps.RemoveAt(i);
+                return stun;
+            }
+        }
+        return 0;
+    }
+
     // ── Opening effects ──────────────────────────────────────────────────
 
     /// <summary>Traversal window: cap the terrain-cost component at
@@ -130,6 +184,17 @@ public static class OverworldSpellEffects
                 _effects.RemoveAt(i);
             }
         }
+
+        // S3: veil + patrol blocks tick on the same cadence. Traps do not —
+        // a set charge waits until sprung.
+        if (VeilStepsLeft > 0 && --VeilStepsLeft == 0)
+            GD.Print("[Spellcraft] The Veil lifts.");
+        for (int i = _patrolBlocks.Count - 1; i >= 0; i--)
+            if (--_patrolBlocks[i].StepsLeft <= 0)
+            {
+                GD.Print("[Spellcraft] The thornwall withers.");
+                _patrolBlocks.RemoveAt(i);
+            }
     }
 
     /// <summary>Wipe all run state. Call on fresh deploy and on
@@ -139,18 +204,27 @@ public static class OverworldSpellEffects
     {
         _effects.Clear();
         CampwardArmed = false;
+        VeilStepsLeft = 0;
+        ForebodingVision = false;
+        TrueNamesVision = false;
+        _patrolBlocks.Clear();
+        _traps.Clear();
     }
 
     /// <summary>Short status line for HUD/logs; "" when nothing is active.</summary>
     public static string StatusSummary()
     {
-        if (_effects.Count == 0 && !CampwardArmed)
-            return "";
         var parts = new List<string>();
         foreach (var e in _effects)
             parts.Add($"{e.Label} ({e.StepsLeft})");
+        if (VeilStepsLeft > 0)
+            parts.Add($"Veil ({VeilStepsLeft})");
+        foreach (var b in _patrolBlocks)
+            parts.Add($"Thornwall ({b.StepsLeft})");
+        if (_traps.Count > 0)
+            parts.Add($"Charge set ×{_traps.Count}");
         if (CampwardArmed)
             parts.Add("Campward (armed)");
-        return string.Join("  ·  ", parts);
+        return parts.Count == 0 ? "" : string.Join("  ·  ", parts);
     }
 }

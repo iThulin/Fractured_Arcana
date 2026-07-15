@@ -1,0 +1,52 @@
+[
+  {
+    "id": "deathsight",
+    "name": "Deathsight",
+    "school": "Necromancer",
+    "category": "Divination",
+    "isAttunement": true,
+    "isInnate": true,
+    "magnitude": "Subtle",
+    "effectKey": "deathsight",
+    "effectParams": { "radius": 3 },
+    "description": "Ruins silhouette through fog within 3 hexes; every combat the party wins leaves a Remnant for the rest of the expedition."
+  },
+  {
+    "id": "speak_fallen",
+    "name": "Speak with the Fallen",
+    "school": "Necromancer",
+    "category": "Communion",
+    "isInnate": true,
+    "essenceCost": 2,
+    "magnitude": "Overt",
+    "targetingType": "None",
+    "effectKey": "speak_fallen",
+    "description": "At a Remnant or ruin: the dead betray patrol positions and the bearing of the nearest undiscovered site."
+  },
+  {
+    "id": "bone_scout",
+    "name": "Bone Scout",
+    "school": "Necromancer",
+    "category": "Divination",
+    "isInnate": true,
+    "essenceCost": 3,
+    "magnitude": "Overt",
+    "targetingType": "Path",
+    "range": 5,
+    "effectKey": "bone_scout",
+    "effectParams": { "chartRadius": 0 },
+    "description": "Raise a scout from a Remnant; it walks a drawn path of up to 5 hexes, charting as it goes, then collapses."
+  },
+  {
+    "id": "pallid_bargain",
+    "name": "Pallid Bargain",
+    "school": "Necromancer",
+    "category": "Conjuration",
+    "essenceCost": 0,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "pallid_bargain",
+    "effectParams": { "hp": 4, "essence": 3 },
+    "description": "Sacrifice 4 party HP for 3 Essence. There is deliberately no necromantic healing."
+  }
+]

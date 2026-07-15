@@ -84,6 +84,13 @@ public partial class ExpeditionManager : Node2D
     private GrimoirePanel _grimoirePanel;
     private Label _essenceLabel;
 
+    // ── S3: Retrace memory (Chronomancer) — the last committed move, so the
+    // sole G1 exception can undo it. Cleared when a scene swap makes the
+    // "last step" ambiguous (combat/negotiation) and after use. ─────────────
+    private Vector2I _lastMoveFrom;
+    private int _lastMoveStepCost;
+    private bool _hasLastMove = false;
+
     // ── Runtime resource state (rides EncounterRouter across combat) ─────
     public int StepsRemaining { get; set; }
     public int CurrentHP { get; set; }
@@ -594,6 +601,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 EquipmentLoadout.PartyPathfinder(hex.Terrain.ToString()));
         }
 
+        // S3 (Retrace): remember this move so it can be undone. Records the
+        // cost actually charged (0 on the exhaustion path — HP is not refunded).
+        _lastMoveFrom = oldCoord;
+        _lastMoveStepCost = (!(PlayerSession.DebugMode && PlayerSession.UnlimitedSteps) &&
+                             StepsRemaining > 0) ? Mathf.Min(StepsRemaining, stepCost) : 0;
+        _hasLastMove = true;
+
         if (!(PlayerSession.DebugMode && PlayerSession.UnlimitedSteps))
         {
             if (StepsRemaining > 0)
@@ -731,14 +745,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (hex.Fog != OverworldHex.FogState.Revealed)
         {
             _hoverTooltip.Text = hex.Fog == OverworldHex.FogState.Silhouette
-                ? "Charted — unexplored"
+                ? "Charted — unexplored" + (_spells?.TooltipSilhouetteExtra(hex) ?? "")
                 : "Unexplored";
         }
         else
         {
             string line = TerrainDisplayName(hex.Terrain);
             if (hex.POI != OverworldHex.POIType.None && !hex.POIConsumed)
-                line += $"  ·  {hex.POI}";
+                line += $"  ·  {hex.POI}{_spells?.TooltipPoiExtra(hex) ?? ""}";
             // Corruption readout if the underlying world tile is corrupted.
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
@@ -783,14 +797,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (hex.Fog != OverworldHex.FogState.Revealed)
         {
             _hoverTooltip.Text = hex.Fog == OverworldHex.FogState.Silhouette
-                ? "Charted — unexplored"
+                ? "Charted — unexplored" + (_spells?.TooltipSilhouetteExtra(hex) ?? "")
                 : "Unexplored";
         }
         else
         {
             string line = TerrainDisplayName(hex.Terrain);
             if (hex.POI != OverworldHex.POIType.None && !hex.POIConsumed)
-                line += $"  ·  {hex.POI}";
+                line += $"  ·  {hex.POI}{_spells?.TooltipPoiExtra(hex) ?? ""}";
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
                 line += $"  ·  corrupted ({_world.Tiles[idx].Corruption})";
@@ -807,6 +821,26 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         if (!_grid.Hexes.TryGetValue(coord, out var hex))
             return;
+
+        // S3 (Deploy Waystation): standing on a deployed waystation consumes
+        // its one rest charge — quarter-heal + 3 Essence, then it breaks down
+        // (marker removed; it stops being a supply anchor).
+        if (_window.TryLocalToWorld(coord, out int wcol, out int wrow))
+        {
+            var grimWs = SaveManager.ActiveSave?.Cycle?.Grimoire;
+            string wsMark = $"{wcol},{wrow}";
+            if (grimWs != null && grimWs.ActiveWaystations.Remove(wsMark))
+            {
+                int wsHeal = MaxHP / 4;
+                CurrentHP = Mathf.Min(CurrentHP + wsHeal, MaxHP);
+                _spells?.AddEssence(3, "Waystation");
+                _grid.GetNodeOrNull($"WaystationMarker_{wcol}_{wrow}")?.QueueFree();
+                SaveManager.MarkDirty();
+                ShowInfo($"The waystation serves its purpose and breaks down. Recovered {wsHeal} HP.");
+                UpdateUI();
+            }
+        }
+
         if (hex.POI == OverworldHex.POIType.None || hex.POIConsumed)
             return;
 
@@ -932,6 +966,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (router == null)
         { GD.PrintErr("ExpeditionManager: EncounterRouter missing."); return; }
 
+        // S3 (Retrace): a scene swap makes "the last step" ambiguous — forget it.
+        _hasLastMove = false;
+
         // Save only the RESOURCE state — the world (and thus the map) is resident.
         router.SavedStepsRemaining = StepsRemaining;
         router.SavedCurrentHP = CurrentHP;
@@ -990,6 +1027,20 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         if (!_grid.Hexes.TryGetValue(coord, out var hex))
             return;
+
+        // S3 (Parley Compulsion, Enchanter): an armed compulsion converts this
+        // interception into a negotiation instead of an ambush. Once per
+        // expedition (the cast carries the cap); the outcome writes stance and
+        // echoes exactly as any negotiation.
+        var grim = SaveManager.ActiveSave?.Cycle?.Grimoire;
+        if (grim != null && grim.ParleyArmed)
+        {
+            grim.ParleyArmed = false;
+            SaveManager.MarkDirty();
+            ShowInfo("The compulsion takes hold — the patrol will talk instead of fight.");
+            TriggerPatrolNegotiation(hex, coord);
+            return;
+        }
 
         _ambushPending = true;
         ShowInfo("A patrol has intercepted you!");
@@ -1061,6 +1112,21 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters.");
             EmitCombatDeed(router, resultHex);
             ReleaseImprisonedAt(resultHex); // if this was a prison, free the captive
+
+            // S3 (Deathsight, Necromancer): every won combat leaves a Remnant
+            // for the rest of the expedition — Bone Scout / Speak with the
+            // Fallen cast from these. Recorded school-agnostically (cheap);
+            // markers draw only when a necromancer can use them.
+            if (_window.TryLocalToWorld(resultHex, out int rcol, out int rrow))
+            {
+                var grimR = SaveManager.ActiveSave?.Cycle?.Grimoire;
+                string mark = $"{rcol},{rrow}";
+                if (grimR != null && !grimR.ActiveRemnants.Contains(mark))
+                {
+                    grimR.ActiveRemnants.Add(mark);
+                    SaveManager.MarkDirty();
+                }
+            }
         }
         else
         {
@@ -1168,6 +1234,64 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         UpdateUI();
     }
 
+    /// <summary>S3 (Parley Compulsion): a patrol interception converted into a
+    /// negotiation. Same setup as a Negotiation POI, minus POI consumption —
+    /// the patrol's hex owns no POI. The patrol itself disengages via the
+    /// standard post-negotiation restore path.</summary>
+    private void TriggerPatrolNegotiation(OverworldHex hex, Vector2I coord)
+    {
+        string kingdomId = StagingTemplateRegion();
+        string terrain = hex.Terrain.ToString();
+        var encounter = NegotiationEncounterLoader.PickForTerrain(terrain, kingdomId);
+        if (encounter == null)
+        { ShowInfo("The patrol shakes off the compulsion — nothing to say."); UpdateUI(); return; }
+
+        NegotiationContext.Clear();
+        NegotiationContext.EncounterId = encounter.Id;
+        NegotiationContext.HexCoordKey = $"{coord.X},{coord.Y}";
+        NegotiationContext.NpcArchetype = encounter.Archetype.ToString();
+        NegotiationContext.OriginKingdomId = KingdomIdAt(coord);
+        ConsumeBeguileIfArmed();
+
+        var router = EncounterRouter.Instance;
+        if (router != null)
+        {
+            router.SavedStepsRemaining = StepsRemaining;
+            router.SavedCurrentHP = CurrentHP;
+            router.SavedGoldEarned = GoldEarned;
+            router.SavedSplinterEarned = SplinterEarned;
+            router.SavedEncountersWon = EncountersWon;
+            router.SavedPartyCoord = _party.CurrentCoord;
+            router.SavedCombatHexCoord = coord;
+            router.SavedCombatWasPatrolAmbush = false;
+            router.SavedCombatPatrolArchmageId = "";
+            router.HasPendingReturn = true;
+            if (_factionManager != null)
+            {
+                router.SavedPatrolPositions = _factionManager.GetPatrolPositions();
+                router.SavedPatrolCooldowns = _factionManager.GetPatrolCooldowns();
+                router.SavedPatrolArchmageId = _factionManager.GetArchmageId();
+            }
+        }
+        _hasLastMove = false; // S3 (Retrace): scene swap forgets the last step
+        SaveManager.SaveIfDirty();
+        ShowInfo($"Negotiation: {encounter.Title}");
+        GetTree().ChangeSceneToFile("res://Scenes/Negotiation/NegotiationScene.tscn");
+    }
+
+    /// <summary>S3 (Beguile): consume an armed charm into the tension shift
+    /// the negotiation layer applies on open. One band ≈ 2 tension.</summary>
+    private void ConsumeBeguileIfArmed()
+    {
+        var grim = SaveManager.ActiveSave?.Cycle?.Grimoire;
+        if (grim == null || !grim.BeguileArmed)
+            return;
+        grim.BeguileArmed = false;
+        NegotiationContext.TensionShift = 2;
+        SaveManager.MarkDirty();
+        GD.Print("[Spellcraft] Beguile takes effect — the table opens a band more favorable.");
+    }
+
     private void TriggerNegotiationEncounter(OverworldHex hex, Vector2I coord)
     {
         hex.POIConsumed = true;
@@ -1187,6 +1311,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // Kingdom of the tile we're standing on — drives court-standing
         // starting tension and the deal-deed echo route. "" for wilds.
         NegotiationContext.OriginKingdomId = KingdomIdAt(coord);
+        ConsumeBeguileIfArmed(); // S3
 
         var router = EncounterRouter.Instance;
         if (router != null)
@@ -1202,6 +1327,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             router.SavedCombatPatrolArchmageId = "";
             router.HasPendingReturn = true;
         }
+        _hasLastMove = false; // S3 (Retrace): scene swap forgets the last step
         SaveManager.SaveIfDirty();
         ShowInfo($"Negotiation: {encounter.Title}");
         GetTree().ChangeSceneToFile("res://Scenes/Negotiation/NegotiationScene.tscn");
@@ -1886,6 +2012,213 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _grid.AddChild(marker);
     }
 
+    // ── S3 façade additions ──────────────────────────────────────────────
+
+    /// <summary>Retrace (Chronomancer, THE sole G1 exception, once/expedition):
+    /// undo the last committed movement step — position restored, charged step
+    /// cost refunded. HP drains are NOT refunded (time reclaims the ground,
+    /// not the toll). False when there is no step to undo.</summary>
+    /// <summary>True when a last step exists to undo (Grimoire gating).</summary>
+    public bool CanRetrace => _hasLastMove;
+
+    public bool SpellRetrace()
+    {
+        if (!_hasLastMove || _party == null)
+            return false;
+        _hasLastMove = false;
+        StepsRemaining += _lastMoveStepCost;
+        _party.Initialize(_grid, _fog, _lastMoveFrom);
+        if (!HardWindowMode &&
+            _grid.Distance(_party.CurrentCoord, _windowCenterLocal) >= RecenterThreshold)
+            RecenterWindow(_party.CurrentCoord);
+        UpdateUI();
+        return true;
+    }
+
+    /// <summary>Deploy Waystation (Tinker): a one-use pocket rest on the
+    /// current hex, and a supply anchor while it stands (W-track ruling #2).
+    /// Expires with the expedition; never persists as a staging point.</summary>
+    public bool SpellDeployWaystation()
+    {
+        if (!_window.TryLocalToWorld(_party.CurrentCoord, out int col, out int row))
+            return false;
+        var grim = SaveManager.ActiveSave?.Cycle?.Grimoire;
+        string mark = $"{col},{row}";
+        if (grim == null || grim.ActiveWaystations.Contains(mark))
+            return false;
+        grim.ActiveWaystations.Add(mark);
+        SaveManager.MarkDirty();
+        SpellDrawWaystationMarker(_party.CurrentCoord, col, row);
+        UpdateUI(); // supply readout may change immediately
+        return true;
+    }
+
+    /// <summary>Waystation marker — a small square-on-post, named by world
+    /// coord so consumption can find and free it.</summary>
+    public void SpellDrawWaystationMarker(Vector2I local, int col, int row)
+    {
+        var marker = new Node2D { Name = $"WaystationMarker_{col}_{row}", ZIndex = 6 };
+        marker.AddChild(new Polygon2D
+        {
+            Polygon = new[] { new Vector2(-9, -9), new Vector2(9, -9),
+                              new Vector2(9, 9), new Vector2(-9, 9) },
+            Color = new Color(0f, 0f, 0f, 0.7f),
+        });
+        marker.AddChild(new Polygon2D
+        {
+            Polygon = new[] { new Vector2(-6.5f, -6.5f), new Vector2(6.5f, -6.5f),
+                              new Vector2(6.5f, 6.5f), new Vector2(-6.5f, 6.5f) },
+            Color = UITheme.ArcaneBlue,
+        });
+        marker.Position = _grid.AxialToWorld(local);
+        _grid.AddChild(marker);
+    }
+
+    /// <summary>Remnant marker (Deathsight) — a pale sliver on a won-combat hex.</summary>
+    public void SpellDrawRemnantMarker(Vector2I local)
+    {
+        var marker = new Node2D { Name = "RemnantMarker", ZIndex = 6 };
+        marker.AddChild(new Polygon2D
+        {
+            Polygon = new[] { new Vector2(0, -10), new Vector2(5, 4),
+                              new Vector2(-5, 4) },
+            Color = new Color(0.85f, 0.88f, 0.80f, 0.85f),
+        });
+        marker.Position = _grid.AxialToWorld(local);
+        _grid.AddChild(marker);
+    }
+
+    /// <summary>Stasis Snare: freeze the patrol on a grid-local coord.</summary>
+    public bool SpellStunPatrolAt(Vector2I local, int steps)
+        => _factionManager?.TryStunPatrolAt(local, steps) != null;
+
+    /// <summary>Coords of patrols whose tiles are currently visible (their
+    /// tokens render) — Stasis Snare's legal targets.</summary>
+    public List<Vector2I> VisiblePatrolCoords()
+    {
+        var result = new List<Vector2I>();
+        if (_factionManager == null)
+            return result;
+        foreach (var c in _factionManager.GetPatrolPositions())
+            if (_grid.Hexes.TryGetValue(c, out var h) &&
+                h.Fog != OverworldHex.FogState.Hidden)
+                result.Add(c);
+        return result;
+    }
+
+    /// <summary>Speak with the Fallen: chart the ground under every patrol
+    /// (radius 1) so their ghosted tokens surface. Returns patrols exposed.</summary>
+    public int SpellChartPatrolPositions()
+    {
+        if (_factionManager == null)
+            return 0;
+        int exposed = 0;
+        foreach (var c in _factionManager.GetPatrolPositions())
+        {
+            if (_window.TryLocalToWorld(c, out int col, out int row))
+            {
+                SpellChartHexRadius(col, row, 1);
+                exposed++;
+            }
+        }
+        RefreshWindowSilhouettes();
+        return exposed;
+    }
+
+    /// <summary>Compass bearing + distance from the party to a world coord.</summary>
+    public string SpellBearingTo(int col, int row, string label)
+    {
+        if (!_window.TryLocalToWorld(_party.CurrentCoord, out int pc, out int pr))
+            return "";
+        int dist = _world.HexDistance(pc, pr, col, row);
+        int dx = col - pc, dy = row - pr;
+        string ns = dy < 0 ? "north" : dy > 0 ? "south" : "";
+        string ew = dx < 0 ? "west" : dx > 0 ? "east" : "";
+        string dir = (ns + (ns != "" && ew != "" ? "-" : "") + ew);
+        if (dir == "") dir = "here";
+        return $"{label}: {dist} hexes {dir}";
+    }
+
+    /// <summary>Attuned Recall: bearings to the staging tile and the nearest
+    /// Available staging point that isn't the staging tile.</summary>
+    public string SpellRecallBearings()
+    {
+        string home = SpellBearingTo(_stagingCol, _stagingRow, "Staging point");
+        StagingPoint nearest = null;
+        int bestD = int.MaxValue;
+        if (_window.TryLocalToWorld(_party.CurrentCoord, out int pc, out int pr))
+            foreach (var sp in _world.StagingPoints)
+            {
+                if (!sp.Available || (sp.X == _stagingCol && sp.Y == _stagingRow))
+                    continue;
+                int d = _world.HexDistance(pc, pr, sp.X, sp.Y);
+                if (d < bestD) { bestD = d; nearest = sp; }
+            }
+        return nearest == null
+            ? home
+            : home + "  ·  " + SpellBearingTo(nearest.X, nearest.Y, nearest.Name);
+    }
+
+    /// <summary>Nearest undiscovered POI's bearing (Speak with the Fallen).</summary>
+    public string SpellNearestUndiscoveredPoiBearing()
+    {
+        if (!_window.TryLocalToWorld(_party.CurrentCoord, out int pc, out int pr))
+            return "";
+        WorldPoi best = null;
+        int bestD = int.MaxValue;
+        foreach (var poi in _world.Pois)
+        {
+            if (poi.Discovered || poi.Consumed)
+                continue;
+            int d = _world.HexDistance(pc, pr, poi.X, poi.Y);
+            if (d < bestD) { bestD = d; best = poi; }
+        }
+        return best == null ? "" : SpellBearingTo(best.X, best.Y, "Something undiscovered lies");
+    }
+
+    private readonly List<Node2D> _auspiceMarks = new();
+
+    /// <summary>Auspice (Chronomancer): preview where the corruption's tile
+    /// flood presses next — loaded clean tiles adjacent to corrupted ground
+    /// (heuristic over CorruptionSpread's outward flood; the exact tick also
+    /// moves kingdom pressure, which this does not simulate). Marks fade at
+    /// the next Auspice or expedition end. Returns tiles flagged.</summary>
+    public int SpellAuspicePreview()
+    {
+        foreach (var m in _auspiceMarks)
+            if (GodotObject.IsInstanceValid(m))
+                m.QueueFree();
+        _auspiceMarks.Clear();
+
+        int flagged = 0;
+        foreach (var kvp in _grid.Hexes)
+        {
+            if (!_window.TryLocalToWorld(kvp.Key, out int col, out int row) ||
+                !_world.TryIndex(col, row, out int idx))
+                continue;
+            if (_world.Tiles[idx].Corruption >= 30)
+                continue;
+            bool threatened = false;
+            foreach (var (nc, nr) in HexCoord.Neighbors(col, row, _world.Width, _world.Height))
+                if (_world.TryIndex(nc, nr, out int nidx) && _world.Tiles[nidx].Corruption >= 30)
+                { threatened = true; break; }
+            if (!threatened)
+                continue;
+
+            var m = new Node2D { Name = "AuspiceMark", ZIndex = 5 };
+            m.AddChild(new Polygon2D
+            {
+                Polygon = OverworldHex.MakeHexPoints(OverworldHex.GetHexSize() * 0.45f),
+                Color = new Color(0.55f, 0.20f, 0.65f, 0.35f),
+            });
+            m.Position = _grid.AxialToWorld(kvp.Key);
+            _grid.AddChild(m);
+            _auspiceMarks.Add(m);
+            flagged++;
+        }
+        return flagged;
+    }
+
     // ════════════════════════════════════════════════════════════════════
     // W1: sliding window · W3: supply line
     // ════════════════════════════════════════════════════════════════════
@@ -1924,7 +2257,28 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             if (d < best)
                 best = d;
         }
+
+        // S3 (Deploy Waystation + W-track ruling #2): a standing waystation is
+        // a supply anchor while it lasts — the deep-push range strategy.
+        var grimW = SaveManager.ActiveSave?.Cycle?.Grimoire;
+        if (grimW != null)
+            foreach (var mark in grimW.ActiveWaystations)
+                if (TryParseMark(mark, out int wc, out int wr))
+                {
+                    int d = _world.HexDistance(col, row, wc, wr);
+                    if (d < best)
+                        best = d;
+                }
         return best;
+    }
+
+    /// <summary>Parse a "col,row" world mark (beacons/remnants/waystations).</summary>
+    private static bool TryParseMark(string mark, out int col, out int row)
+    {
+        col = row = -1;
+        var parts = mark.Split(',');
+        return parts.Length == 2 &&
+               int.TryParse(parts[0], out col) && int.TryParse(parts[1], out row);
     }
 
     /// <summary>Leash band at a grid-local coord: 0 within SupplyRange of the
@@ -1951,6 +2305,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         foreach (var sp in _world.StagingPoints)
             if (sp.Available && sp.X == col && sp.Y == row)
                 return true;
+        // S3: a standing waystation is an anchor (free extraction included —
+        // it is a 5-Essence Overt cast; tuning watch noted in the docs).
+        var grimA = SaveManager.ActiveSave?.Cycle?.Grimoire;
+        if (grimA != null && grimA.ActiveWaystations.Contains($"{col},{row}"))
+            return true;
         return false;
     }
 

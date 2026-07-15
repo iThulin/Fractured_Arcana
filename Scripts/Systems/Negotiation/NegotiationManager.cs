@@ -89,7 +89,17 @@ public partial class NegotiationManager : Control
         }
 
         GD.Print($"[Negotiation] origin='{NegotiationContext.OriginKingdomId}', " +
-                 $"factionRep={factionRep}, startTension will reflect it.");     
+                 $"factionRep={factionRep}, startTension will reflect it.");
+
+        // S3 (Beguile): an armed charm opens the table a band more favorable.
+        // Applied to the encounter's StartingTension before state init so every
+        // downstream read (zone, log) sees the shifted opening. Consumed here.
+        if (NegotiationContext.TensionShift != 0)
+        {
+            _data.StartingTension = Mathf.Max(0, _data.StartingTension - NegotiationContext.TensionShift);
+            GD.Print($"[Negotiation] Beguile: starting tension eased by {NegotiationContext.TensionShift}.");
+            NegotiationContext.TensionShift = 0;
+        }
 
         _state = new NegotiationState();
         _state.OnTensionChanged += OnTensionChanged;

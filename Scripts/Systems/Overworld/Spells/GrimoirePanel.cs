@@ -79,7 +79,11 @@ public partial class GrimoirePanel : PanelContainer
         {
             string block = _manager.CastBlockReason(def);
 
+            // S3: cost breakdown — base, off-caster tax, corruption surcharge.
+            int tax = _manager.OffCasterTax(def);
             string costText = def.EssenceCost.ToString();
+            if (tax > 0)
+                costText += $"+{tax}";
             if (surcharge > 0)
                 costText += $"+{surcharge}";
 
@@ -89,6 +93,7 @@ public partial class GrimoirePanel : PanelContainer
                 Disabled = block != null,
                 TooltipText = def.Description +
                               $"\n{def.Category} · {def.Magnitude} · {costText} Essence" +
+                              (tax > 0 ? " (+1 off-school)" : "") +
                               (surcharge > 0 ? $" (+{surcharge} corrupted ground)" : "") +
                               (block != null ? $"\n[{block}]" : ""),
                 Alignment = HorizontalAlignment.Left,

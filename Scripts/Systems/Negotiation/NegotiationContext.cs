@@ -33,6 +33,12 @@ public static class NegotiationContext
     /// non-kingdom faction key.</summary>
     public static string OriginKingdomId = "";
 
+    /// <summary>S3 (Beguile, overworld_spell_system §7f): points subtracted
+    /// from the encounter's starting tension — "one band more favorable",
+    /// implemented as −2 tension. Set by the expedition layer when an armed
+    /// Beguile is consumed; consumed (zeroed) by NegotiationManager on open.</summary>
+    public static int TensionShift = 0;
+
 
     // ── Output (set by NegotiationScene on completion) ──────────────────
     public static bool HasResult = false;
@@ -52,6 +58,7 @@ public static class NegotiationContext
 
     public static void Clear()
     {
+        TensionShift = 0;
         HasResult = false;
         DealAccepted = false;
         GoldDelta = 0;

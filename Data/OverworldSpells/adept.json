@@ -1,0 +1,49 @@
+[
+  {
+    "id": "versatility",
+    "name": "Versatility",
+    "school": "Adept",
+    "category": "Conjuration",
+    "isAttunement": true,
+    "isInnate": true,
+    "magnitude": "Subtle",
+    "effectKey": "versatility",
+    "description": "+1 prepared slot, and companion-granted spells cost no off-caster tax. Breadth over signature."
+  },
+  {
+    "id": "minor_working",
+    "name": "Minor Working",
+    "school": "Adept",
+    "category": "Conjuration",
+    "isInnate": true,
+    "essenceCost": 1,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "minor_working",
+    "effectParams": { "heal": 3, "steps": 3 },
+    "description": "Choose one: heal 3 party HP · chart 1 adjacent unseen hex · no terrain drain for 3 steps."
+  },
+  {
+    "id": "emulate",
+    "name": "Emulate",
+    "school": "Adept",
+    "category": "Conjuration",
+    "isInnate": true,
+    "essenceCost": 0,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "emulate",
+    "description": "Recast the last spell cast this expedition at its cost +1. Inherits the original's magnitude and echoes."
+  },
+  {
+    "id": "attuned_recall",
+    "name": "Attuned Recall",
+    "school": "Adept",
+    "category": "Divination",
+    "essenceCost": 2,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "attuned_recall",
+    "description": "The bearing and distance of your staging point and the nearest anchor, from anywhere afield."
+  }
+]

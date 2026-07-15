@@ -1,0 +1,51 @@
+[
+  {
+    "id": "surveyors_eye",
+    "name": "Surveyor's Eye",
+    "school": "Tinker",
+    "category": "Divination",
+    "isAttunement": true,
+    "isInnate": true,
+    "magnitude": "Subtle",
+    "effectKey": "surveyors_eye",
+    "description": "Silhouetted hexes display their step cost and any hazard flag before entry."
+  },
+  {
+    "id": "deploy_waystation",
+    "name": "Deploy Waystation",
+    "school": "Tinker",
+    "category": "Conjuration",
+    "isInnate": true,
+    "essenceCost": 5,
+    "magnitude": "Overt",
+    "targetingType": "None",
+    "effectKey": "deploy_waystation",
+    "description": "A pocket rest on this hex — one use of a quarter-heal and +3 Essence — and a supply anchor while it stands. Expires with the expedition."
+  },
+  {
+    "id": "clockwork_skimmer",
+    "name": "Clockwork Skimmer",
+    "school": "Tinker",
+    "category": "Divination",
+    "isInnate": true,
+    "essenceCost": 3,
+    "magnitude": "Subtle",
+    "targetingType": "Tile",
+    "range": 5,
+    "effectKey": "clockwork_skimmer",
+    "effectParams": { "radius": 2 },
+    "description": "Launch a gadget to any tile within 5; it charts radius 2 around its landing point."
+  },
+  {
+    "id": "fulminant_charge",
+    "name": "Fulminant Charge",
+    "school": "Tinker",
+    "category": "Conjuration",
+    "essenceCost": 3,
+    "magnitude": "Overt",
+    "targetingType": "None",
+    "effectKey": "fulminant_charge",
+    "effectParams": { "stun": 4 },
+    "description": "Rig the current hex: the first patrol to enter is stunned for 4 party steps."
+  }
+]

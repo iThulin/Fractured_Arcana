@@ -208,13 +208,32 @@ public partial class OverworldFactionManager : Node2D
             return;
 
         foreach (var patrol in _patrols)
+        {
             patrol.Tick(playerCoord);
+
+            // S3 (Fulminant Charge, Tinker): the first patrol to enter a
+            // rigged hex springs the charge and freezes. Delay, not removal (G3).
+            int trapStun = OverworldSpellEffects.ConsumeTrapAt(patrol.CurrentCoord);
+            if (trapStun > 0)
+            {
+                patrol.Stun(trapStun);
+                GD.Print($"[FactionManager] Patrol '{patrol.ArchmageId}' springs a fulminant " +
+                         $"charge at {patrol.CurrentCoord} — stunned {trapStun} step(s).");
+            }
+        }
+
+        // S3 (Veil, Enchanter): the party is imperceptible — interception
+        // simply fails while the veil holds (G3).
+        if (OverworldSpellEffects.VeilActive())
+            return;
 
         // Check for capture after all patrols have moved
         foreach (var patrol in _patrols)
         {
             if (patrol.IsDisengaged)
                 continue; // recovering from a fight — no re-capture
+            if (patrol.IsStunned)
+                continue; // frozen by a spell/trap — no capture either
             if (patrol.IsOnSameHex(playerCoord))
             {
                 GD.Print($"[FactionManager] Patrol '{patrol.ArchmageId}' captured player " +
@@ -284,6 +303,23 @@ public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
                 GD.Print($"[FactionManager] Patrol '{p.ArchmageId}' routed home, " +
                          $"recovering for {cooldownSteps} step(s).");
             }
+    }
+
+    /// <summary>S3 (Stasis Snare): freeze the patrol standing on a coord.
+    /// Returns its archmage id, or null if no patrol stands there.</summary>
+    public string TryStunPatrolAt(Vector2I coord, int steps)
+    {
+        foreach (var p in _patrols)
+        {
+            if (p.CurrentCoord == coord)
+            {
+                p.Stun(steps);
+                GD.Print($"[FactionManager] Patrol '{p.ArchmageId}' held in stasis " +
+                         $"for {steps} step(s).");
+                return p.ArchmageId;
+            }
+        }
+        return null;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

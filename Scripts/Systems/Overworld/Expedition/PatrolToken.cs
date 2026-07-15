@@ -47,6 +47,7 @@ public partial class PatrolToken : Node2D
     private Polygon2D _body;
     private Polygon2D _outline;
     private Label _indicator; // faction initial shown when visible in fog
+    private Line2D _vectorLine; // S3 Foreboding: pursuit-direction arrow
 
     // ── Animation ────────────────────────────────────────────────────────
     private Vector2 _visualTarget;
@@ -59,6 +60,17 @@ public partial class PatrolToken : Node2D
     private bool _committed = false;          // true once it has spotted the player
     private RandomNumberGenerator _rng;
     private Color _factionColor;
+
+    // ── S3: spell-imposed stun (Stasis Snare / Fulminant Charge) ──────────
+    // Distinct from disengagement: a stunned patrol HOLDS POSITION (it does
+    // not rout home) and resumes exactly where it froze. Delay, not removal (G3).
+    private int _stunSteps;
+
+    /// <summary>True while frozen by a spell/trap — no move, no hunt, no capture.</summary>
+    public bool IsStunned => _stunSteps > 0;
+
+    /// <summary>Freeze in place for N party steps (does not stack; keeps the longer).</summary>
+    public void Stun(int steps) => _stunSteps = System.Math.Max(_stunSteps, steps);
 
     // ── Disengagement after capture ─────────────────────────────────────────
 
@@ -142,6 +154,18 @@ public partial class PatrolToken : Node2D
         _indicator.AddThemeFontSizeOverride("font_size", 9);
         _indicator.AddThemeColorOverride("font_color", Colors.White);
         AddChild(_indicator);
+
+        // S3 Foreboding: pursuit vector, hidden until the attunement + a
+        // committed hunt make it meaningful.
+        _vectorLine = new Line2D
+        {
+            Points = new[] { Vector2.Zero, new Vector2(0, -18f) },
+            Width = 3f,
+            DefaultColor = new Color(1f, 0.85f, 0.3f, 0.9f),
+            ZIndex = 8,
+            Visible = false,
+        };
+        AddChild(_vectorLine);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -180,6 +204,28 @@ public partial class PatrolToken : Node2D
             return;
         }
 
+        // S3 (True Names, Enchanter attunement): the token names itself in
+        // full at sight instead of a bare initial.
+        if (_indicator != null)
+        {
+            string full = ArchmageId.Length > 0 ? ArchmageId : "?";
+            string wanted = OverworldSpellEffects.TrueNamesVision
+                ? char.ToUpper(full[0]) + full.Substring(1)
+                : full[..1].ToUpper();
+            if (_indicator.Text != wanted)
+            {
+                _indicator.Text = wanted;
+                _indicator.Position = OverworldSpellEffects.TrueNamesVision
+                    ? new Vector2(-5f - 3.5f * (wanted.Length - 1), -9f)
+                    : new Vector2(-5f, -9f);
+            }
+        }
+
+        // S3 (Foreboding, Chronomancer attunement): a committed hunter shows
+        // its pursuit vector — the direction of its current advance.
+        if (_vectorLine != null)
+            _vectorLine.Visible = OverworldSpellEffects.ForebodingVision && _committed;
+
         switch (hex.Fog)
         {
             case OverworldHex.FogState.Revealed:
@@ -206,6 +252,14 @@ public partial class PatrolToken : Node2D
         if (_grid == null)
             return;
 
+        // S3: stunned — hold position, no hunt, no capture. Ticks down per
+        // party step and resumes exactly where it froze.
+        if (_stunSteps > 0)
+        {
+            _stunSteps--;
+            return;
+        }
+
         // Routed and recovering: hold at home, ignore the player.
         if (_recoveryCooldown > 0)
         {
@@ -220,8 +274,14 @@ public partial class PatrolToken : Node2D
 
         int distToPlayer = _grid.Distance(CurrentCoord, playerCoord);
 
+        // S3 (Veil, Enchanter): the party is imperceptible — detection fails
+        // and a committed hunter loses the trail. The patrol keeps its route;
+        // interception simply fails (G3). Checked here so the pursuit logic
+        // below sees a world without the party in it.
+        if (OverworldSpellEffects.VeilActive())
+            _committed = false;
         // Spot the player within detection range → commit to the hunt.
-        if (distToPlayer <= DetectionRange)
+        else if (distToPlayer <= DetectionRange)
             _committed = true;
         // Lose the trail only if the player breaks well clear.
         else if (_committed && distToPlayer > LoseInterestRange)
@@ -281,6 +341,14 @@ public partial class PatrolToken : Node2D
         CurrentCoord = coord;
         _visualTarget = _grid.AxialToWorld(coord);
         _isAnimating = true;
+
+        // S3 Foreboding: point the pursuit vector along this advance.
+        if (_vectorLine != null)
+        {
+            var dir = (_visualTarget - _grid.AxialToWorld(_prevCoord)).Normalized();
+            if (dir != Vector2.Zero)
+                _vectorLine.Points = new[] { Vector2.Zero, dir * 20f };
+        }
     }
 
     /// <summary>
@@ -340,6 +408,10 @@ public partial class PatrolToken : Node2D
     private bool IsPassable(Vector2I coord)
     {
         if (!_grid.Hexes.TryGetValue(coord, out var hex))
+            return false;
+        // S3 (Thornwall, Druid): spell-denied hexes are impassable to
+        // patrols only — the party walks them freely.
+        if (OverworldSpellEffects.HexBlockedForPatrols(coord))
             return false;
         return hex.IsWater == false &&
        hex.Terrain != OverworldHex.TerrainType.Mountain;

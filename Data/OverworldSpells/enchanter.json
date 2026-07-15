@@ -1,0 +1,50 @@
+[
+  {
+    "id": "true_names",
+    "name": "True Names",
+    "school": "Enchanter",
+    "category": "Divination",
+    "isAttunement": true,
+    "isInnate": true,
+    "magnitude": "Subtle",
+    "effectKey": "true_names",
+    "description": "Patrol tokens name their archmage in full at sight."
+  },
+  {
+    "id": "veil",
+    "name": "Veil",
+    "school": "Enchanter",
+    "category": "Evasion",
+    "isInnate": true,
+    "essenceCost": 3,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "veil",
+    "effectParams": { "steps": 5 },
+    "description": "The party is imperceptible to patrols for its next 5 steps — routes continue; interception simply fails."
+  },
+  {
+    "id": "parley_compulsion",
+    "name": "Parley Compulsion",
+    "school": "Enchanter",
+    "category": "Evasion",
+    "isInnate": true,
+    "essenceCost": 5,
+    "magnitude": "Overt",
+    "targetingType": "None",
+    "oncePerExpedition": true,
+    "effectKey": "parley_compulsion",
+    "description": "Once per expedition: the next intercepting patrol's ambush becomes a negotiation instead."
+  },
+  {
+    "id": "beguile",
+    "name": "Beguile",
+    "school": "Enchanter",
+    "category": "Evasion",
+    "essenceCost": 2,
+    "magnitude": "Subtle",
+    "targetingType": "None",
+    "effectKey": "beguile",
+    "description": "The next negotiation this expedition starts one tension band more favorable."
+  }
+]
