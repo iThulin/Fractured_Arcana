@@ -111,11 +111,49 @@ public partial class StrategicView : Node2D
                 _world = cycle.World;
                 _kingdoms = cycle.Kingdoms;
                 _debugReveal = PlayerSession.DebugMode && PlayerSession.DebugRevealStrategicMap;
+
+                // W3: pay the emergency-extraction debt BEFORE anything renders
+                // — the straggle lunations advance the calendar and tick the
+                // world, and the HUD/markers must show the post-tick state.
+                ProcessPendingStraggle(cycle);
             }
         }
 
         BuildCamera();
         CallDeferred(nameof(BuildRender));
+    }
+
+    /// <summary>W3 (claude/expedition_window_sliding_v1 §2.3): an emergency
+    /// extraction sends the party home overland — CycleState.PendingStraggleLunations
+    /// holds the debt. Advance the calendar one full lunation per owed unit,
+    /// running the SAME per-lunation world tick a deploy-crossed boundary runs
+    /// (council → corruption → infirmary), then save. If the lost time tips the
+    /// cycle into the Grand Conjunction, the conjunction beat plays on top of
+    /// the rendered map exactly as it would from a deploy.</summary>
+    private void ProcessPendingStraggle(CycleState cycle)
+    {
+        int owed = cycle.PendingStraggleLunations;
+        if (owed <= 0)
+            return;
+        cycle.PendingStraggleLunations = 0;
+
+        for (int i = 0; i < owed; i++)
+        {
+            if (!cycle.Calendar.AdvanceLunation())
+                break; // conjunction already reached — no further time to spend
+            GD.Print($"[Calendar] The party straggles home — a lunation passes " +
+                     $"(L{cycle.Calendar.CurrentLunation} · {cycle.Calendar.CurrentPhaseName}).");
+            RunLunationTick(cycle);
+        }
+
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+
+        if (cycle.Calendar.ConjunctionReached)
+        {
+            GD.Print("[Calendar] The Grand Conjunction has come. The cycle ends.");
+            CallDeferred(nameof(ShowConjunction));
+        }
     }
 
     /// <summary>Inject the real cycle world (campus integration path).</summary>
@@ -1418,15 +1456,7 @@ public partial class StrategicView : Node2D
         {
             GD.Print($"[Calendar] New lunation: {cycle.Calendar.CurrentLunation} " +
                      $"({cycle.Calendar.CurrentPhaseName}).");
-            // Council resolves BEFORE corruption spreads (§13 order): envoy
-            // residency must be computable from missions still live when
-            // the moon turned.
-            CouncilTick.Tick(cycle);
-            // The living world advances one lunation: corruption spreads.
-            CorruptionSpread.Tick(cycle.World, cycle.Campaign, cycle.Kingdoms);
-            // K2 (§5b/R24): infirmary recovery — injured companions heal one
-            // lunation per tick at the campus (Training Grounds interim host).
-            CompanionInjurySystem.TickRecovery(SaveManager.ActiveSave);
+            RunLunationTick(cycle);
         }
 
         // ── Did this tip the cycle into the Grand Conjunction? ──────────────
@@ -1452,6 +1482,19 @@ public partial class StrategicView : Node2D
                  $"(L{cycle.Calendar.CurrentLunation} · {cycle.Calendar.CurrentPhaseName}).");
 
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
+    }
+
+    /// <summary>The per-lunation world tick, in canonical order — the single
+    /// place a crossed lunation boundary advances the living world. Called by
+    /// Deploy (phase-stepping crossed a new moon) and by ProcessPendingStraggle
+    /// (emergency-extraction debt). Council resolves BEFORE corruption spreads
+    /// (§13 order): envoy residency must be computable from missions still
+    /// live when the moon turned. K2 (§5b/R24): infirmary recovery last.</summary>
+    private void RunLunationTick(CycleState cycle)
+    {
+        CouncilTick.Tick(cycle);
+        CorruptionSpread.Tick(cycle.World, cycle.Campaign, cycle.Kingdoms);
+        CompanionInjurySystem.TickRecovery(SaveManager.ActiveSave);
     }
 
     /// <summary>The Grand Conjunction has arrived. For now the cycle simply ends —

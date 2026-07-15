@@ -151,45 +151,45 @@ public partial class OverworldFactionManager : Node2D
     }
 
     /// <summary>
-    /// Builds the sorted, filtered list of valid spawn positions.
-    /// Iterates q-then-r so ordering is deterministic.
+    /// Builds the sorted, filtered list of valid spawn positions. Iterates the
+    /// grid's LIVE hex set, then sorts q-then-r so ordering is deterministic
+    /// regardless of Dictionary iteration order.
+    /// (W1 fix: the old 0..GridWidth loop only covered the positive quadrant of
+    /// a window-mode grid, whose local coords span roughly [-R, R] around the
+    /// staging point at (0,0) — patrols could only ever spawn southeast.)
     /// Excludes: Water, Mountain, POI hexes, hexes too close to Entry/Objective.
     /// </summary>
     private List<Vector2I> BuildCandidateList()
     {
         var result = new List<Vector2I>();
-        int w = _grid.GridWidth;
-        int h = _grid.GridHeight;
 
-        for (int q = 0; q < w; q++)
+        foreach (var kvp in _grid.Hexes)
         {
-            for (int r = 0; r < h; r++)
-            {
-                var coord = new Vector2I(q, r);
-                if (!_grid.Hexes.TryGetValue(coord, out var hex))
-                    continue;
+            var coord = kvp.Key;
+            var hex = kvp.Value;
 
-                // Terrain filter
-                if (hex.IsWater ||
-                    hex.Terrain == OverworldHex.TerrainType.Mountain)
-                    continue;
+            // Terrain filter
+            if (hex.IsWater ||
+                hex.Terrain == OverworldHex.TerrainType.Mountain)
+                continue;
 
-                // Don't spawn on a POI (player would arrive and trigger two events)
-                if (hex.POI != OverworldHex.POIType.None)
-                    continue;
+            // Don't spawn on a POI (player would arrive and trigger two events)
+            if (hex.POI != OverworldHex.POIType.None)
+                continue;
 
-                // Keep clear of entry (patrol shouldn't ambush the player instantly)
-                if (_grid.Distance(coord, _grid.EntryCoord) < 5)
-                    continue;
+            // Keep clear of entry (patrol shouldn't ambush the player instantly)
+            if (_grid.Distance(coord, _grid.EntryCoord) < 5)
+                continue;
 
-                // Keep clear of objective
-                if (_grid.Distance(coord, _grid.ObjectiveCoord) < 3)
-                    continue;
+            // Keep clear of objective
+            if (_grid.Distance(coord, _grid.ObjectiveCoord) < 3)
+                continue;
 
-                result.Add(coord);
-            }
+            result.Add(coord);
         }
 
+        // Deterministic ordering (q then r) — spawn choice must reproduce.
+        result.Sort((a, b) => a.X != b.X ? a.X - b.X : a.Y - b.Y);
         return result;
     }
 
@@ -365,6 +365,22 @@ public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
             if (TerrainClass.IsWater(t) || t == OverworldHex.TerrainType.Mountain)
                 continue;
             candidates.Add(kvp.Key);
+        }
+        if (candidates.Count == 0)
+        {
+            // W1: with a return-centered window built far from staging, the
+            // 5–9 ring around the entry isn't loaded at all. The TOKEN must
+            // still exist (RestorePatrolPositions can only teleport patrols
+            // that spawned — no token, and the wilds patrol silently vanishes
+            // for the rest of the expedition) — fall back to any passable
+            // loaded tile; the spawn spot is irrelevant on a return path.
+            foreach (var kvp in _grid.Hexes)
+            {
+                var t = kvp.Value.Terrain;
+                if (TerrainClass.IsWater(t) || t == OverworldHex.TerrainType.Mountain)
+                    continue;
+                candidates.Add(kvp.Key);
+            }
         }
         if (candidates.Count == 0)
         {

@@ -4,132 +4,216 @@ using System.Collections.Generic;
 // ============================================================
 // WorldWindowBuilder.cs
 //
-// Purpose:        Builds an expedition window — a radius-R hex
-//                 disc of the persistent WorldData — into an
-//                 OverworldHexGrid. Replaces OverworldHexGrid's
-//                 region GENERATION: instead of inventing terrain
-//                 from a seed, it reads authoritative world tiles
-//                 and instantiates one OverworldHex per tile in
-//                 the disc, mapping:
+// Purpose:        Builds and SLIDES the expedition window — a
+//                 radius-R hex disc of the persistent WorldData
+//                 rendered into an OverworldHexGrid. Replaces
+//                 OverworldHexGrid's region GENERATION: instead of
+//                 inventing terrain from a seed, it reads
+//                 authoritative world tiles and instantiates one
+//                 OverworldHex per tile in the disc, mapping:
 //                   world terrain   -> hex terrain
 //                   tile discovery  -> hex fog
 //                   world POI table -> hex POI
 //                 The window is a VIEW; the world never regenerates.
-//                 On extract, ExpeditionManager writes revealed
-//                 state back into WorldData (the inverse of this).
+//
+//                 W1 (sliding window, 2026-07-15): the disc is no
+//                 longer fixed at the staging point. StreamTo()
+//                 diffs the loaded tile set against a new center:
+//                 tiles entering the load radius are instantiated
+//                 from world data, tiles beyond the (larger) unload
+//                 radius are freed. The hard perimeter is gone —
+//                 range is governed by the step/HP economy and the
+//                 W3 supply leash in ExpeditionManager, not by
+//                 geometry. Discovery persists in WorldData, so a
+//                 tile that unloads and later reloads returns with
+//                 its illumination intact.
 // Layer:          System
 // Collaborators:  WorldData.cs (source), HexCoord.cs (disc/convert),
 //                 OverworldHexGrid.cs (container it fills),
 //                 OverworldHex.cs (per-tile node),
-//                 ExpeditionManager.cs (caller + write-back)
-// See:            single_world_refactor_v2.docx §4.1 (expedition view)
+//                 ExpeditionManager.cs (caller + write-back + slide
+//                 trigger)
+// See:            single_world_refactor_v2.docx §4.1 (expedition view),
+//                 claude/expedition_window_sliding_v1.md (W-track)
 //
 // Coordinate mapping (verified): world stores OFFSET (col,row).
 // The grid keys Hexes by AXIAL, positioned by AxialToWorld. We
 // convert each world offset tile to world-axial, then recenter on
-// the staging point so the staging tile sits at grid axial (0,0)
-// and the window renders as a disc centered on screen — no shear.
+// the staging point so the staging tile sits at grid axial (0,0) —
+// no shear. The local frame is a FIXED TRANSLATION of world-axial
+// space (origin = staging, set once per expedition): it never moves
+// when the window slides, so existing nodes never move, saved local
+// coords (combat round-trips) stay valid, and LocalOf/WorldOf are
+// pure formulas — no per-tile lookup tables.
 // ============================================================
 
-/// <summary>Maps a window of the persistent world into an OverworldHexGrid,
-/// and back again on extract. One instance per expedition.</summary>
+/// <summary>Maps a sliding window of the persistent world into an
+/// OverworldHexGrid, and back again on extract. One instance per expedition.</summary>
 public class WorldWindowBuilder
 {
     public WorldData World { get; }
     public int StagingCol { get; }
     public int StagingRow { get; }
+
+    /// <summary>Load radius: tiles within this hex distance of the window
+    /// center are instantiated.</summary>
     public int Radius { get; }
 
-    // world-axial of the staging point (recenter origin)
+    /// <summary>Unload radius: loaded tiles beyond this hex distance of the
+    /// window center are freed. Larger than Radius so pacing back and forth
+    /// over a seam doesn't thrash instantiate/free (hysteresis).</summary>
+    public int UnloadRadius { get; }
+
+    // world-axial of the staging point (the local frame's fixed origin)
     private readonly int _originQ;
     private readonly int _originR;
 
-    // grid-local-axial  <->  world-offset, for the tiles in this window
-    private readonly Dictionary<Vector2I, (int col, int row)> _localToWorld = new();
-    private readonly Dictionary<(int col, int row), Vector2I> _worldToLocal = new();
-
-    public IReadOnlyDictionary<Vector2I, (int col, int row)> LocalToWorld => _localToWorld;
-
-    public WorldWindowBuilder(WorldData world, int stagingCol, int stagingRow, int radius)
+    public WorldWindowBuilder(WorldData world, int stagingCol, int stagingRow,
+                              int radius, int unloadMargin = 3)
     {
         World = world;
         StagingCol = stagingCol;
         StagingRow = stagingRow;
         Radius = radius;
+        UnloadRadius = radius + Mathf.Max(0, unloadMargin);
         (_originQ, _originR) = HexCoord.OffsetToAxial(stagingCol, stagingRow);
     }
 
     /// <summary>The party's start coord in grid-local axial space — always (0,0),
-    /// since the window is recentered on the staging point.</summary>
+    /// since the local frame is anchored on the staging point.</summary>
     public Vector2I PartyStartLocal => Vector2I.Zero;
 
-    /// <summary>Populate the grid's Hexes from the world slice. The grid must be
-    /// in the tree (so child OverworldHex nodes get _Ready) — call from the
+    // ── Coordinate mapping (pure formulas — total over the whole world) ──
+
+    /// <summary>Grid-local axial coord of a world offset tile.</summary>
+    public Vector2I LocalOf(int col, int row)
+    {
+        var (q, r) = HexCoord.OffsetToAxial(col, row);
+        return new Vector2I(q - _originQ, r - _originR);
+    }
+
+    /// <summary>World offset coords of a grid-local axial coord. Total — does
+    /// not require the tile to be loaded (may be out of world bounds).</summary>
+    public (int col, int row) WorldOf(Vector2I local)
+        => HexCoord.AxialToOffset(local.X + _originQ, local.Y + _originR);
+
+    /// <summary>Convert a grid-local axial coord back to world offset coords.
+    /// Formula-based (works for ANY coord, loaded or not); false only when the
+    /// coord falls outside the world bounds.</summary>
+    public bool TryLocalToWorld(Vector2I local, out int col, out int row)
+    {
+        (col, row) = WorldOf(local);
+        if (World.InBounds(col, row))
+            return true;
+        col = row = -1;
+        return false;
+    }
+
+    // ── Build / slide ─────────────────────────────────────────────────────
+
+    /// <summary>Populate the grid's Hexes with the initial disc. Defaults to the
+    /// staging point; pass <paramref name="centerLocal"/> to build directly
+    /// around somewhere else — a combat/negotiation return with the party far
+    /// afield builds around the PARTY instead, rather than paying for 469 tiles
+    /// at staging that the restore recenter immediately frees (the +391/−469
+    /// double-build observed in the 2026-07-15 playtest). The grid must be in
+    /// the tree (so child OverworldHex nodes get _Ready) — call from the
     /// manager after AddChild(grid).</summary>
-    public void Build(OverworldHexGrid grid)
+    public void Build(OverworldHexGrid grid, Vector2I? centerLocal = null)
     {
         // Clear anything the grid generated.
         foreach (var hex in grid.Hexes.Values)
             hex.QueueFree();
         grid.Hexes.Clear();
-        _localToWorld.Clear();
-        _worldToLocal.Clear();
 
-        foreach (var (col, row) in World.Disc(StagingCol, StagingRow, Radius))
-        {
-            var (wq, wr) = HexCoord.OffsetToAxial(col, row);
-            var local = new Vector2I(wq - _originQ, wr - _originR);
+        // Resolve the requested center; fall back to staging if it's off-world.
+        int col = StagingCol, row = StagingRow;
+        if (centerLocal.HasValue && !TryLocalToWorld(centerLocal.Value, out col, out row))
+        { col = StagingCol; row = StagingRow; }
 
-            var worldTile = World.GetTile(col, row);
-
-            var hex = new OverworldHex
-            {
-                Axial = local,
-                Terrain = worldTile.Terrain,
-                Fog = FogFromDiscovery(worldTile.Discovery),
-                RiverEdges = worldTile.RiverEdges,
-                RoadEdges = worldTile.RoadEdges,
-                SpringEdges = worldTile.SpringEdges,
-                OceanDepth = worldTile.OceanDepth,
-            };
-
-            // Attach POI from the world table, if this tile has one that's been
-            // discovered (undiscovered POIs aren't shown until revealed in-window).
-            var poi = World.PoiAt(col, row);
-            if (poi != null)
-            {
-                hex.POI = MapPoiKind(poi.Kind);
-                // A POI already consumed in the world stays consumed.
-                hex.POIConsumed = poi.Consumed;
-            }
-
-            hex.Position = grid.AxialToWorld(local);
-            hex.HexClicked += grid.RaiseHexClicked;
-            grid.AddChild(hex);
-            grid.Hexes[local] = hex;
-
-            _localToWorld[local] = (col, row);
-            _worldToLocal[(col, row)] = local;
-        }
+        StreamTo(grid, col, row);
 
         // The grid's entry is the staging point; no objective in the window model.
+        // (Pure data — valid even when the staging tile itself isn't loaded.)
         grid.SetWindowAnchors(PartyStartLocal);
 
-        GD.Print($"[WindowBuilder] Built window @ staging ({StagingCol},{StagingRow}) " +
+        bool atStaging = col == StagingCol && row == StagingRow;
+        GD.Print($"[WindowBuilder] Built window @ ({col},{row})" +
+                 $"{(atStaging ? " [staging]" : " [return]")} " +
                  $"R={Radius}: {grid.Hexes.Count} tiles.");
     }
 
-    /// <summary>Convert a grid-local axial coord back to world offset coords.</summary>
-    public bool TryLocalToWorld(Vector2I local, out int col, out int row)
+    /// <summary>Slide the loaded window to a new center (world offset coords):
+    /// instantiate tiles entering the load radius, free tiles beyond the unload
+    /// radius. Idempotent; cost is O(perimeter · drift), not O(window). Returns
+    /// (added, removed) tile counts for diagnostics.</summary>
+    public (int added, int removed) StreamTo(OverworldHexGrid grid, int centerCol, int centerRow)
     {
-        if (_localToWorld.TryGetValue(local, out var w))
+        int added = 0;
+
+        // ── Load: every world tile in the disc that has no live hex yet ──
+        foreach (var (col, row) in World.Disc(centerCol, centerRow, Radius))
         {
-            col = w.col;
-            row = w.row;
-            return true;
+            var local = LocalOf(col, row);
+            if (grid.Hexes.ContainsKey(local))
+                continue;
+            grid.Hexes[local] = CreateHex(grid, local, col, row);
+            added++;
         }
-        col = row = -1;
-        return false;
+
+        // ── Unload: live hexes beyond the unload radius of the new center ──
+        List<Vector2I> drop = null;
+        foreach (var kvp in grid.Hexes)
+        {
+            var (col, row) = WorldOf(kvp.Key);
+            if (World.HexDistance(col, row, centerCol, centerRow) > UnloadRadius)
+                (drop ??= new List<Vector2I>()).Add(kvp.Key);
+        }
+        int removed = 0;
+        if (drop != null)
+        {
+            foreach (var local in drop)
+            {
+                grid.Hexes[local].QueueFree();
+                grid.Hexes.Remove(local);
+                removed++;
+            }
+        }
+        return (added, removed);
+    }
+
+    /// <summary>Instantiate one OverworldHex from its world tile and add it to
+    /// the grid. Discovery persists in WorldData, so a reloaded tile returns
+    /// with its illumination (fog state) intact.</summary>
+    private OverworldHex CreateHex(OverworldHexGrid grid, Vector2I local, int col, int row)
+    {
+        var worldTile = World.GetTile(col, row);
+
+        var hex = new OverworldHex
+        {
+            Axial = local,
+            Terrain = worldTile.Terrain,
+            Fog = FogFromDiscovery(worldTile.Discovery),
+            RiverEdges = worldTile.RiverEdges,
+            RoadEdges = worldTile.RoadEdges,
+            SpringEdges = worldTile.SpringEdges,
+            OceanDepth = worldTile.OceanDepth,
+        };
+
+        // Attach POI from the world table, if this tile has one. Visibility is
+        // fog-gated (markers render only on Revealed tiles); a POI already
+        // consumed in the world stays consumed.
+        var poi = World.PoiAt(col, row);
+        if (poi != null)
+        {
+            hex.POI = MapPoiKind(poi.Kind);
+            hex.POIConsumed = poi.Consumed;
+        }
+
+        hex.Position = grid.AxialToWorld(local);
+        hex.HexClicked += grid.RaiseHexClicked;
+        grid.AddChild(hex);
+        return hex;
     }
 
     // ── Discovery -> fog ─────────────────────────────────────────────────

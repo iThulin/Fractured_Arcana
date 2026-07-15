@@ -94,6 +94,15 @@ public class CycleState
     /// </summary>
     public int ArcaneSplinters = 0;
 
+    // ── W3: emergency-extraction debt ────────────────────────────────────
+    /// <summary>Lunations the party owes for straggling home from an emergency
+    /// extraction (claude/expedition_window_sliding_v1 §2.3). Set by
+    /// ExpeditionManager.EmergencyExtract; consumed — advanced on the calendar
+    /// WITH the full per-lunation world tick — by StrategicView on the next
+    /// return to the strategic map. Serialized so quitting between extraction
+    /// and return can't dodge the time cost.</summary>
+    public int PendingStraggleLunations = 0;
+
     // ── Run stats (this cycle only) ──────────────────────────────────────
     // Lifetime totals are derived from EternalLedger.LoopHistory + this.
     public int TotalRuns = 0;

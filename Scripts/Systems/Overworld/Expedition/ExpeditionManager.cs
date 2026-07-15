@@ -39,6 +39,46 @@ public partial class ExpeditionManager : Node2D
     [Export] public int OperatingRange = 40;   // step budget for one sortie (crosses a window + probes onward)
     [Export] public int ExhaustionDamagePerStep = 10;
 
+    // ── W1: sliding window (claude/expedition_window_sliding_v1) ─────────
+    /// <summary>Debug A/B lever: true restores the old fixed-perimeter window
+    /// (no sliding). Off by default — the wall is gone; range is governed by
+    /// the step/HP economy plus the W3 supply leash below.</summary>
+    [Export] public bool HardWindowMode = false;
+
+    /// <summary>Hexes of party drift from the window center before the loaded
+    /// window slides to follow. Small enough that the loaded edge always stays
+    /// far beyond vision range; large enough that pacing doesn't thrash.</summary>
+    [Export] public int RecenterThreshold = 3;
+
+    // ── W3: soft leash — the supply line ──────────────────────────────────
+    /// <summary>Hex distance from the nearest supply anchor (this expedition's
+    /// staging tile, or any Available staging point — including outposts
+    /// secured mid-run) within which no leash drain applies.</summary>
+    [Export] public int SupplyRange = 12;
+
+    /// <summary>Width in hexes of each leash band beyond SupplyRange.</summary>
+    [Export] public int LeashBandWidth = 3;
+
+    /// <summary>HP-pool drain per step, per band beyond supply. Deliberately
+    /// NOT reducible by HazardWard/CorruptionWard (Q3) — the leash is its own
+    /// attrition axis; the deferred §7b Provisioner family is its future
+    /// mitigation. Wards reducing it would trivialize the leash exactly the
+    /// way the hard wall trivialized Pathfinder.</summary>
+    [Export] public int LeashDrainPerBand = 1;
+
+    /// <summary>Maximum leash bands (drain caps at LeashBandCap × LeashDrainPerBand).</summary>
+    [Export] public int LeashBandCap = 3;
+
+    /// <summary>Grid-local coord the loaded window is currently centered on.</summary>
+    private Vector2I _windowCenterLocal = Vector2I.Zero;
+
+    /// <summary>Supply band after the last step (0 = in supply). Lets band
+    /// crossings announce themselves once instead of every step.</summary>
+    private int _lastSupplyBand = 0;
+
+    /// <summary>Two-step confirm for emergency extraction (W3 ruling).</summary>
+    private ConfirmationDialog _emergencyConfirm;
+
     // ── Runtime resource state (rides EncounterRouter across combat) ─────
     public int StepsRemaining { get; set; }
     public int CurrentHP { get; set; }
@@ -126,7 +166,17 @@ public partial class ExpeditionManager : Node2D
         AddChild(_grid);
 
         _window = new WorldWindowBuilder(_world, _stagingCol, _stagingRow, WindowRadius);
-        _window.Build(_grid);
+
+        // On a combat/negotiation return the party may be far outside the base
+        // disc — build the initial window around where they'll actually be
+        // placed, instead of 469 tiles at staging that the restore recenter
+        // would immediately free. (Fresh deploys — and HardWindowMode, where
+        // the party can never leave the base disc — build at staging.)
+        Vector2I initialCenter = (router != null && router.HasPendingReturn && !HardWindowMode)
+            ? GridLocalOf(router.SavedPartyCoord)
+            : _window.PartyStartLocal;
+        _window.Build(_grid, initialCenter);
+        _windowCenterLocal = initialCenter;
 
         // Fog manager (child of grid, same as before)
         _fog = new FogOfWarManager { Name = "FogOfWar" };
@@ -238,6 +288,23 @@ public partial class ExpeditionManager : Node2D
         {
             var local = kvp.Key;
             var hex = kvp.Value;
+
+            // W4 (§5 keystone extension): silhouette = terrain-only knowledge =
+            // Charted. As the sliding window travels, its vision fringe leaves a
+            // persistent Charted corridor on the strategic map — the route
+            // itself becomes a legible artifact of the expedition.
+            if (hex.Fog == OverworldHex.FogState.Silhouette)
+            {
+                if (_window.TryLocalToWorld(local, out int scol, out int srow) &&
+                    _world.TryIndex(scol, srow, out int sidx) &&
+                    _world.Tiles[sidx].Discovery == TileDiscovery.Unseen)
+                {
+                    _world.Tiles[sidx].Discovery = TileDiscovery.Charted;
+                    changed = true;
+                }
+                continue;
+            }
+
             if (hex.Fog != OverworldHex.FogState.Revealed)
                 continue;
             if (!_window.TryLocalToWorld(local, out int col, out int row))
@@ -546,7 +613,36 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 if (CurrentHP <= 0)
                 { CurrentHP = 0; FailExpedition("Consumed by corruption."); return; }
             }
+
+            // W3: the soft leash. Past supply range of the nearest anchor, each
+            // step bleeds the pool — +1 HP per band of LeashBandWidth hexes,
+            // capped. NOT ward-reducible (see the export's doc comment); the
+            // supply line is priced in pool HP the wards can't buy back.
+            int band = SupplyBandAt(newCoord);
+            if (band != _lastSupplyBand)
+            {
+                if (band > 0 && _lastSupplyBand == 0)
+                    ShowInfo("You pass beyond your supply line. Each step out here drains the party.");
+                else if (band == 0 && _lastSupplyBand > 0)
+                    ShowInfo("You are back within your supply line.");
+                _lastSupplyBand = band;
+            }
+            if (band > 0)
+            {
+                int leashDrain = band * LeashDrainPerBand;
+                CurrentHP -= leashDrain;
+                ShowInfo($"Beyond your supply line ({(band > 1 ? $"band {band}" : "the fringe")}). Lost {leashDrain} HP.");
+                if (CurrentHP <= 0)
+                { CurrentHP = 0; FailExpedition("Lost beyond the supply line."); return; }
+            }
         }
+
+        // W1: slide the loaded window to follow the party once it drifts far
+        // enough from the current center. Fires at move START (this handler),
+        // so tiles stream in while the token animates across the hex.
+        if (!HardWindowMode &&
+            _grid.Distance(_party.CurrentCoord, _windowCenterLocal) >= RecenterThreshold)
+            RecenterWindow(_party.CurrentCoord);
 
         // Reveal-on-move writes straight into World.
         WriteVisibleToWorld();
@@ -879,8 +975,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         EncountersWon = router.SavedEncountersWon;
 
         // The window was rebuilt fresh in _Ready from World; discovery is already
-        // correct (it lives in World). Just place the party and re-reveal vision.
-        _party.Initialize(_grid, _fog, GridLocalOf(router.SavedPartyCoord));
+        // correct (it lives in World). W1: _Ready already built the initial disc
+        // around this saved coord (return-aware Build) — this recenter is a
+        // cheap idempotent safety net (adds/frees 0 tiles when Build did its
+        // job) that also guarantees the tile exists before party placement.
+        var savedLocal = GridLocalOf(router.SavedPartyCoord);
+        if (!HardWindowMode)
+            RecenterWindow(savedLocal);
+        _party.Initialize(_grid, _fog, savedLocal);
+        _lastSupplyBand = SupplyBandAt(savedLocal);
         WriteVisibleToWorld();
 
         var resultHex = router.SavedCombatHexCoord;
@@ -1101,6 +1204,59 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     // Extraction / failure
     // ════════════════════════════════════════════════════════════════════
 
+    /// <summary>Extract-button router (W3 ruling): free extraction only while
+    /// standing ON a supply anchor; anywhere else offers the emergency path
+    /// behind a confirm. The return leg is the tension the step budget was
+    /// built for — walking home is the cheap way out.</summary>
+    private void OnExtractPressed()
+    {
+        if (ExpeditionComplete)
+            return;
+        if (OnSupplyAnchor())
+        {
+            Extract();
+            return;
+        }
+        _emergencyConfirm?.PopupCentered();
+    }
+
+    /// <summary>W3 emergency extraction — the party abandons the field and
+    /// straggles home. Costs: +1 lunation (CycleState.PendingStraggleLunations,
+    /// advanced with the full world tick by StrategicView on return) and one
+    /// §5b roll per companion at the tier-2 band (15% death, Sworn −10; the
+    /// rest injured 1–2 lunations). AMENDS K2.5's "no death risk outside
+    /// losing fights" — this is the price of extraction beyond the line.
+    /// Spoils and discoveries ARE kept: the cost is time and bodies, not loot.</summary>
+    private void EmergencyExtract()
+    {
+        if (ExpeditionComplete)
+            return;
+        ExpeditionComplete = true;
+        PlayerSession.IsOnExpedition = false;
+
+        if (EncounterRouter.Instance != null)
+        {
+            EncounterRouter.Instance.HasSavedSeed = false;
+            EncounterRouter.Instance.HasPendingReturn = false;
+        }
+
+        _casualtyNote = CompanionInjurySystem.ApplyWipe(SaveManager.ActiveSave,
+            territoryTier: 2, bossContext: false, "emergency extraction");
+        CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
+
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle != null)
+            cycle.PendingStraggleLunations += 1;
+
+        BankResources(extracted: true);
+        string casualties = string.IsNullOrEmpty(_casualtyNote) ? "" : $" {_casualtyNote}";
+        ShowInfo($"Emergency extraction. The party straggles home — a lunation will pass. " +
+                 $"Gold: {GoldEarned}, Splinters: {SplinterEarned}.{casualties}");
+        _casualtyNote = null;
+        ShowReturnButton();
+        EmitSignal(SignalName.ExpeditionEnded, true);
+    }
+
     /// <summary>Voluntary or range-forced extraction: bank everything, save,
     /// return to the strategic view. Discoveries are already in World.</summary>
     private void Extract()
@@ -1261,7 +1417,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _infoLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         vbox.AddChild(_infoLabel);
 
-        // Extract button (always available — voluntary extraction).
+        // Extract button. W3: free extraction only ON a supply anchor; anywhere
+        // else routes through the emergency-extraction confirm (OnExtractPressed).
         _extractButton = new Button
         {
             Text = "Extract",
@@ -1277,9 +1434,24 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         };
         _extractButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         UITheme.ApplyButtonStyle(_extractButton, isPrimary: true);
-        
-        _extractButton.Pressed += Extract;
+
+        _extractButton.Pressed += OnExtractPressed;
         _hudCanvas.AddChild(_extractButton);
+
+        // W3: emergency-extraction confirm. Free extraction happens only on a
+        // supply anchor; anywhere else the party straggles home at real cost.
+        _emergencyConfirm = new ConfirmationDialog
+        {
+            Title = "Emergency Extraction",
+            DialogText = "You are away from any supply anchor. The party abandons\n" +
+                         "the field and straggles home overland:\n\n" +
+                         "  · One full lunation passes before you reach the campus.\n" +
+                         "  · Every companion risks injury — or worse — on the road.\n\n" +
+                         "Spoils and discoveries are kept. Extract anyway?",
+            OkButtonText = "Extract",
+        };
+        _emergencyConfirm.Confirmed += EmergencyExtract;
+        _hudCanvas.AddChild(_emergencyConfirm);
 
         // Ledger button (C3), stacked under Extract.
         _ledgerButton = new Button
@@ -1391,16 +1563,23 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _hpLabel.Text = $"HP: {CurrentHP} / {MaxHP}";
         _hpLabel.Modulate = CurrentHP > MaxHP / 3 ? Colors.White : UITheme.OverworldLowResourceWarning;
 
-        int explored = 0;
-        foreach (var h in _grid.Hexes.Values)
-            if (h.Fog == OverworldHex.FogState.Revealed)
-                explored++;
-        _windowLabel.Text = $"Window explored: {explored} / {_grid.Hexes.Count}";
+        // W3: supply readout replaces the old fixed-window explored counter
+        // (the loaded set now slides and grows — a ratio over it is noise).
+        int supplyDist = SupplyDistanceAt(_party.CurrentCoord);
+        int supplyBand = SupplyBandAt(_party.CurrentCoord);
+        _windowLabel.Text = supplyBand == 0
+            ? $"Supply: in range ({supplyDist}/{SupplyRange})"
+            : $"Supply: {supplyDist - SupplyRange} beyond the line (−{supplyBand * LeashDrainPerBand} HP/step)";
+        _windowLabel.Modulate = supplyBand == 0 ? Colors.White : UITheme.OverworldLowResourceWarning;
 
         if (_grid.Hexes.TryGetValue(_party.CurrentCoord, out var cur))
             _windowLabel.Text += $"  |  {cur.Terrain}";
         string curKingdom = KingdomIdAt(_party.CurrentCoord);
         _windowLabel.Text += $"  |  {(string.IsNullOrEmpty(curKingdom) ? "Unclaimed" : KingdomDisplayName(curKingdom))}";
+
+        // W3: the button tells the truth about which extraction you'd get.
+        if (_extractButton != null && !ExpeditionComplete)
+            _extractButton.Text = OnSupplyAnchor() ? "Extract" : "Emergency Extract";
     }
 
     private void ShowInfo(string message)
@@ -1510,8 +1689,77 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     /// <summary>Map a stored grid-local coord through the window (identity — the
-    /// window rebuild uses the same staging point, so local coords are stable).</summary>
+    /// window rebuild uses the same staging point, so local coords are stable
+    /// even across slides: the local frame is a fixed translation of world axial).</summary>
     private Vector2I GridLocalOf(Vector2I savedLocal) => savedLocal;
+
+    // ════════════════════════════════════════════════════════════════════
+    // W1: sliding window · W3: supply line
+    // ════════════════════════════════════════════════════════════════════
+
+    /// <summary>Slide the loaded window so it is centered on a grid-local
+    /// coord: stream in tiles entering the load radius, free tiles beyond the
+    /// unload radius. Patrols whose tiles unload freeze in place automatically
+    /// (their passability/visibility checks fail on missing hexes) and resume
+    /// when the shard returns — the simulation LOD is implicit.</summary>
+    private void RecenterWindow(Vector2I centerLocal)
+    {
+        if (!_window.TryLocalToWorld(centerLocal, out int col, out int row))
+            return;
+        var (added, removed) = _window.StreamTo(_grid, col, row);
+        _windowCenterLocal = centerLocal;
+        if (PlayerSession.DebugMode && (added > 0 || removed > 0))
+            GD.Print($"[Window] Slide → ({col},{row}): +{added}/−{removed} tiles, " +
+                     $"{_grid.Hexes.Count} live.");
+    }
+
+    /// <summary>Hex distance from a grid-local coord to the NEAREST supply
+    /// anchor: this expedition's staging tile, or any Available staging point
+    /// (settlements, secured outposts/seats — including ones secured this
+    /// run, which extend the line as you push).</summary>
+    private int SupplyDistanceAt(Vector2I local)
+    {
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return 0;
+
+        int best = _world.HexDistance(col, row, _stagingCol, _stagingRow);
+        foreach (var sp in _world.StagingPoints)
+        {
+            if (!sp.Available)
+                continue;
+            int d = _world.HexDistance(col, row, sp.X, sp.Y);
+            if (d < best)
+                best = d;
+        }
+        return best;
+    }
+
+    /// <summary>Leash band at a grid-local coord: 0 within SupplyRange of the
+    /// nearest anchor, then 1 per LeashBandWidth hexes beyond, capped at
+    /// LeashBandCap. Drain per step = band × LeashDrainPerBand.</summary>
+    private int SupplyBandAt(Vector2I local)
+    {
+        int over = SupplyDistanceAt(local) - SupplyRange;
+        if (over <= 0)
+            return 0;
+        return Mathf.Min(LeashBandCap, 1 + (over - 1) / Mathf.Max(1, LeashBandWidth));
+    }
+
+    /// <summary>True when the party stands ON a supply anchor tile — the
+    /// staging tile or any Available staging point. Free extraction is only
+    /// offered here (W3 ruling); anywhere else is an emergency extraction.</summary>
+    private bool OnSupplyAnchor()
+    {
+        if (_party == null ||
+            !_window.TryLocalToWorld(_party.CurrentCoord, out int col, out int row))
+            return false;
+        if (col == _stagingCol && row == _stagingRow)
+            return true;
+        foreach (var sp in _world.StagingPoints)
+            if (sp.Available && sp.X == col && sp.Y == row)
+                return true;
+        return false;
+    }
 
     private void RevealAllFog()
     {
@@ -1921,6 +2169,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         int hw = EquipmentLoadout.PartyHazardWard();
         if (cw > 0 || hw > 0)
             GD.Print($"[PartyResist] CorruptionWard {cw}, HazardWard {hw} (+ Pathfinder per-terrain).");
+
+        // W3 readout — the supply-line terms this expedition operates under.
+        GD.Print($"[PartyResist] Supply range {SupplyRange} from the nearest anchor; beyond it " +
+                 $"+{LeashDrainPerBand} HP/step per {LeashBandWidth} hexes (cap {LeashBandCap} bands). " +
+                 "Wards do not apply to leash drain.");
     }
 
     private void EnsureEncounterRouter()
