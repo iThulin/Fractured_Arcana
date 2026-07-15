@@ -246,6 +246,29 @@ public partial class HexGridManager : Node3D
                     mm.SetInstanceCustomData(i, col[i]); // tint -> INSTANCE_CUSTOM
             }
 
+            // --- Explicit visibility AABB ---
+            // Same reasoning as the grass/canopy fields: Godot's auto-computed
+            // MultiMesh AABB is unreliable for world-space scattered instances —
+            // the whole field frustum-culls as a single unit on a small camera
+            // turn, so the rock layer vanishes in one pop at the screen edge.
+            // Build bounds from the actual instance origins and grow by mesh
+            // extent and the scale band (rocks don't sway, so no wind margin).
+            Vector3 mn = tf[0].Origin;
+            Vector3 mx = mn;
+            for (int i = 0; i < tf.Count; i++)
+            {
+                Vector3 o = tf[i].Origin;
+                mn.X = Mathf.Min(mn.X, o.X);
+                mn.Y = Mathf.Min(mn.Y, o.Y);
+                mn.Z = Mathf.Min(mn.Z, o.Z);
+                mx.X = Mathf.Max(mx.X, o.X);
+                mx.Y = Mathf.Max(mx.Y, o.Y);
+                mx.Z = Mathf.Max(mx.Z, o.Z);
+            }
+            float meshExtent = variantMeshes[v].GetAabb().Size.Length();
+            float grow = Mathf.Max(2.0f, meshExtent * RockScale * (1f + RockScaleJitter) + 1.0f);
+            mm.CustomAabb = new Aabb(mn, mx - mn).Grow(grow);
+
             var mmi = new MultiMeshInstance3D
             {
                 Name = $"RockPropField_{v}",

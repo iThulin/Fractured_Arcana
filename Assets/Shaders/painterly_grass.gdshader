@@ -3,11 +3,15 @@ shader_type spatial;
 // COMPATIBILITY FALLBACK: if grass renders black on the GL Compatibility
 // backend, delete light() and add `diffuse_toon` to render_mode.
 //
-// alpha_to_coverage lets the distance-fade alpha resolve against MSAA samples
-// (smooth, no transparency sorting). If your renderer ignores it and far grass
-// pops instead of fading, flip `use_dither_fade` ON to use ordered dithering
-// instead (works everywhere, costs a faint grain that distance hides).
-render_mode cull_disabled, specular_disabled, alpha_to_coverage;
+// v7.2: FULLY OPAQUE — no ALPHA writes, no alpha_to_coverage. Any ALPHA usage
+// dropped the whole field into the transparent pass on GL Compatibility (no
+// depth writes, per-mesh/per-buffer-order sorting), so blades scattered later
+// in the MultiMesh buffer (tile by tile) painted OVER nearer tiles' blades —
+// the "grass cut along the hex lip" bug. All fading (distance + near) now
+// resolves through ordered Bayer dithering with `discard`, which keeps the
+// material opaque and depth-written, so blades sort per-fragment against
+// everything on every backend.
+render_mode cull_disabled, specular_disabled;
 
 // ============================================================
 //  painterly_grass.gdshader  (v7 — synced wind shimmer + per-instance height)
@@ -31,6 +35,18 @@ render_mode cull_disabled, specular_disabled, alpha_to_coverage;
 //   - stiffness_from_instance_height: normalise blade height PER MESH from
 //     MultiMesh custom data (INSTANCE_CUSTOM.r). The spawner already writes each
 //     variant's object-space height there. Off = behaves exactly like v6.
+//
+//  v7.1 addition (default OFF — inert until toggled):
+//   - use_near_fade: dissolve blades within near_fade_start..near_fade_end of
+//     the camera, so a low camera never has giant screen-filling blades
+//     clipping at the frame edges.
+//
+//  v7.2 (2026-07-14): OPAQUE REWRITE. Removed alpha_to_coverage and all ALPHA
+//  writes; distance + near fade resolve exclusively through Bayer-dither
+//  discard. Root cause: ALPHA usage classified the material TRANSPARENT on GL
+//  Compatibility (no depth write, buffer-order blending), so later-scattered
+//  tiles' blades overwrote nearer tiles' blades along tile-edge silhouettes.
+//  use_dither_fade is deprecated and ignored.
 // ============================================================
 
 // ---- Multi-stop height gradient ----
@@ -216,7 +232,7 @@ group_uniforms distance_fade;
 /** Fade far blades out instead of letting them alias into shimmering noise. */
 uniform bool  use_distance_fade = true;
 
-/** Use ordered dithering instead of alpha_to_coverage. Turn ON if your backend ignores alpha_to_coverage and far grass pops instead of fading. */
+/** DEPRECATED (v7.2): dithered discard is now the only fade path — writing ALPHA put the field in the transparent pass on GL Compatibility and caused the tile-edge overwrite bug. Kept only so existing materials load without warnings; the value is ignored. */
 uniform bool  use_dither_fade = false;
 
 /** Camera distance (world units) where blades begin fading. */
@@ -224,6 +240,18 @@ uniform float fade_start : hint_range(1.0, 80.0) = 18.0;
 
 /** Camera distance (world units) where blades are fully gone. */
 uniform float fade_end : hint_range(1.0, 120.0) = 40.0;
+
+// ---- Near-camera fade (dissolve blades the camera is about to touch) ----
+group_uniforms near_fade;
+
+/** Fade blades out as they approach the camera. Without this, when the camera pitches low into the field, blades centimetres from the lens render as giant flat green shapes that clip against the screen edges and lunge in/out of the frustum as you pan or as the wind sways them. Resolves through the same alpha_to_coverage / dither path as the distance fade. */
+uniform bool  use_near_fade = false;
+
+/** Camera distance (world units) at which blades become fully visible. Keep comfortably above near_fade_end. */
+uniform float near_fade_start : hint_range(0.1, 12.0) = 2.8;
+
+/** Camera distance (world units) at or below which a blade is fully gone. */
+uniform float near_fade_end : hint_range(0.0, 10.0) = 1.1;
 
 // ---- Atmospheric depth tint (distant grass drifts toward haze) ----
 group_uniforms atmospheric_depth;
@@ -448,25 +476,22 @@ void fragment()
         NORMAL_MAP_DEPTH = normal_strength;
     }
 
-    // 8. Distance fade — far blades fade instead of aliasing into noise.
+    // 8. Distance + near fade — far blades dissolve instead of aliasing into
+    //    noise; near blades dissolve before the camera is IN the grass, where
+    //    a single blade otherwise fills the screen as a giant flat shape
+    //    clipped by the frame edge.
+    //    v7.2: BOTH resolve via ordered Bayer dithering with discard, and
+    //    ALPHA is never written — see the render_mode note at the top. The
+    //    material must stay opaque or tile-order overwrites come back.
+    float fade = 1.0;
     if (use_distance_fade)
-    {
-        float fade = 1.0 - smoothstep(fade_start, fade_end, v_view_dist);
-        if (use_dither_fade)
-        {
-            if (fade < dither_bayer(FRAGCOORD.xy))
-                discard;
-            ALPHA = 1.0;
-        }
-        else
-        {
-            ALPHA = fade; // resolved by alpha_to_coverage against MSAA samples
-        }
-    }
-    else
-    {
-        ALPHA = 1.0;
-    }
+        fade = 1.0 - smoothstep(fade_start, fade_end, v_view_dist);
+    if (use_near_fade)
+        fade *= smoothstep(near_fade_end,
+                           max(near_fade_start, near_fade_end + 0.01), v_view_dist);
+
+    if (fade < 1.0 && fade < dither_bayer(FRAGCOORD.xy))
+        discard;
 }
 
 void light()

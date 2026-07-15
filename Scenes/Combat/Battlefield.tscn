@@ -26,7 +26,7 @@
 [ext_resource type="ArrayMesh" uid="uid://dso7537ufeda4" path="res://Assets/Terrain/PainterlyGrass/Tall Grass.tres" id="15_cm01p"]
 [ext_resource type="Script" uid="uid://dob22fy125iys" path="res://Scripts/Systems/Combat/Terrain/GrassMeshVariant.cs" id="16_6m6xa"]
 [ext_resource type="ArrayMesh" uid="uid://bv611trboi78r" path="res://Assets/Terrain/Painterly_Rocks/Rock_2.tres" id="16_q7oa6"]
-[ext_resource type="PackedScene" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
+[ext_resource type="PackedScene" uid="uid://cl1s1lbvr48m" path="res://Scenes/UI/CombatUI.tscn" id="16_tfvp6"]
 [ext_resource type="ArrayMesh" uid="uid://bnsgay2w2a4af" path="res://Assets/Terrain/Painterly_Rocks/Rock_3.tres" id="17_onrkg"]
 [ext_resource type="ArrayMesh" uid="uid://dqpvqfq1puuv1" path="res://Assets/Terrain/Painterly_Rocks/Rock_4.tres" id="18_6jt2h"]
 [ext_resource type="ArrayMesh" uid="uid://cffmwxp25vmf7" path="res://Assets/Terrain/Painterly_Rocks/Rock_5.tres" id="19_hodjo"]
@@ -36,6 +36,7 @@
 [ext_resource type="ArrayMesh" uid="uid://67powmk7dj6h" path="res://Assets/Terrain/Painterly_Rocks/Rock_9.tres" id="23_3oinc"]
 [ext_resource type="Material" uid="uid://brf6b5tpj6geu" path="res://Assets/Materials/PainterlyMaterials/Painterly_rocks.tres" id="24_k1fpm"]
 [ext_resource type="Script" uid="uid://dh1cdr75p3xg1" path="res://Scripts/Systems/Combat/Terrain/CanopyOcclusionManager.cs" id="29_6m6xa"]
+[ext_resource type="Script" uid="uid://dt2tyjio5prr8" path="res://Scripts/Systems/Combat/Core/MovementZoneRenderer.cs" id="30_q7oa6"]
 
 [sub_resource type="Resource" id="Resource_6jt2h"]
 script = ExtResource("16_6m6xa")
@@ -45,6 +46,7 @@ ClumpInfluence = 1.0
 ClumpCoverage = 0.35
 ScaleMin = 0.25
 ScaleMax = 0.38
+AllowOnGrass = false
 AllowOnForest = false
 metadata/_custom_type_script = "uid://dob22fy125iys"
 
@@ -126,15 +128,16 @@ GridWidth = 15
 GridHeight = 15
 HexRadius = 1.025
 LayoutType = 1
-Theme = 9
 TerrainDensity = 0.4
 TerrainRoughness = 0.4
 HeightVariation = 1.0
 HexTileScene3D = ExtResource("7_vjrxi")
 RockObstacleScene = ExtResource("8_qd0yx")
-TerrainSolidFactor = 0.9
-TerrainTerraceSteps = 1
+TerrainSolidFactor = 0.6000000000000001
+TerrainTerraceSteps = 2
 TerrainMaterialOverride = ExtResource("9_7tp1w")
+GrassNoiseAmp = 0.25
+GrassNoiseFreq = 0.4
 ThemeSun = NodePath("../DirectionalLight3D")
 ThemeWorldEnvironment = NodePath("../WorldEnvironment")
 FlowerMeshes = Array[Mesh]([ExtResource("9_nvl2j"), ExtResource("10_k1fpm"), ExtResource("11_7tp1w")])
@@ -148,6 +151,7 @@ PainterlyGrassMaterial = ExtResource("13_cm01p")
 GrassMeshVariants = Array[Object]([SubResource("Resource_6jt2h"), SubResource("Resource_16blo")])
 PainterlyGrassMesh = ExtResource("14_16blo")
 GrassDebugLog = true
+GrassBladesPerTile = 300
 RockMeshes = Array[Mesh]([ExtResource("15_6m6xa"), ExtResource("16_q7oa6"), ExtResource("17_onrkg"), ExtResource("18_6jt2h"), ExtResource("19_hodjo"), ExtResource("20_ar26w"), ExtResource("21_xj70s"), ExtResource("22_a00u1"), ExtResource("23_3oinc")])
 RockMaterial = ExtResource("24_k1fpm")
 RocksPerTile = 6
@@ -157,6 +161,9 @@ RockBareBias = 1.0
 
 [node name="CanopyOcclusionManager" type="Node3D" parent="HexGridManager" unique_id=1562116521]
 script = ExtResource("29_6m6xa")
+
+[node name="MovementZoneRenderer" type="Node3D" parent="HexGridManager" unique_id=869605721]
+script = ExtResource("30_q7oa6")
 
 [node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=1378590758]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)

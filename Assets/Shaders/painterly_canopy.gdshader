@@ -5,10 +5,15 @@ shader_type spatial;
 //
 // cull_disabled: canopy blobs read as soft volumes, and two-sided abs(NdotL)
 // lighting keeps away-facing leaf masses from clamping to black (same reasoning
-// as the grass). alpha_to_coverage resolves BOTH the distance fade AND the
-// unit-occlusion cutout against MSAA samples — no transparency sorting. If your
-// backend ignores it and canopy pops instead of fading, flip use_dither_fade ON.
-render_mode cull_disabled, specular_disabled, alpha_to_coverage;
+// as the grass).
+//
+// v1.1 (2026-07-14): FULLY OPAQUE — no ALPHA writes, no alpha_to_coverage.
+// Same root cause as grass v7.2: any ALPHA usage classifies the material
+// TRANSPARENT on GL Compatibility (no depth writes, buffer-order blending), so
+// later-scattered canopy overwrote nearer geometry along scatter-order
+// silhouettes. Distance fade AND the unit-occlusion cutout both resolve via
+// Bayer-dither discard, which keeps the material opaque and depth-written.
+render_mode cull_disabled, specular_disabled;
 
 // ============================================================
 //  painterly_canopy.gdshader  (v1)
@@ -196,7 +201,7 @@ group_uniforms distance_fade;
 /** Fade far canopy out instead of letting it alias into shimmering noise. */
 uniform bool  use_distance_fade = true;
 
-/** Use ordered dithering instead of alpha_to_coverage. Turn ON if your backend ignores alpha_to_coverage. */
+/** DEPRECATED (v1.1): dithered discard is now the only fade path — writing ALPHA put the canopy in the transparent pass on GL Compatibility (the tile-order overwrite bug, see grass v7.2). Kept only so existing materials load without warnings; the value is ignored. */
 uniform bool  use_dither_fade = false;
 
 /** Camera distance where canopy begins fading. */
@@ -388,23 +393,18 @@ void fragment()
         occ_alpha = 1.0 - clear;
     }
 
-    // 9. Distance fade, combined with the cutout. Both resolve via coverage/dither.
+    // 9. Distance fade, combined with the cutout. v1.1: both resolve via
+    //    ordered Bayer dithering with discard, and ALPHA is never written —
+    //    see the render_mode note at the top. The material must stay opaque
+    //    or scatter-order overwrites come back (grass v7.2 bug).
     float fade = 1.0;
     if (use_distance_fade)
         fade = 1.0 - smoothstep(fade_start, fade_end, v_view_dist);
 
     float final_alpha = fade * occ_alpha;
 
-    if (use_dither_fade)
-    {
-        if (final_alpha < dither_bayer(FRAGCOORD.xy))
-            discard;
-        ALPHA = 1.0;
-    }
-    else
-    {
-        ALPHA = final_alpha; // resolved by alpha_to_coverage against MSAA samples
-    }
+    if (final_alpha < 1.0 && final_alpha < dither_bayer(FRAGCOORD.xy))
+        discard;
 }
 
 void light()

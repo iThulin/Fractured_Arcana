@@ -85,6 +85,21 @@ public partial class HexGridManager : Node3D
     /** Clump-noise value below which ground is left fully bare (hard pockets). 0 = no hard bare spots. */
     [Export(PropertyHint.Range, "0,1,0.02")] public float GrassBareThreshold = 0.3f;
 
+    /** Tile span of a grass chunk: N×N axial tiles share one MultiMesh per variant. Chunking (vs one map-wide MultiMesh) gives the engine real frustum-culling granularity and gives the LOD controller something to thin per distance. Smaller = tighter culling + finer LOD but more draw calls. */
+    [Export(PropertyHint.Range, "1,8,1")] public int GrassChunkTiles = 3;
+
+    /** Distance-density LOD: far chunks draw a uniform random subsample of their blades (via VisibleInstanceCount), saving the vertex work the dither fade alone cannot (discarded fragments still cost their vertices). */
+    [Export] public bool GrassLodEnabled = true;
+
+    /** Camera distance up to which a chunk draws 100% of its blades. Keep at or below the grass material's fade_start so LOD thinning hides inside the dither fade. */
+    [Export(PropertyHint.Range, "4,80,1")] public float GrassLodFullDistance = 24f;
+
+    /** Camera distance at which a chunk draws ZERO blades. MUST be >= the grass material's fade_end — the dither fade has fully dissolved blades by then, so culling them is visually free. */
+    [Export(PropertyHint.Range, "8,120,1")] public float GrassLodEndDistance = 55f;
+
+    /** Blade-fraction floor a chunk tapers to as it approaches GrassLodEndDistance (before the zero cut). */
+    [Export(PropertyHint.Range, "0.05,1.0,0.05")] public float GrassLodMinFraction = 0.35f;
+
     private const string PainterlyGrassGroup = "painterly_grass";
     private Material _painterlyGrassMaterialCache;
 
@@ -150,10 +165,29 @@ public partial class HexGridManager : Node3D
 
         int variantCount = meshes.Count;
 
-        // Per-variant transform buckets.
-        var buckets = new List<Transform3D>[variantCount];
-        for (int v = 0; v < variantCount; v++)
-            buckets[v] = new List<Transform3D>();
+        // Per-CHUNK, per-variant transform buckets (2026-07-15). A chunk is an
+        // N×N-tile block; each non-empty (chunk, variant) pair becomes its own
+        // MultiMeshInstance3D with a tight CustomAabb, so offscreen chunks
+        // frustum-cull for real and the LOD controller can thin far chunks.
+        // NOTE: bucketing by tile does NOT change any RNG draw order — blade
+        // positions stay byte-identical for a given MapSeed.
+        int chunkSpan = Mathf.Max(1, GrassChunkTiles);
+        var chunkBuckets = new Dictionary<Vector2I, List<Transform3D>[]>();
+
+        List<Transform3D>[] BucketsFor(Vector2I axial)
+        {
+            var key = new Vector2I(
+                Mathf.FloorToInt(axial.X / (float)chunkSpan),
+                Mathf.FloorToInt(axial.Y / (float)chunkSpan));
+            if (!chunkBuckets.TryGetValue(key, out var arr))
+            {
+                arr = new List<Transform3D>[variantCount];
+                for (int v = 0; v < variantCount; v++)
+                    arr[v] = new List<Transform3D>();
+                chunkBuckets[key] = arr;
+            }
+            return arr;
+        }
 
         // Eligible variant indices per terrain. Weights are now POSITION-
         // dependent (clump gating), so the cumulative table can't be precomputed
@@ -313,6 +347,7 @@ public partial class HexGridManager : Node3D
             // X/Z come from the tile centre; Y is sampled per-blade below so
             // the carpet hugs the blended mesh instead of forming a flat shelf.
             Vector3 top = tile.TileView.GlobalPosition;
+            var tileBuckets = BucketsFor(tile.Axial);
 
             for (int i = 0; i < count; i++)
             {
@@ -364,20 +399,27 @@ public partial class HexGridManager : Node3D
                 var basis = new Basis(Vector3.Up, yaw)
                     .Scaled(new Vector3(Mathf.Max(0.05f, ws), Mathf.Max(0.05f, hs), Mathf.Max(0.05f, ws)));
 
-                buckets[vIdx].Add(new Transform3D(basis, pos));
+                tileBuckets[vIdx].Add(new Transform3D(basis, pos));
             }
         }
 
         int totalBlades = 0;
-        for (int v = 0; v < variantCount; v++)
-            totalBlades += buckets[v].Count;
+        var variantTotals = new int[variantCount];
+        foreach (var lists in chunkBuckets.Values)
+        {
+            for (int v = 0; v < variantCount; v++)
+            {
+                variantTotals[v] += lists[v].Count;
+                totalBlades += lists[v].Count;
+            }
+        }
 
         if (GrassDebugLog)
         {
             var sb = new System.Text.StringBuilder("[PainterlyGrass] blade counts: ");
             for (int v = 0; v < variantCount; v++)
-                sb.Append($"#{v}={buckets[v].Count} ");
-            sb.Append($"(total {totalBlades})");
+                sb.Append($"#{v}={variantTotals[v]} ");
+            sb.Append($"(total {totalBlades}, {chunkBuckets.Count} chunks)");
             GD.Print(sb.ToString());
         }
 
@@ -392,88 +434,133 @@ public partial class HexGridManager : Node3D
         // disabled instance-height mode whenever a slot was empty -> never again.
         const bool writeHeights = true;
 
-        // One MultiMeshInstance3D per non-empty variant. All share the single
-        // grass material so wind + mass tint stay in phase across variants.
-        for (int v = 0; v < variantCount; v++)
+        // Optional distance-density LOD controller. Rebuilt with the field on
+        // every spawn (it lives in the same group, so ClearPainterlyGrass frees
+        // it); each chunk MultiMesh registers below and the controller thins
+        // far chunks by lowering VisibleInstanceCount on a slow tick.
+        GrassLodController lod = null;
+        if (GrassLodEnabled)
         {
-            var list = buckets[v];
-            if (list.Count == 0)
-                continue;
-
-            bool tinted = tints[v] != Colors.White;
-
-            // Object-space height of THIS variant's mesh. Written per-instance
-            // (custom-data .r) so the shader can normalise the height gradient
-            // PER MESH — a tall and a short mesh each get a correct 0->1 ramp.
-            // Also drives the AABB padding below so tall meshes get a tall box.
-            float meshHeight = meshes[v].GetAabb().Size.Y;
-            if (meshHeight <= 0.0001f)
-                meshHeight = 1.0f;
-
-            // On the Compatibility renderer, enabling custom data but NOT colors
-            // leaves the shader's COLOR builtin reading an uninitialised instance
-            // slot (black) -> ALBEDO = col * COLOR collapses to 0 and every blade
-            // renders black regardless of base_color. So whenever custom data is
-            // on we MUST also enable AND explicitly fill the colour slot
-            // (white = inert tint hook). Pair them, always.
-            bool useColors = tinted || writeHeights;
-            Color instanceColor = tinted ? tints[v] : Colors.White;
-
-            var mm = new MultiMesh
+            lod = new GrassLodController
             {
-                TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-                Mesh = meshes[v],
-                UseColors = useColors,          // both flags must precede InstanceCount
-                UseCustomData = writeHeights
+                Name = "GrassLodController",
+                FullDistance = GrassLodFullDistance,
+                EndDistance = GrassLodEndDistance,
+                MinFraction = GrassLodMinFraction
             };
-            mm.InstanceCount = list.Count;
+            lod.AddToGroup(PainterlyGrassGroup);
+            parent.AddChild(lod);
+        }
 
-            var customHeight = new Color(meshHeight, 0f, 0f, 0f);
-            for (int i = 0; i < list.Count; i++)
+        // One MultiMeshInstance3D per non-empty (chunk, variant) pair. All share
+        // the single grass material so wind + mass tint stay in phase everywhere.
+        foreach (var kv in chunkBuckets)
+        {
+            Vector2I chunkKey = kv.Key;
+            var lists = kv.Value;
+
+            for (int v = 0; v < variantCount; v++)
             {
-                mm.SetInstanceTransform(i, list[i]);
-                if (useColors)
-                    mm.SetInstanceColor(i, instanceColor);
-                if (writeHeights)
-                    mm.SetInstanceCustomData(i, customHeight);
+                var list = lists[v];
+                if (list.Count == 0)
+                    continue;
+
+                // Deterministic per-chunk shuffle of the instance buffer, so any
+                // PREFIX of it is a spatially uniform subsample of the chunk —
+                // that is what lets the LOD controller thin a chunk just by
+                // lowering VisibleInstanceCount. Positions are untouched. Only
+                // safe because the grass shader is OPAQUE (v7.2): draw order
+                // within the buffer no longer affects the image.
+                var shuffleRng = new RandomNumberGenerator
+                {
+                    Seed = (ulong)unchecked(MapSeed
+                        ^ (chunkKey.X * 73856093)
+                        ^ (chunkKey.Y * 19349663)
+                        ^ (v * 83492791))
+                };
+                for (int i = list.Count - 1; i > 0; i--)
+                {
+                    int j = shuffleRng.RandiRange(0, i);
+                    (list[i], list[j]) = (list[j], list[i]);
+                }
+
+                bool tinted = tints[v] != Colors.White;
+
+                // Object-space height of THIS variant's mesh. Written per-instance
+                // (custom-data .r) so the shader can normalise the height gradient
+                // PER MESH — a tall and a short mesh each get a correct 0->1 ramp.
+                // Also drives the AABB padding below so tall meshes get a tall box.
+                float meshHeight = meshes[v].GetAabb().Size.Y;
+                if (meshHeight <= 0.0001f)
+                    meshHeight = 1.0f;
+
+                // On the Compatibility renderer, enabling custom data but NOT colors
+                // leaves the shader's COLOR builtin reading an uninitialised instance
+                // slot (black) -> ALBEDO = col * COLOR collapses to 0 and every blade
+                // renders black regardless of base_color. So whenever custom data is
+                // on we MUST also enable AND explicitly fill the colour slot
+                // (white = inert tint hook). Pair them, always.
+                bool useColors = tinted || writeHeights;
+                Color instanceColor = tinted ? tints[v] : Colors.White;
+
+                var mm = new MultiMesh
+                {
+                    TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+                    Mesh = meshes[v],
+                    UseColors = useColors,          // both flags must precede InstanceCount
+                    UseCustomData = writeHeights
+                };
+                mm.InstanceCount = list.Count;
+
+                var customHeight = new Color(meshHeight, 0f, 0f, 0f);
+                for (int i = 0; i < list.Count; i++)
+                {
+                    mm.SetInstanceTransform(i, list[i]);
+                    if (useColors)
+                        mm.SetInstanceColor(i, instanceColor);
+                    if (writeHeights)
+                        mm.SetInstanceCustomData(i, customHeight);
+                }
+
+                // --- Explicit visibility AABB (per chunk) ---
+                // Godot's auto-computed MultiMesh AABB is unreliable for world-space
+                // scattered grass (whole field culls as one unit on a small camera
+                // turn), so bounds are built from the actual instance origins. The
+                // grow margin covers blade height × jitter plus wind sway — kept
+                // TIGHT here (unlike the old map-wide box) so chunk frustum culling
+                // and LOD distances stay accurate.
+                Vector3 mn = list[0].Origin;
+                Vector3 mx = mn;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    Vector3 o = list[i].Origin;
+                    mn.X = Mathf.Min(mn.X, o.X);
+                    mn.Y = Mathf.Min(mn.Y, o.Y);
+                    mn.Z = Mathf.Min(mn.Z, o.Z);
+                    mx.X = Mathf.Max(mx.X, o.X);
+                    mx.Y = Mathf.Max(mx.Y, o.Y);
+                    mx.Z = Mathf.Max(mx.Z, o.Z);
+                }
+                // Use the real mesh height (not GrassBladeHeight, which only sizes
+                // the procedural blade) so imported tall meshes get a correct box.
+                float worldBladeHeight = meshHeight * GrassScale * sMax[v];
+                float grow = Mathf.Max(2.0f, worldBladeHeight * (1f + GrassHeightJitter) + 0.8f);
+                mm.CustomAabb = new Aabb(mn, mx - mn).Grow(grow);
+
+                var mmi = new MultiMeshInstance3D
+                {
+                    Name = $"PainterlyGrass_c{chunkKey.X}_{chunkKey.Y}_v{v}",
+                    Multimesh = mm,
+                    MaterialOverride = mat,
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+                };
+                mmi.AddToGroup(PainterlyGrassGroup);
+
+                parent.AddChild(mmi);
+                mmi.GlobalTransform = Transform3D.Identity; // instance transforms are world-space
+
+                lod?.Register(mmi, mm.CustomAabb);
             }
-
-            // --- Explicit visibility AABB ---
-            // Godot's auto-computed MultiMesh AABB is unreliable for world-space
-            // scattered grass: the whole instance frustum-culls as a single unit
-            // on a small camera rotation (tall grass vanishing on a ~15° turn),
-            // and vertex-shader wind sway pushes blades past whatever box it did
-            // compute. Build bounds from the actual instance origins and grow
-            // generously to cover blade height, per-variant scale, and sway.
-            Vector3 mn = list[0].Origin;
-            Vector3 mx = mn;
-            for (int i = 0; i < list.Count; i++)
-            {
-                Vector3 o = list[i].Origin;
-                mn.X = Mathf.Min(mn.X, o.X);
-                mn.Y = Mathf.Min(mn.Y, o.Y);
-                mn.Z = Mathf.Min(mn.Z, o.Z);
-                mx.X = Mathf.Max(mx.X, o.X);
-                mx.Y = Mathf.Max(mx.Y, o.Y);
-                mx.Z = Mathf.Max(mx.Z, o.Z);
-            }
-            // Use the real mesh height (not GrassBladeHeight, which only sizes
-            // the procedural blade) so imported tall meshes get a correct box.
-            float worldBladeHeight = meshHeight * GrassScale * sMax[v];
-            float grow = Mathf.Max(4.0f, worldBladeHeight * 2.0f + 2.0f);
-            mm.CustomAabb = new Aabb(mn, mx - mn).Grow(grow);
-
-            var mmi = new MultiMeshInstance3D
-            {
-                Name = $"PainterlyGrassField_{v}",
-                Multimesh = mm,
-                MaterialOverride = mat,
-                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
-            };
-            mmi.AddToGroup(PainterlyGrassGroup);
-
-            parent.AddChild(mmi);
-            mmi.GlobalTransform = Transform3D.Identity; // instance transforms are world-space
         }
     }
 
