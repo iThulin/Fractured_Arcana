@@ -35,7 +35,7 @@
     "targetingType": "Tile",
     "range": 6,
     "effectKey": "identify",
-    "description": "Reveal a visible combat POI's full encounter composition before engaging. (S3)"
+    "description": "Reveal a visible combat site's full composition before engaging — a scout report without stepping onto the hex, and the forces it shows are the forces you fight."
   },
   {
     "id": "ley_tap",

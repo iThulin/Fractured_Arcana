@@ -1313,10 +1313,12 @@ public partial class StrategicView : Node2D
             AnchorBottom = 0.5f,
             GrowHorizontal = Control.GrowDirection.Both,
             GrowVertical = Control.GrowDirection.Both,
-            OffsetLeft = -200,
-            OffsetRight = 200,
-            OffsetTop = -130,
-            OffsetBottom = 130,
+            // S4: widened for the Grimoire preparation section (§4a slots
+            // are chosen at launch — this dialog IS the launch screen).
+            OffsetLeft = -280,
+            OffsetRight = 280,
+            OffsetTop = -215,
+            OffsetBottom = 215,
         };
         panel.AddThemeStyleboxOverride("panel",
             UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Violet));
@@ -1396,6 +1398,9 @@ public partial class StrategicView : Node2D
             vbox.AddChild(warn);
         }
 
+        // S4: Grimoire preparation — §4a prepared slots, chosen at launch.
+        BuildGrimoirePrep(vbox, deploySave);
+
         vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
 
         var buttons = new HBoxContainer();
@@ -1412,6 +1417,144 @@ public partial class StrategicView : Node2D
         UITheme.ApplyButtonStyle(deployBtn, isPrimary: true);
         deployBtn.Pressed += Deploy;
         buttons.AddChild(deployBtn);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // S4: Grimoire preparation (overworld_spell_system §4a / §14-S4)
+    // The deploy dialog is the launch screen, so slot selection lives here:
+    // base 2 prepared slots, 3 for the Adept (Versatility's "+1 slot rides
+    // the S4 prep UI"). Innates and companion-granted spells occupy no
+    // slots and are listed read-only; scrolls show as a satchel summary.
+    // ════════════════════════════════════════════════════════════════════
+
+    private Label _prepHeader;
+    private HFlowContainer _prepFlow;
+
+    private void BuildGrimoirePrep(VBoxContainer vbox, GuildSaveData deploySave)
+    {
+        var cycle = deploySave?.Cycle;
+        var grim = cycle?.Grimoire;
+        if (grim == null)
+            return;
+        OverworldSpellRegistry.EnsureLoaded();
+
+        vbox.AddChild(new HSeparator());
+
+        string school = cycle.SelectedSchool;
+        int slots = 2 + (school == "Adept" ? 1 : 0); // §4a: base 2; Adept 3 (Versatility)
+
+        // Sanitize the persisted loadout: prepared ⊆ known, count ≤ slots.
+        // (Covers unlearned ids from older saves and Adept→other cycles.)
+        grim.PreparedSpellIds.RemoveAll(id => !grim.KnownSpellIds.Contains(id));
+        while (grim.PreparedSpellIds.Count > slots)
+            grim.PreparedSpellIds.RemoveAt(grim.PreparedSpellIds.Count - 1);
+
+        // Innates — always prepared, no slots.
+        var innateNames = new System.Collections.Generic.List<string>();
+        foreach (var innate in OverworldSpellRegistry.InnatesFor(school))
+            innateNames.Add(innate.Name);
+        if (innateNames.Count > 0)
+            AddDeployStat(vbox, "Innate", string.Join(" · ", innateNames));
+
+        // Companion-granted — schools of fielded companions, off-caster tax
+        // noted (waived for the Adept, §7h).
+        var grantedSchools = new System.Collections.Generic.List<string>();
+        foreach (var cid in deploySave.ActivePartyCompanionIds)
+        {
+            var comp = deploySave.Companions.Find(x => x.Id == cid && x.IsRecruited &&
+                                                       !x.IsPermadead && !x.IsInjured);
+            if (comp != null && !string.IsNullOrEmpty(comp.School) &&
+                comp.School != school && !grantedSchools.Contains(comp.School))
+                grantedSchools.Add(comp.School);
+        }
+        if (grantedSchools.Count > 0)
+            AddDeployStat(vbox, "Companion-granted",
+                $"{string.Join(" · ", grantedSchools)} innates " +
+                (school == "Adept" ? "(no tax — Adept)" : "(+1✦ off-school)"));
+
+        // Prepared slots — toggle the loadout from the known list.
+        _prepHeader = new Label();
+        _prepHeader.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        _prepHeader.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        vbox.AddChild(_prepHeader);
+
+        if (grim.KnownSpellIds.Count == 0)
+        {
+            _prepHeader.Text = $"Prepared (0/{slots}) — no spells learned yet. " +
+                               "Lore sites, cordial deals, and the dead all teach.";
+        }
+        else
+        {
+            _prepFlow = new HFlowContainer();
+            _prepFlow.AddThemeConstantOverride("h_separation", 6);
+            _prepFlow.AddThemeConstantOverride("v_separation", 4);
+            vbox.AddChild(_prepFlow);
+            RebuildPrepButtons(grim, slots);
+        }
+
+        // Scroll satchel — read-only summary; scribing lives at the campus.
+        if (grim.ScrollInventory.Count > 0)
+        {
+            var scrollParts = new System.Collections.Generic.List<string>();
+            foreach (var kvp in grim.ScrollInventory)
+                if (kvp.Value > 0 && OverworldSpellRegistry.Get(kvp.Key) != null)
+                    scrollParts.Add($"{OverworldSpellRegistry.Get(kvp.Key).Name} ×{kvp.Value}");
+            if (scrollParts.Count > 0)
+                AddDeployStat(vbox, "Scrolls", string.Join(" · ", scrollParts));
+        }
+    }
+
+    private void RebuildPrepButtons(GrimoireState grim, int slots)
+    {
+        _prepHeader.Text = $"Prepared ({grim.PreparedSpellIds.Count}/{slots}) — click to toggle:";
+        foreach (var child in _prepFlow.GetChildren())
+            child.QueueFree();
+
+        // Stable order: by display name.
+        var known = new System.Collections.Generic.List<OverworldSpellDefinition>();
+        foreach (var id in grim.KnownSpellIds)
+        {
+            var def = OverworldSpellRegistry.Get(id);
+            if (def != null && !def.IsAttunement)
+                known.Add(def);
+        }
+        known.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+
+        foreach (var def in known)
+        {
+            bool prepared = grim.PreparedSpellIds.Contains(def.Id);
+            var btn = new Button
+            {
+                Text = $"{def.Name} · {def.EssenceCost}✦",
+                ToggleMode = true,
+                ButtonPressed = prepared,
+                TooltipText = def.Description,
+            };
+            btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+            UITheme.ApplyButtonStyle(btn, isPrimary: prepared);
+
+            string id = def.Id; // capture per-iteration
+            btn.Toggled += pressed =>
+            {
+                if (pressed)
+                {
+                    if (grim.PreparedSpellIds.Count >= slots)
+                    {
+                        btn.SetPressedNoSignal(false); // slots full — refuse
+                        return;
+                    }
+                    if (!grim.PreparedSpellIds.Contains(id))
+                        grim.PreparedSpellIds.Add(id);
+                }
+                else
+                {
+                    grim.PreparedSpellIds.Remove(id);
+                }
+                SaveManager.MarkDirty(); // Deploy() flushes via SaveIfDirty
+                RebuildPrepButtons(grim, slots);
+            };
+            _prepFlow.AddChild(btn);
+        }
     }
 
     private void AddDeployStat(VBoxContainer parent, string label, string value)

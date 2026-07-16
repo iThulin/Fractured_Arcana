@@ -47,13 +47,20 @@ public static class NegotiationContext
     public static int ReputationDelta = 0;
     public static string FactionId = "";
 
-    public static void SetResult(bool accepted, int gold, int rep, string factionId)
+    /// <summary>S4 (overworld_spell_system §11): spell id taught by a deal
+    /// that closed in the Cordial zone, or "". ExpeditionManager learns it
+    /// on return (KnownSpellIds — persists on the cycle save).</summary>
+    public static string SpellGranted = "";
+
+    public static void SetResult(bool accepted, int gold, int rep, string factionId,
+                                 string spellGranted = "")
     {
         HasResult = true;
         DealAccepted = accepted;
         GoldDelta = gold;
         ReputationDelta = rep;
         FactionId = factionId;
+        SpellGranted = spellGranted;
     }
 
     public static void Clear()
@@ -64,6 +71,7 @@ public static class NegotiationContext
         GoldDelta = 0;
         ReputationDelta = 0;
         FactionId = "";
+        SpellGranted = "";
         EncounterId = "";
         HexCoordKey = "";
         NpcArchetype = "";

@@ -367,4 +367,29 @@ public class NegotiationState
         rep += Zone switch { TensionZone.Cordial => 1, TensionZone.Hostile => -1, _ => 0 };
         return rep;
     }
+
+    /// <summary>S4 (overworld_spell_system §11): the spell this deal teaches,
+    /// or "". A tuition term (SpellId set) grants only when the deal was
+    /// accepted IN THE CORDIAL ZONE — the term's description says exactly
+    /// that, so the gate is legible pre-accept (G5). Hidden spell terms
+    /// count only once revealed/accepted, like every other term.</summary>
+    public string GetSpellOutcome()
+    {
+        if (!DealAccepted || Zone != TensionZone.Cordial)
+            return "";
+        foreach (var term in Terms)
+            if ((!term.IsHidden || term.IsAccepted) && !string.IsNullOrEmpty(term.SpellId))
+                return term.SpellId;
+        return "";
+    }
+
+    /// <summary>S4: does any revealed term carry tuition? (For the result
+    /// panel's "the offer died with the tone" line.)</summary>
+    public bool HasSpellTermOnTable()
+    {
+        foreach (var term in Terms)
+            if ((!term.IsHidden || term.IsAccepted) && !string.IsNullOrEmpty(term.SpellId))
+                return true;
+        return false;
+    }
 }

@@ -62,6 +62,20 @@ public static class OverworldSpellRegistry
         return null;
     }
 
+    /// <summary>S4: every learnable definition — neither innate nor
+    /// Attunement: the 8 school exemplars + the 4 Generals. This IS the
+    /// acquisition pool (§11); sorted by id for stable presentation.</summary>
+    public static List<OverworldSpellDefinition> Learnables()
+    {
+        EnsureLoaded();
+        var result = new List<OverworldSpellDefinition>();
+        foreach (var def in _cache.Values)
+            if (!def.IsInnate && !def.IsAttunement)
+                result.Add(def);
+        result.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+        return result;
+    }
+
     /// <summary>A school's innate spells (excludes the Attunement).</summary>
     public static List<OverworldSpellDefinition> InnatesFor(string school)
     {

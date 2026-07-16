@@ -10,6 +10,12 @@ using System.Collections.Generic;
 //                 Displays encounter tier, terrain type, and a
 //                 tallied enemy roster before the player commits
 //                 to the fight. Two buttons: Engage / Retreat.
+//                 S4: also the Identify seam (overworld_spell
+//                 _system §7b) — ShowIntel() renders the same
+//                 roster read-only from afar: no Engage, Retreat
+//                 relabeled Close, and the stored handlers are
+//                 NOT fired (they belong to a pending on-hex
+//                 encounter, which an intel view must not touch).
 // Layer:          UI
 // Collaborators:  EncounterDefinition.cs (data source),
 //                 UnitRegistry.cs (threat labels/colors),
@@ -172,6 +178,38 @@ public partial class ScoutReportPanel : Control
     /// </param>
     public void Show(EncounterDefinition encounter, string terrainName, int stepCostPaid)
     {
+        _intelMode = false;
+        _titleLabel.Text = "SCOUTING REPORT";
+        _engageButton.Visible = true;
+        _retreatButton.Text = "Retreat";
+        Populate(encounter, terrainName);
+
+        // ── Step note ────────────────────────────────────────────────────
+        _stepNoteLabel.Text = stepCostPaid > 0
+            ? $"You entered this territory ({stepCostPaid} step cost already paid)."
+            : "";
+
+        Visible = true;
+    }
+
+    /// <summary>S4 (Identify): the same report, read from afar — no Engage
+    /// (the party isn't on the hex), Retreat becomes Close, and the stored
+    /// OnEngage/OnRetreat handlers are left untouched and unfired.</summary>
+    public void ShowIntel(EncounterDefinition encounter, string terrainName, string note)
+    {
+        _intelMode = true;
+        _titleLabel.Text = "ARCANE SIGHT";
+        _engageButton.Visible = false;
+        _retreatButton.Text = "Close";
+        Populate(encounter, terrainName);
+        _stepNoteLabel.Text = note ?? "";
+        Visible = true;
+    }
+
+    private bool _intelMode = false;
+
+    private void Populate(EncounterDefinition encounter, string terrainName)
+    {
         _terrainLabel.Text = $"Terrain:  {terrainName}";
         _tierLabel.Text = $"Threat:   {TierLabel(encounter.Tier)}";
 
@@ -226,13 +264,6 @@ public partial class ScoutReportPanel : Control
 
             _enemyList.AddChild(row);
         }
-
-        // ── Step note ────────────────────────────────────────────────────
-        _stepNoteLabel.Text = stepCostPaid > 0
-            ? $"You entered this territory ({stepCostPaid} step cost already paid)."
-            : "";
-
-        Visible = true;
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -242,12 +273,18 @@ public partial class ScoutReportPanel : Control
     private void OnEngagePressed()
     {
         Visible = false;
+        if (_intelMode)
+            return; // unreachable (button hidden) — belt and braces
         OnEngage?.Invoke();
     }
 
     private void OnRetreatPressed()
     {
         Visible = false;
+        // S4: in intel mode the stored handlers belong to a pending on-hex
+        // encounter (or are stale) — an Identify view must not fire them.
+        if (_intelMode)
+            return;
         OnRetreat?.Invoke();
     }
 

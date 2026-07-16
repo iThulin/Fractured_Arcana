@@ -30,7 +30,10 @@ public partial class OverworldHex : Node2D
     public enum FogState { Hidden, Silhouette, Revealed }
     public FogState Fog { get; set; } = FogState.Hidden;
 
-    public enum POIType { None, Combat, Rest, Objective, Narrative, Negotiation, Outpost, Prison }
+    // S4.2: Settlement/Seat appended (world-scale POIs, previously invisible
+    // on the expedition map). APPEND-ONLY — debug ForceNextEncounterType
+    // casts ints to this enum, so existing values must keep their order.
+    public enum POIType { None, Combat, Rest, Objective, Narrative, Negotiation, Outpost, Prison, Settlement, Seat }
     public POIType POI { get; set; } = POIType.None;
     public bool POIConsumed { get; set; } = false;
 
@@ -156,6 +159,17 @@ public partial class OverworldHex : Node2D
         _poiMarker.Visible = showPOI;
         if (showPOI)
         {
+            // S4.2: settlements/seats draw as a larger gold DIAMOND — a home
+            // among the encounter dots. Everything else keeps the small hex.
+            bool civic = POI is POIType.Settlement or POIType.Seat;
+            _poiMarker.Polygon = civic
+                ? new[]
+                  {
+                      new Vector2(0, -HEX_SIZE * 0.42f), new Vector2(HEX_SIZE * 0.32f, 0),
+                      new Vector2(0, HEX_SIZE * 0.42f), new Vector2(-HEX_SIZE * 0.32f, 0),
+                  }
+                : MakeHexPoints(HEX_SIZE * 0.3f);
+
             _poiMarker.Color = POI switch
             {
                 POIType.Combat => UITheme.POICombat,
@@ -165,6 +179,8 @@ public partial class OverworldHex : Node2D
                 POIType.Negotiation => UITheme.POINegotiation,
                 POIType.Outpost => UITheme.POIOutpost,
                 POIType.Prison => UITheme.POICombat, // reuse combat's hostile hue until a bespoke prison color is authored
+                POIType.Settlement => UITheme.Gold,
+                POIType.Seat => UITheme.Gold,
                 _ => Colors.White
             };
         }

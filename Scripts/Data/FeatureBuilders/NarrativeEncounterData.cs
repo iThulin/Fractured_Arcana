@@ -44,6 +44,12 @@ public class EncounterChoice
     public int HPDelta = 0;
     public int StepDelta = 0;
 
+    /// <summary>S4 (overworld_spell_system §11): an overworld spell id this
+    /// choice teaches — the authored half of the lore-POI acquisition path
+    /// (the other half is ExpeditionManager's terrain-flavored bonus roll,
+    /// which only runs when this is empty). Already-known spells no-op.</summary>
+    public string SpellReward = "";
+
     // Phase 3+ tracking
     public List<string> SetFlags = new();
 

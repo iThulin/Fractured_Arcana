@@ -101,6 +101,38 @@ public partial class NegotiationManager : Control
             NegotiationContext.TensionShift = 0;
         }
 
+        // S4 (overworld_spell_system §11): the social route to spells. The
+        // loader caches SHARED instances, so first strip any stale tuition
+        // term (a previous table's offer may name a spell since learned),
+        // then maybe inject a fresh one for a learnable the guild lacks.
+        // Granted only if the deal closes in the Cordial zone — the term's
+        // text says so up front (G5), and NegotiationState enforces it.
+        _data.Terms.RemoveAll(t => t.Id == "spell_tuition");
+        var grimoire = SaveManager.ActiveSave?.Cycle?.Grimoire;
+        if (grimoire != null)
+        {
+            float offerChance = _data.Archetype is NpcArchetypeType.Merchant or NpcArchetypeType.Scholar
+                ? SpellAcquisition.DealOfferChanceKeen
+                : SpellAcquisition.DealOfferChanceOther;
+            if (GD.Randf() < offerChance)
+            {
+                string offerId = SpellAcquisition.PickNegotiationSpell(grimoire);
+                var offerDef = OverworldSpellRegistry.Get(offerId);
+                if (offerDef != null)
+                {
+                    _data.Terms.Add(new DealTerm
+                    {
+                        Id = "spell_tuition",
+                        Description = $"They offer to teach {offerDef.Name} — " +
+                                      "theirs if the deal closes cordially.",
+                        FavorPlayer = true,
+                        SpellId = offerDef.Id,
+                    });
+                    GD.Print($"[Negotiation] Tuition on the table: '{offerDef.Id}'.");
+                }
+            }
+        }
+
         _state = new NegotiationState();
         _state.OnTensionChanged += OnTensionChanged;
         _state.OnLogEntry += AppendLog;
@@ -569,6 +601,7 @@ public partial class NegotiationManager : Control
         _walkAwayButton.Disabled = true;
 
         string outcome;
+        string spellGranted = _state.GetSpellOutcome(); // S4: "" unless Cordial
         if (_state.DealAccepted)
         {
             int gold = _state.GetGoldOutcome();
@@ -582,6 +615,13 @@ public partial class NegotiationManager : Control
             outcome = $"Deal struck in the {_state.Zone} zone.\n\n" +
                       $"Gold: {(gold >= 0 ? "+" : "")}{gold}{zoneBonus}\n" +
                       $"Reputation: {(rep >= 0 ? "+" : "")}{rep}";
+
+            // S4: tuition rides Cordial deals only — and says so either way.
+            if (spellGranted != "")
+                outcome += $"\n\nThey honor the cordial terms and teach you " +
+                           $"{OverworldSpellRegistry.Get(spellGranted)?.Name}.";
+            else if (_state.HasSpellTermOnTable())
+                outcome += $"\n\nTheir offer of tuition dies with the {_state.Zone} tone.";
         }
         else if (_state.PlayerWalkedAway)
         {
@@ -599,10 +639,12 @@ public partial class NegotiationManager : Control
             _state.DealAccepted,
             _state.GetGoldOutcome(),
             _state.GetReputationOutcome(),
-            _state.Data.FactionId);
+            _state.Data.FactionId,
+            spellGranted);
 
         GD.Print($"Negotiation resolved: deal={_state.DealAccepted}, " +
-                 $"gold={_state.GetGoldOutcome()}, rep={_state.GetReputationOutcome()}");
+                 $"gold={_state.GetGoldOutcome()}, rep={_state.GetReputationOutcome()}" +
+                 (spellGranted != "" ? $", taught='{spellGranted}'" : ""));
     }
 
     private void ReturnToOverworld()

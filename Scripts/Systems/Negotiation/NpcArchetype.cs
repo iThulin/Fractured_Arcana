@@ -62,6 +62,14 @@ public class DealTerm
     public string FactionId = "";
     public string LoreUnlock = "";
     public int StepsDelta = 0;
+
+    /// <summary>S4 (overworld_spell_system §11): an overworld spell id this
+    /// term teaches. Granted ONLY when the deal closes in the Cordial zone
+    /// (NegotiationState.GetSpellOutcome) — "Cordial deals" are the social
+    /// route to spells, and the payoff for managing tension. Authorable in
+    /// encounter JSON; also injected dynamically at table-open as the
+    /// "spell_tuition" term (NegotiationManager).</summary>
+    public string SpellId = "";
 }
 
 /// <summary>

@@ -23,11 +23,16 @@ using System.Collections.Generic;
 //                 attunement charts terrain along the route, per
 //                 G2 (terrain shape, never contents).
 //
-//                 S2 scope: TargetingType None + Tile. Path and
-//                 PatrolToken targeting, companion-granted casting
-//                 (+1 off-caster tax), scrolls, and echo emission
-//                 land in S3–S5. Unknown EffectKeys render greyed
-//                 out — data may lead implementation safely.
+//                 S4 (2026-07-16): Identify lands through the
+//                 ScoutReportPanel seam (the last authored-but-
+//                 unbuilt key — the registry's 36 are now all
+//                 live); scroll casting (Essence-free, consumed
+//                 on SUCCESSFUL resolve only — G5: an aborted
+//                 targeting session spends nothing); Speak with
+//                 the Fallen occasionally teaches a working
+//                 (SpellAcquisition). Echo emission remains S5.
+//                 Unknown EffectKeys still render greyed out —
+//                 data may lead implementation safely.
 // Layer:          System
 // Collaborators:  ExpeditionManager.cs (façade + lifecycle),
 //                 OverworldSpellRegistry.cs (definitions),
@@ -62,6 +67,17 @@ public partial class OverworldSpellManager : Node2D
     /// <summary>S3 (Emulate): cost override consumed at the next resolve.</summary>
     private int? _costOverride = null;
 
+    /// <summary>S4 (scrolls): the spell id being cast FROM A SCROLL right
+    /// now, or null. While set for a definition, its Essence gates vanish
+    /// (scrolls bypass the pool entirely, §8a — surcharge included: the
+    /// surcharge is an Essence cost and there is no Essence cost). The
+    /// scroll is consumed only on a successful resolve; every cancel or
+    /// refuse path clears the flag and spends nothing (G5).</summary>
+    private string _scrollSpellId = null;
+
+    private bool IsScrollCast(OverworldSpellDefinition def)
+        => _scrollSpellId != null && def != null && _scrollSpellId == def.Id;
+
     /// <summary>S3 (Minor Working): the option picked from the popup.</summary>
     private int _minorChoice = 0;
     private PopupMenu _minorMenu;
@@ -80,6 +96,8 @@ public partial class OverworldSpellManager : Node2D
         "thornwall", "fulminant_charge", "deploy_waystation", "clockwork_skimmer",
         "speak_fallen", "bone_scout", "beast_envoy", "pallid_bargain",
         "minor_working", "emulate", "attuned_recall",
+        // S4 — the ScoutReportPanel seam exists now; the G5 gap is closed.
+        "identify",
     };
 
     /// <summary>Attunement keys applied. All eight schools as of S3.</summary>
@@ -261,13 +279,19 @@ public partial class OverworldSpellManager : Node2D
     /// <summary>Null when castable; otherwise the human-readable reason the
     /// Grimoire panel shows (and disables the button with).</summary>
     public string CastBlockReason(OverworldSpellDefinition def)
+        => CastBlockReason(def, ignoreEssence: IsScrollCast(def));
+
+    /// <summary>S4: the ignoreEssence form serves scrolls — contextual gates
+    /// and once-per-expedition caps still bind (a Retrace scroll cannot
+    /// break the G1 hard cap), but the pool is irrelevant.</summary>
+    public string CastBlockReason(OverworldSpellDefinition def, bool ignoreEssence)
     {
         if (!ImplementedKeys.Contains(def.EffectKey))
             return "not yet implemented";
         if (def.OncePerExpedition &&
             _grimoire.PerExpeditionCastCounts.TryGetValue(def.Id, out int n) && n > 0)
             return "already cast this expedition";
-        if (CastCostOf(def) > _grimoire.EssenceCurrent)
+        if (!ignoreEssence && CastCostOf(def) > _grimoire.EssenceCurrent)
             return "not enough Essence";
 
         // S3: contextual requirements, surfaced before the button is pressed (G5).
@@ -317,6 +341,8 @@ public partial class OverworldSpellManager : Node2D
         if (def == null)
             return;
 
+        _scrollSpellId = null; // a normal cast supersedes any stale scroll flag
+
         string block = CastBlockReason(def);
         if (block != null)
         {
@@ -349,6 +375,48 @@ public partial class OverworldSpellManager : Node2D
         if (def.EffectKey == "minor_working")
         {
             ShowMinorWorkingMenu(def);
+            return;
+        }
+
+        RouteCast(def);
+    }
+
+    /// <summary>S4 (§8a): cast from a scroll — any school, no Essence, the
+    /// scroll consumed on a successful resolve. Contextual gates and
+    /// once-per-expedition caps still bind; Magnitude and (S5) echoes are
+    /// the spell's own — an Overt scroll cast is still witnessed.</summary>
+    public void RequestScrollCast(string spellId)
+    {
+        if (_expedition == null || _expedition.ExpeditionComplete)
+            return;
+        var def = OverworldSpellRegistry.Get(spellId);
+        if (def == null)
+            return;
+        if (!_grimoire.ScrollInventory.TryGetValue(spellId, out int held) || held <= 0)
+            return;
+
+        CancelTargeting(null); // one targeting session at a time
+        _scrollSpellId = spellId;
+
+        string block = CastBlockReason(def, ignoreEssence: true);
+        if (block != null)
+        {
+            _scrollSpellId = null;
+            _expedition.SpellInfo($"{def.Name} (scroll): {block}.");
+            return;
+        }
+
+        // Emulate-from-scroll is nonsense (a scroll of "recast the last
+        // spell" would dodge the +1 price); Minor Working keeps its menu.
+        if (def.EffectKey == "emulate")
+        {
+            _scrollSpellId = null;
+            _expedition.SpellInfo("Emulate cannot be scribed — the scroll would have nothing to remember.");
+            return;
+        }
+        if (def.EffectKey == "minor_working")
+        {
+            ShowMinorWorkingMenu(def); // the scroll flag rides into the menu's resolve
             return;
         }
 
@@ -398,7 +466,8 @@ public partial class OverworldSpellManager : Node2D
         CollectValidTargets(def, _validTargets);
         if (_validTargets.Count == 0)
         {
-            _costOverride = null; // an Emulate that found no target charges nothing
+            _costOverride = null;  // an Emulate that found no target charges nothing
+            _scrollSpellId = null; // a scroll with no target stays in the satchel
             _expedition.SpellInfo($"{def.Name}: no valid target in range.");
             return;
         }
@@ -480,6 +549,17 @@ public partial class OverworldSpellManager : Node2D
                     if (dist == 1 &&
                         window.TryLocalToWorld(coord, out int mc, out int mr) &&
                         world.GetTile(mc, mr).Discovery == TileDiscovery.Unseen)
+                        into.Add(coord);
+                    break;
+
+                case "identify":
+                    // S4 (§7b): a VISIBLE, unconsumed combat site (Prison
+                    // gaols route through the same scout report). Revealed
+                    // only — a silhouette shows terrain, never its POI (G2).
+                    if (kvp.Value.Fog == OverworldHex.FogState.Revealed &&
+                        !kvp.Value.POIConsumed &&
+                        (kvp.Value.POI == OverworldHex.POIType.Combat ||
+                         kvp.Value.POI == OverworldHex.POIType.Prison))
                         into.Add(coord);
                     break;
             }
@@ -621,7 +701,8 @@ public partial class OverworldSpellManager : Node2D
         _state = CastState.Idle;
         if (message != null)
         {
-            _costOverride = null; // an aborted Emulate charges nothing
+            _costOverride = null;  // an aborted Emulate charges nothing
+            _scrollSpellId = null; // an aborted scroll cast consumes nothing (G5)
             _expedition.SpellInfo(message);
         }
     }
@@ -633,21 +714,27 @@ public partial class OverworldSpellManager : Node2D
     private void ResolveCast(OverworldSpellDefinition def, Vector2I target,
                              List<Vector2I> path = null)
     {
+        bool scroll = IsScrollCast(def);
+
         // Re-validate at resolve — the surcharge can differ from panel time.
         // (Emulate carries a cost override; its Essence gate was checked at
-        // request time against that override, so skip the base-cost gate.)
+        // request time against that override, so skip the base-cost gate.
+        // Scroll casts have no Essence gate at all — CastBlockReason already
+        // skips it while the scroll flag is set.)
         string block = CastBlockReason(def);
         if (block != null && !(block == "not enough Essence" && _costOverride.HasValue))
         {
             _costOverride = null;
+            _scrollSpellId = null; // refused before dispatch — scroll kept (G5)
             _expedition.SpellInfo($"{def.Name}: {block}.");
             return;
         }
 
-        int cost = _costOverride ?? CastCostOf(def);
+        int cost = scroll ? 0 : (_costOverride ?? CastCostOf(def));
         _costOverride = null;
         if (cost > _grimoire.EssenceCurrent)
         {
+            _scrollSpellId = null;
             _expedition.SpellInfo($"{def.Name}: not enough Essence.");
             return;
         }
@@ -655,21 +742,46 @@ public partial class OverworldSpellManager : Node2D
         string result = Dispatch(def, target, path);
         if (result == null)
         {
-            // Effect refused (validation raced) — no Essence spent (G5:
-            // legible costs; you never pay for nothing).
+            // Effect refused (validation raced) — no Essence spent, no
+            // scroll consumed (G5: legible costs; you never pay for nothing).
+            _scrollSpellId = null;
             _expedition.SpellRefreshHud();
             return;
+        }
+
+        int scrollsLeft = 0;
+        if (scroll)
+        {
+            // S4: the scroll is spent HERE — after a successful dispatch,
+            // never on a cancel/refuse path.
+            _scrollSpellId = null;
+            if (_grimoire.ScrollInventory.TryGetValue(def.Id, out int held))
+            {
+                scrollsLeft = Mathf.Max(0, held - 1);
+                if (scrollsLeft > 0)
+                    _grimoire.ScrollInventory[def.Id] = scrollsLeft;
+                else
+                    _grimoire.ScrollInventory.Remove(def.Id);
+            }
         }
 
         _grimoire.EssenceCurrent -= cost;
         _grimoire.PerExpeditionCastCounts[def.Id] =
             _grimoire.PerExpeditionCastCounts.TryGetValue(def.Id, out int n) ? n + 1 : 1;
-        _grimoire.LastCastSpellId = def.Id; // S3: Emulate's memory
+        _grimoire.LastCastSpellId = def.Id; // S3: Emulate's memory (scrolls count — "by anyone")
         SaveManager.MarkDirty();
 
-        int surcharge = cost - def.EssenceCost;
-        _expedition.SpellInfo($"{def.Name}: {result} (−{cost} Essence" +
-                              $"{(surcharge > 0 ? $", {surcharge} beyond base" : "")}.)");
+        if (scroll)
+        {
+            _expedition.SpellInfo($"{def.Name}: {result} (the scroll crumbles" +
+                                  $"{(scrollsLeft > 0 ? $" — {scrollsLeft} left" : "")}; no Essence spent.)");
+        }
+        else
+        {
+            int surcharge = cost - def.EssenceCost;
+            _expedition.SpellInfo($"{def.Name}: {result} (−{cost} Essence" +
+                                  $"{(surcharge > 0 ? $", {surcharge} beyond base" : "")}.)");
+        }
 
         // §6a stub: Overt/Grand casts in kingdom territory are witnessed.
         // Real echo emission (SpellcraftAid/Transgression) lands in S5.
@@ -751,8 +863,23 @@ public partial class OverworldSpellManager : Node2D
             {
                 int exposed = _expedition.SpellChartPatrolPositions();
                 string bearing = _expedition.SpellNearestUndiscoveredPoiBearing();
+
+                // S4 (§7c "occasionally yields lore"): sometimes the dead
+                // teach. Terrain-flavored roll at the party's tile — at a
+                // ruin that means the Communion-adjacent pool leads.
+                string taught = "";
+                if (GD.Randf() < SpellAcquisition.SpeakFallenDropChance)
+                {
+                    var terr = _grid.Hexes.TryGetValue(_expedition.PartyLocal, out var sfHex)
+                        ? sfHex.Terrain : OverworldHex.TerrainType.Ruins;
+                    string learned = SpellAcquisition.RollUnknownLearnable(_grimoire, terr);
+                    if (learned != "" && SpellAcquisition.Learn(_grimoire, learned))
+                        taught = $"; the dead also yield the working of " +
+                                 $"{OverworldSpellRegistry.Get(learned)?.Name} — preparable at the next launch";
+                }
+
                 return $"the dead speak — {exposed} patrol(s) betrayed" +
-                       (bearing == "" ? "" : $"; {bearing}");
+                       (bearing == "" ? "" : $"; {bearing}") + taught;
             }
 
             case "bone_scout":
@@ -800,6 +927,13 @@ public partial class OverworldSpellManager : Node2D
             case "attuned_recall":
                 return _expedition.SpellRecallBearings() is string b && b != ""
                     ? b : null;
+
+            case "identify":
+                // S4 (§7b): reveal a visible combat site's full composition
+                // before engaging. The rolled encounter is PINNED — the
+                // scout report on arrival shows the same forces (G5: what
+                // the spell showed is what you fight).
+                return _expedition.SpellIdentify(target);
 
             case "force_path":
                 return _expedition.SpellForcePath(target)
@@ -1017,6 +1151,8 @@ public partial class OverworldSpellManager : Node2D
             OverworldHex.POIType.Negotiation => "reputation · goods",
             OverworldHex.POIType.Outpost => "staging",
             OverworldHex.POIType.Prison => "a captive",
+            OverworldHex.POIType.Settlement => "trade · staging",   // S4.2
+            OverworldHex.POIType.Seat => "a seat of power",         // S4.2
             _ => "",
         };
         return category == "" ? "" : $" ({category})";

@@ -23,11 +23,14 @@ using Godot;
 //                 SaveManager.cs (JsonOptions round-trip)
 // See:            overworld_spell_system_v1_1.docx §5, §13
 //
-// INTERIM (S1+S2 ruling, 2026-07-15): the four General spells
-// are known AND the first two prepared by default, so prepared
-// slots are exercisable before S4's acquisition systems exist.
-// S4 moves them behind acquisition and adds the launch-screen
-// preparation UI.
+// S4 (2026-07-16): the interim General seed is REMOVED — a
+// fresh cycle knows nothing and prepares nothing until spells
+// are acquired (§11: lore POIs, negotiation tuition, Speak with
+// the Fallen). Existing saves are grandfathered: their seeded
+// Generals load from the save file as "already learned" (ruled
+// with the user, this session). Preparation happens on the
+// deploy dialog (StrategicView); scrolls are scribed at the
+// campus Scriptorium and cast Essence-free from the panel.
 // ============================================================
 
 /// <summary>Noncombat spell state for one cycle. Plain data; serializes
@@ -36,18 +39,17 @@ public class GrimoireState
 {
     // ── Timeline knowledge ───────────────────────────────────────────────
     /// <summary>Every overworld spell the guild knows this cycle. School
-    /// innates and Attunements are NOT listed — they derive from the school.</summary>
-    public List<string> KnownSpellIds = new()
-    {
-        // INTERIM seed (see header). S4 replaces with acquisition.
-        "mending_cant", "purifying_rite", "wayfarers_beacon", "campward",
-    };
+    /// innates and Attunements are NOT listed — they derive from the school.
+    /// S4: starts EMPTY; filled only by acquisition (§11).</summary>
+    public List<string> KnownSpellIds = new();
 
     /// <summary>Spells filling the prepared slots this expedition (base 2;
-    /// Adept 3 in S3). Chosen at launch; interim default = first two knowns.</summary>
-    public List<string> PreparedSpellIds = new() { "mending_cant", "purifying_rite" };
+    /// Adept 3 via Versatility). Chosen on the deploy dialog (S4 prep UI);
+    /// sanitized there against KnownSpellIds and the slot cap.</summary>
+    public List<string> PreparedSpellIds = new();
 
-    /// <summary>Scroll inventory: spellId → count. Crafting/casting lands in S4.</summary>
+    /// <summary>Scroll inventory: spellId → count. Scribed at the campus
+    /// Scriptorium (S4); consumed on a successful Essence-free cast.</summary>
     public Dictionary<string, int> ScrollInventory = new();
 
     // ── Expedition-scoped (reset on fresh deploy; serialized for

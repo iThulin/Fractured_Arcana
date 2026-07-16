@@ -190,6 +190,7 @@ public partial class ExpeditionManager : Node2D
             : _window.PartyStartLocal;
         _window.Build(_grid, initialCenter);
         _windowCenterLocal = initialCenter;
+        StampCivicPois(); // S4.2: settlements/seats get their map marker
 
         // Fog manager (child of grid, same as before)
         _fog = new FogOfWarManager { Name = "FogOfWar" };
@@ -254,6 +255,12 @@ public partial class ExpeditionManager : Node2D
             // take the other branch and must NOT reset carried HP.)
             CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
 
+            // S4 (Identify): pinned encounter compositions are expedition-
+            // scoped. Static so they survive combat round-trips (the
+            // OverworldSpellEffects pattern); cleared here and on every
+            // expedition-end path.
+            _identifiedEncounters.Clear();
+
             _party.Initialize(_grid, _fog, _window.PartyStartLocal);
             // Reveal-on-deploy: the staging tile and its vision write to World.
             WriteVisibleToWorld();
@@ -275,14 +282,17 @@ public partial class ExpeditionManager : Node2D
         _grimoirePanel = new GrimoirePanel { Name = "GrimoirePanel" };
         GetHudCanvas().AddChild(_grimoirePanel);
         _grimoirePanel.Initialize(_spells);
+        _uiHoverBlockers.Add(_grimoirePanel); // S4.2: no tile hover through the Grimoire
 
         // Narrative panel + pool (keyed to the staging kingdom)
         _narrativePanel = new NarrativeEncounterPanel { Visible = false };
         GetHudCanvas().AddChild(_narrativePanel);
+        _uiHoverBlockers.Add(_narrativePanel);
 
         // Favor ledger panel (C3): read-only ledger + the call-in action.
         _ledgerPanel = new LedgerPanel { Name = "LedgerPanel" };
         GetHudCanvas().AddChild(_ledgerPanel);
+        _uiHoverBlockers.Add(_ledgerPanel);
         _ledgerPanel.GetIneligibilityReason = CallInIneligibility;
         _ledgerPanel.OnCallIn = OnLedgerCallIn;
         _encounterPool = NarrativeEncounterLoader.LoadForRegion(StagingTemplateRegion());
@@ -585,6 +595,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         int stepCost = 1, hpDrain = 0;
+        bool roadTravel = false;
         if (_grid.Hexes.TryGetValue(newCoord, out var hex))
         {
             hpDrain = GetTerrainHPDrain(hex.Terrain);
@@ -599,6 +610,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _grid.Hexes.TryGetValue(oldCoord, out var fromHex);
             stepCost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, oldCoord, newCoord,
                 EquipmentLoadout.PartyPathfinder(hex.Terrain.ToString()));
+
+            // S4.2 (user ruling 2026-07-16): a step traveled ALONG A ROAD is
+            // safe going — see the drain sites below. Edge roads are the real
+            // network; the vestigial Road TERRAIN tile counts too (old maps).
+            roadTravel = OverworldMovementCost.EdgeHasRoad(fromHex, oldCoord, newCoord) ||
+                         hex.Terrain == OverworldHex.TerrainType.Road;
         }
 
         // S3 (Retrace): remember this move so it can be undone. Records the
@@ -619,6 +636,16 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 CurrentHP -= ExhaustionDamagePerStep;
                 if (CurrentHP <= 0)
                 { CurrentHP = 0; FailExpedition("Stranded beyond your range."); return; }
+            }
+
+            // S4.2 (user ruling): the causeway spares you the terrain's bite —
+            // a road step never pays hazard drain. (Corruption is NOT road-
+            // exempt below: the creep eats roads too, and corridor-immunity
+            // through corrupted ground would gut the G4 pressure.)
+            if (hpDrain > 0 && roadTravel)
+            {
+                GD.Print($"[Expedition] The road spares you {hpDrain} terrain drain.");
+                hpDrain = 0;
             }
 
             // S2: an active warding spell (Ember Ward) negates the terrain's
@@ -677,11 +704,22 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
             if (band > 0)
             {
-                int leashDrain = band * LeashDrainPerBand;
-                CurrentHP -= leashDrain;
-                ShowInfo($"Beyond your supply line ({(band > 1 ? $"band {band}" : "the fringe")}). Lost {leashDrain} HP.");
-                if (CurrentHP <= 0)
-                { CurrentHP = 0; FailExpedition("Lost beyond the supply line."); return; }
+                // S4.2 (user ruling): the road bears your supply — steps taken
+                // along a road edge pay no leash drain, however far out. Leave
+                // the road and the line snaps taut again. Early-game relief
+                // for the lone wizard; the wilds stay priced.
+                if (roadTravel)
+                {
+                    ShowInfo("The road bears your supply — safe going while you follow it.");
+                }
+                else
+                {
+                    int leashDrain = band * LeashDrainPerBand;
+                    CurrentHP -= leashDrain;
+                    ShowInfo($"Beyond your supply line ({(band > 1 ? $"band {band}" : "the fringe")}). Lost {leashDrain} HP.");
+                    if (CurrentHP <= 0)
+                    { CurrentHP = 0; FailExpedition("Lost beyond the supply line."); return; }
+                }
             }
         }
 
@@ -776,10 +814,46 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
     }
 
+    // ── S4.2: tile hover must yield to UI ────────────────────────────────
+
+    /// <summary>UI surfaces the tile tooltip must never print through.
+    /// Registered at build time; rect-tested as a fallback for surfaces
+    /// whose mouse filter is Ignore (labels, label-only panels).</summary>
+    private readonly List<Control> _uiHoverBlockers = new();
+
+    /// <summary>True when the mouse is over any HUD element — the Godot
+    /// hovered-control query first (honors mouse filters: buttons, panels,
+    /// the Grimoire), then rect tests for Ignore-filtered surfaces, then
+    /// the global top bar strip.</summary>
+    private bool MouseIsOverUi()
+    {
+        var hovered = GetViewport()?.GuiGetHoveredControl();
+        if (hovered != null && hovered.IsVisibleInTree())
+            return true;
+
+        var mouse = GetViewport().GetMousePosition();
+        if (mouse.Y <= HudManager.BarHeight) // the global top bar strip
+            return true;
+        foreach (var c in _uiHoverBlockers)
+            if (c != null && GodotObject.IsInstanceValid(c) && c.IsVisibleInTree() &&
+                c.GetGlobalRect().HasPoint(mouse))
+                return true;
+        return false;
+    }
+
     private void PositionTooltip()
     {
         if (_hoverTooltip == null || _grid == null)
             return;
+
+        // S4.2 (user request): never show the tile readout through UI — the
+        // Grimoire, the stat panel, buttons, and the top bar all take
+        // precedence. Runs every frame, so entering/leaving UI just works.
+        if (MouseIsOverUi())
+        {
+            _hoverTooltip.Visible = false;
+            return;
+        }
 
         // Resolve the tile under the cursor from the mouse position, every frame.
         // (Area2D MouseEntered/Exited is unreliable here; InputEvent gives no exit
@@ -921,21 +995,31 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         string terrainType = hex.Terrain.ToString();
         string regionId = StagingTemplateRegion();
         var tier = EncounterTier.Battle;
-        var arch = RollArchmageAt(coord);   // resident archmage rolls for its own forces
-        if (PlayerSession.DebugMode)
-            GD.Print($"[ArchmageEncounter] POI tile kingdom-archmage='{KingdomArchmageAt(coord)}', " +
-                     $"draw={(arch != null ? arch.Id : "(region pool)")}");
-
-        // 2c: archmage groups own their authored difficulty (mult 1.0). Region-tier
-        // scaling applies only to the generic region-pool fallback.
-        // SEAM: a future corrupted-archmage variant would swap `arch` here based on
-        // the tile's corruption level before the draw — same call shape, different def.
         _scaledDifficultyMult = DifficultyMultAt(coord);
-        var encounterDef =
-            (arch != null
-                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, 1.0f)
-                : null)
-            ?? EncounterPoolLoader.Pick(regionId, tier, terrainType, _scaledDifficultyMult);
+
+        // S4 (Identify): an identified site fights the PINNED composition —
+        // what the spell showed is what you get (G5). Otherwise roll fresh.
+        EncounterDefinition encounterDef = null;
+        if (_window.TryLocalToWorld(coord, out int idCol, out int idRow))
+            _identifiedEncounters.TryGetValue($"{idCol},{idRow}", out encounterDef);
+
+        if (encounterDef == null)
+        {
+            var arch = RollArchmageAt(coord);   // resident archmage rolls for its own forces
+            if (PlayerSession.DebugMode)
+                GD.Print($"[ArchmageEncounter] POI tile kingdom-archmage='{KingdomArchmageAt(coord)}', " +
+                         $"draw={(arch != null ? arch.Id : "(region pool)")}");
+
+            // 2c: archmage groups own their authored difficulty (mult 1.0). Region-tier
+            // scaling applies only to the generic region-pool fallback.
+            // SEAM: a future corrupted-archmage variant would swap `arch` here based on
+            // the tile's corruption level before the draw — same call shape, different def.
+            encounterDef =
+                (arch != null
+                    ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, 1.0f)
+                    : null)
+                ?? EncounterPoolLoader.Pick(regionId, tier, terrainType, _scaledDifficultyMult);
+        }
         _pendingCombatHexCoord = coord;
         _pendingEncounter = encounterDef;
         _pendingTerrain = terrainType;
@@ -1126,6 +1210,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     grimR.ActiveRemnants.Add(mark);
                     SaveManager.MarkDirty();
                 }
+
+                // S4 (Identify): the pinned composition served its purpose.
+                _identifiedEncounters.Remove(mark);
             }
         }
         else
@@ -1198,10 +1285,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         }
         _narrativePanel.ShowEncounter(encounter);
-        _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(encounter, choice);
+        var loreTerrain = hex.Terrain; // S4: the drop pool is terrain-flavored
+        _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(encounter, choice, loreTerrain);
     }
 
-    private void OnNarrativeCompleted(NarrativeEncounterData encounter, EncounterChoice choice)
+    private void OnNarrativeCompleted(NarrativeEncounterData encounter, EncounterChoice choice,
+                                      OverworldHex.TerrainType terrain)
     {
         if (choice == null)
             return;
@@ -1230,7 +1319,32 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 if (!SaveManager.ActiveSave.CompletedEvents.Contains(flag))
                     SaveManager.ActiveSave.CompletedEvents.Add(flag);
 
-        ShowInfo($"Encounter resolved. +{spl} Arcane Splinters.");
+        // S4 (§11): lore POIs are the terrain-flavored acquisition path.
+        // An authored SpellReward on the chosen option grants exactly that
+        // spell; otherwise a bonus roll may teach an unknown learnable from
+        // the tile's flavored pool. KnownSpellIds rides CycleState, so the
+        // learn persists through any save — the S4 exit criterion.
+        string learnedId = "";
+        var grimL = SaveManager.ActiveSave?.Cycle?.Grimoire;
+        if (grimL != null)
+        {
+            if (!string.IsNullOrEmpty(choice.SpellReward))
+            {
+                if (SpellAcquisition.Learn(grimL, choice.SpellReward))
+                    learnedId = choice.SpellReward;
+            }
+            else if (GD.Randf() < SpellAcquisition.NarrativeDropChance)
+            {
+                string roll = SpellAcquisition.RollUnknownLearnable(grimL, terrain);
+                if (roll != "" && SpellAcquisition.Learn(grimL, roll))
+                    learnedId = roll;
+            }
+        }
+
+        ShowInfo(learnedId != ""
+            ? $"Encounter resolved. +{spl} Arcane Splinters. The site yields the secret of " +
+              $"{OverworldSpellRegistry.Get(learnedId)?.Name} — preparable at the next launch."
+            : $"Encounter resolved. +{spl} Arcane Splinters.");
         UpdateUI();
     }
 
@@ -1375,7 +1489,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                         : NegotiationContext.ReputationDelta;
                 }
             }
-            ShowInfo($"Deal struck. Gold: {(NegotiationContext.GoldDelta >= 0 ? "+" : "")}{NegotiationContext.GoldDelta}");
+            // S4 (§11): a deal closed in the Cordial zone can carry tuition —
+            // the social route to spells. NegotiationState grants only on
+            // Cordial (see GetSpellOutcome); here we just learn and say so.
+            string taught = "";
+            if (!string.IsNullOrEmpty(NegotiationContext.SpellGranted))
+            {
+                var grimD = SaveManager.ActiveSave?.Cycle?.Grimoire;
+                if (grimD != null && SpellAcquisition.Learn(grimD, NegotiationContext.SpellGranted))
+                    taught = $"  They teach you {OverworldSpellRegistry.Get(NegotiationContext.SpellGranted)?.Name}.";
+            }
+            ShowInfo($"Deal struck. Gold: {(NegotiationContext.GoldDelta >= 0 ? "+" : "")}{NegotiationContext.GoldDelta}{taught}");
         }
         else
             ShowInfo("No deal reached.");
@@ -1424,6 +1548,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
+        _identifiedEncounters.Clear(); // S4: Identify pins end with it too
 
         _casualtyNote = CompanionInjurySystem.ApplyWipe(SaveManager.ActiveSave,
             territoryTier: 2, bossContext: false, "emergency extraction");
@@ -1458,6 +1583,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
+        _identifiedEncounters.Clear(); // S4: Identify pins end with it too
 
         // K2.5 ruling: extraction infirmary check — who came home broken?
         // Stabilized (downed in a won fight) → 1–2 lunations; below 25% of
@@ -1490,6 +1616,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // accounting on this path; carried HP just clears.
         CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
+        _identifiedEncounters.Clear(); // S4: Identify pins end with it too
 
         if (EncounterRouter.Instance != null)
         {
@@ -1572,6 +1699,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         };
         hudPanel.AddThemeStyleboxOverride("panel", hudStyle);
         _hudCanvas.AddChild(hudPanel);
+        _uiHoverBlockers.Add(hudPanel); // S4.2: stat cluster blocks tile hover
 
         // Hover tooltip — follows the mouse, names the tile under it (fog-gated).
         _hoverTooltip = new Label { Visible = false, ZIndex = 100 };
@@ -1688,6 +1816,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         UITheme.ApplyButtonStyle(_returnButton, isPrimary: true);
         _returnButton.Pressed += () => GetTree().ChangeSceneToFile(StrategicScenePath);
         _hudCanvas.AddChild(_returnButton);
+
+        // S4.2: every clickable HUD surface blocks the tile hover readout.
+        // (Modal panels — scout report, narrative — are caught by the
+        // hovered-control query; listing them too costs nothing.)
+        _uiHoverBlockers.Add(_extractButton);
+        _uiHoverBlockers.Add(_ledgerButton);
+        _uiHoverBlockers.Add(_returnButton);
+        _uiHoverBlockers.Add(_scoutPanel);
+        _uiHoverBlockers.Add(_infoLabel);
     }
 
     private void ShowReturnButton()
@@ -2159,6 +2296,52 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             : home + "  ·  " + SpellBearingTo(nearest.X, nearest.Y, nearest.Name);
     }
 
+    // ── S4 façade additions ──────────────────────────────────────────────
+
+    /// <summary>S4 (Identify): rolled encounter compositions pinned by
+    /// Identify, keyed by world "col,row". Static so pins survive the
+    /// combat scene swap (the OverworldSpellEffects pattern); cleared on
+    /// fresh deploy and every expedition-end path. Known limit (accepted,
+    /// logged in the verification doc): statics do not survive a full app
+    /// restart, so a quit-and-reload mid-expedition forgets pins — the
+    /// next scout report re-rolls.</summary>
+    private static readonly System.Collections.Generic.Dictionary<string, EncounterDefinition>
+        _identifiedEncounters = new();
+
+    /// <summary>Identify (Arcanist, §7b): roll the encounter for a visible
+    /// combat/prison POI exactly as OpenScoutReport would, PIN it so the
+    /// on-hex report later shows the same forces, and display it read-only
+    /// through the ScoutReportPanel's intel mode. Returns the info-line
+    /// result, or null (refused — no charge, G5).</summary>
+    public string SpellIdentify(Vector2I local)
+    {
+        if (!_grid.Hexes.TryGetValue(local, out var hex) || hex.POIConsumed ||
+            (hex.POI != OverworldHex.POIType.Combat && hex.POI != OverworldHex.POIType.Prison))
+            return null;
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return null;
+
+        string key = $"{col},{row}";
+        if (!_identifiedEncounters.TryGetValue(key, out var encounterDef))
+        {
+            string terrainType = hex.Terrain.ToString();
+            string regionId = StagingTemplateRegion();
+            var arch = RollArchmageAt(local); // same draw shape as OpenScoutReport
+            encounterDef =
+                (arch != null
+                    ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Battle, terrainType, 1.0f)
+                    : null)
+                ?? EncounterPoolLoader.Pick(regionId, EncounterTier.Battle, terrainType, DifficultyMultAt(local));
+            if (encounterDef == null)
+                return null;
+            _identifiedEncounters[key] = encounterDef;
+        }
+
+        _scoutPanel.ShowIntel(encounterDef, hex.Terrain.ToString(),
+            "Identified from afar — this composition is fixed; the scout report will match.");
+        return $"the weave yields their number — {encounterDef.Enemies.Count} foe(s) revealed";
+    }
+
     /// <summary>Nearest undiscovered POI's bearing (Speak with the Fallen).</summary>
     public string SpellNearestUndiscoveredPoiBearing()
     {
@@ -2234,9 +2417,39 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         var (added, removed) = _window.StreamTo(_grid, col, row);
         _windowCenterLocal = centerLocal;
+        if (added > 0)
+            StampCivicPois(); // S4.2: newly streamed tiles may hold settlements
         if (PlayerSession.DebugMode && (added > 0 || removed > 0))
             GD.Print($"[Window] Slide → ({col},{row}): +{added}/−{removed} tiles, " +
                      $"{_grid.Hexes.Count} live.");
+    }
+
+    /// <summary>S4.2 (user request): settlements and seats had no expedition-
+    /// map presence — the window streamer maps only encounter-scale POIs to
+    /// hex markers, so cities were visible on the strategic view and invisible
+    /// underfoot. Stamp POIType.Settlement/Seat onto loaded hexes after every
+    /// build/slide (idempotent; never overwrites an encounter POI; marker
+    /// visibility still rides the standard fog gate in RefreshVisuals).</summary>
+    private void StampCivicPois()
+    {
+        if (_world?.Pois == null || _grid == null)
+            return;
+        foreach (var poi in _world.Pois)
+        {
+            if (poi.Kind != PoiKind.Settlement && poi.Kind != PoiKind.Seat)
+                continue;
+            var local = _window.LocalOf(poi.X, poi.Y);
+            if (!_grid.Hexes.TryGetValue(local, out var hex))
+                continue;
+            var want = poi.Kind == PoiKind.Seat
+                ? OverworldHex.POIType.Seat
+                : OverworldHex.POIType.Settlement;
+            if (hex.POI == OverworldHex.POIType.None)
+            {
+                hex.POI = want;
+                hex.RefreshVisuals();
+            }
+        }
     }
 
     /// <summary>Hex distance from a grid-local coord to the NEAREST supply
@@ -2725,7 +2938,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // W3 readout — the supply-line terms this expedition operates under.
         GD.Print($"[PartyResist] Supply range {SupplyRange} from the nearest anchor; beyond it " +
                  $"+{LeashDrainPerBand} HP/step per {LeashBandWidth} hexes (cap {LeashBandCap} bands). " +
-                 "Wards do not apply to leash drain.");
+                 "Wards do not apply to leash drain. " +
+                 "S4.2: steps along road edges pay no leash or terrain drain (corruption still applies).");
     }
 
     private void EnsureEncounterRouter()
