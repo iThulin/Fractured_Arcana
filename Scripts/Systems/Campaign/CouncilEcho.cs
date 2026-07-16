@@ -43,6 +43,15 @@ public static class CouncilEcho
     public const string DealFair = "deal_fair";        // deal_fair:<Archetype>
     public const string DealExploit = "deal_exploit";  // deal_exploit:<Archetype>
 
+    // S5 (overworld_spell_system §6a): the world watches magic the same
+    // way it watches swords. Emitted from the spell-resolution step
+    // (ExpeditionManager.SpellEmitWitnessEcho) and the Parley Compulsion
+    // conversion; PatrolCompelled is the one echo that can be buried in
+    // flight by the guild's OWN conduct (a Cordial resolution).
+    public const string SpellcraftAid = "spellcraft_aid";
+    public const string SpellcraftTransgression = "spellcraft_transgression";
+    public const string PatrolCompelled = "patrol_compelled";
+
     // ═════════════════════════════════════════════════════════════════════
     // Emission (deed time, mid-expedition)
     // ═════════════════════════════════════════════════════════════════════
@@ -191,6 +200,16 @@ public static class CouncilEcho
                 SettlementDefended => c.Archetype == "Commander" || c.Office == "Favorite",
                 DealFair => c.Archetype == arg,
                 DealExploit => c.Archetype == arg,
+                // S5 (§6a): spellcraft lands on those who mind the arcane —
+                // the Court Wizard's office and Idealist temperaments.
+                SpellcraftAid => c.Office == CourtVocab.OfficeCourtWizard ||
+                                 c.Archetype == "Idealist",
+                SpellcraftTransgression => c.Office == CourtVocab.OfficeCourtWizard ||
+                                           c.Archetype == "Idealist",
+                // Compulsion of the kingdom's own soldiers is a matter of
+                // state, not of magic: Chancellor and Commanders.
+                PatrolCompelled => c.Office == CourtVocab.OfficeChancellor ||
+                                   c.Archetype == "Commander",
                 _ => false,
             };
             if (match)
@@ -238,8 +257,38 @@ public static class CouncilEcho
             SettlementDefended => "a threat put down at a settlement's approaches",
             DealFair => "an honest bargain struck with one of the kingdom's own",
             DealExploit => "one of the kingdom's own fleeced at the table",
+            SpellcraftAid => "great warding worked over the kingdom's people",
+            SpellcraftTransgression => "necromancy worked openly in the kingdom's lands",
+            PatrolCompelled => "the kingdom's own patrol bent by enchantment",
             _ => "the guild's doings",
         };
+    }
+
+    /// <summary>S5: cancel the most recent in-flight, uncancelled echo of a
+    /// specific deed against a kingdom. The Parley Compulsion hook (§7f):
+    /// a compulsion table that resolves Cordial buries its own story.
+    /// Returns true when an echo was buried.</summary>
+    public static bool CancelDeed(CouncilState council, string kingdomId, string deedTag)
+    {
+        if (council == null || string.IsNullOrEmpty(kingdomId))
+        {
+            return false;
+        }
+        EchoEvent target = null;
+        foreach (var e in council.EchoesInFlight)
+        {
+            if (e.KingdomId == kingdomId && e.DeedTag == deedTag && !e.Cancelled)
+            {
+                target = e; // last match wins — the most recent telling
+            }
+        }
+        if (target == null)
+        {
+            return false;
+        }
+        target.Cancelled = true;
+        SaveManager.MarkDirty();
+        return true;
     }
 
     // ═════════════════════════════════════════════════════════════════════

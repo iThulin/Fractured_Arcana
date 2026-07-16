@@ -640,7 +640,8 @@ public partial class NegotiationManager : Control
             _state.GetGoldOutcome(),
             _state.GetReputationOutcome(),
             _state.Data.FactionId,
-            spellGranted);
+            spellGranted,
+            resolvedCordial: _state.Zone == TensionZone.Cordial); // S5: compulsion-echo burial gate
 
         GD.Print($"Negotiation resolved: deal={_state.DealAccepted}, " +
                  $"gold={_state.GetGoldOutcome()}, rep={_state.GetReputationOutcome()}" +

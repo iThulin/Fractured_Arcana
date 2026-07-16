@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 
 // ============================================================
 // GrimoirePanel.cs  (S2, 2026-07-15)
@@ -46,6 +47,30 @@ public partial class GrimoirePanel : PanelContainer
     /// Debug mode exposes all 36 implemented spells — without a clamp the
     /// panel runs off the top of the screen (user report, 2026-07-16).</summary>
     private const float MaxListViewportShare = 0.55f;
+
+    // ── S5.1 (user request): grouped, collapsible Grimoire ──────────────
+    // The LOADOUT (own-school innates + prepared spells) is always visible;
+    // everything else groups by §6 Category under collapsible headers that
+    // start collapsed. STATIC so open/closed state survives panel rebuilds,
+    // combat round-trips, and whole expeditions — "remember the last state."
+    private static readonly System.Collections.Generic.Dictionary<string, bool>
+        _sectionOpen = new();
+
+    /// <summary>§6 taxonomy order — problem-solving order, not alphabetical.</summary>
+    private static readonly string[] CategoryOrder =
+    {
+        "Traversal", "Divination", "Warding", "Evasion", "Conjuration", "Communion",
+    };
+
+    private static bool IsOpen(string key)
+        => _sectionOpen.TryGetValue(key, out bool open) && open;
+
+    /// <summary>S5.2 (user request): whole-panel visibility. STATIC so the
+    /// state rides through combat/negotiation scene swaps — leave hidden,
+    /// return hidden (and vice versa). A small "Grimoire" tab (sibling on
+    /// the HUD canvas) is the way back in while the panel is off-screen.</summary>
+    private static bool _panelHidden = false;
+    private Button _reopenTab;
 
     private OverworldSpellManager _manager;
     private ScrollContainer _scroll;
@@ -97,10 +122,52 @@ public partial class GrimoirePanel : PanelContainer
 
         Refresh();
 
-        // S4.1: the detail card must be a SIBLING (this PanelContainer would
-        // layout-manage it as a child); the parent exists by now, but defer
-        // to stay safe against setup-order changes.
-        CallDeferred(nameof(CreateDetailCard));
+        // S4.1/S5.2: the detail card and the reopen tab must be SIBLINGS
+        // (this PanelContainer would layout-manage children); the parent
+        // exists by now, but defer to stay safe against setup order.
+        CallDeferred(nameof(CreateSatellites));
+    }
+
+    private void CreateSatellites()
+    {
+        CreateDetailCard();
+        CreateReopenTab();
+        ApplyHiddenState(); // honor the state we left the expedition in
+    }
+
+    // ── S5.2: hide / reopen ──────────────────────────────────────────────
+
+    private void CreateReopenTab()
+    {
+        if (_reopenTab != null || GetParent() == null)
+            return;
+        _reopenTab = new Button
+        {
+            Name = "GrimoireReopenTab",
+            Text = "Grimoire",
+            Visible = false,
+            AnchorLeft = 0f, AnchorRight = 0f,
+            AnchorTop = 1f, AnchorBottom = 1f,
+            OffsetLeft = PanelLeft,
+            OffsetRight = PanelLeft + 120,
+            OffsetTop = PanelBottom - 34,
+            OffsetBottom = PanelBottom,
+        };
+        _reopenTab.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        UITheme.ApplyButtonStyle(_reopenTab, isPrimary: false);
+        _reopenTab.AddThemeColorOverride("font_color", UITheme.Gold);
+        _reopenTab.Pressed += () => { _panelHidden = false; ApplyHiddenState(); };
+        GetParent().AddChild(_reopenTab);
+    }
+
+    /// <summary>Show either the panel or its reopen tab, never both.</summary>
+    private void ApplyHiddenState()
+    {
+        Visible = !_panelHidden;
+        if (_reopenTab != null)
+            _reopenTab.Visible = _panelHidden;
+        if (_panelHidden)
+            HideDetail(); // no orphaned detail card beside a hidden panel
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -205,6 +272,12 @@ public partial class GrimoirePanel : PanelContainer
         // Full description — wrapped, never truncated, never translucent.
         Add(def.Description, -2, UITheme.TextPrimary, wrap: true);
 
+        // S5 (R15, G5): the tier-3 exposure is priced in HP, not Essence —
+        // it must be visible BEFORE the cast, scroll or not.
+        string exposure = _manager.ExposureWarning();
+        if (exposure != null && !def.IsAttunement)
+            Add(exposure, -2, UITheme.OverworldLowResourceWarning, wrap: true);
+
         // Why it's disabled, when it is.
         string block = _manager.CastBlockReason(def, ignoreEssence: isScroll);
         if (block != null)
@@ -221,10 +294,12 @@ public partial class GrimoirePanel : PanelContainer
 
     public override void _ExitTree()
     {
-        // The card is a sibling, not a child — free it explicitly.
+        // The card and reopen tab are siblings, not children — free explicitly.
         _detail?.QueueFree();
         _detail = null;
         _detailBox = null;
+        _reopenTab?.QueueFree();
+        _reopenTab = null;
     }
 
     /// <summary>Rebuild the panel from current state. Called by
@@ -239,81 +314,95 @@ public partial class GrimoirePanel : PanelContainer
         foreach (var child in _list.GetChildren())
             child.QueueFree();
 
-        var header = new Label { Text = "Grimoire" };
+        // S5.2: header row — title + the Hide control.
+        var headerRow = new HBoxContainer();
+        _list.AddChild(headerRow);
+
+        var header = new Label
+        {
+            Text = "Grimoire",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
         header.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         header.AddThemeColorOverride("font_color", UITheme.Gold);
-        _list.AddChild(header);
+        headerRow.AddChild(header);
 
-        int surcharge = _manager.CorruptionSurcharge();
+        var hideBtn = new Button { Text = "Hide", Flat = true };
+        hideBtn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 4);
+        hideBtn.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        hideBtn.Pressed += () => { _panelHidden = true; ApplyHiddenState(); };
+        headerRow.AddChild(hideBtn);
 
+        // S5.1: split the castable list — LOADOUT (own-school innates +
+        // prepared) always visible, the rest grouped by Category under
+        // collapsible headers whose state persists (static _sectionOpen).
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var grimoire = cycle?.Grimoire;
+        string school = cycle?.SelectedSchool ?? "";
+
+        var loadout = new List<OverworldSpellDefinition>();
+        var grouped = new System.Collections.Generic.Dictionary<string, List<OverworldSpellDefinition>>();
         foreach (var def in _manager.CastableSpells())
         {
-            string block = _manager.CastBlockReason(def);
-
-            // S3: cost breakdown — base, off-caster tax, corruption surcharge.
-            int tax = _manager.OffCasterTax(def);
-            string costText = def.EssenceCost.ToString();
-            if (tax > 0)
-                costText += $"+{tax}";
-            if (surcharge > 0)
-                costText += $"+{surcharge}";
-
-            // S4.1: no native tooltip — the opaque detail card replaces it.
-            var btn = new Button
+            bool inLoadout = (def.IsInnate && def.School == school) ||
+                             (grimoire != null && grimoire.PreparedSpellIds.Contains(def.Id));
+            if (inLoadout)
             {
-                Text = $"{def.Name}   ·   {costText}✦",
-                Disabled = block != null,
-                Alignment = HorizontalAlignment.Left,
-            };
-            btn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-            UITheme.ApplyButtonStyle(btn, isPrimary: false);
-            btn.AddThemeColorOverride("font_color", MagnitudeColor(def.Magnitude));
-
-            string id = def.Id;      // capture per-iteration, not the loop variable
-            var hoverDef = def;      // (disabled buttons still emit hover — intended:
-            btn.Pressed += () => _manager.RequestCast(id);           // the card explains WHY)
-            btn.MouseEntered += () => ShowDetail(hoverDef, isScroll: false, scrollsHeld: 0);
-            btn.MouseExited += HideDetail;
-            _list.AddChild(btn);
+                loadout.Add(def);
+            }
+            else
+            {
+                string cat = string.IsNullOrEmpty(def.Category) ? "Other" : def.Category;
+                if (!grouped.TryGetValue(cat, out var bucket))
+                    grouped[cat] = bucket = new List<OverworldSpellDefinition>();
+                bucket.Add(def);
+            }
         }
 
-        // S4 (§8a): the scroll satchel — Essence-free single casts, any
-        // school, consumed on success. Contextual gates and once-per-
-        // expedition caps still disable (with the reason), but never the pool.
-        var grimoire = SaveManager.ActiveSave?.Cycle?.Grimoire;
+        foreach (var def in loadout)
+            _list.AddChild(MakeSpellRow(def, isScroll: false, scrollsHeld: 0));
+
+        // Category sections, §6 order first, any stragglers after.
+        var orderedCats = new List<string>();
+        foreach (var cat in CategoryOrder)
+            if (grouped.ContainsKey(cat))
+                orderedCats.Add(cat);
+        foreach (var cat in grouped.Keys)
+            if (!orderedCats.Contains(cat))
+                orderedCats.Add(cat);
+
+        foreach (var cat in orderedCats)
+        {
+            var bucket = grouped[cat];
+            _list.AddChild(MakeSectionHeader(cat, bucket.Count));
+            if (!IsOpen(cat))
+                continue;
+            foreach (var def in bucket)
+                _list.AddChild(MakeSpellRow(def, isScroll: false, scrollsHeld: 0));
+        }
+
+        // S4 (§8a): the scroll satchel — its own collapsible section.
         if (grimoire != null && grimoire.ScrollInventory.Count > 0)
         {
-            var scrollHeader = new Label { Text = "Scrolls" };
-            scrollHeader.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-            scrollHeader.AddThemeColorOverride("font_color", UITheme.Gold);
-            _list.AddChild(scrollHeader);
-
+            int scrollKinds = 0;
             foreach (var kvp in grimoire.ScrollInventory)
+                if (kvp.Value > 0 && OverworldSpellRegistry.Get(kvp.Key) != null)
+                    scrollKinds++;
+            if (scrollKinds > 0)
             {
-                if (kvp.Value <= 0)
-                    continue;
-                var def = OverworldSpellRegistry.Get(kvp.Key);
-                if (def == null)
-                    continue;
-
-                string block = _manager.CastBlockReason(def, ignoreEssence: true);
-                var sBtn = new Button
+                _list.AddChild(MakeSectionHeader("Scrolls", scrollKinds));
+                if (IsOpen("Scrolls"))
                 {
-                    Text = $"{def.Name} ×{kvp.Value}   ·   0✦",
-                    Disabled = block != null,
-                    Alignment = HorizontalAlignment.Left,
-                };
-                sBtn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-                UITheme.ApplyButtonStyle(sBtn, isPrimary: false);
-                sBtn.AddThemeColorOverride("font_color", MagnitudeColor(def.Magnitude));
-
-                string sid = def.Id; // capture per-iteration
-                var hoverDef = def;
-                int held = kvp.Value;
-                sBtn.Pressed += () => _manager.RequestScrollCast(sid);
-                sBtn.MouseEntered += () => ShowDetail(hoverDef, isScroll: true, scrollsHeld: held);
-                sBtn.MouseExited += HideDetail;
-                _list.AddChild(sBtn);
+                    foreach (var kvp in grimoire.ScrollInventory)
+                    {
+                        if (kvp.Value <= 0)
+                            continue;
+                        var def = OverworldSpellRegistry.Get(kvp.Key);
+                        if (def == null)
+                            continue;
+                        _list.AddChild(MakeSpellRow(def, isScroll: true, scrollsHeld: kvp.Value));
+                    }
+                }
             }
         }
 
@@ -354,6 +443,87 @@ public partial class GrimoirePanel : PanelContainer
         float panelH = GetCombinedMinimumSize().Y;
         OffsetBottom = PanelBottom;
         OffsetTop = PanelBottom - panelH;
+    }
+
+    // ── S5.1: row + section builders ─────────────────────────────────────
+
+    /// <summary>One castable row (spell or scroll): cost breakdown, the
+    /// detection tag, magnitude tint, hover→detail card, click→cast.</summary>
+    private Button MakeSpellRow(OverworldSpellDefinition def, bool isScroll, int scrollsHeld)
+    {
+        string block = _manager.CastBlockReason(def, ignoreEssence: isScroll);
+
+        // S3: cost breakdown — base, off-caster tax, corruption surcharge.
+        string costText;
+        if (isScroll)
+        {
+            costText = $"×{scrollsHeld}   ·   0✦";
+        }
+        else
+        {
+            int tax = _manager.OffCasterTax(def);
+            int surcharge = _manager.CorruptionSurcharge();
+            costText = def.EssenceCost.ToString();
+            if (tax > 0)
+                costText += $"+{tax}";
+            if (surcharge > 0)
+                costText += $"+{surcharge}";
+            costText += "✦";
+        }
+
+        // S5.1 (user request): a TEXT detection tag, not just the tint —
+        // only Overt/Grand are marked; an unmarked row is Subtle (quiet).
+        string detect = def.Magnitude switch
+        {
+            "Overt" => "  ·  OVERT",
+            "Grand" => "  ·  GRAND",
+            _ => "",
+        };
+
+        var btn = new Button
+        {
+            Text = $"{def.Name}   ·   {costText}{detect}",
+            Disabled = block != null,
+            Alignment = HorizontalAlignment.Left,
+        };
+        btn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        UITheme.ApplyButtonStyle(btn, isPrimary: false);
+        btn.AddThemeColorOverride("font_color", MagnitudeColor(def.Magnitude));
+
+        string id = def.Id;     // capture per-iteration, not loop variables
+        var hoverDef = def;     // (disabled rows still hover — the card explains WHY)
+        bool scroll = isScroll;
+        int held = scrollsHeld;
+        btn.Pressed += () =>
+        {
+            if (scroll) _manager.RequestScrollCast(id);
+            else _manager.RequestCast(id);
+        };
+        btn.MouseEntered += () => ShowDetail(hoverDef, scroll, held);
+        btn.MouseExited += HideDetail;
+        return btn;
+    }
+
+    /// <summary>A collapsible section header: "▸ Divination (4)" /
+    /// "▾ Divination (4)". Toggles persist in the static _sectionOpen map —
+    /// state survives rebuilds, combat round-trips, and expeditions.</summary>
+    private Button MakeSectionHeader(string key, int count)
+    {
+        bool open = IsOpen(key);
+        var btn = new Button
+        {
+            Text = $"{(open ? "▾" : "▸")}  {key}  ({count})",
+            Alignment = HorizontalAlignment.Left,
+            Flat = true,
+        };
+        btn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 3);
+        btn.AddThemeColorOverride("font_color", UITheme.Gold);
+        btn.Pressed += () =>
+        {
+            _sectionOpen[key] = !IsOpen(key);
+            Refresh();
+        };
+        return btn;
     }
 
     private static Color MagnitudeColor(string magnitude) => magnitude switch

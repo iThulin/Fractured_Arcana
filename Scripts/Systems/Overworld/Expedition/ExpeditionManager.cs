@@ -255,11 +255,12 @@ public partial class ExpeditionManager : Node2D
             // take the other branch and must NOT reset carried HP.)
             CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
 
-            // S4 (Identify): pinned encounter compositions are expedition-
-            // scoped. Static so they survive combat round-trips (the
-            // OverworldSpellEffects pattern); cleared here and on every
-            // expedition-end path.
+            // S4 (Identify) + S5 (True Names): pinned encounters are
+            // expedition-scoped. Static so they survive combat round-trips
+            // (the OverworldSpellEffects pattern); cleared here and on
+            // every expedition-end path.
             _identifiedEncounters.Clear();
+            _pinnedNegotiations.Clear();
 
             _party.Initialize(_grid, _fog, _window.PartyStartLocal);
             // Reveal-on-deploy: the staging tile and its vision write to World.
@@ -790,7 +791,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             string line = TerrainDisplayName(hex.Terrain);
             if (hex.POI != OverworldHex.POIType.None && !hex.POIConsumed)
-                line += $"  ·  {hex.POI}{_spells?.TooltipPoiExtra(hex) ?? ""}";
+                line += $"  ·  {hex.POI}{_spells?.TooltipPoiExtra(hex) ?? ""}" +
+                        NegotiationPreread(axial, hex); // S5: True Names
             // Corruption readout if the underlying world tile is corrupted.
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
@@ -878,7 +880,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             string line = TerrainDisplayName(hex.Terrain);
             if (hex.POI != OverworldHex.POIType.None && !hex.POIConsumed)
-                line += $"  ·  {hex.POI}{_spells?.TooltipPoiExtra(hex) ?? ""}";
+                line += $"  ·  {hex.POI}{_spells?.TooltipPoiExtra(hex) ?? ""}" +
+                        NegotiationPreread(axial, hex); // S5: True Names
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
                 line += $"  ·  corrupted ({_world.Tiles[idx].Corruption})";
@@ -1121,7 +1124,21 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             grim.ParleyArmed = false;
             SaveManager.MarkDirty();
-            ShowInfo("The compulsion takes hold — the patrol will talk instead of fight.");
+
+            // S5 (§6a row 3): compelling the kingdom's own patrol is
+            // witnessed — the echo fires NOW, at the moment of compulsion.
+            // A Cordial resolution at the table buries it in flight
+            // (OnNegotiationReturned); anything else lets it land on the
+            // Chancellor and the Commanders.
+            string compulsionToast = null;
+            string patrolKingdom = KingdomIdAt(coord);
+            if (!string.IsNullOrEmpty(patrolKingdom))
+                compulsionToast = CouncilEcho.EmitDeed(SaveManager.ActiveSave?.Cycle,
+                    patrolKingdom, CouncilEcho.PatrolCompelled,
+                    positive: false, isMajor: false);
+
+            ShowInfo("The compulsion takes hold — the patrol will talk instead of fight." +
+                     (compulsionToast != null ? $" {compulsionToast}" : ""));
             TriggerPatrolNegotiation(hex, coord);
             return;
         }
@@ -1365,6 +1382,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         NegotiationContext.HexCoordKey = $"{coord.X},{coord.Y}";
         NegotiationContext.NpcArchetype = encounter.Archetype.ToString();
         NegotiationContext.OriginKingdomId = KingdomIdAt(coord);
+        NegotiationContext.FromCompulsion = true; // S5: sole caller is the Parley path
         ConsumeBeguileIfArmed();
 
         var router = EncounterRouter.Instance;
@@ -1412,9 +1430,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         hex.RefreshVisuals();
         ConsumeWorldPoi(coord);
 
-        string kingdomId = StagingTemplateRegion();
-        string terrain = hex.Terrain.ToString();
-        var encounter = NegotiationEncounterLoader.PickForTerrain(terrain, kingdomId);
+        // S5 (True Names): honor the pinned pre-read when one exists —
+        // the archetype the attunement showed is the counterpart you meet.
+        var encounter = PinnedNegotiationFor(coord, hex);
         if (encounter == null)
         { ShowInfo("A potential contact slips away."); UpdateUI(); return; }
 
@@ -1499,7 +1517,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 if (grimD != null && SpellAcquisition.Learn(grimD, NegotiationContext.SpellGranted))
                     taught = $"  They teach you {OverworldSpellRegistry.Get(NegotiationContext.SpellGranted)?.Name}.";
             }
-            ShowInfo($"Deal struck. Gold: {(NegotiationContext.GoldDelta >= 0 ? "+" : "")}{NegotiationContext.GoldDelta}{taught}");
+            // S5 (§7f/§6a): a compulsion table that CLOSES CORDIALLY buries
+            // the compulsion echo before it lands — same gate as tuition
+            // (DealAccepted ∧ Cordial). Walking away, strained deals, and
+            // collapses all let the story reach the court.
+            string buried = "";
+            if (NegotiationContext.FromCompulsion && NegotiationContext.ResolvedCordial &&
+                CouncilEcho.CancelDeed(SaveManager.ActiveSave?.Cycle?.Council,
+                    NegotiationContext.OriginKingdomId, CouncilEcho.PatrolCompelled))
+                buried = "  The patrol parts on good terms — that story dies here.";
+
+            ShowInfo($"Deal struck. Gold: {(NegotiationContext.GoldDelta >= 0 ? "+" : "")}{NegotiationContext.GoldDelta}{taught}{buried}");
         }
         else
             ShowInfo("No deal reached.");
@@ -1549,6 +1577,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
         _identifiedEncounters.Clear(); // S4: Identify pins end with it too
+        _pinnedNegotiations.Clear();   // S5: True Names pre-reads likewise
 
         _casualtyNote = CompanionInjurySystem.ApplyWipe(SaveManager.ActiveSave,
             territoryTier: 2, bossContext: false, "emergency extraction");
@@ -1584,6 +1613,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
         _identifiedEncounters.Clear(); // S4: Identify pins end with it too
+        _pinnedNegotiations.Clear();   // S5: True Names pre-reads likewise
 
         // K2.5 ruling: extraction infirmary check — who came home broken?
         // Stabilized (downed in a won fight) → 1–2 lunations; below 25% of
@@ -1617,6 +1647,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
         _identifiedEncounters.Clear(); // S4: Identify pins end with it too
+        _pinnedNegotiations.Clear();   // S5: True Names pre-reads likewise
 
         if (EncounterRouter.Instance != null)
         {
@@ -2340,6 +2371,114 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _scoutPanel.ShowIntel(encounterDef, hex.Terrain.ToString(),
             "Identified from afar — this composition is fixed; the scout report will match.");
         return $"the weave yields their number — {encounterDef.Enemies.Count} foe(s) revealed";
+    }
+
+    // ── S5 façade additions — the world watches magic (§6a / R15) ────────
+
+    /// <summary>S5 (R15): deterministic HP hit per cast made FROM a tier-3
+    /// corrupted tile. Flat and legible — the detail card warns pre-cast;
+    /// no roll. Applies to scroll casts too: exposure is about standing in
+    /// the corruption while channeling, not about Essence.</summary>
+    [Export] public int Tier3CastExposureHP = 4;
+
+    /// <summary>Apply the tier-3 casting exposure if the party stands on
+    /// tier-3 ground. Returns the info-line note, or null when no exposure.
+    /// Can end the expedition — callers must check ExpeditionComplete.</summary>
+    public string SpellTier3Exposure()
+    {
+        if (CorruptionTierAt(_party.CurrentCoord) < 3)
+            return null;
+        CurrentHP -= Tier3CastExposureHP;
+        if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
+            CurrentHP = Mathf.Max(1, CurrentHP);
+        if (CurrentHP <= 0)
+        {
+            CurrentHP = 0;
+            FailExpedition("Consumed by corruption mid-casting.");
+            return null;
+        }
+        UpdateUI();
+        return $"the corrupted ground answers the working — the party sears for {Tier3CastExposureHP} HP";
+    }
+
+    /// <summary>S5 (§6a): emit the witnessed-cast deed for an Overt/Grand
+    /// spell resolved in a kingdom's territory. Only the §6a rows echo:
+    /// necromantic casting (−, Court Wizard/Idealist) and warding worked
+    /// near the kingdom's own settlement or seat (+, same route). Other
+    /// Overt casts are witnessed but not yet deeds (v1 table). Returns the
+    /// deed toast, or null.</summary>
+    public string SpellEmitWitnessEcho(OverworldSpellDefinition def, string kingdomId)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || def == null)
+            return null;
+        bool grand = def.Magnitude == "Grand";
+
+        if (def.School == "Necromancer")
+            return CouncilEcho.EmitDeed(cycle, kingdomId,
+                CouncilEcho.SpellcraftTransgression, positive: false, isMajor: grand);
+
+        if (def.Category == "Warding" && CivicPoiNear(kingdomId, radius: 2))
+            return CouncilEcho.EmitDeed(cycle, kingdomId,
+                CouncilEcho.SpellcraftAid, positive: true, isMajor: grand);
+
+        return null;
+    }
+
+    /// <summary>True when a Settlement/Seat POI of the given kingdom lies
+    /// within `radius` hexes of the party — §6a's "near a settlement
+    /// (benefiting inhabitants)" test.</summary>
+    private bool CivicPoiNear(string kingdomId, int radius)
+    {
+        if (!_window.TryLocalToWorld(_party.CurrentCoord, out int pc, out int pr))
+            return false;
+        foreach (var poi in _world.Pois)
+        {
+            if ((poi.Kind == PoiKind.Settlement || poi.Kind == PoiKind.Seat) &&
+                poi.KingdomId == kingdomId &&
+                _world.HexDistance(pc, pr, poi.X, poi.Y) <= radius)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>S5 (True Names §7f): pinned negotiation encounters, world
+    /// "col,row" → encounter id. Created on a True-Names pre-read hover or
+    /// at engagement; TriggerNegotiationEncounter consumes the pin so the
+    /// archetype you read is the counterpart you meet (G5). Same static
+    /// lifecycle as the Identify pins.</summary>
+    private static readonly System.Collections.Generic.Dictionary<string, string>
+        _pinnedNegotiations = new();
+
+    private NegotiationEncounterData PinnedNegotiationFor(Vector2I local, OverworldHex hex)
+    {
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return null;
+        string key = $"{col},{row}";
+        if (_pinnedNegotiations.TryGetValue(key, out string id))
+        {
+            var cached = NegotiationEncounterLoader.Load(id);
+            if (cached != null)
+                return cached;
+        }
+        var data = NegotiationEncounterLoader.PickForTerrain(
+            hex.Terrain.ToString(), StagingTemplateRegion());
+        if (data != null)
+            _pinnedNegotiations[key] = data.Id;
+        return data;
+    }
+
+    /// <summary>Hover extra for Negotiation POIs under the True Names
+    /// attunement: name the counterpart's archetype before engagement —
+    /// pre-loading the token-affinity read the negotiation rewards.</summary>
+    private string NegotiationPreread(Vector2I local, OverworldHex hex)
+    {
+        if (_spells == null || !_spells.HasAttunement("true_names"))
+            return "";
+        if (hex.POI != OverworldHex.POIType.Negotiation || hex.POIConsumed)
+            return "";
+        var data = PinnedNegotiationFor(local, hex);
+        return data == null ? "" : $"  ·  a {data.Archetype} holds this table";
     }
 
     /// <summary>Nearest undiscovered POI's bearing (Speak with the Fallen).</summary>

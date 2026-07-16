@@ -39,6 +39,12 @@ public static class NegotiationContext
     /// Beguile is consumed; consumed (zeroed) by NegotiationManager on open.</summary>
     public static int TensionShift = 0;
 
+    /// <summary>S5 (Parley Compulsion §7f): true when this table came from
+    /// a compelled patrol. On return, a Cordial close buries the
+    /// PatrolCompelled echo in flight (ExpeditionManager). Set only by
+    /// TriggerPatrolNegotiation.</summary>
+    public static bool FromCompulsion = false;
+
 
     // ── Output (set by NegotiationScene on completion) ──────────────────
     public static bool HasResult = false;
@@ -52,8 +58,13 @@ public static class NegotiationContext
     /// on return (KnownSpellIds — persists on the cycle save).</summary>
     public static string SpellGranted = "";
 
+    /// <summary>S5: true when the table ENDED in the Cordial zone — the
+    /// compulsion-echo burial gate (with DealAccepted), set alongside the
+    /// other results by NegotiationManager.</summary>
+    public static bool ResolvedCordial = false;
+
     public static void SetResult(bool accepted, int gold, int rep, string factionId,
-                                 string spellGranted = "")
+                                 string spellGranted = "", bool resolvedCordial = false)
     {
         HasResult = true;
         DealAccepted = accepted;
@@ -61,17 +72,20 @@ public static class NegotiationContext
         ReputationDelta = rep;
         FactionId = factionId;
         SpellGranted = spellGranted;
+        ResolvedCordial = resolvedCordial;
     }
 
     public static void Clear()
     {
         TensionShift = 0;
+        FromCompulsion = false;
         HasResult = false;
         DealAccepted = false;
         GoldDelta = 0;
         ReputationDelta = 0;
         FactionId = "";
         SpellGranted = "";
+        ResolvedCordial = false;
         EncounterId = "";
         HexCoordKey = "";
         NpcArchetype = "";

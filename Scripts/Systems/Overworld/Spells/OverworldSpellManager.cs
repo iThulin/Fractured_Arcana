@@ -30,7 +30,13 @@ using System.Collections.Generic;
 //                 on SUCCESSFUL resolve only — G5: an aborted
 //                 targeting session spends nothing); Speak with
 //                 the Fallen occasionally teaches a working
-//                 (SpellAcquisition). Echo emission remains S5.
+//                 (SpellAcquisition).
+//                 S5 (2026-07-16): the witness stub is REAL now —
+//                 Overt/Grand casts in kingdom territory emit §6a
+//                 deeds (SpellcraftAid/Transgression via the
+//                 ExpeditionManager façade), and casting from
+//                 tier-3 corrupted ground applies the R15
+//                 deterministic exposure (warned pre-cast).
 //                 Unknown EffectKeys still render greyed out —
 //                 data may lead implementation safely.
 // Layer:          System
@@ -229,6 +235,14 @@ public partial class OverworldSpellManager : Node2D
         => (def.School != "General" && def.School != _school && !IsAdept) ? 1 : 0;
 
     public int CorruptionSurcharge() => _expedition?.SpellCorruptionTierAtParty() ?? 0;
+
+    /// <summary>S5 (R15, G5): the pre-cast warning the detail card shows
+    /// when the party stands on tier-3 corrupted ground — every cast from
+    /// here sears the party. Null when it doesn't apply.</summary>
+    public string ExposureWarning()
+        => CorruptionSurcharge() >= 3
+            ? $"tier-3 ground: every cast here sears the party (−{_expedition?.Tier3CastExposureHP ?? 4} HP)"
+            : null;
 
     /// <summary>Schools of usable active-party companions.</summary>
     private List<string> ActiveCompanionSchools()
@@ -771,26 +785,37 @@ public partial class OverworldSpellManager : Node2D
         _grimoire.LastCastSpellId = def.Id; // S3: Emulate's memory (scrolls count — "by anyone")
         SaveManager.MarkDirty();
 
+        // S5 (R15): casting FROM tier-3 corrupted ground exposes the party —
+        // deterministic, warned pre-cast in the detail card (G5). Applies to
+        // scroll casts too: exposure is standing in the corruption while
+        // channeling, not an Essence cost. Can end the expedition.
+        string exposure = _expedition.SpellTier3Exposure();
+        if (_expedition.ExpeditionComplete)
+            return;
+
+        // S5 (§6a): Overt/Grand casts in kingdom territory emit REAL deeds
+        // now — the stub is gone. Only the §6a rows echo (necromantic −,
+        // warding-near-settlement +); the toast rides the same info beat.
+        string echoToast = null;
+        if (def.Magnitude != "Subtle")
+        {
+            string kid = _expedition.SpellKingdomAtParty();
+            if (!string.IsNullOrEmpty(kid))
+                echoToast = _expedition.SpellEmitWitnessEcho(def, kid);
+        }
+        string tail = (exposure != null ? $" {exposure}." : "") +
+                      (echoToast != null ? $" {echoToast}" : "");
+
         if (scroll)
         {
             _expedition.SpellInfo($"{def.Name}: {result} (the scroll crumbles" +
-                                  $"{(scrollsLeft > 0 ? $" — {scrollsLeft} left" : "")}; no Essence spent.)");
+                                  $"{(scrollsLeft > 0 ? $" — {scrollsLeft} left" : "")}; no Essence spent.)" + tail);
         }
         else
         {
             int surcharge = cost - def.EssenceCost;
             _expedition.SpellInfo($"{def.Name}: {result} (−{cost} Essence" +
-                                  $"{(surcharge > 0 ? $", {surcharge} beyond base" : "")}.)");
-        }
-
-        // §6a stub: Overt/Grand casts in kingdom territory are witnessed.
-        // Real echo emission (SpellcraftAid/Transgression) lands in S5.
-        if (def.Magnitude != "Subtle")
-        {
-            string kid = _expedition.SpellKingdomAtParty();
-            if (!string.IsNullOrEmpty(kid))
-                GD.Print($"[Spellcraft] {def.Magnitude} cast of '{def.Id}' witnessed in '{kid}' " +
-                         "— echo emission lands in S5.");
+                                  $"{(surcharge > 0 ? $", {surcharge} beyond base" : "")}.)" + tail);
         }
 
         _expedition.SpellRefreshHud();
