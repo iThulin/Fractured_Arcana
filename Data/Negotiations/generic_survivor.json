@@ -1,0 +1,62 @@
+{
+  "id": "generic_survivor",
+  "title": "The Last of the Caravan",
+  "npcName": "Old Marrow",
+  "archetype": "Survivor",
+  "factionId": "roadbound",
+  "openingText": "He's been watching you for an hour before he lets you see him — a weathered man in a coat of stitched tarpaulin, crossbow held easy, not quite pointed away. 'Twelve of us came through here. I'm what's left. You want what I know, and I want to not die out here. So. Talk slow, and keep your hands where the light is.'",
+  "startingTension": 6,
+  "basePatience": 6,
+  "npcResolve": 2,
+  "npcGuile": 1,
+  "npcPoise": 2,
+  "dialogueCordial": "...You talk like someone who's buried people too. Alright.",
+  "dialogueStrained": "Keep talking. The crossbow stays where it is.",
+  "dialogueHostile": "I've survived worse than wizards. Don't make me prove it.",
+  "dialogueWalkaway": "Enough. I was doing fine before you, I'll do fine after.",
+  "dialogueAccept": "Deal. Don't make me regret trusting somebody again.",
+  "terms": [
+    {
+      "id": "dead_wells",
+      "description": "Marrow marks which wells are dry and which route still runs — 3 steps saved.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 0,
+      "reputationDelta": 0,
+      "stepsDelta": 3,
+      "startingPosition": -1,
+      "weight": 3
+    },
+    {
+      "id": "water_cache",
+      "description": "He'll split his water cache if you're carrying wounded.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 15,
+      "reputationDelta": 0,
+      "startingPosition": -1,
+      "weight": 1
+    },
+    {
+      "id": "walk_me_out",
+      "description": "He wants escort to the next settlement — your pace slows by 2 steps.",
+      "favorPlayer": false,
+      "isHidden": false,
+      "goldDelta": 0,
+      "reputationDelta": 0,
+      "stepsDelta": -2,
+      "startingPosition": -1,
+      "weight": 2
+    },
+    {
+      "id": "caravan_stash",
+      "description": "Where the caravan buried its strongbox before the end — 35 gold in salvage.",
+      "favorPlayer": true,
+      "isHidden": true,
+      "goldDelta": 35,
+      "reputationDelta": 0,
+      "startingPosition": -2,
+      "weight": 2
+    }
+  ]
+}

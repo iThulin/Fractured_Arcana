@@ -7,6 +7,9 @@
   "openingText": "Aldric spreads his hands across a table covered in goods and ledgers. 'You've caught me at a good time,' he says. 'I've wares and I've needs, and I suspect we might find some common ground. Let's talk terms.'",
   "startingTension": 4,
   "basePatience": 8,
+  "npcResolve": 2,
+  "npcGuile": 2,
+  "npcPoise": 1,
   "dialogueCordial": "Now this I can work with. You drive a fair bargain — I'll remember this.",
   "dialogueStrained": "I hear you. Whether I agree is another matter.",
   "dialogueHostile": "Watch yourself. I've dealt with rougher than you, and I didn't get rich by being pushed around.",
@@ -19,7 +22,9 @@
       "favorPlayer": true,
       "isHidden": false,
       "goldDelta": 50,
-      "reputationDelta": 0
+      "reputationDelta": 0,
+      "startingPosition": -1,
+      "weight": 3
     },
     {
       "id": "supply_discount",
@@ -28,7 +33,9 @@
       "isHidden": false,
       "goldDelta": 0,
       "reputationDelta": 1,
-      "factionId": "merchant_guild"
+      "factionId": "merchant_guild",
+      "startingPosition": -1,
+      "weight": 2
     },
     {
       "id": "hidden_fee",
@@ -36,7 +43,9 @@
       "favorPlayer": false,
       "isHidden": true,
       "goldDelta": -15,
-      "reputationDelta": 0
+      "reputationDelta": 0,
+      "startingPosition": -1,
+      "weight": 1
     }
   ]
 }

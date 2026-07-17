@@ -1,0 +1,63 @@
+{
+  "id": "sunken_archive_scholar",
+  "title": "The Lector of the Rising Stacks",
+  "npcName": "Lector Imbrell",
+  "archetype": "Scholar",
+  "factionId": "archive_wardens",
+  "openingText": "The Lector receives you on a gantry above the waterline, where the Archive's upper stacks have dried enough to walk. Below, shelves descend into green dark. 'Every year the water gives back another floor,' she says. 'And every year, something in the lower stacks remembers being locked in. You look sturdy. Let us discuss terms of mutual profit — and mutual survival.'",
+  "startingTension": 4,
+  "basePatience": 9,
+  "npcResolve": 1,
+  "npcGuile": 2,
+  "npcPoise": 2,
+  "dialogueCordial": "You'd have made a passable archivist. I mean that as high praise.",
+  "dialogueStrained": "Your terms are... unrigorous. Revise them.",
+  "dialogueHostile": "The Archive has drowned better negotiators than you. Literally.",
+  "dialogueWalkaway": "I withdraw the offer. The stacks will still be here when you learn manners.",
+  "dialogueAccept": "Witnessed and shelved. The Archive honors its catalog.",
+  "terms": [
+    {
+      "id": "reading_rights",
+      "description": "Reading rights in the recovered wing — the guild may copy what it can carry.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 0,
+      "reputationDelta": 1,
+      "factionId": "archive_wardens",
+      "loreUnlock": "archive_recovered_wing",
+      "startingPosition": -1,
+      "weight": 3
+    },
+    {
+      "id": "catalog_labor",
+      "description": "She wants your party cataloguing water-damaged folios — tedious hours, 2 steps lost.",
+      "favorPlayer": false,
+      "isHidden": false,
+      "goldDelta": 0,
+      "reputationDelta": 0,
+      "stepsDelta": -2,
+      "startingPosition": -1,
+      "weight": 2
+    },
+    {
+      "id": "duplicate_folio",
+      "description": "A duplicate folio of pre-Collapse engineering, sellable to any guild — 45 gold.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 45,
+      "reputationDelta": 0,
+      "startingPosition": -1,
+      "weight": 2
+    },
+    {
+      "id": "sealed_wing_waiver",
+      "description": "A waiver: if you open the sealed wing, whatever follows you out is formally YOUR doing.",
+      "favorPlayer": false,
+      "isHidden": true,
+      "goldDelta": 0,
+      "reputationDelta": -1,
+      "startingPosition": -2,
+      "weight": 2
+    }
+  ]
+}

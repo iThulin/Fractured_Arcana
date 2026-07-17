@@ -1,0 +1,62 @@
+{
+  "id": "generic_idealist",
+  "title": "The Warden of the Waystation",
+  "npcName": "Sister Maretta",
+  "archetype": "Idealist",
+  "factionId": "wayfarers_circle",
+  "openingText": "The warden meets you at the gate of the refugee waystation, sleeves rolled, ledger in hand. 'Wizards. Good — or bad, depending. We shelter forty souls and feed thirty of them. Whatever brought you here, I'll ask you plainly: will you help, and what will it cost me?'",
+  "startingTension": 3,
+  "basePatience": 7,
+  "npcResolve": 1,
+  "npcGuile": 1,
+  "npcPoise": 2,
+  "dialogueCordial": "The Circle remembers its friends. Longer than kings do.",
+  "dialogueStrained": "I've heard promises before. Show me terms I can hold in my hand.",
+  "dialogueHostile": "There are children behind that gate. Mind your tone.",
+  "dialogueWalkaway": "Then we have nothing to discuss. The road is that way.",
+  "dialogueAccept": "Then it's done, and witnessed under the open sky. Walk safely.",
+  "terms": [
+    {
+      "id": "provision_camp",
+      "description": "Provision the waystation from your stores — 20 gold of supplies.",
+      "favorPlayer": false,
+      "isHidden": false,
+      "goldDelta": -20,
+      "reputationDelta": 0,
+      "startingPosition": -1,
+      "weight": 1
+    },
+    {
+      "id": "circle_marks",
+      "description": "The Circle marks your guild as a friend of the road — word travels between every waystation.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 0,
+      "reputationDelta": 2,
+      "factionId": "wayfarers_circle",
+      "startingPosition": -1,
+      "weight": 3
+    },
+    {
+      "id": "guides_blessing",
+      "description": "A guide walks you past the flooded fords — 2 steps saved.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 0,
+      "reputationDelta": 0,
+      "stepsDelta": 2,
+      "startingPosition": -1,
+      "weight": 2
+    },
+    {
+      "id": "old_debt",
+      "description": "A quiet request: the Circle asks a future favor of the guild, to be named when needed.",
+      "favorPlayer": false,
+      "isHidden": true,
+      "goldDelta": 0,
+      "reputationDelta": -1,
+      "startingPosition": -1,
+      "weight": 1
+    }
+  ]
+}

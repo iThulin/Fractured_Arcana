@@ -37,14 +37,13 @@ public partial class NegotiationManager : Control
     private NegotiationPortrait _portrait;   // Phase 4: stance-keyed portrait
     private Label _npcNameLabel;
     private Label _stanceLabel;          // Module A: the tell, under the portrait
+    private Label _openingLabel;
 
     private HBoxContainer _tensionBar;
     private Label _tensionLabel;
-    private HBoxContainer _npcPoolRow;   // v2: their leverage as mini token chips
+    private Label _npcPoolLabel;         // v2: their leverage is public
 
-    private ScrollContainer _termsScroll;
-    private HBoxContainer _termsRow;           // the clause cards (prototype style)
-    private string _selectedTermId = "";       // click-to-target selection
+    private VBoxContainer _termsContainer;
     private VBoxContainer _actionsContainer;   // spoken moves OR chips
     private VBoxContainer _schoolMoveContainer; // Phase 5: signature move row
     private CheckButton _spokenToggle;         // Module D debug toggle
@@ -68,14 +67,6 @@ public partial class NegotiationManager : Control
     private Button _continueButton;
 
     private ColorRect[] _tensionSteps = new ColorRect[10];
-    private HBoxContainer _patienceBar;        // pip bar: their remaining patience
-    private Label _patienceCaption;
-
-    // Log aging: everything before your latest action renders dim, so the
-    // results of the last exchange pop.
-    private ScrollContainer _logScroll;
-    private readonly List<string> _logHistory = new();
-    private readonly List<string> _logRecent = new();
 
     private bool _spokenMode = true;           // Module D on by default
 
@@ -211,6 +202,7 @@ public partial class NegotiationManager : Control
 
         _titleLabel.Text = _data.Title;
         _npcNameLabel.Text = _data.NpcName;
+        _openingLabel.Text = _data.OpeningText;
 
         _portrait.Setup(_data.Archetype);
         _portrait.SetZone(_state.Zone);
@@ -253,115 +245,124 @@ public partial class NegotiationManager : Control
         };
         AddChild(bg);
 
-        // Single-screen vertical layout (prototype composition):
-        //   title / [portrait | table log + meters] / clause cards / actions.
-        var root = new VBoxContainer
+        // Main layout
+        var mainHBox = new HBoxContainer
         {
             AnchorRight = 1f,
             AnchorBottom = 1f,
             OffsetLeft = 20,
-            OffsetTop = 88,     // clear the persistent HUD bar (Gold / Lunation)
+            OffsetTop = 20,
             OffsetRight = -20,
-            OffsetBottom = -14,
+            OffsetBottom = -20,
         };
-        root.AddThemeConstantOverride("separation", 8);
-        AddChild(root);
+        mainHBox.AddThemeConstantOverride("separation", 20);
+        AddChild(mainHBox);
 
-        // ── Title (one line) ────────────────────────────────────────────
-        _titleLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
-        _titleLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationNpcFontSize);
-        _titleLabel.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
-        root.AddChild(_titleLabel);
-
-        // ── TOP STRIP: centered pair — NPC card column | conversation ────
-        var topStrip = new HBoxContainer
+        // ── LEFT PANEL ──────────────────────────────────────────────────
+        var leftScroll = new ScrollContainer
         {
-            SizeFlagsVertical = SizeFlags.Expand | SizeFlags.Fill,
+            SizeFlagsHorizontal = SizeFlags.Expand | SizeFlags.Fill,
+            SizeFlagsStretchRatio = 1.4f,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
         };
-        topStrip.AddThemeConstantOverride("separation", 22);
-        root.AddChild(topStrip);
+        mainHBox.AddChild(leftScroll);
 
-        topStrip.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.Expand });
+        var leftPanel = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.Expand | SizeFlags.Fill,
+        };
+        leftPanel.AddThemeConstantOverride("separation", 12);
+        leftScroll.AddChild(leftPanel);
 
-        // NPC column — the face of the table, with its dials right under it.
-        var npcCol = new VBoxContainer { CustomMinimumSize = new Vector2(280, 0) };
-        npcCol.AddThemeConstantOverride("separation", 5);
-        topStrip.AddChild(npcCol);
+        // Title
+        _titleLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
+        _titleLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationTitleFontSize);
+        _titleLabel.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
+        leftPanel.AddChild(_titleLabel);
 
+        // Portrait (Phase 4) — the stance IS shown here; ring tint = zone.
         var portraitWrap = new CenterContainer();
         _portrait = new NegotiationPortrait();
         portraitWrap.AddChild(_portrait);
-        npcCol.AddChild(portraitWrap);
+        leftPanel.AddChild(portraitWrap);
 
+        // NPC name
         _npcNameLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
         _npcNameLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationNpcFontSize);
-        _npcNameLabel.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
-        npcCol.AddChild(_npcNameLabel);
+        _npcNameLabel.AddThemeColorOverride("font_color", UITheme.NegotiationNpcColor);
+        leftPanel.AddChild(_npcNameLabel);
 
-        // Stance tell (Module A) — the read, right under the face.
+        // Stance tell (Module A) — this is the read; the Phase 4 portrait
+        // will carry it visually, this label carries it until then.
         _stanceLabel = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        _stanceLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationDetailFontSize);
+        _stanceLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationBodyFontSize);
         _stanceLabel.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
-        npcCol.AddChild(_stanceLabel);
+        leftPanel.AddChild(_stanceLabel);
 
-        // Tension — compact, part of the NPC card.
-        var tensionHead = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
-        tensionHead.AddThemeConstantOverride("separation", 8);
-        var tensionTag = MakeTinyLabel("TENSION", Colors.White);
-        tensionTag.VerticalAlignment = VerticalAlignment.Center;
-        tensionHead.AddChild(tensionTag);
-        _tensionLabel = new Label { VerticalAlignment = VerticalAlignment.Center };
-        _tensionLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
-        tensionHead.AddChild(_tensionLabel);
-        npcCol.AddChild(tensionHead);
-
-        _tensionBar = new HBoxContainer
+        // Opening text
+        _openingLabel = new Label
         {
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-            CustomMinimumSize = new Vector2(0, 14),
-            TooltipText = "1-3 Cordial · 4-7 Strained · 8-10 Hostile",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Left,
         };
-        _tensionBar.AddThemeConstantOverride("separation", 3);
-        npcCol.AddChild(_tensionBar);
+        _openingLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationBodyFontSize);
+        _openingLabel.AddThemeColorOverride("font_color", UITheme.NegotiationBodyColor);
+        leftPanel.AddChild(_openingLabel);
+
+        leftPanel.AddChild(new HSeparator());
+
+        // ── TENSION METER ───────────────────────────────────────────────
+        var tensionHeader = new Label { Text = "Tension" };
+        tensionHeader.AddThemeFontSizeOverride("font_size", UITheme.NegotiationHeaderFontSize);
+        tensionHeader.AddThemeColorOverride("font_color", Colors.White);
+        leftPanel.AddChild(tensionHeader);
+
+        _tensionBar = new HBoxContainer();
+        _tensionBar.AddThemeConstantOverride("separation", 4);
+        _tensionBar.CustomMinimumSize = new Vector2(0, 28);
+        leftPanel.AddChild(_tensionBar);
 
         for (int i = 0; i < 10; i++)
         {
-            var step = new ColorRect { CustomMinimumSize = new Vector2(22, 14) };
+            var step = new ColorRect
+            {
+                CustomMinimumSize = new Vector2(32, 28),
+                SizeFlagsHorizontal = SizeFlags.Expand,
+            };
             _tensionSteps[i] = step;
             _tensionBar.AddChild(step);
         }
 
-        // Their patience — a depleting pip bar; one pip = one more move.
-        _patienceCaption = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            TooltipText = "Every action except a Patience token spends one pip.",
-        };
-        _patienceCaption.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
-        _patienceCaption.AddThemeColorOverride("font_color", UITheme.NegotiationNpcColor);
-        npcCol.AddChild(_patienceCaption);
+        // Zone labels
+        var zoneHBox = new HBoxContainer();
+        var cordialLbl = MakeTinyLabel("◀ CORDIAL", UITheme.ZoneCordialLabel);
+        var strainedLbl = MakeTinyLabel("STRAINED", UITheme.ZoneStrainedLabel);
+        var hostileLbl = MakeTinyLabel("HOSTILE ▶", UITheme.ZoneHostileLabel);
 
-        _patienceBar = new HBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
-            CustomMinimumSize = new Vector2(0, 8),
-        };
-        _patienceBar.AddThemeConstantOverride("separation", 3);
-        npcCol.AddChild(_patienceBar);
+        cordialLbl.SizeFlagsHorizontal = SizeFlags.Expand;
+        strainedLbl.SizeFlagsHorizontal = SizeFlags.Expand;
+        strainedLbl.HorizontalAlignment = HorizontalAlignment.Center;
+        hostileLbl.SizeFlagsHorizontal = SizeFlags.Expand;
+        hostileLbl.HorizontalAlignment = HorizontalAlignment.Right;
 
-        // Their pool, as mini tokens (Offerings you hand over land here).
-        _npcPoolRow = new HBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-            TooltipText = "Their leverage — they spend it against you. Offerings you hand over feed it.",
-        };
-        _npcPoolRow.AddThemeConstantOverride("separation", 10);
-        npcCol.AddChild(_npcPoolRow);
+        zoneHBox.AddChild(cordialLbl);
+        zoneHBox.AddChild(strainedLbl);
+        zoneHBox.AddChild(hostileLbl);
+        leftPanel.AddChild(zoneHBox);
+
+        _tensionLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
+        _tensionLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationTensionFontSize);
+        leftPanel.AddChild(_tensionLabel);
+
+        // v2: the NPC's pool is PUBLIC — tokens you hand over land here.
+        _npcPoolLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
+        _npcPoolLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
+        _npcPoolLabel.AddThemeColorOverride("font_color", UITheme.NegotiationNpcColor);
+        leftPanel.AddChild(_npcPoolLabel);
 
         // Embassy tier-2 hook: agents brief you on the NPC's next move.
         _intentLabel = new Label
@@ -372,71 +373,23 @@ public partial class NegotiationManager : Control
         };
         _intentLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
         _intentLabel.AddThemeColorOverride("font_color", UITheme.ZoneStrainedLabel);
-        npcCol.AddChild(_intentLabel);
+        leftPanel.AddChild(_intentLabel);
 
-        // The conversation box — width capped so the NPC card sits near the
-        // middle of the screen instead of shunted to a corner.
-        var logPanel = new PanelContainer
-        {
-            CustomMinimumSize = new Vector2(700, 0),
-            SizeFlagsVertical = SizeFlags.Expand | SizeFlags.Fill,
-        };
-        var logStyle = new StyleBoxFlat
-        {
-            BgColor = UITheme.BgDeep,
-            BorderColor = UITheme.VioletDim,
-            BorderWidthTop = 1, BorderWidthBottom = 1,
-            BorderWidthLeft = 1, BorderWidthRight = 1,
-            CornerRadiusTopLeft = 8, CornerRadiusTopRight = 8,
-            CornerRadiusBottomLeft = 8, CornerRadiusBottomRight = 8,
-            ContentMarginTop = 8, ContentMarginBottom = 8,
-            ContentMarginLeft = 10, ContentMarginRight = 10,
-        };
-        logPanel.AddThemeStyleboxOverride("panel", logStyle);
-        topStrip.AddChild(logPanel);
+        leftPanel.AddChild(new HSeparator());
 
-        _logScroll = new ScrollContainer
-        {
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-        };
-        logPanel.AddChild(_logScroll);
-
-        _logLabel = new RichTextLabel
-        {
-            BbcodeEnabled = true,
-            FitContent = true,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            SizeFlagsHorizontal = SizeFlags.Expand | SizeFlags.Fill,
-        };
-        _logLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationDetailFontSize);
-        _logScroll.AddChild(_logLabel);
-
-        topStrip.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.Expand });
-
-        // ── THE DEAL (clause cards) ──────────────────────────────────────
-        var termsHeader = new Label { Text = "The Deal on the Table — click a clause to target it, then make your move" };
+        // ── DEAL TERMS (v2: the board) ──────────────────────────────────
+        var termsHeader = new Label { Text = "The Deal on the Table — pull each clause toward your side" };
         termsHeader.AddThemeFontSizeOverride("font_size", UITheme.NegotiationHeaderFontSize);
         termsHeader.AddThemeColorOverride("font_color", Colors.White);
-        root.AddChild(termsHeader);
+        leftPanel.AddChild(termsHeader);
 
-        _termsScroll = new ScrollContainer
-        {
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Auto,
-            VerticalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            CustomMinimumSize = new Vector2(0, 186),
-        };
-        root.AddChild(_termsScroll);
-        var termsCenter = new CenterContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.Expand | SizeFlags.Fill,
-            SizeFlagsVertical = SizeFlags.Expand | SizeFlags.Fill,
-        };
-        _termsScroll.AddChild(termsCenter);
-        _termsRow = new HBoxContainer();
-        _termsRow.AddThemeConstantOverride("separation", 10);
-        termsCenter.AddChild(_termsRow);
+        _termsContainer = new VBoxContainer();
+        _termsContainer.AddThemeConstantOverride("separation", 8);
+        leftPanel.AddChild(_termsContainer);
 
-        // ── YOUR MOVE (Module D spoken moves / chips debug toggle) ──────
+        leftPanel.AddChild(new HSeparator());
+
+        // ── ACTIONS (Module D spoken moves / chips debug toggle) ────────
         var actionsHeaderRow = new HBoxContainer();
         var actionsHeader = new Label
         {
@@ -451,30 +404,23 @@ public partial class NegotiationManager : Control
         _spokenToggle.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
         _spokenToggle.Toggled += pressed => { _spokenMode = pressed; RebuildActions(); };
         actionsHeaderRow.AddChild(_spokenToggle);
-        root.AddChild(actionsHeaderRow);
+        leftPanel.AddChild(actionsHeaderRow);
 
-        var actionsScroll = new ScrollContainer
-        {
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            CustomMinimumSize = new Vector2(0, 196),
-        };
-        root.AddChild(actionsScroll);
-        _actionsContainer = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.Expand | SizeFlags.Fill,
-        };
+        _actionsContainer = new VBoxContainer();
         _actionsContainer.AddThemeConstantOverride("separation", 6);
-        actionsScroll.AddChild(_actionsContainer);
+        leftPanel.AddChild(_actionsContainer);
 
         // Phase 5: the school's once-per-table signature move.
         _schoolMoveContainer = new VBoxContainer();
         _schoolMoveContainer.AddThemeConstantOverride("separation", 4);
-        root.AddChild(_schoolMoveContainer);
+        leftPanel.AddChild(_schoolMoveContainer);
+
+        leftPanel.AddChild(new Control { CustomMinimumSize = new Vector2(0, 8) });
 
         var actionRow = new HBoxContainer();
         actionRow.AddThemeConstantOverride("separation", 12);
         actionRow.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-        root.AddChild(actionRow);
+        leftPanel.AddChild(actionRow);
 
         _passButton = new Button
         {
@@ -483,7 +429,7 @@ public partial class NegotiationManager : Control
             CustomMinimumSize = new Vector2(140, 44),
         };
         _passButton.AddThemeFontSizeOverride("font_size", UITheme.NegotiationActionFontSize);
-        _passButton.Pressed += () => { StartLogTurn(); _state.Pass(); RefreshAll(); };
+        _passButton.Pressed += () => { _state.Pass(); RefreshAll(); };
         actionRow.AddChild(_passButton);
 
         _shakeButton = new Button
@@ -501,8 +447,35 @@ public partial class NegotiationManager : Control
             CustomMinimumSize = new Vector2(140, 44),
         };
         _walkAwayButton.AddThemeFontSizeOverride("font_size", UITheme.NegotiationActionFontSize);
-        _walkAwayButton.Pressed += () => { StartLogTurn(); _state.WalkAway(); };
+        _walkAwayButton.Pressed += () => _state.WalkAway();
         actionRow.AddChild(_walkAwayButton);
+
+        // ── RIGHT PANEL (LOG) ────────────────────────────────────────────
+        var rightPanel = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.Expand | SizeFlags.Fill,
+            SizeFlagsStretchRatio = 1f,
+        };
+        rightPanel.AddThemeConstantOverride("separation", 8);
+        mainHBox.AddChild(rightPanel);
+
+        var logHeader = new Label { Text = "Negotiation Log" };
+        logHeader.AddThemeFontSizeOverride("font_size", UITheme.NegotiationHeaderFontSize);
+        logHeader.AddThemeColorOverride("font_color", Colors.White);
+        rightPanel.AddChild(logHeader);
+
+        var logScroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.Expand | SizeFlags.Fill };
+        rightPanel.AddChild(logScroll);
+
+        _logLabel = new RichTextLabel
+        {
+            BbcodeEnabled = true,
+            FitContent = true,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = SizeFlags.Expand | SizeFlags.Fill,
+        };
+        _logLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationDetailFontSize);
+        logScroll.AddChild(_logLabel);
 
         // ── SQUEEZE PANEL (Module B modal) ───────────────────────────────
         _squeezePanel = MakeModalPanel(300, 170);
@@ -673,7 +646,9 @@ public partial class NegotiationManager : Control
         switch (_state.School)
         {
             case CardSchool.Elementalist:
-                // Targets the selected clause card — no separate picker.
+                picker = new OptionButton { CustomMinimumSize = new Vector2(180, 36) };
+                for (int i = 0; i < targets.Count; i++)
+                    picker.AddItem("⌖ " + NegotiationState.ShortName(targets[i]), i);
                 break;
             case CardSchool.Enchanter:
                 picker = new OptionButton { CustomMinimumSize = new Vector2(180, 36) };
@@ -707,13 +682,14 @@ public partial class NegotiationManager : Control
         var pickerRef = picker;
         btn.Pressed += () =>
         {
-            StartLogTurn();
             switch (_state.School)
             {
                 case CardSchool.Elementalist:
                 {
-                    var term = SelectedTerm();
-                    if (term != null) _state.UseSchoolMove(target: term);
+                    var currentTargets = _state.PullableTerms();
+                    int idx = pickerRef?.Selected ?? 0;
+                    if (idx >= 0 && idx < currentTargets.Count)
+                        _state.UseSchoolMove(target: currentTargets[idx]);
                     break;
                 }
                 case CardSchool.Enchanter:
@@ -738,14 +714,8 @@ public partial class NegotiationManager : Control
             return;
 
         int t = _state.Tension;
-        _tensionLabel.Text = $"{_state.Zone}  {t}/10";
-        _tensionLabel.AddThemeColorOverride("font_color", _state.Zone switch
-        {
-            TensionZone.Cordial => UITheme.ZoneCordialLabel,
-            TensionZone.Hostile => UITheme.ZoneHostileLabel,
-            _                   => UITheme.ZoneStrainedLabel,
-        });
-        RefreshPatienceBar();
+        _tensionLabel.Text = $"Tension: {t}/10  |  Zone: {_state.Zone}" +
+                             $"  |  Their Patience: {_state.NpcPatience}";
 
         for (int i = 0; i < 10; i++)
         {
@@ -764,41 +734,6 @@ public partial class NegotiationManager : Control
         }
     }
 
-    private void RefreshPatienceBar()
-    {
-        if (_patienceBar == null || _state?.Data == null) return;
-        int total = Mathf.Max(1, _state.Data.BasePatience);
-        int remaining = Mathf.Clamp(_state.NpcPatience, 0, total);
-
-        if (_patienceBar.GetChildCount() != total)
-        {
-            foreach (var child in _patienceBar.GetChildren()) child.QueueFree();
-            for (int i = 0; i < total; i++)
-                _patienceBar.AddChild(new ColorRect
-                {
-                    CustomMinimumSize = new Vector2(22, 10),
-                });
-        }
-
-        // Low patience burns red — the walkout is imminent.
-        Color fill = remaining <= 2 ? UITheme.TensionHostile : UITheme.Violet;
-        int i2 = 0;
-        foreach (var child in _patienceBar.GetChildren())
-        {
-            if (child is ColorRect pip)
-                pip.Color = i2++ < remaining ? fill : UITheme.TensionEmpty;
-        }
-
-        _patienceCaption.Text = _state.IsResolved
-            ? "Their patience"
-            : remaining <= 2
-                ? $"Their patience — {remaining} move{(remaining == 1 ? "" : "s")} before they walk!"
-                : $"Their patience — {remaining} moves left";
-        _patienceCaption.AddThemeColorOverride("font_color",
-            remaining <= 2 && !_state.IsResolved
-                ? UITheme.TensionHostile : UITheme.NegotiationNpcColor);
-    }
-
     private void RefreshStance()
     {
         if (_state == null || _stanceLabel == null) return;
@@ -812,226 +747,91 @@ public partial class NegotiationManager : Control
 
     private void RefreshNpcPool()
     {
-        if (_state == null || _npcPoolRow == null) return;
-        foreach (var child in _npcPoolRow.GetChildren())
-            child.QueueFree();
-        AddNpcChip("resolve", _state.ResolveName, _state.NpcPool[NpcResource.Resolve]);
-        AddNpcChip("guile", "Guile", _state.NpcPool[NpcResource.Guile]);
-        AddNpcChip("poise", "Poise", _state.NpcPool[NpcResource.Poise]);
-    }
-
-    private void AddNpcChip(string art, string displayName, int count)
-    {
-        _npcPoolRow.AddChild(new NegotiationTokenChip
-        {
-            ArtOverride = art,
-            Count = count,
-            SizePx = 44,
-            Interactive = false,
-            TooltipText = $"{displayName} ×{count}",
-        });
-    }
-
-    /// <summary>The currently targeted clause, validated against the live
-    /// board; falls back to the most valuable pullable clause.</summary>
-    private DealTerm SelectedTerm()
-    {
-        var pullables = _state.PullableTerms();
-        var picked = pullables.FirstOrDefault(t => t.Id == _selectedTermId);
-        if (picked != null) return picked;
-        return pullables.OrderByDescending(t => (2 - t.Position) * t.Weight).FirstOrDefault();
-    }
-
-    private void SelectTerm(string id)
-    {
-        _selectedTermId = id;
-        RefreshTerms();
-        RebuildActions();
-        RefreshSchoolMove();
+        if (_state == null || _npcPoolLabel == null) return;
+        _npcPoolLabel.Text =
+            $"Their leverage:  {_state.ResolveName} ×{_state.NpcPool[NpcResource.Resolve]}" +
+            $"   ·   Guile ×{_state.NpcPool[NpcResource.Guile]}" +
+            $"   ·   Poise ×{_state.NpcPool[NpcResource.Poise]}" +
+            "      (Offerings you hand over feed their pool)";
     }
 
     private void RefreshTerms()
     {
-        if (_termsRow == null || _state == null) return;
-        foreach (var child in _termsRow.GetChildren())
-            child.QueueFree();
+        if (_termsContainer == null || _state == null)
+            return;
 
-        var pullables = _state.PullableTerms();
-        // Selection may rest on a pullable clause OR a face-down one (for
-        // Insight); otherwise default to the most valuable pullable clause.
-        bool validSelection = _state.Terms.Any(t =>
-            t.Id == _selectedTermId && (t.IsHidden || pullables.Contains(t)));
-        if (!validSelection)
-            _selectedTermId = pullables
-                .OrderByDescending(t => (2 - t.Position) * t.Weight)
-                .FirstOrDefault()?.Id ?? "";
+        foreach (var child in _termsContainer.GetChildren())
+            child.QueueFree();
 
         foreach (var term in _state.Terms)
         {
             if (term.IsHidden)
-                _termsRow.AddChild(BuildFaceDownCard(term, term.Id == _selectedTermId));
-            else
-                _termsRow.AddChild(BuildTermCard(term,
-                    targetable: pullables.Contains(term),
-                    isSelected: term.Id == _selectedTermId));
-        }
-    }
+                continue;   // face-down clauses are counted below, not listed
 
-    /// <summary>One clause as a parchment card (placeholder art — swap the
-    /// StyleBox for slip art in the full Phase 4 pass). Selected = gold
-    /// border + ⌖ header; sealed = red border; targetable cards are
-    /// clickable with a pointing-hand cursor.</summary>
-    private Control BuildTermCard(DealTerm term, bool targetable, bool isSelected)
-    {
-        var ink = UITheme.WorldDeep;
-        var inkSoft = new Color(ink.R, ink.G, ink.B, 0.72f);
+            var box = new VBoxContainer();
+            box.AddThemeConstantOverride("separation", 2);
 
-        var card = new PanelContainer { CustomMinimumSize = new Vector2(220, 168) };
-        var style = new StyleBoxFlat
-        {
-            BgColor = UITheme.SurfaceLight,   // parchment placeholder
-            BorderColor = isSelected ? UITheme.NegotiationTitleColor
-                        : term.Locked ? UITheme.TensionHostile
-                        : new Color(ink.R, ink.G, ink.B, 0.35f),
-            CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6,
-            CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6,
-        };
-        int bw = isSelected ? 3 : 2;
-        style.BorderWidthTop = bw; style.BorderWidthBottom = bw;
-        style.BorderWidthLeft = bw; style.BorderWidthRight = bw;
-        card.AddThemeStyleboxOverride("panel", style);
+            var descRow = new HBoxContainer();
+            descRow.AddThemeConstantOverride("separation", 8);
 
-        var margins = new MarginContainer();
-        margins.AddThemeConstantOverride("margin_left", 10);
-        margins.AddThemeConstantOverride("margin_right", 10);
-        margins.AddThemeConstantOverride("margin_top", 8);
-        margins.AddThemeConstantOverride("margin_bottom", 8);
-        card.AddChild(margins);
-
-        var box = new VBoxContainer();
-        box.AddThemeConstantOverride("separation", 3);
-        margins.AddChild(box);
-
-        var header = new Label
-        {
-            Text = (isSelected ? "⌖ " : "") + NegotiationState.ShortName(term),
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        header.AddThemeFontSizeOverride("font_size", UITheme.NegotiationDetailFontSize);
-        header.AddThemeColorOverride("font_color", isSelected ? UITheme.VioletDark : ink);
-        box.AddChild(header);
-
-        var desc = new Label
-        {
-            Text = term.Description,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        desc.AddThemeFontSizeOverride("font_size", UITheme.NegotiationTinyFontSize);
-        desc.AddThemeColorOverride("font_color", inkSoft);
-        box.AddChild(desc);
-
-        // Slider track: THEIRS ▢▢▢▢▢ YOURS
-        var track = new HBoxContainer();
-        track.AddThemeConstantOverride("separation", 3);
-        var theirs = MakeTinyLabel("THEIRS", UITheme.TermAgainstPlayer);
-        track.AddChild(theirs);
-        for (int p = -2; p <= 2; p++)
-        {
-            track.AddChild(new ColorRect
+            var desc = new Label
             {
-                CustomMinimumSize = new Vector2(24, 10),
-                SizeFlagsVertical = SizeFlags.ShrinkCenter,
-                Color = p == term.Position
-                    ? UITheme.NegotiationTitleColor
-                    : new Color(ink.R, ink.G, ink.B, 0.18f),
-            });
-        }
-        var yours = MakeTinyLabel("YOURS", UITheme.TermFavorPlayer);
-        track.AddChild(yours);
-        box.AddChild(track);
-
-        var posLbl = new Label
-        {
-            Text = term.Locked
-                ? "🔒 sealed while Hostile"
-                : NegotiationState.PositionLabel(term.Position),
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        posLbl.AddThemeFontSizeOverride("font_size", UITheme.NegotiationTinyFontSize);
-        posLbl.AddThemeColorOverride("font_color",
-            term.Locked ? UITheme.TensionHostile :
-            term.Position > 0 ? UITheme.TermFavorPlayer :
-            term.Position < 0 ? UITheme.TermAgainstPlayer : inkSoft);
-        box.AddChild(posLbl);
-
-        if (targetable)
-        {
-            card.MouseFilter = MouseFilterEnum.Stop;
-            card.MouseDefaultCursorShape = CursorShape.PointingHand;
-            var id = term.Id;
-            card.GuiInput += ev =>
-            {
-                if (ev is InputEventMouseButton mb && mb.Pressed
-                    && mb.ButtonIndex == MouseButton.Left)
-                    SelectTerm(id);
+                Text = term.Description + (term.Locked ? "   🔒 sealed while Hostile" : ""),
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
             };
+            desc.AddThemeFontSizeOverride("font_size", UITheme.NegotiationDetailFontSize);
+            if (term.Locked)
+                desc.AddThemeColorOverride("font_color", UITheme.TermAgainstPlayer);
+            descRow.AddChild(desc);
+            box.AddChild(descRow);
+
+            // The slider: THEIRS ▢▢▢▢▢ YOURS with the marker at Position.
+            var track = new HBoxContainer();
+            track.AddThemeConstantOverride("separation", 4);
+
+            var theirsLbl = MakeTinyLabel("THEIRS", UITheme.TermAgainstPlayer);
+            track.AddChild(theirsLbl);
+
+            for (int p = -2; p <= 2; p++)
+            {
+                var notch = new ColorRect
+                {
+                    CustomMinimumSize = new Vector2(34, 12),
+                    Color = p == term.Position
+                        ? UITheme.NegotiationTitleColor            // gold marker
+                        : UITheme.TensionEmpty,
+                };
+                track.AddChild(notch);
+            }
+
+            var yoursLbl = MakeTinyLabel("YOURS", UITheme.TermFavorPlayer);
+            track.AddChild(yoursLbl);
+
+            var posLbl = new Label { Text = "  " + NegotiationState.PositionLabel(term.Position) };
+            posLbl.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
+            posLbl.AddThemeColorOverride("font_color",
+                term.Position > 0 ? UITheme.TermFavorPlayer :
+                term.Position < 0 ? UITheme.TermAgainstPlayer : UITheme.NegotiationHiddenTerm);
+            track.AddChild(posLbl);
+
+            box.AddChild(track);
+            _termsContainer.AddChild(box);
         }
-        return card;
-    }
 
-    private Control BuildFaceDownCard(DealTerm term, bool isSelected)
-    {
-        var card = new PanelContainer
+        int hiddenCount = _state.Terms.Count(t => t.IsHidden && !t.IsAccepted);
+        if (hiddenCount > 0)
         {
-            CustomMinimumSize = new Vector2(180, 168),
-            TooltipText = "Select it, then spend an Insight token to flip it.",
-            MouseFilter = MouseFilterEnum.Stop,
-            MouseDefaultCursorShape = CursorShape.PointingHand,
-        };
-        int bw = isSelected ? 3 : 2;
-        var style = new StyleBoxFlat
-        {
-            BgColor = UITheme.BgCard,
-            BorderColor = isSelected ? UITheme.NegotiationTitleColor
-                                     : UITheme.NegotiationResultBorder,
-            CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6,
-            CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6,
-        };
-        style.BorderWidthTop = bw; style.BorderWidthBottom = bw;
-        style.BorderWidthLeft = bw; style.BorderWidthRight = bw;
-        card.AddThemeStyleboxOverride("panel", style);
-
-        var box = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
-        box.AddThemeConstantOverride("separation", 6);
-        card.AddChild(box);
-
-        var glyph = new Label
-        {
-            Text = isSelected ? "⌖ 🂠" : "🂠",
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        glyph.AddThemeFontSizeOverride("font_size", 30);
-        box.AddChild(glyph);
-
-        var caption = new Label
-        {
-            Text = "A face-down clause.\nUnread clauses still bind.",
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        caption.AddThemeFontSizeOverride("font_size", UITheme.NegotiationTinyFontSize);
-        caption.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
-        box.AddChild(caption);
-
-        var id = term.Id;
-        card.GuiInput += ev =>
-        {
-            if (ev is InputEventMouseButton mb && mb.Pressed
-                && mb.ButtonIndex == MouseButton.Left)
-                SelectTerm(id);
-        };
-        return card;
+            var hiddenLabel = new Label
+            {
+                Text = $"[{hiddenCount} face-down clause{(hiddenCount > 1 ? "s" : "")} — " +
+                       "Insight flips them. Unread clauses still bind at signing.]",
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            };
+            hiddenLabel.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
+            hiddenLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
+            _termsContainer.AddChild(hiddenLabel);
+        }
     }
 
     // ── Actions (Module D) ────────────────────────────────────────────────
@@ -1061,22 +861,17 @@ public partial class NegotiationManager : Control
         else BuildChipRows();
     }
 
-    /// <summary>Module D + physical tokens: a two-column rack of CLICKABLE
-    /// token chips. Clicking a chip spends it toward the selected clause
-    /// (press/offer), the selected face-down clause (Insight → flip, else
-    /// read their mood), or the moment itself (Patience). The spoken line
-    /// previews against the current selection.</summary>
+    /// <summary>Module D: one spoken line per available token, flavored by
+    /// the current stance, with a target picker and its mechanical preview.
+    /// Choosing a thing to SAY is choosing a token to spend.</summary>
     private void BuildSpokenRows()
     {
         var targets = _state.PullableTerms();
         var stance = _state.Stance;
         var arch = _state.Data.Archetype;
-        var selectedTerm = SelectedTerm();
 
-        var grid = new GridContainer { Columns = 2 };
-        grid.AddThemeConstantOverride("h_separation", 28);
-        grid.AddThemeConstantOverride("v_separation", 10);
-        _actionsContainer.AddChild(grid);
+        // Default target: the clause most worth pulling (furthest × heaviest).
+        var byValue = targets.OrderByDescending(t => (2 - t.Position) * t.Weight).ToList();
 
         bool anyRow = false;
         foreach (var token in ActionOrder)
@@ -1090,16 +885,10 @@ public partial class NegotiationManager : Control
             if ((isPress || isOffer) && targets.Count == 0) continue;
 
             anyRow = true;
-            var cell = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-            cell.AddThemeConstantOverride("separation", 10);
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 8);
 
-            cell.AddChild(MakeTokenChip(token));
-
-            var textBox = new VBoxContainer
-            {
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                SizeFlagsVertical = SizeFlags.ShrinkCenter,
-            };
+            var textBox = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
             textBox.AddThemeConstantOverride("separation", 0);
 
             var lineLbl = new Label
@@ -1116,32 +905,100 @@ public partial class NegotiationManager : Control
             fxLbl.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
             textBox.AddChild(fxLbl);
 
+            row.AddChild(textBox);
+
+            OptionButton picker = null;
+
             if (isPress || isOffer)
             {
-                lineLbl.Text = NegotiationBarks.SpokenLine(token, stance, arch)
-                    .Replace("{term}", NegotiationState.ShortName(selectedTerm));
-                fxLbl.Text = isOffer
-                    ? NegotiationBarks.OfferPreview(stance, _state.ResolveName)
-                    : NegotiationBarks.PressPreview(stance);
+                picker = new OptionButton { CustomMinimumSize = new Vector2(180, 34) };
+                picker.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
+                for (int i = 0; i < targets.Count; i++)
+                    picker.AddItem("⌖ " + NegotiationState.ShortName(targets[i]), i);
+                picker.Selected = Mathf.Max(0, targets.IndexOf(byValue[0]));
+
+                var tokenLocal = token;
+                void UpdateText()
+                {
+                    var term = targets[picker.Selected];
+                    string line = NegotiationBarks.SpokenLine(tokenLocal, stance, arch)
+                        .Replace("{term}", NegotiationState.ShortName(term));
+                    lineLbl.Text = line;
+                    fxLbl.Text = $"{tokenLocal} ×{_state.TokenPool[tokenLocal]}   ·   " +
+                        (isOffer
+                            ? NegotiationBarks.OfferPreview(stance, _state.ResolveName)
+                            : NegotiationBarks.PressPreview(stance));
+                }
+                picker.ItemSelected += _ => UpdateText();
+                UpdateText();
+                row.AddChild(picker);
             }
             else if (token == LeverageToken.Insight)
             {
-                bool flipMode = SelectedHiddenTerm() != null;
-                lineLbl.Text = flipMode
-                    ? NegotiationBarks.InsightFlipLine
-                    : NegotiationBarks.SpokenLine(LeverageToken.Insight, stance, arch);
-                fxLbl.Text = flipMode
-                    ? NegotiationBarks.InsightFlipPreview
-                    : NegotiationBarks.InsightReadPreview;
+                bool hasHidden = _state.Terms.Any(t => t.IsHidden);
+                picker = new OptionButton { CustomMinimumSize = new Vector2(180, 34) };
+                picker.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
+                if (hasHidden) picker.AddItem("Flip a face-down clause", 0);
+                picker.AddItem("Read their mood", 1);
+                picker.Selected = 0;
+
+                void UpdateInsight()
+                {
+                    bool flip = hasHidden && picker.GetSelectedId() == 0;
+                    lineLbl.Text = flip
+                        ? NegotiationBarks.InsightFlipLine
+                        : NegotiationBarks.SpokenLine(LeverageToken.Insight, stance, arch);
+                    fxLbl.Text = $"Insight ×{_state.TokenPool[LeverageToken.Insight]}   ·   " +
+                        (flip ? NegotiationBarks.InsightFlipPreview
+                              : NegotiationBarks.InsightReadPreview);
+                }
+                picker.ItemSelected += _ => UpdateInsight();
+                UpdateInsight();
+                row.AddChild(picker);
             }
             else // Patience
             {
                 lineLbl.Text = NegotiationBarks.SpokenLine(LeverageToken.Patience, stance, arch);
-                fxLbl.Text = NegotiationBarks.PatiencePreview;
+                fxLbl.Text = $"Patience ×{_state.TokenPool[LeverageToken.Patience]}   ·   " +
+                             NegotiationBarks.PatiencePreview;
             }
 
-            cell.AddChild(textBox);
-            grid.AddChild(cell);
+            var sayBtn = new Button
+            {
+                Text = "Say it",
+                CustomMinimumSize = new Vector2(90, 34),
+            };
+            sayBtn.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
+            var tok = token;
+            var pickerRef = picker;
+            sayBtn.Pressed += () =>
+            {
+                AppendLog($"[i]{lineLbl.Text}[/i]");
+                if (tok == LeverageToken.Patience)
+                    _state.PlayPatience();
+                else if (tok == LeverageToken.Insight)
+                {
+                    bool hasHidden = _state.Terms.Any(t => t.IsHidden);
+                    bool flip = hasHidden && pickerRef != null && pickerRef.GetSelectedId() == 0;
+                    if (flip) _state.PlayInsightFlip();
+                    else _state.PlayInsightRead();
+                }
+                else
+                {
+                    var currentTargets = _state.PullableTerms();
+                    int idx = pickerRef?.Selected ?? 0;
+                    if (idx >= 0 && idx < currentTargets.Count)
+                    {
+                        var term = currentTargets[idx];
+                        if (tok == LeverageToken.Offering) _state.PlayOffering(term);
+                        else _state.PlayPress(tok, term);
+                    }
+                }
+                RefreshAll();
+            };
+            row.AddChild(sayBtn);
+
+            _actionsContainer.AddChild(row);
         }
 
         if (!anyRow)
@@ -1157,63 +1014,26 @@ public partial class NegotiationManager : Control
         }
     }
 
-    /// <summary>The selected clause when it's face-down (Insight flips it).</summary>
-    private DealTerm SelectedHiddenTerm() =>
-        _state.Terms.FirstOrDefault(t => t.IsHidden && t.Id == _selectedTermId);
-
-    /// <summary>Click-to-spend: route the token to the current selection.</summary>
-    private void OnTokenClicked(LeverageToken token)
-    {
-        if (_state == null || _state.IsResolved || _state.TokenPool[token] <= 0) return;
-
-        if (token == LeverageToken.Patience)
-        {
-            StartLogTurn();
-            AppendLog($"— {NegotiationBarks.SpokenLine(LeverageToken.Patience, _state.Stance, _state.Data.Archetype)}");
-            _state.PlayPatience();
-        }
-        else if (token == LeverageToken.Insight)
-        {
-            StartLogTurn();
-            if (SelectedHiddenTerm() != null)
-            {
-                AppendLog($"— {NegotiationBarks.InsightFlipLine}");
-                _state.PlayInsightFlip();
-            }
-            else
-            {
-                AppendLog($"— {NegotiationBarks.SpokenLine(LeverageToken.Insight, _state.Stance, _state.Data.Archetype)}");
-                _state.PlayInsightRead();
-            }
-        }
-        else
-        {
-            var term = SelectedTerm();
-            if (term == null) return;
-            StartLogTurn();
-            AppendLog($"— {NegotiationBarks.SpokenLine(token, _state.Stance, _state.Data.Archetype).Replace("{term}", NegotiationState.ShortName(term))}");
-            if (token == LeverageToken.Offering) _state.PlayOffering(term);
-            else _state.PlayPress(token, term);
-        }
-        RefreshAll();
-    }
-
     /// <summary>Debug chips mode: raw token buttons + shared target picker —
     /// the same economy without the dialogue skin, for playtest comparison.</summary>
     private void BuildChipRows()
     {
         var targets = _state.PullableTerms();
 
+        OptionButton targetPicker = null;
         if (targets.Count > 0)
         {
-            var hint = new Label
-            {
-                Text = $"Target: ⌖ {NegotiationState.ShortName(SelectedTerm())}   (click a clause card above to change)",
-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            };
-            hint.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
-            hint.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
-            _actionsContainer.AddChild(hint);
+            var pickerRow = new HBoxContainer();
+            pickerRow.AddThemeConstantOverride("separation", 8);
+            var lbl = new Label { Text = "Target clause:" };
+            lbl.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
+            pickerRow.AddChild(lbl);
+            targetPicker = new OptionButton { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            targetPicker.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
+            for (int i = 0; i < targets.Count; i++)
+                targetPicker.AddItem("⌖ " + NegotiationState.ShortName(targets[i]), i);
+            pickerRow.AddChild(targetPicker);
+            _actionsContainer.AddChild(pickerRow);
         }
 
         var grid = new GridContainer { Columns = 2 };
@@ -1244,8 +1064,10 @@ public partial class NegotiationManager : Control
             var tok = token;
             AddChipButton(grid, $"{token}  ×{_state.TokenPool[token]}", () =>
             {
-                var term = SelectedTerm();
-                if (term == null) return;
+                var currentTargets = _state.PullableTerms();
+                int idx = targetPicker?.Selected ?? 0;
+                if (idx < 0 || idx >= currentTargets.Count) return;
+                var term = currentTargets[idx];
                 if (tok == LeverageToken.Offering) _state.PlayOffering(term);
                 else _state.PlayPress(tok, term);
             });
@@ -1260,7 +1082,7 @@ public partial class NegotiationManager : Control
             CustomMinimumSize = new Vector2(190, 34),
         };
         btn.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
-        btn.Pressed += () => { StartLogTurn(); action(); RefreshAll(); };
+        btn.Pressed += () => { action(); RefreshAll(); };
         grid.AddChild(btn);
     }
 
@@ -1269,7 +1091,6 @@ public partial class NegotiationManager : Control
     private void OnShakePressed()
     {
         if (_state.IsResolved) return;
-        StartLogTurn();
         _pendingSqueeze = _state.BeginShake();
         if (_pendingSqueeze == null)
             return;   // signed as-is; OnNegotiationResolved already fired
@@ -1287,37 +1108,12 @@ public partial class NegotiationManager : Control
 
     // ── Log / events ─────────────────────────────────────────────────────
 
-    /// <summary>Archive everything logged so far as "old news" — called at
-    /// the START of each player action so only the newest exchange renders
-    /// bright.</summary>
-    private void StartLogTurn()
-    {
-        _logHistory.AddRange(_logRecent);
-        _logRecent.Clear();
-    }
-
     private void AppendLog(string message)
     {
-        _logRecent.Add(message);
-        RenderLog();
+        if (_logLabel == null)
+            return;
+        _logLabel.AppendText($"\n{message}");
     }
-
-    private void RenderLog()
-    {
-        if (_logLabel == null) return;
-        string dimHex = UITheme.NegotiationHiddenTerm.ToHtml(false);
-        var sb = new System.Text.StringBuilder();
-        foreach (var line in _logHistory)
-            sb.Append($"[color=#{dimHex}]{EscapeBb(line)}[/color]\n");
-        foreach (var line in _logRecent)
-            sb.Append($"{EscapeBb(line)}\n");
-        _logLabel.Text = sb.ToString();
-        // Keep the newest lines in view.
-        _logScroll?.SetDeferred("scroll_vertical", 999999);
-    }
-
-    private static string EscapeBb(string s) =>
-        s.Replace("[", "[lb]").Replace("]", "[rb]");
 
     private void OnTensionChanged(int oldTension, int newTension)
     {
@@ -1399,6 +1195,7 @@ public partial class NegotiationManager : Control
     private void RecordDeal(string spellGranted)
     {
         var save = SaveManager.ActiveSave;
+        if (save == null) return;   // debug scene entry without a save
 
         string outcome = _state.DealAccepted ? "Signed"
             : _state.PlayerWalkedAway ? "WalkedAway"
@@ -1407,7 +1204,7 @@ public partial class NegotiationManager : Control
 
         var record = new DealRecord
         {
-            CycleNumber = save?.Cycle?.CycleNumber ?? 0,
+            CycleNumber = save.Cycle.CycleNumber,
             When = System.DateTime.UtcNow.ToString("o"),
             EncounterId = _data.Id,
             Title = _data.Title,
@@ -1423,11 +1220,6 @@ public partial class NegotiationManager : Control
             Turns = _state.TurnNumber,
             SpellGranted = spellGranted,
         };
-
-        // Tuning data: every table, including debug ones without a save.
-        NegotiationTelemetry.Record(record, _state);
-
-        if (save == null) return;   // debug scene entry — nothing to persist
         save.Ledger.DealRecords.Add(record);
 
         // Deed ledger — outcome-blind count, plus the signed/masterpiece deeds.
@@ -1456,31 +1248,6 @@ public partial class NegotiationManager : Control
         GetTree().ChangeSceneToFile(
             EncounterRouter.Instance?.OverworldScenePath
             ?? "res://Scenes/Overworld/ExpeditionScene.tscn");
-    }
-
-    /// <summary>A draggable token chip + its name caption. Count shows as a
-    /// plain ×N tag on the chip itself.</summary>
-    private Control MakeTokenChip(LeverageToken token)
-    {
-        var chipCol = new VBoxContainer { SizeFlagsVertical = SizeFlags.ShrinkCenter };
-        chipCol.AddThemeConstantOverride("separation", 0);
-
-        var chip = new NegotiationTokenChip
-        {
-            Token = token,
-            Count = _state.TokenPool[token],
-            TooltipText = $"{token} ×{_state.TokenPool[token]} — click to spend it.",
-            CanDrag = () => _state != null && !_state.IsResolved
-                            && _state.TokenPool[token] > 0,
-        };
-        chip.Clicked += () => OnTokenClicked(token);
-        chipCol.AddChild(chip);
-
-        var name = MakeTinyLabel(token.ToString().ToUpperInvariant(), UITheme.NegotiationNpcColor);
-        name.HorizontalAlignment = HorizontalAlignment.Center;
-        name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        chipCol.AddChild(name);
-        return chipCol;
     }
 
     private Label MakeTinyLabel(string text, Color color)

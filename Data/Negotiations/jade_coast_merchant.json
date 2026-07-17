@@ -1,0 +1,76 @@
+{
+  "id": "jade_coast_merchant",
+  "title": "The Spice Factor",
+  "npcName": "Corvo Saldini",
+  "archetype": "Merchant",
+  "factionId": "saldini_combine",
+  "openingText": "The factor's stall is an island of lacquered order in the steaming chaos of the port — saffron in brass tins, ledgers squared, a guard pretending to be a porter. 'Sit, sit. Saffron, escorts, secrets — everything is for sale on this coast, wizard. The only question is the price.'",
+  "startingTension": 4,
+  "basePatience": 8,
+  "npcResolve": 2,
+  "npcGuile": 2,
+  "npcPoise": 1,
+  "dialogueCordial": "Now this I can work with. To a long association!",
+  "dialogueStrained": "I hear you. Whether the Combine agrees is another ledger.",
+  "dialogueHostile": "Careful. Storms come without warning on this coast — so do accidents.",
+  "dialogueWalkaway": "We are DONE here. The Combine will remember the discourtesy.",
+  "dialogueAccept": "Pleasure doing business. The Combine keeps its ink dry and its word wet.",
+  "terms": [
+    {
+      "id": "saffron_contract",
+      "description": "A bulk contract on eastern saffron for the guild kitchens and alchemists — 60 gold.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 60,
+      "reputationDelta": 0,
+      "factionId": "saldini_combine",
+      "startingPosition": -1,
+      "weight": 3
+    },
+    {
+      "id": "escort_fee",
+      "description": "He wants your wizards guarding his next caravan — for free. Your run slows by 3 steps.",
+      "favorPlayer": false,
+      "isHidden": false,
+      "goldDelta": 0,
+      "reputationDelta": 0,
+      "stepsDelta": -3,
+      "startingPosition": -1,
+      "weight": 2
+    },
+    {
+      "id": "route_intelligence",
+      "description": "Which mangrove passes the syndicates watch this season — 2 steps saved.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 0,
+      "reputationDelta": 0,
+      "stepsDelta": 2,
+      "startingPosition": 0,
+      "weight": 2
+    },
+    {
+      "id": "favor_clause",
+      "description": "A buried clause: the guild owes the Combine one unnamed favor, on demand.",
+      "favorPlayer": false,
+      "isHidden": true,
+      "goldDelta": -10,
+      "reputationDelta": -1,
+      "factionId": "saldini_combine",
+      "startingPosition": -2,
+      "weight": 2
+    },
+    {
+      "id": "harbor_charts",
+      "description": "He also holds charts of the drowned harbor — he'd part with them, for the right partner.",
+      "favorPlayer": true,
+      "isHidden": true,
+      "goldDelta": 0,
+      "reputationDelta": 0,
+      "stepsDelta": 2,
+      "loreUnlock": "drowned_harbor_charts",
+      "startingPosition": 0,
+      "weight": 2
+    }
+  ]
+}

@@ -150,6 +150,16 @@ public class EternalLedger
     /// </summary>
     public List<HonoredDeadRecord> HonoredDead = new();
 
+    // ── The Hall of Records (deal ledger) ────────────────────────────────
+    /// <summary>
+    /// Every negotiation resolution, every timeline — signed, spurned, or
+    /// collapsed (negotiation doc §7b). Append-only, like the honored dead:
+    /// the loom remembers the deals even when their timelines are gone.
+    /// Written by NegotiationManager; read by the campus Records tab.
+    /// Record only — grants no power.
+    /// </summary>
+    public List<DealRecord> DealRecords = new();
+
     // ── Convenience (not serialized) ─────────────────────────────────────
     /// <summary>Total cycles recorded (completed by any outcome).</summary>
     [System.Text.Json.Serialization.JsonIgnore]

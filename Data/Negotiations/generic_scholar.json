@@ -1,0 +1,63 @@
+{
+  "id": "generic_scholar",
+  "title": "The Itinerant Archivist",
+  "npcName": "Lector Aldous Vey",
+  "archetype": "Scholar",
+  "factionId": "archive_wardens",
+  "openingText": "The scholar doesn't look up from his rubbing of the ruin wall. 'You're standing in my light,' he says mildly. 'But since you're here — you have hands, a guard of some competence, and presumably a price. I have questions that need feet. Shall we trade?'",
+  "startingTension": 4,
+  "basePatience": 10,
+  "npcResolve": 1,
+  "npcGuile": 2,
+  "npcPoise": 2,
+  "dialogueCordial": "A rigorous exchange. I'll cite you favorably.",
+  "dialogueStrained": "Your argument has gaps. I'm noting them.",
+  "dialogueHostile": "I have outlasted collapsing dynasties. I will outlast your temper.",
+  "dialogueWalkaway": "This conversation has ceased to be instructive. Good day.",
+  "dialogueAccept": "Signed and witnessed. Knowledge, like coin, appreciates when it moves.",
+  "terms": [
+    {
+      "id": "survey_data",
+      "description": "Vey shares his survey of the surrounding ruin — revealing 3 hexes near the objective.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 0,
+      "reputationDelta": 0,
+      "stepsDelta": 3,
+      "startingPosition": -1,
+      "weight": 2
+    },
+    {
+      "id": "field_stipend",
+      "description": "A stipend of 30 gold for escorting his samples to the next waystone.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 30,
+      "reputationDelta": 0,
+      "startingPosition": -1,
+      "weight": 2
+    },
+    {
+      "id": "salvage_claim",
+      "description": "A quiet clause granting the Wardens first claim on anything you recover here — 25 gold of your salvage.",
+      "favorPlayer": false,
+      "isHidden": true,
+      "goldDelta": -25,
+      "reputationDelta": 0,
+      "startingPosition": -1,
+      "weight": 2
+    },
+    {
+      "id": "marginalia",
+      "description": "He offers to annotate your guild's charts — a fragment of pre-Collapse cartography.",
+      "favorPlayer": true,
+      "isHidden": false,
+      "goldDelta": 0,
+      "reputationDelta": 1,
+      "factionId": "archive_wardens",
+      "loreUnlock": "pre_collapse_cartography",
+      "startingPosition": -2,
+      "weight": 2
+    }
+  ]
+}

@@ -6,7 +6,10 @@
   "factionId": "frontier_garrison",
   "openingText": "The commander doesn't offer a seat. She stands with her back to the map, arms crossed, watching you with the patience of someone who has made harder decisions before breakfast. 'You're operating in my jurisdiction. Give me a reason not to make that a problem.'",
   "startingTension": 5,
-  "basePatience": 4,
+  "basePatience": 6,
+  "npcResolve": 3,
+  "npcGuile": 1,
+  "npcPoise": 1,
   "dialogueCordial": "Direct. Good. I prefer people who don't waste my time.",
   "dialogueStrained": "I'm still listening. Don't mistake that for patience.",
   "dialogueHostile": "You're testing my tolerance. Don't.",
@@ -21,7 +24,9 @@
       "goldDelta": 0,
       "reputationDelta": 1,
       "factionId": "frontier_garrison",
-      "stepsDelta": 3
+      "stepsDelta": 3,
+      "startingPosition": -1,
+      "weight": 3
     },
     {
       "id": "patrol_intel",
@@ -29,7 +34,9 @@
       "favorPlayer": true,
       "isHidden": false,
       "goldDelta": 0,
-      "reputationDelta": 0
+      "reputationDelta": 0,
+      "startingPosition": -1,
+      "weight": 2
     },
     {
       "id": "tribute",
@@ -37,7 +44,9 @@
       "favorPlayer": false,
       "isHidden": true,
       "goldDelta": -30,
-      "reputationDelta": 0
+      "reputationDelta": 0,
+      "startingPosition": -2,
+      "weight": 2
     }
   ]
 }

@@ -5,13 +5,16 @@ using System.Collections.Generic;
 //
 // Purpose:        Negotiation enums + small data classes —
 //                 LeverageToken, NpcArchetypeType, TensionZone,
-//                 DealTerm, NegotiationEncounterData. The full
-//                 negotiation system's data model lives here.
+//                 NpcStance, NpcResource, DealTerm,
+//                 NegotiationEncounterData. The full negotiation
+//                 system's data model lives here.
 // Layer:          Data
 // Collaborators:  NegotiationState.cs (consumer),
 //                 NegotiationManager.cs (UI),
+//                 NegotiationBarks.cs (spoken-move lines),
 //                 NegotiationEncounterLoader.cs (parser)
-// See:            README §6 — Negotiation
+// See:            README §6 — Negotiation;
+//                 negotiation_redesign_v1.md (v2 core loop)
 // ============================================================
 
 /// <summary>Token types the player can spend during a negotiation. Mapped to player actions ("Charm the merchant", "Intimidate the commander") and matched against the NPC archetype's preferred-token profile.</summary>
@@ -45,6 +48,26 @@ public enum NpcArchetypeType
 /// </summary>
 public enum TensionZone { Cordial, Strained, Hostile }
 
+/// <summary>v2 (Module A): the NPC's per-round mood. Shown via the portrait
+/// slot + a one-line tell; modifies how every token lands, so the same token
+/// is worth different amounts at different moments. Rolled each round from a
+/// zone-weighted bag; the NEXT stance is pre-rolled so Insight's mood-read
+/// is honest.</summary>
+public enum NpcStance
+{
+    Eager,      // wants what you have — Offerings land double
+    Guarded,    // giving nothing away — pressure resented, gifts pocketed coldly
+    Wavering,   // uncertain — social pressure lands best here
+    Irritated,  // one wrong word from bristling — charm backfires
+    Expansive   // Cordial-only warmth — everything social lands softer
+}
+
+/// <summary>v2: the NPC's own leverage pool — they spend against you every
+/// turn. Resolve pulls terms back (fed by your Offerings: tokens literally
+/// cross the table), Guile makes demands / stirs tension, Poise steps them
+/// back from the brink at 9-10 tension.</summary>
+public enum NpcResource { Resolve, Guile, Poise }
+
 /// <summary>
 /// A single deal term on the table.
 /// </summary>
@@ -70,6 +93,36 @@ public class DealTerm
     /// encounter JSON; also injected dynamically at table-open as the
     /// "spell_tuition" term (NegotiationManager).</summary>
     public string SpellId = "";
+
+    // ── v2 term board (negotiation_redesign_v1 §3a) ──────────────────────
+    /// <summary>Authorable starting slider position, −2 (strongly favors the
+    /// NPC) … +2 (strongly favors you). Old JSONs omit it; the state machine
+    /// then defaults every term to −1 (their opening offer shortchanges you /
+    /// their demand is near full force).</summary>
+    public int StartingPosition = UNAUTHORED;
+    public const int UNAUTHORED = -99;
+
+    /// <summary>Authorable scoring weight (how much this clause matters).
+    /// 0 = derive from the magnitude of the term's deltas at init.</summary>
+    public int Weight = 0;
+
+    /// <summary>Live slider position during play. Runtime only.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int Position = 0;
+
+    /// <summary>Runtime: sealed while the table is Hostile (the NPC guards
+    /// their most-conceded clause). Cleared when tension cools.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool Locked = false;
+
+    /// <summary>How much of this term the player walks away with, from the
+    /// final slider position: favorable terms pay more as they're pulled
+    /// toward you; unfavorable terms cost less. ∈ {0, .25, .5, .75, 1}.</summary>
+    public float PlayerFraction()
+    {
+        float pulled = (Position + 2) / 4f;          // 0 at −2 … 1 at +2
+        return FavorPlayer ? pulled : 1f - pulled;   // unfavorable: pulled = defanged
+    }
 }
 
 /// <summary>
@@ -91,6 +144,12 @@ public class NegotiationEncounterData
     // Terms on the table
     public List<DealTerm> Terms = new();
 
+    // ── v2: the NPC's own pool (negotiation_redesign_v1 §3b). −1 = use the
+    // archetype default from ArchetypeBehavior.DefaultNpcPool. ─────────────
+    public int NpcResolve = -1;
+    public int NpcGuile = -1;
+    public int NpcPoise = -1;
+
     // NPC dialogue lines per situation
     public string DialogueCordial = "";
     public string DialogueStrained = "";
@@ -105,7 +164,8 @@ public class NegotiationEncounterData
 public static class ArchetypeBehavior
 {
     /// <summary>
-    /// Returns the tension delta when the player plays a token against this archetype.
+    /// Base tension delta when the player plays a token against this archetype
+    /// (before the stance modifier — see NegotiationState).
     /// Negative = toward Cordial, positive = toward Hostile.
     /// </summary>
     public static int GetTensionDelta(NpcArchetypeType archetype, LeverageToken token)
@@ -152,8 +212,86 @@ public static class ArchetypeBehavior
         };
     }
 
+    /// <summary>v2: archetype defaults for the NPC's own pool. Authorable
+    /// per-encounter via NegotiationEncounterData.NpcResolve/Guile/Poise.</summary>
+    public static (int resolve, int guile, int poise) DefaultNpcPool(NpcArchetypeType a)
+    {
+        return a switch
+        {
+            NpcArchetypeType.Merchant    => (2, 2, 1),
+            NpcArchetypeType.Commander   => (3, 1, 1),
+            NpcArchetypeType.Scholar     => (1, 2, 2),
+            NpcArchetypeType.Opportunist => (2, 3, 0),
+            NpcArchetypeType.Idealist    => (1, 1, 2),
+            NpcArchetypeType.Survivor    => (2, 1, 2),
+            _                            => (2, 2, 1),
+        };
+    }
+
+    /// <summary>v2: what the NPC's Resolve is CALLED at this table — pure
+    /// display flavor over the same mechanic ("Greed" for a merchant is
+    /// "Duty" for a commander).</summary>
+    public static string ResolveDisplayName(NpcArchetypeType a)
+    {
+        return a switch
+        {
+            NpcArchetypeType.Merchant    => "Greed",
+            NpcArchetypeType.Commander   => "Duty",
+            NpcArchetypeType.Scholar     => "Rigor",
+            NpcArchetypeType.Opportunist => "Angle",
+            NpcArchetypeType.Idealist    => "Conviction",
+            NpcArchetypeType.Survivor    => "Wariness",
+            _                            => "Resolve",
+        };
+    }
+
+    /// <summary>v2 (Module A): roll a stance from a zone-weighted bag.
+    /// Expansive only appears in Cordial; Irritated dominates Hostile.
+    /// `roll` is an externally supplied random uint (GD.Randi) so this
+    /// stays deterministic under test.</summary>
+    public static NpcStance RollStance(TensionZone zone, uint roll)
+    {
+        NpcStance[] bag = zone switch
+        {
+            TensionZone.Cordial => new[]
+            {
+                NpcStance.Expansive, NpcStance.Expansive, NpcStance.Eager,
+                NpcStance.Wavering,  NpcStance.Wavering,  NpcStance.Guarded
+            },
+            TensionZone.Hostile => new[]
+            {
+                NpcStance.Irritated, NpcStance.Irritated, NpcStance.Guarded,
+                NpcStance.Guarded,   NpcStance.Eager,     NpcStance.Wavering
+            },
+            _ => new[]
+            {
+                NpcStance.Eager,     NpcStance.Eager,    NpcStance.Guarded,
+                NpcStance.Guarded,   NpcStance.Wavering, NpcStance.Irritated
+            },
+        };
+        return bag[roll % (uint)bag.Length];
+    }
+
+    /// <summary>v2: token the NPC gifts the player during a Cordial hold
+    /// (their goodwill move) — archetype-flavored.</summary>
+    public static LeverageToken GiftTokenFor(NpcArchetypeType a)
+    {
+        return a switch
+        {
+            NpcArchetypeType.Merchant    => LeverageToken.Offering,
+            NpcArchetypeType.Commander   => LeverageToken.Demonstration,
+            NpcArchetypeType.Scholar     => LeverageToken.Insight,
+            NpcArchetypeType.Opportunist => LeverageToken.Connections,
+            NpcArchetypeType.Idealist    => LeverageToken.Charm,
+            NpcArchetypeType.Survivor    => LeverageToken.Patience,
+            _                            => LeverageToken.Connections,
+        };
+    }
+
     /// <summary>
     /// Returns a description of what happens when this token is played.
+    /// (Legacy flat table — kept for chips mode; spoken-move lines live in
+    /// NegotiationBarks.)
     /// </summary>
     public static string GetTokenEffect(NpcArchetypeType archetype, LeverageToken token)
     {

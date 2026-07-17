@@ -51,9 +51,9 @@ public class NegotiationState
 
     public TensionZone Zone => Tension switch
     {
-        <= NegotiationTuning.CordialMax  => TensionZone.Cordial,
-        <= NegotiationTuning.StrainedMax => TensionZone.Strained,
-        _                                => TensionZone.Hostile
+        <= 3 => TensionZone.Cordial,
+        <= 7 => TensionZone.Strained,
+        _    => TensionZone.Hostile
     };
 
     // ── Player token pool ────────────────────────────────────────────────
@@ -96,12 +96,6 @@ public class NegotiationState
     private bool _omniscient = false;         // Arcanist: next stance stays known
     private bool _freeOfferingArmed = false;  // Tinker: next Offering doesn't feed Resolve
     private TableSnapshot _rewindPoint = null; // Chronomancer: the last exchange
-
-    // ── Telemetry (read by NegotiationTelemetry at resolution) ───────────
-    public Dictionary<LeverageToken, int> PlayedCounts { get; private set; } = new();
-    public bool SqueezeWasOffered { get; private set; } = false;
-    public bool SqueezeWasHeld { get; private set; } = false;
-    public bool SqueezeDidBlink { get; private set; } = false;
 
     // ── Log ──────────────────────────────────────────────────────────────
     public List<string> Log { get; private set; } = new();
@@ -198,45 +192,37 @@ public class NegotiationState
         // Wizard school innate tokens
         switch (school)
         {
-            // [SIM] SchoolTokenCount copies of each innate token — doubled
-            // school identity is what opens 3-4★ deals to skilled play.
             case CardSchool.Enchanter:
-                TokenPool[LeverageToken.Charm] += NegotiationTuning.SchoolTokenCount;
-                TokenPool[LeverageToken.Connections] += NegotiationTuning.SchoolTokenCount;
+                TokenPool[LeverageToken.Charm]++;
+                TokenPool[LeverageToken.Connections]++;
                 break;
             case CardSchool.Arcanist:
-                TokenPool[LeverageToken.Persuade] += NegotiationTuning.SchoolTokenCount;
-                TokenPool[LeverageToken.Insight] += NegotiationTuning.SchoolTokenCount;
+                TokenPool[LeverageToken.Persuade]++;
+                TokenPool[LeverageToken.Insight]++;
                 break;
             case CardSchool.Necromancer:
                 // Phase 0 fix: design gives Necromancer Intimidate + Persuade.
-                TokenPool[LeverageToken.Intimidate] += NegotiationTuning.SchoolTokenCount;
-                TokenPool[LeverageToken.Persuade] += NegotiationTuning.SchoolTokenCount;
+                TokenPool[LeverageToken.Intimidate]++;
+                TokenPool[LeverageToken.Persuade]++;
                 break;
             case CardSchool.Elementalist:
-                TokenPool[LeverageToken.Intimidate] += NegotiationTuning.SchoolTokenCount;
-                TokenPool[LeverageToken.Demonstration] += NegotiationTuning.SchoolTokenCount;
+                TokenPool[LeverageToken.Intimidate]++;
+                TokenPool[LeverageToken.Demonstration]++;
                 break;
             case CardSchool.Tinker:
-                TokenPool[LeverageToken.Offering] += NegotiationTuning.SchoolTokenCount;
+                TokenPool[LeverageToken.Offering]++;
                 break;
             case CardSchool.Chronomancer:
                 // Phase 0 fix: the Patience school previously fell to default
                 // and got 1 Persuade. Patience + Insight per the design doc.
-                TokenPool[LeverageToken.Patience] += NegotiationTuning.SchoolTokenCount;
-                TokenPool[LeverageToken.Insight] += NegotiationTuning.SchoolTokenCount;
+                TokenPool[LeverageToken.Patience]++;
+                TokenPool[LeverageToken.Insight]++;
                 break;
             default:
                 // Adept / Druid: no authored profile yet — generalist Persuade.
-                TokenPool[LeverageToken.Persuade] += NegotiationTuning.SchoolTokenCount;
+                TokenPool[LeverageToken.Persuade]++;
                 break;
         }
-
-        // [SIM] Universal floors: everyone can make an argument and everyone
-        // can put SOMETHING on the table — the exchange economy needs legs.
-        TokenPool[LeverageToken.Persuade] += NegotiationTuning.UniversalPersuade;
-        TokenPool[LeverageToken.Offering] = Mathf.Max(
-            TokenPool[LeverageToken.Offering], NegotiationTuning.BaseOfferingFloor);
 
         // Every wizard gets one Demonstration per negotiation
         if (TokenPool[LeverageToken.Demonstration] == 0)
@@ -313,7 +299,6 @@ public class NegotiationState
 
         CaptureRewindPoint();
         TokenPool[token]--;
-        PlayedCounts[token] = PlayedCounts.GetValueOrDefault(token) + 1;
 
         // Instant walk-away on Intimidate against Idealist (unchanged rule —
         // no stance softens a violated principle).
@@ -337,12 +322,9 @@ public class NegotiationState
             // uncertain, hardens the guarded.
             switch (Stance)
             {
-                case NpcStance.Wavering:
-                    pull = NegotiationTuning.IntimidateWaveringPull;
-                    delta = baseDelta + NegotiationTuning.IntimidateWaveringTension; break;
+                case NpcStance.Wavering: pull = 2; delta = baseDelta + 2; break;
                 case NpcStance.Guarded:
-                    pull = 1; delta = baseDelta + NegotiationTuning.IntimidateGuardedTension;
-                    _npcHardened = true;
+                    pull = 1; delta = baseDelta + 1; _npcHardened = true;
                     AddLog("They harden under the threat — expect them to pull back twice as hard.");
                     break;
                 default: pull = 1; delta = baseDelta; break;
@@ -352,16 +334,11 @@ public class NegotiationState
         {
             switch (Stance)
             {
-                case NpcStance.Irritated:
-                    pull = 0; delta = NegotiationTuning.IrritatedBackfireTension; backfired = true; break;
-                case NpcStance.Wavering:
-                    pull = 1; delta = baseDelta + NegotiationTuning.WaveringEase; break;
-                case NpcStance.Guarded:
-                    pull = 1; delta = baseDelta + NegotiationTuning.GuardedResent; break;
-                case NpcStance.Expansive:
-                    pull = 1; delta = baseDelta + NegotiationTuning.ExpansiveEase; break;
-                default:
-                    pull = 1; delta = baseDelta; break;
+                case NpcStance.Irritated: pull = 0; delta = +1; backfired = true; break;
+                case NpcStance.Wavering:  pull = 1; delta = baseDelta - 1; break;
+                case NpcStance.Guarded:   pull = 1; delta = baseDelta + 1; break;
+                case NpcStance.Expansive: pull = 1; delta = baseDelta - 1; break;
+                default:                  pull = 1; delta = baseDelta; break;
             }
         }
 
@@ -384,7 +361,6 @@ public class NegotiationState
 
         CaptureRewindPoint();
         TokenPool[LeverageToken.Offering]--;
-        PlayedCounts[LeverageToken.Offering] = PlayedCounts.GetValueOrDefault(LeverageToken.Offering) + 1;
         if (_freeOfferingArmed)
         {
             // Tinker's Fabricate: covetable, but worthless to hoard.
@@ -400,9 +376,7 @@ public class NegotiationState
         int pull; int delta;
         switch (Stance)
         {
-            case NpcStance.Eager:
-                pull = NegotiationTuning.OfferEagerPull;
-                delta = baseDelta + NegotiationTuning.OfferEagerEase; break;
+            case NpcStance.Eager:   pull = 2; delta = baseDelta - 1; break;
             case NpcStance.Guarded: pull = 1; delta = 0;             break;
             default:                pull = 1; delta = baseDelta;     break;
         }
@@ -425,7 +399,6 @@ public class NegotiationState
 
         CaptureRewindPoint();
         TokenPool[LeverageToken.Insight]--;
-        PlayedCounts[LeverageToken.Insight] = PlayedCounts.GetValueOrDefault(LeverageToken.Insight) + 1;
         var hidden = Terms.FirstOrDefault(t => t.IsHidden && !t.IsAccepted);
         if (hidden != null)
         {
@@ -453,7 +426,6 @@ public class NegotiationState
 
         CaptureRewindPoint();
         TokenPool[LeverageToken.Insight]--;
-        PlayedCounts[LeverageToken.Insight] = PlayedCounts.GetValueOrDefault(LeverageToken.Insight) + 1;
         NextStanceKnown = true;
         AddLog($"You read the tells. Next they'll be {_nextStance}. Time your play.");
         FinishPlayerAction();
@@ -471,7 +443,6 @@ public class NegotiationState
 
         CaptureRewindPoint();
         TokenPool[LeverageToken.Patience]--;
-        PlayedCounts[LeverageToken.Patience] = PlayedCounts.GetValueOrDefault(LeverageToken.Patience) + 1;
         TurnNumber++;
         AddLog("You let the silence stretch, unhurried. Their patience holds — and the moment shifts.");
         AdvanceStance();
@@ -518,19 +489,18 @@ public class NegotiationState
 
         int odds = Zone switch
         {
-            TensionZone.Cordial => NegotiationTuning.SqueezeOddsCordial,
-            TensionZone.Hostile => NegotiationTuning.SqueezeOddsHostile,
-            _                   => NegotiationTuning.SqueezeOddsStrained,
+            TensionZone.Cordial => 75,
+            TensionZone.Hostile => 30,
+            _                   => 55,
         };
         odds += Stance switch
         {
-            NpcStance.Wavering  => NegotiationTuning.SqueezeOddsWavering,
-            NpcStance.Irritated => NegotiationTuning.SqueezeOddsIrritated,
-            NpcStance.Guarded   => NegotiationTuning.SqueezeOddsGuarded,
+            NpcStance.Wavering  => +15,
+            NpcStance.Irritated => -15,
+            NpcStance.Guarded   => -10,
             _                   => 0,
         };
-        odds = Mathf.Clamp(odds, NegotiationTuning.SqueezeOddsMin, NegotiationTuning.SqueezeOddsMax);
-        SqueezeWasOffered = true;
+        odds = Mathf.Clamp(odds, 5, 95);
 
         AddLog(NegotiationBarks.SqueezeOpen(Data.Archetype, ShortName(target)));
         return new SqueezeOffer { Target = target, OddsPercent = odds };
@@ -553,16 +523,14 @@ public class NegotiationState
     {
         if (IsResolved || offer == null) return false;
         SqueezeSpent = true;
-        SqueezeWasHeld = true;
         if (GD.Randf() * 100f < offer.OddsPercent)
         {
-            SqueezeDidBlink = true;
             AddLog(NegotiationBarks.SqueezeBlink);
             AcceptDeal();
             return true;
         }
         AddLog(NegotiationBarks.SqueezeBristle);
-        ApplyTensionDelta(NegotiationTuning.SqueezeBristleTension);
+        ApplyTensionDelta(+2);
         if (!IsResolved)
             AddLog("The handshake failed — the negotiation continues.");
         return false;
@@ -740,7 +708,7 @@ public class NegotiationState
             case CardSchool.Druid:
                 SchoolMoveUsed = true;
                 AddLog(NegotiationBarks.SchoolMoveLine(School));
-                ApplyTensionDelta(-NegotiationTuning.QuietGroveEase);
+                ApplyTensionDelta(-2);
                 if (!IsResolved) AdvanceStance();
                 return true;
 
@@ -762,13 +730,13 @@ public class NegotiationState
                 if (target == null || !PullableTerms().Contains(target)) return false;
                 SchoolMoveUsed = true;
                 AddLog(NegotiationBarks.SchoolMoveLine(School));
-                PullTerm(target, NegotiationTuning.ShowOfPowerPull, byPlayer: true);
+                PullTerm(target, 2, byPlayer: true);
                 if (NpcPool[NpcResource.Resolve] > 0)
                 {
                     NpcPool[NpcResource.Resolve]--;
                     AddLog($"  · Their {ResolveName} wavers before the display. (−1)");
                 }
-                ApplyTensionDelta(NegotiationTuning.ShowOfPowerTension);
+                ApplyTensionDelta(+1);
                 if (!IsResolved) FinishPlayerAction();
                 return true;
 
@@ -872,7 +840,7 @@ public class NegotiationState
     private void NpcTurn()
     {
         // 1. Poise: a collapse serves no one they care about.
-        if (Tension >= NegotiationTuning.PoiseTriggerTension && NpcPool[NpcResource.Poise] > 0)
+        if (Tension >= 9 && NpcPool[NpcResource.Poise] > 0)
         {
             NpcPool[NpcResource.Poise]--;
             AddLog(NegotiationBarks.NpcPoiseBark(Data.Archetype));
@@ -888,8 +856,7 @@ public class NegotiationState
         if (target != null && NpcPool[NpcResource.Resolve] > 0)
         {
             NpcPool[NpcResource.Resolve]--;
-            int steps = (Zone == TensionZone.Hostile ? NegotiationTuning.HostilePullSteps : 1)
-                      + (_npcHardened ? NegotiationTuning.HardenedBonusSteps : 0);
+            int steps = (Zone == TensionZone.Hostile ? 2 : 1) + (_npcHardened ? 1 : 0);
             _npcHardened = false;
             PullTerm(target, steps, byPlayer: false);
             AddLog(NegotiationBarks.NpcPullBark(Data.Archetype, ShortName(target),
@@ -1032,8 +999,8 @@ public class NegotiationState
 
         total *= Zone switch
         {
-            TensionZone.Cordial => NegotiationTuning.CordialGoldMult,
-            TensionZone.Hostile => NegotiationTuning.HostileGoldMult,
+            TensionZone.Cordial => 1.2f,
+            TensionZone.Hostile => 0.8f,
             _                   => 1f
         };
         return Mathf.RoundToInt(total);
@@ -1047,12 +1014,7 @@ public class NegotiationState
             rep += term.ReputationDelta * term.PlayerFraction();
         int total = Mathf.RoundToInt(rep);
         // Bonus rep in Cordial, penalty in Hostile
-        total += Zone switch
-        {
-            TensionZone.Cordial => NegotiationTuning.CordialRepBonus,
-            TensionZone.Hostile => NegotiationTuning.HostileRepPenalty,
-            _ => 0
-        };
+        total += Zone switch { TensionZone.Cordial => 1, TensionZone.Hostile => -1, _ => 0 };
         return total;
     }
 
@@ -1088,8 +1050,8 @@ public class NegotiationState
         int score = Terms.Sum(t => t.Position * t.Weight);
         score += Zone switch
         {
-            TensionZone.Cordial => NegotiationTuning.ScoreCordialBonus,
-            TensionZone.Hostile => NegotiationTuning.ScoreHostilePenalty,
+            TensionZone.Cordial => 2,
+            TensionZone.Hostile => -3,
             _                   => 0
         };
         return score;
@@ -1100,9 +1062,6 @@ public class NegotiationState
     public int GetStars()
     {
         int s = GetDealScore();
-        return s >= NegotiationTuning.StarT5 ? 5
-             : s >= NegotiationTuning.StarT4 ? 4
-             : s >= NegotiationTuning.StarT3 ? 3
-             : s >= NegotiationTuning.StarT2 ? 2 : 1;
+        return s >= 8 ? 5 : s >= 5 ? 4 : s >= 2 ? 3 : s >= -2 ? 2 : 1;
     }
 }

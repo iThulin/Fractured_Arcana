@@ -153,7 +153,7 @@ public partial class CampusScreen : Control
         tabBar.AddThemeConstantOverride("separation", 0);
         AddChild(tabBar);
 
-        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training" };
+        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records" };
         _tabButtons = new Button[tabNames.Length];
         for (int i = 0; i < tabNames.Length; i++)
         {
@@ -197,6 +197,7 @@ public partial class CampusScreen : Control
         BuildExpeditionTab((ScrollContainer)_tabPanels[3]);
         BuildArmoryTab((ScrollContainer)_tabPanels[4]);
         BuildTrainingTab((ScrollContainer)_tabPanels[5]);
+        BuildRecordsTab((ScrollContainer)_tabPanels[6]);
         GD.Print($"CampusScreen: ActiveSave={SaveManager.ActiveSave?.GuildName ?? "NULL"}, " +
                  $"Gold={SaveManager.ActiveSave?.Gold ?? -1}, " +
                  $"Runs={SaveManager.ActiveSave?.TotalRuns ?? -1}");
@@ -234,6 +235,9 @@ public partial class CampusScreen : Control
                 break;
             case 5:
                 RefreshTrainingTab();
+                break;
+            case 6:
+                RefreshRecordsTab();
                 break;
         }
     }
@@ -2509,6 +2513,129 @@ public partial class CampusScreen : Control
         btn.AddThemeStyleboxOverride("focus", normal);
         btn.AddThemeColorOverride("font_color",
             isActive ? UITheme.TextPrimary : UITheme.TextSecondary);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Records Tab — the Hall of Records (negotiation doc §7b)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private VBoxContainer _recordsContainer;
+    private Label _recordsSummaryLabel;
+
+    private void BuildRecordsTab(ScrollContainer scroll)
+    {
+        var margins = MakeMargins(32, 20);
+        scroll.AddChild(margins);
+        var layout = MakeVBox(12);
+        margins.AddChild(layout);
+
+        AddSectionHeader(layout, "Hall of Records — Deal Ledger");
+
+        _recordsSummaryLabel = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        _recordsSummaryLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        _recordsSummaryLabel.AddThemeColorOverride("font_color", UITheme.NegotiationNpcColor);
+        layout.AddChild(_recordsSummaryLabel);
+
+        layout.AddChild(new HSeparator());
+
+        _recordsContainer = MakeVBox(8);
+        layout.AddChild(_recordsContainer);
+    }
+
+    private void RefreshRecordsTab()
+    {
+        if (_recordsContainer == null) return;
+        foreach (var child in _recordsContainer.GetChildren())
+            child.QueueFree();
+
+        var records = SaveManager.ActiveSave?.Ledger?.DealRecords;
+        if (records == null || records.Count == 0)
+        {
+            _recordsSummaryLabel.Text =
+                "Every negotiation — signed or spurned — is remembered here, across all timelines.";
+            _recordsContainer.AddChild(MakeStubLabel("No deals recorded yet."));
+            return;
+        }
+
+        // Aggregate line.
+        int signedCount = 0, fiveStar = 0, starSum = 0;
+        foreach (var r in records)
+        {
+            if (r.Outcome != "Signed") continue;
+            signedCount++;
+            starSum += r.Stars;
+            if (r.Stars >= 5) fiveStar++;
+        }
+        string avg = signedCount > 0
+            ? $"  ·  avg {(float)starSum / signedCount:0.0}★"
+            : "";
+        _recordsSummaryLabel.Text =
+            $"{records.Count} tables recorded  ·  {signedCount} deals signed{avg}  ·  " +
+            $"{fiveStar} five-star deal{(fiveStar == 1 ? "" : "s")} anchored";
+
+        // Rows, newest first, capped for UI sanity.
+        const int MaxRows = 50;
+        int shown = 0;
+        for (int i = records.Count - 1; i >= 0 && shown < MaxRows; i--, shown++)
+        {
+            var r = records[i];
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 12);
+
+            var starLbl = new Label
+            {
+                Text = r.Outcome == "Signed"
+                    ? new string('★', r.Stars) + new string('☆', 5 - r.Stars)
+                    : "—",
+                CustomMinimumSize = new Vector2(96, 0),
+                VerticalAlignment = VerticalAlignment.Top,
+            };
+            starLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            starLbl.AddThemeColorOverride("font_color",
+                r.Outcome == "Signed" ? UITheme.NegotiationTitleColor : UITheme.NegotiationHiddenTerm);
+            row.AddChild(starLbl);
+
+            var col = MakeVBox(2);
+            col.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+
+            var nameLbl = new Label
+            {
+                Text = $"{r.NpcName} — {r.Title}",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            col.AddChild(nameLbl);
+
+            string outcomeText = r.Outcome switch
+            {
+                "Signed"     => $"Deal signed in the {r.Zone} zone",
+                "WalkedAway" => "You walked away",
+                "Collapsed"  => "The table collapsed",
+                _            => "They left the table",
+            };
+            string spoils = r.Outcome == "Signed"
+                ? $"  ·  {(r.Gold >= 0 ? "+" : "")}{r.Gold} gold, {(r.Reputation >= 0 ? "+" : "")}{r.Reputation} rep"
+                  + (string.IsNullOrEmpty(r.SpellGranted) ? "" : "  ·  spell taught")
+                : "";
+            var detailLbl = new Label
+            {
+                Text = $"Cycle {r.CycleNumber}  ·  {r.Archetype}  ·  {outcomeText}{spoils}  ·  {r.Turns} turns",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            detailLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+            detailLbl.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
+            col.AddChild(detailLbl);
+
+            row.AddChild(col);
+            _recordsContainer.AddChild(row);
+        }
+
+        if (records.Count > MaxRows)
+            _recordsContainer.AddChild(MakeStubLabel(
+                $"…and {records.Count - MaxRows} older entries."));
     }
 
     private void AddSectionHeader(VBoxContainer parent, string text)
