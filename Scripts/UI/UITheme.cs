@@ -255,6 +255,9 @@ public static class UITheme
     public static readonly Color TagCharge  = new Color(0.80f, 0.32f, 0.16f, 1f); // rust — momentum hit
     public static readonly Color TagBulwark = new Color(0.35f, 0.55f, 0.78f, 1f); // steel — braces
     public static readonly Color TagNeutral = new Color(0.60f, 0.58f, 0.62f, 1f); // scout/immobile/other
+    // V2 §6 valence: blight chip accent for corrupted-faction units and
+    // factionless monsters (spec-ruled hex #1A3A5C).
+    public static readonly Color ValenceBlight = new Color("#1A3A5C");
 
     public const int CombatStatLabelFontSize = 10;
     public const int EnemyRosterButtonWidth = 90;

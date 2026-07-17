@@ -306,6 +306,85 @@ public partial class HealthBarRoot : Node3D
         }
     }
 
+    // ── R22 damage preview ──────────────────────────────────────────
+    // A flashing span at the TOP (right end) of the current-HP fill equal to
+    // the predicted HP loss, so the player reads "this much of the bar goes
+    // away" in place. Red = clean prediction, amber = ⚠ (open stack / pending
+    // redirect could invalidate it).
+
+    private MeshInstance3D _previewFill;
+    private StandardMaterial3D _previewMat;
+    private Tween _previewTween;
+    private static readonly Color PreviewFlash = new Color(1.0f, 0.30f, 0.22f);
+    private static readonly Color PreviewWarn  = new Color(1.0f, 0.72f, 0.20f);
+
+    /// <summary>Flash the segment of the HP bar the predicted damage would
+    /// remove: the top <paramref name="hpLoss"/> of <paramref name="current"/>,
+    /// against the same original-max width SetHealth uses (max + withered).</summary>
+    public void ShowDamagePreview(int current, int max, int withered, int hpLoss, bool warn)
+    {
+        if (!IsInstanceValid(this)) return;
+        if (hpLoss <= 0 || current <= 0) { HideDamagePreview(); return; }
+
+        if (_previewFill == null)
+            CreatePreviewFill();
+        if (_previewFill == null)
+            return;
+
+        int originalMax = max + Mathf.Max(0, withered);
+        if (originalMax <= 0) { HideDamagePreview(); return; }
+
+        float hpPct   = Mathf.Clamp((float)current / originalMax, 0f, 1f);
+        float lossPct = Mathf.Clamp((float)Mathf.Min(hpLoss, current) / originalMax, 0f, 1f);
+        float left    = hpPct - lossPct;   // segment spans [left, hpPct] of the bar
+
+        // Same anchoring math as ResizeBar: bar centered on originX, width
+        // FullBarWidth; a span [a, a+w] centers at originX + W*(a + w/2 − 0.5).
+        _previewFill.Scale = new Vector3(lossPct, 1f, 1f);
+        _previewFill.Position = new Vector3(
+            _healthFillOriginX + FullBarWidth * (left + lossPct * 0.5f - 0.5f),
+            _previewFill.Position.Y,
+            _previewFill.Position.Z);
+        _previewFill.Visible = true;
+
+        // Flash: alpha pulse, looping until hidden.
+        Color c = warn ? PreviewWarn : PreviewFlash;
+        _previewTween?.Kill();
+        _previewMat.AlbedoColor = new Color(c.R, c.G, c.B, 0.9f);
+        _previewTween = CreateTween().SetLoops();
+        _previewTween.TweenProperty(_previewMat, "albedo_color",
+            new Color(c.R, c.G, c.B, 0.25f), 0.28f);
+        _previewTween.TweenProperty(_previewMat, "albedo_color",
+            new Color(c.R, c.G, c.B, 0.90f), 0.28f);
+    }
+
+    public void HideDamagePreview()
+    {
+        _previewTween?.Kill();
+        _previewTween = null;
+        if (_previewFill != null && IsInstanceValid(_previewFill))
+            _previewFill.Visible = false;
+    }
+
+    private void CreatePreviewFill()
+    {
+        if (_healthFill == null) return;
+        _previewFill = (MeshInstance3D)_healthFill.Duplicate();
+        _previewFill.Name = "DamagePreviewFill";
+        _healthFill.GetParent().AddChild(_previewFill);
+        _previewMat = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            AlbedoColor = PreviewFlash,
+        };
+        _previewFill.SetSurfaceOverrideMaterial(0, _previewMat);
+        // In front of both the HP fill and the wither fill (+0.005).
+        _previewFill.Position = new Vector3(
+            _healthFillOriginX, _healthFill.Position.Y, _healthFill.Position.Z + 0.01f);
+        _previewFill.Visible = false;
+    }
+
     // ── Private helpers ─────────────────────────────────────────────
     private void CreateWitherFill()
     {

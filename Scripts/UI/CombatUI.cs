@@ -976,10 +976,15 @@ public partial class CombatUI : CanvasLayer
 		_inspectBlock.AddChild(behavior);
 
 		// One block per ability: icon + name, then the telegraph sentence.
+		// §8 ability state (2026-07-17): the "current state" line — live
+		// use-count for stacking/fired abilities (Requiem: "×2 this combat").
 		foreach (var ab in unit.Abilities)
 		{
+			int uses = AbilityUseCount(unit, ab.Key);
 			var nameLine = MakeLabel(
-				$"{UIContent.AbilityIcon(ab.Key)} {ab.Name}",
+				uses > 0
+					? $"{UIContent.AbilityIcon(ab.Key)} {ab.Name} ×{uses}"
+					: $"{UIContent.AbilityIcon(ab.Key)} {ab.Name}",
 				UITheme.FontSizeSmall, UITheme.Gold);
 			_inspectBlock.AddChild(nameLine);
 
@@ -989,13 +994,25 @@ public partial class CombatUI : CanvasLayer
 				intel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 				_inspectBlock.AddChild(intel);
 			}
+
+			if (uses > 0)
+			{
+				var state = MakeLabel($"Fired ×{uses} this combat.",
+					UITheme.FontSizeSmall, UITheme.TextSecondary);
+				_inspectBlock.AddChild(state);
+			}
 		}
 
-		// Role · faction line ("Elite · The Long Table").
+		// Role · faction line ("Elite · The Long Table"), valence-aware (V2 §6):
+		// a corrupted faction shows its corrupted name; factionless = Blighted.
+		var (blighted, _, _) = ResolveValence(unit);
 		string factionName = "";
 		if (!string.IsNullOrEmpty(unit.FactionId)
 			&& ArchmageRegistry.Get(unit.FactionId) is { } arch)
-			factionName = arch.FactionName;
+			factionName = blighted && !string.IsNullOrEmpty(arch.CorruptedFactionName)
+				? arch.CorruptedFactionName : arch.FactionName;
+		else if (blighted)
+			factionName = "Blighted";
 
 		string roleLine = string.IsNullOrEmpty(factionName)
 			? UIContent.RoleDisplay(unit.Role)
@@ -1205,11 +1222,17 @@ public partial class CombatUI : CanvasLayer
 				}
 
 				// Ability chips (§6): one icon per ability, tooltip = telegraph.
+				// §8 ability state (2026-07-17): stacking/fired abilities carry a
+				// live use-count from Unit.AbilityUseCounts ("✦2" = Requiem ×2).
 				foreach (var ab in enemy.Abilities)
 				{
-					var chip = MakeLabel(UIContent.AbilityIcon(ab.Key),
+					int uses = AbilityUseCount(enemy, ab.Key);
+					string icon = UIContent.AbilityIcon(ab.Key);
+					var chip = MakeLabel(uses > 0 ? $"{icon}{uses}" : icon,
 						UITheme.FontSizeSmall, UITheme.Gold);
-					chip.TooltipText = $"{ab.Name}: {ab.IntelDescription}";
+					chip.TooltipText = uses > 0
+						? $"{ab.Name} ×{uses}: {ab.IntelDescription}"
+						: $"{ab.Name}: {ab.IntelDescription}";
 					chip.CustomMinimumSize = new Vector2(14, 0);
 					row.AddChild(chip);
 				}
@@ -1274,10 +1297,56 @@ public partial class CombatUI : CanvasLayer
 				lbl.CustomMinimumSize = new Vector2(44, 0);
 				lbl.HorizontalAlignment = HorizontalAlignment.Right;
 				row.AddChild(lbl);
+
+				// Valence tag (V2 §6): kingdom chip vs blight chip — who claims
+				// this unit is echo-relevant everywhere, not only in settlements.
+				var (_, valenceTip, valenceCol) = ResolveValence(enemy);
+				var valChip = MakeLabel("■", UITheme.FontSizeSmall, valenceCol);
+				valChip.TooltipText = valenceTip;
+				valChip.CustomMinimumSize = new Vector2(12, 0);
+				valChip.HorizontalAlignment = HorizontalAlignment.Center;
+				row.AddChild(valChip);
 			}
 
 			_enemyRosterBox.AddChild(row);
 		}
+	}
+
+	// R22 damage preview note: the preview renders as a flashing span of the
+	// victim's in-world HP bar (HealthBarRoot.ShowDamagePreview), driven by
+	// CombatManager.UpdateDamagePreview — no CombatUI surface involved.
+
+	/// <summary>§8 ability state: case-insensitive read of a unit's live
+	/// use-count for an ability key (RequiemEffect writes lowercase keys).</summary>
+	private static int AbilityUseCount(Unit unit, string abilityKey)
+	{
+		if (unit?.AbilityUseCounts == null || string.IsNullOrEmpty(abilityKey))
+			return 0;
+		if (unit.AbilityUseCounts.TryGetValue(abilityKey, out var n))
+			return n;
+		return unit.AbilityUseCounts.TryGetValue(abilityKey.ToLowerInvariant(), out n) ? n : 0;
+	}
+
+	/// <summary>V2 §6 valence: a unit whose archmage faction is uncorrupted is
+	/// kingdom-aligned (chip in the faction color); a corrupted faction's unit
+	/// or a factionless monster is blighted (spec accent #1A3A5C). Debug fights
+	/// with no active save read as uncorrupted.</summary>
+	private static (bool blighted, string tooltip, Color color) ResolveValence(Unit unit)
+	{
+		if (!string.IsNullOrEmpty(unit.FactionId)
+			&& ArchmageRegistry.Get(unit.FactionId) is { } arch)
+		{
+			bool corrupted = SaveManager.ActiveSave?.Campaign?
+				.GetDisposition(unit.FactionId) == ArchmageDisposition.Corrupted;
+			if (!corrupted)
+				return (false, $"{arch.FactionName} — kingdom-aligned",
+					new Color(arch.FactionColorHex));
+
+			string cname = string.IsNullOrEmpty(arch.CorruptedFactionName)
+				? arch.FactionName : arch.CorruptedFactionName;
+			return (true, $"{cname} — corrupted", UITheme.ValenceBlight);
+		}
+		return (true, "Blighted — claimed by no kingdom", UITheme.ValenceBlight);
 	}
 
 	public void ShowEnemyIntel(List<EnemyIntelEntry> entries)

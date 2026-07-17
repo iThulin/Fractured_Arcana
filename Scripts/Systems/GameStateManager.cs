@@ -134,7 +134,9 @@ public sealed class GameState
         Log($"Card → Graveyard: {card.CardName}");
     }
 
-    public void Log(string msg) { GD.Print(msg); }
+    // R22 sim gate: preview runs are silent — the resolver's log lines would
+    // otherwise spam the console on every hover.
+    public void Log(string msg) { if (!CombatSim.Active) GD.Print(msg); }
 
     public bool HasActiveEffect<T>(Entity owner) where T : PersistentEffect
     {

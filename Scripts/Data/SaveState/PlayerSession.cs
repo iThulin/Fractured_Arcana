@@ -62,6 +62,16 @@ public static class PlayerSession
     /// auto-pass costs zero clicks.</summary>
     public static bool DebugStopOnTriggers = false;
 
+    /// <summary>R22 damage-preview self-check: when set, every real player cast
+    /// re-runs the CombatSim preview for that same cast and, after it resolves,
+    /// logs whether the predicted per-enemy HP loss matched the actual delta.
+    /// A "[PreviewSelfCheck] DESYNC …" line means the preview and the live
+    /// resolver diverged — the maintenance guard that replaces a second test
+    /// suite. Off in normal play (adds a sim run + a 0.5s deferred compare per
+    /// cast). Reaction/trigger damage landing within that window can log a
+    /// benign mismatch — read DESYNC lines in that light.</summary>
+    public static bool DebugPreviewSelfCheck = false;
+
     // ── Stack stops (combat_ui §7c, V3) ─────────────────────────────────
     // Per-trigger-type "stop" toggles set from the stack strip header — the
     // digital-card-game full-control pattern. A set stop opens an interactive

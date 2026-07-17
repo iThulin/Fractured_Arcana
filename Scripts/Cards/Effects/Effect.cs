@@ -228,16 +228,16 @@ public abstract class EffectBase : IEffect
 public sealed class DealDamageEffect : EffectBase
 {
 	public int Amount;
+	/// <summary>Arcane-mark consumption bonus — shared by Resolve and the R22 preview.</summary>
+	public const int ArcaneMarkBonus = 3;
 	public DealDamageEffect(int a) { Amount = a; }
 
-	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	/// <summary>R22 damage preview: the caster-side damage computation, extracted
+	/// so Resolve and the drag preview run the SAME code — never a parallel
+	/// formula, so the preview structurally cannot drift. Pure (mutates nothing).
+	/// <paramref name="log"/>=false silences the s.Log lines for preview calls.</summary>
+	public int ComputeTotalDamage(GameState s, Unit casterUnit, Entity caster, EffectSnapshot snap, bool log = true)
 	{
-		int hit = 0;
-		if (targets == null)
-		{ s?.Log($"[DealDamage] No targets."); return; }
-
-		var casterUnit = FindCasterUnit(s, caster);
-
 		// ── Bonus damage accumulation ────────────────────────────────────
 		int bonus = 0;
 		if (casterUnit != null && casterUnit.HasStatus("empowered"))
@@ -248,7 +248,7 @@ public sealed class DealDamageEffect : EffectBase
 			bonus += avatarAura.BonusDamage;
 
 		int bonusSpellDmg = casterUnit?.BonusSpellDamage ?? 0;
-		if (bonusSpellDmg > 0)
+		if (bonusSpellDmg > 0 && log)
 			s.Log($"[SpellDamage] +{bonusSpellDmg} from equipment.");
 
 		int totalDamage = Amount + bonus + bonusSpellDmg;
@@ -257,7 +257,8 @@ public sealed class DealDamageEffect : EffectBase
 		if (snap != null && Math.Abs(snap.DamageMultiplier - 1.0f) > 0.001f)
 		{
 			totalDamage = (int)Math.Round(totalDamage * snap.DamageMultiplier);
-			s.Log($"[DamageMultiplier] Applied {snap.DamageMultiplier}x → {totalDamage}.");
+			if (log)
+				s.Log($"[DamageMultiplier] Applied {snap.DamageMultiplier}x → {totalDamage}.");
 		}
 
 		// ── TemporalDecayField spell scaling bonus ───────────────────────────────
@@ -265,8 +266,20 @@ public sealed class DealDamageEffect : EffectBase
 		if (decayField != null && decayField.CurrentScalingBonus > 0)
 		{
 			totalDamage += decayField.CurrentScalingBonus;
-			s.Log($"[TemporalDecay] +{decayField.CurrentScalingBonus} scaling → {totalDamage}.");
+			if (log)
+				s.Log($"[TemporalDecay] +{decayField.CurrentScalingBonus} scaling → {totalDamage}.");
 		}
+		return totalDamage;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		int hit = 0;
+		if (targets == null)
+		{ s?.Log($"[DealDamage] No targets."); return; }
+
+		var casterUnit = FindCasterUnit(s, caster);
+		int totalDamage = ComputeTotalDamage(s, casterUnit, caster, snap);
 
 		// ── Debug logging ────────────────────────────────────────────────
 		s.Log($"targets.Items.Count={targets.Items.Count}");
@@ -315,13 +328,13 @@ public sealed class DealDamageEffect : EffectBase
 				}
 			}
 
-			// Arcane mark: separate bonus, intentionally outside totalDamage
+			// Arcane mark: separate bonus, intentionally outside totalDamage.
+			// (Constant shared with the R22 preview so it can't drift.)
 			if (victim != null && victim.HasStatus("arcane_mark"))
 			{
 				victim.RemoveStatus("arcane_mark");
-				int markBonus = 3;
-				victim.ApplyDamage(markBonus);
-				s.Log($"[ArcaneMark] {victim.Name} takes {markBonus} bonus damage. Mark consumed.");
+				victim.ApplyDamage(ArcaneMarkBonus);
+				s.Log($"[ArcaneMark] {victim.Name} takes {ArcaneMarkBonus} bonus damage. Mark consumed.");
 			}
 		}
 
@@ -1245,14 +1258,20 @@ public sealed class ImbueTileEffect : EffectBase
 			if (tile == null)
 				continue;
 
-			tile.ElementType = elementType;
-			tile.ElementStrength = 1.0f;
+			// R22 sim gate: the preview must not really imbue the tile — but the
+			// imbue's immediate tick damage below still runs (ApplyDamage is
+			// itself gated, so the tick lands in the sim ledger).
+			if (!CombatSim.Active)
+			{
+				tile.ElementType = elementType;
+				tile.ElementStrength = 1.0f;
 
-			if (elementType == TileElementType.Fire)
-				tile.IsHazardous = true;
+				if (elementType == TileElementType.Fire)
+					tile.IsHazardous = true;
 
-			// Use the existing visual system to update the tile
-			tile.TileView?.SetElement(elementType);
+				// Use the existing visual system to update the tile
+				tile.TileView?.SetElement(elementType);
+			}
 
 			s.Log($"[ImbueTile] {tile.Axial} imbued with {Element} ({elementType}).");
 

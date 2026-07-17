@@ -531,10 +531,72 @@ public partial class Unit : Node3D
         return true;
     }
 
+    /// <summary>R22 damage preview: flash the predicted HP loss on this unit's
+    /// in-world health bar. warn = prediction could be invalidated (open stack,
+    /// pending redirect). Cleared via ClearHpDamagePreview.</summary>
+    public void ShowHpDamagePreview(int hpLoss, bool warn)
+    {
+        if (_healthBar == null)
+            _healthBar = GetNodeOrNull<HealthBarRoot>("HealthBarRoot");
+        _healthBar?.ShowDamagePreview(Stats.Health, Stats.MaxHealth, Stats.WitheredMaxHp, hpLoss, warn);
+    }
+
+    public void ClearHpDamagePreview() => _healthBar?.HideDamagePreview();
+
+    /// <summary>R22 damage preview: victim-side mitigation math — shrouded cap,
+    /// shield absorb, armor absorb, immortal floor — as a PURE STATIC function
+    /// shared verbatim by ApplyDamage and the drag preview (never a parallel
+    /// formula). Static so the preview can replay multi-hit sequences against
+    /// VIRTUAL shield/armor/HP without touching live stats. Does NOT model
+    /// link/redirect rerouting: ApplyDamage handles those before this runs;
+    /// the preview surfaces them as a warning instead.</summary>
+    public static (int shieldLoss, int armorLoss, int hpLoss, bool immortalSave) MitigateCore(
+        int amount, int shield, int armor, int health, bool shrouded, bool immortal)
+    {
+        if (amount <= 0)
+            return (0, 0, 0, false);
+
+        // Shrouded: incoming hits are capped at 5 ("max 5 damage per hit").
+        if (shrouded && amount > 5)
+            amount = 5;
+
+        int remaining = amount;
+
+        int shieldLoss = Math.Min(Math.Max(0, shield), remaining);
+        remaining -= shieldLoss;
+
+        int armorLoss = Math.Min(Math.Max(0, armor), remaining);
+        remaining -= armorLoss;
+
+        bool immortalSave = false;
+        if (remaining > 0 && immortal && remaining >= health)
+        {
+            // Immortal (Eternal Flame): would-be-lethal damage leaves 1 HP.
+            remaining = Math.Max(0, health - 1);
+            immortalSave = true;
+        }
+
+        int hpLoss = Math.Min(remaining, health);
+        return (shieldLoss, armorLoss, hpLoss, immortalSave);
+    }
+
+    /// <summary>Instance convenience over MitigateCore against LIVE stats.</summary>
+    public (int shieldLoss, int armorLoss, int hpLoss, bool immortalSave) ComputeMitigation(int amount)
+        => MitigateCore(amount, Stats.Shield, Stats.Armor, Stats.Health,
+            HasStatus("shrouded"), HasStatus("immortal"));
+
     public void ApplyDamage(int amount)
     {
         if (amount <= 0 || IsDeathQueued)
             return;
+
+        // R22 sim gate: preview runs record damage into the ledger and mutate
+        // NOTHING — no links, no mitigation, no death, no health bar.
+        if (CombatSim.Active)
+        {
+            CombatSim.RecordDamage(this, amount);
+            return;
+        }
 
         if (!_skipLinkRedistribution)
         {
@@ -560,39 +622,19 @@ public partial class Unit : Node3D
             }
         }
 
-        // Shrouded: incoming hits are capped at 5 ("max 5 damage per hit").
+        // R22: mitigation math lives in ComputeMitigation, shared with the
+        // drag damage preview so the preview structurally cannot drift.
         if (HasStatus("shrouded") && amount > 5)
-        {
             GD.Print($"{Name} is Shrouded — {amount} damage capped to 5.");
-            amount = 5;
-        }
 
-        int remaining = amount;
+        var (shieldLoss, armorLoss, hpLoss, immortalSave) = ComputeMitigation(amount);
 
-        if (Stats.Shield > 0)
-        {
-            int used = Math.Min(Stats.Shield, remaining);
-            Stats.Shield -= used;
-            remaining -= used;
-        }
+        if (immortalSave)
+            GD.Print($"{Name} is Immortal — survives at 1 HP.");
 
-        if (remaining > 0 && Stats.Armor > 0)
-        {
-            int used = Math.Min(Stats.Armor, remaining);
-            Stats.Armor -= used;
-            remaining -= used;
-        }
-
-        if (remaining > 0)
-        {
-            // Immortal (Eternal Flame): would-be-lethal damage leaves 1 HP.
-            if (HasStatus("immortal") && remaining >= Stats.Health)
-            {
-                remaining = Math.Max(0, Stats.Health - 1);
-                GD.Print($"{Name} is Immortal — survives at 1 HP.");
-            }
-            Stats.Health = Math.Max(0, Stats.Health - remaining);
-        }
+        Stats.Shield -= shieldLoss;
+        Stats.Armor -= armorLoss;
+        Stats.Health = Math.Max(0, Stats.Health - hpLoss);
 
         RefreshHealthBar();
         GD.Print($"{Name} HP:{Stats.Health}/{Stats.MaxHealth} Shield:{Stats.Shield} Armor:{Stats.Armor}");
@@ -671,6 +713,10 @@ public partial class Unit : Node3D
 
     public void ApplyStatus(string status, int duration)
     {
+        // R22 sim gate: preview never applies real statuses.
+        if (CombatSim.Active)
+            return;
+
         // If already has this status, take the longer duration
         if (Stats.StatusEffects.ContainsKey(status))
             Stats.StatusEffects[status] = Math.Max(Stats.StatusEffects[status], duration);
@@ -722,6 +768,11 @@ public partial class Unit : Node3D
 
     public bool HasStatus(string status)
     {
+        // R22 sim gate: a status "consumed" during the preview (arcane_mark)
+        // reads as gone WITHIN the sim, though the real state is untouched —
+        // otherwise a multi-hit card would pay the mark bonus once per hit.
+        if (CombatSim.Active && CombatSim.WasStatusRemoved(this, status))
+            return false;
         return Stats.StatusEffects.ContainsKey(status) && Stats.StatusEffects[status] > 0;
     }
 
@@ -748,6 +799,13 @@ public partial class Unit : Node3D
 
     public void RemoveStatus(string statusName)
     {
+        // R22 sim gate: record the consumption for HasStatus, mutate nothing.
+        if (CombatSim.Active)
+        {
+            CombatSim.RecordStatusRemoved(this, statusName);
+            return;
+        }
+
         Stats.StatusEffects?.Remove(statusName);
         RefreshHealthBar();
     }

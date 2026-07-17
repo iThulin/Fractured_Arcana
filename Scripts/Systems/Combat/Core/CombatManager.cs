@@ -168,6 +168,10 @@ public partial class CombatManager : Node3D
 
             dropper.CardDragStarted += OnCardDragStarted;
             dropper.CardDragEnded += OnCardDragEnded;
+            // R22 damage preview: refresh the flashing HP-bar segment as the
+            // dragged card crosses tiles.
+            dropper.DragHoverChanged += UpdateDamagePreview;
+            dropper.DragHoverCleared += ClearDamagePreview;
         }
         else
         {
@@ -4610,10 +4614,42 @@ public partial class CombatManager : Node3D
             return;
         }
 
+        // R22 self-check (debug): predict this exact cast's damage via the SAME
+        // ComputePreviewDamage the flashing preview uses, and snapshot pre-cast
+        // HP, so we can verify prediction == reality once it resolves.
+        Dictionary<Unit, int> selfCheckPredicted = null;
+        Dictionary<Unit, int> selfCheckPreHp = null;
+        if (PlayerSession.DebugPreviewSelfCheck)
+        {
+            var scTile = grid.GetTile(tile.Axial);
+            if (scTile?.Occupant != null && IsInstanceValid(scTile.Occupant)
+                && scTile.Occupant.TeamId != selectedUnit.TeamId)
+            {
+                selfCheckPredicted = ComputePreviewDamage(resolvedHalf, scTile);
+                if (selfCheckPredicted != null)
+                {
+                    selfCheckPreHp = new Dictionary<Unit, int>();
+                    foreach (var v in selfCheckPredicted.Keys)
+                        selfCheckPreHp[v] = v.Stats.Health;
+                }
+            }
+        }
+
         State.ActiveCasterUnit = selectedUnit;
 
         var ok = Rules.TryCastWithTargets(resolvedHalf, State, Me, targets, cardUi.CardInstance);
         GD.Print($"Cast result={ok} manaNow={State.Mana[Me]}");
+
+        // R22 self-check: once the cast settles, compare actual HP delta to the
+        // prediction. 0.5s covers direct damage + imbue tick + attunement bonus.
+        if (ok && selfCheckPredicted != null && selfCheckPreHp != null)
+        {
+            string scCardName = resolvedHalf.Name;
+            var scPredicted = selfCheckPredicted;
+            var scPreHp = selfCheckPreHp;
+            var scTimer = GetTree().CreateTimer(0.5f);
+            scTimer.Timeout += () => VerifyPreviewSelfCheck(scCardName, scPredicted, scPreHp);
+        }
 
         if (!ok)
         {
@@ -4768,7 +4804,243 @@ public partial class CombatManager : Node3D
         _isCardBeingDragged = false;
         _draggedHalf = null;
         ClearTargetHighlight();
+        ClearDamagePreview();   // R22
         combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
+    }
+
+    // ── R22 damage preview ───────────────────────────────────────────────────
+
+    /// <summary>Every unit currently showing a flashing HP-bar preview segment
+    /// (primary + chain / AoE / retarget victims).</summary>
+    private readonly List<Unit> _previewedVictims = new();
+
+    private void ClearDamagePreview()
+    {
+        foreach (var v in _previewedVictims)
+            if (v != null && IsInstanceValid(v))
+                v.ClearHpDamagePreview();
+        _previewedVictims.Clear();
+    }
+
+    /// <summary>R22 self-check (DebugPreviewSelfCheck): after a real cast settles,
+    /// compare each predicted per-enemy HP loss to the actual delta. A DESYNC line
+    /// means the CombatSim preview and the live resolver diverged — the guard that
+    /// makes the interception approach maintainable without a parallel test suite.
+    /// A unit freed by a lethal hit is read as having lost all its pre-cast HP.</summary>
+    private void VerifyPreviewSelfCheck(string cardName,
+        Dictionary<Unit, int> predicted, Dictionary<Unit, int> preHp)
+    {
+        foreach (var kv in predicted)
+        {
+            var v = kv.Key;
+            int actual = (v != null && IsInstanceValid(v) && v.Stats.IsAlive)
+                ? preHp[v] - v.Stats.Health   // survived → live delta
+                : preHp[v];                   // died/freed → lost all pre-cast HP
+            if (actual != kv.Value)
+                GD.PrintErr($"[PreviewSelfCheck] DESYNC on {cardName} → " +
+                    $"{(v != null ? v.Name : "?")}: predicted −{kv.Value} HP, actual −{actual}.");
+            else
+                GD.Print($"[PreviewSelfCheck] OK {cardName} → " +
+                    $"{(v != null ? v.Name : "?")}: −{kv.Value} HP.");
+        }
+    }
+
+    /// <summary>Predicted damage while dragging a card half over an enemy,
+    /// rendered as a flashing span of the victim's HP bar equal to the HP it
+    /// would lose. R22: this RUNS THE REAL EFFECT RESOLUTION in CombatSim mode —
+    /// the mutation chokepoints (Unit.ApplyDamage/ApplyStatus/RemoveStatus,
+    /// ImbueTile's tile write, GameState.Log) divert to a per-hit ledger / no-op
+    /// instead of touching live state, so the resolver's own code produces every
+    /// number: base damage, the imbue-tile TICK, the taken conditional branch,
+    /// arcane-mark consumption. It therefore cannot drift from an actual cast.
+    /// Only preview-SAFE effect types run (RunPreviewEffect); a card carrying any
+    /// unrecognized effect shows no preview rather than risk an ungated mutation
+    /// on hover (fail-safe). Amber flash = ⚠: an open stack or pending redirect
+    /// could still change the number.</summary>
+    private void UpdateDamagePreview(HexTile tile)
+    {
+        ClearDamagePreview();
+
+        if (!_isCardBeingDragged || _draggedHalf == null || tile == null || selectedUnit == null)
+            return;
+
+        var tileData = grid?.GetTile(tile.Axial);
+        var victim = tileData?.Occupant;
+        if (victim == null || !IsInstanceValid(victim) || !victim.Stats.IsAlive
+            || victim.TeamId == selectedUnit.TeamId)
+            return;   // the flashing preview starts only when hovering a living enemy
+
+        var map = ComputePreviewDamage(_draggedHalf, tileData);
+        if (map == null || map.Count == 0)
+            return;
+
+        bool globalWarn = State.StackCount() > 0 || _priorityWindowOpen;
+        foreach (var kv in map)
+        {
+            bool warn = globalWarn || kv.Key.RedirectNextDamageTo != null;
+            kv.Key.ShowHpDamagePreview(kv.Value, warn);
+            _previewedVictims.Add(kv.Key);
+        }
+    }
+
+    /// <summary>The shared preview math: per-enemy predicted HP loss for casting
+    /// <paramref name="half"/> at <paramref name="tileData"/>, produced by a real
+    /// CombatSim no-mutation run. Returns null when a non-preview-safe effect
+    /// aborted the run (caller shows nothing); otherwise a possibly-empty map.
+    /// Used BOTH by the flashing preview and by the DebugPreviewSelfCheck, so the
+    /// two can never diverge from each other — the self-check compares THIS
+    /// function's output against the live resolver's actual HP delta.</summary>
+    private Dictionary<Unit, int> ComputePreviewDamage(CardHalf half, TileData tileData)
+    {
+        if (half == null || tileData == null || selectedUnit == null)
+            return null;
+
+        var primary = tileData.Occupant;
+        var targets = new TargetSet();
+        targets.Items.Add(tileData);
+        var ctx = new PredicateContext
+        {
+            Game = State,
+            Caster = Me,
+            Targets = targets,
+            Snapshot = new EffectSnapshot(),   // echo/rewind scaling unknown pre-cast
+        };
+
+        List<(Unit victim, int amount)> ledger = null;
+        bool safe = true;
+        var savedCaster = State.ActiveCasterUnit;
+        CombatSim.Begin(State);
+        State.ActiveCasterUnit = selectedUnit;   // caster-side bonuses read the RIGHT unit
+        try
+        {
+            // Elementalist attunement bonus (a separate cast-time step applied to
+            // the PRIMARY enemy before the card resolves). PreviewBonusDamageAfterCast
+            // accounts for this cast's own charge increment. Gated ApplyDamage → ledger.
+            if (primary != null && IsInstanceValid(primary) && primary.Stats.IsAlive
+                && primary.TeamId != selectedUnit.TeamId
+                && selectedUnit.School == CardSchool.Elementalist
+                && selectedUnit.Attunement is ElementalAttunement elemAtt
+                && half.Tags != null)
+            {
+                foreach (var tagStr in half.Tags)
+                    if (ElementalAttunement.TryParseTag(tagStr, out var element))
+                    {
+                        int b = Math.Max(0, elemAtt.PreviewBonusDamageAfterCast(element));
+                        if (b > 0) primary.ApplyDamage(b);
+                    }
+            }
+
+            if (half.Effects != null)
+                foreach (var eff in half.Effects)
+                    if (!RunPreviewEffect(eff, ctx)) { safe = false; break; }
+
+            if (safe)
+                ledger = CombatSim.SnapshotHits();   // take BEFORE End() clears it
+        }
+        catch { safe = false; }
+        finally
+        {
+            State.ActiveCasterUnit = savedCaster;
+            CombatSim.End();
+        }
+
+        if (!safe || ledger == null)
+            return null;
+
+        // Group hits by enemy victim, preserving order for per-hit mitigation.
+        var perVictim = new Dictionary<Unit, List<int>>();
+        var orderList = new List<Unit>();
+        foreach (var (v, amount) in ledger)
+        {
+            if (v == null || !IsInstanceValid(v) || !v.Stats.IsAlive)
+                continue;
+            if (v.TeamId == selectedUnit.TeamId)   // enemies only
+                continue;
+            if (!perVictim.TryGetValue(v, out var list))
+            {
+                list = new List<int>();
+                perVictim[v] = list;
+                orderList.Add(v);
+            }
+            list.Add(amount);
+        }
+
+        var result = new Dictionary<Unit, int>();
+        foreach (var v in orderList)
+        {
+            int shield = Math.Max(0, v.Stats.Shield);
+            int armor  = Math.Max(0, v.Stats.Armor);
+            int hp     = v.Stats.Health;
+            bool shrouded = v.HasStatus("shrouded");
+            bool immortal = v.HasStatus("immortal");
+            int hpLoss = 0;
+            foreach (int hit in perVictim[v])
+            {
+                var (sL, aL, hL, _) = Unit.MitigateCore(hit, shield, armor, hp, shrouded, immortal);
+                shield -= sL; armor -= aL; hp -= hL; hpLoss += hL;
+            }
+            if (hpLoss > 0)
+                result[v] = hpLoss;
+        }
+        return result;
+    }
+
+    /// <summary>Runs one effect in CombatSim preview mode, returning false when
+    /// the effect type is not preview-safe (the caller then aborts the preview,
+    /// showing nothing). Leaf damage / imbue / status effects run their REAL
+    /// Resolve — gated to the ledger, so imbue TICK damage and arcane-mark
+    /// consumption are captured exactly. Sequence / Conditional / Retarget are
+    /// navigated with the REAL targeting and branch choices, and their children
+    /// recurse back through this whitelist — so a Chain Lightning bounce
+    /// (retarget → damage) is captured, but a retarget → move would still fail
+    /// safe. Any unrecognized effect (move, heal, summon, …) fails safe so a
+    /// hover can never trigger it.</summary>
+    private bool RunPreviewEffect(IEffect effect, PredicateContext ctx)
+    {
+        switch (effect)
+        {
+            case null:
+                return true;
+            case DealDamageEffect:
+            case ImbueTileEffect:
+            case ApplyStatusEffect:
+                effect.Resolve(ctx.Game, ctx.Caster, ctx.Targets, ctx.Snapshot);
+                return true;
+            case SequenceEffect seq:
+                if (seq.Steps != null)
+                    foreach (var step in seq.Steps)
+                        if (!RunPreviewEffect(step, ctx))
+                            return false;
+                return true;
+            case ConditionalEffect cond:
+                bool branch;
+                try { branch = cond.If.Evaluate(ctx); }
+                catch { branch = true; }
+                var chosen = branch ? cond.Then : cond.Else;
+                return chosen == null || RunPreviewEffect(chosen, ctx);
+            case RetargetEffect rt:
+            {
+                // Mirror RetargetEffect: set the origin, run the REAL targeter
+                // (nearest-enemy selection is a pure grid read), recurse the
+                // child through this whitelist, then restore. Captures chain /
+                // AoE bounce damage into the ledger.
+                var savedOrigin = ctx.Game.RetargetOrigin;
+                var savedTargets = ctx.Targets;
+                bool ok = true;
+                ctx.Game.RetargetOrigin = ctx.Targets;
+                if (rt.Targeter != null
+                    && rt.Targeter.Select(ctx.Game, ctx.Caster, out var newTargets))
+                {
+                    ctx.Targets = newTargets;
+                    ok = RunPreviewEffect(rt.Child, ctx);
+                }
+                ctx.Targets = savedTargets;
+                ctx.Game.RetargetOrigin = savedOrigin;
+                return ok;
+            }
+            default:
+                return false;   // unknown effect → fail safe, no preview
+        }
     }
 
     private void OnGameEvent(GameEvent ge)

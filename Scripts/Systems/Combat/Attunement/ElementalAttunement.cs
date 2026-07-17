@@ -182,6 +182,21 @@ public class ElementalAttunement : ISchoolAttunement
 		return 0;
 	}
 
+	/// <summary>R22 damage preview: the attunement bonus a cast carrying this
+	/// element WOULD deal, accounting for THIS cast's own charge increment.
+	/// At cast time OnSpellCast advances the meter (+1, cap, burst-reset)
+	/// BEFORE ApplyThresholdEffects reads GetBonusDamage — so a live read is one
+	/// step behind. This mirrors that increment purely (no mutation, no events).
+	/// KEEP IN SYNC with OnSpellCast's charge math + GetBonusDamage's thresholds.</summary>
+	public int PreviewBonusDamageAfterCast(ElementTag element)
+	{
+		int charges = System.Math.Min(Charges[element] + 1, MaxCharges);
+		if (charges >= BurstThreshold) charges = 0;   // burst resets before the bonus is read
+		if (charges >= 3) return 2;
+		if (charges >= 1) return 1;
+		return 0;
+	}
+
 	public bool ShouldAutoImbue(ElementTag element) => Charges[element] >= 2;
 	public bool ShouldEnhance(ElementTag element) => Charges[element] >= 3;
 

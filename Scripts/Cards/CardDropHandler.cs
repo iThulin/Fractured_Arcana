@@ -40,6 +40,17 @@ public partial class CardDropHandler : Node3D
     [Signal]
     public delegate void CardDragEndedEventHandler();
 
+    /// <summary>R22 damage preview: emitted whenever the hovered tile CHANGES
+    /// during a drag (including to no-tile — consumers receive null-equivalent
+    /// via a separate DragHoverCleared). Lets CombatManager refresh the
+    /// predicted-damage readout without polling.</summary>
+    [Signal]
+    public delegate void DragHoverChangedEventHandler(HexTile tile);
+
+    /// <summary>R22: hovered tile became nothing (off-grid) during a drag.</summary>
+    [Signal]
+    public delegate void DragHoverClearedEventHandler();
+
     public override void _Ready()
     {
         camera = GetViewport().GetCamera3D();
@@ -80,6 +91,12 @@ public partial class CardDropHandler : Node3D
             ClearHoverHighlight();
             CurrentHoveredTile = newTile;
             newTile?.SetDragHoverHighlight(true);
+
+            // R22 damage preview: notify on every hover-tile change.
+            if (newTile != null)
+                EmitSignal(SignalName.DragHoverChanged, newTile);
+            else
+                EmitSignal(SignalName.DragHoverCleared);
         }
     }
 
