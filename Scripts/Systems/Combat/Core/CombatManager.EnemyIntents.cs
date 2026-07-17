@@ -726,7 +726,9 @@ public partial class CombatManager
                 if (enemy.CurrentIntent.Kind == IntentKind.Release)
                     enemy.ChannelTile = newTile;
                 GD.Print($"{enemy.Name}'s intent is redirected to {newTile}.");
-                combatUI?.AppendActionLog($"{enemy.Name}'s strike is redirected!");
+                // §9 reaction grammar: intent retarget reads as a Redirect line.
+                combatUI?.AppendActionLog(UIContent.FormatLogLine(enemy.Name, "Redirect",
+                    $"locked strike drawn to ({newTile.X}, {newTile.Y})"));
             }
 
             await ExecuteIntent(enemy);
@@ -1216,19 +1218,29 @@ public partial class CombatManager
     /// <summary>Applies a strike's damage. <paramref name="redirected"/> is non-null when a
     /// Reaction replaced the victim — the strike then hits that unit directly wherever it
     /// stands; otherwise the tile's occupant is re-read at resolution so a dodge whiffs.
-    /// Records <see cref="LastStrikeVictim"/> for riders (channel slow).</summary>
-    internal void ResolveStrike(Unit attacker, Vector2I tile, int damage, bool ranged, Unit redirected)
+    /// <paramref name="originalVictim"/> is the unit listed when the strike entered the
+    /// stack — when it vacated the tile, the whiff logs as a §9 Dodge reaction line
+    /// instead of the generic empty-ground line. Records <see cref="LastStrikeVictim"/>
+    /// for riders (channel slow).</summary>
+    internal void ResolveStrike(Unit attacker, Vector2I tile, int damage, bool ranged,
+                                Unit redirected, Unit originalVictim = null)
     {
         LastStrikeVictim = null;
-        Unit victim = redirected != null && IsInstanceValid(redirected) && redirected.Stats.IsAlive
-            ? redirected
-            : grid.GetTile(tile)?.Occupant;
+        bool wasRedirected = redirected != null && IsInstanceValid(redirected) && redirected.Stats.IsAlive;
+        Unit victim = wasRedirected ? redirected : grid.GetTile(tile)?.Occupant;
         string verb = ranged ? "shoots" : "strikes";
+        string noun = ranged ? "shot" : "strike";
         string attackerName = attacker != null && IsInstanceValid(attacker) ? attacker.Name : "The attack";
 
         if (victim == null || !IsInstanceValid(victim) || !victim.Stats.IsAlive)
         {
-            string whiff = $"{attackerName} {verb} at empty ground!";
+            // §9 reaction grammar: a listed victim that left the tile is a Dodge,
+            // not an aimless whiff — the log credits the vacate.
+            bool dodged = originalVictim != null && IsInstanceValid(originalVictim)
+                && originalVictim.Stats.IsAlive && originalVictim.CurrentTile?.Axial != tile;
+            string whiff = dodged
+                ? UIContent.ReactionDodgeLine(originalVictim.Name, attackerName, noun)
+                : $"{attackerName} {verb} at empty ground!";
             GD.Print(whiff);
             combatUI?.AppendActionLog(whiff);
         }
@@ -1242,7 +1254,10 @@ public partial class CombatManager
         }
         else
         {
-            string hit = $"{attackerName} {verb} {victim.Name} for {damage} damage.";
+            // §9 reaction grammar: a redirected strike names its interceptor.
+            string hit = wasRedirected
+                ? UIContent.ReactionRedirectLine(victim.Name, attackerName, noun, damage)
+                : $"{attackerName} {verb} {victim.Name} for {damage} damage.";
             GD.Print(hit);
             combatUI?.AppendActionLog(hit);
             victim.ApplyDamage(damage);

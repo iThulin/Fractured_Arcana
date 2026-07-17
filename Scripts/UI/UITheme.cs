@@ -99,6 +99,9 @@ public static class UITheme
     public static readonly Color CardTopActive = new Color(1.00f, 0.96f, 0.78f, 1f);
     public static readonly Color CardBottomActive = new Color(0.82f, 0.80f, 1.00f, 1f);
     public static readonly Color CardDim = new Color(0.55f, 0.52f, 0.60f, 1f);
+    // §7c reaction window: halves that cannot respond (not Reflex speed) render
+    // darkened + desaturated — deader than CardDim so "locked" ≠ "unhovered".
+    public static readonly Color CardReactionLocked = new Color(0.38f, 0.38f, 0.42f, 1f);
     public static readonly Color CardDragGhost = new Color(0.92f, 0.90f, 0.96f, 0.88f);
 
     // ── Rarity colors ─────────────────────────────────────────────
@@ -246,6 +249,12 @@ public static class UITheme
     public static readonly Color ThreatTierLow  = new Color(0.82f, 0.22f, 0.20f, 1f); // 1 hit — bright red
     public static readonly Color ThreatTierHigh = new Color(0.36f, 0.02f, 0.05f, 1f); // 3+ hits — blood dark
     public const int ThreatMaxTier = 3;
+    // v2.2 behavior-tag chips (combat_ui §6/§7b): one hue per wired tag so the
+    // roster telegraphs pack/charge/bulwark without reading tooltips.
+    public static readonly Color TagPack    = new Color(0.85f, 0.60f, 0.25f, 1f); // amber — hunts together
+    public static readonly Color TagCharge  = new Color(0.80f, 0.32f, 0.16f, 1f); // rust — momentum hit
+    public static readonly Color TagBulwark = new Color(0.35f, 0.55f, 0.78f, 1f); // steel — braces
+    public static readonly Color TagNeutral = new Color(0.60f, 0.58f, 0.62f, 1f); // scout/immobile/other
 
     public const int CombatStatLabelFontSize = 10;
     public const int EnemyRosterButtonWidth = 90;

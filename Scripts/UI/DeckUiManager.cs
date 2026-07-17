@@ -358,8 +358,29 @@ public partial class DeckUiManager : Node2D
 		foreach (Node child in handUIContainer.GetChildren())
 		{
 			if (child is CardUi cardUi)
+			{
+				cardUi.SetReactionWindow(_reactionWindowOpen);
 				cardUi.RefreshAffordability(mana);
+			}
 		}
+	}
+
+	// ── §7c reaction window ──────────────────────────────────────────────
+	// The manager holds the flag so cards created mid-window (responder
+	// switch, redraw) inherit it via RefreshAffordability's per-card sync.
+
+	private bool _reactionWindowOpen = false;
+
+	/// <summary>Set by CombatManager when a priority window opens/closes:
+	/// non-Reflex halves darken + desaturate while open.</summary>
+	public void SetReactionWindow(bool open)
+	{
+		if (_reactionWindowOpen == open)
+			return;
+		_reactionWindowOpen = open;
+		foreach (Node child in handUIContainer.GetChildren())
+			if (child is CardUi cardUi)
+				cardUi.SetReactionWindow(open);
 	}
 
 	public void OnCardHoverChanged(CardUi hoveredCard, bool isEntering)

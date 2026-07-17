@@ -70,6 +70,30 @@ public static class UIContent
     public static string AbilityIcon(string abilityKey)
         => AbilityIcons.TryGetValue(abilityKey ?? "", out var icon) ? icon : "●";
 
+    // ── Behavior-tag chips (v2.2: pack/charge/bulwark telegraph) ────────────
+    // Letter chips from the proven ASCII range — the roster row telegraphs a
+    // unit's tag mechanics at a glance; the tooltip carries the authored clause.
+    private static readonly Dictionary<string, string> TagChipLetters = new(System.StringComparer.OrdinalIgnoreCase)
+    {
+        { "pack",     "P" },
+        { "charge",   "C" },
+        { "bulwark",  "B" },
+        { "scout",    "S" },
+        { "immobile", "▪" },
+    };
+
+    /// <summary>Chip letter for a behavior tag, or null when the tag has no
+    /// authored chip (inert tags like flock/flying stay off the roster row —
+    /// a chip is a promise the mechanic is wired).</summary>
+    public static string TagChipLetter(string tag)
+        => TagChipLetters.TryGetValue(tag ?? "", out var letter) ? letter : null;
+
+    /// <summary>Chip tooltip: "Pack: +1 damage beside a packmate."</summary>
+    public static string TagChipTooltip(string tag)
+        => TagClauses.TryGetValue(tag ?? "", out var c)
+            ? $"{Capitalize(tag)}: {c}."
+            : Capitalize(tag ?? "");
+
     /// <summary>Role marker glyph (§6): Line = dot, Elite = chevron, Boss = crest.</summary>
     public static string RoleMarker(string role) => role?.ToLowerInvariant() switch
     {
@@ -96,4 +120,17 @@ public static class UIContent
         => string.IsNullOrEmpty(state)
             ? $"[{source}] {ability}: {effect}"
             : $"[{source}] {ability}: {effect} ({state})";
+
+    // ── Reaction line grammar (§9, v2.2 completion) ─────────────────────────
+    // Dodge = the listed victim vacated the tile before resolution; Redirect =
+    // a Reaction replaced the victim. Both route through FormatLogLine so
+    // reactions read in the same grammar as abilities and item procs.
+
+    /// <summary>"[Wolf 2] Dodge: vacated the tile — Boar's charge whiffs".</summary>
+    public static string ReactionDodgeLine(string dodgerName, string attackerName, string strikeNoun)
+        => FormatLogLine(dodgerName, "Dodge", $"vacated the tile — {attackerName}'s {strikeNoun} whiffs");
+
+    /// <summary>"[Bear] Redirect: intercepts Ranger 1's shot (7 damage)".</summary>
+    public static string ReactionRedirectLine(string newVictimName, string attackerName, string strikeNoun, int damage)
+        => FormatLogLine(newVictimName, "Redirect", $"intercepts {attackerName}'s {strikeNoun}", $"{damage} damage");
 }

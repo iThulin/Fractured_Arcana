@@ -656,6 +656,40 @@ public partial class CardUi : Control
     //  Half highlight + full-card toggle
     // ═════════════════════════════════════════════════════════════════════
 
+    // ── §7c reaction window ──────────────────────────────────────────────
+    // While a priority window is open, halves that cannot be cast as a
+    // response (not Reflex speed) render darkened + desaturated. Halves that
+    // ARE Reflex keep the normal affordability read (DangerDim when short).
+
+    private bool _reactionWindow = false;
+
+    /// <summary>Toggle reaction-window rendering (set by DeckUiManager when a
+    /// priority window opens/closes). Re-resolves both halves' base colors.</summary>
+    public void SetReactionWindow(bool open)
+    {
+        if (_reactionWindow == open)
+            return;
+        _reactionWindow = open;
+        RefreshAffordability(_lastKnownMana);
+    }
+
+    private bool HalfReactionLocked(CardHalf half)
+        => _reactionWindow && half?.Speed != PlaySpeed.Reflex;
+
+    /// <summary>Idle base color for a half: reaction-locked beats affordability.</summary>
+    private Color HalfBaseColor(CardHalf half)
+    {
+        if (HalfReactionLocked(half))
+            return UITheme.CardReactionLocked;
+        return (half?.ManaCost ?? 0) > _lastKnownMana
+            ? UITheme.DangerDim : UITheme.SurfaceLight;
+    }
+
+    /// <summary>Hover color for a half: a reaction-locked half never lights up
+    /// as castable — hovering it keeps the locked read.</summary>
+    private Color HalfActiveColor(CardHalf half, Color activeColor)
+        => HalfReactionLocked(half) ? UITheme.CardReactionLocked : activeColor;
+
     private void ApplyHalfHighlight(string activeHalf)
     {
         _halfTween?.Kill();
@@ -664,24 +698,24 @@ public partial class CardUi : Control
 
         if (activeHalf == "top")
         {
-            _halfTween.TweenProperty(_topPanel, "modulate", UITheme.CardTopActive, 0.1f);
-            _halfTween.TweenProperty(_bottomPanel, "modulate", UITheme.CardDim, 0.1f);
+            _halfTween.TweenProperty(_topPanel, "modulate",
+                HalfActiveColor(TopHalf, UITheme.CardTopActive), 0.1f);
+            _halfTween.TweenProperty(_bottomPanel, "modulate",
+                HalfReactionLocked(BottomHalf) ? UITheme.CardReactionLocked : UITheme.CardDim, 0.1f);
             ShowFullCard(TopHalf, true);
         }
         else if (activeHalf == "bottom")
         {
-            _halfTween.TweenProperty(_topPanel, "modulate", UITheme.CardDim, 0.1f);
-            _halfTween.TweenProperty(_bottomPanel, "modulate", UITheme.CardBottomActive, 0.1f);
+            _halfTween.TweenProperty(_topPanel, "modulate",
+                HalfReactionLocked(TopHalf) ? UITheme.CardReactionLocked : UITheme.CardDim, 0.1f);
+            _halfTween.TweenProperty(_bottomPanel, "modulate",
+                HalfActiveColor(BottomHalf, UITheme.CardBottomActive), 0.1f);
             ShowFullCard(BottomHalf, false);
         }
         else
         {
-            var topBase = (TopHalf?.ManaCost ?? 0) > _lastKnownMana
-                ? UITheme.DangerDim : UITheme.SurfaceLight;
-            var botBase = (BottomHalf?.ManaCost ?? 0) > _lastKnownMana
-                ? UITheme.DangerDim : UITheme.SurfaceLight;
-            _halfTween.TweenProperty(_topPanel, "modulate", topBase, 0.1f);
-            _halfTween.TweenProperty(_bottomPanel, "modulate", botBase, 0.1f);
+            _halfTween.TweenProperty(_topPanel, "modulate", HalfBaseColor(TopHalf), 0.1f);
+            _halfTween.TweenProperty(_bottomPanel, "modulate", HalfBaseColor(BottomHalf), 0.1f);
             HideFullCard();
         }
     }
@@ -693,10 +727,8 @@ public partial class CardUi : Control
         // Don't override panel colors if discard flagged — amber pulse takes visual priority
         if (_isDiscardFlagged) return;
 
-        _topPanel.Modulate = (TopHalf?.ManaCost ?? 0) > currentMana
-            ? UITheme.DangerDim : UITheme.SurfaceLight;
-        _bottomPanel.Modulate = (BottomHalf?.ManaCost ?? 0) > currentMana
-            ? UITheme.DangerDim : UITheme.SurfaceLight;
+        _topPanel.Modulate = HalfBaseColor(TopHalf);
+        _bottomPanel.Modulate = HalfBaseColor(BottomHalf);
     }
 
     public void SetDiscardFlagged(bool flagged)
@@ -901,6 +933,17 @@ public partial class CardUi : Control
     {
         _isDragging = false;
         DoCardExit();
+
+        // Bug fix (2026-07-17): PlayGrabAnimation ghosts the ROOT modulate
+        // (UITheme.CardDragGhost, α 0.88) on drag start, but DoCardExit only
+        // restores rotation/scale — so a card returning from a FAILED cast
+        // stayed slightly transparent in the hand. (_DropData's reorder path
+        // already resets modulate; this path never did.) Restore explicitly,
+        // independent of DoCardExit's early-return and its _cardTween.
+        var restore = CreateTween();
+        restore.SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
+        restore.TweenProperty(this, "modulate", Colors.White, 0.12f);
+
         DragPayloadManager.IsDragging = false;
         EmitSignal(SignalName.CardDropped);
     }

@@ -151,6 +151,21 @@ public partial class CombatManager
     /// <summary>Wired to CombatUI's Pass button.</summary>
     public void OnPriorityPassPressed() => _priorityPassed = true;
 
+    /// <summary>Wired to CombatUI's Respond button (§7c): an explicit affordance —
+    /// selects the unit holding a castable Reflex so its hand is up and its mana
+    /// is synced. Casting stays drag-to-cast; Respond never resolves anything.</summary>
+    public void OnPriorityRespondPressed()
+    {
+        if (!_priorityWindowOpen)
+            return;
+        var responder = FindReactionResponder();
+        if (responder == null)
+            return;
+        if (responder != selectedUnit)
+            SelectUnit(responder);
+        combatUI?.AppendActionLog($"{responder.Name} readies a response — drag a Reflex card onto its target.");
+    }
+
     // ── Queue call sites ─────────────────────────────────────────────────────
 
     /// <summary>Queues death-driven triggers for a unit that just died: the unit's
@@ -395,7 +410,12 @@ public partial class CombatManager
                 // during auto-pass it plays through visibly with zero input.
                 combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: false);
 
-                if (State.StackCount() > windowSkipAtOrBelow)
+                // §7c stops override the one-Pass-covers-the-exchange ruling
+                // (2026-07-10): a set stop reopens the window before EVERY
+                // matching resolution — that is what "stop" promises.
+                if (State.StackCount() > windowSkipAtOrBelow
+                    || PlayerSession.DebugStopOnTriggers
+                    || StopSetFor(CategorizeStackItem(top)))
                 {
                     await OpenTriggerPriorityWindow(topName);
                     windowSkipAtOrBelow = State.StackCount();
@@ -466,6 +486,36 @@ public partial class CombatManager
         return items;
     }
 
+    // ── Stack stops (§7c) ────────────────────────────────────────────────────
+
+    /// <summary>Stop categories for the strip-header toggles.</summary>
+    private enum StackStopCategory { Strike, EnemyAbility, ItemProc, Response }
+
+    /// <summary>Buckets a stack object for the per-type stops: enemy strikes,
+    /// item procs (Item* effect classes), everything else trigger-borne counts
+    /// as an enemy ability. Player-cast responses never stop on themselves.</summary>
+    private static StackStopCategory CategorizeStackItem(StackItem item)
+    {
+        if (item?.Ability is EnemyTriggeredAbility eta)
+        {
+            var eff = eta.Effects != null && eta.Effects.Length > 0 ? eta.Effects[0] : null;
+            if (eff is EnemyStrikeEffect)
+                return StackStopCategory.Strike;
+            if (eff != null && eff.GetType().Name.StartsWith("Item", StringComparison.Ordinal))
+                return StackStopCategory.ItemProc;
+            return StackStopCategory.EnemyAbility;
+        }
+        return StackStopCategory.Response;
+    }
+
+    private static bool StopSetFor(StackStopCategory cat) => cat switch
+    {
+        StackStopCategory.Strike       => PlayerSession.StopOnStrikes,
+        StackStopCategory.EnemyAbility => PlayerSession.StopOnEnemyAbilities,
+        StackStopCategory.ItemProc     => PlayerSession.StopOnItemProcs,
+        _                              => false,
+    };
+
     // ── Priority window ──────────────────────────────────────────────────────
 
     /// <summary>The R3 window: the human player gets priority before each trigger
@@ -473,7 +523,10 @@ public partial class CombatManager
     /// Reaction-speed card in the ACTIVE deck's hand, or has set a stop.</summary>
     private async Task OpenTriggerPriorityWindow(string topName)
     {
-        bool stopSet = PlayerSession.DebugStopOnTriggers;
+        // §7c stops: the debug lever still stops on everything; the player-facing
+        // toggles stop per category of the object about to resolve.
+        bool stopSet = PlayerSession.DebugStopOnTriggers
+            || StopSetFor(CategorizeStackItem(State.Stack.PeekTop()));
         var responder = FindReactionResponder();
         bool holdsResponse = responder != null;
 
@@ -488,6 +541,10 @@ public partial class CombatManager
         string why = holdsResponse ? $"{responder.Name} holds a response" : "stop set";
         GD.Print($"[Priority] window OPEN on {topName} ({why}).");
 
+        // §7c: while the window is open, non-Reflex halves in the hand darken +
+        // desaturate — only castable responses read as live.
+        deckUiManager?.SetReactionWindow(true);
+
         // Auto-select the responder so their hand is on screen and their mana is
         // synced (SelectUnit does both). Click any other friendly mid-window to
         // switch responders — see OnLeftMouseReleased's window branch.
@@ -499,8 +556,9 @@ public partial class CombatManager
             if (currentPhase != CombatPhase.PlayerTurn)
                 ClearMoveTiles();   // enemy-phase window: no move affordance
         }
-        // V3 (§7c): the strip itself is the window — Pass button enabled.
-        combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: true);
+        // V3 (§7c): the strip itself is the window — Pass + Respond enabled
+        // (Respond greys out unless a castable Reflex is actually in hand).
+        combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: true, canRespond: holdsResponse);
 
         int lastCount = State.StackCount();
         while (!_priorityPassed)
@@ -515,11 +573,13 @@ public partial class CombatManager
             if (c != lastCount)
             {
                 lastCount = c;
-                combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: true);
+                var nextResponder = FindReactionResponder();
+                combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: true,
+                    canRespond: nextResponder != null);
 
                 // (2026-07-10 UX) The cast just landed. If no further castable
                 // response is held, don't demand a Pass click — close the window.
-                if (!stopSet && FindReactionResponder() == null)
+                if (!stopSet && nextResponder == null)
                 {
                     GD.Print("[Priority] auto-close — no further responses held.");
                     _priorityPassed = true;
@@ -528,6 +588,7 @@ public partial class CombatManager
         }
 
         _priorityWindowOpen = false;
+        deckUiManager?.SetReactionWindow(false);   // §7c: restore normal card read
         combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: false);
         GD.Print($"[Priority] passed on {topName}.");
     }
@@ -716,7 +777,9 @@ public sealed class EnemyStrikeEffect : IEffect
                 if (o is Unit u) { listed = u; break; }
 
         Unit redirected = (listed != null && listed != _originalVictim) ? listed : null;
-        _cm.ResolveStrike(_attacker, _tile, _damage, _ranged, redirected);
+        // §9: pass the originally-listed victim so a vacated tile logs as a Dodge
+        // reaction line rather than the generic empty-ground whiff.
+        _cm.ResolveStrike(_attacker, _tile, _damage, _ranged, redirected, _originalVictim);
     }
 }
 

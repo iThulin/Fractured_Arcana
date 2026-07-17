@@ -52,6 +52,8 @@ public partial class CombatUI : CanvasLayer
 	[Signal] public delegate void EnemyButtonPressedEventHandler(int unitIndex);
 	/// <summary>U3: the player surrenders priority during an enemy-trigger window.</summary>
 	[Signal] public delegate void PriorityPassPressedEventHandler();
+	/// <summary>§7c: explicit Respond affordance — pulls the responder's hand up.</summary>
+	[Signal] public delegate void PriorityRespondPressedEventHandler();
 
 	// ── Layout constants (design-space px — V1 resolution ruling) ────────
 	private const int LeftPanelWidth = 280;
@@ -467,6 +469,25 @@ public partial class CombatUI : CanvasLayer
 				EmitSignal(SignalName.EndTurnPressed);
 		};
 		block.AddChild(_endTurnButton);
+
+		// §7c: always-reachable stop toggles. Without these, a stop could only
+		// be set from the stack panel — which never opens unless a stop is
+		// already set or a Reflex is in hand (chicken-and-egg). Anchored above
+		// the End Turn stack, wider than EndTurnWidth so the row fits; hidden
+		// while the stack panel (which carries its own mirrored set) is up.
+		_stopsBar = new HBoxContainer
+		{
+			Name = "StackStopsBar",
+			AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 1f, AnchorBottom = 1f,
+			OffsetLeft = -12 - 300, OffsetRight = -12,
+			OffsetTop = -12 - 100 - 26, OffsetBottom = -12 - 100,
+			GrowHorizontal = Control.GrowDirection.Begin,
+			GrowVertical = Control.GrowDirection.Begin,
+			Alignment = BoxContainer.AlignmentMode.End,
+		};
+		_stopsBar.AddThemeConstantOverride("separation", 6);
+		AddChild(_stopsBar);
+		AddStopToggleSet(_stopsBar);
 	}
 
 	// ════════════════════════════════════════════════════════════════════
@@ -614,6 +635,8 @@ public partial class CombatUI : CanvasLayer
 	private PanelContainer _stackPanel;
 	private VBoxContainer _stackList;
 	private Button _stackPassBtn;
+	private Button _stackRespondBtn;   // §7c: explicit Respond affordance
+	private HBoxContainer _stopsBar;   // §7c: always-visible stop toggles (main HUD)
 
 	private void EnsureStackPanel()
 	{
@@ -625,7 +648,8 @@ public partial class CombatUI : CanvasLayer
 			Name = "StackPanel",
 			AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 1f, AnchorBottom = 1f,
 			OffsetLeft = -12 - 320, OffsetRight = -12,
-			OffsetTop = -12 - 380, OffsetBottom = -12 - 80,
+			// §7c: taller than the v1 strip — stop-toggle row + Respond/Pass row.
+			OffsetTop = -12 - 430, OffsetBottom = -12 - 80,
 			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.Begin,
 			Visible = false,
@@ -649,21 +673,102 @@ public partial class CombatUI : CanvasLayer
 		header.HorizontalAlignment = HorizontalAlignment.Center;
 		vbox.AddChild(header);
 
+		// §7c stops: per-trigger-type toggles in the strip header — the
+		// digital-card-game full-control pattern. Persist via PlayerSession.
+		var stopRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+		stopRow.AddThemeConstantOverride("separation", 6);
+		vbox.AddChild(stopRow);
+
+		AddStopToggleSet(stopRow);
+
 		_stackList = new VBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
 		_stackList.AddThemeConstantOverride("separation", 3);
 		vbox.AddChild(_stackList);
 
-		_stackPassBtn = new Button { Text = "Pass", CustomMinimumSize = new Vector2(0, 32) };
+		// §7c: Respond + Pass. Respond is the explicit affordance — enabled only
+		// when a castable Reflex is actually in a hand; it pulls that unit's
+		// hand up (casting stays drag-to-cast). Pass surrenders priority.
+		var btnRow = new HBoxContainer();
+		btnRow.AddThemeConstantOverride("separation", 6);
+		vbox.AddChild(btnRow);
+
+		_stackRespondBtn = new Button
+		{
+			Text = "Respond",
+			CustomMinimumSize = new Vector2(0, 32),
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		UITheme.ApplyButtonStyle(_stackRespondBtn, isPrimary: false);
+		_stackRespondBtn.Pressed += () => EmitSignal(SignalName.PriorityRespondPressed);
+		btnRow.AddChild(_stackRespondBtn);
+
+		_stackPassBtn = new Button
+		{
+			Text = "Pass",
+			CustomMinimumSize = new Vector2(0, 32),
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
 		UITheme.ApplyButtonStyle(_stackPassBtn, isPrimary: true);
 		_stackPassBtn.Pressed += () => EmitSignal(SignalName.PriorityPassPressed);
-		vbox.AddChild(_stackPassBtn);
+		btnRow.AddChild(_stackPassBtn);
+	}
+
+	// §7c stop toggles exist in TWO places — the stack-panel header and the
+	// always-visible bottom-right bar (you must be able to arm a stop BEFORE
+	// a window exists; without one set and no Reflex in hand, the stack
+	// auto-passes and the panel's own toggles are unreachable). All instances
+	// write the same PlayerSession flags and stay mirrored via SyncStopToggles.
+	private readonly List<(CheckBox cb, System.Func<bool> read)> _stopToggles = new();
+
+	/// <summary>Adds the standard "stop: Strikes/Abilities/Items" toggle set.</summary>
+	private void AddStopToggleSet(HBoxContainer parent)
+	{
+		parent.AddChild(MakeLabel("stop:", UITheme.FontSizeSmall - 1, UITheme.TextDim));
+		MakeStopToggle(parent, "Strikes",
+			"Always open a window before an enemy strike resolves",
+			() => PlayerSession.StopOnStrikes, v => PlayerSession.StopOnStrikes = v);
+		MakeStopToggle(parent, "Abilities",
+			"Always open a window before an enemy triggered ability resolves",
+			() => PlayerSession.StopOnEnemyAbilities, v => PlayerSession.StopOnEnemyAbilities = v);
+		MakeStopToggle(parent, "Items",
+			"Always open a window before an item proc resolves",
+			() => PlayerSession.StopOnItemProcs, v => PlayerSession.StopOnItemProcs = v);
+	}
+
+	/// <summary>One §7c stop toggle: small CheckBox writing straight to its
+	/// PlayerSession flag so the setting survives across fights this session.</summary>
+	private void MakeStopToggle(HBoxContainer parent, string text, string tooltip,
+		System.Func<bool> read, System.Action<bool> write)
+	{
+		var cb = new CheckBox
+		{
+			Text = text,
+			ButtonPressed = read(),
+			TooltipText = tooltip,
+		};
+		cb.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
+		cb.Toggled += pressed => { write(pressed); SyncStopToggles(); };
+		parent.AddChild(cb);
+		_stopToggles.Add((cb, read));
+	}
+
+	/// <summary>Mirrors every stop CheckBox to its PlayerSession flag without
+	/// re-firing Toggled (SetPressedNoSignal), so the two sets never diverge.</summary>
+	private void SyncStopToggles()
+	{
+		foreach (var (cb, read) in _stopToggles)
+			if (IsInstanceValid(cb))
+				cb.SetPressedNoSignal(read());
 	}
 
 	/// <summary>Renders the strip from top-of-stack down. <paramref name="items"/>
 	/// = (source, name, effect); index 0 is the top (resolving next, highlighted).
-	/// <paramref name="interactive"/> shows the Pass button (player holds priority);
-	/// otherwise the strip is display-only and plays through with zero input.</summary>
-	public void ShowStackStrip(List<(string source, string name, string effect)> items, bool interactive)
+	/// <paramref name="interactive"/> shows the Respond/Pass row (player holds
+	/// priority); otherwise the strip is display-only and plays through with zero
+	/// input. <paramref name="canRespond"/> enables Respond — false greys it out
+	/// (window opened by a stop, no castable Reflex in hand).</summary>
+	public void ShowStackStrip(List<(string source, string name, string effect)> items, bool interactive,
+		bool canRespond = false)
 	{
 		EnsureStackPanel();
 
@@ -692,13 +797,27 @@ public partial class CombatUI : CanvasLayer
 		}
 
 		_stackPassBtn.Visible = interactive;
+		_stackRespondBtn.Visible = interactive;
+		_stackRespondBtn.Disabled = !canRespond;
+		_stackRespondBtn.TooltipText = canRespond
+			? "Bring up the responder's hand"
+			: "No castable Reflex-speed card in hand";
 		_stackPanel.Visible = items.Count > 0;
+
+		// The panel carries its own stop toggles and overlaps the main-HUD bar —
+		// keep exactly one set on screen. SyncStopToggles so the panel's set
+		// reflects flags flipped on the bar since the panel last showed.
+		SyncStopToggles();
+		if (_stopsBar != null)
+			_stopsBar.Visible = !_stackPanel.Visible;
 	}
 
 	public void HideStackStrip()
 	{
 		if (_stackPanel != null)
 			_stackPanel.Visible = false;
+		if (_stopsBar != null)
+			_stopsBar.Visible = true;
 	}
 
 	/// <summary>True while the strip is interactive — the Enter-to-end-turn guard
@@ -1093,6 +1212,31 @@ public partial class CombatUI : CanvasLayer
 					chip.TooltipText = $"{ab.Name}: {ab.IntelDescription}";
 					chip.CustomMinimumSize = new Vector2(14, 0);
 					row.AddChild(chip);
+				}
+
+				// Behavior-tag chips (v2.2 §7b): pack/charge/bulwark telegraph.
+				// Only tags with an authored chip render — a chip is a promise
+				// the mechanic is wired, so inert tags (flock/flying) stay off.
+				if (enemy.BehaviorTags != null)
+				{
+					foreach (var tag in enemy.BehaviorTags)
+					{
+						string letter = UIContent.TagChipLetter(tag);
+						if (letter == null)
+							continue;
+						Color tagCol = tag.ToLowerInvariant() switch
+						{
+							"pack"    => UITheme.TagPack,
+							"charge"  => UITheme.TagCharge,
+							"bulwark" => UITheme.TagBulwark,
+							_         => UITheme.TagNeutral,
+						};
+						var tagChip = MakeLabel(letter, UITheme.FontSizeSmall, tagCol);
+						tagChip.TooltipText = UIContent.TagChipTooltip(tag);
+						tagChip.CustomMinimumSize = new Vector2(12, 0);
+						tagChip.HorizontalAlignment = HorizontalAlignment.Center;
+						row.AddChild(tagChip);
+					}
 				}
 
 				// HP bar (§6): faction-tinted at low saturation so the roster

@@ -183,6 +183,7 @@ public partial class CombatManager : Node3D
             combatUI.ConfirmDeploymentPressed += OnConfirmDeploymentPressed;
             combatUI.EndTurnPressed += OnEndTurnPressed;
             combatUI.PriorityPassPressed += OnPriorityPassPressed;   // U3 trigger window
+            combatUI.PriorityRespondPressed += OnPriorityRespondPressed;   // §7c Respond affordance
             combatUI.EnemyRowHovered += OnEnemyRowHovered;           // V2 roster hover → threat overlay
 
             // Unit bar buttons select the corresponding unit
@@ -191,10 +192,8 @@ public partial class CombatManager : Node3D
             combatUI.EnemyButtonPressed += OnEnemyRosterButtonPressed;
         }
 
-        // Movement zone renderer — child of HexGridManager
-        _zoneRenderer = new MovementZoneRenderer();
-        _zoneRenderer.Name = "MovementZoneRenderer";
-
+        // Movement zone renderer — resolved in InitZoneRenderer: prefers the scene node
+        // under HexGridManager (Inspector-tunable), falls back to creating one in code.
         CallDeferred(nameof(InitZoneRenderer));
 
         // Create the attunement UI as a child of CombatUI
@@ -358,10 +357,17 @@ public partial class CombatManager : Node3D
 
     private void InitZoneRenderer()
     {
-        if (grid == null || _zoneRenderer == null)
+        if (grid == null)
             return;
+        // Prefer the in-scene node so its [Export]s stay Inspector-tunable.
+        _zoneRenderer = grid.GetNodeOrNull<MovementZoneRenderer>("MovementZoneRenderer");
+        if (_zoneRenderer == null)
+        {
+            _zoneRenderer = new MovementZoneRenderer();
+            _zoneRenderer.Name = "MovementZoneRenderer";
+            grid.AddChild(_zoneRenderer);
+        }
         _zoneRenderer.HexRadius = grid.HexRadius;
-        grid.AddChild(_zoneRenderer);
     }
 
     private void InitializeUnitDecks()

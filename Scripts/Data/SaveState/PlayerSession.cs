@@ -62,6 +62,15 @@ public static class PlayerSession
     /// auto-pass costs zero clicks.</summary>
     public static bool DebugStopOnTriggers = false;
 
+    // ── Stack stops (combat_ui §7c, V3) ─────────────────────────────────
+    // Per-trigger-type "stop" toggles set from the stack strip header — the
+    // digital-card-game full-control pattern. A set stop opens an interactive
+    // priority window for that category even with no Reflex card in hand.
+    // Player-facing (NOT debug-gated); persists for the session.
+    public static bool StopOnStrikes = false;
+    public static bool StopOnEnemyAbilities = false;
+    public static bool StopOnItemProcs = false;
+
     /// <summary>Set by CombatDebugLauncher: this fight was launched standalone, so
     /// win/lose/forfeit returns to the campus instead of the (absent) overworld
     /// run. Reset on return. Prevents the blank-screen exit from a debug fight.</summary>
