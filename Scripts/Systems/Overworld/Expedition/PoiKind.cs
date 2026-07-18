@@ -47,4 +47,10 @@ public enum PoiKind
     /// guild envoy until stormed. Sited near the imprisoning kingdom's capital
     /// (world-scale only).</summary>
     Prison,
+
+    /// <summary>A companion found in the wilds — a recruit site (Tranche 2).
+    /// Appended last so existing int-serialized POI kinds keep their values.
+    /// Worldgen placement + window routing is a follow-up; the value exists so
+    /// a companion-recruit encounter/POI can be themed and future-placed.</summary>
+    Companion,
 }

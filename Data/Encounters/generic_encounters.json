@@ -1,103 +1,252 @@
 [
-    {
-      "id": "wandering_merchant",
-      "title": "Wandering Merchant",
-      "body": "A cloaked figure blocks your path, pack heavy with wares. They eye your party appraisingly. 'Rare goods for rare folk,' they say. 'What'll it be?'",
-      "terrainTags": [],
-      "regionTags": [],
-      "choices": [
-        {
-          "label": "Browse their wares (spend 20 gold)",
-          "resultText": "You find a charm of warding among their stock.",
-          "goldDelta": -20,
-          "hpDelta": 15
-        },
-        {
-          "label": "Ask for information instead",
-          "resultText": "The merchant points out a nearby landmark. 'Watch yourself out there.'",
-          "goldDelta": -5,
-          "stepDelta": 2
-        },
-        {
-          "label": "Send them on their way",
-          "resultText": "They shrug and disappear down the path."
-        }
-      ]
-    },
-    {
-      "id": "abandoned_campsite",
-      "title": "Abandoned Campsite",
-      "body": "You find the remnants of a campsite — ashes still warm, bedrolls scattered. Whoever was here left in a hurry. A pack lies open near the fire pit.",
-      "terrainTags": [],
-      "regionTags": [],
-      "choices": [
-        {
-          "label": "Search the pack carefully",
-          "resultText": "You find coin and dried rations.",
-          "goldDelta": 25
-        },
-        {
-          "label": "Rest here briefly",
-          "resultText": "The embers warm your hands. You take a moment to recover.",
-          "hpDelta": 20
-        },
-        {
-          "label": "Move on — this doesn't feel right",
-          "resultText": "Smart. You hear distant movement minutes later.",
-          "stepDelta": 1
-        }
-      ]
-    },
-    {
-      "id": "fork_in_the_road",
-      "title": "Fork in the Road",
-      "body": "The path splits. A weathered signpost points two directions — one toward sounds of distant conflict, one into deeper wilderness. A third path looks recently cleared.",
-      "terrainTags": [],
-      "regionTags": [],
-      "choices": [
-        {
-          "label": "Toward the conflict — danger means opportunity",
-          "resultText": "You find the aftermath of a skirmish. Among the fallen, scattered coin.",
-          "goldDelta": 35,
-          "hpDelta": -10
-        },
-        {
-          "label": "Into the wilderness",
-          "resultText": "The deep path is hard going, but you find an untouched cache.",
-          "goldDelta": 20,
-          "stepDelta": -2
-        },
-        {
-          "label": "The cleared path",
-          "resultText": "It leads to a small sheltered hollow. A good place to rest.",
-          "hpDelta": 15,
-          "stepDelta": 1
-        }
-      ]
-    },
-    {
-      "id": "lost_traveler",
-      "title": "Lost Traveler",
-      "body": "A figure stumbles toward you, half-delirious from exposure. They clutch a sealed letter and beg you to deliver it. They seem too weak to make it themselves.",
-      "terrainTags": [],
-      "regionTags": [],
-      "choices": [
-        {
-          "label": "Take the letter and the time to help them",
-          "resultText": "You guide them to safer ground. They press a small token of thanks into your hand.",
-          "goldDelta": 15,
-          "stepDelta": -1,
-          "hpDelta": 5
-        },
-        {
-          "label": "Take only the letter — they'll have to fend for themselves",
-          "resultText": "They watch you go without a word. The letter is heavier than it looked.",
-          "goldDelta": 30
-        },
-        {
-          "label": "Refuse and continue on",
-          "resultText": "They stagger off into the wilderness. You don't look back."
-        }
-      ]
-    }
-  ]
+  {
+    "id": "wandering_merchant",
+    "title": "Wandering Merchant",
+    "body": "A cloaked figure blocks your path, pack heavy with wares. They eye your party appraisingly. 'Rare goods for rare folk,' they say. 'What'll it be?'",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Browse their wares (spend 20 gold)",
+        "resultText": "You find a charm of warding among their stock.",
+        "goldDelta": -20,
+        "hpDelta": 15
+      },
+      {
+        "label": "Ask for information instead",
+        "resultText": "The merchant points out a nearby landmark. 'Watch yourself out there.'",
+        "goldDelta": -5,
+        "stepDelta": 2
+      },
+      {
+        "label": "Send them on their way",
+        "resultText": "They shrug and disappear down the path."
+      }
+    ]
+  },
+  {
+    "id": "abandoned_campsite",
+    "title": "Abandoned Campsite",
+    "body": "You find the remnants of a campsite — ashes still warm, bedrolls scattered. Whoever was here left in a hurry. A pack lies open near the fire pit.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Search the pack carefully",
+        "resultText": "You find coin and dried rations.",
+        "goldDelta": 25
+      },
+      {
+        "label": "Rest here briefly",
+        "resultText": "The embers warm your hands. You take a moment to recover.",
+        "hpDelta": 20
+      },
+      {
+        "label": "Move on — this doesn't feel right",
+        "resultText": "Smart. You hear distant movement minutes later.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "fork_in_the_road",
+    "title": "Fork in the Road",
+    "body": "The path splits. A weathered signpost points two directions — one toward sounds of distant conflict, one into deeper wilderness. A third path looks recently cleared.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Toward the conflict — danger means opportunity",
+        "resultText": "You find the aftermath of a skirmish. Among the fallen, scattered coin.",
+        "goldDelta": 35,
+        "hpDelta": -10
+      },
+      {
+        "label": "Into the wilderness",
+        "resultText": "The deep path is hard going, but you find an untouched cache.",
+        "goldDelta": 20,
+        "stepDelta": -2
+      },
+      {
+        "label": "The cleared path",
+        "resultText": "It leads to a small sheltered hollow. A good place to rest.",
+        "hpDelta": 15,
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "lost_traveler",
+    "title": "Lost Traveler",
+    "body": "A figure stumbles toward you, half-delirious from exposure. They clutch a sealed letter and beg you to deliver it. They seem too weak to make it themselves.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Take the letter and the time to help them",
+        "resultText": "You guide them to safer ground. They press a small token of thanks into your hand.",
+        "goldDelta": 15,
+        "stepDelta": -1,
+        "hpDelta": 5,
+        "setFlags": [
+          "carrying_sealed_letter",
+          "helped_traveler"
+        ]
+      },
+      {
+        "label": "Take only the letter — they'll have to fend for themselves",
+        "resultText": "They watch you go without a word. The letter is heavier than it looked.",
+        "goldDelta": 30,
+        "setFlags": [
+          "carrying_sealed_letter"
+        ]
+      },
+      {
+        "label": "Refuse and continue on",
+        "resultText": "They stagger off into the wilderness. You don't look back."
+      }
+    ]
+  },
+  {
+    "id": "sealed_letter_delivery",
+    "title": "The Addressee",
+    "body": "A waystone shrine marks the crossroads, its niche stacked with wax-stubs and older offerings. A robed keeper tends a low flame and watches you approach. This is the place named on the sealed letter's face — if you still carry it.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Deliver the sealed letter",
+        "resultText": "The keeper breaks the seal, reads, and goes very still. 'You have no idea what you've carried.' They press coin on you and teach you a working held here for exactly this moment.",
+        "goldDelta": 70,
+        "spellReward": "attuned_recall",
+        "requiredFlag": "carrying_sealed_letter",
+        "setFlags": [
+          "letter_delivered"
+        ]
+      },
+      {
+        "label": "Read the sigils warding the shrine",
+        "resultText": "The wards resolve under a trained eye — a scholar's shortcut. You note a cache the keeper never mentions.",
+        "goldDelta": 25,
+        "stepDelta": 2,
+        "requiredSchool": "Arcanist"
+      },
+      {
+        "label": "Buy a blessing from the keeper (40 gold)",
+        "resultText": "The keeper anoints your brow with warm ash. The road's aches recede.",
+        "goldDelta": -40,
+        "hpDelta": 30,
+        "requiredGold": 40
+      },
+      {
+        "label": "Leave an offering and move on",
+        "resultText": "You set a coin in the niche and go. The flame gutters once, as if in thanks.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "grateful_courier",
+    "title": "A Familiar Face",
+    "body": "A courier slows on the road, squinting at your party as if placing a memory. 'You're the ones who carried word to the shrine,' she says — or maybe she's mistaken. She waits to see how you answer.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Ask what the letter contained",
+        "resultText": "She lowers her voice. 'A name. An old debt, finally answered.' She leaves you a purse for your part in it.",
+        "goldDelta": 40,
+        "requiredFlag": "letter_delivered"
+      },
+      {
+        "label": "Accept her thanks and move on",
+        "resultText": "She clasps your arm. 'Kindness travels farther than you'd think.' The road feels shorter after.",
+        "stepDelta": 2,
+        "requiredFlag": "helped_traveler"
+      },
+      {
+        "label": "You must have us confused with someone else",
+        "resultText": "She shrugs, unconvinced, and rides on."
+      }
+    ]
+  },
+  {
+    "id": "armory_cache",
+    "title": "The Weaponsmith's Cache",
+    "body": "A collapsed forge-shrine, its bellows long cold. Wrapped in oilcloth beneath the anvil lies a blade that never took the rust — someone meant it to be found.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Take the blade",
+        "resultText": "The grip fits your hand as if measured for it. It goes into the armory.",
+        "itemReward": "iron_sword"
+      },
+      {
+        "label": "Leave it for the next traveller",
+        "resultText": "Some gifts are meant to be passed along.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "wilds_companion",
+    "title": "A Debt Repaid",
+    "body": "A broad-shouldered figure steps from the treeline, hands open. Word of your deeds in these lands reached them before you did. 'You do right by strangers,' they say. 'Let me do right by you — I'll walk your road a while.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Welcome them to the guild",
+        "resultText": "They fall into step beside you, already at home.",
+        "companionUnlock": "bram_thistlewade"
+      },
+      {
+        "label": "Thank them, but travel alone",
+        "resultText": "They nod, unoffended, and melt back into the green.",
+        "goldDelta": 10
+      }
+    ]
+  },
+  {
+    "id": "free_charter_envoy",
+    "title": "The Charter's Envoy",
+    "body": "A rider in Free Charter colours reins in beside you, ledger open. 'The Charter remembers those who lend a hand on the frontier. Care to be remembered well?'",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Pledge aid to the Free Charter",
+        "resultText": "The envoy inks your name into the ledger with a flourish. Doors will open easier now.",
+        "reputationFactionId": "free_charter",
+        "reputationAmount": 15
+      },
+      {
+        "label": "Keep your independence",
+        "resultText": "'Suit yourself.' The rider tips a hat and moves on.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "vault_inscription",
+    "title": "The Vault Inscription",
+    "body": "A sealed vault door, its lock long fused — but the lintel above is dense with a script older than any kingdom. It tells of a concord that drowned itself rather than yield what it guarded.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Copy the inscription in full",
+        "resultText": "Hours of careful transcription. The truth of the Sunken Concord is yours to keep.",
+        "loreId": "sunken_concord_fate",
+        "goldDelta": 10,
+        "stepDelta": -1
+      },
+      {
+        "label": "Note its location and move on",
+        "resultText": "Some readings are best done with more time than an expedition allows.",
+        "stepDelta": 1
+      }
+    ]
+  }
+]

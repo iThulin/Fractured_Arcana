@@ -135,6 +135,25 @@ public static class CompanionRoster
             .ToList();
     }
 
+    /// <summary>[Exploration reward] Make a companion available AND recruited
+    /// for this timeline, free of the gold cost — they were *found*, not bought.
+    /// No-op (returns null) if unknown, dead, or already recruited. Returns the
+    /// recruited companion's name on success.</summary>
+    public static string GrantFromEncounter(string companionId)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null || string.IsNullOrEmpty(companionId)) return null;
+
+        var c = save.Companions.FirstOrDefault(x => x.Id == companionId);
+        if (c == null || c.IsPermadead || c.IsRecruited) return null;
+
+        c.IsAvailable = true;
+        c.IsRecruited = true;
+        SaveManager.MarkDirty();
+        GD.Print($"[Companion] {c.Name} recruited via exploration.");
+        return c.Name;
+    }
+
     public static bool TryRecruit(string companionId)
     {
         var save = SaveManager.ActiveSave;
