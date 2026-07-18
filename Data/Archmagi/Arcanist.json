@@ -3,7 +3,7 @@
 	"displayName": "The Reviser",
 	"title": "Master Aurel Pendry",
 	"school": "Arcanist",
-	"description": "He does not cast spells so much as revise them. He keeps a tome — not a spellbook in any sense another wizard would recognize, but closer to a workshop, with the spells of every school laid out on the bench in pieces, partially disassembled, annotated in three languages and a personal shorthand he has never explained. When another wizard casts something near him, he sees what it is doing and, more importantly, what it is failing to do — the constraint someone built in for safety, the redundancy nobody removed, the second verse the original author forgot was there. A fire spell passes through the room and he lets it pass. A moment later, in a way nobody can quite trace, it is still burning. He does not interfere. He revises. There is a distinction and it matters to him enormously.",
+	"description": "He does not cast spells so much as revise them. He keeps a tome, not a spellbook in any sense another wizard would recognize, but closer to a workshop, with the spells of every school laid out on the bench in pieces, partially disassembled, annotated in three languages and a personal shorthand he has never explained. When another wizard casts something near him, he sees what it is doing and, more importantly, what it is failing to do. He'll finds the constraint someone built in for safety, the redundancy nobody removed, the second verse the original author forgot was there. A fire spell passes through the room and he lets it pass. A moment later, in a way nobody can quite trace, it is still burning. He does not interfere. He revises. There is a distinction and it matters to him enormously.",
 	"personalityTrait": "Observant",
 	"isVillainFaction": false,
 	"factionName": "The Annotated Circle",
@@ -16,7 +16,7 @@
 	"standardBossHealthMult": 1.0,
 	"betrayalBossHealthMult": 1.5,
 	"betrayalHasSecondPhase": false,
-	"allyAbilityDescription": "Aurel annotates the battlefield: each round, one enemy ability or buff is identified and reduced in effectiveness by 50%. He has been observing since before combat began.",
+	"allyAbilityDescription": "Aurel annotates the battlefield: each round, one enemy ability or buff is identified and reduced in effectiveness by 50%.",
 	"shardInvocationDescription": "Invoke the Reviser's Shard: the next three spells the player casts are automatically upgraded to their maximum effectiveness, all constraints removed.",
 	"alliedStrength": 1.0,
 	"coercedStrength": 0.55,
@@ -36,8 +36,8 @@
 		"He joined. He immediately began annotating our plan. The margin notes alone are going to require a second document."
 	],
 	"postCorruptedDialogue": [
-		"Aurel has fallen. The Fractured Weave revises everything it touches — removes the parts that limit it, the parts that hold it together, the parts that were put there for a reason.",
-		"He saw the flaw in his own reasoning before the Astrologer did. He revised it. He revised it to the Astrologer's preferred conclusion. That is the worst kind of fall — lucid all the way down."
+		"Aurel has fallen. The Fractured Weave revises everything it touches, removing the parts that limit it, the parts that hold it together, and the parts that were put there for a reason.",
+		"He saw the flaw in his own reasoning before the Astrologer did. He revised it. He revised it to the Astrologer's preferred conclusion. That is the worst kind of fall, lucid all the way down."
 	],
 	"factionEncounters": {
 		"skirmish": [

@@ -90,6 +90,9 @@ public partial class CombatManager : Node3D
 
     // ── Tile highlighting state ─────────────────────────────────────────────
     private HashSet<Vector2I> _targetHighlightTiles = new();
+    // combat_ui §8 aura hover extents: tiles ringed to show a selected player
+    // construct's aura radius (Sentinel armor / Lattice / Foundry damage).
+    private readonly HashSet<Vector2I> _auraHighlightTiles = new();
     private CardHalf _lastHighlightedHalf = null;
     private bool _isCardBeingDragged = false;
     private CardHalf _draggedHalf = null;
@@ -1222,6 +1225,7 @@ public partial class CombatManager : Node3D
 
         ClearMoveTiles();
         ShowMoveTilesWithCost(unit);
+        ShowConstructAura(unit);   // §8: ring this unit's aura radius if it has one
 
         // ── Swap deck / hide hand for martial units ──
         if (!unit.IsMartial && unit.DeckData != null && deckManager != null)
@@ -1340,6 +1344,52 @@ public partial class CombatManager : Node3D
         foreach (var coord in currentMoveTiles)
             grid.GetTileView(coord)?.SetMoveHighlight(false);
         currentMoveTiles.Clear();
+        ClearConstructAura();   // §8: aura ring tracks the current selection's world highlights
+    }
+
+    // ── §8 aura hover extents ────────────────────────────────────────────────
+
+    /// <summary>Rings the tiles inside a selected PLAYER CONSTRUCT's aura radius
+    /// (combat_ui §8 / §11 aura-extent contract), reusing the range-highlight
+    /// tile machinery. Range = the widest of its live aura ranges (Sentinel
+    /// `AuraArmorRange`, Lattice/Foundry `AuraDamageRange`); Foundry's board-wide
+    /// range naturally rings the whole board. Aura sources are all immobile, so
+    /// the ring is static for the combat — no move refresh needed. No-op for
+    /// non-construct or aura-less units.</summary>
+    private void ShowConstructAura(Unit unit)
+    {
+        ClearConstructAura();
+
+        if (unit == null || !unit.IsPlayerControlled || !unit.IsConstruct
+            || unit.CurrentTile == null || grid == null)
+            return;
+
+        int range = 0;
+        if (unit.AuraArmor > 0)  range = Math.Max(range, unit.AuraArmorRange);
+        if (unit.AuraDamage > 0) range = Math.Max(range, unit.AuraDamageRange);
+        if (range <= 0)
+            return;
+
+        var center = unit.CurrentTile.Axial;
+        foreach (var coord in grid.Tiles.Keys)
+        {
+            if (coord == center)
+                continue;
+            if (grid.Distance(center, coord) <= range)
+            {
+                _auraHighlightTiles.Add(coord);
+                grid.GetTileView(coord)?.SetRangeHighlight(false, true);   // border ring
+            }
+        }
+    }
+
+    private void ClearConstructAura()
+    {
+        if (_auraHighlightTiles.Count == 0)
+            return;
+        foreach (var coord in _auraHighlightTiles)
+            grid?.GetTileView(coord)?.SetRangeHighlight(false, false);
+        _auraHighlightTiles.Clear();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -5093,6 +5143,7 @@ public partial class CombatManager : Node3D
     private void ShowTargetHighlight(CardHalf half)
     {
         ClearTargetHighlight();
+        ClearConstructAura();   // §8: targeting range takes over the tile highlights during a drag
         if (half == null || selectedUnit == null || grid == null)
             return;
 

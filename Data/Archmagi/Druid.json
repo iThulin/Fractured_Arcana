@@ -17,26 +17,26 @@
 	"betrayalBossHealthMult": 1.5,
 	"betrayalHasSecondPhase": false,
 	"allyAbilityDescription": "The Compact keeps watch: at the end of each enemy turn, Hess reveals any hidden effects or buffs on enemies. Additionally, the land heals all allied units for a small amount.",
-	"shardInvocationDescription": "Invoke the Living Compact Shard: summon three animal allies to the field — they act immediately on the round they appear.",
+	"shardInvocationDescription": "Invoke the Living Compact Shard: summon three animal allies to the field. They act immediately on the round they appear.",
 	"alliedStrength": 1.0,
 	"coercedStrength": 0.65,
 	"coercedCanFlip": true,
 	"weaknessHints": [
-		"She does not intervene. That is her rule. She is breaking it now. Whatever made her decide this exceeds her threshold — honor that, and she will honor you.",
+		"She does not intervene, that is her rule. She is breaking it now. Whatever made her decide this exceeds her threshold, honor that, and she will honor you.",
 		"She knows where the river is going. She has known for years. She was hoping someone else would act. Ask her what she saw.",
 		"The Astrologer has been changing things in the land. She has been watching the changes. She is the only one who knows the full scale of it."
 	],
 	"personalityNotes": [
-		"'The river goes where it wants. I happen to know where that is.' — this is not a boast. It is a description.",
+		"'The river goes where it wants. I happen to know where that is.' This is not a boast. It is a description.",
 		"She will not come to you. She is where she is going to be, and you will find her there or you will not.",
-		"She has already decided whether to trust you. She decided before you entered the region. You are not negotiating. You are confirming."
+		"She has already decided whether to trust you. She decided before you entered the region. You are not negotiating. You are confirming her suspicions."
 	],
 	"postUniteDialogue": [
 		"Hess did not say anything. She looked at me for a long moment and then the crow on her shoulder flew north. I think that was a yes.",
 		"The Living Compact is with us. The land knows. Something has been different since she decided — I can't say exactly what."
 	],
 	"postCorruptedDialogue": [
-		"Hess has fallen. The Severed Root does not kill — it severs. Things stop being connected to each other. It is quieter than the other corruptions, and somehow worse.",
+		"Hess has fallen. The Severed Root does not kill, it severs the bond between all things. It is quieter than the other corruptions, and somehow worse.",
 		"She did not intervene for forty years. The one time she decided to, she was too late. I think she knew she might be. She came anyway."
 	],
 	"factionEncounters": {
