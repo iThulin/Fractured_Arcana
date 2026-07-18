@@ -34,6 +34,16 @@ public partial class NarrativeEncounterPanel : Control
     private NarrativeEncounterData _encounter;
     private EncounterChoice _chosenResult;
 
+    // Gating context supplied by the caller (ExpeditionManager) at show-time.
+    private System.Func<string, bool> _hasFlag;
+    private string _activeSchool = "";
+    private int _currentGold;
+
+    // Fail-safe exit used only if every authored choice is gated out, so the
+    // panel can never soft-lock the player behind unmet requirements.
+    private static readonly EncounterChoice _fallbackChoice = new()
+    { Label = "Move on.", ResultText = "You leave it be." };
+
     public override void _Ready()
     {
         // Cover the full viewport
@@ -169,10 +179,21 @@ public partial class NarrativeEncounterPanel : Control
         layout.AddChild(_continueButton);
     }
 
-    public void ShowEncounter(NarrativeEncounterData encounter)
+    /// <summary>Show an encounter. The optional context enables choice gating:
+    /// <paramref name="hasFlag"/> tests timeline WorldFlags (RequiredFlag),
+    /// <paramref name="activeSchool"/> matches RequiredSchool, and
+    /// <paramref name="currentGold"/> gates RequiredGold options. Callers that
+    /// pass nothing get the old ungated behaviour.</summary>
+    public void ShowEncounter(NarrativeEncounterData encounter,
+                              System.Func<string, bool> hasFlag = null,
+                              string activeSchool = null,
+                              int currentGold = 0)
     {
         _encounter = encounter;
         _chosenResult = null;
+        _hasFlag = hasFlag;
+        _activeSchool = activeSchool ?? "";
+        _currentGold = currentGold;
 
         _titleLabel.Text = encounter.Title;
         _bodyLabel.Text = encounter.Body;
@@ -181,18 +202,52 @@ public partial class NarrativeEncounterPanel : Control
         foreach (var child in _choiceContainer.GetChildren())
             child.QueueFree();
 
-        // Build choice buttons
+        // Build choice buttons, applying gates.
+        int interactable = 0;
         foreach (var choice in encounter.Choices)
         {
+            // RequiredFlag — a hidden branch that only surfaces once the world
+            // remembers the earlier choice. Omit entirely when unmet.
+            if (!string.IsNullOrEmpty(choice.RequiredFlag) &&
+                (_hasFlag == null || !_hasFlag(choice.RequiredFlag)))
+                continue;
+
+            // RequiredSchool — option exists only for the matching school.
+            if (!string.IsNullOrEmpty(choice.RequiredSchool) &&
+                !string.Equals(choice.RequiredSchool, _activeSchool,
+                               System.StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            // RequiredGold — shown but disabled, with the reason, when unaffordable.
+            bool tooPoor = choice.RequiredGold > 0 && _currentGold < choice.RequiredGold;
+
             var btn = new Button
             {
-                Text = choice.Label,
+                Text = tooPoor
+                    ? $"{choice.Label}  (needs {choice.RequiredGold} gold)"
+                    : choice.Label,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 CustomMinimumSize = new Vector2(0, 44),
+                Disabled = tooPoor,
             };
             btn.AddThemeFontSizeOverride("font_size", UITheme.NarrativeChoiceFontSize);
             var capturedChoice = choice;
             btn.Pressed += () => OnChoicePressed(capturedChoice);
+            _choiceContainer.AddChild(btn);
+            if (!tooPoor) interactable++;
+        }
+
+        // Never soft-lock: if nothing is pressable, offer a neutral exit.
+        if (interactable == 0)
+        {
+            var btn = new Button
+            {
+                Text = "Move on.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                CustomMinimumSize = new Vector2(0, 44),
+            };
+            btn.AddThemeFontSizeOverride("font_size", UITheme.NarrativeChoiceFontSize);
+            btn.Pressed += () => OnChoicePressed(_fallbackChoice);
             _choiceContainer.AddChild(btn);
         }
 
@@ -218,6 +273,11 @@ public partial class NarrativeEncounterPanel : Control
         if (choice.HPDelta < 0) outcomes.Add($"{choice.HPDelta} HP");
         if (choice.StepDelta > 0) outcomes.Add($"+{choice.StepDelta} steps");
         if (choice.StepDelta < 0) outcomes.Add($"{choice.StepDelta} steps");
+        if (!string.IsNullOrEmpty(choice.ItemReward)) outcomes.Add("a relic for the armory");
+        if (!string.IsNullOrEmpty(choice.CompanionUnlock)) outcomes.Add("a companion joins");
+        if (choice.ReputationAmount != 0)
+            outcomes.Add($"{(choice.ReputationAmount > 0 ? "+" : "")}{choice.ReputationAmount} reputation");
+        if (!string.IsNullOrEmpty(choice.LoreId)) outcomes.Add("lore uncovered");
 
         if (outcomes.Count > 0)
             resultText += $"\n\n{string.Join("  |  ", outcomes)}";

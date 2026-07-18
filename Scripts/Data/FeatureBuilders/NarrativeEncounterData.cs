@@ -57,4 +57,18 @@ public class EncounterChoice
     public string RequiredFlag = "";
     public string RequiredSchool = "";
     public int RequiredGold = 0;
+
+    // ── Tranche 2 reward verbs (encounter_outcome_expansion §Tranche 2) ──
+    // Levers that create lasting attachment. All default-empty/0 so every
+    // pre-existing encounter JSON still deserializes unchanged.
+    /// <summary>Item id (Data/Items) granted to the guild armory.</summary>
+    public string ItemReward = "";
+    /// <summary>Companion id (Data/Companions) recruited for this timeline.</summary>
+    public string CompanionUnlock = "";
+    /// <summary>Faction id whose reputation this choice shifts (with ReputationAmount).</summary>
+    public string ReputationFactionId = "";
+    /// <summary>Signed reputation delta applied to ReputationFactionId.</summary>
+    public int ReputationAmount = 0;
+    /// <summary>Lore id recorded permanently in the Hall of Records (Records tab).</summary>
+    public string LoreId = "";
 }

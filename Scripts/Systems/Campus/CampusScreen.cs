@@ -2521,6 +2521,7 @@ public partial class CampusScreen : Control
 
     private VBoxContainer _recordsContainer;
     private Label _recordsSummaryLabel;
+    private VBoxContainer _loreContainer;
 
     private void BuildRecordsTab(ScrollContainer scroll)
     {
@@ -2543,11 +2544,17 @@ public partial class CampusScreen : Control
 
         _recordsContainer = MakeVBox(8);
         layout.AddChild(_recordsContainer);
+
+        layout.AddChild(new HSeparator());
+        AddSectionHeader(layout, "Discovered Lore");
+        _loreContainer = MakeVBox(6);
+        layout.AddChild(_loreContainer);
     }
 
     private void RefreshRecordsTab()
     {
         if (_recordsContainer == null) return;
+        RefreshLoreSection();
         foreach (var child in _recordsContainer.GetChildren())
             child.QueueFree();
 
@@ -2636,6 +2643,44 @@ public partial class CampusScreen : Control
         if (records.Count > MaxRows)
             _recordsContainer.AddChild(MakeStubLabel(
                 $"…and {records.Count - MaxRows} older entries."));
+    }
+
+    /// <summary>Populate the Hall of Records lore list from the permanent
+    /// EternalLedger.UnlockedLoreEntries — the visible payoff for encounter
+    /// LoreId rewards (Tranche 2). Independent of the deal-ledger early-return.</summary>
+    private void RefreshLoreSection()
+    {
+        if (_loreContainer == null) return;
+        foreach (var child in _loreContainer.GetChildren())
+            child.QueueFree();
+
+        var lore = SaveManager.ActiveSave?.UnlockedLoreEntries;
+        if (lore == null || lore.Count == 0)
+        {
+            _loreContainer.AddChild(MakeStubLabel("No lore uncovered yet — the world reveals it to those who explore."));
+            return;
+        }
+
+        foreach (var id in lore)
+        {
+            var lbl = new Label
+            {
+                Text = "• " + PrettifyLoreId(id),
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            _loreContainer.AddChild(lbl);
+        }
+    }
+
+    private static string PrettifyLoreId(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return "";
+        var parts = id.Replace('_', ' ').Split(' ');
+        for (int i = 0; i < parts.Length; i++)
+            if (parts[i].Length > 0)
+                parts[i] = char.ToUpper(parts[i][0]) + parts[i].Substring(1);
+        return string.Join(" ", parts);
     }
 
     private void AddSectionHeader(VBoxContainer parent, string text)

@@ -198,6 +198,17 @@ public class GuildSaveData
     public List<string> CompletedEvents
     { get => Cycle.CompletedEvents; set => Cycle.CompletedEvents = value; }
 
+    // ── Timeline story/chain flags (namespaced away from CompletedEvents) ─
+    [JsonIgnore]
+    public HashSet<string> WorldFlags
+    { get => Cycle.WorldFlags; set => Cycle.WorldFlags = value; }
+
+    /// <summary>True if the timeline flag is set.</summary>
+    public bool HasFlag(string flag) => Cycle.HasFlag(flag);
+
+    /// <summary>Set a timeline flag (idempotent). Returns true if newly added.</summary>
+    public bool SetFlag(string flag) => Cycle.SetFlag(flag);
+
     // ── Phase 3+ stubs ───────────────────────────────────────────────────
     [JsonIgnore]
     public string CharterAlignment

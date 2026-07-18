@@ -153,6 +153,21 @@ public class CycleState
     /// </summary>
     public List<string> CompletedEvents = new();
 
+    /// <summary>Story/chain flags set by encounter choices in THIS timeline
+    /// (EncounterChoice.SetFlags routes here). Kept separate from
+    /// CompletedEvents so an encounter id can never collide with a flag and
+    /// wrongly filter the pool. Read by choice gating (RequiredFlag).
+    /// Cross-loop story still lives in EternalLedger.MetaNarrativeFlags.</summary>
+    public HashSet<string> WorldFlags = new();
+
+    /// <summary>True if the given timeline flag is set (null/empty = false).</summary>
+    public bool HasFlag(string flag) =>
+        !string.IsNullOrEmpty(flag) && WorldFlags.Contains(flag);
+
+    /// <summary>Set a timeline flag (idempotent). Returns true if newly added.</summary>
+    public bool SetFlag(string flag) =>
+        !string.IsNullOrEmpty(flag) && WorldFlags.Add(flag);
+
     // ── Phase 3+ stubs (carried over; all timeline-scoped) ───────────────
     public string CharterAlignment = "";
     public int SeasonalThreatLevel = 0;

@@ -507,6 +507,19 @@ public partial class ExpeditionManager : Node2D
             return;
         }
 
+        // N: [DEBUG] summon the narrative-chain proof rig without walking the map
+        //    — cycles lost_traveler -> sealed_letter_delivery -> grateful_courier on
+        //    repeat presses. Shift+N clears the chain's flags + completed ids so the
+        //    ungated "before" state can be re-tested. Bypasses POI scarcity/patrols but
+        //    runs the REAL resolve path, so flags actually set and gates react live.
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.N } nKey)
+        {
+            if (nKey.ShiftPressed) DebugResetNarrativeChain();
+            else DebugSummonNextChainEncounter();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (!PlayerSession.DebugGrantStagingArmed)
             return;          
         if (@event is InputEventKey { Pressed: true, Keycode: Key.G })
@@ -514,6 +527,64 @@ public partial class ExpeditionManager : Node2D
             DebugGrantStagingHere();
             GetViewport().SetInputAsHandled();
         }
+    }
+
+    // ── [DEBUG] Narrative-chain proof rig (2026-07-18) ───────────────────
+    //    Verifies the encounter gate-wiring from the keyboard when POIs are too
+    //    scarce to reach on foot. Active only in DebugMode (via _UnhandledInput).
+    private static readonly string[] _debugChainIds =
+        { "lost_traveler", "sealed_letter_delivery", "grateful_courier",
+          "armory_cache", "wilds_companion", "free_charter_envoy", "vault_inscription" };
+    private int _debugChainIdx;
+
+    /// <summary>[DEBUG] Summon the next chain encounter directly — ignores
+    /// terrain/completed filters, but shows it with the REAL gating context and
+    /// resolves through the REAL OnNarrativeCompleted so flags actually set.</summary>
+    private void DebugSummonNextChainEncounter()
+    {
+        if (_encounterPool == null || _encounterPool.Count == 0)
+        { ShowInfo("[DEBUG] Encounter pool is empty."); return; }
+
+        string id = _debugChainIds[_debugChainIdx % _debugChainIds.Length];
+        _debugChainIdx++;
+
+        NarrativeEncounterData enc = null;
+        foreach (var e in _encounterPool)
+            if (e.Id == id) { enc = e; break; }
+        if (enc == null)
+        { ShowInfo($"[DEBUG] Encounter '{id}' not found in pool."); return; }
+
+        var save = SaveManager.ActiveSave;
+        System.Func<string, bool> hasFlag = null;
+        if (save != null) hasFlag = save.HasFlag;
+        _narrativePanel.ShowEncounter(enc, hasFlag, save?.Cycle?.SelectedSchool, GoldEarned);
+        _narrativePanel.OnCompleted =
+            (choice) => OnNarrativeCompleted(enc, choice, OverworldHex.TerrainType.Grassland);
+
+        ShowInfo($"[DEBUG] Summoned '{id}'. Press N for the next link, Shift+N to reset.");
+    }
+
+    /// <summary>[DEBUG] Clear the letter-chain flags and one-shot completed ids so
+    /// the ungated "before" state can be tested again.</summary>
+    private void DebugResetNarrativeChain()
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null) { ShowInfo("[DEBUG] No active save."); return; }
+
+        foreach (var f in new[] { "carrying_sealed_letter", "helped_traveler", "letter_delivered" })
+            save.WorldFlags.Remove(f);
+        foreach (var id in _debugChainIds)
+            save.CompletedEvents.Remove(id);
+
+        // Undo the Tranche 2 demo grants so the reward verbs can re-fire cleanly.
+        var demoC = save.Companions.Find(c => c.Id == "bram_thistlewade");
+        if (demoC != null) demoC.IsRecruited = false;
+        save.FactionReputation.Remove("free_charter");
+        save.UnlockedLoreEntries.Remove("sunken_concord_fate");
+
+        _debugChainIdx = 0;
+        SaveManager.MarkDirty();
+        ShowInfo("[DEBUG] Narrative chain + Tranche 2 demos reset.");
     }
 
     private void DebugGrantStagingHere()
@@ -791,7 +862,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             string line = TerrainDisplayName(hex.Terrain);
             if (hex.POI != OverworldHex.POIType.None && !hex.POIConsumed)
-                line += $"  ·  {hex.POI}{_spells?.TooltipPoiExtra(hex) ?? ""}" +
+                line += $"  ·  {PoiSignal.Label(hex.POI, hex.Terrain, axial)}{_spells?.TooltipPoiExtra(hex) ?? ""}" +
                         NegotiationPreread(axial, hex); // S5: True Names
             // Corruption readout if the underlying world tile is corrupted.
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
@@ -880,7 +951,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             string line = TerrainDisplayName(hex.Terrain);
             if (hex.POI != OverworldHex.POIType.None && !hex.POIConsumed)
-                line += $"  ·  {hex.POI}{_spells?.TooltipPoiExtra(hex) ?? ""}" +
+                line += $"  ·  {PoiSignal.Label(hex.POI, hex.Terrain, axial)}{_spells?.TooltipPoiExtra(hex) ?? ""}" +
                         NegotiationPreread(axial, hex); // S5: True Names
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
@@ -1301,7 +1372,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             UpdateUI();
             return;
         }
-        _narrativePanel.ShowEncounter(encounter);
+        var gateSave = SaveManager.ActiveSave;
+        System.Func<string, bool> hasFlag = null;
+        if (gateSave != null) hasFlag = gateSave.HasFlag;
+        _narrativePanel.ShowEncounter(
+            encounter,
+            hasFlag,
+            gateSave?.Cycle?.SelectedSchool,
+            GoldEarned);
         var loreTerrain = hex.Terrain; // S4: the drop pool is terrain-flavored
         _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(encounter, choice, loreTerrain);
     }
@@ -1332,9 +1410,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 SaveManager.ActiveSave.CompletedEvents.Add(encounter.Id);
 
         if (choice.SetFlags != null && SaveManager.ActiveSave != null)
+        {
+            bool anyNewFlag = false;
             foreach (var flag in choice.SetFlags)
-                if (!SaveManager.ActiveSave.CompletedEvents.Contains(flag))
-                    SaveManager.ActiveSave.CompletedEvents.Add(flag);
+                anyNewFlag |= SaveManager.ActiveSave.SetFlag(flag);
+            if (anyNewFlag) SaveManager.MarkDirty();
+        }
 
         // S4 (§11): lore POIs are the terrain-flavored acquisition path.
         // An authored SpellReward on the chosen option grants exactly that
@@ -1358,10 +1439,55 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
         }
 
-        ShowInfo(learnedId != ""
+        // ── Tranche 2 reward verbs: item / companion / reputation / lore ──
+        var t2 = new System.Collections.Generic.List<string>();
+        var t2save = SaveManager.ActiveSave;
+        if (t2save != null)
+        {
+            if (!string.IsNullOrEmpty(choice.ItemReward))
+            {
+                var def = ItemDatabase.Get(choice.ItemReward);
+                if (def != null)
+                {
+                    t2save.Armory.AddItem(def);
+                    SaveManager.MarkDirty();
+                    t2.Add($"gain the {def.Name}");
+                }
+                else GD.PrintErr($"[Encounter] ItemReward '{choice.ItemReward}' not in ItemDatabase.");
+            }
+
+            if (!string.IsNullOrEmpty(choice.CompanionUnlock))
+            {
+                string joined = CompanionRoster.GrantFromEncounter(choice.CompanionUnlock);
+                if (joined != null) t2.Add($"are joined by {joined}");
+            }
+
+            if (!string.IsNullOrEmpty(choice.ReputationFactionId) && choice.ReputationAmount != 0)
+            {
+                var rep = t2save.FactionReputation;
+                rep.TryGetValue(choice.ReputationFactionId, out int cur);
+                rep[choice.ReputationFactionId] = cur + choice.ReputationAmount;
+                SaveManager.MarkDirty();
+                t2.Add($"gain {(choice.ReputationAmount >= 0 ? "+" : "")}{choice.ReputationAmount} " +
+                       $"standing with {choice.ReputationFactionId.Replace('_', ' ')}");
+            }
+
+            if (!string.IsNullOrEmpty(choice.LoreId) &&
+                !t2save.UnlockedLoreEntries.Contains(choice.LoreId))
+            {
+                t2save.UnlockedLoreEntries.Add(choice.LoreId);
+                SaveManager.MarkDirty();
+                t2.Add("uncover a truth for the Hall of Records");
+            }
+        }
+
+        string msg = learnedId != ""
             ? $"Encounter resolved. +{spl} Arcane Splinters. The site yields the secret of " +
               $"{OverworldSpellRegistry.Get(learnedId)?.Name} — preparable at the next launch."
-            : $"Encounter resolved. +{spl} Arcane Splinters.");
+            : $"Encounter resolved. +{spl} Arcane Splinters.";
+        if (t2.Count > 0)
+            msg += " You " + string.Join(", ", t2) + ".";
+        ShowInfo(msg);
         UpdateUI();
     }
 
