@@ -142,6 +142,7 @@ public partial class FogOfWarManager : Node2D
         foreach (var kvp in chosen)
         {
             kvp.Value.Fog = OverworldHex.FogState.Revealed;
+            kvp.Value.IsLandmark = true;
             kvp.Value.RefreshVisuals();
         }
         GD.Print($"[Fog] Revealed {chosen.Count} secondary landmark(s) as frontier lures " +

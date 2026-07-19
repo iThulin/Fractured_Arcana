@@ -37,6 +37,11 @@ public partial class OverworldHex : Node2D
     public POIType POI { get; set; } = POIType.None;
     public bool POIConsumed { get; set; } = false;
 
+    /// <summary>Force-revealed as a secondary-landmark frontier lure. Draws a
+    /// beacon (glow + ring) so it reads as a distant point of interest, not an
+    /// ordinary explored hex. Set by FogOfWarManager.RevealSecondaryLandmarks.</summary>
+    public bool IsLandmark { get; set; } = false;
+
     /// <summary>River/road edge masks copied from the world tile (6-bit, same
     /// convention as WorldTile). Drawn as lines along the hex edges in _Ready.</summary>
     public byte RiverEdges { get; set; } = 0;
@@ -49,6 +54,8 @@ public partial class OverworldHex : Node2D
     private Polygon2D _fogOverlay;
     private Polygon2D _poiMarker;
     private Label _debugLabel;
+    private Polygon2D _landmarkHalo;
+    private Line2D _landmarkRing;
 
     private static readonly float HEX_SIZE = 36f; // pixel radius of each hex
 
@@ -93,6 +100,30 @@ public partial class OverworldHex : Node2D
             Visible = false
         };
         AddChild(_poiMarker);
+
+        // Landmark beacon — a soft glow + crisp ring around a force-revealed
+        // frontier lure so it reads as a distant point of interest. The glow
+        // sits above the (transparent-on-revealed) fog; the POI pip stays on top.
+        _landmarkHalo = new Polygon2D
+        {
+            Polygon = MakeCirclePoints(HEX_SIZE * 0.58f),
+            ZIndex = 2,
+            Visible = false,
+        };
+        AddChild(_landmarkHalo);
+
+        var ringPts = MakeCirclePoints(HEX_SIZE * 0.58f);
+        var ringLoop = new Vector2[ringPts.Length + 1];
+        System.Array.Copy(ringPts, ringLoop, ringPts.Length);
+        ringLoop[ringPts.Length] = ringPts[0];
+        _landmarkRing = new Line2D
+        {
+            Points = ringLoop,
+            Width = 2.5f,
+            ZIndex = 3,
+            Visible = false,
+        };
+        AddChild(_landmarkRing);
 
         // Clickable area
         var area = new Area2D { ZIndex = 5 };
@@ -184,6 +215,18 @@ public partial class OverworldHex : Node2D
                 _ => Colors.White
             };
         }
+
+        // Landmark beacon — glow + ring tinted to the POI, shown only for a
+        // force-revealed frontier lure that still has an unentered POI.
+        bool beacon = IsLandmark && showPOI;
+        if (_landmarkHalo != null) _landmarkHalo.Visible = beacon;
+        if (_landmarkRing != null) _landmarkRing.Visible = beacon;
+        if (beacon)
+        {
+            Color c = _poiMarker.Color;
+            _landmarkHalo.Color = new Color(c.R, c.G, c.B, 0.22f);
+            _landmarkRing.DefaultColor = new Color(c.R, c.G, c.B, 0.95f);
+        }
     }
 
     private void OnAreaInput(Node viewport, InputEvent @event, long shapeIdx)
@@ -201,6 +244,18 @@ public partial class OverworldHex : Node2D
     /// <summary>
     /// Generates vertices for a flat-top regular hexagon.
     /// </summary>
+    /// <summary>Vertices for a circle — used by the landmark beacon glow/ring.</summary>
+    private static Vector2[] MakeCirclePoints(float radius, int segments = 24)
+    {
+        var pts = new Vector2[segments];
+        for (int i = 0; i < segments; i++)
+        {
+            float a = Mathf.Tau * i / segments;
+            pts[i] = new Vector2(radius * Mathf.Cos(a), radius * Mathf.Sin(a));
+        }
+        return pts;
+    }
+
     public static Vector2[] MakeHexPoints(float size)
     {
         var pts = new Vector2[6];
