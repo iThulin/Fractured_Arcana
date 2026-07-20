@@ -240,7 +240,10 @@
         "resultText": "Hours of careful transcription. The truth of the Sunken Concord is yours to keep.",
         "loreId": "sunken_concord_fate",
         "goldDelta": 10,
-        "stepDelta": -1
+        "stepDelta": -1,
+        "setMetaFlags": [
+          "primal_rumor"
+        ]
       },
       {
         "label": "Note its location and move on",
@@ -265,6 +268,96 @@
       {
         "label": "Mark it and move on",
         "resultText": "You note the spot for later and keep your distance.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "primal_seek",
+    "title": "The Storm on the Horizon",
+    "body": "Past the last ridge the sky is wrong — a wall of iron cloud that never moves, lightning frozen inside it mid-strike. The drowned archive named this place. If the rumour holds, the Primal Shard is in there.",
+    "terrainTags": [
+      "Volcanic",
+      "Coast",
+      "ArcaneGround"
+    ],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Chart a course into the tempest",
+        "resultText": "You map the eye of the storm and the paths that might survive it. The way is known now — the rest is nerve.",
+        "requiredFlag": "primal_rumor",
+        "setMetaFlags": [
+          "primal_location_known"
+        ]
+      },
+      {
+        "label": "Turn back — the storm is death unprepared",
+        "resultText": "Some doors you knock on twice.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "primal_trial",
+    "title": "The Warden of Elements",
+    "body": "At the storm's threshold something waits — not a beast but a will, six elements braided into one guardian. It regards your party the way a furnace regards a moth. It will not simply let you pass.",
+    "terrainTags": [
+      "Volcanic",
+      "ArcaneGround"
+    ],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Speak to the storm in its own tongue",
+        "resultText": "Elemental cant answers elemental will. The warden yields to a kindred voice, and the way opens without blood.",
+        "requiredFlag": "primal_location_known",
+        "requiredSchool": "Elementalist",
+        "setMetaFlags": [
+          "primal_trial_passed"
+        ],
+        "spellReward": "ember_ward"
+      },
+      {
+        "label": "Endure the warden's trial by force",
+        "resultText": "You walk through fire that does not burn and cold that does not still, and come out the far side — scorched, but through.",
+        "requiredFlag": "primal_location_known",
+        "setMetaFlags": [
+          "primal_trial_passed"
+        ],
+        "hpDelta": -20
+      },
+      {
+        "label": "Withdraw and gather your strength",
+        "resultText": "The warden does not pursue. It has waited centuries; it can wait for you.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "primal_recover",
+    "title": "The Heart of the Storm",
+    "body": "In the eye, everything is still. The Primal Shard hangs in the silence — raw creation, fire that does not burn, lightning frozen mid-strike. One of the six pieces of the Sixfold Seal. It is yours to take, and to answer for.",
+    "terrainTags": [
+      "Volcanic",
+      "ArcaneGround"
+    ],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Take the Primal Shard",
+        "resultText": "The Shard settles into your keeping, colder and heavier than anything its size should be. One fragment of the failing Seal, recovered. Five remain.",
+        "requiredFlag": "primal_trial_passed",
+        "setMetaFlags": [
+          "fragment_primal_collected"
+        ],
+        "loreId": "the_primal_shard_recovered",
+        "goldDelta": 50,
+        "spellReward": "fulminant_charge"
+      },
+      {
+        "label": "Leave it — the world is not ready",
+        "resultText": "You close the way behind you. The Shard waits in the stillness, patient as the storm.",
         "stepDelta": 1
       }
     ]

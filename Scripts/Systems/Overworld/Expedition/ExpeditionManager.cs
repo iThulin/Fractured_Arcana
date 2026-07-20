@@ -119,6 +119,7 @@ public partial class ExpeditionManager : Node2D
     private bool _roamerSpent;
     private Camera2D _camera;
     private NarrativeEncounterPanel _narrativePanel;
+    private ToastManager _toasts;
     private ScoutReportPanel _scoutPanel;
     private LedgerPanel _ledgerPanel;
     private List<NarrativeEncounterData> _encounterPool;
@@ -290,6 +291,9 @@ public partial class ExpeditionManager : Node2D
         // Narrative panel + pool (keyed to the staging kingdom)
         _narrativePanel = new NarrativeEncounterPanel { Visible = false };
         GetHudCanvas().AddChild(_narrativePanel);
+
+        _toasts = new ToastManager { Name = "QuestToasts" };
+        GetHudCanvas().AddChild(_toasts);
         _uiHoverBlockers.Add(_narrativePanel);
 
         // Favor ledger panel (C3): read-only ledger + the call-in action.
@@ -432,6 +436,8 @@ public partial class ExpeditionManager : Node2D
             if (sp.X == col && sp.Y == row)
                 return;
 
+        var questBefore = QuestNotifier.Snapshot(SaveManager.ActiveSave);
+
         string name = poi.Kind switch
         {
             PoiKind.Outpost => "Outpost",
@@ -462,6 +468,8 @@ public partial class ExpeditionManager : Node2D
 
         SaveManager.MarkDirty();
         ShowInfo($"New staging point secured: {name}. Future expeditions can launch from here.");
+        foreach (var qt in QuestNotifier.NotifyNew(questBefore, SaveManager.ActiveSave))
+            _toasts?.Push(qt.Text, qt.Kind);
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -561,7 +569,11 @@ public partial class ExpeditionManager : Node2D
     private static readonly string[] _debugChainIds =
         { "lost_traveler", "sealed_letter_delivery", "grateful_courier",
           "armory_cache", "wilds_companion", "free_charter_envoy", "vault_inscription",
-          "assembled_wayside" };
+          "assembled_wayside", "primal_seek", "primal_trial", "primal_recover",
+          "axiom_seek", "axiom_trial", "axiom_recover", "moment_seek", "moment_trial", "moment_recover",
+          "binding_seek", "binding_trial", "binding_recover", "schema_seek", "schema_trial", "schema_recover",
+          "deathless_seek", "deathless_trial", "deathless_recover",
+          "axiom_discovery", "moment_discovery", "binding_discovery", "schema_discovery", "deathless_discovery" };
     private int _debugChainIdx;
 
     /// <summary>[DEBUG] Summon the next chain encounter directly — ignores
@@ -612,7 +624,20 @@ public partial class ExpeditionManager : Node2D
         var demoC = save.Companions.Find(c => c.Id == "bram_thistlewade");
         if (demoC != null) demoC.IsRecruited = false;
         save.FactionReputation.Remove("free_charter");
-        save.UnlockedLoreEntries.Remove("sunken_concord_fate");
+
+        // Fragment arcs: clear ALL permanent milestones, quest stamps, and
+        // discovery/recovery lore so every arc re-runs from scratch.
+        if (save.Ledger != null)
+        {
+            save.Ledger.MetaNarrativeFlags.RemoveAll(f =>
+                f.EndsWith("_rumor") || f.EndsWith("_location_known") ||
+                f.EndsWith("_trial_passed") ||
+                (f.StartsWith("fragment_") && f.EndsWith("_collected")));
+            save.Ledger.CompletedQuestIds.RemoveAll(id => id.StartsWith("q_"));
+        }
+        save.UnlockedLoreEntries.RemoveAll(l =>
+            l.EndsWith("_rumor_lore") || l.EndsWith("_recovered_lore") ||
+            l == "sunken_concord_fate" || l == "the_primal_shard_recovered");
 
         _debugChainIdx = 0;
         SaveManager.MarkDirty();
@@ -1507,6 +1532,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         if (choice == null)
             return;
+
+        var questBefore = QuestNotifier.Snapshot(SaveManager.ActiveSave);
+
         if (choice.GoldDelta != 0)
             GoldEarned = Mathf.Max(0, GoldEarned + choice.GoldDelta);
         if (choice.HPDelta != 0)
@@ -1533,6 +1561,18 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             foreach (var flag in choice.SetFlags)
                 anyNewFlag |= SaveManager.ActiveSave.SetFlag(flag);
             if (anyNewFlag) SaveManager.MarkDirty();
+        }
+
+        // Permanent story flags (fragment-arc milestones) ride the ledger so
+        // they survive a cycle reset. Read by quests + choice gating (HasFlag).
+        if (choice.SetMetaFlags != null && SaveManager.ActiveSave?.Ledger != null)
+        {
+            bool anyMeta = false;
+            var meta = SaveManager.ActiveSave.Ledger.MetaNarrativeFlags;
+            foreach (var flag in choice.SetMetaFlags)
+                if (!string.IsNullOrEmpty(flag) && !meta.Contains(flag))
+                { meta.Add(flag); anyMeta = true; }
+            if (anyMeta) SaveManager.MarkDirty();
         }
 
         // S4 (§11): lore POIs are the terrain-flavored acquisition path.
@@ -1606,6 +1646,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (t2.Count > 0)
             msg += " You " + string.Join(", ", t2) + ".";
         ShowInfo(msg);
+
+        foreach (var qt in QuestNotifier.NotifyNew(questBefore, SaveManager.ActiveSave))
+            _toasts?.Push(qt.Text, qt.Kind);
+
         UpdateUI();
     }
 

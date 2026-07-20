@@ -47,6 +47,10 @@ public static class NarrativeEncounterLoader
         var generic = LoadFile("generic_encounters");
         if (generic != null) combined.AddRange(generic);
 
+        // Fragment-arc pool (always included) — the six Seal Fragment recoveries.
+        var fragmentArcs = LoadFile("fragment_arcs");
+        if (fragmentArcs != null) combined.AddRange(fragmentArcs);
+
         return combined;
     }
 

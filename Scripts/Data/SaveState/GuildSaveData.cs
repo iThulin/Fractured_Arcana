@@ -208,7 +208,8 @@ public class GuildSaveData
     { get => Cycle.WorldFlags; set => Cycle.WorldFlags = value; }
 
     /// <summary>True if the timeline flag is set.</summary>
-    public bool HasFlag(string flag) => Cycle.HasFlag(flag);
+    public bool HasFlag(string flag) =>
+        Cycle.HasFlag(flag) || (Ledger?.MetaNarrativeFlags?.Contains(flag) ?? false);
 
     /// <summary>Set a timeline flag (idempotent). Returns true if newly added.</summary>
     public bool SetFlag(string flag) => Cycle.SetFlag(flag);

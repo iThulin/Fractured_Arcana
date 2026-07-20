@@ -120,6 +120,7 @@ public partial class HudManager : Node
         _returnButton = AddNavButton(row, "Return to Campus",
             () => GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn"));
         AddNavButton(row, "Council", () => CouncilScreen.Toggle(GetTree().Root));
+        AddNavButton(row, "Quests", () => QuestLogScreen.Toggle(GetTree().Root));
         AddNavButton(row, "Menu", () => PauseManager.Instance?.OpenPauseMenu());
 
         RefreshReadouts(force: true);

@@ -76,8 +76,12 @@
         "lore": "sunken_concord_fate"
       },
       {
-        "text": "Find the eternal storm at the world's edge",
+        "text": "Chart a course into the eternal storm",
         "flag": "primal_location_known"
+      },
+      {
+        "text": "Pass the Warden of Elements",
+        "flag": "primal_trial_passed"
       },
       {
         "text": "Recover the Primal Shard",
@@ -85,5 +89,140 @@
       }
     ],
     "rewardLore": "the_primal_shard_recovered"
+  },
+  {
+    "id": "q_axiom_stone",
+    "title": "The Axiom Stone",
+    "category": "Fragments",
+    "permanent": true,
+    "summary": "A rumour points to the Infinite Athenaeum: the Arcanist's fragment of the failing Sixfold Seal sleeps there.",
+    "requiredLore": "axiom_rumor_lore",
+    "objectives": [
+      {
+        "text": "Uncover the rumour of the Axiom Stone",
+        "lore": "axiom_rumor_lore"
+      },
+      {
+        "text": "Chart the way into the Infinite Athenaeum",
+        "flag": "axiom_location_known"
+      },
+      {
+        "text": "Overcome the fragment's guardian trial",
+        "flag": "axiom_trial_passed"
+      },
+      {
+        "text": "Recover the Axiom Stone",
+        "flag": "fragment_axiom_collected"
+      }
+    ],
+    "rewardLore": "axiom_recovered_lore"
+  },
+  {
+    "id": "q_moment_eternal",
+    "title": "Moment Eternal",
+    "category": "Fragments",
+    "permanent": true,
+    "summary": "A rumour points to the Shattered Clock: the Chronomancer's fragment of the failing Sixfold Seal sleeps there.",
+    "requiredLore": "moment_rumor_lore",
+    "objectives": [
+      {
+        "text": "Uncover the rumour of Moment Eternal",
+        "lore": "moment_rumor_lore"
+      },
+      {
+        "text": "Chart the way into the Shattered Clock",
+        "flag": "moment_location_known"
+      },
+      {
+        "text": "Overcome the fragment's guardian trial",
+        "flag": "moment_trial_passed"
+      },
+      {
+        "text": "Recover Moment Eternal",
+        "flag": "fragment_moment_collected"
+      }
+    ],
+    "rewardLore": "moment_recovered_lore"
+  },
+  {
+    "id": "q_binding_thread",
+    "title": "The Binding Thread",
+    "category": "Fragments",
+    "permanent": true,
+    "summary": "A rumour points to the Charmed City: the Enchanter's fragment of the failing Sixfold Seal sleeps there.",
+    "requiredLore": "binding_rumor_lore",
+    "objectives": [
+      {
+        "text": "Uncover the rumour of the Binding Thread",
+        "lore": "binding_rumor_lore"
+      },
+      {
+        "text": "Chart the way into the Charmed City",
+        "flag": "binding_location_known"
+      },
+      {
+        "text": "Overcome the fragment's guardian trial",
+        "flag": "binding_trial_passed"
+      },
+      {
+        "text": "Recover the Binding Thread",
+        "flag": "fragment_binding_collected"
+      }
+    ],
+    "rewardLore": "binding_recovered_lore"
+  },
+  {
+    "id": "q_schema_core",
+    "title": "The Schema Core",
+    "category": "Fragments",
+    "permanent": true,
+    "summary": "A rumour points to the Eternal Engine: the Tinker's fragment of the failing Sixfold Seal sleeps there.",
+    "requiredLore": "schema_rumor_lore",
+    "objectives": [
+      {
+        "text": "Uncover the rumour of the Schema Core",
+        "lore": "schema_rumor_lore"
+      },
+      {
+        "text": "Chart the way into the Eternal Engine",
+        "flag": "schema_location_known"
+      },
+      {
+        "text": "Overcome the fragment's guardian trial",
+        "flag": "schema_trial_passed"
+      },
+      {
+        "text": "Recover the Schema Core",
+        "flag": "fragment_schema_collected"
+      }
+    ],
+    "rewardLore": "schema_recovered_lore"
+  },
+  {
+    "id": "q_deathless_covenant",
+    "title": "The Deathless Covenant",
+    "category": "Fragments",
+    "permanent": true,
+    "summary": "A rumour points to the Hollow: the Necromancer's fragment of the failing Sixfold Seal sleeps there.",
+    "requiredLore": "deathless_rumor_lore",
+    "objectives": [
+      {
+        "text": "Uncover the rumour of the Deathless Covenant",
+        "lore": "deathless_rumor_lore"
+      },
+      {
+        "text": "Chart the way into the Hollow",
+        "flag": "deathless_location_known"
+      },
+      {
+        "text": "Overcome the fragment's guardian trial",
+        "flag": "deathless_trial_passed"
+      },
+      {
+        "text": "Recover the Deathless Covenant",
+        "flag": "fragment_deathless_collected"
+      }
+    ],
+    "rewardLore": "deathless_recovered_lore"
   }
 ]

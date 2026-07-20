@@ -53,6 +53,12 @@ public class EncounterChoice
     // Phase 3+ tracking
     public List<string> SetFlags = new();
 
+    /// <summary>Permanent (cross-cycle) story flags this choice sets — written to
+    /// EternalLedger.MetaNarrativeFlags, not the timeline-scoped WorldFlags. Used
+    /// for fragment-arc milestones and other progress that must survive a cycle
+    /// reset (convergence.docx). Read by quest objectives and choice gating.</summary>
+    public List<string> SetMetaFlags = new();
+
     // Phase 3+ gating
     public string RequiredFlag = "";
     public string RequiredSchool = "";
