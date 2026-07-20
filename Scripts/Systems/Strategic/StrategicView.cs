@@ -70,6 +70,7 @@ public partial class StrategicView : Node2D
     private StrategicLens _lens = StrategicLens.Political;  // active map lens
     private MultiMeshInstance2D _tileLayer;
     private MultiMeshInstance2D _poiLayer;
+    private Node2D _shardZoneLayer;
     private MultiMeshInstance2D _settlementLayer;
     private Node2D _edgeLayer;
     private Node2D _borderLayer;
@@ -177,6 +178,7 @@ public partial class StrategicView : Node2D
         BuildBorderLayer();
         BuildEdgeLayer();
         BuildPoiLayer();
+        BuildShardZoneMarkers();
         if (!Standalone)
         {
             BuildStagingMarkers();
@@ -1021,7 +1023,7 @@ public partial class StrategicView : Node2D
 
     /// <summary>A POI just became discovered — rebuild the POI layer (its
     /// instance count changed). Cheap relative to the tile layer.</summary>
-    public void RefreshPois() => BuildPoiLayer();
+    public void RefreshPois() { BuildPoiLayer(); BuildShardZoneMarkers(); }
 
     /// <summary>Switch the active map lens and recolor every tile. Cheap: only
     /// rewrites instance colors, no rebuild.</summary>
@@ -1282,6 +1284,51 @@ public partial class StrategicView : Node2D
 
     /// <summary>One clickable marker per available staging point. Staging points
     /// are few, so a handful of Area2D markers is cheap (unlike per-tile nodes).</summary>
+    /// <summary>P3: a distinct arcane beacon on each DISCOVERED shard sub-region,
+    /// drawn at the vault centre. Not clickable — a vault is reached by expedition,
+    /// not by deploy. Reads apart from staging (gold) and POIs (flat diamonds) via a
+    /// violet octagon + arcane-blue diamond core; dims once the shard is collected.</summary>
+    private void BuildShardZoneMarkers()
+    {
+        _shardZoneLayer?.QueueFree();
+        _shardZoneLayer = new Node2D { Name = "ShardZoneMarkers", ZIndex = 2 };
+        AddChild(_shardZoneLayer);
+
+        if (_world?.ShardZones == null)
+            return;
+
+        foreach (var z in _world.ShardZones)
+        {
+            if (!_debugReveal && !z.Discovered)
+                continue;
+
+            var center = HexCoord.OffsetRenderPosition(z.CenterX, z.CenterY, TilePx)
+                         + new Vector2(TilePx * 0.5f, TilePx * 0.5f);
+            var marker = new Node2D { Position = center };
+
+            var ring = new Polygon2D
+            {
+                Polygon = MakeRing(TilePx * 1.7f),
+                Color = z.ShardCollected ? UITheme.VioletDark : UITheme.Violet,
+            };
+            marker.AddChild(ring);
+
+            float c = TilePx * 0.9f;
+            var core = new Polygon2D
+            {
+                Polygon = new[]
+                {
+                    new Vector2(0, -c), new Vector2(c, 0),
+                    new Vector2(0, c), new Vector2(-c, 0),
+                },
+                Color = z.ShardCollected ? UITheme.TextSecondary : UITheme.ArcaneBlue,
+            };
+            marker.AddChild(core);
+
+            _shardZoneLayer.AddChild(marker);
+        }
+    }
+
     private void BuildStagingMarkers()
     {
         _stagingLayer?.QueueFree();

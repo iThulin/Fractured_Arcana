@@ -98,6 +98,12 @@ public struct WorldTile
     /// -1 at construction — the struct default 0 would alias Settlements[0].</summary>
     public int SettlementIndex;
 
+    /// <summary>Index into WorldData.ShardZones, or -1 for none. A tile inside a
+    /// shard sub-region carries this. MUST be set to -1 at construction — the
+    /// struct default 0 would alias ShardZones[0]. Independent of SettlementIndex:
+    /// shard zones sit on wilderness tiles, never inside a settlement footprint.</summary>
+    public int ShardZoneIndex;
+
     // ── Terrain category predicates (route here, never compare == Water) ──
     public bool IsOcean => TerrainClass.IsOcean(Terrain);
     public bool IsLake => TerrainClass.IsLake(Terrain);
@@ -161,6 +167,48 @@ public class WorldSettlement
     public List<(int x, int y)> Tiles = new();
 }
 
+/// <summary>A shard acquisition sub-region — a contiguous footprint of tiles near
+/// an archmage seat, holding one fragment. Like a settlement it is an AREA (tiles
+/// back-reference via WorldTile.ShardZoneIndex), but it is its OWN system, not a
+/// SettlementTier: it carries reduced-fog + step behaviour, a guardian GATE tile,
+/// and an inner SANCTUM tile that holds the shard. Cleared once the guardian falls
+/// (stamps fragment_&lt;key&gt;_collected) and grants staging at its centre.</summary>
+public class ShardZone
+{
+    /// <summary>Fragment key: axiom|binding|deathless|moment|schema|primal. Binds
+    /// the zone to its arc in fragment_arcs.json and to its guardian encounter.</summary>
+    public string FragmentKey = "";
+
+    public string KingdomId = "";
+    public string Name = "";
+
+    public int CenterX;
+    public int CenterY;
+
+    /// <summary>Guardian gate tile — entering it launches the fragment trial +
+    /// guardian boss. Defaults to the centre until sited.</summary>
+    public int GateX;
+    public int GateY;
+
+    /// <summary>Inner sanctum tile — holds the shard; collectable only after the
+    /// guardian is cleared.</summary>
+    public int SanctumX;
+    public int SanctumY;
+
+    /// <summary>True once an expedition has entered/charted any footprint tile;
+    /// discovery opens the whole footprint to reduced fog (the vault layout reads).</summary>
+    public bool Discovered = false;
+
+    /// <summary>True once the guardian boss has fallen (fragment_&lt;key&gt;_trial_passed).</summary>
+    public bool GuardianCleared = false;
+
+    /// <summary>True once the shard has been taken (fragment_&lt;key&gt;_collected).</summary>
+    public bool ShardCollected = false;
+
+    /// <summary>Every tile in this zone's footprint (offset coords).</summary>
+    public List<(int x, int y)> Tiles = new();
+}
+
 /// <summary>One launch location. Accumulates as the world opens.</summary>
 public class StagingPoint
 {
@@ -192,6 +240,7 @@ public class WorldData
     public List<WorldPoi> Pois = new();
     public List<StagingPoint> StagingPoints = new();
     public List<WorldSettlement> Settlements = new();
+    public List<ShardZone> ShardZones = new();
 
     /// <summary>World coordinate of Kassian's seat (the Convergence). Corruption
     /// radiates from here; it is the cycle's terminal location.</summary>
@@ -232,6 +281,14 @@ public class WorldData
             return null;
         int si = GetTile(x, y).SettlementIndex;
         return (si >= 0 && si < Settlements.Count) ? Settlements[si] : null;
+    }
+
+    public ShardZone ShardZoneAt(int x, int y)
+    {
+        if (!InBounds(x, y))
+            return null;
+        int zi = GetTile(x, y).ShardZoneIndex;
+        return (zi >= 0 && zi < ShardZones.Count) ? ShardZones[zi] : null;
     }
 
     // ── Hex topology (the world is a flat-top odd-q rectangular hex map) ──

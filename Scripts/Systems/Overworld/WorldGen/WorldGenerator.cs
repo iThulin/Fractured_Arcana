@@ -198,6 +198,11 @@ public static class WorldGenerator
         // ── 6. Corruption gradient toward the convergence seat ───────────
         ApplyCorruptionGradient(world, kingdoms, campaign, convergence);
 
+        // ── 6b. Shard sub-regions: one vault footprint per fragment, near a
+        // non-convergence seat. BEFORE ScatterPois so wilderness POIs avoid the
+        // vault tiles (WildTilesOfKingdom excludes ShardZoneIndex >= 0).
+        ShardZones.Generate(world, capitals, kingdomIds, convergenceKingdom, rng);
+
         // ── 7. POIs (mostly undiscovered) + kingdom seats ────────────────
         ScatterPois(world, kingdoms, convergenceKingdom, capitals, kingdomIds, p, rng);
 
@@ -260,6 +265,7 @@ public static class WorldGenerator
                     PoiIndex = -1,
                     IsStagingPoint = false,
                     SettlementIndex = -1,
+                    ShardZoneIndex = -1,
                 };
             }
         }
@@ -635,7 +641,7 @@ public static class WorldGenerator
             for (int x = 0; x < world.Width; x++)
             {
                 var t = world.GetTile(x, y);
-                if (t.KingdomId == id && t.SettlementIndex < 0)
+                if (t.KingdomId == id && t.SettlementIndex < 0 && t.ShardZoneIndex < 0)
                     result.Add((x, y));
             }
         return result;
@@ -776,6 +782,8 @@ public static class WorldGenerator
                     continue;
                 if (tile.IsStagingPoint)
                     continue;
+                if (tile.ShardZoneIndex >= 0)
+                    continue; // never bootstrap a staging outpost inside a shard vault
                 candidates.Add((x, y));
                 if (!string.IsNullOrEmpty(foreignTo) &&
                     !string.IsNullOrEmpty(tile.KingdomId) &&

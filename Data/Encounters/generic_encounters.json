@@ -319,13 +319,10 @@
         "spellReward": "ember_ward"
       },
       {
-        "label": "Endure the warden's trial by force",
-        "resultText": "You walk through fire that does not burn and cold that does not still, and come out the far side — scorched, but through.",
+        "label": "Face the Warden of Elements in battle",
+        "resultText": "No words will move it. Steel and spell, then.",
         "requiredFlag": "primal_location_known",
-        "setMetaFlags": [
-          "primal_trial_passed"
-        ],
-        "hpDelta": -20
+        "launchGuardian": "primal"
       },
       {
         "label": "Withdraw and gather your strength",

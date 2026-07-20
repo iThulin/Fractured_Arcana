@@ -334,6 +334,20 @@ public partial class ExpeditionManager : Node2D
             var local = kvp.Key;
             var hex = kvp.Value;
 
+            // P3: seeing any footprint tile (charted or revealed) discovers the
+            // whole shard sub-region — the vault layout then reads at distance.
+            if ((hex.Fog == OverworldHex.FogState.Silhouette ||
+                 hex.Fog == OverworldHex.FogState.Revealed) &&
+                _window.TryLocalToWorld(local, out int zc, out int zr))
+            {
+                var sz = _world.ShardZoneAt(zc, zr);
+                if (sz != null && !sz.Discovered)
+                {
+                    RevealShardZone(sz);
+                    changed = true;
+                }
+            }
+
             // W4 (§5 keystone extension): silhouette = terrain-only knowledge =
             // Charted. As the sliding window travels, its vision fringe leaves a
             // persistent Charted corridor on the strategic map — the route
@@ -382,6 +396,30 @@ public partial class ExpeditionManager : Node2D
 
         if (changed)
             SaveManager.MarkDirty();
+    }
+
+    /// <summary>P3: the first sighting of any footprint tile opens the whole vault
+    /// layout — every footprint tile charts (reduced fog) and any loaded, still-
+    /// hidden footprint hex silhouettes immediately. Interaction + collection are
+    /// later phases; this is discovery only.</summary>
+    private void RevealShardZone(ShardZone z)
+    {
+        z.Discovered = true;
+        foreach (var (x, y) in z.Tiles)
+        {
+            if (_world.TryIndex(x, y, out int idx) &&
+                _world.Tiles[idx].Discovery == TileDiscovery.Unseen)
+                _world.Tiles[idx].Discovery = TileDiscovery.Charted;
+
+            var local = _window.LocalOf(x, y);
+            if (_grid.Hexes.TryGetValue(local, out var h) &&
+                h.Fog == OverworldHex.FogState.Hidden)
+            {
+                h.Fog = OverworldHex.FogState.Silhouette;
+                h.RefreshVisuals();
+            }
+        }
+        ShowInfo($"You have found {z.Name}. A shard of the Arcanum lies within its depths.");
     }
 
     /// <summary>Flush a dirty save at most once per AutosaveIntervalSec. Keeps the
@@ -550,6 +588,15 @@ public partial class ExpeditionManager : Node2D
         if (@event is InputEventKey { Pressed: true, Keycode: Key.K })
         {
             TriggerRoamerEncounter();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        // V: [DEBUG] teleport to the nearest unfinished shard vault (gate, or its
+        // sanctum once the guardian is felled) and trigger arrival — P4 testing.
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.V })
+        {
+            DebugTeleportToVault();
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -1056,6 +1103,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
         }
 
+        // P4: shard sub-region tiles carry NO POI, so handle them BEFORE the
+        // POIType early-return. Gate -> guardian; sanctum (post-clear) -> collect.
+        if (TryHandleShardZone(coord))
+            return;
+
         if (hex.POI == OverworldHex.POIType.None || hex.POIConsumed)
             return;
 
@@ -1185,7 +1237,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _scoutPanel.Show(encounterDef, hex.Terrain.ToString(), stepCost);
     }
 
-    private void CommitCombat(Vector2I hexCoord, EncounterDefinition encounterDef, string terrainType)
+    private void CommitCombat(Vector2I hexCoord, EncounterDefinition encounterDef, string terrainType, string guardianKey = "")
     {
         var router = EncounterRouter.Instance;
         if (router == null)
@@ -1209,6 +1261,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // every later ordinary win re-emits patrol_slain.
         router.SavedCombatWasPatrolAmbush = false;
         router.SavedCombatPatrolArchmageId = "";
+        router.SavedCombatGuardianKey = guardianKey;
 
         if (_factionManager != null)
         {
@@ -1341,6 +1394,32 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
         else if (router.CombatWon)
         {
+            // Fragment guardian felled → the trial is passed (permanent ledger flag).
+            if (!string.IsNullOrEmpty(router.SavedCombatGuardianKey))
+            {
+                string gk = router.SavedCombatGuardianKey;
+                router.SavedCombatGuardianKey = "";
+                var gsave = SaveManager.ActiveSave;
+                if (gsave?.Ledger != null)
+                {
+                    var gBefore = QuestNotifier.Snapshot(gsave);
+                    string gflag = $"{gk}_trial_passed";
+                    if (!gsave.Ledger.MetaNarrativeFlags.Contains(gflag))
+                    {
+                        gsave.Ledger.MetaNarrativeFlags.Add(gflag);
+                        SaveManager.MarkDirty();
+                    }
+                    // P4: mirror the pass onto the matching shard zone so its
+                    // sanctum opens for collection.
+                    if (_world?.ShardZones != null)
+                        foreach (var sz in _world.ShardZones)
+                            if (sz.FragmentKey == gk) { sz.GuardianCleared = true; break; }
+                    foreach (var qt in QuestNotifier.NotifyNew(gBefore, gsave))
+                        _toasts?.Push(qt.Text, qt.Kind);
+                }
+                _toasts?.Push("The guardian falls — the way to the fragment is open.", QuestToastKind.Progress);
+            }
+
             GoldEarned += router.GoldReward;
             SplinterEarned += router.SplinterReward;
             EncountersWon++;
@@ -1496,6 +1575,124 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         },
     };
 
+    /// <summary>P4: standing on a shard sub-region tile. GATE (guardian not yet
+    /// felled) -> launch the guardian Boss (fragment key doubles as guardian key,
+    /// so the combat-return handler stamps &lt;key&gt;_trial_passed + GuardianCleared).
+    /// SANCTUM (guardian felled, shard not taken) -> collect the shard. Returns true
+    /// when the tile was a shard-zone trigger.</summary>
+    private bool TryHandleShardZone(Vector2I coord)
+    {
+        if (_world?.ShardZones == null)
+            return false;
+        if (!_window.TryLocalToWorld(coord, out int col, out int row))
+            return false;
+        var z = _world.ShardZoneAt(col, row);
+        if (z == null)
+            return false;
+
+        if (col == z.GateX && row == z.GateY && !z.GuardianCleared)
+        {
+            if (!_grid.Hexes.TryGetValue(coord, out var ghex))
+                return false;
+            ShowInfo($"The heart of {z.Name} is guarded. Its warden stirs.");
+            LaunchGuardianCombat(z.FragmentKey, ghex.Terrain);
+            return true;
+        }
+
+        if (col == z.SanctumX && row == z.SanctumY && z.GuardianCleared && !z.ShardCollected)
+        {
+            CollectShard(z);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>P4: take the shard from a cleared sanctum — permanent
+    /// fragment_&lt;key&gt;_collected, convert the vault centre to a staging point
+    /// (the vault becomes a forward base), bump host-kingdom influence, notify.
+    /// Idempotent. Staging is added inline: a vault centre carries no POI, so the
+    /// POI-gated GrantStagingPointAtWorld does not apply — this parallels its
+    /// core.</summary>
+    private void CollectShard(ShardZone z)
+    {
+        if (z.ShardCollected)
+            return;
+        z.ShardCollected = true;
+
+        var save = SaveManager.ActiveSave;
+        var before = QuestNotifier.Snapshot(save);
+        string flag = $"fragment_{z.FragmentKey}_collected";
+        if (save?.Ledger != null && !save.Ledger.MetaNarrativeFlags.Contains(flag))
+            save.Ledger.MetaNarrativeFlags.Add(flag);
+
+        bool already = false;
+        foreach (var sp in _world.StagingPoints)
+            if (sp.X == z.CenterX && sp.Y == z.CenterY) { already = true; break; }
+        if (!already)
+        {
+            _world.StagingPoints.Add(new StagingPoint
+            {
+                X = z.CenterX,
+                Y = z.CenterY,
+                Name = z.Name,
+                Source = "Shard",
+                Available = true,
+            });
+            if (_world.TryIndex(z.CenterX, z.CenterY, out int cidx))
+            {
+                _world.Tiles[cidx].IsStagingPoint = true;
+                string kid = _world.Tiles[cidx].KingdomId;
+                var kingdoms = SaveManager.ActiveSave?.Cycle?.Kingdoms;
+                if (!string.IsNullOrEmpty(kid) && kingdoms != null &&
+                    kingdoms.TryGetValue(kid, out var ks))
+                    ks.PlayerInfluence = Mathf.Min(100, ks.PlayerInfluence + StagingInfluenceGain);
+            }
+        }
+
+        SaveManager.MarkDirty();
+        _toasts?.Push($"Shard recovered: {z.Name}.", QuestToastKind.Complete);
+        ShowInfo($"You take the shard from {z.Name}. Its power is yours — and the vault " +
+                 "is now a staging point.");
+        foreach (var qt in QuestNotifier.NotifyNew(before, save))
+            _toasts?.Push(qt.Text, qt.Kind);
+        UpdateUI();
+    }
+
+    /// <summary>[DEBUG] V: teleport to the nearest UNFINISHED shard vault — its GATE
+    /// while the guardian stands, else its SANCTUM — and trigger arrival, so P4's
+    /// gate/guardian/collect flow is testable without surviving the walk in.</summary>
+    private void DebugTeleportToVault()
+    {
+        if (_world?.ShardZones == null || _world.ShardZones.Count == 0)
+        { ShowInfo("[DEBUG] No shard zones in this world."); return; }
+
+        if (!_window.TryLocalToWorld(_party.CurrentCoord, out int pc, out int pr))
+        { pc = _window.StagingCol; pr = _window.StagingRow; }
+
+        ShardZone best = null;
+        int bestX = 0, bestY = 0, bestD = int.MaxValue;
+        foreach (var z in _world.ShardZones)
+        {
+            int tx, ty;
+            if (!z.GuardianCleared) { tx = z.GateX; ty = z.GateY; }
+            else if (!z.ShardCollected) { tx = z.SanctumX; ty = z.SanctumY; }
+            else continue;
+            int d = _world.HexDistance(pc, pr, tx, ty);
+            if (d < bestD) { bestD = d; best = z; bestX = tx; bestY = ty; }
+        }
+        if (best == null)
+        { ShowInfo("[DEBUG] All shard vaults are complete."); return; }
+
+        var local = _window.LocalOf(bestX, bestY);
+        RecenterWindow(local);
+        _party.Initialize(_grid, _fog, local);
+        WriteVisibleToWorld();
+        string what = !best.GuardianCleared ? "gate" : "sanctum";
+        ShowInfo($"[DEBUG] Teleported to {best.Name} {what} ({bestX},{bestY}).");
+        OnPartyArrived(local);
+    }
+
     private void TriggerNarrativeEncounter(OverworldHex hex, Vector2I coord)
     {
         string terrainName = hex.Terrain.ToString();
@@ -1527,11 +1724,72 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(encounter, choice, loreTerrain);
     }
 
+    /// <summary>Difficulty multiplier applied to fragment-guardian boss units.</summary>
+    private const float GuardianDifficultyMult = 1.6f;
+
+    /// <summary>Launch a fragment-guardian Boss combat. Winning sets
+    /// &lt;key&gt;_trial_passed (handled on combat return). Falls back to granting
+    /// the pass directly if combat can't be staged, so the arc never dead-ends.</summary>
+    private void LaunchGuardianCombat(string key, OverworldHex.TerrainType terrain)
+    {
+        var def = BuildGuardianEncounter(key, terrain);
+        var router = EncounterRouter.Instance;
+        if (router == null || def == null || def.Enemies.Count == 0)
+        {
+            var save = SaveManager.ActiveSave;
+            if (save?.Ledger != null && !save.Ledger.MetaNarrativeFlags.Contains($"{key}_trial_passed"))
+            {
+                save.Ledger.MetaNarrativeFlags.Add($"{key}_trial_passed");
+                SaveManager.MarkDirty();
+            }
+            ShowInfo("The guardian does not stir. You pass unopposed.");
+            UpdateUI();
+            return;
+        }
+        ShowInfo("The guardian rises to bar your way!");
+        CommitCombat(_party.CurrentCoord, def, terrain.ToString(), key);
+    }
+
+    /// <summary>A themed Boss-tier composition per fragment (archetypes resolved
+    /// through UnitRegistry; scaled by GuardianDifficultyMult).</summary>
+    private EncounterDefinition BuildGuardianEncounter(string key, OverworldHex.TerrainType terrain)
+    {
+        string[] arch = key switch
+        {
+            "primal"    => new[] { "Brute", "Wizard", "Wizard" },
+            "axiom"     => new[] { "Wizard", "Wizard", "Defender" },
+            "moment"    => new[] { "Ranger", "Wizard", "Ranger" },
+            "binding"   => new[] { "Wizard", "Wizard", "Soldier" },
+            "schema"    => new[] { "Defender", "Brute", "Soldier" },
+            "deathless" => new[] { "Brute", "Wizard", "Defender" },
+            _           => new[] { "Brute", "Wizard", "Soldier" },
+        };
+        var def = new EncounterDefinition
+        {
+            Id = $"guardian_{key}",
+            DisplayName = "The Warden",
+            Tier = EncounterTier.Boss,
+            RegionId = StagingTemplateRegion(),
+            TerrainType = terrain.ToString(),
+            DifficultyMult = GuardianDifficultyMult,
+        };
+        foreach (var a in arch)
+            if (UnitRegistry.TryResolveId(a, out var uid))
+                def.Enemies.Add(new EnemySlot(uid, GuardianDifficultyMult));
+        return def;
+    }
+
     private void OnNarrativeCompleted(NarrativeEncounterData encounter, EncounterChoice choice,
                                       OverworldHex.TerrainType terrain)
     {
         if (choice == null)
             return;
+
+        if (!string.IsNullOrEmpty(choice.LaunchGuardian))
+        {
+            LaunchGuardianCombat(choice.LaunchGuardian, terrain);
+            return;
+        }
 
         var questBefore = QuestNotifier.Snapshot(SaveManager.ActiveSave);
 

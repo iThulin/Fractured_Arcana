@@ -68,13 +68,10 @@
         "spellReward": "scrying_lens"
       },
       {
-        "label": "Brute-force the catalogue by exhaustion",
-        "resultText": "You read until your eyes bleed and your certainty breaks, and force a path by sheer refusal to stop. It works. It costs.",
+        "label": "Face the guardian in battle",
+        "resultText": "It will not yield to words. So be it.",
         "requiredFlag": "axiom_location_known",
-        "setMetaFlags": [
-          "axiom_trial_passed"
-        ],
-        "hpDelta": -20
+        "launchGuardian": "axiom"
       },
       {
         "label": "Withdraw and gather strength",
@@ -181,13 +178,10 @@
         "spellReward": "retrace"
       },
       {
-        "label": "Outlast the loop by counting it down",
-        "resultText": "You mark each turn of the minute in blood on your palm until the count means more than the loop, and break out — older than you were three heartbeats ago.",
+        "label": "Face the guardian in battle",
+        "resultText": "It will not yield to words. So be it.",
         "requiredFlag": "moment_location_known",
-        "setMetaFlags": [
-          "moment_trial_passed"
-        ],
-        "hpDelta": -20
+        "launchGuardian": "moment"
       },
       {
         "label": "Withdraw and gather strength",
@@ -295,13 +289,10 @@
         "spellReward": "true_names"
       },
       {
-        "label": "Refuse the song until it frays",
-        "resultText": "You hold your own name against the offer and do not let go, though holding it tears something. The weave frays enough to slip through.",
+        "label": "Face the guardian in battle",
+        "resultText": "It will not yield to words. So be it.",
         "requiredFlag": "binding_location_known",
-        "setMetaFlags": [
-          "binding_trial_passed"
-        ],
-        "hpDelta": -20
+        "launchGuardian": "binding"
       },
       {
         "label": "Withdraw and gather strength",
@@ -409,13 +400,10 @@
         "spellReward": "clockwork_skimmer"
       },
       {
-        "label": "Wedge the works and squeeze past",
-        "resultText": "You jam a spar into the gearing and slip through the stalled housing before it screams and shakes itself free. It bites you on the way.",
+        "label": "Face the guardian in battle",
+        "resultText": "It will not yield to words. So be it.",
         "requiredFlag": "schema_location_known",
-        "setMetaFlags": [
-          "schema_trial_passed"
-        ],
-        "hpDelta": -20
+        "launchGuardian": "schema"
       },
       {
         "label": "Withdraw and gather strength",
@@ -523,13 +511,10 @@
         "spellReward": "speak_fallen"
       },
       {
-        "label": "Endure the Hollow's toll and press on",
-        "resultText": "The dead take their toll in living warmth, and you pay it, step by frozen step, until you stand where you meant to. It nearly takes everything.",
+        "label": "Face the guardian in battle",
+        "resultText": "It will not yield to words. So be it.",
         "requiredFlag": "deathless_location_known",
-        "setMetaFlags": [
-          "deathless_trial_passed"
-        ],
-        "hpDelta": -25
+        "launchGuardian": "deathless"
       },
       {
         "label": "Withdraw and gather strength",

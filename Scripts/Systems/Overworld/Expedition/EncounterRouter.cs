@@ -49,6 +49,10 @@ public partial class EncounterRouter : Node
     /// generic pursuer).</summary>
     public string SavedCombatPatrolArchmageId = "";
 
+    /// <summary>Non-empty when the pending combat is a fragment guardian (the
+    /// fragment key). On a win, ExpeditionManager sets &lt;key&gt;_trial_passed.</summary>
+    public string SavedCombatGuardianKey = "";
+
     // ── Seed for deterministic map regeneration after combat ────────────
     public int SavedRunSeed;
     public bool HasSavedSeed = false;

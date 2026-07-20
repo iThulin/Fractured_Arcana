@@ -59,6 +59,11 @@ public class EncounterChoice
     /// reset (convergence.docx). Read by quest objectives and choice gating.</summary>
     public List<string> SetMetaFlags = new();
 
+    /// <summary>Fragment key: when set, choosing this option launches a Boss-tier
+    /// guardian combat instead of resolving normally; winning sets
+    /// &lt;key&gt;_trial_passed (the fragment-setpiece climax).</summary>
+    public string LaunchGuardian = "";
+
     // Phase 3+ gating
     public string RequiredFlag = "";
     public string RequiredSchool = "";
