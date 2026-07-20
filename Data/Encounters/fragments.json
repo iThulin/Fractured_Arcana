@@ -1,0 +1,26 @@
+{
+  "site": [
+    { "text": "a cairn of black stones, half-sunk", "terrainTags": ["Snow", "Tundra"], "regionTags": [] },
+    { "text": "a sinkhole rimmed with pale reeds", "terrainTags": ["Swamp", "Marsh"], "regionTags": [] },
+    { "text": "a toppled waystone, its runes scoured", "terrainTags": ["Ruins", "ArcaneGround"], "regionTags": [] },
+    { "text": "a ring of wind-bent trees", "terrainTags": ["Forest"], "regionTags": [] },
+    { "text": "a scorched hollow where nothing grows", "terrainTags": ["Volcanic"], "regionTags": [] },
+    { "text": "a dry wash littered with sun-bleached bone", "terrainTags": ["Desert"], "regionTags": [] },
+    { "text": "a shepherd's shelter, its roof long gone", "terrainTags": ["Grassland", "Hills"], "regionTags": [] },
+    { "text": "a lonely marker leaning off the path", "terrainTags": [], "regionTags": [] }
+  ],
+  "detail": [
+    { "text": "The air is wrong here — too still, too watchful.", "terrainTags": [], "regionTags": [] },
+    { "text": "Old offerings rot in a niche, some barely cold.", "terrainTags": [], "regionTags": [] },
+    { "text": "Frost rimes every surface though the season forbids it.", "terrainTags": ["Snow", "Tundra"], "regionTags": [] },
+    { "text": "The mud holds footprints that lead only inward.", "terrainTags": ["Swamp", "Marsh"], "regionTags": [] },
+    { "text": "A faint sigil-hum rises as you step closer.", "terrainTags": ["Ruins", "ArcaneGround"], "regionTags": [] },
+    { "text": "Ash sifts down from a sky with no cloud.", "terrainTags": ["Volcanic"], "regionTags": [] }
+  ],
+  "complication": [
+    { "text": "Something watches from just past the light.", "terrainTags": [], "regionTags": [] },
+    { "text": "A cold thread of dread says not everything here is dead.", "terrainTags": [], "regionTags": [] },
+    { "text": "Fresh tracks say you are not the first here today.", "terrainTags": [], "regionTags": [] },
+    { "text": "A resonance that matches no known ley-line pulls at your teeth.", "terrainTags": ["Ruins", "ArcaneGround"], "regionTags": [] }
+  ]
+}

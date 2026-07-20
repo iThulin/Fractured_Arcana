@@ -1,0 +1,89 @@
+[
+  {
+    "id": "q_sealed_letter",
+    "title": "A Debt in Transit",
+    "category": "Story",
+    "permanent": false,
+    "summary": "A dying traveller pressed a sealed letter into your hands. Someone, somewhere, is waiting for it.",
+    "objectives": [
+      {
+        "text": "Take the stranger's sealed letter",
+        "flag": "carrying_sealed_letter"
+      },
+      {
+        "text": "Deliver it to the addressee at the shrine",
+        "flag": "letter_delivered"
+      }
+    ]
+  },
+  {
+    "id": "q_extend_reach",
+    "title": "Extend the Guild's Reach",
+    "category": "Expansion",
+    "permanent": false,
+    "summary": "Footholds win the frontier. Secure staging points so future expeditions strike deeper into the unknown.",
+    "objectives": [
+      {
+        "text": "Secure your first staging point",
+        "counter": "outposts_secured",
+        "counterTarget": 1
+      },
+      {
+        "text": "Hold three secured sites across the world",
+        "counter": "outposts_secured",
+        "counterTarget": 3
+      }
+    ]
+  },
+  {
+    "id": "q_gather_lore",
+    "title": "Chronicle the Unknown",
+    "category": "Expansion",
+    "permanent": false,
+    "summary": "Knowledge is the guild's true treasury. Record what the world has forgotten.",
+    "objectives": [
+      {
+        "text": "Uncover three fragments of lore",
+        "counter": "lore_count",
+        "counterTarget": 3
+      }
+    ]
+  },
+  {
+    "id": "q_sixfold_seal",
+    "title": "Restore the Sixfold Seal",
+    "category": "Fragments",
+    "permanent": true,
+    "summary": "Six archmages bound the Outer Void behind a Sixfold Seal, one fragment to each school. The seal is failing. Recover all six before the Convergence unmakes the world.",
+    "objectives": [
+      {
+        "text": "Recover the six Seal Fragments",
+        "counter": "fragments_collected",
+        "counterTarget": 6
+      }
+    ]
+  },
+  {
+    "id": "q_primal_shard",
+    "title": "The Primal Shard",
+    "category": "Fragments",
+    "permanent": true,
+    "summary": "A rumour surfaced in a drowned archive: the Elementalist's fragment sleeps in the heart of a storm that never ends.",
+    "requiredLore": "sunken_concord_fate",
+    "objectives": [
+      {
+        "text": "Learn of the Shard's binding (drowned archive)",
+        "lore": "sunken_concord_fate"
+      },
+      {
+        "text": "Find the eternal storm at the world's edge",
+        "flag": "primal_location_known"
+      },
+      {
+        "text": "Recover the Primal Shard",
+        "flag": "fragment_primal_collected"
+      }
+    ],
+    "rewardLore": "the_primal_shard_recovered"
+  }
+]

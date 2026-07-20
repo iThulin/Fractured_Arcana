@@ -195,6 +195,10 @@ public class GuildSaveData
     { get => Ledger.UnlockedLoreEntries; set => Ledger.UnlockedLoreEntries = value; }
 
     [JsonIgnore]
+    public List<string> CompletedQuestIds
+    { get => Ledger.CompletedQuestIds; set => Ledger.CompletedQuestIds = value; }
+
+    [JsonIgnore]
     public List<string> CompletedEvents
     { get => Cycle.CompletedEvents; set => Cycle.CompletedEvents = value; }
 

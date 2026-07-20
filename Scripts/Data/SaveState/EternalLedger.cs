@@ -142,6 +142,12 @@ public class EternalLedger
 
     public List<string> UnlockedLoreEntries = new();
 
+    /// <summary>Quest ids permanently completed (cross-cycle arcs — the fragment
+    /// spine, the Convergence). Cycle-scoped quests are NOT recorded here; they
+    /// derive completion live and reset with the timeline. Stamped by
+    /// QuestTracker.SyncCompletions.</summary>
+    public List<string> CompletedQuestIds = new();
+
     // ── The honored dead ─────────────────────────────────────────────────
     /// <summary>
     /// Every unit death, every timeline. The loom remembers the dead even

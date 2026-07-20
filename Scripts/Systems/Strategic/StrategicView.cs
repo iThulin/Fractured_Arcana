@@ -36,6 +36,7 @@ public enum StrategicLens
     Political,
     Terrain,
     Corruption,
+    Reach,
 }
 
 public partial class StrategicView : Node2D
@@ -305,6 +306,7 @@ public partial class StrategicView : Node2D
         AddLensButton(row, "Political", StrategicLens.Political);
         AddLensButton(row, "Terrain", StrategicLens.Terrain);
         AddLensButton(row, "Corruption", StrategicLens.Corruption);
+        AddLensButton(row, "Reach", StrategicLens.Reach);
 
         UpdateLensButtons();
     }
@@ -777,6 +779,8 @@ public partial class StrategicView : Node2D
                 return TerrainLensColor(t);
             case StrategicLens.Corruption:
                 return CorruptionLensColor(t);
+            case StrategicLens.Reach:
+                return ReachLensColor(t);
             default:
                 return PoliticalLensColor(t);
         }
@@ -791,6 +795,8 @@ public partial class StrategicView : Node2D
                 return TerrainColorOf(t);
             case StrategicLens.Corruption:
                 return CorruptionLensColor(t);
+            case StrategicLens.Reach:
+                return ReachLensColor(t);
             default:
                 bool ownedLand = t.IsLand && !string.IsNullOrEmpty(t.KingdomId);
                 return ownedLand ? KingdomColor(t.KingdomId) : TerrainColorOf(t);
@@ -855,6 +861,43 @@ public partial class StrategicView : Node2D
             ? clean.Lerp(mid, k / 0.5f)
             : mid.Lerp(hot, (k - 0.5f) / 0.5f);
     }
+
+    // ── Reach lens: the guild's footprint. Each territory's STANDING colour
+    //    (Hostile red -> Neutral slate -> Allied green) fills in from the void
+    //    in proportion to PlayerInfluence (0-100), so reach you've built reads
+    //    bright and reach you haven't stays dark. Secured staging points also
+    //    render as gold beacons on top (BuildStagingMarkers). ──
+    private Color ReachLensColor(WorldTile t)
+    {
+        if (t.IsWater)
+            return UITheme.TerrainWater.Darkened(0.55f);
+
+        int influence = 0;
+        var stance = KingdomStance.Neutral;
+        if (!string.IsNullOrEmpty(t.KingdomId))
+        {
+            if (_kingdoms != null && _kingdoms.TryGetValue(t.KingdomId, out var ks))
+                influence = Mathf.Clamp(ks.PlayerInfluence, 0, 100);
+            var cyc = SaveManager.ActiveSave?.Cycle;
+            if (cyc != null)
+                stance = CouncilQueries.StanceFor(cyc, t.KingdomId);
+        }
+
+        Color voidDim = new Color(0.10f, 0.10f, 0.13f);
+        float f = influence / 100f;
+        return voidDim.Lerp(StanceColor(stance), f);
+    }
+
+    /// <summary>Standing -> colour ramp for the Reach lens.</summary>
+    private static Color StanceColor(KingdomStance s) => s switch
+    {
+        KingdomStance.Hostile    => new Color(0.75f, 0.24f, 0.22f),
+        KingdomStance.Unfriendly => new Color(0.80f, 0.46f, 0.22f),
+        KingdomStance.Neutral    => new Color(0.48f, 0.50f, 0.55f),
+        KingdomStance.Friendly   => new Color(0.28f, 0.62f, 0.60f),
+        KingdomStance.Allied     => new Color(0.30f, 0.72f, 0.40f),
+        _                        => new Color(0.48f, 0.50f, 0.55f),
+    };
 
     private static Color TerrainColor(OverworldHex.TerrainType t) => t switch
     {
@@ -1202,6 +1245,7 @@ public partial class StrategicView : Node2D
         AddLensButton(lensRow, "Political", StrategicLens.Political);
         AddLensButton(lensRow, "Terrain", StrategicLens.Terrain);
         AddLensButton(lensRow, "Corruption", StrategicLens.Corruption);
+        AddLensButton(lensRow, "Reach", StrategicLens.Reach);
         UpdateLensButtons();
 
         UpdateDebugInfo();

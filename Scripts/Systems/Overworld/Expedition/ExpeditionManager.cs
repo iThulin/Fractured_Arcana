@@ -115,6 +115,8 @@ public partial class ExpeditionManager : Node2D
     private FogOfWarManager _fog;
     private OverworldPartyToken _party;
     private OverworldFactionManager _factionManager;
+    private RoamerToken _roamer;
+    private bool _roamerSpent;
     private Camera2D _camera;
     private NarrativeEncounterPanel _narrativePanel;
     private ScoutReportPanel _scoutPanel;
@@ -305,6 +307,8 @@ public partial class ExpeditionManager : Node2D
         _party.PartyMoved += OnPartyMoved;
         _party.PartyArrived += OnPartyArrived;
 
+        SpawnRoamer();
+
         CenterCamera();
         UpdateUI();
     }
@@ -403,6 +407,10 @@ public partial class ExpeditionManager : Node2D
 
 /// <summary>Securing a staging-granting POI adds a new launch point to the
     /// world. Called when such a POI is resolved.</summary>
+    /// <summary>Influence granted to the host kingdom when a site is secured
+    /// (the strategic Reach-lens ratchet).</summary>
+    private const int StagingInfluenceGain = 20;
+
     private void GrantStagingPointAt(Vector2I local)
     {
         if (!_window.TryLocalToWorld(local, out int col, out int row))
@@ -440,7 +448,17 @@ public partial class ExpeditionManager : Node2D
             Available = true,
         });
         if (_world.TryIndex(col, row, out int idx))
+        {
             _world.Tiles[idx].IsStagingPoint = true;
+
+            // Reach ratchet: securing a site grows guild influence over the host
+            // kingdom, so the strategic Reach lens changes because you played.
+            string kid = _world.Tiles[idx].KingdomId;
+            var kingdoms = SaveManager.ActiveSave?.Cycle?.Kingdoms;
+            if (!string.IsNullOrEmpty(kid) && kingdoms != null &&
+                kingdoms.TryGetValue(kid, out var ks))
+                ks.PlayerInfluence = Mathf.Min(100, ks.PlayerInfluence + StagingInfluenceGain);
+        }
 
         SaveManager.MarkDirty();
         ShowInfo($"New staging point secured: {name}. Future expeditions can launch from here.");
@@ -520,6 +538,14 @@ public partial class ExpeditionManager : Node2D
             return;
         }
 
+        // K: [DEBUG] force the roaming-caravan opportunity (living-map test).
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.K })
+        {
+            TriggerRoamerEncounter();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (!PlayerSession.DebugGrantStagingArmed)
             return;          
         if (@event is InputEventKey { Pressed: true, Keycode: Key.G })
@@ -534,7 +560,8 @@ public partial class ExpeditionManager : Node2D
     //    scarce to reach on foot. Active only in DebugMode (via _UnhandledInput).
     private static readonly string[] _debugChainIds =
         { "lost_traveler", "sealed_letter_delivery", "grateful_courier",
-          "armory_cache", "wilds_companion", "free_charter_envoy", "vault_inscription" };
+          "armory_cache", "wilds_companion", "free_charter_envoy", "vault_inscription",
+          "assembled_wayside" };
     private int _debugChainIdx;
 
     /// <summary>[DEBUG] Summon the next chain encounter directly — ignores
@@ -557,9 +584,14 @@ public partial class ExpeditionManager : Node2D
         var save = SaveManager.ActiveSave;
         System.Func<string, bool> hasFlag = null;
         if (save != null) hasFlag = save.HasFlag;
-        _narrativePanel.ShowEncounter(enc, hasFlag, save?.Cycle?.SelectedSchool, GoldEarned);
+        var dbgTerrain = OverworldHex.TerrainType.Grassland;
+        if (_party != null && _grid != null &&
+            _grid.Hexes.TryGetValue(_party.CurrentCoord, out var dbgHex))
+            dbgTerrain = dbgHex.Terrain;
+        var shownDbg = EncounterAssembler.ForDisplay(enc, dbgTerrain, StagingTemplateRegion());
+        _narrativePanel.ShowEncounter(shownDbg, hasFlag, save?.Cycle?.SelectedSchool, GoldEarned);
         _narrativePanel.OnCompleted =
-            (choice) => OnNarrativeCompleted(enc, choice, OverworldHex.TerrainType.Grassland);
+            (choice) => OnNarrativeCompleted(enc, choice, dbgTerrain);
 
         ShowInfo($"[DEBUG] Summoned '{id}'. Press N for the next link, Shift+N to reset.");
     }
@@ -820,6 +852,16 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // Patrols tick once per step.
         if (_factionManager != null && !ExpeditionComplete)
             _factionManager.Tick(_party.CurrentCoord);
+
+        // Living map: the roaming caravan wanders once per step and offers a
+        // one-time opportunity when it crosses the party's path.
+        if (_roamer != null && !_roamerSpent && !ExpeditionComplete &&
+            GodotObject.IsInstanceValid(_roamer))
+        {
+            bool contact = _roamer.IsOnSameHex(_party.CurrentCoord);
+            if (!contact) { _roamer.Tick(); contact = _roamer.IsOnSameHex(_party.CurrentCoord); }
+            if (contact) TriggerRoamerEncounter();
+        }
 
         // Durability flush — THROTTLED. The cycle file is large (the whole world
         // array), so saving every move stutters. Autosave at most once every few
@@ -1354,6 +1396,81 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     // Narrative / Negotiation (lifted; world-sourced ids)
     // ════════════════════════════════════════════════════════════════════
 
+    /// <summary>Living-map (discovery_loop_spec Layer E): spawn one non-hostile
+    /// roaming caravan a few hexes off, so something other than patrols moves and
+    /// the map can generate a moment you didn't author. Once per expedition.</summary>
+    private void SpawnRoamer()
+    {
+        if ((_roamer != null && GodotObject.IsInstanceValid(_roamer)) || _roamerSpent)
+            return;
+        if (_grid == null || _party == null)
+            return;
+
+        var start = _party.CurrentCoord;
+        var candidates = new System.Collections.Generic.List<Vector2I>();
+        foreach (var kvp in _grid.Hexes)
+        {
+            int d = _grid.Distance(start, kvp.Key);
+            if (d < 6 || d > 12)
+                continue;
+            var hex = kvp.Value;
+            if (hex.IsWater || hex.Terrain == OverworldHex.TerrainType.Mountain)
+                continue;
+            candidates.Add(kvp.Key);
+        }
+        if (candidates.Count == 0)
+            return;
+
+        var spawn = candidates[(int)(GD.Randi() % (uint)candidates.Count)];
+        _roamer = new RoamerToken { Name = "Roamer" };
+        _grid.AddChild(_roamer);
+        _roamer.Initialize(_grid, spawn, (int)GD.Randi());
+        GD.Print($"[Roamer] Caravan spawned at {spawn} (dist {_grid.Distance(start, spawn)} from party).");
+    }
+
+    /// <summary>Contact with the roaming caravan: a one-time opportunity encounter.
+    /// Despawns the caravan afterward so it does not re-offer.</summary>
+    private void TriggerRoamerEncounter()
+    {
+        _roamerSpent = true;
+        if (_roamer != null && GodotObject.IsInstanceValid(_roamer))
+            _roamer.QueueFree();
+        _roamer = null;
+
+        var enc = BuildCaravanEncounter();
+        var save = SaveManager.ActiveSave;
+        System.Func<string, bool> hasFlag = null;
+        if (save != null) hasFlag = save.HasFlag;
+        var terr = (_party != null && _grid != null &&
+                    _grid.Hexes.TryGetValue(_party.CurrentCoord, out var ph))
+            ? ph.Terrain : OverworldHex.TerrainType.Grassland;
+        _narrativePanel.ShowEncounter(enc, hasFlag, save?.Cycle?.SelectedSchool, GoldEarned);
+        _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(enc, choice, terr);
+        ShowInfo("A caravan crosses your path.");
+    }
+
+    private static NarrativeEncounterData BuildCaravanEncounter() => new NarrativeEncounterData
+    {
+        Id = "roaming_caravan",
+        Title = "A Caravan on the Road",
+        Body = "A string of laden mules and creaking carts crests the rise \u2014 a merchant column far " +
+               "from any road you'd expect. The lead driver raises an open hand. Not a threat; an offer.",
+        Choices = new System.Collections.Generic.List<EncounterChoice>
+        {
+            new EncounterChoice { Label = "Trade for supplies (20 gold)",
+                ResultText = "Dried rations and clean water change hands. Your party travels easier.",
+                GoldDelta = -20, HPDelta = 20, RequiredGold = 20 },
+            new EncounterChoice { Label = "Buy a warding cloak (30 gold)",
+                ResultText = "The driver produces a travel-worn but sound warding cloak for the armory.",
+                GoldDelta = -30, ItemReward = "warding_cloak", RequiredGold = 30 },
+            new EncounterChoice { Label = "Buy word of the road ahead (5 gold)",
+                ResultText = "They trade rumor for coin \u2014 a shortcut, and a warning about what waits on it.",
+                GoldDelta = -5, StepDelta = 4, RequiredGold = 5 },
+            new EncounterChoice { Label = "Wave them on",
+                ResultText = "The column rolls past and is gone. The road feels emptier after." },
+        },
+    };
+
     private void TriggerNarrativeEncounter(OverworldHex hex, Vector2I coord)
     {
         string terrainName = hex.Terrain.ToString();
@@ -1375,8 +1492,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var gateSave = SaveManager.ActiveSave;
         System.Func<string, bool> hasFlag = null;
         if (gateSave != null) hasFlag = gateSave.HasFlag;
+        var shownEnc = EncounterAssembler.ForDisplay(encounter, hex.Terrain, StagingTemplateRegion());
         _narrativePanel.ShowEncounter(
-            encounter,
+            shownEnc,
             hasFlag,
             gateSave?.Cycle?.SelectedSchool,
             GoldEarned);

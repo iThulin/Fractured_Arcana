@@ -153,7 +153,7 @@ public partial class CampusScreen : Control
         tabBar.AddThemeConstantOverride("separation", 0);
         AddChild(tabBar);
 
-        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records" };
+        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests" };
         _tabButtons = new Button[tabNames.Length];
         for (int i = 0; i < tabNames.Length; i++)
         {
@@ -198,6 +198,7 @@ public partial class CampusScreen : Control
         BuildArmoryTab((ScrollContainer)_tabPanels[4]);
         BuildTrainingTab((ScrollContainer)_tabPanels[5]);
         BuildRecordsTab((ScrollContainer)_tabPanels[6]);
+        BuildQuestsTab((ScrollContainer)_tabPanels[7]);
         GD.Print($"CampusScreen: ActiveSave={SaveManager.ActiveSave?.GuildName ?? "NULL"}, " +
                  $"Gold={SaveManager.ActiveSave?.Gold ?? -1}, " +
                  $"Runs={SaveManager.ActiveSave?.TotalRuns ?? -1}");
@@ -238,6 +239,9 @@ public partial class CampusScreen : Control
                 break;
             case 6:
                 RefreshRecordsTab();
+                break;
+            case 7:
+                RefreshQuestsTab();
                 break;
         }
     }
@@ -2522,6 +2526,8 @@ public partial class CampusScreen : Control
     private VBoxContainer _recordsContainer;
     private Label _recordsSummaryLabel;
     private VBoxContainer _loreContainer;
+    private VBoxContainer _questContainer;
+    private Label _questSummaryLabel;
 
     private void BuildRecordsTab(ScrollContainer scroll)
     {
@@ -2544,17 +2550,11 @@ public partial class CampusScreen : Control
 
         _recordsContainer = MakeVBox(8);
         layout.AddChild(_recordsContainer);
-
-        layout.AddChild(new HSeparator());
-        AddSectionHeader(layout, "Discovered Lore");
-        _loreContainer = MakeVBox(6);
-        layout.AddChild(_loreContainer);
     }
 
     private void RefreshRecordsTab()
     {
         if (_recordsContainer == null) return;
-        RefreshLoreSection();
         foreach (var child in _recordsContainer.GetChildren())
             child.QueueFree();
 
@@ -2681,6 +2681,149 @@ public partial class CampusScreen : Control
             if (parts[i].Length > 0)
                 parts[i] = char.ToUpper(parts[i][0]) + parts[i].Substring(1);
         return string.Join(" ", parts);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Quests Tab — story log + lore codex (drives the fragment/Convergence spine
+    // and the expansion arcs; status computed live by QuestTracker).
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void BuildQuestsTab(ScrollContainer scroll)
+    {
+        var margins = MakeMargins(32, 20);
+        scroll.AddChild(margins);
+        var layout = MakeVBox(12);
+        margins.AddChild(layout);
+
+        AddSectionHeader(layout, "Quests");
+
+        _questSummaryLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _questSummaryLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        _questSummaryLabel.AddThemeColorOverride("font_color", UITheme.NegotiationNpcColor);
+        layout.AddChild(_questSummaryLabel);
+
+        layout.AddChild(new HSeparator());
+
+        _questContainer = MakeVBox(10);
+        layout.AddChild(_questContainer);
+
+        // Lore codex — consolidated here from the Records tab.
+        layout.AddChild(new HSeparator());
+        AddSectionHeader(layout, "Hall of Lore");
+        _loreContainer = MakeVBox(6);
+        layout.AddChild(_loreContainer);
+    }
+
+    private void RefreshQuestsTab()
+    {
+        if (_questContainer == null) return;
+
+        var save = SaveManager.ActiveSave;
+        if (save != null) QuestTracker.SyncCompletions(save);
+        RefreshLoreSection();
+
+        foreach (var child in _questContainer.GetChildren())
+            child.QueueFree();
+
+        if (save == null)
+        {
+            _questSummaryLabel.Text = "No guild loaded.";
+            return;
+        }
+
+        var quests = QuestLoader.LoadAll();
+        int active = 0, done = 0, locked = 0;
+        string[] cats = { "Story", "Expansion", "Fragments" };
+
+        foreach (var cat in cats)
+        {
+            var inCat = new System.Collections.Generic.List<QuestDefinition>();
+            foreach (var q in quests)
+                if (string.Equals(q.Category, cat, System.StringComparison.OrdinalIgnoreCase))
+                    inCat.Add(q);
+            if (inCat.Count == 0) continue;
+
+            var head = new Label { Text = cat.ToUpper() };
+            head.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            head.AddThemeColorOverride("font_color", UITheme.POINarrative);
+            _questContainer.AddChild(head);
+
+            foreach (var q in inCat)
+            {
+                var status = QuestTracker.StatusOf(q, save);
+                if (status == QuestStatus.Locked) locked++;
+                else if (status == QuestStatus.Complete) done++;
+                else active++;
+                AddQuestCard(_questContainer, q, status, save);
+            }
+        }
+
+        _questSummaryLabel.Text =
+            $"{done} complete  ·  {active} active  ·  {locked} undiscovered";
+    }
+
+    private void AddQuestCard(VBoxContainer parent, QuestDefinition q, QuestStatus status, GuildSaveData save)
+    {
+        var card = MakeVBox(3);
+        card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+
+        if (status == QuestStatus.Locked)
+        {
+            var rumor = new Label
+            {
+                Text = "❖  " + (q.Category == "Fragments"
+                    ? "A fragment rumour you have not yet uncovered."
+                    : "An undiscovered thread."),
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            rumor.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            rumor.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
+            card.AddChild(rumor);
+            parent.AddChild(card);
+            return;
+        }
+
+        string glyph = status == QuestStatus.Complete ? "✓" : "◆";
+        var title = new Label
+        {
+            Text = $"{glyph}  {q.Title}",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        title.AddThemeColorOverride("font_color",
+            status == QuestStatus.Complete ? UITheme.Gold : UITheme.TextPrimary);
+        card.AddChild(title);
+
+        if (!string.IsNullOrEmpty(q.Summary))
+        {
+            var sum = new Label { Text = q.Summary, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            sum.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+            sum.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
+            card.AddChild(sum);
+        }
+
+        foreach (var o in q.Objectives)
+        {
+            bool od = QuestTracker.ObjectiveDone(o, save);
+            string prog = "";
+            if (!string.IsNullOrEmpty(o.Counter))
+            {
+                var cp = QuestTracker.CounterProgress(o, save);
+                prog = $"  ({System.Math.Min(cp.have, cp.need)}/{cp.need})";
+            }
+            string mark = od ? "✓" : "○";
+            var line = new Label
+            {
+                Text = $"   {mark}  {o.Text}{prog}",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            line.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+            line.AddThemeColorOverride("font_color",
+                od ? UITheme.POINegotiation : UITheme.NegotiationHiddenTerm);
+            card.AddChild(line);
+        }
+
+        parent.AddChild(card);
     }
 
     private void AddSectionHeader(VBoxContainer parent, string text)

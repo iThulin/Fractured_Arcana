@@ -248,5 +248,25 @@
         "stepDelta": 1
       }
     ]
+  },
+  {
+    "id": "assembled_wayside",
+    "title": "A Wayside Find",
+    "body": "The path bends around {site}. {detail} {complication}",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Investigate closely",
+        "resultText": "You pick the place apart with care. It yields a little coin and a lot of unease.",
+        "goldDelta": 25,
+        "hpDelta": -5
+      },
+      {
+        "label": "Mark it and move on",
+        "resultText": "You note the spot for later and keep your distance.",
+        "stepDelta": 1
+      }
+    ]
   }
 ]
