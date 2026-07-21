@@ -36,12 +36,6 @@ public class CycleState
     /// <summary>1-based index of this cycle within the guild's loop history.</summary>
     public int CycleNumber = 1;
 
-    /// <summary>1-based year within THIS timeline. A fresh timeline starts at 1;
-    /// SaveManager.ContinueCampaign increments it when the player holds the timeline
-    /// past the Grand Conjunction instead of letting it unmake. See
-    /// claude/progression_persistence_model_v1.md.</summary>
-    public int CampaignYear = 1;
-
     // ── The astrological calendar ────────────────────────────────────────
     /// <summary>Phase / lunation / conjunction clock for this timeline.</summary>
     public CalendarState Calendar = new();

@@ -447,44 +447,6 @@ public static class SaveManager
         return ActiveSave;
     }
 
-    /// <summary>
-    /// CANONICAL: claude/progression_persistence_model_v1.md §4 — the "Continue"
-    /// (press-your-luck) transition. Unlike <see cref="BeginNewCycle"/>, which
-    /// unmakes the timeline for a fresh gen-1 world, this KEEPS the current timeline
-    /// (world, corruption, staging, deck, items, companions) and pushes it into the
-    /// next CampaignYear: the calendar clock resets and the world hardens (one
-    /// escalation pass). Nothing is archived and the deck is NOT reseeded. Defeat
-    /// and Bank both route through BeginNewCycle; Continue is the only path that
-    /// preserves the timeline.
-    /// </summary>
-    // TODO (SCOPE — Convergence victory-gating; progression_persistence_model_v1.md §4):
-    // Currently called from the UNCONDITIONAL Conjunction choice. When the Convergence
-    // outcome is wired, restrict Continue to victories (a defeat must route through
-    // BeginNewCycle instead). NOT YET SCOPED.
-    public static GuildSaveData ContinueCampaign()
-    {
-        if (ActiveSave == null || ActiveSlot < 0)
-        {
-            GD.PrintErr("SaveManager: No active save — cannot continue the campaign.");
-            return null;
-        }
-
-        var cycle = ActiveSave.Cycle;
-
-        // The timeline persists. Advance the year and reset only the clock.
-        cycle.CampaignYear += 1;
-        cycle.Calendar = new CalendarState();   // lunation 1, phase 0, no eclipses
-        cycle.PendingStraggleLunations = 0;     // a new year owes no straggle debt
-
-        // The world hardens (the forcing clock — progression doc §6).
-        CampaignEscalation.Apply(cycle);
-
-        Save();
-        GD.Print($"SaveManager: Timeline held into Year {cycle.CampaignYear} " +
-                 $"(cycle {cycle.CycleNumber}). The world hardens.");
-        return ActiveSave;
-    }
-
     private static void SeedDeckForSchool(GuildSaveData data, string school)
     {
         // CardDatabase must be loaded before this is called.

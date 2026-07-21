@@ -960,10 +960,6 @@ public partial class CampusScreen : Control
         // Archive the dead cycle and create the fresh one. Option A persistence is
         // automatic: BeginNewCycle leaves the ledger untouched, resets the cycle,
         // and re-seeds a starter deck for the chosen school.
-        // TODO (SCOPE — Convergence victory-gating; progression_persistence_model_v1.md §4):
-        // Outcome is HARDCODED "ConvergenceDefeat" — there is no real victory/defeat
-        // determination yet. Wire the actual Convergence result here so a win may lead to
-        // Continue and a loss forces the reset. NOT YET SCOPED.
         SaveManager.BeginNewCycle(school, "ConvergenceDefeat");
         PlayerSession.CycleEndedByConjunction = false;
         if (Enum.TryParse<CardSchool>(school, out var cs))

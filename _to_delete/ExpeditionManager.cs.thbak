@@ -1234,7 +1234,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // the tile's corruption level before the draw — same call shape, different def.
             encounterDef =
                 (arch != null
-                    ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
+                    ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, 1.0f)
                     : null)
                 ?? EncounterPoolLoader.Pick(regionId, tier, terrainType, _scaledDifficultyMult);
         }
@@ -1374,7 +1374,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _scaledDifficultyMult = DifficultyMultAt(coord);
         var encounterDef =
             (arch != null
-                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Skirmish, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
+                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Skirmish, terrainType, 1.0f)
                 : null)
             ?? EncounterPoolLoader.Pick(regionId, EncounterTier.Skirmish, terrainType, _scaledDifficultyMult);
         CommitCombat(coord, encounterDef, terrainType);
@@ -1789,11 +1789,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             "deathless" => new[] { "Brute", "Wizard", "Defender" },
             _           => new[] { "Brute", "Wizard", "Soldier" },
         };
-        // Capstone escalation (user ruling 2026-07-20 — scale both, shared knob):
-        // the shard guardian hardens with the timeline's threat like the rest of the
-        // world. Authored 1.6 base x the per-year threat scalar (x1.0 at Year 1).
-        float mult = GuardianDifficultyMult *
-                     CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle);
         var def = new EncounterDefinition
         {
             Id = $"guardian_{key}",
@@ -1801,11 +1796,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             Tier = EncounterTier.Boss,
             RegionId = StagingTemplateRegion(),
             TerrainType = terrain.ToString(),
-            DifficultyMult = mult,
+            DifficultyMult = GuardianDifficultyMult,
         };
         foreach (var a in arch)
             if (UnitRegistry.TryResolveId(a, out var uid))
-                def.Enemies.Add(new EnemySlot(uid, mult));
+                def.Enemies.Add(new EnemySlot(uid, GuardianDifficultyMult));
         return def;
     }
 
@@ -2618,11 +2613,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             2 => 1.25f,
             _ => 1.5f,   // tier 3+
         };
-        // Continue-campaign escalation: the timeline's accumulated threat hardens
-        // every region encounter (progression_persistence_model_v1.md §6). 1.0 in
-        // a fresh Year-1 timeline; +ThreatDifficultyStep per continued year.
-        float threatMult = CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle);
-        return regionMult * tierFactor * threatMult;
+        return regionMult * tierFactor;
     }
 
     /// <summary>K2 (§5b): territory tier (1–3) at a window-local tile — the
@@ -2940,7 +2931,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             var arch = RollArchmageAt(local); // same draw shape as OpenScoutReport
             encounterDef =
                 (arch != null
-                    ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Battle, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
+                    ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Battle, terrainType, 1.0f)
                     : null)
                 ?? EncounterPoolLoader.Pick(regionId, EncounterTier.Battle, terrainType, DifficultyMultAt(local));
             if (encounterDef == null)

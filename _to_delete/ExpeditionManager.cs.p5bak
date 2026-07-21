@@ -76,11 +76,6 @@ public partial class ExpeditionManager : Node2D
     /// crossings announce themselves once instead of every step.</summary>
     private int _lastSupplyBand = 0;
 
-    /// <summary>P5: whether the last step landed inside a shard-zone footprint.
-    /// Lets the vault-sanctuary relief announce itself once on entry instead of
-    /// every step within the footprint.</summary>
-    private bool _lastInVault = false;
-
     /// <summary>Two-step confirm for emergency extraction (W3 ruling).</summary>
     private ConfirmationDialog _emergencyConfirm;
 
@@ -799,16 +794,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                          hex.Terrain == OverworldHex.TerrainType.Road;
         }
 
-        // P5: inside a shard-zone footprint the party is in a contained designed
-        // arena, not open wilderness. The three wilderness tolls (terrain,
-        // corruption, supply leash) are suppressed below; step cost and
-        // out-of-range exhaustion still apply. The lethal cost is the APPROACH to
-        // the gate and the guardian fight, not attrition between gate and sanctum.
-        bool inVault = InsideShardZone(newCoord);
-        if (inVault && !_lastInVault)
-            ShowInfo("Within the vault's bounds, the wilds' toll lifts \u2014 no terrain, corruption, or supply drain here.");
-        _lastInVault = inVault;
-
         // S3 (Retrace): remember this move so it can be undone. Records the
         // cost actually charged (0 on the exhaustion path — HP is not refunded).
         _lastMoveFrom = oldCoord;
@@ -833,11 +818,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // a road step never pays hazard drain. (Corruption is NOT road-
             // exempt below: the creep eats roads too, and corridor-immunity
             // through corrupted ground would gut the G4 pressure.)
-            if (hpDrain > 0 && inVault)
-            {
-                GD.Print($"[Expedition] Within the vault \u2014 {hpDrain} terrain drain suppressed.");
-                hpDrain = 0;
-            }
             if (hpDrain > 0 && roadTravel)
             {
                 GD.Print($"[Expedition] The road spares you {hpDrain} terrain drain.");
@@ -864,11 +844,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // the creeping edge, heavy in the convergence core — so the spreading
             // corruption is a hostile zone to route around, not stroll through.
             int corruptionDrain = CorruptionDrainAt(newCoord);
-            if (corruptionDrain > 0 && inVault)
-            {
-                GD.Print($"[Expedition] Within the vault \u2014 {corruptionDrain} corruption drain suppressed.");
-                corruptionDrain = 0;
-            }
             // S2: Purifying Rite suppresses corruption attrition for its
             // window — bounded relief, never immunity (G4).
             if (corruptionDrain > 0 && OverworldSpellEffects.CorruptionSuppressed())
@@ -894,7 +869,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // step bleeds the pool — +1 HP per band of LeashBandWidth hexes,
             // capped. NOT ward-reducible (see the export's doc comment); the
             // supply line is priced in pool HP the wards can't buy back.
-            int band = inVault ? 0 : SupplyBandAt(newCoord);
+            int band = SupplyBandAt(newCoord);
             if (band != _lastSupplyBand)
             {
                 if (band > 0 && _lastSupplyBand == 0)
@@ -1234,7 +1209,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // the tile's corruption level before the draw — same call shape, different def.
             encounterDef =
                 (arch != null
-                    ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
+                    ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, 1.0f)
                     : null)
                 ?? EncounterPoolLoader.Pick(regionId, tier, terrainType, _scaledDifficultyMult);
         }
@@ -1374,7 +1349,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _scaledDifficultyMult = DifficultyMultAt(coord);
         var encounterDef =
             (arch != null
-                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Skirmish, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
+                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Skirmish, terrainType, 1.0f)
                 : null)
             ?? EncounterPoolLoader.Pick(regionId, EncounterTier.Skirmish, terrainType, _scaledDifficultyMult);
         CommitCombat(coord, encounterDef, terrainType);
@@ -1789,11 +1764,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             "deathless" => new[] { "Brute", "Wizard", "Defender" },
             _           => new[] { "Brute", "Wizard", "Soldier" },
         };
-        // Capstone escalation (user ruling 2026-07-20 — scale both, shared knob):
-        // the shard guardian hardens with the timeline's threat like the rest of the
-        // world. Authored 1.6 base x the per-year threat scalar (x1.0 at Year 1).
-        float mult = GuardianDifficultyMult *
-                     CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle);
         var def = new EncounterDefinition
         {
             Id = $"guardian_{key}",
@@ -1801,11 +1771,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             Tier = EncounterTier.Boss,
             RegionId = StagingTemplateRegion(),
             TerrainType = terrain.ToString(),
-            DifficultyMult = mult,
+            DifficultyMult = GuardianDifficultyMult,
         };
         foreach (var a in arch)
             if (UnitRegistry.TryResolveId(a, out var uid))
-                def.Enemies.Add(new EnemySlot(uid, mult));
+                def.Enemies.Add(new EnemySlot(uid, GuardianDifficultyMult));
         return def;
     }
 
@@ -2618,11 +2588,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             2 => 1.25f,
             _ => 1.5f,   // tier 3+
         };
-        // Continue-campaign escalation: the timeline's accumulated threat hardens
-        // every region encounter (progression_persistence_model_v1.md §6). 1.0 in
-        // a fresh Year-1 timeline; +ThreatDifficultyStep per continued year.
-        float threatMult = CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle);
-        return regionMult * tierFactor * threatMult;
+        return regionMult * tierFactor;
     }
 
     /// <summary>K2 (§5b): territory tier (1–3) at a window-local tile — the
@@ -2940,7 +2906,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             var arch = RollArchmageAt(local); // same draw shape as OpenScoutReport
             encounterDef =
                 (arch != null
-                    ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Battle, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
+                    ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Battle, terrainType, 1.0f)
                     : null)
                 ?? EncounterPoolLoader.Pick(regionId, EncounterTier.Battle, terrainType, DifficultyMultAt(local));
             if (encounterDef == null)
@@ -3222,17 +3188,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (over <= 0)
             return 0;
         return Mathf.Min(LeashBandCap, 1 + (over - 1) / Mathf.Max(1, LeashBandWidth));
-    }
-
-    /// <summary>P5: true when <paramref name="local"/> maps to a tile inside a
-    /// shard sub-region footprint. Inside a vault the terrain, corruption, and
-    /// supply-leash drains are all suppressed (a contained designed arena, not
-    /// wilderness); step cost and out-of-range exhaustion still apply.</summary>
-    private bool InsideShardZone(Vector2I local)
-    {
-        if (_world == null || !_window.TryLocalToWorld(local, out int col, out int row))
-            return false;
-        return _world.ShardZoneAt(col, row) != null;
     }
 
     /// <summary>True when the party stands ON a supply anchor tile — the

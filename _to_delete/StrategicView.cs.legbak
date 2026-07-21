@@ -219,7 +219,7 @@ public partial class StrategicView : Node2D
                 OffsetLeft = -260,
                 OffsetRight = -16,
                 OffsetTop = 16 + HudManager.BarHeight, // clear the global top bar
-                OffsetBottom = 108 + HudManager.BarHeight,
+                OffsetBottom = 84 + HudManager.BarHeight,
             };
             calPanel.AddThemeStyleboxOverride("panel",
                 UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Gold));
@@ -235,30 +235,6 @@ public partial class StrategicView : Node2D
             var calVbox = new VBoxContainer();
             calVbox.AddThemeConstantOverride("separation", 2);
             calMargin.AddChild(calVbox);
-
-            // Continue-campaign legibility (progression doc §9): which year of this
-            // timeline, and how hard the world has grown — so the player can read the
-            // escalation and time the bank before a push turns unwinnable.
-            int campaignYear = cycle.CampaignYear;
-            if (campaignYear > 1)
-            {
-                int foePct = Mathf.RoundToInt(
-                    cycle.SeasonalThreatLevel * CampaignEscalation.ThreatDifficultyStep * 100f);
-                var yearLbl = new Label
-                {
-                    Text = $"⚠ Year {campaignYear}  ·  the world hardens (+{foePct}% foes)",
-                };
-                yearLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
-                yearLbl.AddThemeColorOverride("font_color", UITheme.Danger);
-                calVbox.AddChild(yearLbl);
-            }
-            else
-            {
-                var yearLbl = new Label { Text = "Year 1  ·  a pristine timeline" };
-                yearLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-                yearLbl.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.55f));
-                calVbox.AddChild(yearLbl);
-            }
 
             var phaseLbl = new Label
             {
@@ -1819,12 +1795,6 @@ public partial class StrategicView : Node2D
 
         // CANONICAL press-your-luck choice (progression_persistence_model_v1.md §4):
         // hold the timeline into a harder year, or let it unmake for a fresh world.
-        // TODO (SCOPE — Convergence victory-gating; progression_persistence_model_v1.md §4/§9):
-        // The Grand Conjunction is currently a pure DEADLINE, so this choice is offered
-        // unconditionally. Once a real Convergence encounter/outcome exists, "Perfect the
-        // Timeline" (Continue) should appear ONLY on a Convergence VICTORY, and a DEFEAT must
-        // force the unmake path (fresh gen-1). Needs its own design pass: what the Convergence
-        // fight is, and the per-year condition to earn another Continue. NOT YET SCOPED.
         int nextYear = (SaveManager.ActiveSave?.Cycle?.CampaignYear ?? 1) + 1;
 
         var continueBtn = new Button

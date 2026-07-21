@@ -457,10 +457,6 @@ public static class SaveManager
     /// and Bank both route through BeginNewCycle; Continue is the only path that
     /// preserves the timeline.
     /// </summary>
-    // TODO (SCOPE — Convergence victory-gating; progression_persistence_model_v1.md §4):
-    // Currently called from the UNCONDITIONAL Conjunction choice. When the Convergence
-    // outcome is wired, restrict Continue to victories (a defeat must route through
-    // BeginNewCycle instead). NOT YET SCOPED.
     public static GuildSaveData ContinueCampaign()
     {
         if (ActiveSave == null || ActiveSlot < 0)

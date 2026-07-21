@@ -1819,12 +1819,6 @@ public partial class StrategicView : Node2D
 
         // CANONICAL press-your-luck choice (progression_persistence_model_v1.md §4):
         // hold the timeline into a harder year, or let it unmake for a fresh world.
-        // TODO (SCOPE — Convergence victory-gating; progression_persistence_model_v1.md §4/§9):
-        // The Grand Conjunction is currently a pure DEADLINE, so this choice is offered
-        // unconditionally. Once a real Convergence encounter/outcome exists, "Perfect the
-        // Timeline" (Continue) should appear ONLY on a Convergence VICTORY, and a DEFEAT must
-        // force the unmake path (fresh gen-1). Needs its own design pass: what the Convergence
-        // fight is, and the per-year condition to earn another Continue. NOT YET SCOPED.
         int nextYear = (SaveManager.ActiveSave?.Cycle?.CampaignYear ?? 1) + 1;
 
         var continueBtn = new Button

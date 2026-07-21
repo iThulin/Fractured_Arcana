@@ -20,8 +20,11 @@ using System.Collections.Generic;
 //                 AssaultDirector (Phase 4 — beacon reader)
 // See:            open_world_refactor_v1.docx §10 — Save Schema
 // Tier rule:      If the loom remembers it, it lives here.
-//                 Nothing in this file may grant raw combat
-//                 power — breadth and knowledge only.
+//                 The loom MAY grant permanent, raw combat
+//                 power: the campus is an intentional power-
+//                 expansion engine (roguelite meta-progression).
+//                 Superseded the old "breadth/knowledge only"
+//                 rule. See claude/progression_persistence_model_v1.md.
 // ============================================================
 
 /// <summary>Per-school mastery progress. The progression spine.</summary>
