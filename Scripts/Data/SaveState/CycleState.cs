@@ -109,6 +109,34 @@ public class CycleState
     /// and return can't dodge the time cost.</summary>
     public int PendingStraggleLunations = 0;
 
+    /// <summary>Human-readable "since your last sortie" strategic news — siege /
+    /// warfront outcomes appended by KingdomTickSimulation on each lunation tick.
+    /// Rendered by StrategicView's HUD on return to the map, then cleared at the
+    /// top of the next Deploy (the player has read them). Serialized so the news
+    /// survives the deploy → expedition → return scene round-trip and a quit.</summary>
+    public List<string> PendingSiegeReports = new();
+
+    /// <summary>Active warfronts — the visible, intervenable form of a siege.
+    /// Opened / advanced / resolved by KingdomTickSimulation on the lunation tick;
+    /// rendered and deployed-into by StrategicView.</summary>
+    public List<Warfront> Warfronts = new();
+
+    /// <summary>Warfront the player is currently deployed to intervene in (empty =
+    /// none). Set when an intervention deploy launches; consumed by StrategicView
+    /// on return, applying the expedition outcome to the front. Serialized so the
+    /// intervention survives the deploy → expedition → return round-trip.</summary>
+    public string PendingWarfrontId = "";
+
+    /// <summary>Which side the pending intervention is fighting for.</summary>
+    public WarfrontSide PendingWarfrontSide = WarfrontSide.Defend;
+
+    /// <summary>Set by ExpeditionManager once the besieging stronghold is broken
+    /// (a combat won during a warfront-intervention run). The intervention counts
+    /// as a success only if the stronghold was cleared AND the party extracted.
+    /// Read + reset by StrategicView on return. Serialized so it survives the
+    /// combat-scene round-trips within the expedition.</summary>
+    public bool WarfrontStrongholdCleared = false;
+
     // ── Run stats (this cycle only) ──────────────────────────────────────
     // Lifetime totals are derived from EternalLedger.LoopHistory + this.
     public int TotalRuns = 0;

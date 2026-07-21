@@ -57,10 +57,10 @@ public partial class StrategicView : Node2D
     /// <summary>Operating range / window radius handed to the expedition on deploy.</summary>
     [Export] public int DeployWindowRadius = 12;
 
-    /// <summary>Calendar phases one deploy costs. 8 phases per lunation / 3 per
-    /// deploy ≈ 2-3 expeditions per lunation, ~32 per 12-lunation cycle. The
-    /// second most important pacing knob after LunationsPerCycle.</summary>
-    [Export] public int PhasesPerDeploy = 3;
+    // Deploy cost is one whole lunation (see Deploy()): the moon turns once per
+    // expedition and every deploy begins on the new moon (The Veiled). The world
+    // ticks exactly once per deploy, so LunationsPerCycle (CalendarState) is the
+    // sole expedition-count pacing knob — ~LunationsPerCycle deploys per cycle.
 
     private WorldData _world;
     private System.Collections.Generic.Dictionary<string, KingdomState> _kingdoms = new();
@@ -118,6 +118,12 @@ public partial class StrategicView : Node2D
                 // — the straggle lunations advance the calendar and tick the
                 // world, and the HUD/markers must show the post-tick state.
                 ProcessPendingStraggle(cycle);
+
+                // A returned warfront-intervention expedition applies its outcome
+                // to the front here, before anything renders — so markers, control
+                // colours, and the frontier report reflect the post-intervention
+                // state the moment the map comes up.
+                ResolveReturnedWarfrontIntervention(cycle);
             }
         }
 
@@ -144,7 +150,7 @@ public partial class StrategicView : Node2D
             if (!cycle.Calendar.AdvanceLunation())
                 break; // conjunction already reached — no further time to spend
             GD.Print($"[Calendar] The party straggles home — a lunation passes " +
-                     $"(L{cycle.Calendar.CurrentLunation} · {cycle.Calendar.CurrentPhaseName}).");
+                     $"(Lunation {cycle.Calendar.CurrentLunation} · {cycle.Calendar.CurrentMoonName}).");
             RunLunationTick(cycle);
         }
 
@@ -156,6 +162,34 @@ public partial class StrategicView : Node2D
             GD.Print("[Calendar] The Grand Conjunction has come. The cycle ends.");
             CallDeferred(nameof(ShowConjunction));
         }
+    }
+
+    /// <summary>If the player just returned from a warfront intervention, apply the
+    /// expedition's outcome to that front. Success = the party extracted alive (held
+    /// or took the field); defeat swings the bar against the chosen side. Consumes
+    /// the pending marker on the cycle and the RunResultData scratchpad.</summary>
+    private void ResolveReturnedWarfrontIntervention(CycleState cycle)
+    {
+        if (cycle == null || string.IsNullOrEmpty(cycle.PendingWarfrontId))
+            return;
+        if (!RunResultData.HasResults)
+        {
+            // No expedition result to read (map reopened without a sortie). Leave the
+            // pending marker so the intervention resolves on the real return.
+            return;
+        }
+
+        // Success = broke the besieging stronghold AND extracted alive. Fleeing
+        // without breaking the siege, or dying at the front, is a failed intervention.
+        bool success = RunResultData.ReachedObjective && cycle.WarfrontStrongholdCleared;
+        KingdomTickSimulation.ApplyIntervention(
+            cycle, cycle.PendingWarfrontId, cycle.PendingWarfrontSide, success, FactionDisplay);
+
+        cycle.PendingWarfrontId = "";
+        cycle.WarfrontStrongholdCleared = false;
+        RunResultData.Clear();
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
     }
 
     /// <summary>Inject the real cycle world (campus integration path).</summary>
@@ -182,6 +216,7 @@ public partial class StrategicView : Node2D
         if (!Standalone)
         {
             BuildStagingMarkers();
+            BuildWarfrontMarkers();
             BuildHud();
         }
         if (Standalone)
@@ -262,7 +297,7 @@ public partial class StrategicView : Node2D
 
             var phaseLbl = new Label
             {
-                Text = $"Lunation {cal.CurrentLunation} / {cal.LunationsPerCycle}  ·  {cal.CurrentPhaseName}",
+                Text = $"Lunation {cal.CurrentLunation} / {cal.LunationsPerCycle}  ·  {cal.CurrentMoonName}",
             };
             phaseLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
             phaseLbl.AddThemeColorOverride("font_color", UITheme.Gold);
@@ -279,6 +314,67 @@ public partial class StrategicView : Node2D
             remainLbl.AddThemeColorOverride("font_color",
                 lunationsLeft <= 2 ? UITheme.Danger : new Color(1f, 1f, 1f, 0.6f));
             calVbox.AddChild(remainLbl);
+        }
+
+        // ── Word from the frontier: this-lunation siege outcomes ─────────
+        // KingdomTickSimulation queued these on the tick; surface them so a
+        // fallen province is not just a silent recolour on the map. Cleared at
+        // the top of the next Deploy (see Deploy()).
+        var siegeReports = cycle?.PendingSiegeReports;
+        if (siegeReports != null && siegeReports.Count > 0)
+        {
+            var newsPanel = new PanelContainer
+            {
+                AnchorLeft = 1f,
+                AnchorTop = 0f,
+                AnchorRight = 1f,
+                AnchorBottom = 0f,
+                GrowHorizontal = Control.GrowDirection.Begin,
+                GrowVertical = Control.GrowDirection.End,
+                OffsetLeft = -300,
+                OffsetRight = -16,
+                OffsetTop = 116 + HudManager.BarHeight,
+            };
+            newsPanel.AddThemeStyleboxOverride("panel",
+                UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Danger));
+            _hud.AddChild(newsPanel);
+
+            var newsMargin = new MarginContainer();
+            newsMargin.AddThemeConstantOverride("margin_left", 14);
+            newsMargin.AddThemeConstantOverride("margin_right", 14);
+            newsMargin.AddThemeConstantOverride("margin_top", 8);
+            newsMargin.AddThemeConstantOverride("margin_bottom", 8);
+            newsPanel.AddChild(newsMargin);
+
+            var newsVbox = new VBoxContainer();
+            newsVbox.AddThemeConstantOverride("separation", 3);
+            newsMargin.AddChild(newsVbox);
+
+            var newsTitle = new Label { Text = "Word from the frontier" };
+            newsTitle.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+            newsTitle.AddThemeColorOverride("font_color", UITheme.Danger);
+            newsVbox.AddChild(newsTitle);
+
+            // Show the most recent handful so a heavy lunation can't overflow.
+            int shown = 0;
+            for (int i = siegeReports.Count - 1; i >= 0 && shown < 5; i--, shown++)
+            {
+                var line = new Label
+                {
+                    Text = siegeReports[i],
+                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                };
+                line.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 3);
+                line.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.85f, 0.95f));
+                newsVbox.AddChild(line);
+            }
+            if (siegeReports.Count > 5)
+            {
+                var more = new Label { Text = $"…and {siegeReports.Count - 5} more." };
+                more.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 3);
+                more.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.5f));
+                newsVbox.AddChild(more);
+            }
         }
 
         // A short legend so the player knows what they're looking at.
@@ -1302,7 +1398,9 @@ public partial class StrategicView : Node2D
     // ════════════════════════════════════════════════════════════════════
 
     private Node2D _stagingLayer;
+    private Node2D _warfrontLayer;
     private CanvasLayer _deployUi;
+    private CanvasLayer _warfrontUi;
     private CanvasLayer _hud;
     private StagingPoint _pendingStaging;
 
@@ -1409,6 +1507,173 @@ public partial class StrategicView : Node2D
         ShowDeployConfirm(sp);
     }
 
+    // ── Warfronts: markers + three-sided intervention ────────────────────────
+
+    /// <summary>Render a clickable crossed-front marker for each open warfront at
+    /// its border tile — the deploy target for intervention.</summary>
+    private void BuildWarfrontMarkers()
+    {
+        _warfrontLayer?.QueueFree();
+        _warfrontLayer = new Node2D { Name = "WarfrontMarkers", ZIndex = 3 };
+        AddChild(_warfrontLayer);
+
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle?.Warfronts == null)
+            return;
+
+        foreach (var wf in cycle.Warfronts)
+        {
+            if (wf.Closed || !wf.HasFocus)
+                continue;
+
+            var center = HexCoord.OffsetRenderPosition(wf.FocusCol, wf.FocusRow, TilePx)
+                         + new Vector2(TilePx * 0.5f, TilePx * 0.5f);
+            var marker = new Node2D { Position = center };
+
+            // A red diamond ring — reads as conflict, distinct from gold staging beacons.
+            var ring = new Polygon2D { Polygon = MakeRing(TilePx * 1.7f), Color = UITheme.Danger };
+            marker.AddChild(ring);
+            var core = new Polygon2D { Polygon = MakeRing(TilePx * 0.8f), Color = UITheme.TextPrimary };
+            marker.AddChild(core);
+
+            // Advance bar as a tiny label above the marker.
+            var lbl = new Label
+            {
+                Text = $"⚔ {wf.Advance}%",
+                Position = new Vector2(-TilePx * 1.6f, -TilePx * 3.2f),
+            };
+            lbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 3);
+            lbl.AddThemeColorOverride("font_color", UITheme.Danger);
+            marker.AddChild(lbl);
+
+            var area = new Area2D();
+            area.AddChild(new CollisionShape2D { Shape = new CircleShape2D { Radius = TilePx * 1.9f } });
+            var captured = wf;
+            area.InputEvent += (viewport, evt, idx) =>
+            {
+                if (evt is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+                    ShowWarfrontIntervene(captured);
+            };
+            marker.AddChild(area);
+
+            _warfrontLayer.AddChild(marker);
+        }
+    }
+
+    /// <summary>The three-sided intervention dialog. Each side sets the pending
+    /// intervention on the cycle and deploys an expedition to the front tile (reusing
+    /// Deploy(), so it costs a lunation like any sortie); the outcome is applied on
+    /// return in ResolveReturnedWarfrontIntervention.</summary>
+    private void ShowWarfrontIntervene(Warfront wf)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || !wf.HasFocus)
+            return;
+
+        _warfrontUi?.QueueFree();
+        _warfrontUi = new CanvasLayer { Name = "WarfrontUI" };
+        AddChild(_warfrontUi);
+
+        var backdrop = new ColorRect { Color = new Color(0.02f, 0.0f, 0.02f, 0.72f) };
+        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _warfrontUi.AddChild(backdrop);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0.5f, AnchorTop = 0.5f, AnchorRight = 0.5f, AnchorBottom = 0.5f,
+            GrowHorizontal = Control.GrowDirection.Both, GrowVertical = Control.GrowDirection.Both,
+            OffsetLeft = -280, OffsetRight = 280, OffsetTop = -190, OffsetBottom = 190,
+        };
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Danger));
+        _warfrontUi.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 22);
+        margin.AddThemeConstantOverride("margin_right", 22);
+        margin.AddThemeConstantOverride("margin_top", 18);
+        margin.AddThemeConstantOverride("margin_bottom", 18);
+        panel.AddChild(margin);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 10);
+        margin.AddChild(vbox);
+
+        var title = new Label { Text = $"Warfront — {wf.DefenderName}" };
+        title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeMedium);
+        title.AddThemeColorOverride("font_color", UITheme.Danger);
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        vbox.AddChild(title);
+        vbox.AddChild(new HSeparator());
+
+        AddDeployStat(vbox, "Aggressor", wf.AggressorName);
+        AddDeployStat(vbox, "Defender", wf.DefenderName);
+        AddDeployStat(vbox, "Advance", $"{wf.Advance}/100  (falls at 100, repelled at 0)");
+        AddDeployStat(vbox, "Front", $"({wf.FocusCol}, {wf.FocusRow})");
+        AddDeployStat(vbox, "Cost", "1 lunation — the moon turns while you march");
+
+        var help = new Label
+        {
+            Text = "Deploy to the front and take a side. Extract alive to swing the war; " +
+                   "a defeat swings it against you.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        help.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        help.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        vbox.AddChild(help);
+
+        vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
+
+        var buttons = new HBoxContainer();
+        buttons.AddThemeConstantOverride("separation", 10);
+        buttons.Alignment = BoxContainer.AlignmentMode.Center;
+        vbox.AddChild(buttons);
+
+        void SideButton(string text, WarfrontSide side, Color color)
+        {
+            var btn = new Button { Text = text, CustomMinimumSize = new Vector2(140, 40) };
+            UITheme.ApplyButtonStyle(btn, isPrimary: side == WarfrontSide.Defend);
+            btn.AddThemeColorOverride("font_color", color);
+            btn.Pressed += () => CommitWarfrontIntervention(wf, side);
+            buttons.AddChild(btn);
+        }
+
+        SideButton("Defend", WarfrontSide.Defend, UITheme.Success);
+        SideButton("Seize", WarfrontSide.Seize, UITheme.Gold);
+        SideButton("Aid attacker", WarfrontSide.Aid, UITheme.Danger);
+
+        var cancel = new Button { Text = "Cancel", CustomMinimumSize = new Vector2(110, 40) };
+        UITheme.ApplyButtonStyle(cancel, isPrimary: false);
+        cancel.Pressed += () => { _warfrontUi?.QueueFree(); _warfrontUi = null; };
+        buttons.AddChild(cancel);
+    }
+
+    private void CommitWarfrontIntervention(Warfront wf, WarfrontSide side)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || !wf.HasFocus)
+            return;
+
+        _warfrontUi?.QueueFree();
+        _warfrontUi = null;
+
+        // Record which front + side so the outcome applies on return.
+        cycle.PendingWarfrontId = wf.Id;
+        cycle.PendingWarfrontSide = side;
+        cycle.WarfrontStrongholdCleared = false; // fresh objective for this intervention
+
+        // Deploy to the front tile by synthesising a staging point there — reuses the
+        // whole Deploy() path (lunation cost, world tick, scene change).
+        _pendingStaging = new StagingPoint
+        {
+            X = wf.FocusCol,
+            Y = wf.FocusRow,
+            Name = $"the front at {wf.DefenderName}",
+            Source = "Warfront",
+            Available = true,
+        };
+        Deploy();
+    }
+
     private void ShowDeployConfirm(StagingPoint sp)
     {
         _deployUi?.QueueFree();
@@ -1469,6 +1734,34 @@ public partial class StrategicView : Node2D
         AddDeployStat(vbox, "Location", $"({sp.X}, {sp.Y}) · {tile.Terrain}");
         AddDeployStat(vbox, "Territory", kingdomLabel);
         AddDeployStat(vbox, "Operating range", $"~{DeployWindowRadius * 2} tiles across");
+
+        // Time cost: every deploy spends one whole lunation of the doomsday
+        // clock. Surface it here — it is the most expensive thing the player
+        // spends, and it was previously invisible until the debug log.
+        var depCycle = SaveManager.ActiveSave?.Cycle;
+        if (depCycle != null)
+        {
+            var depCal = depCycle.Calendar;
+            int landsLunation = depCal.CurrentLunation + 1;
+            if (landsLunation > depCal.LunationsPerCycle)
+            {
+                var conjWarn = new Label
+                {
+                    Text = "⚠ Cost: 1 lunation — this deploy brings the Grand Conjunction. " +
+                           "The cycle ends when you return.",
+                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                };
+                conjWarn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+                conjWarn.AddThemeColorOverride("font_color", UITheme.Danger);
+                vbox.AddChild(conjWarn);
+            }
+            else
+            {
+                int lunLeftAfter = depCal.LunationsPerCycle - landsLunation + 1;
+                AddDeployStat(vbox, "Time cost",
+                    $"1 lunation → Lunation {landsLunation} / {depCal.LunationsPerCycle}  ({lunLeftAfter} left)");
+            }
+        }
 
         // K2 (§5b): party manifest — who actually deploys, who's in the
         // infirmary. Without this the injury system was invisible outside
@@ -1696,24 +1989,30 @@ public partial class StrategicView : Node2D
         if (cycle == null)
             return;
 
-        // ── Time advances on deploy: one expedition costs PhasesPerDeploy ──
-        // phases (8 per lunation). The lunation BOUNDARY still drives the
-        // world tick; the Conjunction remains a real deadline (~32 deploys).
-        bool crossedLunation = false;
-        for (int i = 0; i < PhasesPerDeploy; i++)
-        {
-            crossedLunation |= cycle.Calendar.AdvancePhase();
-            // SEAM (Phase 4): eclipses land on a specific (lunation, phase).
-            // When eclipse resolution exists, check GetEclipseDueNow() here
-            // and interrupt the deploy — phase-stepping makes mid-lunation
-            // eclipses reachable for the first time.
-        }
+        // Last sortie's frontier news has now been read (it was shown on the HUD
+        // when the player returned to the map). Clear it before this lunation's
+        // tick appends fresh reports.
+        cycle.PendingSiegeReports?.Clear();
+
+        // ── Time advances on deploy: one expedition costs one whole lunation. ──
+        // AdvanceLunation snaps the calendar to the next new moon, so every
+        // expedition begins on The Veiled and the living world ticks exactly
+        // once per deploy. The Conjunction remains a real deadline
+        // (~LunationsPerCycle deploys per cycle).
+        //
+        // SEAM (Phase 4): eclipses land on a specific (lunation, phase). Under
+        // whole-lunation deploys the calendar only ever rests on phase 0, so an
+        // eclipse-interception model must key off the lunation itself (or
+        // temporarily restore phase-stepping for the deploy that would cross a
+        // scheduled eclipse).
+        bool crossedLunation = cycle.Calendar.AdvanceLunation();
         SaveManager.MarkDirty();
 
-    if (crossedLunation)
+        if (crossedLunation)
         {
-            GD.Print($"[Calendar] New lunation: {cycle.Calendar.CurrentLunation} " +
-                     $"({cycle.Calendar.CurrentPhaseName}).");
+            GD.Print($"[Calendar] The moon turns — Lunation {cycle.Calendar.CurrentLunation} " +
+                     $"of {cycle.Calendar.LunationsPerCycle}: {cycle.Calendar.CurrentMoonName} " +
+                     $"({cycle.Calendar.CurrentMoonSchool} ascendant).");
             RunLunationTick(cycle);
         }
 
@@ -1736,22 +2035,25 @@ public partial class StrategicView : Node2D
 
         GD.Print($"[StrategicView] Deploying expedition from " +
                  $"'{_pendingStaging.Name}' ({_pendingStaging.X},{_pendingStaging.Y}). " +
-                 $"Phase {cycle.Calendar.TotalPhasesElapsed} " +
-                 $"(L{cycle.Calendar.CurrentLunation} · {cycle.Calendar.CurrentPhaseName}).");
+                 $"Lunation {cycle.Calendar.CurrentLunation} / {cycle.Calendar.LunationsPerCycle} " +
+                 $"· {cycle.Calendar.CurrentMoonName}.");
 
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
     }
 
     /// <summary>The per-lunation world tick, in canonical order — the single
     /// place a crossed lunation boundary advances the living world. Called by
-    /// Deploy (phase-stepping crossed a new moon) and by ProcessPendingStraggle
-    /// (emergency-extraction debt). Council resolves BEFORE corruption spreads
-    /// (§13 order): envoy residency must be computable from missions still
-    /// live when the moon turned. K2 (§5b/R24): infirmary recovery last.</summary>
+    /// Deploy (every deploy = one lunation) and by ProcessPendingStraggle
+    /// (emergency-extraction debt). Order (§13): Council resolves BEFORE
+    /// corruption spreads (envoy residency must read missions still live when the
+    /// moon turned); kingdom drift + sieges run AFTER corruption (they are the
+    /// political consequence of the tide, and read this lunation's corruption);
+    /// K2 (§5b/R24): infirmary recovery last.</summary>
     private void RunLunationTick(CycleState cycle)
     {
         CouncilTick.Tick(cycle);
         CorruptionSpread.Tick(cycle.World, cycle.Campaign, cycle.Kingdoms);
+        KingdomTickSimulation.Tick(cycle, FactionDisplay);
         CompanionInjurySystem.TickRecovery(SaveManager.ActiveSave);
     }
 
@@ -1865,6 +2167,8 @@ public partial class StrategicView : Node2D
 
     private string FactionDisplay(string factionId)
     {
+        if (factionId == KingdomTickSimulation.GuildFactionId)
+            return "the Guild";
         var def = FactionRegistry.Get(factionId);
         return def != null ? def.DisplayName : factionId;
     }

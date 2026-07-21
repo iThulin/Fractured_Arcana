@@ -115,6 +115,16 @@ public partial class ExpeditionManager : Node2D
     private WorldWindowBuilder _window;
     private int _stagingCol, _stagingRow;
 
+    /// <summary>True when this expedition is a warfront intervention (the cycle has a
+    /// PendingWarfrontId). Forces siege-tier combat and enables the "break the siege"
+    /// stronghold objective. Read from the cycle so it survives combat round-trips.</summary>
+    private bool _isWarfront;
+
+    /// <summary>World coord of the besieging stronghold (the warfront objective),
+    /// or (-1,-1) if none. Stamped as a Combat landmark in the window and re-stamped
+    /// on recenter; clearing it (winning combat on this tile) breaks the siege.</summary>
+    private int _strongholdCol = -1, _strongholdRow = -1;
+
     // ── Nodes ───────────────────────────────────────────────────────────
     private OverworldHexGrid _grid;
     private FogOfWarManager _fog;
@@ -178,6 +188,16 @@ public partial class ExpeditionManager : Node2D
         _stagingRow = PlayerSession.ExpeditionStagingRow;
         if (PlayerSession.ExpeditionWindowRadius > 0)
             WindowRadius = PlayerSession.ExpeditionWindowRadius;
+
+        // Warfront intervention? The cycle carries the pending front id across the
+        // deploy → combat → return round-trips, so this stays true for the whole run.
+        _isWarfront = !string.IsNullOrEmpty(cycle.PendingWarfrontId);
+        if (_isWarfront)
+        {
+            var awf = cycle.Warfronts?.Find(w => w.Id == cycle.PendingWarfrontId);
+            if (awf != null && awf.HasStronghold)
+            { _strongholdCol = awf.StrongholdCol; _strongholdRow = awf.StrongholdRow; }
+        }
 
         BuildEquipmentLoadouts();
 
@@ -273,7 +293,9 @@ public partial class ExpeditionManager : Node2D
             _party.Initialize(_grid, _fog, _window.PartyStartLocal);
             // Reveal-on-deploy: the staging tile and its vision write to World.
             WriteVisibleToWorld();
-            ShowInfo("Expedition deployed. Explore the region; extract before your range runs out.");
+            ShowInfo(_isWarfront
+                ? "Warfront — storm the besieging stronghold (marked), then extract to secure the front."
+                : "Expedition deployed. Explore the region; extract before your range runs out.");
 
             if (PlayerSession.DebugMode && PlayerSession.NoFog)
                 RevealAllFog();
@@ -317,6 +339,7 @@ public partial class ExpeditionManager : Node2D
         _party.PartyArrived += OnPartyArrived;
 
         SpawnRoamer();
+        StampStronghold(); // warfront objective: place + reveal the besieging stronghold
 
         CenterCamera();
         UpdateUI();
@@ -1212,7 +1235,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         string terrainType = hex.Terrain.ToString();
         string regionId = StagingTemplateRegion();
-        var tier = EncounterTier.Battle;
+        // Warfront intervention fights the region's SIEGE pool — heavy compositions,
+        // Dense maps (DensityForTier) — so relieving a siege feels like one.
+        var tier = _isWarfront ? EncounterTier.Siege : EncounterTier.Battle;
         _scaledDifficultyMult = DifficultyMultAt(coord);
 
         // S4 (Identify): an identified site fights the PINNED composition —
@@ -1372,11 +1397,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                      $"draw={(arch != null ? arch.Id : "(region pool)")}");
 
         _scaledDifficultyMult = DifficultyMultAt(coord);
+        // On a warfront the besieging patrols hit at siege weight too.
+        var patrolTier = _isWarfront ? EncounterTier.Siege : EncounterTier.Skirmish;
         var encounterDef =
             (arch != null
-                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, EncounterTier.Skirmish, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
+                ? EncounterPoolLoader.PickFromArchmage(arch, regionId, patrolTier, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
                 : null)
-            ?? EncounterPoolLoader.Pick(regionId, EncounterTier.Skirmish, terrainType, _scaledDifficultyMult);
+            ?? EncounterPoolLoader.Pick(regionId, patrolTier, terrainType, _scaledDifficultyMult);
         CommitCombat(coord, encounterDef, terrainType);
         // Mark AFTER CommitCombat (which resets the flag): this combat is a
         // patrol ambush, and whose soldiers they are (C4 deed emission).
@@ -1448,6 +1475,27 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             GoldEarned += router.GoldReward;
             SplinterEarned += router.SplinterReward;
             EncountersWon++;
+
+            // Warfront objective: storming the besieging STRONGHOLD breaks the siege.
+            // Only a win on the stronghold tile counts (if one was sited); if none
+            // could be placed, fall back to any won fight so the objective is never
+            // impossible. Extract after this and the intervention succeeds on return.
+            if (_isWarfront)
+            {
+                bool noStronghold = _strongholdCol < 0;
+                bool atStronghold = !noStronghold
+                    && _window.TryLocalToWorld(resultHex, out int wsCol, out int wsRow)
+                    && wsCol == _strongholdCol && wsRow == _strongholdRow;
+                var wfCycle = SaveManager.ActiveSave?.Cycle;
+                if (wfCycle != null && !wfCycle.WarfrontStrongholdCleared && (atStronghold || noStronghold))
+                {
+                    wfCycle.WarfrontStrongholdCleared = true;
+                    SaveManager.MarkDirty();
+                    _toasts?.Push("The stronghold falls — the siege breaks. Extract to secure the front.",
+                                  QuestToastKind.Progress);
+                }
+            }
+
             if (_grid.Hexes.TryGetValue(resultHex, out var hex))
             { hex.POIConsumed = true; hex.RefreshVisuals(); }
             ConsumeWorldPoi(resultHex);
@@ -3138,6 +3186,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _windowCenterLocal = centerLocal;
         if (added > 0)
             StampCivicPois(); // S4.2: newly streamed tiles may hold settlements
+        StampStronghold();    // re-stamp the warfront objective if it (re)entered the window
         if (PlayerSession.DebugMode && (added > 0 || removed > 0))
             GD.Print($"[Window] Slide → ({col},{row}): +{added}/−{removed} tiles, " +
                      $"{_grid.Hexes.Count} live.");
@@ -3149,6 +3198,30 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// underfoot. Stamp POIType.Settlement/Seat onto loaded hexes after every
     /// build/slide (idempotent; never overwrites an encounter POI; marker
     /// visibility still rides the standard fog gate in RefreshVisuals).</summary>
+    /// <summary>Warfront objective: stamp the besieging stronghold as a Combat
+    /// landmark on its window hex and reveal it, so the party can march from the
+    /// front and storm it. Re-called on recenter (streaming rebuilds hexes from
+    /// world data, which has no stronghold). No-op once the siege is broken, so it
+    /// doesn't respawn. Touches only the in-window hex — never the world table.</summary>
+    private void StampStronghold()
+    {
+        if (!_isWarfront || _strongholdCol < 0 || _grid == null || _window == null)
+            return;
+        var cyc = SaveManager.ActiveSave?.Cycle;
+        if (cyc != null && cyc.WarfrontStrongholdCleared)
+            return; // already stormed — don't put it back
+
+        var local = _window.LocalOf(_strongholdCol, _strongholdRow);
+        if (!_grid.Hexes.TryGetValue(local, out var hex))
+            return; // not in the loaded window yet — a later stream will catch it
+
+        hex.POI = OverworldHex.POIType.Combat;
+        hex.IsLandmark = true;
+        hex.POIConsumed = false;
+        hex.RefreshVisuals();
+        _fog?.RevealHex(local);
+    }
+
     private void StampCivicPois()
     {
         if (_world?.Pois == null || _grid == null)

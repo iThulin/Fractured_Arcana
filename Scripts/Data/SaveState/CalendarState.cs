@@ -103,6 +103,31 @@ public class CalendarState
     public bool ConjunctionForced = false;
 
     // ── Computed (not serialized) ────────────────────────────────────────
+
+    // Under whole-lunation deploys (StrategicView.Deploy → AdvanceLunation) the
+    // calendar always rests on phase 0, so the eight named beats are carried by
+    // the LUNATION instead of the intra-lunation phase: each successive lunation
+    // IS the next named moon, in order, wrapping every PhasesPerLunation. This
+    // resurrects the moon-name + school-affinity rotation the old 3-phase step
+    // had scrambled. MoonIndex is the live "which moon is it" the world reads.
+
+    /// <summary>Which of the eight named moons this lunation is (0–7),
+    /// advancing one step per lunation and wrapping every PhasesPerLunation.
+    /// Lunation 1 → 0 (The Veiled / New Moon).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int MoonIndex => (CurrentLunation - 1) % PhasesPerLunation;
+
+    /// <summary>The current lunation's moon name (rotates in lunar order).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string CurrentMoonName => PhaseNames[MoonIndex];
+
+    /// <summary>The school ascendant this lunation (drives affinity mechanics).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string CurrentMoonSchool => PhaseSchools[MoonIndex];
+
+    // The intra-lunation phase accessors remain for the lower-gear AdvancePhase
+    // API (unused while deploys cost a whole lunation, but a valid finer clock a
+    // future mechanic may drive). They read the phase, not the moon.
     [System.Text.Json.Serialization.JsonIgnore]
     public string CurrentPhaseName => PhaseNames[CurrentPhase];
 
@@ -171,19 +196,39 @@ public class CalendarState
     }
 
     /// <summary>
-    /// Returns the unresolved eclipse landing on the current phase,
-    /// or null. The caller resolves it as a defense battle.
+    /// Returns the unresolved eclipse due at the current moment, or null. The
+    /// caller resolves it as a defense battle. Whole-lunation deploys land only
+    /// on the new moon, so the match is LUNATION-keyed: an eclipse is due the
+    /// moment the calendar reaches its lunation, regardless of phase.
+    /// LandsOnPhase is retained for a future finer clock but is not required.
     /// </summary>
     public EclipseOmen GetEclipseDueNow()
     {
         foreach (var e in Eclipses)
         {
-            if (!e.Resolved &&
-                e.LandsOnLunation == CurrentLunation &&
-                e.LandsOnPhase == CurrentPhase)
+            if (!e.Resolved && e.LandsOnLunation == CurrentLunation)
                 return e;
         }
         return null;
+    }
+
+    /// <summary>
+    /// Schedule an eclipse (or any calendar-timed strategic event) a number of
+    /// lunations ahead of now. Returns the created omen so the caller can tag
+    /// its Reason / composition. The general seam lunation-driven mechanics
+    /// (eclipses, sieges, timed assaults) use to plant a future beat.
+    /// </summary>
+    public EclipseOmen ScheduleEclipseInLunations(int lunationsAhead, string reason)
+    {
+        var omen = new EclipseOmen
+        {
+            LandsOnLunation = CurrentLunation + System.Math.Max(0, lunationsAhead),
+            LandsOnPhase = 0,
+            Reason = reason ?? "",
+            Resolved = false,
+        };
+        Eclipses.Add(omen);
+        return omen;
     }
 
     /// <summary>

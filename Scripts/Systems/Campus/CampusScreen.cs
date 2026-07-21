@@ -1002,6 +1002,7 @@ public partial class CampusScreen : Control
         cycle.Campaign = g.Campaign;
         cycle.Council = g.Council;
         CorruptionSpread.Reset(); // new world — drop cached adjacency + pressure
+        KingdomTickSimulation.Reset(); // new world — drop cached kingdom adjacency
         SaveManager.Save();
         GD.Print($"[Campus] Generated cycle {cycle.CycleNumber} world (seed {seed}, " +
                  $"{g.Kingdoms.Count} territories, {g.World.Pois.Count} POIs, " +
