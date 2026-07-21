@@ -1,0 +1,19 @@
+{
+  "id": "archive_ward",
+  "threatLabel": "Archive Ward",
+  "role": "line",
+  "intelDescription": "A locked-in sentinel that only ever holds one arc. Get out of its aisle.",
+  "maxHealth": 16,
+  "baseSpeed": 0,
+  "armor": 2,
+  "attackRange": 4,
+  "attackDamage": 5,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "colorR": 0.4,
+  "colorG": 0.5,
+  "colorB": 0.8
+}

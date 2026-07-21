@@ -1,0 +1,19 @@
+{
+  "id": "dire_wolf",
+  "threatLabel": "Dire Wolf",
+  "role": "line",
+  "intelDescription": "Deadlier in a pack. Splitting them apart is the whole fight.",
+  "maxHealth": 15,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "pack"
+  ],
+  "colorR": 0.55,
+  "colorG": 0.55,
+  "colorB": 0.6
+}

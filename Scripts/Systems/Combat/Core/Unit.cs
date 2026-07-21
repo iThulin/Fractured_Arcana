@@ -107,6 +107,9 @@ public partial class Unit : Node3D
     public string Role = "line";
     /// <summary>V2: owning archmage id ("" = none) — faction tinting.</summary>
     public string FactionId = "";
+    /// <summary>Signature spell key for channel->release casters (Step 2 per-school
+    /// wizards). "" = default blast + slowed rider. See ApplyCasterRider.</summary>
+    public string CasterSpell = "";
     public int AttackRange = 1;   // 1 = melee; >1 = ranged
     public int AttackDamage = 5;   // base damage per attack
 

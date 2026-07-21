@@ -1,0 +1,19 @@
+{
+  "id": "bolt_sentry",
+  "threatLabel": "Bolt Sentry",
+  "role": "line",
+  "intelDescription": "Fixed workshop emplacement. Cannot move - but its lane is death. Break line of sight.",
+  "maxHealth": 16,
+  "baseSpeed": 0,
+  "armor": 2,
+  "attackRange": 4,
+  "attackDamage": 5,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "colorR": 0.6,
+  "colorG": 0.55,
+  "colorB": 0.2
+}

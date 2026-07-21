@@ -100,6 +100,34 @@
 		],
 		"battle": [
 			{
+				"name": "adept_remnant",
+				"enemies": [
+					{
+						"archetype": "caster_mind_render"
+					},
+					{
+						"archetype": "manor_shieldsworn"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "broken_column",
+				"enemies": [
+					{
+						"archetype": "manor_shieldsworn"
+					},
+					{
+						"archetype": "downs_lancer"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
 				"name": "rear_guard",
 				"enemies": [
 					{
@@ -158,6 +186,23 @@
 		],
 		"siege": [
 			{
+				"name": "graveyard_press",
+				"enemies": [
+					{
+						"archetype": "manor_shieldsworn"
+					},
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
 				"name": "war_machine",
 				"enemies": [
 					{
@@ -210,6 +255,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "scavenger_ambush",
+				"enemies": [
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
 			{
 				"name": "river_crossing",
 				"enemies": [

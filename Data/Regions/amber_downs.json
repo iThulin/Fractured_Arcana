@@ -90,6 +90,34 @@
 		],
 		"battle": [
 			{
+				"name": "veil_court",
+				"enemies": [
+					{
+						"archetype": "caster_veil_witch"
+					},
+					{
+						"archetype": "downs_lancer"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
+				"name": "baronial_charge",
+				"enemies": [
+					{
+						"archetype": "downs_lancer"
+					},
+					{
+						"archetype": "Soldier"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
 				"name": "baron_retinue",
 				"enemies": [
 					{
@@ -148,6 +176,23 @@
 		],
 		"siege": [
 			{
+				"name": "manor_levy",
+				"enemies": [
+					{
+						"archetype": "manor_shieldsworn"
+					},
+					{
+						"archetype": "manor_shieldsworn"
+					},
+					{
+						"archetype": "downs_lancer"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
 				"name": "levied_host",
 				"enemies": [
 					{
@@ -200,6 +245,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "downs_reavers",
+				"enemies": [
+					{
+						"archetype": "dust_raider"
+					},
+					{
+						"archetype": "dust_raider"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
 			{
 				"name": "roadside_snare",
 				"enemies": [

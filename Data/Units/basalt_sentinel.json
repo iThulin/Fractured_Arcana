@@ -1,0 +1,19 @@
+{
+  "id": "basalt_sentinel",
+  "threatLabel": "Basalt Sentinel",
+  "role": "line",
+  "intelDescription": "Old-war construct. It does not chase - it makes you pay to pass.",
+  "maxHealth": 26,
+  "baseSpeed": 1,
+  "armor": 4,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": [
+    "bulwark"
+  ],
+  "colorR": 0.32,
+  "colorG": 0.3,
+  "colorB": 0.36
+}

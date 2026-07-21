@@ -100,6 +100,34 @@
 		],
 		"battle": [
 			{
+				"name": "ember_battery",
+				"enemies": [
+					{
+						"archetype": "caster_ember_adept"
+					},
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "basalt_sentinel"
+					}
+				]
+			},
+			{
+				"name": "cinder_warband",
+				"enemies": [
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
 				"name": "obsidian_guard",
 				"enemies": [
 					{
@@ -158,6 +186,23 @@
 		],
 		"siege": [
 			{
+				"name": "obsidian_bastion",
+				"enemies": [
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "basalt_spitter"
+					},
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
 				"name": "eruption_vanguard",
 				"enemies": [
 					{
@@ -213,6 +258,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "ashfield_hunters",
+				"enemies": [
+					{
+						"archetype": "mirage_hunter"
+					},
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
 			{
 				"name": "lava_channel",
 				"enemies": [

@@ -76,6 +76,13 @@ public class UnitDefinition
     /// <summary>One sentence for the scout report and the inspect panel (§3).</summary>
     public string IntelDescription = "";
 
+    /// <summary>Signature spell key for channel->release casters (behaviorKey
+    /// ranged_charge). "" = default blast (damage + slowed rider). Values —
+    /// ember/chrono/grave/thorn/mind/arclance/geas/forge — swap the release rider
+    /// per wizard school in CombatManager.EnemyIntents.ApplyCasterRider. Additive:
+    /// JSONs without the field deserialize to "".</summary>
+    public string CasterSpell = "";
+
     public bool IsElite => string.Equals(Role, "elite", System.StringComparison.OrdinalIgnoreCase);
     public bool IsBoss  => string.Equals(Role, "boss",  System.StringComparison.OrdinalIgnoreCase);
 

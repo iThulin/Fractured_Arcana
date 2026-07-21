@@ -90,6 +90,34 @@
 		],
 		"battle": [
 			{
+				"name": "forge_caravan",
+				"enemies": [
+					{
+						"archetype": "caster_forge_warden"
+					},
+					{
+						"archetype": "dust_raider"
+					},
+					{
+						"archetype": "carrion_hound"
+					}
+				]
+			},
+			{
+				"name": "caravan_reavers",
+				"enemies": [
+					{
+						"archetype": "dust_raider"
+					},
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
 				"name": "caravan_wreckers",
 				"enemies": [
 					{
@@ -148,6 +176,23 @@
 		],
 		"siege": [
 			{
+				"name": "well_siege",
+				"enemies": [
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "dust_raider"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
 				"name": "salt_tide",
 				"enemies": [
 					{
@@ -203,6 +248,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "mirage_ambush",
+				"enemies": [
+					{
+						"archetype": "mirage_hunter"
+					},
+					{
+						"archetype": "dust_raider"
+					},
+					{
+						"archetype": "dust_raider"
+					}
+				]
+			},
 			{
 				"name": "sandstorm",
 				"enemies": [

@@ -4147,6 +4147,7 @@ public partial class CombatManager : Node3D
         unit.Abilities = def.Abilities;
         unit.Role = def.Role;
         unit.FactionId = def.FactionId;
+        unit.CasterSpell = def.CasterSpell;
         unit.AttackRange = def.AttackRange;
         unit.AttackDamage = def.AttackDamage;
         unit.SetBodyColor(def.BodyColor);

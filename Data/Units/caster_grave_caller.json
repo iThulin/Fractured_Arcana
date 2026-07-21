@@ -1,0 +1,17 @@
+{
+  "id": "caster_grave_caller",
+  "threatLabel": "Grave-Caller",
+  "role": "line",
+  "intelDescription": "Its charged bolt leaves a wound that keeps draining. The poison lingers all fight — kill it fast.",
+  "maxHealth": 12,
+  "baseSpeed": 1,
+  "armor": 0,
+  "attackRange": 5,
+  "attackDamage": 8,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_charge",
+  "casterSpell": "grave",
+  "colorR": 0.4,
+  "colorG": 0.25,
+  "colorB": 0.45
+}

@@ -1,0 +1,19 @@
+{
+  "id": "dust_raider",
+  "threatLabel": "Dust Raider",
+  "role": "line",
+  "intelDescription": "Waits until you commit, then takes the open side.",
+  "maxHealth": 12,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "scout"
+  ],
+  "colorR": 0.72,
+  "colorG": 0.6,
+  "colorB": 0.35
+}

@@ -100,6 +100,34 @@
 		],
 		"battle": [
 			{
+				"name": "forge_watch",
+				"enemies": [
+					{
+						"archetype": "caster_forge_warden"
+					},
+					{
+						"archetype": "crag_ambusher"
+					},
+					{
+						"archetype": "clockwork_bulwark"
+					}
+				]
+			},
+			{
+				"name": "ridge_ambush",
+				"enemies": [
+					{
+						"archetype": "crag_ambusher"
+					},
+					{
+						"archetype": "clockwork_bulwark"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
 				"name": "highland_ambush",
 				"enemies": [
 					{
@@ -158,6 +186,23 @@
 		],
 		"siege": [
 			{
+				"name": "pass_blockade",
+				"enemies": [
+					{
+						"archetype": "clockwork_bulwark"
+					},
+					{
+						"archetype": "bolt_sentry"
+					},
+					{
+						"archetype": "crag_ambusher"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
 				"name": "mountain_hold",
 				"enemies": [
 					{
@@ -210,6 +255,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "cliffside_snipers",
+				"enemies": [
+					{
+						"archetype": "crag_ambusher"
+					},
+					{
+						"archetype": "crag_ambusher"
+					},
+					{
+						"archetype": "bolt_sentry"
+					}
+				]
+			},
 			{
 				"name": "cliff_drop",
 				"enemies": [

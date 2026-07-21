@@ -1,0 +1,16 @@
+{
+  "id": "mire_lurker",
+  "threatLabel": "Mire Lurker",
+  "role": "line",
+  "intelDescription": "Ignores the healthy and goes for the bleeding. Finish your wounded or it will.",
+  "maxHealth": 16,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_hunt_wounded",
+  "colorR": 0.35,
+  "colorG": 0.45,
+  "colorB": 0.3
+}

@@ -1,0 +1,19 @@
+{
+  "id": "tidewrack_raider",
+  "threatLabel": "Tidewrack Raider",
+  "role": "line",
+  "intelDescription": "Comes in with the surge and flanks off the wreckline.",
+  "maxHealth": 12,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "scout"
+  ],
+  "colorR": 0.2,
+  "colorG": 0.55,
+  "colorB": 0.6
+}

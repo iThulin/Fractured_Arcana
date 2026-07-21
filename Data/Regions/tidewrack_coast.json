@@ -105,6 +105,34 @@
 		],
 		"battle": [
 			{
+				"name": "veil_smugglers",
+				"enemies": [
+					{
+						"archetype": "caster_veil_witch"
+					},
+					{
+						"archetype": "tidewrack_raider"
+					},
+					{
+						"archetype": "manor_shieldsworn"
+					}
+				]
+			},
+			{
+				"name": "wreck_raiders",
+				"enemies": [
+					{
+						"archetype": "tidewrack_raider"
+					},
+					{
+						"archetype": "manor_shieldsworn"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
 				"name": "shore_raiders",
 				"enemies": [
 					{
@@ -163,6 +191,23 @@
 		],
 		"siege": [
 			{
+				"name": "smuggler_stand",
+				"enemies": [
+					{
+						"archetype": "manor_shieldsworn"
+					},
+					{
+						"archetype": "tidewrack_raider"
+					},
+					{
+						"archetype": "tidewrack_raider"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
 				"name": "fleet_landing",
 				"enemies": [
 					{
@@ -215,6 +260,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "surge_ambush",
+				"enemies": [
+					{
+						"archetype": "tidewrack_raider"
+					},
+					{
+						"archetype": "tidewrack_raider"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
 			{
 				"name": "tidal_surge",
 				"enemies": [

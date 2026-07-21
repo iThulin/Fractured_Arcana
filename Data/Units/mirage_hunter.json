@@ -1,0 +1,16 @@
+{
+  "id": "mirage_hunter",
+  "threatLabel": "Mirage Hunter",
+  "role": "line",
+  "intelDescription": "The heat-shimmer that waits until you're weak, then isn't a mirage.",
+  "maxHealth": 16,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_hunt_wounded",
+  "colorR": 0.72,
+  "colorG": 0.5,
+  "colorB": 0.4
+}

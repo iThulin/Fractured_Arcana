@@ -1,0 +1,17 @@
+{
+  "id": "caster_thornspeaker",
+  "threatLabel": "Thornspeaker",
+  "role": "line",
+  "intelDescription": "Calls roots up through the strike tile — the hit unit can't reposition next turn.",
+  "maxHealth": 12,
+  "baseSpeed": 1,
+  "armor": 0,
+  "attackRange": 5,
+  "attackDamage": 8,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_charge",
+  "casterSpell": "thorn",
+  "colorR": 0.3,
+  "colorG": 0.55,
+  "colorB": 0.25
+}

@@ -1,0 +1,19 @@
+{
+  "id": "downs_lancer",
+  "threatLabel": "Baron's Lancer",
+  "role": "line",
+  "intelDescription": "Levy horse bound by charm-oath. It picks a target and lowers the lance a turn early.",
+  "maxHealth": 14,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "charge"
+  ],
+  "colorR": 0.62,
+  "colorG": 0.52,
+  "colorB": 0.34
+}

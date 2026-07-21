@@ -101,6 +101,34 @@
 		],
 		"battle": [
 			{
+				"name": "arclance_post",
+				"enemies": [
+					{
+						"archetype": "caster_arclance_savant"
+					},
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "frost_tusk"
+					}
+				]
+			},
+			{
+				"name": "thawed_things",
+				"enemies": [
+					{
+						"archetype": "frost_tusk"
+					},
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
 				"name": "glacier_guard",
 				"enemies": [
 					{
@@ -159,6 +187,23 @@
 		],
 		"siege": [
 			{
+				"name": "frozen_vault",
+				"enemies": [
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "archive_ward"
+					},
+					{
+						"archetype": "frost_tusk"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
 				"name": "avalanche_tide",
 				"enemies": [
 					{
@@ -214,6 +259,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "crevasse_hunters",
+				"enemies": [
+					{
+						"archetype": "frost_stalker"
+					},
+					{
+						"archetype": "frost_stalker"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
 			{
 				"name": "whiteout",
 				"enemies": [

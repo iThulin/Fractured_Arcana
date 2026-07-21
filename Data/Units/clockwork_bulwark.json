@@ -1,0 +1,19 @@
+{
+  "id": "clockwork_bulwark",
+  "threatLabel": "Clockwork Bulwark",
+  "role": "line",
+  "intelDescription": "Charter ironwork. Roots, raises its wall, and dares the board to come to it.",
+  "maxHealth": 26,
+  "baseSpeed": 1,
+  "armor": 4,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": [
+    "bulwark"
+  ],
+  "colorR": 0.5,
+  "colorG": 0.5,
+  "colorB": 0.6
+}

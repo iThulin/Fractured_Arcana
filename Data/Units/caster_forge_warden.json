@@ -1,0 +1,17 @@
+{
+  "id": "caster_forge_warden",
+  "threatLabel": "Forge-Warden",
+  "role": "line",
+  "intelDescription": "Fires, then wards its most-wounded ally with +armor. Kill it or the line never breaks.",
+  "maxHealth": 12,
+  "baseSpeed": 1,
+  "armor": 0,
+  "attackRange": 5,
+  "attackDamage": 7,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_charge",
+  "casterSpell": "forge",
+  "colorR": 0.7,
+  "colorG": 0.5,
+  "colorB": 0.25
+}

@@ -109,6 +109,34 @@
 		],
 		"battle": [
 			{
+				"name": "grove_caller",
+				"enemies": [
+					{
+						"archetype": "caster_thornspeaker"
+					},
+					{
+						"archetype": "beast_direboar"
+					},
+					{
+						"archetype": "dire_wolf"
+					}
+				]
+			},
+			{
+				"name": "wild_hunt",
+				"enemies": [
+					{
+						"archetype": "beast_direboar"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
 				"name": "war_band",
 				"enemies": [
 					{
@@ -167,6 +195,23 @@
 		],
 		"siege": [
 			{
+				"name": "beast_swarm",
+				"enemies": [
+					{
+						"archetype": "beast_direboar"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "Brute"
+					}
+				]
+			},
+			{
 				"name": "warlord_retinue",
 				"enemies": [
 					{
@@ -219,6 +264,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "wildcat_ambush",
+				"enemies": [
+					{
+						"archetype": "crag_ambusher"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "dire_wolf"
+					}
+				]
+			},
 			{
 				"name": "forest_ambush",
 				"enemies": [

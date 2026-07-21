@@ -68,6 +68,17 @@
 	"encounterPools": {
 		"skirmish": [
 			{
+				"name": "loosed_guardian",
+				"enemies": [
+					{
+						"archetype": "archive_ward"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
 				"name": "archive_guards",
 				"enemies": [
 					{
@@ -102,6 +113,34 @@
 			}
 		],
 		"battle": [
+			{
+				"name": "arclance_vault",
+				"enemies": [
+					{
+						"archetype": "caster_arclance_savant"
+					},
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "archive_ward"
+					}
+				]
+			},
+			{
+				"name": "archive_wards",
+				"enemies": [
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "archive_ward"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
 			{
 				"name": "arcane_wardens",
 				"enemies": [
@@ -160,6 +199,23 @@
 			}
 		],
 		"siege": [
+			{
+				"name": "vault_lockdown",
+				"enemies": [
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "archive_ward"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
 			{
 				"name": "archive_ascendant",
 				"enemies": [

@@ -1,0 +1,17 @@
+{
+  "id": "caster_mind_render",
+  "threatLabel": "Mind-Render",
+  "role": "line",
+  "intelDescription": "A mind-spike that stuns on landing. Low damage, but the struck unit loses its turn.",
+  "maxHealth": 12,
+  "baseSpeed": 1,
+  "armor": 0,
+  "attackRange": 5,
+  "attackDamage": 6,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_charge",
+  "casterSpell": "mind",
+  "colorR": 0.85,
+  "colorG": 0.8,
+  "colorB": 0.55
+}

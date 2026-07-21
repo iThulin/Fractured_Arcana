@@ -104,6 +104,34 @@
 		],
 		"battle": [
 			{
+				"name": "grave_choir",
+				"enemies": [
+					{
+						"archetype": "caster_grave_caller"
+					},
+					{
+						"archetype": "mire_lurker"
+					},
+					{
+						"archetype": "carrion_hound"
+					}
+				]
+			},
+			{
+				"name": "mire_dead",
+				"enemies": [
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "mire_lurker"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
 				"name": "death_cult",
 				"enemies": [
 					{
@@ -162,6 +190,23 @@
 		],
 		"siege": [
 			{
+				"name": "grave_tide",
+				"enemies": [
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "mire_lurker"
+					},
+					{
+						"archetype": "Defender"
+					}
+				]
+			},
+			{
 				"name": "necromancer_cell",
 				"enemies": [
 					{
@@ -214,6 +259,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "bog_ambush",
+				"enemies": [
+					{
+						"archetype": "mire_lurker"
+					},
+					{
+						"archetype": "carrion_hound"
+					},
+					{
+						"archetype": "carrion_hound"
+					}
+				]
+			},
 			{
 				"name": "bog_trap",
 				"enemies": [

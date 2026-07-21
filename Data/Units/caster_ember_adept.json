@@ -1,0 +1,17 @@
+{
+  "id": "caster_ember_adept",
+  "threatLabel": "Ember Adept",
+  "role": "line",
+  "intelDescription": "Elementalist artillery. Its two-turn blast leaves the struck tile burning. Don't linger where it aims.",
+  "maxHealth": 12,
+  "baseSpeed": 1,
+  "armor": 0,
+  "attackRange": 5,
+  "attackDamage": 8,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_charge",
+  "casterSpell": "ember",
+  "colorR": 0.9,
+  "colorG": 0.4,
+  "colorB": 0.15
+}

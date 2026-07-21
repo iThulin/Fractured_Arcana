@@ -1,0 +1,19 @@
+{
+  "id": "cinder_charger",
+  "threatLabel": "Cinder Charger",
+  "role": "line",
+  "intelDescription": "A thing of slag and momentum. Its charge line glows before it moves.",
+  "maxHealth": 14,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "charge"
+  ],
+  "colorR": 0.82,
+  "colorG": 0.32,
+  "colorB": 0.12
+}

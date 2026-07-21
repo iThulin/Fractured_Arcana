@@ -67,6 +67,17 @@
 	"encounterPools": {
 		"skirmish": [
 			{
+				"name": "contested_ground",
+				"enemies": [
+					{
+						"archetype": "clockwork_bulwark"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				]
+			},
+			{
 				"name": "convergence_vanguard",
 				"enemies": [
 					{
@@ -101,6 +112,34 @@
 			}
 		],
 		"battle": [
+			{
+				"name": "ley_adepts",
+				"enemies": [
+					{
+						"archetype": "caster_mind_render"
+					},
+					{
+						"archetype": "clockwork_bulwark"
+					},
+					{
+						"archetype": "cinder_charger"
+					}
+				]
+			},
+			{
+				"name": "warground_relics",
+				"enemies": [
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "clockwork_bulwark"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
 			{
 				"name": "multi_school_cell",
 				"enemies": [
@@ -159,6 +198,23 @@
 			}
 		],
 		"siege": [
+			{
+				"name": "everywar_host",
+				"enemies": [
+					{
+						"archetype": "clockwork_bulwark"
+					},
+					{
+						"archetype": "archive_ward"
+					},
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
 			{
 				"name": "convergence_host",
 				"enemies": [

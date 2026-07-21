@@ -1,0 +1,19 @@
+{
+  "id": "carrion_hound",
+  "threatLabel": "Carrion Hound",
+  "role": "line",
+  "intelDescription": "Follows the dead and the dying. Never travels alone.",
+  "maxHealth": 15,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "pack"
+  ],
+  "colorR": 0.6,
+  "colorG": 0.5,
+  "colorB": 0.35
+}

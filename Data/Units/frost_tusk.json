@@ -1,0 +1,19 @@
+{
+  "id": "frost_tusk",
+  "threatLabel": "Frost Tusk",
+  "role": "line",
+  "intelDescription": "Stilled mid-stampede for a century; still remembers the direction it was going.",
+  "maxHealth": 14,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "charge"
+  ],
+  "colorR": 0.6,
+  "colorG": 0.8,
+  "colorB": 0.92
+}

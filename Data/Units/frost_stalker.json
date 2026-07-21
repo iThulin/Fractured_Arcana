@@ -1,0 +1,16 @@
+{
+  "id": "frost_stalker",
+  "threatLabel": "Frost-Stilled Hunter",
+  "role": "line",
+  "intelDescription": "Patient past reason. It moves on whoever is already hurt.",
+  "maxHealth": 16,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_hunt_wounded",
+  "colorR": 0.55,
+  "colorG": 0.65,
+  "colorB": 0.75
+}

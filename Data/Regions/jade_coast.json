@@ -93,6 +93,34 @@
 		],
 		"battle": [
 			{
+				"name": "mangrove_warden",
+				"enemies": [
+					{
+						"archetype": "caster_thornspeaker"
+					},
+					{
+						"archetype": "mire_lurker"
+					},
+					{
+						"archetype": "dire_wolf"
+					}
+				]
+			},
+			{
+				"name": "canopy_predators",
+				"enemies": [
+					{
+						"archetype": "beast_direboar"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
 				"name": "tide_druids",
 				"enemies": [
 					{
@@ -151,6 +179,23 @@
 		],
 		"siege": [
 			{
+				"name": "mangrove_siege",
+				"enemies": [
+					{
+						"archetype": "beast_direboar"
+					},
+					{
+						"archetype": "mire_lurker"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
 				"name": "jungle_host",
 				"enemies": [
 					{
@@ -206,6 +251,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "shoreline_raid",
+				"enemies": [
+					{
+						"archetype": "tidewrack_raider"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "dire_wolf"
+					}
+				]
+			},
 			{
 				"name": "vine_snare",
 				"enemies": [

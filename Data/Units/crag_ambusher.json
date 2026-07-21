@@ -1,0 +1,19 @@
+{
+  "id": "crag_ambusher",
+  "threatLabel": "Crag Ambusher",
+  "role": "line",
+  "intelDescription": "Ranger country's other kind. Circles wide to hit you from the blind side.",
+  "maxHealth": 12,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "scout"
+  ],
+  "colorR": 0.3,
+  "colorG": 0.55,
+  "colorB": 0.35
+}

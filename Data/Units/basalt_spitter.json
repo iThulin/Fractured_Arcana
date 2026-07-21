@@ -1,0 +1,19 @@
+{
+  "id": "basalt_spitter",
+  "threatLabel": "Ember Spitter",
+  "role": "line",
+  "intelDescription": "Rooted vent-gun. Stationary, patient, and it has the range.",
+  "maxHealth": 16,
+  "baseSpeed": 0,
+  "armor": 2,
+  "attackRange": 4,
+  "attackDamage": 5,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "colorR": 0.8,
+  "colorG": 0.4,
+  "colorB": 0.15
+}

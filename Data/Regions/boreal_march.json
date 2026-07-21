@@ -93,6 +93,34 @@
 		],
 		"battle": [
 			{
+				"name": "time_stilled_cabal",
+				"enemies": [
+					{
+						"archetype": "caster_hourglass_magus"
+					},
+					{
+						"archetype": "frost_stalker"
+					},
+					{
+						"archetype": "dire_wolf"
+					}
+				]
+			},
+			{
+				"name": "frozen_hunt",
+				"enemies": [
+					{
+						"archetype": "frost_tusk"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "Wizard"
+					}
+				]
+			},
+			{
 				"name": "frozen_moment",
 				"enemies": [
 					{
@@ -151,6 +179,23 @@
 		],
 		"siege": [
 			{
+				"name": "steppe_horde",
+				"enemies": [
+					{
+						"archetype": "frost_tusk"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "Ranger"
+					}
+				]
+			},
+			{
 				"name": "white_silence",
 				"enemies": [
 					{
@@ -206,6 +251,20 @@
 			}
 		],
 		"ambush": [
+			{
+				"name": "stilled_predators",
+				"enemies": [
+					{
+						"archetype": "frost_stalker"
+					},
+					{
+						"archetype": "dire_wolf"
+					},
+					{
+						"archetype": "dire_wolf"
+					}
+				]
+			},
 			{
 				"name": "whiteout",
 				"enemies": [

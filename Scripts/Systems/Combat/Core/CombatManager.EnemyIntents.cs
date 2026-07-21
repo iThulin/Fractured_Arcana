@@ -1083,11 +1083,86 @@ public partial class CombatManager
 
         // Slow rider follows whoever was actually hit (dodge = nobody; redirect = new victim).
         var victim = LastStrikeVictim;
-        if (victim != null && IsInstanceValid(victim) && victim.Stats.IsAlive)
+        ApplyCasterRider(enemy, victim);
+    }
+
+    // ── Per-school caster riders (Step 2) — the signature effect each wizard
+    // school lands on release, on top of the tile-strike damage. The generic
+    // wizard (CasterSpell == "") keeps the legacy slowed-1 rider so nothing
+    // regresses. Riders use only proven, symmetric statuses: burn/bleed tick
+    // 3/2 per turn in ProcessStatusEffects; slowed/rooted halve/zero reach
+    // read-side; stunned skips the action; poisoned drains max HP. Arcanist has
+    // no rider (its signature is raw damage, baked into attackDamage). Tinker
+    // forgoes the offensive rider to ward its most-wounded ally.
+    private void ApplyCasterRider(Unit caster, Unit victim)
+    {
+        string spell = caster?.CasterSpell ?? "";
+
+        // Tinker: repair the most-wounded ally instead of debuffing the victim.
+        if (spell == "forge")
         {
-            victim.ApplyStatus("slowed", 1);
-            combatUI?.AppendActionLog($"{victim.Name} is slowed by arcane energy!");
+            var ally = MostWoundedAlly(caster);
+            if (ally != null)
+            {
+                ally.Stats.Armor += 3;
+                ally.RefreshHealthBar();
+                combatUI?.AppendActionLog($"{caster.Name} shields {ally.Name} (+3 armor).");
+            }
+            return;
         }
+
+        if (victim == null || !IsInstanceValid(victim) || !victim.Stats.IsAlive)
+            return;
+
+        switch (spell)
+        {
+            case "ember":                          // Elementalist — burn DoT
+                victim.ApplyStatus("burn", 2);
+                combatUI?.AppendActionLog($"{victim.Name} is set alight (burning)!");
+                break;
+            case "chrono":                         // Chronomancer — deeper slow
+                victim.ApplyStatus("slowed", 2);
+                combatUI?.AppendActionLog($"{victim.Name} is dragged through time (slowed)!");
+                break;
+            case "grave":                          // Necromancer — creeping poison
+                victim.ApplyStatus("poisoned", 1);
+                combatUI?.AppendActionLog($"{victim.Name} is poisoned — the tab grows!");
+                break;
+            case "thorn":                          // Druid — root in place
+                victim.ApplyStatus("rooted", 1);
+                combatUI?.AppendActionLog($"{victim.Name} is bound by roots (rooted)!");
+                break;
+            case "mind":                           // Adept — stun (lose the action)
+                victim.ApplyStatus("stunned", 1);
+                combatUI?.AppendActionLog($"{victim.Name} reels, mind struck (stunned)!");
+                break;
+            case "geas":                           // Enchanter — bleeding geas
+                victim.ApplyStatus("bleed", 2);
+                combatUI?.AppendActionLog($"{victim.Name} is bound by a bleeding geas!");
+                break;
+            case "arclance":                       // Arcanist — pure damage, no rider
+                break;
+            default:                                // generic wizard — legacy rider
+                victim.ApplyStatus("slowed", 1);
+                combatUI?.AppendActionLog($"{victim.Name} is slowed by arcane energy!");
+                break;
+        }
+    }
+
+    /// <summary>Living enemy unit (or the caster itself) with the largest
+    /// missing-HP fraction — target for the Tinker caster's ward.</summary>
+    private Unit MostWoundedAlly(Unit caster)
+    {
+        Unit best = null;
+        float worst = -1f;
+        foreach (var u in enemyUnits)
+        {
+            if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive)
+                continue;
+            float missing = 1f - (float)u.Stats.Health / Math.Max(1, u.Stats.MaxHealth);
+            if (missing > worst) { worst = missing; best = u; }
+        }
+        return best ?? caster;
     }
 
     // ── Guard: defender repositioning + telegraphed armor ───────────────────

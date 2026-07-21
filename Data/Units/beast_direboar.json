@@ -1,0 +1,19 @@
+{
+  "id": "beast_direboar",
+  "threatLabel": "Dire Boar",
+  "role": "line",
+  "intelDescription": "Commits to a lane and does not stop. Reposition, or be run down where you stand.",
+  "maxHealth": 14,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "charge"
+  ],
+  "colorR": 0.45,
+  "colorG": 0.3,
+  "colorB": 0.15
+}
