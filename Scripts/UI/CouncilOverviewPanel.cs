@@ -176,7 +176,7 @@ public partial class ArchmageRow : HBoxContainer
         if (sentiment > 20)
             _sentimentLabel.AddThemeColorOverride("font_color", UITheme.HealthGreen);
         else if (sentiment < -20)
-            _sentimentLabel.AddThemeColorOverride("font_color", UITheme.HealthRed);
+            _sentimentLabel.AddThemeColorOverride("font_color", UITheme.Danger);
         else
             _sentimentLabel.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
 
@@ -188,7 +188,7 @@ public partial class ArchmageRow : HBoxContainer
             ArchmageDisposition.Allied => UITheme.HealthGreen,
             ArchmageDisposition.Coerced => UITheme.Warning,
             ArchmageDisposition.Overthrown => UITheme.Violet,
-            ArchmageDisposition.Corrupted => UITheme.HealthRed,
+            ArchmageDisposition.Corrupted => UITheme.Danger,
             _ => UITheme.NegotiationHiddenTerm,
         };
         _dispositionBadge.AddThemeColorOverride("font_color", badgeColor);
@@ -209,7 +209,7 @@ public partial class ArchmageRow : HBoxContainer
             0 => UITheme.NegotiationHiddenTerm,
             1 => UITheme.Warning,
             2 => new Color("#CC5500"),
-            _ => UITheme.HealthRed,
+            _ => UITheme.Danger,
         };
         _corruptionLabel.AddThemeColorOverride("font_color", corruptColor);
     }

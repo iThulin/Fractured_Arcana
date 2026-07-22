@@ -1834,7 +1834,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         string terrainName = hex.Terrain.ToString();
         var completedIds = SaveManager.ActiveSave?.CompletedEvents;
-        var encounter = NarrativeEncounterLoader.PickRandom(_encounterPool, terrainName, completedIds);
+        var encounter = NarrativeEncounterLoader.PickRandom(_encounterPool, terrainName, completedIds, SaveManager.ActiveSave);
 
         hex.POIConsumed = true;
         hex.RefreshVisuals();
