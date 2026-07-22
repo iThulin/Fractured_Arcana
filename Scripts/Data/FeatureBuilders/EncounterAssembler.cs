@@ -71,14 +71,28 @@ public static class EncounterAssembler
     public static void ClearCache() => _slots = null;
 
     /// <summary>Replace {slot} tokens in <paramref name="body"/> with fragments
-    /// matched to terrain/region. An unknown or unmatched slot keeps its literal
-    /// token, so authoring gaps are visible rather than silent.</summary>
+    /// matched to terrain/region, then resolve any remaining tokens against
+    /// save-data substitutions from EchoSeeder. An unknown or unmatched slot
+    /// keeps its literal token, so authoring gaps are visible rather than
+    /// silent.</summary>
     public static string Assemble(string body, OverworldHex.TerrainType terrain, string regionId)
     {
         if (string.IsNullOrEmpty(body) || body.IndexOf('{') < 0) return body;
         EnsureLoaded();
         string terrainName = terrain.ToString();
-        return TokenRx.Replace(body, m => Pick(m.Groups[1].Value, terrainName, regionId) ?? m.Value);
+        return TokenRx.Replace(body, m =>
+        {
+            string key = m.Groups[1].Value;
+            // Try fragment library first
+            string fragment = Pick(key, terrainName, regionId);
+            if (fragment != null) return fragment;
+            // Then try save-data substitutions from the echo seeder
+            var subs = EchoSeeder.Substitutions;
+            if (subs != null && subs.TryGetValue(key, out string sub))
+                return sub;
+            // Unknown token — keep literal so authoring gaps are visible
+            return m.Value;
+        });
     }
 
     /// <summary>Non-destructive: returns the original encounter when its body has
@@ -88,15 +102,18 @@ public static class EncounterAssembler
     public static NarrativeEncounterData ForDisplay(NarrativeEncounterData enc,
                                                     OverworldHex.TerrainType terrain, string regionId)
     {
-        if (enc == null || string.IsNullOrEmpty(enc.Body) || enc.Body.IndexOf('{') < 0)
-            return enc;
+        if (enc == null) return enc;
+        bool bodyHasTokens = !string.IsNullOrEmpty(enc.Body) && enc.Body.IndexOf('{') >= 0;
+        bool titleHasTokens = !string.IsNullOrEmpty(enc.Title) && enc.Title.IndexOf('{') >= 0;
+        if (!bodyHasTokens && !titleHasTokens) return enc;
         return new NarrativeEncounterData
         {
             Id = enc.Id,
-            Title = enc.Title,
-            Body = Assemble(enc.Body, terrain, regionId),
+            Title = titleHasTokens ? Assemble(enc.Title, terrain, regionId) : enc.Title,
+            Body = bodyHasTokens ? Assemble(enc.Body, terrain, regionId) : enc.Body,
             TerrainTags = enc.TerrainTags,
             RegionTags = enc.RegionTags,
+            RequiredFlag = enc.RequiredFlag,
             Choices = enc.Choices,
         };
     }

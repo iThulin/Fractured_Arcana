@@ -41,6 +41,16 @@ public class QuestDefinition
     /// permanently. False = per-timeline; status resets each cycle.</summary>
     public bool Permanent = false;
 
+    /// <summary>Persistence layer: "Eternal" or "Timeline" (quest spec §2/§7).
+    /// JSON may set this explicitly; when empty, derived from <see cref="Permanent"/>
+    /// at load time — Permanent → Eternal, else Timeline.</summary>
+    public string Layer = "";
+
+    /// <summary>Resolve the effective layer. Honors an explicit JSON value;
+    /// falls back to Permanent → "Eternal", else "Timeline".</summary>
+    public string EffectiveLayer => !string.IsNullOrEmpty(Layer) ? Layer
+        : Permanent ? "Eternal" : "Timeline";
+
     // Visibility gate — a rumored quest stays hidden until met.
     public string RequiredLore = "";
     public string RequiredFlag = "";

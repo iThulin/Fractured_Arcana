@@ -27,6 +27,15 @@ public class NarrativeEncounterData
     public List<string> TerrainTags = new();
     public List<string> RegionTags = new();
 
+    // ── Encounter-level visibility gate (Step 5, quest spec §8) ─────────
+    /// <summary>When non-empty, this encounter is only eligible for selection
+    /// when the flag is set (checked via GuildSaveData.HasFlag, which reads
+    /// BOTH timeline WorldFlags and permanent MetaNarrativeFlags). Used by
+    /// ripple encounters to gate on qe_* trigger flags from the event shim,
+    /// and by echo encounters to gate on echo_*_eligible seeder flags.
+    /// Choice-level RequiredFlag still applies independently.</summary>
+    public string RequiredFlag = "";
+
     // ── Choices ──────────────────────────────────────────────────────────
     public List<EncounterChoice> Choices = new();
 }

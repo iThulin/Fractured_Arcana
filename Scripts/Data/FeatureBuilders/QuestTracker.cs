@@ -13,6 +13,12 @@ using System.Collections.Generic;
 // Layer:          System (static, stateless)
 // Collaborators:  QuestDefinition/QuestLoader, GuildSaveData,
 //                 EternalLedger.CompletedQuestIds, SaveManager.
+//
+// Counter families (quest spec §8, step 4):
+//   "deed:<type>"   → Ledger.DeedCounts[type]  (cross-cycle total)
+//   "flags:<prefix>"→ count of flags matching prefix across
+//                     WorldFlags + MetaNarrativeFlags
+//   Plus the original named counters for backwards compat.
 // ============================================================
 
 public enum QuestStatus { Locked, Active, Complete }
@@ -73,6 +79,42 @@ public static class QuestTracker
 
     private static int CountFor(string counter, GuildSaveData save)
     {
+        if (string.IsNullOrEmpty(counter)) return 0;
+
+        // ── Generic family: deed:<type> ─────────────────────────────────
+        // Reads the cross-cycle deed tally from EternalLedger.DeedCounts.
+        // Quest JSON example:  { "counter": "deed:combat_won", "counterTarget": 5 }
+        if (counter.StartsWith("deed:"))
+        {
+            string deedType = counter.Substring(5);
+            if (string.IsNullOrEmpty(deedType)) return 0;
+            var deeds = save.Ledger?.DeedCounts;
+            if (deeds != null && deeds.TryGetValue(deedType, out int val))
+                return val;
+            return 0;
+        }
+
+        // ── Generic family: flags:<prefix> ──────────────────────────────
+        // Counts flags matching the prefix across BOTH flag stores
+        // (timeline WorldFlags + eternal MetaNarrativeFlags), de-duped.
+        // Quest JSON example:  { "counter": "flags:dossier_hint_", "counterTarget": 3 }
+        if (counter.StartsWith("flags:"))
+        {
+            string prefix = counter.Substring(6);
+            if (string.IsNullOrEmpty(prefix)) return 0;
+            int n = 0;
+            var wf = save.Cycle?.WorldFlags;
+            if (wf != null)
+                foreach (var f in wf)
+                    if (f.StartsWith(prefix)) n++;
+            var mf = save.Ledger?.MetaNarrativeFlags;
+            if (mf != null)
+                foreach (var f in mf)
+                    if (f.StartsWith(prefix)) n++;
+            return n;
+        }
+
+        // ── Named counters (original, backwards-compatible) ─────────────
         switch (counter)
         {
             case "outposts_secured":

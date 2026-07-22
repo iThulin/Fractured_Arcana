@@ -181,6 +181,13 @@ public static class CorruptionSpread
             // until the integer level matches the accumulated pressure.
             while (curLevel < targetLevel && curLevel < 3)
             {
+                // Sentiment: corruption advancing erodes the archmage's goodwill.
+                // Shift BEFORE AdvanceCorruption because at level 3 the archmage
+                // flips to Corrupted and ShiftSentiment no-ops on resolved states.
+                string corrArch = campaign.GetArchmageForRegion(region);
+                if (!string.IsNullOrEmpty(corrArch))
+                    campaign.ShiftSentiment(corrArch, -8);
+
                 bool flipped = campaign.AdvanceCorruption(region);
                 curLevel = campaign.GetCorruption(region);
                 if (flipped)
@@ -195,13 +202,6 @@ public static class CorruptionSpread
                 DossierService.EnsureMet("astrologer");
                 if (flipped)
                     DossierService.RevealNextHint("astrologer");
-
-                // Quest event shim (§8.1): corruption advanced in a kingdom.
-                // Silent stamp — strategic layer has no toast pipe.
-                QuestEvents.Raise(QuestEvents.CorruptionAdvanced, kid,
-                    $"lv{curLevel}");
-                if (flipped)
-                    QuestEvents.Raise(QuestEvents.ArchmageCorrupted, kid);
             }
         }
     }

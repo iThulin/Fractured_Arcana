@@ -51,6 +51,12 @@ public static class NarrativeEncounterLoader
         var fragmentArcs = LoadFile("fragment_arcs");
         if (fragmentArcs != null) combined.AddRange(fragmentArcs);
 
+        // Ripple pool (always included) — quest-triggered reactive encounters.
+        // Each entry uses encounter-level RequiredFlag so it only surfaces when
+        // the quest-event shim has set the matching qe_* trigger flag.
+        var ripples = LoadFile("ripples");
+        if (ripples != null) combined.AddRange(ripples);
+
         return combined;
     }
 
@@ -94,7 +100,8 @@ public static class NarrativeEncounterLoader
     public static NarrativeEncounterData PickRandom(
         List<NarrativeEncounterData> pool,
         string terrainName,
-        List<string> completedIds)
+        List<string> completedIds,
+        GuildSaveData save = null)
     {
         if (pool == null || pool.Count == 0) return null;
 
@@ -104,6 +111,11 @@ public static class NarrativeEncounterLoader
             // Skip completed unique encounters (those with an Id)
             if (!string.IsNullOrEmpty(enc.Id) && completedIds != null
                 && completedIds.Contains(enc.Id))
+                continue;
+
+            // Skip encounters whose encounter-level RequiredFlag is unmet
+            if (!string.IsNullOrEmpty(enc.RequiredFlag)
+                && (save == null || !save.HasFlag(enc.RequiredFlag)))
                 continue;
 
             eligible.Add(enc);

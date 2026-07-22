@@ -52,6 +52,13 @@ public class ArchmageDefinition
     /// </summary>
     public float ArchmageFactionChance = 0.40f;
 
+    // ── Sentiment (Step 8, quest_hooks_compendium §7) ─────────────────────
+    /// <summary>0–1. How resistant this archmage is to sentiment shifts. 0 = easily
+    /// swayed, 1 = immovable. Hess (0.7) barely responds to player actions;
+    /// Bram (0.1) shifts readily. Applied as a multiplier reduction in
+    /// CampaignState.ShiftSentiment. Default 0.3 = moderate resistance.</summary>
+    public float SwayResistance = 0.3f;
+
     // ── Corruption thresholds ─────────────────────────────────────────────
     /// <summary>Maximum CorruptionLevel (0–3) at which Unite is still achievable. Above this, only Coerce or Overthrow remain.</summary>
     public int MaxCorruptionForUnite = 1;

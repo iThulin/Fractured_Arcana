@@ -275,15 +275,21 @@ public static class KingdomTickSimulation
             }
             else
             {
+                // Sentiment: siege repelled — the archmage's kingdom survived.
+                var repCampaign = cycle?.Campaign;
+                if (repCampaign != null)
+                {
+                    string repArch = repCampaign.GetArchmageForRegion(def.TemplateRegionId);
+                    if (!string.IsNullOrEmpty(repArch))
+                        repCampaign.ShiftSentiment(repArch, +8);
+                }
+
                 def.Stability = Mathf.Min(100, def.Stability + 10);
                 string name = string.IsNullOrEmpty(def.DisplayName) ? wf.DefenderKingdomId : def.DisplayName;
                 string rep = $"The invasion of {name} is thrown back.";
                 cycle.PendingSiegeReports.Add(rep);
                 GD.Print($"[Warfront] {rep}");
                 wf.Resolution = "repelled";
-
-                // Quest event shim (§8.1): invasion repelled.
-                QuestEvents.Raise(QuestEvents.SiegeRepelled, wf.DefenderKingdomId);
             }
             wf.Closed = true;
         }
@@ -296,6 +302,16 @@ public static class KingdomTickSimulation
     private static void FallToAggressor(CycleState cycle, KingdomState def, string defenderKid,
                                         string aggressorFactionId, Func<string, string> fd)
     {
+        // Sentiment: a kingdom falling is a major blow — the archmage blames
+        // the player for not preventing it (or is weakened by the loss).
+        var fallCampaign = cycle?.Campaign;
+        if (fallCampaign != null)
+        {
+            string fallArch = fallCampaign.GetArchmageForRegion(def.TemplateRegionId);
+            if (!string.IsNullOrEmpty(fallArch))
+                fallCampaign.ShiftSentiment(fallArch, -15);
+        }
+
         bool wasPlayers = def.PlayerInfluence >= PlayerHoldingInfluence
                           || HoldsStagingPoint(cycle.World, defenderKid);
         string fallenName = string.IsNullOrEmpty(def.DisplayName) ? defenderKid : def.DisplayName;
@@ -311,14 +327,19 @@ public static class KingdomTickSimulation
             : $"{fallenName} has fallen to {victor}.";
         cycle.PendingSiegeReports.Add(report);
         GD.Print($"[Warfront] {report}");
-
-        // Quest event shim (§8.1): a kingdom fell to an aggressor.
-        // Silent stamp — strategic layer has no toast pipe.
-        QuestEvents.Raise(QuestEvents.SiegeFell, defenderKid, aggressorFactionId);
     }
 
     private static void SeizeForGuild(CycleState cycle, KingdomState def, string defenderKid)
     {
+        // Sentiment: seizing an archmage's kingdom for the guild — hostile act.
+        var seizeCampaign = cycle?.Campaign;
+        if (seizeCampaign != null)
+        {
+            string seizeArch = seizeCampaign.GetArchmageForRegion(def.TemplateRegionId);
+            if (!string.IsNullOrEmpty(seizeArch))
+                seizeCampaign.ShiftSentiment(seizeArch, -12);
+        }
+
         string name = string.IsNullOrEmpty(def.DisplayName) ? defenderKid : def.DisplayName;
         def.ControllingFactionId = GuildFactionId;
         def.PlayerInfluence = 100;
@@ -328,9 +349,6 @@ public static class KingdomTickSimulation
         string report = $"★ {name} answers to the guild now — seized from the war.";
         cycle.PendingSiegeReports.Add(report);
         GD.Print($"[Warfront] {report}");
-
-        // Quest event shim (§8.1): a kingdom seized by the guild.
-        QuestEvents.Raise(QuestEvents.SiegeSeized, defenderKid);
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -398,12 +416,27 @@ public static class KingdomTickSimulation
                 break;
         }
 
+        // Sentiment: successful defence earns favor with the defender's archmage;
+        // aiding the aggressor (or failing to defend) costs it.
+        var intCampaign = cycle.Campaign;
+        if (intCampaign != null)
+        {
+            string intArch = intCampaign.GetArchmageForRegion(def.TemplateRegionId);
+            if (!string.IsNullOrEmpty(intArch))
+            {
+                int sentDelta = side switch
+                {
+                    WarfrontSide.Defend => success ? +12 : -3,
+                    WarfrontSide.Seize  => success ? -8 : 0,    // seizing their kingdom = hostile
+                    WarfrontSide.Aid    => success ? -10 : +3,   // aiding their attacker
+                    _ => 0
+                };
+                if (sentDelta != 0)
+                    intCampaign.ShiftSentiment(intArch, sentDelta);
+            }
+        }
+
         GD.Print($"[Warfront] Intervention ({side}, success={success}) at {defName}: Advance now {wf.Advance}.");
-
-        // Quest event shim (§8.1): intervention outcome.
-        QuestEvents.Raise(success ? QuestEvents.InterventionWon : QuestEvents.InterventionLost,
-            wf.DefenderKingdomId);
-
         ResolveWarfront(cycle, wf, def, fd);
         cycle.Warfronts.RemoveAll(w => w.Closed);
     }

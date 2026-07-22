@@ -77,6 +77,69 @@ public class CampaignState
     /// </summary>
     public Dictionary<string, ArchmageDisposition> Dispositions = new();
 
+    // ── Sentiment (Step 8, quest_hooks_compendium §7) ─────────────────────
+    /// <summary>Archmage id → sentiment value (−100 to +100). 0 = neutral.
+    /// Positive = favoring the player, negative = drifting toward corruption.
+    /// The continuous scale beneath the discrete Disposition enum — sentiment
+    /// accumulates from player actions and corruption pressure; the final
+    /// resolution (Allied/Coerced/Overthrown/Corrupted) happens when the
+    /// player triggers a resolution encounter at the right threshold.
+    /// Visible in the council overview tied to each archmage's kingdom.</summary>
+    public Dictionary<string, int> Sentiments = new();
+
+    /// <summary>Returns the current sentiment of an archmage (0 if not tracked).</summary>
+    public int GetSentiment(string archmageid) =>
+        Sentiments.TryGetValue(archmageid, out var s) ? s : 0;
+
+    /// <summary>Shift an archmage's sentiment by <paramref name="delta"/>, applying
+    /// the archmage's sway resistance from their definition. Returns the new
+    /// sentiment value. Clamps to [−100, +100]. No-ops on already-resolved
+    /// archmages (Allied/Coerced/Overthrown/Corrupted).</summary>
+    public int ShiftSentiment(string archmageid, int delta)
+    {
+        // Don't shift already-resolved archmages
+        var disp = GetDisposition(archmageid);
+        if (disp == ArchmageDisposition.Allied || disp == ArchmageDisposition.Coerced
+            || disp == ArchmageDisposition.Overthrown || disp == ArchmageDisposition.Corrupted)
+            return GetSentiment(archmageid);
+
+        // Apply sway resistance from archmage definition
+        var def = ArchmageRegistry.Get(archmageid);
+        float resistance = def?.SwayResistance ?? 0f;
+        int adjusted = (int)(delta * (1f - resistance));
+        if (adjusted == 0 && delta != 0) adjusted = delta > 0 ? 1 : -1; // floor to ±1
+
+        int current = GetSentiment(archmageid);
+        int result = System.Math.Clamp(current + adjusted, -100, 100);
+        Sentiments[archmageid] = result;
+
+        // Auto-transition to Neutral if they were Unknown and sentiment moved
+        if (disp == ArchmageDisposition.Unknown && result != 0)
+            Dispositions[archmageid] = ArchmageDisposition.Neutral;
+
+        return result;
+    }
+
+    /// <summary>Returns the resolution options available for an archmage based
+    /// on their current sentiment and corruption level. Used by resolution
+    /// encounters to gate unite/coerce/overthrow choices.</summary>
+    public (bool canUnite, bool canCoerce, bool canOverthrow) ResolutionOptions(string archmageid)
+    {
+        var def = ArchmageRegistry.Get(archmageid);
+        if (def == null) return (false, false, true); // unknown archmage, only overthrow
+
+        int sentiment = GetSentiment(archmageid);
+        string regionId = GetRegionForArchmage(archmageid);
+        int corruption = GetCorruption(regionId);
+
+        bool canUnite = sentiment >= 40 && corruption <= def.MaxCorruptionForUnite;
+        bool canCoerce = sentiment >= -20 && sentiment < 40
+                         && corruption <= def.MaxCorruptionForCoerce;
+        bool canOverthrow = true; // always available as the combat path
+
+        return (canUnite, canCoerce, canOverthrow);
+    }
+
     // ── Corruption ────────────────────────────────────────────────────────
     /// <summary>
     /// The Chronomancer's influence level per region (0–3).

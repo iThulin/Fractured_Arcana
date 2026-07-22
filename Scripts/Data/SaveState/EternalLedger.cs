@@ -77,6 +77,33 @@ public class RenownAnchor
 }
 
 /// <summary>
+/// A timeline quest that was still active (unlocked but incomplete)
+/// when the cycle unmaked. Archived to <see cref="EternalLedger.UnfinishedBusiness"/>
+/// so the quest log can render the cost of every reset (spec §7).
+/// </summary>
+public class UnfinishedQuestRecord
+{
+    public string QuestId = "";
+    public string Title = "";
+    public string Summary = "";
+
+    /// <summary>How many objectives were completed before the unmake.</summary>
+    public int ObjectivesDone = 0;
+
+    /// <summary>Total objective count on the quest.</summary>
+    public int ObjectivesTotal = 0;
+
+    /// <summary>Which cycle this quest was abandoned in.</summary>
+    public int CycleNumber = 0;
+
+    /// <summary>Campaign year within that cycle (1 = first timeline).</summary>
+    public int CampaignYear = 1;
+
+    /// <summary>School the player was running when the cycle ended.</summary>
+    public string School = "";
+}
+
+/// <summary>
 /// The eternal ledger. Created once per guild slot; survives every
 /// cycle reset; the campus, the economy, and the meta-narrative all
 /// live here. Carries the guild identity (the guild, like the campus,
@@ -150,6 +177,16 @@ public class EternalLedger
     /// derive completion live and reset with the timeline. Stamped by
     /// QuestTracker.SyncCompletions.</summary>
     public List<string> CompletedQuestIds = new();
+
+    // ── Unfinished business (quest spec §7) ───────────────────────────────
+    /// <summary>
+    /// Timeline quests that were active (unlocked, not complete) when a cycle
+    /// unmaked. Append-only: each unmake adds its live timeline quests here
+    /// as a permanent record of what was left behind. The quest log renders
+    /// these in a collapsible "Unfinished Business" section under the main
+    /// groups — emotionally load-bearing (the cost of every reset, itemized).
+    /// </summary>
+    public List<UnfinishedQuestRecord> UnfinishedBusiness = new();
 
     // ── The honored dead ─────────────────────────────────────────────────
     /// <summary>

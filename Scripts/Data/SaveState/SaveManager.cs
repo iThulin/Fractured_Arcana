@@ -432,6 +432,13 @@ public static class SaveManager
 
         ActiveSave.Ledger.LoopHistory.Add(record);
 
+        // ── Archive unfinished timeline quests (quest spec §7) ─────────
+        // Before the CycleState is replaced, snapshot every Timeline quest
+        // that was active (unlocked, not complete) into UnfinishedBusiness.
+        // This is the "cost of every reset, itemized." Skipped on Continue
+        // (ContinueCampaign never calls this method).
+        ArchiveUnfinishedQuests(old);
+
         // ── A new timeline ──────────────────────────────────────────────
         ActiveSave.Cycle = new CycleState
         {
@@ -483,6 +490,44 @@ public static class SaveManager
         GD.Print($"SaveManager: Timeline held into Year {cycle.CampaignYear} " +
                  $"(cycle {cycle.CycleNumber}). The world hardens.");
         return ActiveSave;
+    }
+
+    /// <summary>Archive active Timeline quests into UnfinishedBusiness before
+    /// the CycleState is replaced. Called only from <see cref="BeginNewCycle"/>
+    /// — <see cref="ContinueCampaign"/> skips this because the timeline persists.</summary>
+    private static void ArchiveUnfinishedQuests(CycleState endingCycle)
+    {
+        if (ActiveSave?.Ledger == null || endingCycle == null)
+            return;
+
+        var quests = QuestLoader.LoadAll();
+        foreach (var q in quests)
+        {
+            // Only archive Timeline quests (Eternal quests survive the wipe)
+            if (q.EffectiveLayer != "Timeline")
+                continue;
+
+            var status = QuestTracker.StatusOf(q, ActiveSave);
+            if (status != QuestStatus.Active)
+                continue; // skip locked and completed
+
+            int objDone = 0, objTotal = q.Objectives?.Count ?? 0;
+            if (q.Objectives != null)
+                foreach (var o in q.Objectives)
+                    if (QuestTracker.ObjectiveDone(o, ActiveSave)) objDone++;
+
+            ActiveSave.Ledger.UnfinishedBusiness.Add(new UnfinishedQuestRecord
+            {
+                QuestId = q.Id,
+                Title = q.Title,
+                Summary = q.Summary,
+                ObjectivesDone = objDone,
+                ObjectivesTotal = objTotal,
+                CycleNumber = endingCycle.CycleNumber,
+                CampaignYear = endingCycle.CampaignYear,
+                School = endingCycle.SelectedSchool ?? "",
+            });
+        }
     }
 
     private static void SeedDeckForSchool(GuildSaveData data, string school)

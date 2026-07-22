@@ -1528,21 +1528,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters.");
             EmitCombatDeed(router, resultHex);
 
-            // Sentiment: winning combat in an archmage's region shifts sentiment
-            // toward the player. Killing their OWN patrol is handled separately
-            // in EmitCombatDeed (negative shift there). Here: region-archmage
-            // gets a positive nudge — the player is clearing threats.
-            {
-                var sentCampaign = SaveManager.ActiveSave?.Cycle?.Campaign;
-                if (sentCampaign != null)
-                {
-                    string sentRegion = StagingTemplateRegion();
-                    string sentArch = sentCampaign.GetArchmageForRegion(sentRegion);
-                    if (!string.IsNullOrEmpty(sentArch))
-                        sentCampaign.ShiftSentiment(sentArch, +5);
-                }
-            }
-
             // Dossier: a field victory over an archmage's own forces reveals
             // the next authored weakness hint (quest spec §4 — wiring pass).
             {
@@ -1834,7 +1819,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         string terrainName = hex.Terrain.ToString();
         var completedIds = SaveManager.ActiveSave?.CompletedEvents;
-        var encounter = NarrativeEncounterLoader.PickRandom(_encounterPool, terrainName, completedIds);
+        var encounter = NarrativeEncounterLoader.PickRandom(_encounterPool, terrainName, completedIds, SaveManager.ActiveSave);
 
         hex.POIConsumed = true;
         hex.RefreshVisuals();
@@ -2214,25 +2199,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 CouncilEcho.CancelDeed(SaveManager.ActiveSave?.Cycle?.Council,
                     NegotiationContext.OriginKingdomId, CouncilEcho.PatrolCompelled))
                 buried = "  The patrol parts on good terms — that story dies here.";
-
-            // Sentiment: a kingdom-aligned deal shifts the region's archmage.
-            // Fair deal (positive rep) = favor; exploitative = disfavor.
-            if (kingdomAligned)
-            {
-                var sentCampaign = SaveManager.ActiveSave?.Cycle?.Campaign;
-                if (sentCampaign != null)
-                {
-                    var kState = cycle.Kingdoms[kingdom];
-                    string sentArch = sentCampaign.GetArchmageForRegion(kState.TemplateRegionId);
-                    if (!string.IsNullOrEmpty(sentArch))
-                    {
-                        int sentDelta = NegotiationContext.ReputationDelta > 0 ? +5
-                                      : NegotiationContext.ReputationDelta < 0 ? -5 : 0;
-                        if (sentDelta != 0)
-                            sentCampaign.ShiftSentiment(sentArch, sentDelta);
-                    }
-                }
-            }
 
             ShowInfo($"Deal struck. Gold: {(NegotiationContext.GoldDelta >= 0 ? "+" : "")}{NegotiationContext.GoldDelta}{taught}{buried}");
         }
@@ -3647,9 +3613,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             !string.IsNullOrEmpty(router.SavedCombatPatrolArchmageId) &&
             router.SavedCombatPatrolArchmageId != "wilds")
         {
-            // Sentiment: killing an archmage's patrol is a direct affront
-            cycle.Campaign?.ShiftSentiment(router.SavedCombatPatrolArchmageId, -10);
-
             foreach (var kvp in cycle.Kingdoms)
             {
                 if (kvp.Value.ArchmageId == router.SavedCombatPatrolArchmageId)
@@ -3674,13 +3637,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _world.Tiles[idx].Corruption >= 30)
         {
             bool major = _world.Tiles[idx].Corruption >= 60;
-            // Sentiment: fighting corruption directly helps the region's archmage
-            if (cycle.Campaign != null && cycle.Kingdoms.TryGetValue(kid, out var clnKs))
-            {
-                string clnArch = cycle.Campaign.GetArchmageForRegion(clnKs.TemplateRegionId);
-                if (!string.IsNullOrEmpty(clnArch))
-                    cycle.Campaign.ShiftSentiment(clnArch, major ? +8 : +4);
-            }
             string t = CouncilEcho.EmitDeed(cycle, kid,
                 CouncilEcho.CorruptionCleansed, positive: true, isMajor: major);
             if (t != null)
