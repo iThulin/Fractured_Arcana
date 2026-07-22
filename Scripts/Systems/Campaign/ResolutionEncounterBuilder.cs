@@ -1,4 +1,6 @@
+using Godot;
 using System.Collections.Generic;
+using System.Text.Json;
 
 // ============================================================
 // ResolutionEncounterBuilder.cs
@@ -29,6 +31,46 @@ public static class ResolutionEncounterBuilder
     /// the campaign's hardest authored combats short of the finale.</summary>
     private const float ResolutionDifficultyMult = 1.8f;
 
+    // ── Authored audiences (Data/Encounters/resolutions.json) ───────────
+    // Authored encounters carry ArchmageId + choices with ResolutionKind and
+    // take precedence over the code-built fallback below. Standard encounter
+    // JSON schema (camelCase, fields included) — same as every other pool.
+    private const string AuthoredPath = "res://Data/Encounters/resolutions.json";
+    private static Dictionary<string, NarrativeEncounterData> _authored;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        IncludeFields = true,
+    };
+
+    private static void EnsureAuthoredLoaded()
+    {
+        if (_authored != null) return;
+        _authored = new Dictionary<string, NarrativeEncounterData>(
+            System.StringComparer.OrdinalIgnoreCase);
+        if (!FileAccess.FileExists(AuthoredPath)) return;
+        try
+        {
+            using var file = FileAccess.Open(AuthoredPath, FileAccess.ModeFlags.Read);
+            if (file == null) return;
+            var list = JsonSerializer.Deserialize<List<NarrativeEncounterData>>(
+                file.GetAsText(), JsonOptions);
+            if (list == null) return;
+            foreach (var enc in list)
+                if (enc != null && !string.IsNullOrEmpty(enc.ArchmageId))
+                    _authored[enc.ArchmageId] = enc;
+            GD.Print($"[Resolution] Loaded {_authored.Count} authored audience(s).");
+        }
+        catch (System.Exception e)
+        {
+            GD.PrintErr($"[Resolution] Failed to load {AuthoredPath}: {e.Message}");
+        }
+    }
+
+    /// <summary>Testing hook: drop the authored cache so edited JSON reloads.</summary>
+    public static void ClearCache() => _authored = null;
+
     /// <summary>True when the archmage can still be resolved (not yet
     /// Allied/Coerced/Overthrown/Corrupted).</summary>
     public static bool CanSeekAudience(CampaignState campaign, string archmageId)
@@ -45,6 +87,11 @@ public static class ResolutionEncounterBuilder
         var def = ArchmageRegistry.Get(archmageId);
         if (def == null || campaign == null) return null;
         if (!CanSeekAudience(campaign, archmageId)) return null;
+
+        // Authored audience wins when one exists for this archmage.
+        EnsureAuthoredLoaded();
+        if (_authored.TryGetValue(archmageId, out var authored))
+            return authored;
 
         int sentiment = campaign.GetSentiment(archmageId);
         string regionId = campaign.GetRegionForArchmage(archmageId);

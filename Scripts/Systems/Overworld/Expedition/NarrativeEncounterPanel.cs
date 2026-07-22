@@ -169,7 +169,7 @@ public partial class NarrativeEncounterPanel : Control
             ContentMarginBottom = UITheme.PaddingNormal + 2,
         };
         _resultPanel.AddThemeStyleboxOverride("panel", resultStyle);
-        _resultPanel.CustomMinimumSize = new Vector2(0, 70);
+        _resultPanel.CustomMinimumSize = new Vector2(0, 110);
         layout.AddChild(_resultPanel);
 
         _resultLabel = new Label
@@ -225,7 +225,8 @@ public partial class NarrativeEncounterPanel : Control
         _bodyLabel.Text = encounter.Body;
         if (_bodyScroll != null) _bodyScroll.ScrollVertical = 0;
 
-        // Clear old buttons
+        // Clear old buttons; re-show the container (hidden after a choice).
+        _choiceContainer.Visible = true;
         foreach (var child in _choiceContainer.GetChildren())
             child.QueueFree();
 
@@ -319,12 +320,12 @@ public partial class NarrativeEncounterPanel : Control
     {
         _chosenResult = choice;
 
-        // Disable choice buttons
-        foreach (var child in _choiceContainer.GetChildren())
-            if (child is Button b) b.Disabled = true;
+        // Hide the choices once one is taken — the dead buttons only crowd the
+        // result. The chosen line is echoed above the result text instead.
+        _choiceContainer.Visible = false;
 
         // Build result text + outcome summary
-        string resultText = choice.ResultText;
+        string resultText = $"»  {choice.Label}\n\n{choice.ResultText}";
         var outcomes = new System.Collections.Generic.List<string>();
         if (choice.GoldDelta > 0) outcomes.Add($"+{choice.GoldDelta} gold");
         if (choice.GoldDelta < 0) outcomes.Add($"{choice.GoldDelta} gold");
