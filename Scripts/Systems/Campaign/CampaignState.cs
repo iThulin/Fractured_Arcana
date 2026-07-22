@@ -122,8 +122,15 @@ public class CampaignState
 
     /// <summary>Returns the resolution options available for an archmage based
     /// on their current sentiment and corruption level. Used by resolution
-    /// encounters to gate unite/coerce/overthrow choices.</summary>
-    public (bool canUnite, bool canCoerce, bool canOverthrow) ResolutionOptions(string archmageid)
+    /// encounters to gate unite/coerce/overthrow choices.
+    /// <para>When <paramref name="hasFlag"/> is supplied (save.HasFlag), Coerce
+    /// additionally requires LEVERAGE: at least 2 revealed dossier hints
+    /// (`dossier_{id}_hint_2` — hints reveal sequentially). Coercion is knowing
+    /// where it hurts; the sentiment window alone is not leverage (Step 9
+    /// gating ruling, 2026-07-22). Callers without flag access get the old
+    /// sentiment-only behaviour.</para></summary>
+    public (bool canUnite, bool canCoerce, bool canOverthrow) ResolutionOptions(
+        string archmageid, System.Func<string, bool> hasFlag = null)
     {
         var def = ArchmageRegistry.Get(archmageid);
         if (def == null) return (false, false, true); // unknown archmage, only overthrow
@@ -134,7 +141,8 @@ public class CampaignState
 
         bool canUnite = sentiment >= 40 && corruption <= def.MaxCorruptionForUnite;
         bool canCoerce = sentiment >= -20 && sentiment < 40
-                         && corruption <= def.MaxCorruptionForCoerce;
+                         && corruption <= def.MaxCorruptionForCoerce
+                         && (hasFlag == null || hasFlag(DossierService.HintFlag(archmageid, 2)));
         bool canOverthrow = true; // always available as the combat path
 
         return (canUnite, canCoerce, canOverthrow);

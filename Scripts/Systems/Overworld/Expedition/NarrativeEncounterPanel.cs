@@ -219,7 +219,7 @@ public partial class NarrativeEncounterPanel : Control
         bool resUnite = false, resCoerce = false;
         bool isResolution = !string.IsNullOrEmpty(encounter.ArchmageId) && _campaign != null;
         if (isResolution)
-            (resUnite, resCoerce, _) = _campaign.ResolutionOptions(encounter.ArchmageId);
+            (resUnite, resCoerce, _) = _campaign.ResolutionOptions(encounter.ArchmageId, _hasFlag);
 
         _titleLabel.Text = encounter.Title;
         _bodyLabel.Text = encounter.Body;
@@ -267,9 +267,12 @@ public partial class NarrativeEncounterPanel : Control
                     case "coerce":
                         resBlocked = !resCoerce;
                         if (resBlocked)
-                            resReason = _campaign.GetSentiment(_encounter.ArchmageId) >= 40
-                                ? "(they would sooner be asked)"
-                                : "(no leverage to press)";
+                        {
+                            int cs = _campaign.GetSentiment(_encounter.ArchmageId);
+                            resReason = cs >= 40 ? "(they would sooner be asked)"
+                                : cs < -20 ? "(they will not treat with you)"
+                                : "(you know too little to press)"; // in-window: missing dossier leverage
+                        }
                         break;
                     // "overthrow" and anything else: always pressable.
                 }

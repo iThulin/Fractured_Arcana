@@ -103,7 +103,7 @@ public partial class CampusMentorPanel : VBoxContainer
                 ArchmageDisposition.Coerced    => "Coerced. The accord holds; the grudge holds longer.",
                 ArchmageDisposition.Overthrown => "Overthrown. The seat is empty; the shard answers you.",
                 ArchmageDisposition.Corrupted  => "Lost to the Astrologer. Only the finale can answer this now.",
-                _ => ApproachLine(campaign, id),
+                _ => ApproachLine(campaign, id, save),
             };
             var approachLbl = MakeBody(approach);
             approachLbl.AddThemeColorOverride("font_color", UITheme.POINarrative);
@@ -117,16 +117,19 @@ public partial class CampusMentorPanel : VBoxContainer
         SaveManager.MarkDirty();
     }
 
-    private static string ApproachLine(CampaignState campaign, string id)
+    private static string ApproachLine(CampaignState campaign, string id, GuildSaveData save)
     {
-        var (canUnite, canCoerce, _) = campaign.ResolutionOptions(id);
+        var (canUnite, canCoerce, _) = campaign.ResolutionOptions(id, save != null ? save.HasFlag : null);
         int sentiment = campaign.GetSentiment(id);
         if (canUnite)
             return "An alliance is within reach — seek the audience before corruption closes the door.";
         if (canCoerce)
-            return "Too little trust for union, but enough standing to press a forced accord.";
-        return sentiment < -20
-            ? "You are past words with this one. Only the overthrow remains — or patient repair."
+            return "Too little trust for union, but enough standing — and enough known — to press a forced accord.";
+        if (sentiment < -20)
+            return "You are past words with this one. Only the overthrow remains — or patient repair.";
+        // In the coerce window but missing leverage, or corruption-blocked.
+        return DossierService.HintsRevealed(save, id) < 2
+            ? "Pressure needs a place to press. Fill the dossier before you try to bend this one."
             : "Corruption has narrowed the road. Cleanse their lands, or prepare for force.";
     }
 

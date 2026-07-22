@@ -2837,9 +2837,9 @@ public partial class CampusScreen : Control
             name.AddThemeColorOverride("font_color", new Color(def.FactionColorHex));
             row.AddChild(name);
 
-            bool can = ResolutionEncounterBuilder.CanSeekAudience(campaign, id);
+            var (can, gateReason) = ResolutionEncounterBuilder.AudienceGate(save, id);
             var btn = MakeButton(
-                can ? "Seek audience" : campaign.GetDisposition(id).ToString(),
+                can ? "Seek audience" : gateReason,
                 170, 36, UITheme.CampusBuildSmallFontSize, isPrimary: can);
             btn.Disabled = !can;
             string captured = id;

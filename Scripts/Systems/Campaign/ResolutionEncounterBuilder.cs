@@ -71,8 +71,35 @@ public static class ResolutionEncounterBuilder
     /// <summary>Testing hook: drop the authored cache so edited JSON reloads.</summary>
     public static void ClearCache() => _authored = null;
 
+    /// <summary>The audience gate (Step 9 gating ruling, 2026-07-22): an
+    /// audience requires (1) the archmage not already resolved, (2) having MET
+    /// them — the dossier met flag, stamped the first time you cross their
+    /// forces (Eternal, survives the unmake), and (3) engagement THIS cycle —
+    /// disposition Neutral, which only happens once sentiment has moved off
+    /// zero. You cannot resolve a stranger. Returns the blocking reason for
+    /// the disabled button label.</summary>
+    public static (bool canSeek, string reason) AudienceGate(GuildSaveData save, string archmageId)
+    {
+        var campaign = save?.Cycle?.Campaign;
+        if (campaign == null || string.IsNullOrEmpty(archmageId)) return (false, "—");
+
+        var disp = campaign.GetDisposition(archmageId);
+        if (disp != ArchmageDisposition.Unknown && disp != ArchmageDisposition.Neutral)
+            return (false, disp.ToString()); // already resolved
+
+        if (!DossierService.IsMet(save, archmageId))
+            return (false, "Not yet met");
+
+        if (disp == ArchmageDisposition.Unknown)
+            return (false, "No dealings yet");
+
+        return (true, "");
+    }
+
     /// <summary>True when the archmage can still be resolved (not yet
-    /// Allied/Coerced/Overthrown/Corrupted).</summary>
+    /// Allied/Coerced/Overthrown/Corrupted). The audience BUTTON uses the
+    /// stricter <see cref="AudienceGate"/>; this remains the encounter-level
+    /// sanity check.</summary>
     public static bool CanSeekAudience(CampaignState campaign, string archmageId)
     {
         if (campaign == null || string.IsNullOrEmpty(archmageId)) return false;
