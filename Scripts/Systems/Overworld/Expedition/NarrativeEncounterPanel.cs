@@ -25,6 +25,7 @@ public partial class NarrativeEncounterPanel : Control
     private Panel _backdrop;
     private Panel _panel;
     private Label _titleLabel;
+    private ScrollContainer _bodyScroll;
     private Label _bodyLabel;
     private VBoxContainer _choiceContainer;
     private Panel _resultPanel;
@@ -75,10 +76,11 @@ public partial class NarrativeEncounterPanel : Control
             AnchorBottom = 0.5f,
             GrowHorizontal = GrowDirection.Both,
             GrowVertical = GrowDirection.Both,
-            OffsetLeft = -320,
+            OffsetLeft = -350,
             OffsetTop = -280,
-            OffsetRight = 320,
+            OffsetRight = 350,
             OffsetBottom = 280,
+            ClipContents = true, // long bodies scroll (below); nothing may overflow the frame
         };
         var panelStyle = new StyleBoxFlat
         {
@@ -120,15 +122,25 @@ public partial class NarrativeEncounterPanel : Control
 
         layout.AddChild(new HSeparator());
 
-        // Body
+        // Body — inside a ScrollContainer so long texts (resolution audiences,
+        // echo encounters) scroll instead of pushing the choices, result, and
+        // Continue button out of the panel / off-screen (Step 9 fix).
+        _bodyScroll = new ScrollContainer
+        {
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+        };
+        layout.AddChild(_bodyScroll);
+
         _bodyLabel = new Label
         {
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Left,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
         _bodyLabel.AddThemeFontSizeOverride("font_size", UITheme.NarrativeBodyFontSize);
         _bodyLabel.AddThemeColorOverride("font_color", UITheme.NarrativeBodyColor);
-        layout.AddChild(_bodyLabel);
+        _bodyScroll.AddChild(_bodyLabel);
 
         layout.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
 
@@ -211,6 +223,7 @@ public partial class NarrativeEncounterPanel : Control
 
         _titleLabel.Text = encounter.Title;
         _bodyLabel.Text = encounter.Body;
+        if (_bodyScroll != null) _bodyScroll.ScrollVertical = 0;
 
         // Clear old buttons
         foreach (var child in _choiceContainer.GetChildren())

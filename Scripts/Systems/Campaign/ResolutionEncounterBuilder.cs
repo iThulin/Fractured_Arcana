@@ -63,23 +63,28 @@ public static class ResolutionEncounterBuilder
             : corruption == 2 ? " The Astrologer's phrasings surface in their sentences, and they do not seem to notice."
             : " Their words are hardly their own any longer.";
 
-        string note = def.PersonalityNotes != null && def.PersonalityNotes.Count > 0
-            ? "\n\n" + def.PersonalityNotes[0]
-            : "";
+        // Keep the body tight: the reception (who they are to you right now),
+        // one line of the mentor's read on how they judge, and the stakes.
+        // The full dossier prose (def.Description) belongs to the mentor panel
+        // and dossier cards, not this moment.
+        string title = string.IsNullOrEmpty(def.Title) ? def.DisplayName : def.Title;
+        string body = $"{title}. {standing}{corruptionLine}";
+        if (def.PersonalityNotes != null && def.PersonalityNotes.Count > 0)
+            body += $"\n\n{def.PersonalityNotes[0]}";
+        body += "\n\nThis is the moment the campaign has been bending toward. " +
+                "However it ends, it ends today — or you withdraw, and it waits.";
 
         var enc = new NarrativeEncounterData
         {
             Id = $"resolution_{archmageId}",
             Title = $"An Audience with {def.DisplayName}",
-            Body = $"{def.Description}\n\n{standing}{corruptionLine}{note}\n\n" +
-                   "This is the moment the campaign has been bending toward. " +
-                   "However it ends, it ends today — or you withdraw, and it waits.",
+            Body = body,
             ArchmageId = archmageId,
         };
 
         enc.Choices.Add(new EncounterChoice
         {
-            Label = $"Unite — pledge the {def.FactionName} to the guild's cause",
+            Label = $"Unite — pledge {def.FactionName} to the guild's cause",
             ResultText = def.PostUniteDialogue != null && def.PostUniteDialogue.Count > 0
                 ? def.PostUniteDialogue[0]
                 : $"{def.DisplayName} takes your measure one last time — and extends a hand.",
