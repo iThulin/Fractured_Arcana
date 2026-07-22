@@ -39,6 +39,10 @@ public partial class NarrativeEncounterPanel : Control
     private string _activeSchool = "";
     private int _currentGold;
 
+    // Step 9: campaign context for resolution-choice gating (may be null —
+    // resolution choices are then hidden entirely).
+    private CampaignState _campaign;
+
     // Fail-safe exit used only if every authored choice is gated out, so the
     // panel can never soft-lock the player behind unmet requirements.
     private static readonly EncounterChoice _fallbackChoice = new()
@@ -187,13 +191,23 @@ public partial class NarrativeEncounterPanel : Control
     public void ShowEncounter(NarrativeEncounterData encounter,
                               System.Func<string, bool> hasFlag = null,
                               string activeSchool = null,
-                              int currentGold = 0)
+                              int currentGold = 0,
+                              CampaignState campaign = null)
     {
         _encounter = encounter;
         _chosenResult = null;
         _hasFlag = hasFlag;
         _activeSchool = activeSchool ?? "";
         _currentGold = currentGold;
+        _campaign = campaign;
+
+        // Resolution gating (Step 9): computed once per show. Unite/Coerce are
+        // shown-but-disabled with the blocking reason (the RequiredGold
+        // pattern); Overthrow is always pressable.
+        bool resUnite = false, resCoerce = false;
+        bool isResolution = !string.IsNullOrEmpty(encounter.ArchmageId) && _campaign != null;
+        if (isResolution)
+            (resUnite, resCoerce, _) = _campaign.ResolutionOptions(encounter.ArchmageId);
 
         _titleLabel.Text = encounter.Title;
         _bodyLabel.Text = encounter.Body;
@@ -218,23 +232,55 @@ public partial class NarrativeEncounterPanel : Control
                                System.StringComparison.OrdinalIgnoreCase))
                 continue;
 
+            // ResolutionKind — unite/coerce render disabled with the blocking
+            // reason when sentiment/corruption thresholds aren't met; overthrow
+            // is always available. Hidden entirely without campaign context.
+            bool resBlocked = false;
+            string resReason = "";
+            if (!string.IsNullOrEmpty(choice.ResolutionKind))
+            {
+                if (!isResolution)
+                    continue; // no campaign context — resolution verbs don't render
+                switch (choice.ResolutionKind.ToLowerInvariant())
+                {
+                    case "unite":
+                        resBlocked = !resUnite;
+                        if (resBlocked)
+                            resReason = _campaign.GetSentiment(_encounter.ArchmageId) < 40
+                                ? "(their trust is not yet won)"
+                                : "(corruption has gone too deep)";
+                        break;
+                    case "coerce":
+                        resBlocked = !resCoerce;
+                        if (resBlocked)
+                            resReason = _campaign.GetSentiment(_encounter.ArchmageId) >= 40
+                                ? "(they would sooner be asked)"
+                                : "(no leverage to press)";
+                        break;
+                    // "overthrow" and anything else: always pressable.
+                }
+            }
+
             // RequiredGold — shown but disabled, with the reason, when unaffordable.
             bool tooPoor = choice.RequiredGold > 0 && _currentGold < choice.RequiredGold;
 
+            bool disabled = tooPoor || resBlocked;
+            string label = choice.Label;
+            if (tooPoor) label = $"{choice.Label}  (needs {choice.RequiredGold} gold)";
+            else if (resBlocked) label = $"{choice.Label}  {resReason}";
+
             var btn = new Button
             {
-                Text = tooPoor
-                    ? $"{choice.Label}  (needs {choice.RequiredGold} gold)"
-                    : choice.Label,
+                Text = label,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 CustomMinimumSize = new Vector2(0, 44),
-                Disabled = tooPoor,
+                Disabled = disabled,
             };
             btn.AddThemeFontSizeOverride("font_size", UITheme.NarrativeChoiceFontSize);
             var capturedChoice = choice;
             btn.Pressed += () => OnChoicePressed(capturedChoice);
             _choiceContainer.AddChild(btn);
-            if (!tooPoor) interactable++;
+            if (!disabled) interactable++;
         }
 
         // Never soft-lock: if nothing is pressable, offer a neutral exit.

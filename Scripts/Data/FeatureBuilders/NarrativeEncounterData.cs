@@ -36,6 +36,14 @@ public class NarrativeEncounterData
     /// Choice-level RequiredFlag still applies independently.</summary>
     public string RequiredFlag = "";
 
+    // ── Resolution encounters (Step 9, quest_hooks_compendium §7) ───────
+    /// <summary>When non-empty, this encounter is a RESOLUTION audience with
+    /// the named archmage. Choices carrying a ResolutionKind are gated against
+    /// CampaignState.ResolutionOptions(ArchmageId) by the panel (unite/coerce
+    /// shown-but-disabled with the reason when out of reach; overthrow always
+    /// pressable).</summary>
+    public string ArchmageId = "";
+
     // ── Choices ──────────────────────────────────────────────────────────
     public List<EncounterChoice> Choices = new();
 }
@@ -77,6 +85,12 @@ public class EncounterChoice
     public string RequiredFlag = "";
     public string RequiredSchool = "";
     public int RequiredGold = 0;
+
+    /// <summary>Step 9: "unite" | "coerce" | "overthrow" (empty for ordinary
+    /// choices). Only meaningful on encounters with a non-empty ArchmageId.
+    /// Unite/Coerce resolve the archmage's disposition directly; Overthrow
+    /// launches the archmage boss combat (disposition set on the win).</summary>
+    public string ResolutionKind = "";
 
     // ── Tranche 2 reward verbs (encounter_outcome_expansion §Tranche 2) ──
     // Levers that create lasting attachment. All default-empty/0 so every

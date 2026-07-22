@@ -423,7 +423,9 @@ public partial class CardRewardScreen : Control
 
     private void ReturnToOverworld()
     {
-        string target = EncounterRouter.Instance?.OverworldScenePath
+        // Step 9: honor a campus return override so drafting after a
+        // campus-launched fight routes home, not to the expedition map.
+        string target = EncounterRouter.Instance?.ReturnScenePath
             ?? "res://Scenes/Overworld/ExpeditionScene.tscn";
         GetTree().ChangeSceneToFile(target);
     }

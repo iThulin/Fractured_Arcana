@@ -50,6 +50,14 @@ public partial class CampusScreen : Control
     private Label _campusSelectionLabel;
     private string _campusPlacingBuildingId = null; // non-null while the player is siting a built-but-unplaced building
 
+    // Council tab + campus narrative host (Step 9)
+    private const string CampusScenePath = "res://Scenes/Campus/CampusScene.tscn";
+    private CouncilOverviewPanel _councilPanel;
+    private CampusMentorPanel _mentorPanel;
+    private VBoxContainer _audienceContainer;
+    private NarrativeEncounterPanel _campusNarrativePanel;
+    private ToastManager _campusToasts;
+
     // Armory tab
     private VBoxContainer _armoryContainer;
     private string _selectedArmoryUnitId = null;   // which unit we're equipping
@@ -153,7 +161,7 @@ public partial class CampusScreen : Control
         tabBar.AddThemeConstantOverride("separation", 0);
         AddChild(tabBar);
 
-        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests" };
+        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council" };
         _tabButtons = new Button[tabNames.Length];
         for (int i = 0; i < tabNames.Length; i++)
         {
@@ -199,6 +207,15 @@ public partial class CampusScreen : Control
         BuildTrainingTab((ScrollContainer)_tabPanels[5]);
         BuildRecordsTab((ScrollContainer)_tabPanels[6]);
         BuildQuestsTab((ScrollContainer)_tabPanels[7]);
+        BuildCouncilTab((ScrollContainer)_tabPanels[8]);
+
+        // Step 9: campus-hosted narrative panel + quest toasts, layered over
+        // the tabs (the campus half of the vignette host and the audience UI).
+        _campusNarrativePanel = new NarrativeEncounterPanel { Visible = false };
+        AddChild(_campusNarrativePanel);
+        _campusToasts = new ToastManager { Name = "CampusQuestToasts" };
+        AddChild(_campusToasts);
+
         GD.Print($"CampusScreen: ActiveSave={SaveManager.ActiveSave?.GuildName ?? "NULL"}, " +
                  $"Gold={SaveManager.ActiveSave?.Gold ?? -1}, " +
                  $"Runs={SaveManager.ActiveSave?.TotalRuns ?? -1}");
@@ -210,6 +227,11 @@ public partial class CampusScreen : Control
             if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave.SelectedSchool, out var school))
                 PlayerSession.SelectedSchool = school;
         }
+
+        // Step 9: consume a pending campus-combat return (landmark trial or
+        // archmage overthrow) BEFORE the first refresh, so every tab renders
+        // the post-fight state.
+        ConsumeCampusCombatReturn();
 
         RefreshAll();
         SelectTab(0);
@@ -242,6 +264,9 @@ public partial class CampusScreen : Control
                 break;
             case 7:
                 RefreshQuestsTab();
+                break;
+            case 8:
+                RefreshCouncilTab();
                 break;
         }
     }
@@ -590,7 +615,10 @@ public partial class CampusScreen : Control
         _campusHexGrid = new CampusHexGrid();
         _campusHexGrid.TileClicked += OnCampusTileClicked;
         _campusHexGrid.BuildingClicked += OnCampusBuildingClicked;
+        _campusHexGrid.LandmarkClicked += OnCampusLandmarkClicked;
         _campusViewport.AddChild(_campusHexGrid);
+        // Landmark stamping happens in LoadCampusHexGrid (after LoadFromSave
+        // builds the hexes) — stamping here would hit an empty grid.
 
         var cancelPlaceBtn = MakeButton("Cancel Placement", 160, 32, UITheme.CampusBuildSmallFontSize, isPrimary: false);
         cancelPlaceBtn.Pressed += CancelBuildingPlacement;
@@ -2294,6 +2322,11 @@ public partial class CampusScreen : Control
 
         _campusHexGrid.LoadFromSave(save.Ledger.CampusMap, save.Ledger.Buildings);
         _campusHexGrid.SetBuildMode(_campusPlacingBuildingId != null);
+
+        // Step 9 (completes Step 2's wiring): landmarks must be stamped AFTER
+        // LoadFromSave rebuilds the hexes — this is the single stamping point,
+        // so every grid refresh keeps ruined → active → restored in sync.
+        _campusHexGrid.LoadLandmarks(save.HasFlag);
     }
 
     private void BeginPlacingBuilding(string buildingId)
@@ -2733,6 +2766,404 @@ public partial class CampusScreen : Control
         RefreshLoreSection();
 
         _questSummaryLabel.Text = QuestLogView.BuildInto(_questContainer, save);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Council Tab (Step 9) — the archmage sentiment overview, the resolution
+    // audiences, and the mentor's counsel. The campus is where the campaign's
+    // central question is asked and answered.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void BuildCouncilTab(ScrollContainer scroll)
+    {
+        var margins = MakeMargins(32, 20);
+        scroll.AddChild(margins);
+        var layout = MakeVBox(12);
+        margins.AddChild(layout);
+
+        _councilPanel = new CouncilOverviewPanel();
+        layout.AddChild(_councilPanel);
+
+        layout.AddChild(new HSeparator());
+        AddSectionHeader(layout, "Seek Resolution");
+        layout.AddChild(MakeStubLabel(
+            "An audience ends an archmage's question — by pact, by pressure, or by force. " +
+            "Or you withdraw, and it keeps."));
+        _audienceContainer = MakeVBox(8);
+        layout.AddChild(_audienceContainer);
+
+        layout.AddChild(new HSeparator());
+        _mentorPanel = new CampusMentorPanel();
+        layout.AddChild(_mentorPanel);
+    }
+
+    private void RefreshCouncilTab()
+    {
+        if (_councilPanel == null) return;
+        var save = SaveManager.ActiveSave;
+        if (save == null) return;
+
+        _councilPanel.Build(save);
+        _mentorPanel?.Build(save);
+
+        foreach (var child in _audienceContainer.GetChildren())
+            child.QueueFree();
+
+        var campaign = save.Cycle?.Campaign;
+        if (campaign == null)
+        {
+            _audienceContainer.AddChild(MakeStubLabel("No campaign in progress."));
+            return;
+        }
+
+        foreach (var pair in campaign.RegionArchmageMap)
+        {
+            string id = pair.Value;
+            if (string.IsNullOrEmpty(id)) continue;
+            var def = ArchmageRegistry.Get(id);
+            if (def == null || def.IsVillainFaction) continue;
+
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 10);
+
+            var name = new Label
+            {
+                Text = $"{def.DisplayName} — {def.Title}",
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                VerticalAlignment = VerticalAlignment.Center,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            name.AddThemeColorOverride("font_color", new Color(def.FactionColorHex));
+            row.AddChild(name);
+
+            bool can = ResolutionEncounterBuilder.CanSeekAudience(campaign, id);
+            var btn = MakeButton(
+                can ? "Seek audience" : campaign.GetDisposition(id).ToString(),
+                170, 36, UITheme.CampusBuildSmallFontSize, isPrimary: can);
+            btn.Disabled = !can;
+            string captured = id;
+            btn.Pressed += () => OpenResolutionEncounter(captured);
+            row.AddChild(btn);
+
+            _audienceContainer.AddChild(row);
+        }
+
+        SaveManager.SaveIfDirty(); // mentor visit count / delivered hints
+    }
+
+    /// <summary>Step 9: open the resolution audience with an archmage on the
+    /// campus narrative host. Unite/Coerce resolve here; Overthrow launches
+    /// the boss fight with a campus return.</summary>
+    private void OpenResolutionEncounter(string archmageId)
+    {
+        var save = SaveManager.ActiveSave;
+        var campaign = save?.Cycle?.Campaign;
+        var enc = ResolutionEncounterBuilder.BuildAudience(campaign, archmageId);
+        if (enc == null || _campusNarrativePanel == null) return;
+
+        _campusNarrativePanel.ShowEncounter(enc, save.HasFlag,
+            save.Cycle?.SelectedSchool, save.Gold, campaign);
+        _campusNarrativePanel.OnCompleted = choice => OnCampusNarrativeCompleted(enc, choice);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Campus vignette host + campus → combat round trip (Steps 2 + 9)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>Landmark clicked on the campus hex grid → show its current
+    /// beat's narrative encounter on the campus host.</summary>
+    private void OnCampusLandmarkClicked(string landmarkId, Vector2I coord)
+    {
+        var lm = CampusLandmarkRegistry.Get(landmarkId);
+        var save = SaveManager.ActiveSave;
+        if (lm == null || save == null || _campusNarrativePanel == null) return;
+
+        var enc = lm.GetEncounter(save.HasFlag);
+        if (enc == null)
+        {
+            _campusSelectionLabel.Text = $"{lm.DisplayName} — restored.";
+            return;
+        }
+
+        _campusSelectionLabel.Text = lm.DisplayName;
+        _campusNarrativePanel.ShowEncounter(enc, save.HasFlag,
+            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign);
+        _campusNarrativePanel.OnCompleted = choice => OnCampusNarrativeCompleted(enc, choice);
+    }
+
+    /// <summary>Campus-side choice resolution: the Snapshot-Mutate-Diff-Toast
+    /// pattern over campus state (save.Gold, flags, rewards). HPDelta and
+    /// StepDelta are expedition currencies and do not apply at the campus;
+    /// campus beats are authored with gold/flag costs instead.</summary>
+    private void OnCampusNarrativeCompleted(NarrativeEncounterData encounter, EncounterChoice choice)
+    {
+        if (choice == null) return;
+        var save = SaveManager.ActiveSave;
+        if (save == null) return;
+
+        // Resolution verbs (audience encounters).
+        if (!string.IsNullOrEmpty(choice.ResolutionKind) &&
+            !string.IsNullOrEmpty(encounter.ArchmageId) &&
+            HandleCampusResolutionChoice(encounter.ArchmageId, choice.ResolutionKind))
+            return;
+
+        // A campus beat that stages a real fight (Step 9's round trip).
+        if (!string.IsNullOrEmpty(choice.LaunchGuardian))
+        {
+            LaunchCampusCombat(BuildCampusGuardianEncounter(choice.LaunchGuardian),
+                               guardianKey: choice.LaunchGuardian);
+            return;
+        }
+
+        var before = QuestNotifier.Snapshot(save);
+
+        if (choice.GoldDelta != 0)
+            save.Gold = Mathf.Max(0, save.Gold + choice.GoldDelta);
+
+        if (!string.IsNullOrEmpty(encounter.Id) &&
+            !save.CompletedEvents.Contains(encounter.Id))
+            save.CompletedEvents.Add(encounter.Id);
+
+        if (choice.SetFlags != null)
+            foreach (var flag in choice.SetFlags)
+                save.SetFlag(flag);
+
+        if (choice.SetMetaFlags != null && save.Ledger != null)
+            foreach (var flag in choice.SetMetaFlags)
+                if (!string.IsNullOrEmpty(flag) && !save.Ledger.MetaNarrativeFlags.Contains(flag))
+                    save.Ledger.MetaNarrativeFlags.Add(flag);
+
+        if (!string.IsNullOrEmpty(choice.ItemReward))
+        {
+            var idef = ItemDatabase.Get(choice.ItemReward);
+            if (idef != null) save.Armory.AddItem(idef);
+        }
+
+        if (!string.IsNullOrEmpty(choice.CompanionUnlock))
+            CompanionRoster.GrantFromEncounter(choice.CompanionUnlock);
+
+        if (!string.IsNullOrEmpty(choice.ReputationFactionId) && choice.ReputationAmount != 0)
+        {
+            save.FactionReputation.TryGetValue(choice.ReputationFactionId, out int cur);
+            save.FactionReputation[choice.ReputationFactionId] = cur + choice.ReputationAmount;
+        }
+
+        if (!string.IsNullOrEmpty(choice.LoreId) &&
+            !save.UnlockedLoreEntries.Contains(choice.LoreId))
+            save.UnlockedLoreEntries.Add(choice.LoreId);
+
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+
+        foreach (var qt in QuestNotifier.NotifyNew(before, save))
+            _campusToasts?.Push(qt.Text, qt.Kind);
+
+        // Landmark states may have advanced (ruined → active → restored) —
+        // RefreshAll → LoadCampusHexGrid restamps them from current flags.
+        RefreshAll();
+    }
+
+    /// <summary>Campus twin of ExpeditionManager.HandleResolutionChoice.</summary>
+    private bool HandleCampusResolutionChoice(string archmageId, string kind)
+    {
+        var save = SaveManager.ActiveSave;
+        var campaign = save?.Cycle?.Campaign;
+        if (campaign == null) return false;
+        var def = ArchmageRegistry.Get(archmageId);
+        string region = campaign.GetRegionForArchmage(archmageId);
+
+        switch (kind.ToLowerInvariant())
+        {
+            case "unite":
+                campaign.SetDisposition(archmageId, ArchmageDisposition.Allied);
+                foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageUnited, region, archmageId))
+                    _campusToasts?.Push(qt.Text, qt.Kind);
+                _campusToasts?.Push($"{def?.DisplayName ?? "The archmage"} stands with the guild.",
+                                    QuestToastKind.Progress);
+                SaveManager.MarkDirty();
+                SaveManager.SaveIfDirty();
+                RefreshCouncilTab();
+                return true;
+
+            case "coerce":
+                campaign.SetDisposition(archmageId, ArchmageDisposition.Coerced);
+                foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageCoerced, region, archmageId))
+                    _campusToasts?.Push(qt.Text, qt.Kind);
+                _campusToasts?.Push($"{def?.DisplayName ?? "The archmage"} yields to the accord — for now.",
+                                    QuestToastKind.Progress);
+                SaveManager.MarkDirty();
+                SaveManager.SaveIfDirty();
+                RefreshCouncilTab();
+                return true;
+
+            case "overthrow":
+                var combat = ResolutionEncounterBuilder.BuildOverthrowCombat(
+                    campaign, archmageId, save.Cycle?.SelectedSchool);
+                if (combat == null)
+                {
+                    campaign.SetDisposition(archmageId, ArchmageDisposition.Overthrown);
+                    foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageOverthrown, region, archmageId))
+                        _campusToasts?.Push(qt.Text, qt.Kind);
+                    SaveManager.MarkDirty();
+                    SaveManager.SaveIfDirty();
+                    RefreshCouncilTab();
+                    return true;
+                }
+                LaunchCampusCombat(combat, resolutionArchmageId: archmageId);
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>Step 9: a themed Boss composition for a campus-launched trial
+    /// (mirrors ExpeditionManager.BuildGuardianEncounter for the campus host).</summary>
+    private EncounterDefinition BuildCampusGuardianEncounter(string key)
+    {
+        string[] arch = key switch
+        {
+            "primal"    => new[] { "Brute", "Wizard", "Wizard" },
+            "axiom"     => new[] { "Wizard", "Wizard", "Defender" },
+            "moment"    => new[] { "Ranger", "Wizard", "Ranger" },
+            "binding"   => new[] { "Wizard", "Wizard", "Soldier" },
+            "schema"    => new[] { "Defender", "Brute", "Soldier" },
+            "deathless" => new[] { "Brute", "Wizard", "Defender" },
+            _           => new[] { "Brute", "Wizard", "Soldier" },
+        };
+        float mult = 1.6f * CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle);
+        var def = new EncounterDefinition
+        {
+            Id = $"campus_guardian_{key}",
+            DisplayName = "The Warden",
+            Tier = EncounterTier.Boss,
+            TerrainType = "Plains",
+            DifficultyMult = mult,
+        };
+        foreach (var a in arch)
+            if (UnitRegistry.TryResolveId(a, out var uid))
+                def.Enemies.Add(new EnemySlot(uid, mult));
+        return def.Enemies.Count > 0 ? def : null;
+    }
+
+    /// <summary>Step 9: launch a combat FROM the campus. Sets the router's
+    /// return-scene override so the fight (and any card draft after it) routes
+    /// back to the campus, then swaps to the battlefield. Attribution fields
+    /// follow the expedition's reset-then-mark pattern.</summary>
+    private void LaunchCampusCombat(EncounterDefinition def,
+                                    string guardianKey = "",
+                                    string resolutionArchmageId = "")
+    {
+        // The router is created lazily by ExpeditionManager; a fresh session
+        // that goes campus → audience → overthrow has never deployed, so
+        // ensure it here too (same pattern as EnsureEncounterRouter).
+        if (EncounterRouter.Instance == null)
+            GetTree().Root.AddChild(new EncounterRouter { Name = "EncounterRouter" });
+
+        var router = EncounterRouter.Instance;
+        var save = SaveManager.ActiveSave;
+        if (router == null || def == null || def.Enemies.Count == 0)
+        {
+            // Never dead-end: resolve the launch's intent directly.
+            if (!string.IsNullOrEmpty(guardianKey) && save?.Ledger != null &&
+                !save.Ledger.MetaNarrativeFlags.Contains($"{guardianKey}_trial_passed"))
+            {
+                save.Ledger.MetaNarrativeFlags.Add($"{guardianKey}_trial_passed");
+                SaveManager.MarkDirty();
+            }
+            if (!string.IsNullOrEmpty(resolutionArchmageId))
+            {
+                var fbCampaign = save?.Cycle?.Campaign;
+                fbCampaign?.SetDisposition(resolutionArchmageId,
+                    ArchmageDisposition.Overthrown);
+                if (fbCampaign != null)
+                    foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageOverthrown,
+                             fbCampaign.GetRegionForArchmage(resolutionArchmageId), resolutionArchmageId))
+                        _campusToasts?.Push(qt.Text, qt.Kind);
+                SaveManager.MarkDirty();
+            }
+            SaveManager.SaveIfDirty();
+            RefreshAll();
+            return;
+        }
+
+        router.HasPendingReturn = false;
+        router.SavedCombatWasPatrolAmbush = false;
+        router.SavedCombatPatrolArchmageId = "";
+        router.SavedCombatGuardianKey = guardianKey;
+        router.SavedCombatArchmageId = "";
+        router.SavedResolutionArchmageId = resolutionArchmageId;
+        router.ReturnSceneOverride = CampusScenePath;
+        router.SetCurrentTier(def.Tier);
+
+        SaveManager.SaveIfDirty();
+        EncounterContextCarrier.Set(def);
+        EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
+        GetTree().ChangeSceneToFile(router.CombatScenePath);
+    }
+
+    /// <summary>Step 9: consume a pending campus-combat return. Banks rewards
+    /// into the save (gold/splinters are campus currencies here), applies
+    /// guardian-trial and overthrow outcomes, clears the router's override so
+    /// a later expedition doesn't misread the pending state, and toasts.</summary>
+    private void ConsumeCampusCombatReturn()
+    {
+        var router = EncounterRouter.Instance;
+        if (router == null || !router.HasPendingReturn ||
+            router.ReturnSceneOverride != CampusScenePath)
+            return;
+
+        var save = SaveManager.ActiveSave;
+        bool won = router.CombatWon;
+        string guardianKey = router.SavedCombatGuardianKey;
+        string resolutionId = router.SavedResolutionArchmageId;
+
+        router.HasPendingReturn = false;
+        router.ReturnSceneOverride = "";
+        router.SavedCombatGuardianKey = "";
+        router.SavedResolutionArchmageId = "";
+
+        if (save == null) return;
+        var before = QuestNotifier.Snapshot(save);
+
+        if (won)
+        {
+            save.Gold += router.GoldReward;
+            save.ArcaneSplinters += router.SplinterReward;
+
+            if (!string.IsNullOrEmpty(guardianKey) && save.Ledger != null &&
+                !save.Ledger.MetaNarrativeFlags.Contains($"{guardianKey}_trial_passed"))
+            {
+                save.Ledger.MetaNarrativeFlags.Add($"{guardianKey}_trial_passed");
+                _campusToasts?.Push("The warden falls — the trial is passed.", QuestToastKind.Progress);
+            }
+
+            if (!string.IsNullOrEmpty(resolutionId))
+            {
+                var campaign = save.Cycle?.Campaign;
+                var rDef = ArchmageRegistry.Get(resolutionId);
+                if (campaign != null)
+                {
+                    campaign.SetDisposition(resolutionId, ArchmageDisposition.Overthrown);
+                    string region = campaign.GetRegionForArchmage(resolutionId);
+                    foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageOverthrown, region, resolutionId))
+                        _campusToasts?.Push(qt.Text, qt.Kind);
+                }
+                _campusToasts?.Push(
+                    $"{rDef?.DisplayName ?? "The archmage"} is overthrown — their shard answers you now.",
+                    QuestToastKind.Progress);
+            }
+        }
+        else
+        {
+            _campusToasts?.Push("Driven back — the campus holds you while you recover.", QuestToastKind.Progress);
+        }
+
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+
+        foreach (var qt in QuestNotifier.NotifyNew(before, save))
+            _campusToasts?.Push(qt.Text, qt.Kind);
+        // Landmark restamping happens in the RefreshAll that follows (BuildUI).
     }
 
     private void AddSectionHeader(VBoxContainer parent, string text)

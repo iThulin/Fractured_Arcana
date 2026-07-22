@@ -276,7 +276,10 @@ public partial class ExpeditionManager : Node2D
             SplinterEarned += 5000;
 
         // ── Place party / restore from combat ────────────────────────────
-        if (router != null && router.HasPendingReturn)
+        // Guard on ReturnSceneOverride too: a campus-pending return must never
+        // be mis-consumed as an expedition return (Step 9 hardening).
+        if (router != null && router.HasPendingReturn &&
+            string.IsNullOrEmpty(router.ReturnSceneOverride))
         {
             RestoreFromCombat(router);
         }
@@ -679,7 +682,8 @@ public partial class ExpeditionManager : Node2D
             _grid.Hexes.TryGetValue(_party.CurrentCoord, out var dbgHex))
             dbgTerrain = dbgHex.Terrain;
         var shownDbg = EncounterAssembler.ForDisplay(enc, dbgTerrain, StagingTemplateRegion());
-        _narrativePanel.ShowEncounter(shownDbg, hasFlag, save?.Cycle?.SelectedSchool, GoldEarned);
+        _narrativePanel.ShowEncounter(shownDbg, hasFlag, save?.Cycle?.SelectedSchool, GoldEarned,
+            save?.Cycle?.Campaign);
         _narrativePanel.OnCompleted =
             (choice) => OnNarrativeCompleted(enc, choice, dbgTerrain);
 
@@ -1332,6 +1336,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SavedCombatPatrolArchmageId = "";
         router.SavedCombatGuardianKey = guardianKey;
         router.SavedCombatArchmageId = "";
+        router.SavedResolutionArchmageId = ""; // Step 9: set AFTER this call by resolution launchers
+        router.ReturnSceneOverride = "";       // expedition launches always return to the overworld
 
         if (_factionManager != null)
         {
@@ -1497,6 +1503,25 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 _toasts?.Push("The guardian falls — the way to the fragment is open.", QuestToastKind.Progress);
             }
 
+            // Step 9: archmage resolution boss felled → Overthrown.
+            if (!string.IsNullOrEmpty(router.SavedResolutionArchmageId))
+            {
+                string rid = router.SavedResolutionArchmageId;
+                router.SavedResolutionArchmageId = "";
+                var rCampaign = SaveManager.ActiveSave?.Cycle?.Campaign;
+                var rDef = ArchmageRegistry.Get(rid);
+                if (rCampaign != null)
+                {
+                    rCampaign.SetDisposition(rid, ArchmageDisposition.Overthrown);
+                    string rRegion = rCampaign.GetRegionForArchmage(rid);
+                    foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageOverthrown, rRegion, rid))
+                        _toasts?.Push(qt.Text, qt.Kind);
+                    SaveManager.MarkDirty();
+                }
+                _toasts?.Push($"{rDef?.DisplayName ?? "The archmage"} is overthrown — their shard answers you now.",
+                              QuestToastKind.Progress);
+            }
+
             GoldEarned += router.GoldReward;
             SplinterEarned += router.SplinterReward;
             EncountersWon++;
@@ -1619,6 +1644,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         router.HasPendingReturn = false;
+        // Stale-attribution hygiene: a LOST resolution fight must not leave the
+        // archmage id armed on the scene-persistent router (the win branch
+        // clears it when it applies Overthrown).
+        router.SavedResolutionArchmageId = "";
 
         if (_factionManager != null && router.SavedPatrolPositions.Count > 0)
         {
@@ -1685,7 +1714,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var terr = (_party != null && _grid != null &&
                     _grid.Hexes.TryGetValue(_party.CurrentCoord, out var ph))
             ? ph.Terrain : OverworldHex.TerrainType.Grassland;
-        _narrativePanel.ShowEncounter(enc, hasFlag, save?.Cycle?.SelectedSchool, GoldEarned);
+        _narrativePanel.ShowEncounter(enc, hasFlag, save?.Cycle?.SelectedSchool, GoldEarned,
+            save?.Cycle?.Campaign);
         _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(enc, choice, terr);
         ShowInfo("A caravan crosses your path.");
     }
@@ -1856,7 +1886,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             shownEnc,
             hasFlag,
             gateSave?.Cycle?.SelectedSchool,
-            GoldEarned);
+            GoldEarned,
+            gateSave?.Cycle?.Campaign);
         var loreTerrain = hex.Terrain; // S4: the drop pool is terrain-flavored
         _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(encounter, choice, loreTerrain);
     }
@@ -1921,10 +1952,93 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         return def;
     }
 
+    /// <summary>Step 9: apply a resolution verb chosen in an audience
+    /// encounter. Returns true when the verb was consumed (unite/coerce
+    /// resolved, or the overthrow boss launched); false for unknown kinds so
+    /// the caller falls through to ordinary choice processing.</summary>
+    private bool HandleResolutionChoice(string archmageId, string kind)
+    {
+        var campaign = SaveManager.ActiveSave?.Cycle?.Campaign;
+        if (campaign == null) return false;
+        var def = ArchmageRegistry.Get(archmageId);
+        string region = campaign.GetRegionForArchmage(archmageId);
+
+        switch (kind.ToLowerInvariant())
+        {
+            case "unite":
+                campaign.SetDisposition(archmageId, ArchmageDisposition.Allied);
+                foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageUnited, region, archmageId))
+                    _toasts?.Push(qt.Text, qt.Kind);
+                _toasts?.Push($"{def?.DisplayName ?? "The archmage"} stands with the guild.",
+                              QuestToastKind.Progress);
+                SaveManager.MarkDirty();
+                SaveManager.SaveIfDirty();
+                UpdateUI();
+                return true;
+
+            case "coerce":
+                campaign.SetDisposition(archmageId, ArchmageDisposition.Coerced);
+                foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageCoerced, region, archmageId))
+                    _toasts?.Push(qt.Text, qt.Kind);
+                _toasts?.Push($"{def?.DisplayName ?? "The archmage"} yields to the accord — for now.",
+                              QuestToastKind.Progress);
+                SaveManager.MarkDirty();
+                SaveManager.SaveIfDirty();
+                UpdateUI();
+                return true;
+
+            case "overthrow":
+                LaunchResolutionCombat(archmageId);
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>Step 9: launch the archmage resolution boss fight. Falls back
+    /// to resolving directly if combat can't be staged, so the resolution arc
+    /// never dead-ends (the guardian-fallback pattern).</summary>
+    private void LaunchResolutionCombat(string archmageId)
+    {
+        var save = SaveManager.ActiveSave;
+        var campaign = save?.Cycle?.Campaign;
+        var def = ResolutionEncounterBuilder.BuildOverthrowCombat(
+            campaign, archmageId, save?.Cycle?.SelectedSchool);
+        var router = EncounterRouter.Instance;
+        if (router == null || def == null)
+        {
+            if (campaign != null)
+            {
+                campaign.SetDisposition(archmageId, ArchmageDisposition.Overthrown);
+                foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageOverthrown,
+                         campaign.GetRegionForArchmage(archmageId), archmageId))
+                    _toasts?.Push(qt.Text, qt.Kind);
+            }
+            SaveManager.MarkDirty();
+            ShowInfo("The seat falls without a fight. The shard is yours.");
+            UpdateUI();
+            return;
+        }
+        ShowInfo("The archmage rises to meet you!");
+        string terrain = "Plains";
+        if (_grid != null && _party != null &&
+            _grid.Hexes.TryGetValue(_party.CurrentCoord, out var rHex))
+            terrain = rHex.Terrain.ToString();
+        CommitCombat(_party.CurrentCoord, def, terrain);
+        router.SavedResolutionArchmageId = archmageId; // after CommitCombat, per the patrol pattern
+    }
+
     private void OnNarrativeCompleted(NarrativeEncounterData encounter, EncounterChoice choice,
                                       OverworldHex.TerrainType terrain)
     {
         if (choice == null)
+            return;
+
+        // Step 9: resolution verbs on an audience encounter resolve the
+        // archmage in place (unite/coerce) or launch the boss (overthrow).
+        // Unrecognized kinds (withdraw) fall through to normal processing.
+        if (!string.IsNullOrEmpty(choice.ResolutionKind) &&
+            !string.IsNullOrEmpty(encounter.ArchmageId) &&
+            HandleResolutionChoice(encounter.ArchmageId, choice.ResolutionKind))
             return;
 
         if (!string.IsNullOrEmpty(choice.LaunchGuardian))

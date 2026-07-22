@@ -60,6 +60,12 @@ public static class QuestEvents
     // Campus
     public const string BuildingCompleted = "building_completed";
 
+    // Archmage resolution (Step 9) — qualifier carries the archmage id, so
+    // quest JSON can gate on qe_archmage_united / qe_archmage_united_{id} etc.
+    public const string ArchmageUnited     = "archmage_united";
+    public const string ArchmageCoerced    = "archmage_coerced";
+    public const string ArchmageOverthrown = "archmage_overthrown";
+
     // ── Core dispatch ────────────────────────────────────────────────────
 
     /// <summary>

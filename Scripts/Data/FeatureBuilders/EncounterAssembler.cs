@@ -114,6 +114,7 @@ public static class EncounterAssembler
             TerrainTags = enc.TerrainTags,
             RegionTags = enc.RegionTags,
             RequiredFlag = enc.RequiredFlag,
+            ArchmageId = enc.ArchmageId,
             Choices = enc.Choices,
         };
     }

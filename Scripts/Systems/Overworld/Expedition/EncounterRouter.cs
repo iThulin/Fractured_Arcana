@@ -25,6 +25,19 @@ public partial class EncounterRouter : Node
     [Export] public string CombatScenePath = "res://Scenes/Combat/Battlefield.tscn";
     [Export] public string OverworldScenePath = "res://Scenes/Overworld/ExpeditionScene.tscn";
 
+    /// <summary>Step 9 (campus → combat round trip): when non-empty, combat
+    /// returns to this scene instead of OverworldScenePath. Set by campus-side
+    /// launchers before the scene swap; consumed (and cleared) by the return
+    /// host when it processes HasPendingReturn. CardRewardScreen also routes
+    /// through <see cref="ReturnScenePath"/> so drafting doesn't strand the
+    /// player on the expedition map after a campus-launched fight.</summary>
+    public string ReturnSceneOverride = "";
+
+    /// <summary>The scene combat actually returns to: the override when set,
+    /// else the overworld.</summary>
+    public string ReturnScenePath =>
+        string.IsNullOrEmpty(ReturnSceneOverride) ? OverworldScenePath : ReturnSceneOverride;
+
     public static EncounterRouter Instance { get; private set; }
 
     public bool HasPendingReturn { get; set; } = false;
@@ -59,6 +72,12 @@ public partial class EncounterRouter : Node
     /// Patrol ambushes carry attribution via SavedCombatPatrolArchmageId
     /// instead. Reset by CommitCombat; set AFTER it (the patrol pattern).</summary>
     public string SavedCombatArchmageId = "";
+
+    /// <summary>Non-empty when the pending combat is an archmage RESOLUTION
+    /// boss fight (the Overthrow verb, Step 9). On a win, the return host sets
+    /// the archmage's disposition to Overthrown. Reset alongside the other
+    /// attribution fields; set by the launcher just before the scene swap.</summary>
+    public string SavedResolutionArchmageId = "";
 
     // ── Seed for deterministic map regeneration after combat ────────────
     public int SavedRunSeed;
@@ -110,19 +129,19 @@ public partial class EncounterRouter : Node
                 SplinterReward *= 2;
                 GD.Print($"EncounterRouter: Adept stipend — no draft, splinters doubled to {SplinterReward}.");
                 GetTree().CreateTimer(2.0f).Timeout += () =>
-                    GetTree().ChangeSceneToFile(OverworldScenePath);
+                    GetTree().ChangeSceneToFile(ReturnScenePath);
             }
             else
             {
-                // Show card reward screen — it routes to overworld when done
+                // Show card reward screen — it routes to ReturnScenePath when done
                 GetTree().ChangeSceneToFile("res://Scenes/UI/CardRewardScreen.tscn");
             }
         }
         else
         {
-            // Loss: skip reward, return to overworld after brief delay
+            // Loss: skip reward, return to the launch host after brief delay
             GetTree().CreateTimer(2.0f).Timeout += () =>
-                GetTree().ChangeSceneToFile(OverworldScenePath);
+                GetTree().ChangeSceneToFile(ReturnScenePath);
         }
     }
 

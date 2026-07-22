@@ -110,6 +110,18 @@ public static class QuestLogView
             }
         }
 
+        // ── COMPANION MISSIONS (Step 9) — every recruited companion's next
+        // arc stage, shown regardless of party membership (user directive:
+        // the log is the overview; party gating applies at the encounter).
+        var missions = CompanionArcTracker.AvailableMissions(save);
+        if (missions != null && missions.Count > 0)
+        {
+            AddSectionHeader(box, "COMPANION MISSIONS");
+
+            foreach (var m in missions)
+                AddCompanionMissionCard(box, m);
+        }
+
         // ── UNFINISHED BUSINESS (collapsed archive) ─────────────────────
         var unfinished = save.Ledger?.UnfinishedBusiness;
         if (unfinished != null && unfinished.Count > 0)
@@ -226,6 +238,69 @@ public static class QuestLogView
                 }
             }
         }
+        parent.AddChild(card);
+    }
+
+    // ── Companion mission card (Step 9) ─────────────────────────────────
+
+    /// <summary>Render one companion's next arc stage: name + arc, stage
+    /// progress, the stage's title/summary, and where it fires (campus /
+    /// expedition, with a party note when the stage needs them along).</summary>
+    private static void AddCompanionMissionCard(VBoxContainer parent, CompanionArcStatus m)
+    {
+        if (m?.NextStage == null) return;
+        var card = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        card.AddThemeConstantOverride("separation", 3);
+
+        var title = new Label
+        {
+            Text = $"◆  {m.CompanionName} — {m.NextStage.Title}",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        title.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        card.AddChild(title);
+
+        string arcLine = $"   {m.ArcName}  ·  stage {m.CurrentStage + 1} of {m.TotalStages}";
+        if (m.HasRemembranceBranch)
+            arcLine += "  ·  ✦ remembered";
+        var arc = new Label { Text = arcLine, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        arc.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+        arc.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
+        card.AddChild(arc);
+
+        if (!string.IsNullOrEmpty(m.NextStage.Summary))
+        {
+            var sum = new Label
+            {
+                Text = $"   {m.NextStage.Summary}",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            sum.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+            sum.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
+            card.AddChild(sum);
+        }
+
+        // Where it fires + party note. The log shows the mission either way;
+        // expedition stages that need the companion say so plainly.
+        string where = m.NextStage.Location switch
+        {
+            "campus" => "at the campus",
+            "expedition" => "in the field",
+            _ => "anywhere",
+        };
+        string partyNote = "";
+        if (m.NextStage.RequiresParty)
+            partyNote = m.IsInParty ? "  ·  they are with you" : "  ·  bring them along";
+        var loc = new Label
+        {
+            Text = $"   ○  {where}{partyNote}",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        loc.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+        loc.AddThemeColorOverride("font_color", UITheme.POINegotiation);
+        card.AddChild(loc);
+
         parent.AddChild(card);
     }
 
