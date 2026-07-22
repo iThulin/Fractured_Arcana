@@ -185,23 +185,6 @@ public static class CorruptionSpread
                 curLevel = campaign.GetCorruption(region);
                 if (flipped)
                     GD.Print($"[Corruption] Kingdom '{kid}' ({region}) archmage fell to corruption.");
-
-                // Dossier (the Astrologer, quest spec §4): he fields no
-                // patrols — his forces are the corruption itself. The first
-                // witnessed advance opens his dossier; each archmage lost to
-                // corruption reveals another of his authored weaknesses.
-                // Silent stamps (strategic layer has no toast pipe); the
-                // quest log picks them up on next view.
-                DossierService.EnsureMet("astrologer");
-                if (flipped)
-                    DossierService.RevealNextHint("astrologer");
-
-                // Quest event shim (§8.1): corruption advanced in a kingdom.
-                // Silent stamp — strategic layer has no toast pipe.
-                QuestEvents.Raise(QuestEvents.CorruptionAdvanced, kid,
-                    $"lv{curLevel}");
-                if (flipped)
-                    QuestEvents.Raise(QuestEvents.ArchmageCorrupted, kid);
             }
         }
     }

@@ -50,6 +50,11 @@ public partial class CampusScreen : Control
     private Label _campusSelectionLabel;
     private string _campusPlacingBuildingId = null; // non-null while the player is siting a built-but-unplaced building
 
+    // Campus landmark narrative + quest toasts
+    private NarrativeEncounterPanel _campusNarrativePanel;
+    private ToastManager _campusToasts;
+    private string _activeLandmarkId; // which landmark's encounter is currently showing
+
     // Armory tab
     private VBoxContainer _armoryContainer;
     private string _selectedArmoryUnitId = null;   // which unit we're equipping
@@ -590,11 +595,23 @@ public partial class CampusScreen : Control
         _campusHexGrid = new CampusHexGrid();
         _campusHexGrid.TileClicked += OnCampusTileClicked;
         _campusHexGrid.BuildingClicked += OnCampusBuildingClicked;
+        _campusHexGrid.LandmarkClicked += OnLandmarkClicked;
         _campusViewport.AddChild(_campusHexGrid);
 
         var cancelPlaceBtn = MakeButton("Cancel Placement", 160, 32, UITheme.CampusBuildSmallFontSize, isPrimary: false);
         cancelPlaceBtn.Pressed += CancelBuildingPlacement;
         mapCol.AddChild(cancelPlaceBtn);
+
+        // Narrative encounter panel for campus landmarks (hosted on the
+        // CampusScreen itself so it overlays the whole tab, not just the
+        // hex viewport).
+        _campusNarrativePanel = new NarrativeEncounterPanel { Visible = false };
+        AddChild(_campusNarrativePanel);
+
+        // Quest toasts — same ToastManager widget used on the expedition HUD,
+        // mounted here so campus-side flag changes surface quest progress.
+        _campusToasts = new ToastManager { Name = "CampusQuestToasts" };
+        AddChild(_campusToasts);
 
         // ── Right: the existing build/upgrade list ───────────────────────
         var listCol = MakeVBox(10);
@@ -2290,6 +2307,7 @@ public partial class CampusScreen : Control
             return;
 
         _campusHexGrid.LoadFromSave(save.Ledger.CampusMap, save.Ledger.Buildings);
+        _campusHexGrid.LoadLandmarks(save.HasFlag);
         _campusHexGrid.SetBuildMode(_campusPlacingBuildingId != null);
     }
 
@@ -2344,6 +2362,139 @@ public partial class CampusScreen : Control
         _campusSelectionLabel.Text = template != null
             ? $"Selected: {template.Name}"
             : $"Selected: {buildingId}";
+    }
+
+    // ── Campus landmark encounters ──────────────────────────────────────
+
+    private void OnLandmarkClicked(string landmarkId, Vector2I axial)
+    {
+        if (_campusPlacingBuildingId != null)
+            return; // don't open encounters while in build-mode
+
+        var save = SaveManager.ActiveSave;
+        if (save == null)
+            return;
+
+        var landmark = CampusLandmarkRegistry.Get(landmarkId);
+        if (landmark == null)
+        {
+            GD.PrintErr($"CampusScreen: unknown landmark '{landmarkId}' at ({axial.X},{axial.Y}).");
+            return;
+        }
+
+        var encounter = landmark.GetEncounter(save.HasFlag);
+        if (encounter == null)
+        {
+            // Fully restored — no more beats. Update the label.
+            _campusSelectionLabel.Text = $"{landmark.DisplayName} — fully restored.";
+            return;
+        }
+
+        _activeLandmarkId = landmarkId;
+        _campusSelectionLabel.Text = $"{landmark.DisplayName}";
+
+        _campusNarrativePanel.OnCompleted = OnCampusNarrativeCompleted;
+        _campusNarrativePanel.ShowEncounter(
+            encounter,
+            hasFlag: save.HasFlag,
+            activeSchool: SaveManager.ActiveSave?.SelectedSchool ?? "",
+            currentGold: save.Gold);
+    }
+
+    /// <summary>Campus narrative encounter resolved. Apply outcomes following the
+    /// Snapshot-Mutate-Diff-Toast pattern established in ExpeditionManager.</summary>
+    private void OnCampusNarrativeCompleted(EncounterChoice choice)
+    {
+        if (choice == null)
+            return;
+
+        var save = SaveManager.ActiveSave;
+        if (save == null)
+            return;
+
+        // ── Snapshot (before mutation) ───────────────────────────────────
+        var questBefore = QuestNotifier.Snapshot(save);
+
+        // ── Mutate: gold / flags / meta-flags / lore ────────────────────
+        if (choice.GoldDelta != 0)
+        {
+            save.Gold = Math.Max(0, save.Gold + choice.GoldDelta);
+            SaveManager.MarkDirty();
+        }
+
+        // Timeline flags (qe_* / campus_* — wiped on unmake)
+        if (choice.SetFlags != null)
+        {
+            bool anyNew = false;
+            foreach (var flag in choice.SetFlags)
+                anyNew |= save.SetFlag(flag);
+            if (anyNew) SaveManager.MarkDirty();
+        }
+
+        // Permanent narrative flags (survive cycle reset)
+        if (choice.SetMetaFlags != null && save.Ledger != null)
+        {
+            bool anyMeta = false;
+            var meta = save.Ledger.MetaNarrativeFlags;
+            foreach (var flag in choice.SetMetaFlags)
+                if (!string.IsNullOrEmpty(flag) && !meta.Contains(flag))
+                { meta.Add(flag); anyMeta = true; }
+            if (anyMeta) SaveManager.MarkDirty();
+        }
+
+        // Tranche 2 reward verbs — item / companion / reputation / lore
+        var t2 = new List<string>();
+        if (!string.IsNullOrEmpty(choice.ItemReward))
+        {
+            var def = ItemDatabase.Get(choice.ItemReward);
+            if (def != null)
+            {
+                save.Armory.AddItem(def);
+                SaveManager.MarkDirty();
+                t2.Add($"gain the {def.Name}");
+            }
+            else GD.PrintErr($"[CampusEncounter] ItemReward '{choice.ItemReward}' not in ItemDatabase.");
+        }
+        if (!string.IsNullOrEmpty(choice.CompanionUnlock))
+        {
+            string joined = CompanionRoster.GrantFromEncounter(choice.CompanionUnlock);
+            if (joined != null) t2.Add($"are joined by {joined}");
+        }
+        if (!string.IsNullOrEmpty(choice.ReputationFactionId) && choice.ReputationAmount != 0)
+        {
+            save.FactionReputation.TryGetValue(choice.ReputationFactionId, out int cur);
+            save.FactionReputation[choice.ReputationFactionId] = cur + choice.ReputationAmount;
+            SaveManager.MarkDirty();
+            t2.Add($"gain {(choice.ReputationAmount >= 0 ? "+" : "")}{choice.ReputationAmount} " +
+                   $"standing with {choice.ReputationFactionId.Replace('_', ' ')}");
+        }
+        if (!string.IsNullOrEmpty(choice.LoreId) &&
+            !save.UnlockedLoreEntries.Contains(choice.LoreId))
+        {
+            save.UnlockedLoreEntries.Add(choice.LoreId);
+            SaveManager.MarkDirty();
+            t2.Add("uncover a truth for the Hall of Records");
+        }
+
+        SaveManager.Save();
+
+        // ── Diff & Toast ────────────────────────────────────────────────
+        foreach (var qt in QuestNotifier.NotifyNew(questBefore, save))
+            _campusToasts?.Push(qt.Text, qt.Kind);
+
+        // Status line
+        string statusMsg = !string.IsNullOrEmpty(_activeLandmarkId)
+            ? $"{CampusLandmarkRegistry.Get(_activeLandmarkId)?.DisplayName ?? _activeLandmarkId} — vignette resolved."
+            : "Encounter resolved.";
+        if (t2.Count > 0)
+            statusMsg += " You " + string.Join(", ", t2) + ".";
+        _campusSelectionLabel.Text = statusMsg;
+
+        // Refresh the hex grid so landmark visual state updates
+        _activeLandmarkId = null;
+        LoadCampusHexGrid();
+        RefreshBuildingList();
+        RefreshGoldLabel();
     }
 
     private void RefreshGoldLabel()
@@ -2424,6 +2575,12 @@ public partial class CampusScreen : Control
         SaveManager.Save();
         RefreshGoldLabel();
         GD.Print($"Built {buildingSave.Name} tier {nextTier}. Gold: {save.Gold}");
+
+        // Quest event shim (§8.1): campus building completed/upgraded.
+        // No toast pipe on campus — SyncCompletions runs in RefreshAll
+        // (called by the button handler after this returns true).
+        QuestEvents.RaiseBuilding(buildingId, nextTier);
+
         return true;
     }
 

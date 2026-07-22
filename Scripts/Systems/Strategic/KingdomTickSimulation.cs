@@ -281,6 +281,9 @@ public static class KingdomTickSimulation
                 cycle.PendingSiegeReports.Add(rep);
                 GD.Print($"[Warfront] {rep}");
                 wf.Resolution = "repelled";
+
+                // Quest event shim (§8.1): invasion repelled.
+                QuestEvents.Raise(QuestEvents.SiegeRepelled, wf.DefenderKingdomId);
             }
             wf.Closed = true;
         }
@@ -308,6 +311,10 @@ public static class KingdomTickSimulation
             : $"{fallenName} has fallen to {victor}.";
         cycle.PendingSiegeReports.Add(report);
         GD.Print($"[Warfront] {report}");
+
+        // Quest event shim (§8.1): a kingdom fell to an aggressor.
+        // Silent stamp — strategic layer has no toast pipe.
+        QuestEvents.Raise(QuestEvents.SiegeFell, defenderKid, aggressorFactionId);
     }
 
     private static void SeizeForGuild(CycleState cycle, KingdomState def, string defenderKid)
@@ -321,6 +328,9 @@ public static class KingdomTickSimulation
         string report = $"★ {name} answers to the guild now — seized from the war.";
         cycle.PendingSiegeReports.Add(report);
         GD.Print($"[Warfront] {report}");
+
+        // Quest event shim (§8.1): a kingdom seized by the guild.
+        QuestEvents.Raise(QuestEvents.SiegeSeized, defenderKid);
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -389,6 +399,11 @@ public static class KingdomTickSimulation
         }
 
         GD.Print($"[Warfront] Intervention ({side}, success={success}) at {defName}: Advance now {wf.Advance}.");
+
+        // Quest event shim (§8.1): intervention outcome.
+        QuestEvents.Raise(success ? QuestEvents.InterventionWon : QuestEvents.InterventionLost,
+            wf.DefenderKingdomId);
+
         ResolveWarfront(cycle, wf, def, fd);
         cycle.Warfronts.RemoveAll(w => w.Closed);
     }

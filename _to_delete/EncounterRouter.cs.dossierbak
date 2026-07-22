@@ -53,13 +53,6 @@ public partial class EncounterRouter : Node
     /// fragment key). On a win, ExpeditionManager sets &lt;key&gt;_trial_passed.</summary>
     public string SavedCombatGuardianKey = "";
 
-    /// <summary>Owner archmage of a POI combat whose composition was drawn from
-    /// that archmage's own pool ("" for region-pool fights). On a win,
-    /// ExpeditionManager advances the archmage's dossier (DossierService).
-    /// Patrol ambushes carry attribution via SavedCombatPatrolArchmageId
-    /// instead. Reset by CommitCombat; set AFTER it (the patrol pattern).</summary>
-    public string SavedCombatArchmageId = "";
-
     // ── Seed for deterministic map regeneration after combat ────────────
     public int SavedRunSeed;
     public bool HasSavedSeed = false;

@@ -7,17 +7,20 @@ using System.Collections.Generic;
 //
 // Purpose:        Interactive 2D hex map of the guild campus.
 //                 Renders the ground layout (CampusMapSaveData)
-//                 plus sited buildings (BuildingSaveData.Q/R),
+//                 plus sited buildings (BuildingSaveData.Q/R)
+//                 and authored landmarks (CampusLandmarkData),
 //                 handles click-to-select and click-to-place.
 //                 Built entirely in code; lives inside the
 //                 SubViewport created by CampusScreen's campus
 //                 tab (560×560, Camera2D at origin, zoom 0.75).
 // Layer:          UI
 // Collaborators:  CampusScreen.cs (owner — wires TileClicked /
-//                 BuildingClicked, drives build mode),
+//                 BuildingClicked / LandmarkClicked, drives
+//                 build mode + vignette hosting),
 //                 CampusMapSaveData.cs (ground layout),
 //                 GuildSaveData.cs / BuildingSaveData (siting),
-//                 BuildingDatabase.cs (display names)
+//                 BuildingDatabase.cs (display names),
+//                 CampusLandmarkData.cs (landmark registry)
 // See:            campus_siege_and_defense_v1_1.docx §4/§5 —
 //                 multi-hex footprints + rotation arrive later;
 //                 today every building occupies its anchor hex
@@ -40,6 +43,10 @@ public partial class CampusHexGrid : Node2D
 
     /// <summary>A sited building was clicked (outside build mode).</summary>
     public event Action<string, Vector2I> BuildingClicked;
+
+    /// <summary>A landmark was clicked (outside build mode). Carries the
+    /// landmark id and axial coordinate.</summary>
+    public event Action<string, Vector2I> LandmarkClicked;
 
     // ── Layout ───────────────────────────────────────────────────────────
     /// <summary>Hex circumradius in viewport pixels. Radius-5 disc at 40px
@@ -110,6 +117,56 @@ public partial class CampusHexGrid : Node2D
         }
 
         SetBuildMode(_buildMode); // reapply current mode to the fresh tiles
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Landmarks
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Stamp landmarks from the <see cref="CampusLandmarkRegistry"/> onto the
+    /// hex grid. Call after <see cref="LoadFromSave"/> (and after each
+    /// narrative-encounter completion that may change flag state). The
+    /// <paramref name="hasFlag"/> delegate reads the player's flag state to
+    /// derive each landmark's current phase (ruined/active/restored).
+    /// </summary>
+    public void LoadLandmarks(System.Func<string, bool> hasFlag)
+    {
+        // Clear any existing landmark stamps so a refresh is clean.
+        foreach (var hex in _hexes.Values)
+        {
+            if (!string.IsNullOrEmpty(hex.LandmarkId))
+            {
+                hex.LandmarkId = "";
+                hex.LandmarkState = CampusLandmarkData.LandmarkState.Ruined;
+                // Only clear the label if no building occupies the hex.
+                if (string.IsNullOrEmpty(hex.BuildingId))
+                    hex.LabelText = "";
+                hex.QueueRedraw();
+            }
+        }
+
+        foreach (var lm in CampusLandmarkRegistry.All)
+        {
+            var axial = new Vector2I(lm.Q, lm.R);
+            if (!_hexes.TryGetValue(axial, out var hex))
+            {
+                GD.PrintErr($"CampusHexGrid: landmark '{lm.Id}' at ({lm.Q},{lm.R}) " +
+                            "has no matching hex tile.");
+                continue;
+            }
+
+            // Landmarks don't override buildings — if a building sits here,
+            // the building wins visually (the building IS the restoration).
+            if (!string.IsNullOrEmpty(hex.BuildingId))
+                continue;
+
+            var state = lm.State(hasFlag);
+            hex.LandmarkId = lm.Id;
+            hex.LandmarkState = state;
+            hex.LabelText = lm.HexLabel;
+            hex.QueueRedraw();
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -209,10 +266,17 @@ public partial class CampusHexGrid : Node2D
 
             GetViewport().SetInputAsHandled();
 
-            // Outside build mode a click on a sited building selects it;
-            // in build mode every click is a placement attempt, so it goes
-            // through TileClicked and CampusScreen decides what to do.
-            if (!_buildMode && !string.IsNullOrEmpty(hex.BuildingId))
+            // In build mode every click is a placement attempt.
+            if (_buildMode)
+            {
+                TileClicked?.Invoke(axial);
+                return;
+            }
+
+            // Outside build mode: landmarks > buildings > empty tile.
+            if (!string.IsNullOrEmpty(hex.LandmarkId))
+                LandmarkClicked?.Invoke(hex.LandmarkId, axial);
+            else if (!string.IsNullOrEmpty(hex.BuildingId))
                 BuildingClicked?.Invoke(hex.BuildingId, axial);
             else
                 TileClicked?.Invoke(axial);
@@ -291,10 +355,12 @@ public partial class CampusHexGrid : Node2D
 
 /// <summary>
 /// One hex of the campus map: ground tile visual + (optionally) the
-/// building sited on it. Pure view node — authoritative state lives in
-/// CampusMapSaveData (ground) and BuildingSaveData (siting). Later the
-/// siege work extends this to "one hex of a multi-hex footprint" where
-/// clicking any footprint hex selects the whole building (design doc §5).
+/// building sited on it or a landmark marker. Pure view node —
+/// authoritative state lives in CampusMapSaveData (ground),
+/// BuildingSaveData (siting), and CampusLandmarkData (landmarks).
+/// Later the siege work extends this to "one hex of a multi-hex
+/// footprint" where clicking any footprint hex selects the whole
+/// building (design doc §5).
 /// </summary>
 public partial class CampusHex : Node2D
 {
@@ -305,7 +371,14 @@ public partial class CampusHex : Node2D
     /// <summary>Empty string = no building sited here.</summary>
     public string BuildingId = "";
 
-    /// <summary>Short placeholder label drawn on sited buildings ("GH").</summary>
+    /// <summary>Empty string = no landmark here.</summary>
+    public string LandmarkId = "";
+
+    /// <summary>Current landmark state (only meaningful when LandmarkId is set).</summary>
+    public CampusLandmarkData.LandmarkState LandmarkState = CampusLandmarkData.LandmarkState.Ruined;
+
+    /// <summary>Short placeholder label drawn on sited buildings ("GH") or
+    /// landmarks ("BL", "RF").</summary>
     public string LabelText = "";
 
     public bool Hovered;
@@ -326,6 +399,13 @@ public partial class CampusHex : Node2D
     private static readonly Color HoverBorder   = new(0.92f, 0.88f, 0.70f);
     private static readonly Color LabelColor    = new(0.95f, 0.93f, 0.85f);
 
+    // Landmark-specific palette
+    private static readonly Color LandmarkRuined    = new(0.38f, 0.30f, 0.35f); // muted plum-grey — frozen ruin
+    private static readonly Color LandmarkActive    = new(0.42f, 0.36f, 0.52f); // soft violet — story waiting
+    private static readonly Color LandmarkRestored  = new(0.35f, 0.48f, 0.55f); // calm teal — restored
+    private static readonly Color LandmarkBorder    = new(0.60f, 0.55f, 0.70f); // lilac border
+    private static readonly Color LandmarkRestoredBorder = new(0.50f, 0.65f, 0.68f); // teal border
+
     public override void _Draw()
     {
         // Flat-top hexagon corners.
@@ -337,19 +417,40 @@ public partial class CampusHex : Node2D
         }
 
         bool occupied = !string.IsNullOrEmpty(BuildingId);
+        bool isLandmark = !string.IsNullOrEmpty(LandmarkId);
 
         Color fill;
+        Color border = BorderColor;
+
         if (occupied)
+        {
             fill = BuildingFill;
+        }
+        else if (isLandmark)
+        {
+            fill = LandmarkState switch
+            {
+                CampusLandmarkData.LandmarkState.Active => LandmarkActive,
+                CampusLandmarkData.LandmarkState.Restored => LandmarkRestored,
+                _ => LandmarkRuined,
+            };
+            border = LandmarkState == CampusLandmarkData.LandmarkState.Restored
+                ? LandmarkRestoredBorder
+                : LandmarkBorder;
+        }
         else if (!Buildable)
+        {
             fill = NonBuildable;
+        }
         else
+        {
             fill = ((Axial.X + Axial.Y) & 1) == 0 ? GrassA : GrassB; // subtle checker
+        }
 
         if (BuildModeActive)
         {
             // Valid placement targets pop; everything else recedes.
-            if (Buildable && !occupied)
+            if (Buildable && !occupied && !isLandmark)
                 fill = fill.Lerp(BuildTarget, 0.55f);
             else
                 fill *= DimmedTint;
@@ -364,10 +465,25 @@ public partial class CampusHex : Node2D
         var outline = new Vector2[7];
         points.CopyTo(outline, 0);
         outline[6] = points[0];
-        DrawPolyline(outline, Hovered ? HoverBorder : BorderColor, Hovered ? 2.5f : 1.5f);
+        float borderWidth = Hovered ? 2.5f : (isLandmark ? 2f : 1.5f);
+        DrawPolyline(outline, Hovered ? HoverBorder : border, borderWidth);
 
-        // Placeholder building marker.
-        if (occupied && !string.IsNullOrEmpty(LabelText))
+        // Landmark marker: small diamond glyph above the label.
+        if (isLandmark && LandmarkState == CampusLandmarkData.LandmarkState.Active)
+        {
+            float ds = 4f;
+            var diamond = new Vector2[]
+            {
+                new(0, -ds - 10f),
+                new(ds, -10f),
+                new(0, ds - 10f),
+                new(-ds, -10f),
+            };
+            DrawColoredPolygon(diamond, LandmarkBorder);
+        }
+
+        // Placeholder label (building abbreviation or landmark hex label).
+        if (!string.IsNullOrEmpty(LabelText))
         {
             var font = ThemeDB.FallbackFont;
             DrawString(font, new Vector2(-Radius, 7f), LabelText,

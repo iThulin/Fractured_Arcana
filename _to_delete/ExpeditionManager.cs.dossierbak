@@ -143,9 +143,6 @@ public partial class ExpeditionManager : Node2D
     private Vector2I? _pendingCombatHexCoord = null;
     private EncounterDefinition _pendingEncounter = null;
     private string _pendingTerrain = null;
-    /// <summary>Owner archmage when the pending scout-panel combat drew from an
-    /// archmage's own pool ("" otherwise) — dossier attribution (spec §4).</summary>
-    private string _pendingCombatArchmageId = "";
     private float _scaledDifficultyMult = 1.0f;
     private bool _ambushPending = false;
     private const int PatrolRecoverySteps = 8;
@@ -1249,10 +1246,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (_window.TryLocalToWorld(coord, out int idCol, out int idRow))
             _identifiedEncounters.TryGetValue($"{idCol},{idRow}", out encounterDef);
 
-        // Dossier attribution defaults to none (pinned/identified fights keep
-        // no attribution — accepted limit; the pin predates this pass).
-        _pendingCombatArchmageId = "";
-
         if (encounterDef == null)
         {
             var arch = RollArchmageAt(coord);   // resident archmage rolls for its own forces
@@ -1264,18 +1257,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // scaling applies only to the generic region-pool fallback.
             // SEAM: a future corrupted-archmage variant would swap `arch` here based on
             // the tile's corruption level before the draw — same call shape, different def.
-            var archDef =
-                arch != null
+            encounterDef =
+                (arch != null
                     ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
-                    : null;
-            encounterDef = archDef
+                    : null)
                 ?? EncounterPoolLoader.Pick(regionId, tier, terrainType, _scaledDifficultyMult);
-            // Dossier: only when the archmage pool ACTUALLY supplied the
-            // composition are these the archmage's own forces. Seeing them
-            // opens the dossier even if the player then retreats.
-            _pendingCombatArchmageId = archDef != null ? arch.Id : "";
-            if (archDef != null)
-                AnnounceDossierMet(arch.Id);
         }
         _pendingCombatHexCoord = coord;
         _pendingEncounter = encounterDef;
@@ -1284,12 +1270,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _scoutPanel.OnEngage = () =>
         {
             if (_pendingCombatHexCoord.HasValue && _pendingEncounter != null)
-            {
                 CommitCombat(_pendingCombatHexCoord.Value, _pendingEncounter, _pendingTerrain);
-                // Mark AFTER CommitCombat (which resets the field): whose
-                // forces these are, for the dossier hook on a win.
-                EncounterRouter.Instance.SavedCombatArchmageId = _pendingCombatArchmageId;
-            }
             _pendingCombatHexCoord = null;
             _pendingEncounter = null;
             _pendingTerrain = null;
@@ -1331,7 +1312,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SavedCombatWasPatrolAmbush = false;
         router.SavedCombatPatrolArchmageId = "";
         router.SavedCombatGuardianKey = guardianKey;
-        router.SavedCombatArchmageId = "";
 
         if (_factionManager != null)
         {
@@ -1400,12 +1380,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             ShowInfo("The compulsion takes hold — the patrol will talk instead of fight." +
                      (compulsionToast != null ? $" {compulsionToast}" : ""));
-            // Dossier: a compelled parley still counts as crossing paths.
-            AnnounceDossierMet(archmageId);
-            // Quest event shim (§8.1): patrol compelled via Parley Compulsion.
-            QuestEvents.PushToasts(
-                QuestEvents.Raise(QuestEvents.PatrolCompelled, patrolKingdom, archmageId),
-                _toasts);
             TriggerPatrolNegotiation(hex, coord);
             return;
         }
@@ -1435,9 +1409,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // patrol ambush, and whose soldiers they are (C4 deed emission).
         EncounterRouter.Instance.SavedCombatWasPatrolAmbush = true;
         EncounterRouter.Instance.SavedCombatPatrolArchmageId = archmageId;
-        // Dossier: being intercepted by an archmage's patrol is crossing paths
-        // with their forces ("wilds" is filtered inside the service).
-        AnnounceDossierMet(archmageId);
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -1531,42 +1502,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             GrantStagingPointAt(resultHex); // securing a seat/settlement via combat can grant staging
             ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters.");
             EmitCombatDeed(router, resultHex);
-
-            // Dossier: a field victory over an archmage's own forces reveals
-            // the next authored weakness hint (quest spec §4 — wiring pass).
-            {
-                string dossierArch = router.SavedCombatWasPatrolAmbush
-                    ? router.SavedCombatPatrolArchmageId
-                    : router.SavedCombatArchmageId;
-                router.SavedCombatArchmageId = "";
-                if (!string.IsNullOrEmpty(dossierArch) && dossierArch != "wilds")
-                {
-                    var dSave = SaveManager.ActiveSave;
-                    var dBefore = QuestNotifier.Snapshot(dSave);
-                    string hint = DossierService.RevealNextHint(dossierArch);
-                    if (hint != null)
-                    {
-                        var dDef = ArchmageDefById(dossierArch);
-                        _toasts?.Push(
-                            $"Dossier — {(dDef != null ? dDef.DisplayName : dossierArch)}: “{hint}”",
-                            QuestToastKind.Progress);
-                        foreach (var qt in QuestNotifier.NotifyNew(dBefore, dSave))
-                            _toasts?.Push(qt.Text, qt.Kind);
-                    }
-                }
-            }
-            // Quest event shim (§8.1): combat won — patrol or field encounter.
-            {
-                string qeKingdom = KingdomIdAt(resultHex);
-                string qeArch = router.SavedCombatWasPatrolAmbush
-                    ? router.SavedCombatPatrolArchmageId
-                    : router.SavedCombatArchmageId;
-                string qeEvent = router.SavedCombatWasPatrolAmbush
-                    ? QuestEvents.PatrolSlain : QuestEvents.CombatWon;
-                QuestEvents.PushToasts(
-                    QuestEvents.Raise(qeEvent, qeKingdom, qeArch), _toasts);
-            }
-
             ReleaseImprisonedAt(resultHex); // if this was a prison, free the captive
 
             // S3 (Deathsight, Necromancer): every won combat leaves a Remnant
@@ -1613,12 +1548,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
             else
             {
-                // Quest event shim (§8.1): combat lost.
-                {
-                    string lossKingdom = KingdomIdAt(resultHex);
-                    QuestEvents.Raise(QuestEvents.CombatLost, lossKingdom);
-                    // No toast — the expedition is ending.
-                }
                 CurrentHP = 0;
                 FailExpedition("Your party was defeated in the field.", injuriesAlreadyRolled: true);
                 return;
@@ -2223,22 +2152,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 buried = "  The patrol parts on good terms — that story dies here.";
 
             ShowInfo($"Deal struck. Gold: {(NegotiationContext.GoldDelta >= 0 ? "+" : "")}{NegotiationContext.GoldDelta}{taught}{buried}");
-
-            // Quest event shim (§8.1): negotiation resolved with a deal.
-            QuestEvents.PushToasts(
-                QuestEvents.Raise(QuestEvents.NegotiationDeal, kingdom),
-                _toasts);
         }
         else
-        {
             ShowInfo("No deal reached.");
-
-            // Quest event shim (§8.1): negotiation walked away.
-            QuestEvents.PushToasts(
-                QuestEvents.Raise(QuestEvents.NegotiationWalkaway,
-                    NegotiationContext.OriginKingdomId),
-                _toasts);
-        }
         NegotiationContext.Clear();
         UpdateUI();
     }
@@ -3620,23 +3536,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// > corruption-cleansed (positive; major at world corruption >= 60)
     /// > settlement-defended (positive, within 4 of a friendly settlement).
     /// Wilds patrols and courtless kingdoms emit nothing.</summary>
-    /// <summary>Dossier: open an archmage's dossier the first time their forces
-    /// are encountered (seen, fought, or parleyed with), diffing quest state
-    /// around the stamp so the unlock toasts fire. Idempotent — "wilds" and
-    /// unknown ids are filtered inside DossierService.</summary>
-    private void AnnounceDossierMet(string archmageId)
-    {
-        var save = SaveManager.ActiveSave;
-        if (save == null) return;
-        var before = QuestNotifier.Snapshot(save);
-        if (!DossierService.EnsureMet(archmageId)) return;
-        var def = ArchmageDefById(archmageId);
-        _toasts?.Push($"Dossier opened: {(def != null ? def.DisplayName : archmageId)}.",
-                      QuestToastKind.Unlock);
-        foreach (var qt in QuestNotifier.NotifyNew(before, save))
-            _toasts?.Push(qt.Text, qt.Kind);
-    }
-
     private void EmitCombatDeed(EncounterRouter router, Vector2I resultHex)
     {
         var cycle = SaveManager.ActiveSave?.Cycle;

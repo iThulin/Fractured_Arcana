@@ -1,0 +1,122 @@
+[
+  {
+    "id": "q_dossier_wenna",
+    "title": "Dossier: The Scholar",
+    "category": "Dossiers",
+    "permanent": true,
+    "summary": "Wenna Aldric wrote the curriculum every wizard you've ever met was taught from. Her forces fight like a syllabus. Learn where the lesson plan fails.",
+    "requiredFlag": "dossier_wenna_met",
+    "objectives": [
+      { "text": "Cross paths with the Scholar's forces", "flag": "dossier_wenna_met" },
+      { "text": "Record her first weakness", "flag": "dossier_wenna_hint_1" },
+      { "text": "Record her second weakness", "flag": "dossier_wenna_hint_2" },
+      { "text": "Record her third weakness", "flag": "dossier_wenna_hint_3" }
+    ],
+    "rewardLore": "dossier_wenna_complete"
+  },
+  {
+    "id": "q_dossier_aurel",
+    "title": "Dossier: The Reviser",
+    "category": "Dossiers",
+    "permanent": true,
+    "summary": "Aurel Pendry does not cast spells so much as revise them — including yours. Every engagement is a draft he is marking up. Learn what he cannot bring himself to leave alone.",
+    "requiredFlag": "dossier_aurel_met",
+    "objectives": [
+      { "text": "Cross paths with the Reviser's forces", "flag": "dossier_aurel_met" },
+      { "text": "Record his first weakness", "flag": "dossier_aurel_hint_1" },
+      { "text": "Record his second weakness", "flag": "dossier_aurel_hint_2" },
+      { "text": "Record his third weakness", "flag": "dossier_aurel_hint_3" }
+    ],
+    "rewardLore": "dossier_aurel_complete"
+  },
+  {
+    "id": "q_dossier_hess",
+    "title": "Dossier: The Witness",
+    "category": "Dossiers",
+    "permanent": true,
+    "summary": "Hess does not intervene. The land does that for her. Her forces are simply weather with opinions. Learn what she has chosen not to watch.",
+    "requiredFlag": "dossier_hess_met",
+    "objectives": [
+      { "text": "Cross paths with the Witness's forces", "flag": "dossier_hess_met" },
+      { "text": "Record her first weakness", "flag": "dossier_hess_hint_1" },
+      { "text": "Record her second weakness", "flag": "dossier_hess_hint_2" },
+      { "text": "Record her third weakness", "flag": "dossier_hess_hint_3" }
+    ],
+    "rewardLore": "dossier_hess_complete"
+  },
+  {
+    "id": "q_dossier_joren",
+    "title": "Dossier: The Vessel",
+    "category": "Dossiers",
+    "permanent": true,
+    "summary": "Joren Kall hosts an argument older than language, and his forces are its raised voices. Learn which of the elements is losing the debate.",
+    "requiredFlag": "dossier_joren_met",
+    "objectives": [
+      { "text": "Cross paths with the Vessel's forces", "flag": "dossier_joren_met" },
+      { "text": "Record his first weakness", "flag": "dossier_joren_hint_1" },
+      { "text": "Record his second weakness", "flag": "dossier_joren_hint_2" },
+      { "text": "Record his third weakness", "flag": "dossier_joren_hint_3" }
+    ],
+    "rewardLore": "dossier_joren_complete"
+  },
+  {
+    "id": "q_dossier_namer",
+    "title": "Dossier: The Namer",
+    "category": "Dossiers",
+    "permanent": true,
+    "summary": "Cael Morn builds seven layers into every working, and their soldiers are the outermost one. Learn what the other six are protecting.",
+    "requiredFlag": "dossier_namer_met",
+    "objectives": [
+      { "text": "Cross paths with the Namer's forces", "flag": "dossier_namer_met" },
+      { "text": "Record their first weakness", "flag": "dossier_namer_hint_1" },
+      { "text": "Record their second weakness", "flag": "dossier_namer_hint_2" },
+      { "text": "Record their third weakness", "flag": "dossier_namer_hint_3" }
+    ],
+    "rewardLore": "dossier_namer_complete"
+  },
+  {
+    "id": "q_dossier_conductor",
+    "title": "Dossier: The Conductor",
+    "category": "Dossiers",
+    "permanent": true,
+    "summary": "The Hostess of the Long Table has never lost a patient in either direction. Her forces have already died once and found it restful. Learn what still unsettles them.",
+    "requiredFlag": "dossier_conductor_met",
+    "objectives": [
+      { "text": "Cross paths with the Conductor's forces", "flag": "dossier_conductor_met" },
+      { "text": "Record her first weakness", "flag": "dossier_conductor_hint_1" },
+      { "text": "Record her second weakness", "flag": "dossier_conductor_hint_2" },
+      { "text": "Record her third weakness", "flag": "dossier_conductor_hint_3" }
+    ],
+    "rewardLore": "dossier_conductor_complete"
+  },
+  {
+    "id": "q_dossier_engineer",
+    "title": "Dossier: The Engineer",
+    "category": "Dossiers",
+    "permanent": true,
+    "summary": "Half of Bram Korro's devices work. The other half are research. His forces are field trials, and you are the test conditions. Learn which prototypes fail.",
+    "requiredFlag": "dossier_engineer_met",
+    "objectives": [
+      { "text": "Cross paths with the Engineer's forces", "flag": "dossier_engineer_met" },
+      { "text": "Record his first weakness", "flag": "dossier_engineer_hint_1" },
+      { "text": "Record his second weakness", "flag": "dossier_engineer_hint_2" },
+      { "text": "Record his third weakness", "flag": "dossier_engineer_hint_3" }
+    ],
+    "rewardLore": "dossier_engineer_complete"
+  },
+  {
+    "id": "q_dossier_astrologer",
+    "title": "Dossier: The Astrologer",
+    "category": "Dossiers",
+    "permanent": true,
+    "summary": "Kassian Vor-Aleth has no patrols. His forces are the weather, the corruption, the slow arithmetic of the sky. What the corruption takes, it also teaches.",
+    "requiredFlag": "dossier_astrologer_met",
+    "objectives": [
+      { "text": "Witness the corruption's advance", "flag": "dossier_astrologer_met" },
+      { "text": "Learn what the first fallen archmage reveals", "flag": "dossier_astrologer_hint_1" },
+      { "text": "Learn what the second fallen archmage reveals", "flag": "dossier_astrologer_hint_2" },
+      { "text": "Learn what the third fallen archmage reveals", "flag": "dossier_astrologer_hint_3" }
+    ],
+    "rewardLore": "dossier_astrologer_complete"
+  }
+]

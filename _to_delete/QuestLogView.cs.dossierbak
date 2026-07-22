@@ -20,7 +20,7 @@ public static class QuestLogView
 
         var quests = QuestLoader.LoadAll();
         int active = 0, done = 0, locked = 0;
-        string[] cats = { "Story", "Expansion", "Fragments", "Dossiers" };
+        string[] cats = { "Story", "Expansion", "Fragments" };
 
         foreach (var cat in cats)
         {
@@ -58,8 +58,6 @@ public static class QuestLogView
             {
                 Text = "❖  " + (q.Category == "Fragments"
                     ? "A fragment rumour you have not yet uncovered."
-                    : q.Category == "Dossiers"
-                    ? "An archmage whose forces you have not yet crossed."
                     : "An undiscovered thread."),
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
@@ -99,35 +97,6 @@ public static class QuestLogView
             line.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
             line.AddThemeColorOverride("font_color", od ? UITheme.POINegotiation : UITheme.NegotiationHiddenTerm);
             card.AddChild(line);
-        }
-
-        // Dossier cards render the revealed weakness-hint TEXT inline — the
-        // dossier IS the reward (quest spec §4). Hint text lives on the
-        // ArchmageDefinition; the flags only say which are revealed.
-        const string dossierPrefix = "q_dossier_";
-        if (q.Id.StartsWith(dossierPrefix))
-        {
-            string archId = q.Id.Substring(dossierPrefix.Length);
-            var arch = ArchmageRegistry.Get(archId);
-            if (arch != null)
-            {
-                for (int i = 1; i <= arch.WeaknessHints.Count; i++)
-                {
-                    bool revealed = save.Ledger?.MetaNarrativeFlags
-                        ?.Contains(DossierService.HintFlag(archId, i)) ?? false;
-                    var hl = new Label
-                    {
-                        Text = revealed
-                            ? $"      “{arch.WeaknessHints[i - 1]}”"
-                            : "      —  an unrecorded weakness  —",
-                        AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                    };
-                    hl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
-                    hl.AddThemeColorOverride("font_color",
-                        revealed ? UITheme.Gold : UITheme.NegotiationHiddenTerm);
-                    card.AddChild(hl);
-                }
-            }
         }
         parent.AddChild(card);
     }
