@@ -2765,7 +2765,31 @@ public partial class CampusScreen : Control
         if (save != null) QuestTracker.SyncCompletions(save);
         RefreshLoreSection();
 
-        _questSummaryLabel.Text = QuestLogView.BuildInto(_questContainer, save);
+        _questSummaryLabel.Text = QuestLogView.BuildInto(_questContainer, save,
+            OnBeginCompanionMission);
+    }
+
+    /// <summary>Step 9 follow-up: launch a campus-located companion arc stage
+    /// from its quest-log mission card, on the campus narrative host.</summary>
+    private void OnBeginCompanionMission(CompanionArcStatus m)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null || m == null || _campusNarrativePanel == null) return;
+
+        string encId = CompanionArcTracker.GetStageEncounterId(
+            m.CompanionId, save, isExpedition: false);
+        if (string.IsNullOrEmpty(encId)) return;
+
+        var enc = NarrativeEncounterLoader.FindMissionById(encId);
+        if (enc == null)
+        {
+            GD.PrintErr($"[CompanionArc] Mission encounter '{encId}' not found in companion_missions.json.");
+            return;
+        }
+
+        _campusNarrativePanel.ShowEncounter(enc, save.HasFlag,
+            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign);
+        _campusNarrativePanel.OnCompleted = choice => OnCampusNarrativeCompleted(enc, choice);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -2952,6 +2976,15 @@ public partial class CampusScreen : Control
         if (!string.IsNullOrEmpty(choice.LoreId) &&
             !save.UnlockedLoreEntries.Contains(choice.LoreId))
             save.UnlockedLoreEntries.Add(choice.LoreId);
+
+        // Companion arc delivery (Step 9 follow-up): campus-located arc stages
+        // resolve here — advance the arc and toast it.
+        var arcStatus = CompanionArcTracker.TryCompleteByEncounter(encounter.Id, save);
+        if (arcStatus != null)
+            _campusToasts?.Push(arcStatus.IsComplete
+                ? $"{arcStatus.CompanionName} — \"{arcStatus.ArcName}\" complete."
+                : $"{arcStatus.CompanionName} — \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
+                QuestToastKind.Progress);
 
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();

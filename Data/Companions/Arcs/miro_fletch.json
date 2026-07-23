@@ -1,0 +1,58 @@
+{
+  "companionId": "miro_fletch",
+  "arcName": "The Recurring Dream",
+  "arcSummary": "Every year, on the same night, Miro dreams of a stranger he has never met. It is you. It has always been you.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Notebook",
+      "summary": "He has written the dreams down for years. Some of the details should not be possible.",
+      "encounterId": "cm_miro_1",
+      "requiresParty": false,
+      "location": "any",
+      "completionFlag": "arc_miro_1",
+      "remembranceFlag": "remember_miro_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The Question No Native Asks",
+      "summary": "Out past the campfires, Miro has been building up to asking something nobody born inside a rendering should think to ask.",
+      "encounterId": "cm_miro_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_miro_2",
+      "remembranceFlag": "remember_miro_2",
+      "remembranceEncounterId": "cm_miro_2r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "Choosing to Matter",
+      "summary": "He cannot choose whether the sky re-reads itself. He can choose what he is doing when it does.",
+      "encounterId": "cm_miro_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_miro_3",
+      "remembranceFlag": "remember_miro_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_miro",
+  "arcCompleteFlag": "arc_miro_complete",
+  "arcCompleteMetaFlag": "remember_miro_arc_complete"
+}

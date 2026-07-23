@@ -1,0 +1,230 @@
+[
+  {
+    "id": "cm_wren_1",
+    "title": "The Third Room",
+    "body": "Camp is quiet. Wren is not — she is never quiet — but tonight her chatter keeps circling something and landing short of it.\n\n'Three washouts,' she says finally, holding up fingers. 'Evocation: bored. Wards: bored. But the third room.' The finger stays up a long time. 'Chronomantic theory. I wasn't bored, I was WRONG, and I never got to find out why. The examiner had my thesis on his desk the morning the sky tore. It's still there. Mid-grade. There's a frozen quill two inches above my margin.'\n\nShe looks at you the way people look at a door.",
+    "choices": [
+      {
+        "label": "Promise her the answer: the campus holds, and so does that desk",
+        "resultText": "'Then it can still be graded,' she says, very softly, and starts planning like a woman with a fourth chance.",
+        "setFlags": []
+      },
+      {
+        "label": "Ask what the thesis argued",
+        "resultText": "'That a held moment isn't stopped time — it's LONG time.' She laughs, badly. 'I got marked wrong in a world that is currently one enormous held moment. I want my points.'",
+        "loreId": "wren_thesis_long_time"
+      }
+    ]
+  },
+  {
+    "id": "cm_wren_1r",
+    "title": "The Third Room (Again)",
+    "body": "You have heard this confession before, in a year this world never had. So when Wren holds up three fingers and starts with 'Evocation: bored' — you say it with her.\n\nShe stops. The fingers stay up. 'You know about the thesis.' It is not a question, and you both let it not be one.\n\n'Then you know what I want,' she says. 'Skip the speech. Is the quill still there?'",
+    "choices": [
+      {
+        "label": "It's still there. Two inches above your margin.",
+        "resultText": "She exhales eleven years of waiting in one breath. 'Fourth chance,' she says. 'Right. Planning.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_wren_2",
+    "title": "Through the Edge",
+    "body": "Only you can bring someone through the bubble's edge. Wren has known this for a while and has asked, carefully, exactly once — and now she is standing at the threshold with her hands jammed in her pockets so you cannot see them shaking.\n\nInside, the Academy holds its long breath: chalk dust hanging like weather, ten thousand books mid-flight, the feast still warm. Wren walks the corridor of her third washout without a word — her, without a word — and stops at the examiner's desk. Her thesis. The quill, two inches above the margin, forever about to write.\n\n'Don't tell me what it was going to say,' she whispers. 'Nobody knows yet. That means it isn't wrong yet.'",
+    "choices": [
+      {
+        "label": "Stand with her until she's ready to leave",
+        "resultText": "It takes an hour. When she walks out through the edge she is not lighter — she is steadier, which is better."
+      },
+      {
+        "label": "Point out the margin note the examiner HAD finished: 'promising—'",
+        "resultText": "She reads the one completed word forty times. 'Promising,' she says. 'I can work with promising.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_wren_3",
+    "title": "A Fourth Specialization",
+    "body": "Wren finds you with a piece of chalk in her hand and the particular energy of a decision already made.\n\n'The Academy had thirty-one specializations. I failed three, which statistically is barely a sample. But I've done the coursework for a thirty-second.' She gestures at the campus around you — the held Second, the relit windows, the bell that finished its note. 'This. Keeping a moment alive. There's no examiner for it, so I'm declaring: I specialize in the Anchorhold.'\n\nShe holds out the chalk. 'You're the closest thing to faculty. Sign my slate.'",
+    "choices": [
+      {
+        "label": "Sign it",
+        "resultText": "She hangs the slate on a door that has been waiting eleven years for someone to choose it. The room is hers now. The campus feels, fractionally, more like a school."
+      },
+      {
+        "label": "Sign it — and grade her thesis 'correct'",
+        "resultText": "'You don't have the authority,' she says, beaming, taking the slate back before you can change either verdict. 'But I'm keeping the grade.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_corvin_1",
+    "title": "The Fights He Won't Fight",
+    "body": "Corvin has said perhaps thirty words this expedition, and then the column with the broken-seal banners crossed the far ridge and he said none at all — just stood down, the way he does, until they passed.\n\nTonight he sits across the fire and spends his words like a man paying a debt.\n\n'I was one of them. Keepers. I left the morning I heard my own mouth say a phrase I never chose. \"I am only choosing where to stand.\"' He feeds the fire a stick. 'It wasn't mine. It was placed. I've spent every day since not finishing that sentence — because I don't know yet which half of me ends it.'",
+    "choices": [
+      {
+        "label": "Tell him the not-finishing IS the discipline",
+        "resultText": "He considers that for a long moment. 'Cheaper than a warding,' he says, which from Corvin is agreement."
+      },
+      {
+        "label": "Ask what the Keepers think happened to him",
+        "resultText": "'Deserter.' A shrug. 'They're not wrong. They're just not right about what I deserted.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_corvin_2",
+    "title": "What the Cell Kept",
+    "body": "The camp is exactly where Corvin said it would be, and so is the thing he came for: his old cell's muster roll, kept the way the Keepers keep everything — reverently, and without understanding.\n\n'My name's still on it,' he says. 'Written in my hand. That's the problem.' He watches the tents the way a man watches weather. 'The Astrologer reads what's written. A name, in my own hand, in HIS people's keeping — that's a sentence I left lying around half-finished. I want it back.'\n\nGetting it is quiet work, and Corvin is very good at quiet. What he needs from you is simpler: stand where he can see you. An anchor, while he walks into his old life.",
+    "choices": [
+      {
+        "label": "Stand the anchor — let him do it his way",
+        "resultText": "He is gone forty minutes and returns with one page and no sound behind him. He burns his name that night, watching it the whole way down. 'Shorter roll,' he says."
+      },
+      {
+        "label": "Go in with him",
+        "resultText": "Two are louder than one, and the last stretch is a sprint — but he gets the page, and when he burns it, he lets you watch. From Corvin, that is a door opened."
+      }
+    ]
+  },
+  {
+    "id": "cm_corvin_3",
+    "title": "The Sentence, Finished",
+    "body": "Corvin finds you on the campus wall at dusk. He has brought nothing and is carrying it like a burden anyway.\n\n'Something you should hear.' He faces the frozen skyline. 'The phrase came back this morning. In my head, in my voice: \"I am only choosing—\"' He stops. And you feel it before you name it — the cadence is wrong, borrowed, a diction you have heard in corrupted mouths across four kingdoms.\n\nHe knows. That is the terrible, steady thing about Corvin: he knows exactly what is living in his mouth, and he has brought it here, to the one place the sky cannot read, to finish it.",
+    "choices": [
+      {
+        "label": "Let him finish it",
+        "resultText": "'I am choosing where to stand,' he says, in his own cadence, every word placed like a stone. 'Here.' The sentence ends. Nothing borrowed remains in it. He breathes like a man set down."
+      },
+      {
+        "label": "Finish it WITH him",
+        "resultText": "'Here,' you say together, and if the sky ever reads this sentence it will find two hands on it, and no room to write between them."
+      }
+    ]
+  },
+  {
+    "id": "cm_corvin_3r",
+    "title": "The Sentence, Interrupted",
+    "body": "You know this evening. You have lived its shape before, in a rendering that no longer happened: Corvin on the wall, the phrase rising, the borrowed cadence about to land.\n\nSo you speak first.\n\n'Corvin. You're about to hear the phrase. When it comes — it isn't yours, and you already ended it once. I was there.'\n\nHe stares at you for a long moment. Whatever was rising in his throat subsides, unspoken, unfed. 'It doesn't land the same,' he says slowly, 'when a man's expecting it.' The relapse becomes, instead, a quiet evening on a wall — which is all he ever wanted from one.",
+    "choices": [
+      {
+        "label": "Finish the sentence together, early, on your own terms",
+        "resultText": "'I am choosing where to stand. Here.' Said calm, said early, said twice — once by each of you. The words hold. They were never going to do anything else."
+      }
+    ]
+  },
+  {
+    "id": "cm_miro_1",
+    "title": "The Notebook",
+    "body": "Miro has been building up to this for two days, which for Miro is an eternity of tact.\n\n'I need to show you something and I need you to not be weird about it.' The notebook is fletcher's vellum, wrapped twice in oilcloth. 'Every year, same night, I dream about a stranger. Since I was small. I wrote them down.'\n\nHe doesn't open it. He recites — dates, details. The year you chose your school. The colour of a cloak you lost two timelines ago. A name you honored on a grave the world no longer contains.\n\n'It's you,' he says. 'It was always you. Please explain why I know things that never happened.'",
+    "choices": [
+      {
+        "label": "Tell him the truth: the sky re-reads itself, and something of him listens through",
+        "resultText": "He is quiet for a long time. 'So the dreams are... marginalia.' He hugs the notebook. 'I'm marginalia. Okay. Okay. That's — I'm going to need a day.'",
+        "loreId": "native_marginalia"
+      },
+      {
+        "label": "Ask to read all of it",
+        "resultText": "There are more entries than there have been timelines. Some describe renderings even you don't remember. You do not tell him which ones."
+      }
+    ]
+  },
+  {
+    "id": "cm_miro_2",
+    "title": "The Question No Native Asks",
+    "body": "Past the campfire's reach, Miro asks it plainly, the way he has clearly rehearsed.\n\n'When the sky re-reads itself. When your timeline ends and the next draft starts.' He keeps his eyes on the dark. 'Where do I go?'\n\nEvery comforting answer you own is a lie, and he would know it — he has the notebook; he catches details. What he is really asking is whether anyone will know the difference between the Miro of this rendering and the next one. Whether the difference is even real.\n\nThe fire pops. He waits. He deserves whatever you actually believe.",
+    "choices": [
+      {
+        "label": "'I don't know. But I remember every one of you — and the remembering is real.'",
+        "resultText": "He nods slowly. 'A reader remembers,' he says at last. 'That's more than most sentences get.' It is not comfort. It is something sturdier."
+      },
+      {
+        "label": "'The Hall can hold one person through the unmake. It could be you.'",
+        "resultText": "He goes very still. 'One chair,' he says. 'And you'd — no. Don't answer yet. Neither of us should answer that one fast.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_miro_2r",
+    "title": "The Question, Answered First",
+    "body": "You know what tonight is. You have sat through this fire before, in a rendering that no longer happened, and watched Miro spend three hours building the courage to ask it.\n\nSo you answer before he asks.\n\n'You want to know where you go when the sky re-reads itself. Here's everything I actually know—' and you give him all of it: the drafts, the marginalia, the remembering, the one chair. Unrehearsed on his side, honest on yours.\n\nHe listens the whole way through with the notebook clutched to his chest. 'You've answered this before,' he says finally. 'For me. Some other me.' A slow, wondering grin. 'I ask GOOD questions.'",
+    "choices": [
+      {
+        "label": "The best in any rendering",
+        "resultText": "Prepared lands better than surprised — the compendium of him, updated. He sleeps easily, which the other Miro did not."
+      }
+    ]
+  },
+  {
+    "id": "cm_miro_3",
+    "title": "Choosing to Matter",
+    "body": "Miro is waiting at the campus gate with his pack, the notebook, and a decision.\n\n'I did the maths. If the sky re-reads itself, being careful doesn't save me — the next draft just gets a careful Miro it never met.' He plants the pack by the gatehouse. 'So I'm done being a background detail. I want the gate post. First face anyone sees walking into the one place the sky can't read. If some other rendering of me is going to inherit my life, I want him inheriting THIS one.'\n\nHe squares up, self-appointed, entirely serious. 'Also I already moved my stuff in. This is a courtesy meeting.'",
+    "choices": [
+      {
+        "label": "Confirm the post — the gate is his",
+        "resultText": "He salutes with the wrong hand, corrects it, and takes up the watch. The campus gains a gatekeeper who dreams true. It has, you suspect, always had one — the drafts just kept misplacing him."
+      },
+      {
+        "label": "Point out the gate already feels like his",
+        "resultText": "'It DOES, right?' He pats the arch. 'Maybe the other drafts knew. Maybe I always end up here.' He grins. 'Good. Let the sky copy THAT forward.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_seraphine_1",
+    "title": "The Audit",
+    "body": "Seraphine falls into step beside you with a slim ledger you have never seen her carry and the smile of a professional about to present findings.\n\n'I've been annotating your deals. Habit — I was a negotiator's protégé before I was a clause.' She flips pages: your bargains, each one margin-noted in a small precise hand. 'You're good. Softer than you should be twice, sharper than you needed to be once.'\n\nShe closes the ledger. 'Here's my finding. Every deal you make, you treat both parties as people. I was traded across a table by men who laughed while they did it. So I audit everyone I work for.' A beat. 'You passed. I thought you should know the standard existed.'",
+    "choices": [
+      {
+        "label": "Ask which deal was 'sharper than needed'",
+        "resultText": "She tells you, precisely, including what it will cost you in two lunations. She is right. She is always going to be right, and you had better get used to it."
+      },
+      {
+        "label": "Ask about the table she was traded across",
+        "resultText": "'Good humor. A round of drinks. My apprenticeship for a shipping route.' Her voice stays level as a scale. 'They weren't cruel. That's what I want you to understand. It doesn't take cruelty. Just a contract nobody reads from the inside.'",
+        "loreId": "seraphine_terms_of_transfer"
+      }
+    ]
+  },
+  {
+    "id": "cm_seraphine_2",
+    "title": "The Original Instrument",
+    "body": "The archive is a notary's strongroom gone to seed, and Seraphine knows exactly which drawer — she has clearly known for years, and never come. Not alone.\n\nThe contract is one page. Her whole transfer is one page. She reads it standing very straight, one clause at a time, and you watch her negotiator's calm hold and hold and then, at the signature line, hold anyway — which is somehow worse.\n\n'Clause four,' she says at last. 'My duties transfer. My debts transfer. My CONSENT—' she taps the blank space where no such clause exists, '—was not considered a term.' She looks up. 'I'm keeping this. What do you think: framed, or burned?'",
+    "choices": [
+      {
+        "label": "Framed — a standard needs an exhibit",
+        "resultText": "'Framed,' she agrees. 'In my office. Facing the client's chair.' Every deal she audits for you from now on is measured against one page on a wall."
+      },
+      {
+        "label": "Burned — she owes it nothing",
+        "resultText": "She considers the flame for a long moment — then folds the page into her ledger instead. 'No. Burning is for things with power left. This is a reference document.' It goes in under R."
+      }
+    ]
+  },
+  {
+    "id": "cm_seraphine_2r",
+    "title": "The Original Instrument (Second Reading)",
+    "body": "This time she does not search the strongroom — she walks straight to the drawer, because this time you told her the road, having walked it in a rendering that no longer happened.\n\n'You knew where it was,' she says, not looking up from the page. 'Which means some version of me already stood here and read this.' She taps clause four without needing to find it. 'So tell me, since you're the continuity between us: how did she take it?'",
+    "choices": [
+      {
+        "label": "Standing very straight. She measured it, filed it under R, and beat it.",
+        "resultText": "Seraphine nods once, professional to professional, to a woman who no longer happened. 'Then I'll take her result as precedent,' she says, and files it under R again — for both of them."
+      }
+    ]
+  },
+  {
+    "id": "cm_seraphine_3",
+    "title": "Renegotiation",
+    "body": "Seraphine books the meeting formally — a table, two chairs, her ledger squared to the grain of the wood. She has never once needed an appointment to talk to you, which is how you know what this is.\n\n'I was transferred to this guild's predecessor-in-interest by an instrument I've now read,' she begins, crisply. 'I'm exercising a right that document never granted me: renegotiation, as a party. Not a clause.'\n\nHer terms are on one page, in the small precise hand: her service, freely offered. Her audits, continuing. One addition — 'Item three. If the sky unmakes this arrangement, the next rendering of this table inherits my terms, not theirs.'\n\nShe sets down the pen. 'Negotiate properly. I'll know if you're being soft.'",
+    "choices": [
+      {
+        "label": "Sign as equals — terms accepted as drafted",
+        "resultText": "'Counter-offer expected and not received. Noted with disappointment.' But she signs with the flourish of a woman writing herself into her own contract at last — party of the first part, this rendering and all that follow."
+      },
+      {
+        "label": "Counter: add item four — the guild audits HER deals too",
+        "resultText": "Her eyes go bright. 'A reciprocal clause. NOW you're negotiating.' She initials it instantly — being auditable, it turns out, was the thing nobody ever thought she was worth."
+      }
+    ]
+  }
+]

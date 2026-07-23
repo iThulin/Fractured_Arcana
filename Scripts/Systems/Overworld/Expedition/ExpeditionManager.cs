@@ -2089,6 +2089,18 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             if (anyMeta) SaveManager.MarkDirty();
         }
 
+        // Companion arc delivery (Step 9 follow-up): if this encounter was the
+        // companion's current arc stage, advance the arc and toast it.
+        var arcStatus = CompanionArcTracker.TryCompleteByEncounter(encounter.Id, SaveManager.ActiveSave);
+        if (arcStatus != null)
+        {
+            _toasts?.Push(arcStatus.IsComplete
+                ? $"{arcStatus.CompanionName} \u2014 \"{arcStatus.ArcName}\" complete."
+                : $"{arcStatus.CompanionName} \u2014 \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
+                QuestToastKind.Progress);
+            SaveManager.MarkDirty();
+        }
+
         // S4 (§11): lore POIs are the terrain-flavored acquisition path.
         // An authored SpellReward on the chosen option grants exactly that
         // spell; otherwise a bonus roll may teach an unknown learnable from

@@ -1,0 +1,58 @@
+{
+  "companionId": "wren_holloway",
+  "arcName": "The One Who Wasn't There",
+  "arcSummary": "Wren washed out of three specializations at the Academy. Then the Academy stopped mid-sentence, and she never got to finish either.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Third Room",
+      "summary": "On the road, Wren finally talks about the specialization that actually hurt to lose.",
+      "encounterId": "cm_wren_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_wren_1",
+      "remembranceFlag": "remember_wren_1",
+      "remembranceEncounterId": "cm_wren_1r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "Through the Edge",
+      "summary": "Only you can bring someone through the bubble's edge. She has asked, carefully, exactly once.",
+      "encounterId": "cm_wren_2",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_wren_2",
+      "remembranceFlag": "remember_wren_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "A Fourth Specialization",
+      "summary": "The Academy never had a course in what she is about to declare.",
+      "encounterId": "cm_wren_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_wren_3",
+      "remembranceFlag": "remember_wren_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": ["campus_wren_room_chosen"],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_wren",
+  "arcCompleteFlag": "arc_wren_complete",
+  "arcCompleteMetaFlag": "remember_wren_arc_complete"
+}

@@ -1,0 +1,58 @@
+{
+  "companionId": "seraphine_duskwell",
+  "arcName": "The Terms of Transfer",
+  "arcSummary": "Seraphine was once offered across a table as part of a bargain struck in good humor. She has opinions about contracts that trade people.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Audit",
+      "summary": "She has been professionally annotating every deal you make. She would like to discuss her findings.",
+      "encounterId": "cm_seraphine_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_seraphine_1",
+      "remembranceFlag": "remember_seraphine_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The Original Instrument",
+      "summary": "Somewhere out here is the contract that traded her. She wants to read her own price.",
+      "encounterId": "cm_seraphine_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_seraphine_2",
+      "remembranceFlag": "remember_seraphine_2",
+      "remembranceEncounterId": "cm_seraphine_2r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "Renegotiation",
+      "summary": "This time she is a party to the agreement, not a clause in it.",
+      "encounterId": "cm_seraphine_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_seraphine_3",
+      "remembranceFlag": "remember_seraphine_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_seraphine",
+  "arcCompleteFlag": "arc_seraphine_complete",
+  "arcCompleteMetaFlag": "remember_seraphine_arc_complete"
+}

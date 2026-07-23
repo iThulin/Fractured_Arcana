@@ -295,4 +295,71 @@ public static class CompanionArcTracker
 
         GD.Print($"CompanionArcTracker: '{companionId}' completed stage {newStage}.");
     }
+
+    // ── Encounter delivery seam (Step 9 follow-up, 2026-07-22) ──────────
+    // Maps encounter ids (stage + remembrance variants) back to their
+    // companion so the encounter loader can gate arc beats at pick time and
+    // the resolution paths can advance the arc when one completes.
+
+    private static Dictionary<string, string> _encounterIndex;
+
+    private static Dictionary<string, string> EncounterIndex()
+    {
+        if (_encounterIndex != null) return _encounterIndex;
+        _encounterIndex = new Dictionary<string, string>();
+        foreach (var pair in CompanionArcLoader.LoadAll())
+        {
+            var arc = pair.Value;
+            if (arc?.Stages == null) continue;
+            foreach (var s in arc.Stages)
+            {
+                if (!string.IsNullOrEmpty(s.EncounterId))
+                    _encounterIndex[s.EncounterId] = arc.CompanionId;
+                if (!string.IsNullOrEmpty(s.RemembranceEncounterId))
+                    _encounterIndex[s.RemembranceEncounterId] = arc.CompanionId;
+            }
+        }
+        return _encounterIndex;
+    }
+
+    /// <summary>Testing hook: drop the index so edited arc JSON re-maps.</summary>
+    public static void ClearEncounterIndex() => _encounterIndex = null;
+
+    /// <summary>True when the id belongs to some companion's arc stage.</summary>
+    public static bool IsStageEncounter(string encounterId) =>
+        !string.IsNullOrEmpty(encounterId) && EncounterIndex().ContainsKey(encounterId);
+
+    /// <summary>Pick-time gate for the expedition encounter pool: non-arc
+    /// encounters always pass; an arc encounter passes only when it is the
+    /// owning companion's CURRENT stage encounter in expedition context
+    /// (recruited, prior stages complete, party present when required,
+    /// correct remembrance variant).</summary>
+    public static bool StageEncounterEligible(string encounterId, GuildSaveData save)
+    {
+        if (string.IsNullOrEmpty(encounterId)) return true;
+        if (!EncounterIndex().TryGetValue(encounterId, out var companionId)) return true;
+        return GetStageEncounterId(companionId, save, isExpedition: true) == encounterId;
+    }
+
+    /// <summary>Called by both encounter hosts after a narrative encounter
+    /// resolves: if the encounter is the owning companion's current stage
+    /// (either variant, any location), advance the arc. Returns the refreshed
+    /// status for toasting ("Wren — The Room That Waited complete"), or null
+    /// when the encounter is not an arc stage / not current.</summary>
+    public static CompanionArcStatus TryCompleteByEncounter(string encounterId, GuildSaveData save)
+    {
+        if (save == null || string.IsNullOrEmpty(encounterId)) return null;
+        if (!EncounterIndex().TryGetValue(encounterId, out var companionId)) return null;
+
+        var status = StatusOf(companionId, save);
+        if (status?.NextStage == null) return null;
+        var stage = status.NextStage;
+        bool matches = stage.EncounterId == encounterId ||
+                       (!string.IsNullOrEmpty(stage.RemembranceEncounterId) &&
+                        stage.RemembranceEncounterId == encounterId);
+        if (!matches) return null;
+
+        CompleteStage(companionId, save);
+        return StatusOf(companionId, save);
+    }
 }

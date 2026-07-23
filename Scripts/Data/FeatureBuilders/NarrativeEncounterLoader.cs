@@ -57,7 +57,25 @@ public static class NarrativeEncounterLoader
         var ripples = LoadFile("ripples");
         if (ripples != null) combined.AddRange(ripples);
 
+        // Companion mission pool (always included) — arc-stage beats. Gated at
+        // pick time by CompanionArcTracker.StageEncounterEligible (recruited,
+        // prior stages complete, party present when required), not by flags.
+        var missions = LoadFile("companion_missions");
+        if (missions != null) combined.AddRange(missions);
+
         return combined;
+    }
+
+    /// <summary>Find an encounter by id in the companion-mission pool — used by
+    /// the campus host to launch campus-located arc stages directly.</summary>
+    public static NarrativeEncounterData FindMissionById(string encounterId)
+    {
+        if (string.IsNullOrEmpty(encounterId)) return null;
+        var missions = LoadFile("companion_missions");
+        if (missions == null) return null;
+        foreach (var enc in missions)
+            if (enc.Id == encounterId) return enc;
+        return null;
     }
 
     private static List<NarrativeEncounterData> LoadFile(string fileNoExt)
@@ -118,10 +136,29 @@ public static class NarrativeEncounterLoader
                 && (save == null || !save.HasFlag(enc.RequiredFlag)))
                 continue;
 
+            // Companion arc stages only surface when they are the companion's
+            // CURRENT stage in a valid expedition context (recruited, prior
+            // stages done, party present when required). Non-arc encounters
+            // pass through untouched.
+            if (save != null && !CompanionArcTracker.StageEncounterEligible(enc.Id, save))
+                continue;
+
             eligible.Add(enc);
         }
 
         if (eligible.Count == 0) return null;
+
+        // Companion arc beats take priority over ambient content: the player
+        // brought this companion along on purpose — the loom answers.
+        if (save != null)
+        {
+            var arcBeats = new List<NarrativeEncounterData>();
+            foreach (var enc in eligible)
+                if (CompanionArcTracker.IsStageEncounter(enc.Id))
+                    arcBeats.Add(enc);
+            if (arcBeats.Count > 0)
+                return arcBeats[(int)(GD.Randi() % (uint)arcBeats.Count)];
+        }
 
         // Prefer terrain matches
         var terrainMatched = new List<NarrativeEncounterData>();

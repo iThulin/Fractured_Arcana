@@ -1,0 +1,58 @@
+{
+  "companionId": "corvin_ashdown",
+  "arcName": "Borrowed Words",
+  "arcSummary": "Corvin deserted the day he heard himself use a phrase he had never chosen. He has been not-finishing that sentence ever since.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Fights He Won't Fight",
+      "summary": "Forty words a lunation, and none of them about why he stands down when certain banners show.",
+      "encounterId": "cm_corvin_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_corvin_1",
+      "remembranceFlag": "remember_corvin_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "What the Cell Kept",
+      "summary": "His old unit still carries something of his. He wants it back before they understand what it is.",
+      "encounterId": "cm_corvin_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_corvin_2",
+      "remembranceFlag": "remember_corvin_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "The Sentence, Finished",
+      "summary": "Every deserter carries an unfinished sentence. Corvin has decided where his ends.",
+      "encounterId": "cm_corvin_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_corvin_3",
+      "remembranceFlag": "remember_corvin_3",
+      "remembranceEncounterId": "cm_corvin_3r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_corvin",
+  "arcCompleteFlag": "arc_corvin_complete",
+  "arcCompleteMetaFlag": "remember_corvin_arc_complete"
+}
