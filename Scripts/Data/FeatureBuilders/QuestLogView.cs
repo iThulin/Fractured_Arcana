@@ -60,14 +60,19 @@ public static class QuestLogView
                 catLabel.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
                 box.AddChild(catLabel);
 
+                int lockedInCat = 0;
                 foreach (var q in inCat)
                 {
                     var status = QuestTracker.StatusOf(q, save);
-                    if (status == QuestStatus.Locked) locked++;
+                    // Collapsed (user ruling 2026-07-22): undiscovered quests
+                    // roll up into one line per category instead of a card
+                    // each — eight unmet dossiers were drowning the real log.
+                    if (status == QuestStatus.Locked) { locked++; lockedInCat++; continue; }
                     else if (status == QuestStatus.Complete) done++;
                     else active++;
                     AddCard(box, q, status, save);
                 }
+                if (lockedInCat > 0) AddLockedSummary(box, cat, lockedInCat);
             }
         }
 
@@ -99,14 +104,19 @@ public static class QuestLogView
                 catLabel.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
                 box.AddChild(catLabel);
 
+                int lockedInCat = 0;
                 foreach (var q in inCat)
                 {
                     var status = QuestTracker.StatusOf(q, save);
-                    if (status == QuestStatus.Locked) locked++;
+                    // Collapsed (user ruling 2026-07-22): undiscovered quests
+                    // roll up into one line per category instead of a card
+                    // each — eight unmet dossiers were drowning the real log.
+                    if (status == QuestStatus.Locked) { locked++; lockedInCat++; continue; }
                     else if (status == QuestStatus.Complete) done++;
                     else active++;
                     AddCard(box, q, status, save);
                 }
+                if (lockedInCat > 0) AddLockedSummary(box, cat, lockedInCat);
             }
         }
 
@@ -152,6 +162,30 @@ public static class QuestLogView
         head.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         head.AddThemeColorOverride("font_color", UITheme.POINarrative);
         parent.AddChild(head);
+    }
+
+    // ── Collapsed undiscovered-quest summary ────────────────────────────
+
+    /// <summary>One dim line standing in for all of a category's locked
+    /// quests: "❖  6 fragment rumours you have not yet uncovered."</summary>
+    private static void AddLockedSummary(VBoxContainer parent, string category, int count)
+    {
+        string text = string.Equals(category, "Fragments", System.StringComparison.OrdinalIgnoreCase)
+            ? (count == 1
+                ? "❖  A fragment rumour you have not yet uncovered."
+                : $"❖  {count} fragment rumours you have not yet uncovered.")
+            : string.Equals(category, "Dossiers", System.StringComparison.OrdinalIgnoreCase)
+            ? (count == 1
+                ? "❖  An archmage whose forces you have not yet crossed."
+                : $"❖  {count} archmagi whose forces you have not yet crossed.")
+            : (count == 1
+                ? "❖  An undiscovered thread."
+                : $"❖  {count} undiscovered threads.");
+
+        var line = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        line.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+        line.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
+        parent.AddChild(line);
     }
 
     // ── Quest card (active / complete / locked) ─────────────────────────

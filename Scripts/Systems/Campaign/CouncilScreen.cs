@@ -128,6 +128,7 @@ public partial class CouncilScreen : CanvasLayer
     private HBoxContainer _actionBox;
     private Label _statusLabel;
     private Label _footerLabel;
+    private HFlowContainer _standingsFlow; // Step 9: archmage standings (moved off the strategic map)
 
     // ══════════════════════════════════════════════════════════════════════
     // Open / close
@@ -250,6 +251,7 @@ public partial class CouncilScreen : CanvasLayer
         BuildCourtArea(root);
         BuildActionsRow(root);
         BuildRumourRibbon(root);
+        BuildStandingsStrip(root);
 
         _footerLabel = new Label();
         _footerLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -494,7 +496,61 @@ public partial class CouncilScreen : CanvasLayer
         RefreshCourtiers(court);
         RefreshRumours(court);
         RefreshActions(cycle, court);
+        RefreshStandings(cycle);
         RefreshFooter(cycle, court, band);
+    }
+
+    /// <summary>Step 9 (relocated from the strategic map per user ruling): the
+    /// at-a-glance archmage standings — every placed archmage's signed
+    /// sentiment (or disposition once resolved), faction-colored, in one
+    /// wrapping strip above the footer. Full detail lives on the campus
+    /// Council tab.</summary>
+    private void BuildStandingsStrip(VBoxContainer root)
+    {
+        _standingsFlow = new HFlowContainer();
+        _standingsFlow.AddThemeConstantOverride("h_separation", 18);
+        _standingsFlow.AddThemeConstantOverride("v_separation", 2);
+        root.AddChild(_standingsFlow);
+    }
+
+    private void RefreshStandings(CycleState cycle)
+    {
+        if (_standingsFlow == null) return;
+        foreach (var child in _standingsFlow.GetChildren())
+            child.QueueFree();
+
+        var campaign = cycle?.Campaign;
+        if (campaign == null || campaign.RegionArchmageMap.Count == 0) return;
+
+        var header = new Label { Text = "The Archmagi:" };
+        header.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        header.AddThemeColorOverride("font_color", UITheme.POINarrative);
+        _standingsFlow.AddChild(header);
+
+        foreach (var pair in campaign.RegionArchmageMap)
+        {
+            string id = pair.Value;
+            if (string.IsNullOrEmpty(id)) continue;
+            var def = ArchmageRegistry.Get(id);
+            if (def == null || def.IsVillainFaction) continue;
+
+            var disp = campaign.GetDisposition(id);
+            string text;
+            if (disp == ArchmageDisposition.Unknown || disp == ArchmageDisposition.Neutral)
+            {
+                int s = campaign.GetSentiment(id);
+                text = $"{def.DisplayName} {(s > 0 ? "+" : "")}{s}";
+            }
+            else
+            {
+                text = $"{def.DisplayName} · {disp}";
+            }
+
+            var lbl = new Label { Text = text };
+            lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            lbl.AddThemeColorOverride("font_color", new Color(def.FactionColorHex));
+            _standingsFlow.AddChild(lbl);
+        }
     }
 
     private void RefreshTabs()
@@ -1274,7 +1330,26 @@ public partial class CouncilScreen : CanvasLayer
             !string.IsNullOrEmpty(ks.ArchmageId))
         {
             var def = ArchmageRegistry.Get(ks.ArchmageId);
-            return "Seat: " + (def?.DisplayName ?? ks.ArchmageId);
+            string seat = "Seat: " + (def?.DisplayName ?? ks.ArchmageId);
+
+            // Step 9 (moved off the strategic map): this seat's standing with
+            // the guild — signed sentiment while unresolved, disposition once
+            // resolved.
+            var campaign = cycle.Campaign;
+            if (campaign != null && def != null && !def.IsVillainFaction)
+            {
+                var disp = campaign.GetDisposition(ks.ArchmageId);
+                if (disp == ArchmageDisposition.Unknown || disp == ArchmageDisposition.Neutral)
+                {
+                    int s = campaign.GetSentiment(ks.ArchmageId);
+                    seat += $"   ·   sentiment {(s > 0 ? "+" : "")}{s}";
+                }
+                else
+                {
+                    seat += $"   ·   {disp}";
+                }
+            }
+            return seat;
         }
         return "Seat: unknown";
     }

@@ -394,69 +394,10 @@ public partial class StrategicView : Node2D
         hint.HorizontalAlignment = HorizontalAlignment.Center;
         _hud.AddChild(hint);
 
-        BuildCouncilStrip();
         BuildLensButtons();
-    }
-
-    /// <summary>Step 9: compact read-only council summary on the strategic map —
-    /// one line per placed archmage (name · signed sentiment · disposition), so
-    /// the sentiment consequences of warfront decisions are visible where those
-    /// decisions are made. Full detail lives on the campus Council tab.
-    /// Anchored bottom-right, clear of the calendar and siege-news panels.</summary>
-    private void BuildCouncilStrip()
-    {
-        var campaign = SaveManager.ActiveSave?.Cycle?.Campaign;
-        if (campaign == null || campaign.RegionArchmageMap.Count == 0) return;
-
-        var panel = new PanelContainer
-        {
-            AnchorLeft = 1f,
-            AnchorTop = 1f,
-            AnchorRight = 1f,
-            AnchorBottom = 1f,
-            GrowHorizontal = Control.GrowDirection.Begin,
-            GrowVertical = Control.GrowDirection.Begin,
-            OffsetLeft = -260,
-            OffsetRight = -16,
-            OffsetBottom = -52, // above the deploy hint
-        };
-        panel.AddThemeStyleboxOverride("panel",
-            UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Violet));
-        _hud.AddChild(panel);
-
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 14);
-        margin.AddThemeConstantOverride("margin_right", 14);
-        margin.AddThemeConstantOverride("margin_top", 8);
-        margin.AddThemeConstantOverride("margin_bottom", 8);
-        panel.AddChild(margin);
-
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 2);
-        margin.AddChild(vbox);
-
-        var title = new Label { Text = "The Council" };
-        title.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-        title.AddThemeColorOverride("font_color", UITheme.POINarrative);
-        vbox.AddChild(title);
-
-        foreach (var pair in campaign.RegionArchmageMap)
-        {
-            string id = pair.Value;
-            if (string.IsNullOrEmpty(id)) continue;
-            var def = ArchmageRegistry.Get(id);
-            if (def == null || def.IsVillainFaction) continue;
-
-            int sentiment = campaign.GetSentiment(id);
-            var disp = campaign.GetDisposition(id);
-            string dispText = disp == ArchmageDisposition.Unknown ? "—" : disp.ToString();
-            string sentText = sentiment > 0 ? $"+{sentiment}" : sentiment.ToString();
-
-            var line = new Label { Text = $"{def.DisplayName}   {sentText} · {dispText}" };
-            line.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 3);
-            line.AddThemeColorOverride("font_color", new Color(def.FactionColorHex));
-            vbox.AddChild(line);
-        }
+        // The archmage standings strip was moved into CouncilScreen (user
+        // ruling 2026-07-22) — the strategic map stays clean; open the Council
+        // from the top bar for standings.
     }
 
     // ── Map lens toggles ─────────────────────────────────────────────────
