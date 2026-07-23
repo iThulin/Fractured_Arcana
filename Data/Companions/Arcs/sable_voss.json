@@ -1,0 +1,59 @@
+{
+  "companionId": "sable_voss",
+  "arcName": "The Eighteenth Way",
+  "arcSummary": "Sable knows seventeen ways to kill something before it knows she's there. The number used to be even. The eighteenth saw her, and she didn't.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "Seventeen",
+      "summary": "She names the count for the first time — where each way came from, and why the list stopped growing.",
+      "encounterId": "cm_sable_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_sable_1",
+      "remembranceFlag": "remember_sable_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The One That Saw Her",
+      "summary": "Old territorial sign on the route. Hers, in a sense: the beast that looked her in the eye and made her miss on purpose.",
+      "encounterId": "cm_sable_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_sable_2",
+      "remembranceFlag": "remember_sable_2",
+      "remembranceEncounterId": "cm_sable_2r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "Warden, Not Poacher",
+      "summary": "Seventeen ways to kill unseen are also seventeen ways to see. She has a proposal for the campus grounds.",
+      "encounterId": "cm_sable_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_sable_3",
+      "remembranceFlag": "remember_sable_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_sable",
+  "arcCompleteFlag": "arc_sable_complete",
+  "arcCompleteMetaFlag": "remember_sable_arc_complete",
+  "repriseEncounterId": "cm_sable_reprise"
+}

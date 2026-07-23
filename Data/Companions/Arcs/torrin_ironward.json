@@ -1,0 +1,59 @@
+{
+  "companionId": "torrin_ironward",
+  "arcName": "Putting It Down",
+  "arcSummary": "Torrin picked up a spear when bandits burned his village and never put it down. Not once. Not to sleep. There is a farmer somewhere in there, holding a weapon.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Spear's Weight",
+      "summary": "Night watch. He has held that spear through every night for nine years, and tonight he does the arithmetic out loud.",
+      "encounterId": "cm_torrin_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_torrin_1",
+      "remembranceFlag": "remember_torrin_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "Ground Worth Working",
+      "summary": "He has been eyeing the strip of earth along the campus wall. He has seeds. He has had the seeds for nine years.",
+      "encounterId": "cm_torrin_2",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_torrin_2",
+      "remembranceFlag": "remember_torrin_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "By the Door",
+      "summary": "The barley is up. Something else has to go down.",
+      "encounterId": "cm_torrin_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_torrin_3",
+      "remembranceFlag": "remember_torrin_3",
+      "remembranceEncounterId": "cm_torrin_3r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_torrin",
+  "arcCompleteFlag": "arc_torrin_complete",
+  "arcCompleteMetaFlag": "remember_torrin_arc_complete",
+  "repriseEncounterId": "cm_torrin_reprise"
+}

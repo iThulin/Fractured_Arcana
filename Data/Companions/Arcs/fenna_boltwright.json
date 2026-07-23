@@ -1,0 +1,59 @@
+{
+  "companionId": "fenna_boltwright",
+  "arcName": "How It Works",
+  "arcSummary": "Fenna dismantled her family's mill at nine to see how it worked. The Anchorhold is the one machine she cannot take apart, and it is driving her wonderful.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Itch",
+      "summary": "She has formally requested permission to dismantle the anchor. There is a diagram. There are contingencies. The answer is still no.",
+      "encounterId": "cm_fenna_1",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_fenna_1",
+      "remembranceFlag": "remember_fenna_1",
+      "remembranceEncounterId": "cm_fenna_1r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "A Broken Working",
+      "summary": "A field-found mechanism nobody can fix by force. She would like to try understanding at it.",
+      "encounterId": "cm_fenna_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_fenna_2",
+      "remembranceFlag": "remember_fenna_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "Maintenance",
+      "summary": "She has stopped asking to take the anchor apart. She has started asking something better.",
+      "encounterId": "cm_fenna_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_fenna_3",
+      "remembranceFlag": "remember_fenna_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_fenna",
+  "arcCompleteFlag": "arc_fenna_complete",
+  "arcCompleteMetaFlag": "remember_fenna_arc_complete",
+  "repriseEncounterId": "cm_fenna_reprise"
+}

@@ -1,0 +1,59 @@
+{
+  "companionId": "petra_quillane",
+  "arcName": "The Borrowed Hand",
+  "arcSummary": "Petra keeps finding her own handwriting in books she never wrote. She has started answering it. The correspondence is going well, which frightens her.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "Marginalia",
+      "summary": "She has catalogued every appearance of her hand in the campus library wing. She wants to show you entry forty-one.",
+      "encounterId": "cm_petra_1",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_petra_1",
+      "remembranceFlag": "remember_petra_1",
+      "remembranceEncounterId": "cm_petra_1r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The Note She Leaves",
+      "summary": "If some next Petra will read what this one writes, then this one intends to write it properly — witnessed, dated, meant.",
+      "encounterId": "cm_petra_2",
+      "requiresParty": false,
+      "location": "any",
+      "completionFlag": "arc_petra_2",
+      "remembranceFlag": "remember_petra_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "Correspondence",
+      "summary": "There is a reply. There should not be a reply. There is a reply.",
+      "encounterId": "cm_petra_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_petra_3",
+      "remembranceFlag": "remember_petra_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_petra",
+  "arcCompleteFlag": "arc_petra_complete",
+  "arcCompleteMetaFlag": "remember_petra_arc_complete",
+  "repriseEncounterId": "cm_petra_reprise"
+}

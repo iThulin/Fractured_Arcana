@@ -1,0 +1,59 @@
+{
+  "companionId": "harl_denner",
+  "arcName": "The Opened Door",
+  "arcSummary": "Harl guarded a sealed sanctum for thirty years without knowing what it held. Then someone finally opened a door he'd given his life to, and he came to see whose hands did it.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "Thirty Years of Not Knowing",
+      "summary": "The emptied sanctum is on the route. He requests a detour, in the tone of a man requesting a funeral.",
+      "encounterId": "cm_harl_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_harl_1",
+      "remembranceFlag": "remember_harl_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "Seeing It",
+      "summary": "He has never asked what the seal held. He is asking now, and he wants to hear it standing up.",
+      "encounterId": "cm_harl_2",
+      "requiresParty": false,
+      "location": "any",
+      "completionFlag": "arc_harl_2",
+      "remembranceFlag": "remember_harl_2",
+      "remembranceEncounterId": "cm_harl_2r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "A Door Worth a Warden",
+      "summary": "The campus keeps things now — records, relics, one held moment. He has inspected every door in the place.",
+      "encounterId": "cm_harl_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_harl_3",
+      "remembranceFlag": "remember_harl_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_harl",
+  "arcCompleteFlag": "arc_harl_complete",
+  "arcCompleteMetaFlag": "remember_harl_arc_complete",
+  "repriseEncounterId": "cm_harl_reprise"
+}

@@ -1,0 +1,59 @@
+{
+  "companionId": "ondrej_vael",
+  "arcName": "On Loan",
+  "arcSummary": "Ondrej was seconded to the guild when his school united behind its archmage. A man entered in two ledgers is owned by neither — or both. He would like the accounts settled.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Ledger Entry",
+      "summary": "He lays his secondment papers on the table with a bookkeeper's care and one unbookkeeperly question.",
+      "encounterId": "cm_ondrej_1",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_ondrej_1",
+      "remembranceFlag": "remember_ondrej_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "Due Diligence",
+      "summary": "A working in the field is miscast and cascading. Doctrine says withdraw and document. The guild is standing inside it.",
+      "encounterId": "cm_ondrej_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_ondrej_2",
+      "remembranceFlag": "remember_ondrej_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "The Revision",
+      "summary": "He has drafted a petition to Master Pendry: revise the secondment. He wants it witnessed.",
+      "encounterId": "cm_ondrej_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_ondrej_3",
+      "remembranceFlag": "remember_ondrej_3",
+      "remembranceEncounterId": "cm_ondrej_3r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_ondrej",
+  "arcCompleteFlag": "arc_ondrej_complete",
+  "arcCompleteMetaFlag": "remember_ondrej_arc_complete",
+  "repriseEncounterId": "cm_ondrej_reprise"
+}

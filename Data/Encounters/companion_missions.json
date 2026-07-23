@@ -562,5 +562,813 @@
         "resultText": "Once, hard, the grip that crosses renderings. The ledger line reads Vane — roofs, pending, in ink that might as well be older than the timeline. The whole road, one payday."
       }
     ]
+  },
+  {
+    "id": "cm_elara_1",
+    "title": "What the Mission Was",
+    "body": "The route crosses an old burn scar — years old, regrown at the edges, dead at the heart. Elara stops walking like she's hit a wall only she can see.\n\n'Charter mission,' she says, eventually. 'Enforcement clause nine: deny the enemy the crossing. There was a village at the crossing.' Her jaw works. 'I called the storm to the ford like the charter said. Fire found the thatch. The charter had a clause for the ford. It didn't have one for the thatch.'\n\n'I burned the charter the same week. Figured one of us should know what it felt like.'",
+    "choices": [
+      {
+        "label": "The clause failed her — say so",
+        "resultText": "'That's the kind thing to say.' She looks at the dead heart of the scar. 'I wrote my name under that clause, though. Kindness has to fit around that or it doesn't fit.'"
+      },
+      {
+        "label": "Ask what clause nine should have said",
+        "resultText": "She answers instantly — she's had years: 'Deny the crossing WITHOUT taking what can't be given back.' A beat. 'Eleven words. Nobody wrote them. That's the whole story.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_elara_2",
+    "title": "The Survivor",
+    "body": "The waystation keeper's assistant has a burn-slick arm, a crossing-village accent, and — the moment she sees Elara — no expression at all.\n\nElara doesn't run. That's the thing you'll remember: she walks straight over, storm-caller to survivor, and says, 'I called it. The fire that took your village came down my arm. I'm not here to be forgiven. I'm here so you know it wasn't weather. Somebody did it, and the somebody has a face.'\n\nThe silence stretches. The survivor studies her the way you study old wounds.\n\n'I know,' the woman says at last. 'I've known your face for years. You're the only one who ever came back to wear it.'",
+    "choices": [
+      {
+        "label": "Leave them to talk — some ledgers balance privately",
+        "resultText": "They talk until the candle goes. Elara comes back hollowed out and lighter both — carrying the same weight, but properly now, with both hands."
+      },
+      {
+        "label": "Stand with Elara while she listens",
+        "resultText": "The survivor tells the whole night — who got out, who didn't, and one thing Elara never knew: the storm-front SHE called broke first, and half the village walked out under its rain. Fire and rain, one arm. She has to sit down."
+      }
+    ]
+  },
+  {
+    "id": "cm_elara_2r",
+    "title": "The Survivor (Known)",
+    "body": "You know who's at that waystation — you watched this meeting happen in a rendering that no longer happened. So on the road you tell Elara what's waiting: the burn-slick arm, the crossing accent, the sentence 'you're the only one who ever came back to wear it.'\n\nElara walks the last mile in silence, but it's a different silence — a rehearsal, not a dread.\n\nAt the door she turns. 'Somewhere the sky shuffled away, I already survived this conversation.' A grim, real smile. 'Then it's survivable. That's more than I've ever known walking into a room.'",
+    "choices": [
+      {
+        "label": "It's survivable. Go.",
+        "resultText": "Prepared lands better than surprised. She goes in steady, and this time when she hears about the rain her own storm gave, she's able to say thank you for it — to the storm, and to the woman who kept the accounting."
+      }
+    ]
+  },
+  {
+    "id": "cm_elara_3",
+    "title": "A Charter Worth Keeping",
+    "body": "Elara finds you with a single sheet, good paper, careful hand. A charter. Hers.\n\n'The old one had forty clauses and I could recite them drunk. Clauses for fords, for lines, for acceptable losses.' She sets the sheet down. 'Mine has one.'\n\nThe page reads, in full: *Nothing the fire can't give back.*\n\n'Every working I call answers to that first. If a storm can't pass the clause, the storm stays in my hands.' She slides it across. 'The old charter had a guildmaster's seal to make it real. Humor me.'",
+    "choices": [
+      {
+        "label": "Seal it",
+        "resultText": "One clause, sealed and witnessed. She folds it into the lining over her heart, where enforcers keep their charters — the difference being she wrote this one, and it fits."
+      },
+      {
+        "label": "Seal it and adopt the clause guild-wide",
+        "resultText": "She stares. 'The whole guild?' Then, carefully, like handling something hot: 'Then it wasn't just an apology. It was a draft.' The clause enters the guild's standing orders in her handwriting."
+      }
+    ]
+  },
+  {
+    "id": "cm_elara_reprise",
+    "title": "One Clause, Recited",
+    "body": "Elara meets you with a single sheet already written — the paper knew the words before she did, she says.\n\n'One clause. *Nothing the fire can't give back.* I've written it before — I can tell, the hand's too sure for a first draft.' She sets it down with the burn scar's story and the survivor's name, all of it delivered like a report on a road already walked. 'Somewhere the sky shuffled away, you sealed this. Seal it again. Some charters should survive the weather.'",
+    "choices": [
+      {
+        "label": "Seal it again",
+        "resultText": "The clause, resealed across the end of the world. She files the whole road — scar, survivor, charter — under settled, and her storms answer to eleven words from that day on."
+      }
+    ]
+  },
+  {
+    "id": "cm_fenna_1",
+    "title": "The Itch",
+    "body": "Fenna has a diagram. Of the anchor. The thing holding the campus, the Second, and arguably the world.\n\n'Request to dismantle,' she says brightly. 'Non-destructively! Mostly. There's a contingency appendix.' The appendix is thicker than the diagram. 'I rebuilt the mill BETTER, you know. I was eleven. I've grown as a person and an engineer.'\n\nShe knows the answer. She's known the answer since she started drawing. But the mill was the first machine that ever kept a secret from her, and this one is keeping the biggest secret anyone's ever kept, and her hands itch and itch and itch.",
+    "choices": [
+      {
+        "label": "No. But commission the instruments — measure everything, touch nothing.",
+        "resultText": "'MEASURE everything—' she repeats, already redesigning. Within a lunation the anchor has more instrumentation than the rest of the campus combined, and Fenna has readings nobody in history has had."
+      },
+      {
+        "label": "Ask what she thinks is inside",
+        "resultText": "Her answer takes twenty minutes and four more diagrams and ends with: '—or it's a held breath, mechanically speaking, and you can't dismantle a breath, which is EXACTLY why I want to try.' The no stands. The itch, visibly, becomes a vocation."
+      }
+    ]
+  },
+  {
+    "id": "cm_fenna_1r",
+    "title": "The Itch (Prior Readings)",
+    "body": "Fenna arrives with her dismantling request, opens the appendix — and stops. Tucked in the binding is a page of instrument readings in her own hand, dated a year this world never had.\n\n'These are MINE. This is my notation. These are readings off the ANCHOR—' she flips pages faster and faster, '—someone let me instrument it. Someone smart. Someone about to be asked again.'\n\nShe looks up with the expression of a woman skipping four drafts of an argument.",
+    "choices": [
+      {
+        "label": "Commission the instruments — again, apparently",
+        "resultText": "'Continuity of research!' she crows, and has the array rebuilt in half the time, checking her own ghost's readings as she goes. They match. Across the end of the world, they match. She frames the old page."
+      }
+    ]
+  },
+  {
+    "id": "cm_fenna_2",
+    "title": "A Broken Working",
+    "body": "The mechanism sits in a ruin: a warding engine, old make, seized mid-rotation — and around it, the scars of everyone who tried force. Pry marks. Scorch. One bent crowbar, abandoned like an apology.\n\nFenna circles it once and sits down cross-legged. 'Everybody asks a machine to move,' she says. 'Nobody asks it why it stopped.'\n\nShe watches it for an hour. The party waits. Then: 'There. Fourth gear's not jammed — it's WAITING. Something upstream promised it a signal that never came. It's been holding its half of a bargain for two hundred years.' She takes out one small tool. 'We're not going to force it. We're going to keep the promise.'",
+    "choices": [
+      {
+        "label": "Keep the promise — send the signal",
+        "resultText": "One tap on the right contact: the engine takes a breath two centuries deep and turns over, wards blooming like frost in reverse. Fenna pats it once. 'Good lad. Sorry about the crowbar people.'",
+        "loreId": "warding_engine_bargain"
+      },
+      {
+        "label": "Ask what it was warding",
+        "resultText": "She traces the ward-lines outward to a collapsed cellar the ruin kept safe this whole time — records, intact, two hundred years dry. 'Machines keep their promises,' she says. 'It's their whole personality.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_fenna_3",
+    "title": "Maintenance",
+    "body": "Fenna requests a meeting, which is unlike her — she usually just appears, mid-sentence.\n\n'I withdraw the dismantling request. Formally. Forever.' She sets down a new document — thin, one page, no appendix. 'The mill taught me you learn a machine by taking it apart. The anchor taught me the other thing. Some works you learn by TENDING. You maintain them for thirty years and at the end you know things no dismantler could.'\n\nThe page is a maintenance charter: inspection rounds, instrument logs, one line at the bottom in her tidiest hand — *machinist to the held moment.*\n\n'It's the best machine anyone's ever built and nobody built it. Let me keep it.'",
+    "choices": [
+      {
+        "label": "Appoint her machinist to the held moment",
+        "resultText": "She signs like it's her eleventh birthday. From then on the anchor's instrument log fills daily, and the campus acquires a sound it didn't know it was missing: someone humming at the works."
+      },
+      {
+        "label": "Appoint her — and ask for the mill story, the whole thing",
+        "resultText": "The signed charter and the whole story: nine-year-old Fenna, the mill's secret (a cracked shaft everyone had painted over), the rebuild. 'I didn't dismantle it to break it,' she says. 'I dismantled it because nobody would TELL me. The anchor tells me things. That's the difference.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_fenna_reprise",
+    "title": "Machinist, Reinstated",
+    "body": "Fenna walks in with a one-page maintenance charter already drafted and her instrument case already packed.\n\n'So here's the thing. My hands know an inspection round I've never walked. My notation has entries for gauges that aren't installed yet. Either I'm haunting myself—' she considers this, '—acceptable — or somewhere the sky shuffled away, I'm the machinist to the held moment, and the position is simply awaiting re-appointment.'\n\nShe holds out the charter and a pen, vibrating slightly.",
+    "choices": [
+      {
+        "label": "Re-appoint the machinist",
+        "resultText": "Signed in one stroke. The instrument array goes up in record time, the log resumes as if uninterrupted, and the anchor — she swears — settles, like a machine whose person came back."
+      }
+    ]
+  },
+  {
+    "id": "cm_isolde_1",
+    "title": "The Letters",
+    "body": "Isolde lays the letter on the table like evidence, which is what it is.\n\nFine paper. A court wizard's hand. It arrived at a waystation three days ahead of an itinerary you finalized two days ago.\n\n'My old patron,' she says. 'He released me from service to repay a Major favor — clean, sealed, witnessed. Except he still writes. Always ahead of me. Always PLEASED.' Her finger taps the closing line: *Your progress continues to satisfy. — V.* 'Chronomancers don't watch you, you understand. They read ahead. I was his retainer for nine years and I still can't tell if I'm his correspondent—' the tap becomes a flat palm, '—or his margin note.'",
+    "choices": [
+      {
+        "label": "A margin note doesn't get letters. Correspondents do. Write back.",
+        "resultText": "She stares, then laughs — one sharp, surprised note. 'Write BACK. Nine years and it never once—' She drafts three words that evening: *Reading ahead too. — I.* The next letter arrives visibly rattled. She frames it."
+      },
+      {
+        "label": "Ask what the favor was that bought her freedom",
+        "resultText": "'That's the thing.' Her voice goes careful. 'I don't know. Someone spent a Major favor — the kind you get one of — on releasing a retainer he'd barely miss. I've been trying to work out who paid for me, and what they think they bought.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_isolde_2",
+    "title": "The Watcher's Man",
+    "body": "Two days of the same figure at the edge of sight — never closer, never gone. On the third morning Isolde pours two cups of tea and walks out of camp without a word of explanation, straight to a copse nobody else had marked.\n\n'You're using my spacing,' she tells the copse. 'Third-remove, sightline discipline. I WROTE that discipline. Come have your tea.'\n\nThe watcher who emerges is young, mortified, and — at the sight of her — reverent. Her replacement. Sent not to spy, he insists, but to LEARN: the patron said *follow the Marrec method as far as it goes.*\n\nIsolde's face does several things she would deny under oath.",
+    "choices": [
+      {
+        "label": "Let her decide what to do with her disciple",
+        "resultText": "She spends the evening correcting his technique — brutally, thoroughly, fondly — then sends him home with a sealed critique addressed to the patron: *The method goes further than you'll ever read. Stop sending students. Send tuition.*"
+      },
+      {
+        "label": "Offer the boy an honest apprenticeship — the guild pays better",
+        "resultText": "The watcher defects on the spot, which Isolde declares 'sloppy loyalty, excellent judgment.' The patron's next letter contains, for the first time in nine years, a question rather than an assessment. She does not answer it."
+      }
+    ]
+  },
+  {
+    "id": "cm_isolde_3",
+    "title": "Released, Properly",
+    "body": "Isolde asks you to walk her through the bubble's edge — into the Second, the one place the sky cannot read ahead.\n\nInside, in the held light of the frozen campus, she takes out nine years of letters. The whole correspondence, kept in oilcloth, carried through everything.\n\n'He reads ahead,' she says. 'Every reply I ever drafted, he'd answered before I sent it. But in HERE—' she looks up at the hanging chalk dust, the stopped bell, '—there is no ahead. Whatever I do in this room, he reads it never.'\n\nShe builds a small, neat fire in a brazier that has been about to be lit for eleven years, and feeds it the first letter. 'Witness it. That's all I need. One witness the sky can't overrule.'",
+    "choices": [
+      {
+        "label": "Witness the burning — every letter",
+        "resultText": "Nine years, letter by letter, ash by ash, in a moment the Astrologer will never turn to. When it's done she pockets one blank sheet of his fine paper — 'severance pay' — and walks out through the edge lighter than the smoke."
+      },
+      {
+        "label": "Suggest she keep one: the first",
+        "resultText": "She reads the first letter a long moment — *You will do well. You always were going to. — V.* — then burns it last of all. 'Especially this one. Nobody gets to have always-known me. Not even kindly.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_isolde_3r",
+    "title": "Released, Properly (The Ash Remembers)",
+    "body": "Isolde stands at the bubble's edge with the oilcloth packet of letters and a frown of professional suspicion.\n\n'I counted them this morning. Nine years of letters — and ash smudges on the oilcloth I never made. My hands remember a fire.' She looks at you. 'We burned these. In there, where he can't read. And the sky redealt the world and put them back in my bag — but it couldn't redeal the SMUDGE. He missed a spot.'\n\nHer smile is thin and bright as a knife. 'Chronomancer error. I intend to compound it.'",
+    "choices": [
+      {
+        "label": "Compound it — burn them again, same brazier",
+        "resultText": "Second verse, same fire, same witness. Ash twice over across two renderings — a correspondence so thoroughly ended that even the sky's own filing cannot retrieve it. She keeps the smudged oilcloth as a trophy: proof the read-ahead has a margin, and she lives in it."
+      }
+    ]
+  },
+  {
+    "id": "cm_isolde_reprise",
+    "title": "The Release, Executed",
+    "body": "Isolde meets you with the oilcloth packet and a single prepared statement, delivered in the tone of a woman executing a will.\n\n'The letters. The watcher. The fire in the Second. I've done it — the smudges on this oilcloth are mine and I never made them. So we skip to the end: you walk me through the edge, I burn nine years where the sky can't read, one witness, no speeches.' A beat. 'Slightly fewer speeches.'",
+    "choices": [
+      {
+        "label": "Walk her through. Witness. No speeches.",
+        "resultText": "Fire, ash, one blank sheet of fine paper pocketed as severance. The whole release executed in an afternoon, precedent cited. On the way out she says, to the frozen sky generally: 'Read THAT ahead.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_kael_1",
+    "title": "How He Counts",
+    "body": "'Three more rounds of this hill,' Kael says, and it's the fourth time today he's counted something in rounds, so someone finally asks.\n\nHe grins, which is how he handles everything, and then doesn't grin, which is how you know this is real.\n\n'The pit. They summoned a thing with a furnace where the heart goes. Elemental. Crowd paid triple.' He rolls his shoulder, the one with the burn-scar map. 'Three rounds I stood up. Bell, bell, bell. Then the summoner got bored and un-summoned it.' He taps his temple. 'Un-summoned. Not killed. It's still out there in whatever room the summoned wait in. And here's the thing about that fight — nobody rang the last bell. By pit rules?' The grin comes back sideways. 'We're still fighting.'",
+    "choices": [
+      {
+        "label": "By pit rules, he's owed a round four",
+        "resultText": "'THANK you.' He points at you like you've settled a nine-year argument. 'Everyone says let it go. You don't LET GO of an open round. You train for it.' He does one more circuit of the hill, for form."
+      },
+      {
+        "label": "Ask what the crowd saw in round three",
+        "resultText": "'A man who wouldn't fall down,' he says simply. 'That's all standing up is, third round against a furnace. It's not winning. It's refusing to make it easy.' He says it like a creed, because it is one."
+      }
+    ]
+  },
+  {
+    "id": "cm_kael_2",
+    "title": "Round Four",
+    "body": "The manifestation site is still smoking: furnace-heat shimmer, glass where grass was, and in the middle of it — turning at your approach with an almost human deliberence — the elemental. His elemental. Nine years older and not one degree cooler.\n\nIt sees Kael and stops.\n\nHe walks forward, rolling his shoulders, unhurried as a man returning to his seat. 'Hey, big lad.' His voice is easy; his stance is not. 'They pulled you before the bell. That's on them, not us.' He raises his fists. 'Round four. Winner rings it this time.'\n\nThe furnace-heart bellows. You'd swear it sounds glad.",
+    "choices": [
+      {
+        "label": "Ring them in — fight it beside him",
+        "resultText": "Round four runs long and loud, and ends with Kael landing the last blow and CATCHING the elemental's guttering core before it hits the ground — setting it down gently, like a beaten opponent's arm you raise. 'Good rounds,' he tells it. 'All four.' The bell, when you strike the old ward-chime nearby, rings clean."
+      },
+      {
+        "label": "Hold the crowd's job: witness, count, ring the bell",
+        "resultText": "He fights it alone, the way it started — but with a bell this time, and a count, and a witness. It goes down in the fourth and he sits down next to where it faded, breathing hard, at peace. 'Closed match,' he says. 'Took nine years to find the bell.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_kael_2r",
+    "title": "Round Four (He Knows the Ending)",
+    "body": "At the shimmer's edge, Kael stops — and laughs, low and wondering.\n\n'I've fought this round.' He flexes the scarred shoulder. 'Muscle knows it. Somewhere the sky shuffled away, we rang the bell, big lad — and here you are anyway, wanting the rematch of the rematch.' The elemental's furnace-heart huffs, and Kael's grin goes warm. 'Yeah. Me too.'\n\nHe steps in with none of the nine-year weight — just craft, and something that has stopped being vengeance and started being respect.",
+    "choices": [
+      {
+        "label": "Ring them in for the exhibition match",
+        "resultText": "It's not a grudge this time; it's a bout — clean rounds, showman's pacing, the elemental playing to a crowd of one rendering's memory. It goes down in the fourth, on purpose, you'd almost swear. The bell rings clean twice: once for now, once for the fight the sky mislaid."
+      }
+    ]
+  },
+  {
+    "id": "cm_kael_3",
+    "title": "The Bell, Not the Pit",
+    "body": "Kael has been standing under the campus bell for the better part of an hour, which for Kael is a geological era of stillness.\n\n'The bell,' he says, when you join him. 'It rings when the guild does something that matters. Shard recovered. Archmage settled. Milestones.' He looks up at it. 'The pit had a bell too. Only thing in that place that was honest. It didn't care who was winning — it just told the truth about time.'\n\nHe turns. 'I want to train the recruits. Footwork, falling down, standing up — pit knowledge, minus the pit. And when they pass, THIS bell rings for them. First honest bell some of them will ever hear.'",
+    "choices": [
+      {
+        "label": "Give him the training yard and the bell",
+        "resultText": "The Ashblade drills become campus legend: brutal, hilarious, weirdly kind. When his first class passes, he rings the bell himself and stands under it grinning, a man whose count finally came out even."
+      },
+      {
+        "label": "Ask him to teach the third-round lesson first",
+        "resultText": "'Refusing to make it easy,' he agrees. 'Lesson one, not lesson last. Everything else is footwork.' He chalks it over the training yard gate, misspelled, immortal."
+      }
+    ]
+  },
+  {
+    "id": "cm_kael_reprise",
+    "title": "All Four Rounds, Called",
+    "body": "Kael meets you rolling his shoulder like a man limbering for a fight already won.\n\n'Body remembers a bout the calendar says never happened — big lad, four rounds, a bell rung clean. And a training yard. And a chalk sign I definitely misspelled.' He grins. 'Sky redealt the deck. Fine. I've fought this whole card before — call it, and I'll fight it again in an afternoon.'",
+    "choices": [
+      {
+        "label": "Call the card",
+        "resultText": "The elemental found, the fourth round rung, the yard claimed, the sign re-misspelled on principle. The whole count settled by dusk. 'Even,' he declares, under the bell. 'Again.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_ondrej_1",
+    "title": "The Ledger Entry",
+    "body": "Ondrej requests ten minutes and arrives with his secondment papers squared to the table edge, the way he squares everything.\n\n'Article of transfer,' he says. 'One adept, seconded to the guild for the duration of the alliance. Signed by Master Pendry. Countersigned by nobody, because line items don't countersign.'\n\nHe folds his hands. 'I treat every spell like a ledger entry because ledgers don't lie about what things cost. So, plainly: I am entered in the Circle's books as an asset on loan, and in yours as — what? I have checked. Your books don't say.' He waits, a man who has done the accounts on himself and found a blank where the total goes.",
+    "choices": [
+      {
+        "label": "Enter him as guild: a member, not a loan",
+        "resultText": "He takes out a pen, writes MEMBER in the blank on his own copy, initials it, and files it — visibly recalibrating nine assumptions. 'Then the accounts disagree,' he says. 'Good. I know which book I keep.'"
+      },
+      {
+        "label": "Ask what HE wants the entry to read",
+        "resultText": "A long pause — the first unbudgeted pause you've seen from him. 'Present by choice,' he says finally. 'No ledger has a column for it. I've always thought that was a flaw in ledgers.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_ondrej_2",
+    "title": "Due Diligence",
+    "body": "The ruin's old working is miscasting — a containment lattice shedding arcs, cascade building. Doctrine is unambiguous, and Ondrej recites it flatly while already rolling up his sleeves: 'Circle procedure: withdraw to safe distance. Document the failure. Report.'\n\nThe guild's people are inside the lattice radius, hauling a pinned scout.\n\n'Procedure assumes the observer has no one in the blast column,' he continues, in the exact tone of a man annotating a text, and walks INTO the radius, hands weaving counter-figures. 'Amendment, Vael, field edition: the observer has people. Beginning stabilization. Someone document ME.'",
+    "choices": [
+      {
+        "label": "Anchor his counter-working — buy him the seconds",
+        "resultText": "Between your anchor and his arithmetic the cascade dies four feet short of the scout. Ondrej stands in the discharge scar, singed and satisfied, and produces a notebook. 'Failure documented,' he says. 'Also prevented. The Circle can pick which report to file.'"
+      },
+      {
+        "label": "Get the scout out while he holds it",
+        "resultText": "He holds the lattice alone for eleven seconds — you count, because he counts, aloud, steady as a metronome — and lets it collapse the instant the scout clears. 'Doctrine says withdraw,' he says, sitting down abruptly. 'I withdrew. Eleven seconds late. Note the amendment.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_ondrej_3",
+    "title": "The Revision",
+    "body": "Ondrej has drafted a petition. Of course he has. It is addressed to Master Aurel Pendry, Archmage of the Annotated Circle, and it is two sentences long — which, for a document going to the man who revises everything, is either suicide or genius.\n\nHe reads it aloud: '*Petition to revise the article of transfer: strike \"seconded for the duration.\" Enter \"transferred, freely, permanent.\"* '\n\nHe sets down the page. 'He'll revise it. He revises everything. But he taught me this himself: a correction is an argument, and you can only argue with what someone actually wrote.' A breath. 'So I wrote what I am. Witness it before it goes — if the revision comes back unkind, I want it on record what the original said.'",
+    "choices": [
+      {
+        "label": "Witness it and send it",
+        "resultText": "The reply comes in eight days: the petition returned, annotated in the Reviser's own hand. *Strike \"freely.\" Redundant — no other basis was ever entered. Approved.* Ondrej reads it four times, then frames it, redundancy and all."
+      },
+      {
+        "label": "Add the guild's countersignature first",
+        "resultText": "Line items don't countersign — members do. Your signature goes under his, and the reply, when it comes, is one annotation: *Ledgers reconciled. — A.P.* Ondrej declares it the finest bookkeeping of his life."
+      }
+    ]
+  },
+  {
+    "id": "cm_ondrej_3r",
+    "title": "The Revision (Anticipated)",
+    "body": "Ondrej unfolds his two-sentence petition — and stops. In the margin, in Aurel Pendry's unmistakable shorthand, an annotation is ALREADY there, on a page Ondrej wrote this morning.\n\n*You have petitioned this before, in a draft the sky discarded. The approval carries forward. Stop wasting paper. — A.P.*\n\nOndrej sits very still. 'He revises across RENDERINGS,' he says at last, somewhere between horror and religious awe. 'The transfer is... already entered. Was always entered.' He looks up. 'I need this witnessed anyway. Ledgers require witnesses. Even the impossible ones.'",
+    "choices": [
+      {
+        "label": "Witness the impossible entry",
+        "resultText": "Witnessed: one adept, transferred freely and permanently, approved before it was asked, in a hand that argues with the sky's own drafts. Ondrej files it under the only heading that fits: present by choice."
+      }
+    ]
+  },
+  {
+    "id": "cm_ondrej_reprise",
+    "title": "Accounts, Carried Forward",
+    "body": "Ondrej lays out his secondment papers, his petition, and a fresh page — a summary sheet, prepared in advance, because of course it is.\n\n'The accounts are familiar,' he says. 'I have audited myself and found a prior balance: member, not loan; the amendment in the field; a petition approved in shorthand I recognize. Somewhere the sky discarded, all of this is already entered.' He slides the summary across. 'Ledger practice for a reopened book: carry the balance forward, one witness. You.'",
+    "choices": [
+      {
+        "label": "Carry the balance forward",
+        "resultText": "One signature and the whole arc reconciles — member, amendment, transfer, all re-entered in an afternoon. 'Present by choice,' he notes at the bottom. 'Balance stable across renderings.' It is, from Ondrej, poetry."
+      }
+    ]
+  },
+  {
+    "id": "cm_sable_1",
+    "title": "Seventeen",
+    "body": "Sable cleans her kit by the fire with the economy of someone who has done it ten thousand times, and — unprompted, which means she's been building to it — starts counting.\n\n'One through five are my father's. Snares. Poacher's basics.' A blade turns over in her hands. 'Six through eleven I worked out myself, king's forests, staying fed. Twelve through seventeen I learned the years I'm not proud of, from people you pay in advance.'\n\nShe holsters the blade. 'Seventeen ways to end something before it knows I exist. People think the number's a boast.' Her eyes stay on the fire. 'It's an inventory. I keep it current so I always know exactly what I'm choosing NOT to do.'",
+    "choices": [
+      {
+        "label": "Ask why the list stopped at seventeen",
+        "resultText": "A long silence. 'Because eighteen looked at me,' she says finally. 'Mid-stalk, perfect wind, dead to rights — and it turned its head and LOOKED. Knew I was there the whole time. Let me choose.' She banks the fire. 'I chose. List stopped.'"
+      },
+      {
+        "label": "An inventory of restraint is a strange kind of honor. Say so.",
+        "resultText": "'Strange is right.' Almost a smile. 'Every trade's got its saints. Poachers get the patron saint of the shot not taken.' She says it mocking. She touches her kit like a reliquary."
+      }
+    ]
+  },
+  {
+    "id": "cm_sable_2",
+    "title": "The One That Saw Her",
+    "body": "The territorial sign is old and deliberate: bark stripped at a height nothing local stands, ground scored in patterns too regular for accident. Sable reads it the way others read a letter.\n\n'It's hers,' she says quietly. 'The eighteenth.' \n\nThe beast that comes out of the treeline is grey at the muzzle now, massive, moving with an old predator's economy — and it stops at twenty paces exactly, the same distance as that day, and looks at Sable the same way: fully aware, entirely unafraid, waiting to see what gets chosen.\n\nSable's hands stay off her kit. 'Twenty paces, wind to her, my move,' she murmurs. 'She's re-running it. She wants to know if I meant it.'",
+    "choices": [
+      {
+        "label": "Let Sable answer — hands empty, one step forward",
+        "resultText": "One step, empty hands, held eyes. The beast considers this for a long moment — then dips its grey muzzle once, the smallest nod in the world, and withdraws. Sable breathes out ten years. 'She meant it too,' she says. 'All this time. Both of us keeping one appointment.'"
+      },
+      {
+        "label": "Stand very still and witness the parley of predators",
+        "resultText": "Nothing moves for a full minute — two professionals reviewing an old contract. Then the beast turns and leaves the territory OPEN, unscored, hers to Sable: a hunting-right granted between equals. Sable never hunts it. That was the entire point.",
+        "loreId": "the_eighteenth_way"
+      }
+    ]
+  },
+  {
+    "id": "cm_sable_2r",
+    "title": "The One That Saw Her (Both Remember)",
+    "body": "The beast is waiting at the treeline before Sable even finds the sign — already at twenty paces, already watching, grey muzzle raised in what can only be called recognition.\n\nSable stops dead. 'She's not re-running the old day,' she says slowly. 'She's re-running the LAST one. The step. The nod.' Her voice drops to wonder. 'The sky redealt the world and the appointment kept. Both of us. Across all of it.'\n\nShe steps forward, empty-handed, no hesitation this time — a ritual now, not a question.",
+    "choices": [
+      {
+        "label": "Witness the appointment, kept twice",
+        "resultText": "One step, one nod, two renderings deep. The beast withdraws leaving the ground open, and Sable stands in her granted territory awhile. 'Seventeen ways to end things,' she says. 'One way to keep them. Better ratio than it sounds.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_sable_3",
+    "title": "Warden, Not Poacher",
+    "body": "Sable unrolls a hand-drawn map of the campus grounds across the table — annotated in seventeen colors.\n\n'Every way to kill something unseen is a way to SEE something unseen,' she says. 'Approach lines. Blind angles. Wind shadows. The seventeen, run backwards.' Her finger walks the perimeter. 'Snare-points become tripwire alarms. Stalk-lanes become patrol blinds. The rush lane by the orchard — that's how I'd come in, so that's where the bell-wire goes.'\n\nShe straightens. 'My father poached because wardens owned the seeing and we owned the hunger. I want to own the seeing, for a place that feeds people. Full circle, run backwards. Say yes.'",
+    "choices": [
+      {
+        "label": "Yes — the grounds are hers to ward",
+        "resultText": "Within two lunations the campus perimeter is a marvel nobody can see: seventeen quiet countermeasures, each one a killing method retired into a warning. Nothing approaches unannounced again. Dagny's Round and Sable's web, it's noted, fit together like they were drawn by one hand."
+      },
+      {
+        "label": "Yes — and ask her to teach the seeing to the scouts",
+        "resultText": "Her course has one rule, chalked at the yard: FIRST KNOW WHERE YOU'D COME IN. The scouts emerge paranoid and precise. Sable emerges, to her open suspicion, happy."
+      }
+    ]
+  },
+  {
+    "id": "cm_sable_reprise",
+    "title": "The Web, Rewoven",
+    "body": "Sable arrives with the seventeen-color map already drawn — corrections included, in her own hand, for defenses that were never built.\n\n'I inventoried the grounds this morning,' she says. 'Found myself checking a bell-wire that doesn't exist. By the orchard. Where I'd come in.' She taps the map. 'We've woven this web before, somewhere the sky shuffled away. The appointment with the old girl, too — my feet already know the twenty paces.' She rolls the map, businesslike. 'Approve the re-weave. It goes faster the second rendering.'",
+    "choices": [
+      {
+        "label": "Approve the re-weave",
+        "resultText": "Web rewoven, appointment kept, course rechalked — the whole territory resettled in days. The eighteenth way, it turns out, is the only one that survives the end of the world: the one where everybody walks away."
+      }
+    ]
+  },
+  {
+    "id": "cm_torrin_1",
+    "title": "The Spear's Weight",
+    "body": "Third watch. Torrin sits with the spear across his knees, the way he always does, and tonight he looks down at it like he's noticed it for the first time in years.\n\n'Nine years,' he says. 'Picked it up the night of the fire. Haven't set it down since. Eat with it in reach. Sleep with it in hand — ask anyone who's shared a watch.' He turns it slowly. 'Good spear. Farmer's haft, soldier's head. Like me.'\n\nHe's quiet a while. 'Here's the arithmetic I did tonight: the bandits took one night from my village. I've given that same night nine YEARS of guard duty. At some point the math stopped being vigilance.' His hands don't loosen. 'Knowing it and putting it down aren't the same field, though. Not even the same weather.'",
+    "choices": [
+      {
+        "label": "Not tonight. But name the field it'd take.",
+        "resultText": "'Ground worth working,' he says at once — he's clearly had the words ready for years. 'Somewhere that can't burn. Show me a field the fire can't reach and I'll... consider the weather.' He almost smiles. The spear stays in hand. But it's the first time he's stated terms."
+      },
+      {
+        "label": "Take his watch — let him sleep both hands empty, once",
+        "resultText": "He tries. Genuinely tries — lies down, sets the spear ONE handspan away, and sleeps like a man on hot coals for two hours before the hand finds the haft in his sleep. In the morning he says only: 'Handspan's farther than it's been in nine years.' It counts. You both know it counts."
+      }
+    ]
+  },
+  {
+    "id": "cm_torrin_2",
+    "title": "Ground Worth Working",
+    "body": "Torrin stands at the strip of earth along the campus wall — inside the Second's reach, where the light holds gold and steady — with a seed-bag so old the stitching has been repaired in three different threads.\n\n'From home,' he says. 'Winter barley. Grabbed it the night of the fire — don't know why. Grabbed the spear with the other hand.' He weighs the bag. 'Nine years I've carried both. Only ever used the one.'\n\nHe crouches, takes a handful of soil, does the farmer thing with his thumb that no soldier ever learns. 'Campus ground. Held ground. The fire that comes for THIS field has to get through the whole guild and one act of anchored time.' He looks up. 'That's the weather I asked you for. Requesting the plot.'",
+    "choices": [
+      {
+        "label": "Grant the plot — both hands in the dirt",
+        "resultText": "He plants the whole bag in an afternoon, spear leaned against the wall a full ten paces off — the farthest it's been since the fire. It stays in his sightline. But his hands, for one afternoon, are full of something that grows."
+      },
+      {
+        "label": "Grant it — and dig the first row beside him",
+        "resultText": "Guildmaster and spearman, two rows, one afternoon. He talks more in that soil than in nine years of watches — the village, the fields, his father's rotation schedule. The spear leans on the wall, patient, learning to wait."
+      }
+    ]
+  },
+  {
+    "id": "cm_torrin_3",
+    "title": "By the Door",
+    "body": "The barley came up. Of course it came up — held light, tended daily, planted by a man nine years hungry for the work. The strip along the wall is green going gold, and Torrin stands in it holding the spear and looking at the gatehouse.\n\n'Made a bracket,' he says. Plain iron, by the gatehouse door, at exactly a standing man's reach. 'Not a trophy wall. Not a chest in a storeroom. BY THE DOOR.' He grips the haft, once, hard — nine years of grip in it. 'Farmer keeps his tools where the work is. If the fire ever comes for this place, the door is where I'll want it. Until then—'\n\nHe doesn't finish the sentence with words.",
+    "choices": [
+      {
+        "label": "Stand with him while he racks it",
+        "resultText": "The spear goes into the bracket with the care of a man laying something down that stayed up too long — and his hands come away, and stay away, and he stands there flexing them slowly like they're new. 'Right,' he says thickly. 'Harvest in a lunation. Bring a scythe, if you're bringing anything.'"
+      },
+      {
+        "label": "Point out the barley behind him — the night the fire took, given back",
+        "resultText": "He turns and looks at the green-gold strip a long time. 'One night taken. One field given back.' He racks the spear without ceremony, because ceremony would undo him. 'Arithmetic's even. Tell nobody I cried at MATH.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_torrin_3r",
+    "title": "By the Door (The Field Remembers)",
+    "body": "Torrin comes to find you, and for the first time in anyone's memory his hands are empty — the spear's still with him, slung, but his HANDS are empty, and he's holding something small instead.\n\nA barley head. Full, gold, impossible.\n\n'Growing by the wall,' he says. 'One strip. Nothing else grows in the held light — but this came up wild, exactly where a field would be if a man had planted one.' He turns it in his fingers. 'I never planted here. But somewhere the sky shuffled away... I harvested. This is MY rotation pattern. I know my own rows.'\n\nHe's already looking at the gatehouse, at the bare patch of wall beside the door exactly the size of a bracket.",
+    "choices": [
+      {
+        "label": "The field remembers. Finish what it started.",
+        "resultText": "Seed-bag planted into the ghost of its own rows; bracket forged to fit a shadow already on the wall. The spear goes down in half the time it took a lost rendering — the ground, this time, pulling it out of his hands."
+      }
+    ]
+  },
+  {
+    "id": "cm_torrin_reprise",
+    "title": "The Arithmetic, Settled",
+    "body": "Torrin stands at the wall-strip with the seed-bag in one hand and the spear in the other, and he's weighing them — literally weighing them, one against the other, like scales.\n\n'I know how this goes,' he says. 'Field here. Bracket there. Spear by the door, hands in the dirt, arithmetic even. I've DONE it — my hands know the bracket's height.' He looks over. 'Nine years I couldn't put it down once. Now I've apparently put it down twice. Third time's just practice. Witness it and hand me the scythe when it's season.'",
+    "choices": [
+      {
+        "label": "Witness it — and bring the scythe at harvest",
+        "resultText": "Planted, racked, harvested, all in remembered order. The bracket by the door holds the spear; the wall-strip holds the barley; the man holds, for the first rendering in nine years, nothing at all — by choice, with both hands."
+      }
+    ]
+  },
+  {
+    "id": "cm_yara_1",
+    "title": "What She Saw",
+    "body": "Yara has been reading the treeline all day the way clerks read contracts, and at the third crown survey marker she stops pretending it's routine.\n\n'King's mark,' she says, thumb on the blaze. 'Resource survey. I cut a thousand of these.' Her jaw sets. 'The last season, the surveys started coming back... pre-written. Findings filled in before we walked the ground. Groves marked BLIGHTED that I'd stood in that morning, green as spring. Orders to log them anyway — quarantine timber, crown business, look the other way, Ellswood.'\n\nShe snaps a twig off the marked tree. 'The pre-written hand wasn't the king's. I know that now. I didn't then. I just knew a survey that arrives before the surveyor is a lie with paperwork — and I don't sign lies. So I quit. And I never found out what happened to my green groves.'",
+    "choices": [
+      {
+        "label": "Pre-written findings — the Astrologer's hand. Tell her what she brushed against.",
+        "resultText": "She listens, very still. 'He was WRITING my forests before he'd read them.' The twig snaps again in her fingers. 'I quit over bad paperwork and it was the end of the world wearing a survey stamp. I want to see what he did with my groves.'",
+        "loreId": "prewritten_surveys"
+      },
+      {
+        "label": "Ask what happened to the foresters who signed",
+        "resultText": "'Promoted,' she says flatly. 'Every one. Good postings, crown pensions.' A pause. 'Verram signed forty of them. His letters stopped making sense two winters later — kept using phrases that weren't his. I thought it was drink.' She looks at the marker. 'It wasn't drink.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_yara_1r",
+    "title": "What She Saw (Your Report, Filed)",
+    "body": "At the first crown marker, Yara pulls a folded page from her jacket before you can say a word.\n\n'Found this in my kit this morning. My handwriting. YOUR report — the Astrologer, the pre-written surveys, Verram's letters — all of it, written down like I'd heard it before.' She hands it over: it is, word for word, the briefing you gave her in a rendering that no longer happened.\n\n'So I've done my grieving over the paperwork already, somewhere the sky misfiled.' She re-pockets the page and unslings her bow. 'Good. Saves daylight. Take me to my groves.'",
+    "choices": [
+      {
+        "label": "Take her to the groves",
+        "resultText": "Prepared lands better than surprised: she walks her old survey lines dry-eyed and deadly accurate, cataloguing exactly what the pre-written hand did to green ground. The file grows. The file is a weapon now."
+      }
+    ]
+  },
+  {
+    "id": "cm_yara_2",
+    "title": "The Stand She Didn't Take",
+    "body": "A day off the route, exactly where her memory said: the grove she was marched away from. What the quarantine order did to it afterward is written in stumps and nine years of scrub — but at the heart, defiant, a stand of old oaks the loggers never reached. Green. Still green.\n\nYara walks in among them and puts her hand on the biggest, and stands there a long time.\n\n'I looked the other way once,' she says finally. 'Whole career, one time, under orders, and it was HERE.' She turns, and her face is a forester's official notice. 'I'd like to take the stand now. Nine years late. Mark this grove guild-warded — I'll cut the blazes myself. Anyone who logs it answers to the guild, and the guild answers to me.'",
+    "choices": [
+      {
+        "label": "Ward the grove — her blazes, the guild's word",
+        "resultText": "She cuts the warding marks with a steady hand — HER survey, ground-truthed, signed by walking every foot of it. The stand she didn't take, taken. Nine years is a long time to carry an unspent refusal; she leaves it in the bark where it belongs."
+      },
+      {
+        "label": "Ward it — and name it the Ellswood Stand in the guild's records",
+        "resultText": "'You don't name groves for living foresters,' she objects, cutting blazes the entire time she objects. The name goes in the ledger. She never mentions it again. She visits every expedition that passes within a half-day."
+      }
+    ]
+  },
+  {
+    "id": "cm_yara_3",
+    "title": "A Warden's Oath",
+    "body": "Yara pins a page to the muster board — good paper, careful hand, three words:\n\n*WE LOOK. ALWAYS.*\n\n'Forester's oath, guild edition,' she says. 'The crown's oath was four pages of loyalty and one clause about the land. Backwards. So: three words, no clauses.' She taps the page. 'Every scout, every warden, every survey this guild ever runs — we look. At blight, at markers, at pre-written lies, at whatever's actually THERE. Nobody in this guild ever gets ordered to look the other way. Put it in the charter and I'll believe in charters again.'",
+    "choices": [
+      {
+        "label": "Into the charter — three words, no clauses",
+        "resultText": "It goes in exactly as written. Recruits think it's simple until their first corrupted survey line, and then they understand it's the whole job. Yara checks the muster board every morning, the way other people check the weather."
+      },
+      {
+        "label": "Adopt it — and give her the wardens to hold it",
+        "resultText": "Warden-captain Ellswood, first of the office. Her survey standards are merciless, her ground-truth absolute, and no finding in guild records is ever again written before the walking. The Astrologer pre-writes many things. Not her forests. Not anymore."
+      }
+    ]
+  },
+  {
+    "id": "cm_yara_reprise",
+    "title": "The Oath, Re-Pinned",
+    "body": "Yara stands at the muster board holding a page she just wrote, staring at four pin-holes in the cork that exactly fit its corners.\n\n'Three words,' she says. 'WE LOOK. ALWAYS. I wrote them fresh this morning and the board's already worn where they hang.' She pins the page into its own ghost. 'The groves, the blazes, the oath — I've taken this stand before, somewhere the sky misfiled. Taking it again is just ground-truthing.' She turns. 'Confirm the survey. All of it.'",
+    "choices": [
+      {
+        "label": "Confirm the survey",
+        "resultText": "Groves warded, blazes cut, oath re-pinned into its remembered holes — nine years of unspent refusal, spent twice now, and holding. Some stands, once taken, stay taken across any weather the sky can write."
+      }
+    ]
+  },
+  {
+    "id": "cm_odile_1",
+    "title": "The Granary Road",
+    "body": "The road is ordinary now — cart ruts, weeds, a marker stone. Odile walks it counting under her breath.\n\n'Forty-one wagons,' she says. 'This road, that night. I held the gate behind us for six hours so the granaries could empty — grain first, then people, then the garrison, then me.' She stops at the marker stone and rests her hand on it like a shoulder. 'Everyone remembers the province fell. I remember it fell EMPTY. The Astrologer's people took walls and a treasury. The wagons took everything that was actually mine to lose.'\n\nShe looks down the road, the direction the wagons went. 'A marshal without a province. The books don't say what that is.'",
+    "choices": [
+      {
+        "label": "It's a marshal whose province is on wagons. Still hers.",
+        "resultText": "She's silent a long moment. 'Forty-one wagons of province,' she says at last, testing it. 'Scattered across two kingdoms.' Her shoulders square by a degree that changes her whole silhouette. 'Then I'm not retired. I'm DEPLOYED. I should do a muster.'"
+      },
+      {
+        "label": "Ask about the sixth hour at the gate",
+        "resultText": "'The sixth hour was the one past sense,' she says simply. 'Hours one through five were the plan. Hour six was because the last wagons were slow and the plan wasn't the point.' She taps the marker stone. 'Banners burn. Wagons roll. Choose what you defend accordingly.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_odile_2",
+    "title": "The Scattered",
+    "body": "The resettlement is eleven families in a village that had room for eight — her province's people, three years on, with new roofs and old accents. The first one to spot her drops a water bucket.\n\nBy the time Odile reaches the green, the whole cluster has turned out, and someone says it, the title she hasn't heard since the gate: 'MARSHAL.'\n\nWhat follows is not a reunion; it's a MUSTER — she can't help it and neither can they. Names, health, roofs, stores, griefs, all reported in and received with a commander's full attention. At the end an old man asks the question they've clearly kept warm for three years: 'Marshal. Where do we plant the banner, when there's a banner again?'",
+    "choices": [
+      {
+        "label": "Let her answer",
+        "resultText": "She's quiet a long moment. Then: 'The banner burned. What I kept is standing in front of me reporting in.' She looks around the green. 'When there's a banner again, it plants wherever you are. That was always the rule. The province was never the walls.' The muster ends with dry eyes on no one."
+      },
+      {
+        "label": "Tell them where the Marshal serves now",
+        "resultText": "The old man hears 'the guild that argues with the sky' and nods slowly. 'Then we know where to send the young ones who want to matter.' Over the next year, they do — three of the guild's steadiest recruits carry her province's accent."
+      }
+    ]
+  },
+  {
+    "id": "cm_odile_2r",
+    "title": "The Scattered (Found Twice)",
+    "body": "The resettlement turns out before Odile is halfway up the road — not surprised, EXPECTING her, the way a garrison expects an inspection it was warned about.\n\nThe old man meets her at the green. 'Marshal. You found us again.' He says AGAIN with a countryman's certainty about things he can't explain. 'Second time you've walked up that road. First time, the sky took back. We kept the feeling anyway — roofs remember being counted.'\n\nOdile looks down the muster line already forming, in a rendering where she never held this muster, and her parade face nearly fails her.",
+    "choices": [
+      {
+        "label": "Hold the muster the roofs remember",
+        "resultText": "Names, roofs, stores, griefs — reported to a marshal they've now trusted across two versions of the world. The sky can redeal provinces. It has apparently never once managed to redeal loyalty. She notes it for the campaign's files: strategic asset, unmakable."
+      }
+    ]
+  },
+  {
+    "id": "cm_odile_3",
+    "title": "Colors",
+    "body": "Odile stands at the gatehouse at dawn with a wrapped bundle and the bearing of a woman at a flag ceremony only she can see.\n\n'The pole's been empty since I arrived,' she says. 'Empty banner pole over a defended gate. It's been shouting at me for a lunation.'\n\nShe unwraps the bundle: a banner, new-sewn, her needlework — guild colors in the field, and in the canton, small and precise, a single grain-sheaf on a wagon wheel. 'Your colors. My freight.' She looks up the pole. 'I held one gate six hours for what was behind it. This gate holds back the end of the world. Marshal requests permission to raise colors — and to hold this one for the duration.'",
+    "choices": [
+      {
+        "label": "Permission granted — raise the colors",
+        "resultText": "The banner takes the dawn wind like it was commissioned for it. Odile watches from parade rest, and when she finally turns away she's someone with colors again — which, for a marshal, is the whole difference between retired and READY."
+      },
+      {
+        "label": "Granted — and give her the gate watch entire",
+        "resultText": "Gate-Marshal Vantrec, standing orders her own. The watch rotas acquire a precision that alarms and then delights Dagny and Miro both. The pole is never empty again — she's already sewn the replacement, 'because you always sew the replacement.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_odile_reprise",
+    "title": "Colors, Re-Raised",
+    "body": "Odile meets you at the gatehouse with a finished banner in her hands and a quartermaster's frown.\n\n'I sewed this in four evenings without a pattern,' she says. 'Guild colors, grain-sheaf on the wheel. Except my hands knew the measurements — this banner has flown from THAT pole, and I have never raised it.' She snaps the fabric taut. 'The road, the muster, the colors: I've served this whole posting before, somewhere the sky retreated from. Marshal requests permission to resume the duration.'",
+    "choices": [
+      {
+        "label": "Resume the duration",
+        "resultText": "Road walked, muster held, colors raised — a full tour of duty re-completed in days, on muscle memory and roofs that remember being counted. The pole takes the banner like a gate takes its marshal: as a matter of long standing."
+      }
+    ]
+  },
+  {
+    "id": "cm_petra_1",
+    "title": "Marginalia",
+    "body": "Petra leads you into the frozen library wing with a catalogue of her own haunting: forty-one appearances of her handwriting in books she never touched, indexed by shelf, ink, and 'apparent mood.'\n\n'Entries one through forty are corrections,' she says. 'Copyist's notes. Sums checked, dates fixed — me being useful in books I've never opened. Unsettling but PROFESSIONAL.'\n\nShe stops at a held-open ledger, ten thousand books hanging mid-flight around you. 'Entry forty-one is different.' Her finger hovers over the margin. In her unmistakable hand, beside nothing in particular, it says: *Petra — when you find this, you are not losing your mind. You are keeping it in more than one place.*",
+    "choices": [
+      {
+        "label": "She's been leaving herself messages across renderings. Tell her what the sky does.",
+        "resultText": "She listens to the whole truth — the re-readings, the unmakings, the loom — pale and electric at once. 'So somewhere in the shuffle, a me who KNEW wrote to a me who wouldn't.' She touches the margin. 'That's not haunting. That's GOOD ARCHIVING.'",
+        "loreId": "petra_marginalia"
+      },
+      {
+        "label": "Ask what entry forty-one is next to",
+        "resultText": "Nothing — that's the thing. Blank page, deliberate placement: a note that could only be FOR her, not about anything. 'She wanted my attention, not my corrections,' Petra says slowly. 'Past me understood filing. You put the important thing where nothing else competes.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_petra_1r",
+    "title": "Marginalia (Entry Forty-Two)",
+    "body": "Petra meets you at the library wing already holding the catalogue — and it's thicker.\n\n'Entry forty-two is new,' she says, walking you to the held-open ledger. Below the old note, in her hand, dated a year this world never had: *Petra — the one who brought you here has done it before. Trust the continuity. Skip the panic; it wastes a lunation. Love, us.*\n\nShe looks up. 'It says LOVE, US. I sign notes to MYSELF as a collective now.' A beat. 'I'm going to need the whole truth again, apparently, but the short version — my archive says you keep it somewhere.'",
+    "choices": [
+      {
+        "label": "Give her the short version — the panic-skipping edition",
+        "resultText": "The loom, the renderings, the correspondence — delivered in the efficient form her own note requested. She catches up in an afternoon instead of a lunation, then writes entry forty-three: *Confirmed. The short version works. — us.*"
+      }
+    ]
+  },
+  {
+    "id": "cm_petra_2",
+    "title": "The Note She Leaves",
+    "body": "Petra has set up in the scriptorium with her best ink, three drafts, and stage fright.\n\n'If some next Petra reads what this Petra writes,' she says, 'then this is the most important copying job of my life, and I keep FRIVOLOUSLY drafting.' She shows you draft three: instructions, reassurances, an index to her catalogue, a joke — 'there has to be a joke, she'll be frightened, I'M frightened and I'm the one writing—'\n\nShe squares the page. 'Witness it. Not because it needs a witness. Because SHE needs to know I didn't write it alone — that there was someone in the room who knew about both of us and stayed anyway.'",
+    "choices": [
+      {
+        "label": "Witness the note — and add one line in your own hand",
+        "resultText": "You write it at the bottom: *She's telling the truth. I'll be here too. Find me.* Petra reads it, blinks hard, and copies the note fair with both signatures. 'Now it's a DOCUMENT,' she says thickly. 'Two witnesses. Unimpeachable.'"
+      },
+      {
+        "label": "Suggest where to file it — beside entry forty-one",
+        "resultText": "'Where nothing else competes,' she agrees. The note goes into the held ledger's margin-shadow, addressed to a woman who doesn't exist yet, from a woman who won't remember writing it, witnessed by the one person who'll remember both."
+      }
+    ]
+  },
+  {
+    "id": "cm_petra_3",
+    "title": "Correspondence",
+    "body": "Petra finds you at a dead run, catalogue clutched to her chest, entirely incoherent for the first ten seconds.\n\n'There's a REPLY.' She drags you to the ledger. Beneath her witnessed note — beneath YOUR line — new ink, her hand, but aged into the page like it's been there years: *Received. All well here, or as well as an unmade year can be. The joke landed. Tell the witness the continuity holds both ways. — P.*\n\n'It's not from the next one,' she whispers. 'It's from a PREVIOUS one. From a year the sky already took. The correspondence goes BACKWARDS too.' She sits down on a library step, catalogue in her lap, awed and small. 'I'm not haunted. I'm not even an archive. I'm a POST OFFICE.'",
+    "choices": [
+      {
+        "label": "A post office needs a postmistress. Make it official.",
+        "resultText": "Petra Quillane, Keeper of the Correspondence — a desk in the frozen wing, custody of the margins, standing orders to log every letter the renderings pass through her hands. The loom finally has a clerk. The clerk, for the first time in her life, feels entirely un-borrowed."
+      },
+      {
+        "label": "Ask what she'll write back",
+        "resultText": "She thinks a long time, then writes one line and shows no one — files it in the margin-shadow and closes the catalogue. 'Between us,' she says, meaning all of them, every Petra the sky ever drafted. Some correspondence doesn't need a witness. It needs a family."
+      }
+    ]
+  },
+  {
+    "id": "cm_petra_reprise",
+    "title": "The Post Office, Reopened",
+    "body": "Petra meets you in the library wing, where a desk you never saw installed stands in the margin-shadow of the held ledger — and on it, waiting, a note in her hand: *Re-opening checklist. You know the drill by now. — us.*\n\n'There's a CHECKLIST,' she says, torn between outrage and delight. 'I left myself onboarding materials. Catalogue, note, witness line, desk — the whole correspondence, pre-filed.' She sits down at the desk that was always going to be hers. 'Witness the re-opening. It's on the checklist. Item four. You're item four.'",
+    "choices": [
+      {
+        "label": "Be item four",
+        "resultText": "Witnessed, checked, reopened — the post office of the renderings back in service in a single afternoon. She stamps the checklist DONE and files it where the next reopening will find it. The continuity, as promised, holds both ways."
+      }
+    ]
+  },
+  {
+    "id": "cm_harl_1",
+    "title": "Thirty Years of Not Knowing",
+    "body": "The sanctum is a ring of standing stones around a door that no longer holds anything, and Harl walks its perimeter once, fully, before he'll go near the center — thirty years of patrol in a single lap.\n\n'Post at dawn, walk the ring, check the seals, post at dusk,' he says. 'Ten thousand days, give or take. Never knew what was behind it. Wasn't ALLOWED to know — the not-knowing was the job. A warden who knows starts making judgments about what's worth what.'\n\nHe reaches the door — open now, empty now — and puts his hand flat on it, the first time in thirty years he's touched it.\n\n'Then it opened from the OUTSIDE, and the seal I felt break was the whole spine of my life going slack at once. So here's my question, and take your time: was it worth guarding? Because I can bear the answer. I just can't bear not asking anymore.'",
+    "choices": [
+      {
+        "label": "Tell him the truth: a Seal Fragment — a piece of the world's own binding",
+        "resultText": "He takes it standing, like weather. 'A piece of the sky's own lock.' Slowly, thirty years re-sort themselves behind his eyes. 'Then every day mattered. Every dawn lap.' He pats the empty door once, gently. 'Good. GOOD. I could have guarded a wine cellar and never known.'"
+      },
+      {
+        "label": "Ask first what he HOPED it was",
+        "resultText": "'Something patient,' he says at once. 'Thirty years I told myself: whatever needs guarding this hard is either terrible or precious, and either way it's PATIENT — it waits, I walk.' He half-smiles. 'A fragment of the world's seal. Patient as stone. I guessed closer than I feared.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_harl_2",
+    "title": "Seeing It",
+    "body": "Harl asks formally — hat literally in hand — to see the fragment his life guarded. Standing up, he specifies. A warden views his charge standing up.\n\nBrought before it, he does not touch it, does not speak, does not move for four full minutes. Thirty years of dawns and dusks passing between a man and the thing he kept without knowing.\n\n'Smaller than I dreamed it,' he says at last, hoarse. 'Bigger than everything.' He straightens into what can only be called attention. 'I have one request and I've practiced it: I don't want it BACK — it's yours now, you opened the door fair. I want to know it's kept WELL. Show me its post. Show me the seals. Warden's professional courtesy. Then I can stand down properly, and not one dawn before.'",
+    "choices": [
+      {
+        "label": "Walk him the full inspection — post, seals, watch rota",
+        "resultText": "He inspects like a man auditing his own soul's bookkeeping, and at the end gives the nod of one warden to another's work. 'Kept well,' he pronounces. 'Better post than mine. More honest, anyway — your guards get to KNOW.' He stands down that evening, thirty years, zero regrets, one lap of the campus wall out of pure habit."
+      },
+      {
+        "label": "Let him stand one watch over it — a proper last shift",
+        "resultText": "Dusk to dawn, his post, one final time — voluntary, ceremonial, absolute. In the morning he reports the watch uneventful in a voice that closes a thirty-year book. 'Relieved at dawn,' he says, and means every layer of it."
+      }
+    ]
+  },
+  {
+    "id": "cm_harl_2r",
+    "title": "Seeing It (The Watch Already Stood)",
+    "body": "Brought before the fragment, Harl stops mid-stride — then laughs, one dry note, the sound of a man catching the universe in clerical error.\n\n'I've stood here.' He points at the floor by the door. 'THAT spot. Dusk to dawn. My knees remember the stones — a last watch I never stood, relieved at a dawn that never came up.' He looks at the fragment a long moment, and the four minutes of silence become one.\n\n'The sky redealt my whole life's question,' he says, 'and kept my ANSWER. Fine. Warden's courtesy, the short form: show me the seals are sound, and I'll stand down the way I apparently already did.'",
+    "choices": [
+      {
+        "label": "Show him the seals — the short form",
+        "resultText": "Inspection passed, watch acknowledged across renderings, warden stood down twice and finally. 'Most men don't get to retire once,' he notes, hanging up an authority no one ever gave him and no one could take. 'Thorough life, this one.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_harl_3",
+    "title": "A Door Worth a Warden",
+    "body": "Harl presents his findings the way he does everything: methodically, standing, hat under arm.\n\n'I have inspected every door in this campus. All of them.' He produces a list — you don't doubt it's exhaustive. 'Storerooms, cellars, the records hall, the long gallery. Sound doors, most. Good hinges. But there is exactly one door in this place — in this WORLD — that holds what my old post held. The kind of kept thing that keeps everything else.'\n\nHe means the campus itself: the anchor, the held Second, the one door the Astrologer cannot open.\n\n'Thirty years I guarded a sealed thing without knowing. I'm asking for the other job now. Let me guard a kept thing KNOWING. Days at the records hall, nights on the ring wall. A warden's no good without a door, and begging your pardon—' the ghost of a smile, '—this is the best door I've ever seen.'",
+    "choices": [
+      {
+        "label": "Give him the door — Warden of the Anchorhold",
+        "resultText": "He takes up the post the same hour: dawn lap, seal check, dusk lap, ten thousand days of practice brought to the one door that deserves them. The campus gains a fixture. Wren charts his rounds for her thesis. He pretends not to be pleased."
+      },
+      {
+        "label": "Give him the records hall too — keeper of kept things",
+        "resultText": "Fragments' provenance, the Hall's ledgers, the vault seals — all under one methodical eye. Between Harl's doors, Sable's web, Dagny's Round, and Odile's gate, the campus becomes, quietly, the best-warded ground in any rendering of the world."
+      }
+    ]
+  },
+  {
+    "id": "cm_harl_reprise",
+    "title": "The Post, Resumed",
+    "body": "Harl finds you at dawn, mid-lap — HIS lap, the campus ring, walked at patrol pace with seal-checks at intervals nobody ever showed him.\n\n'Caught myself doing it three mornings running,' he says, falling in step. 'Dawn lap. This route. These checkpoints. A post I never held, worn into my boots.' He stops at the gatehouse and stands to attention out of thirty years' habit. 'The sanctum, the viewing, the door — I've served this post before, somewhere the sky relieved me of it. Reinstate the warden. The door's been waiting and so, apparently, have I.'",
+    "choices": [
+      {
+        "label": "Reinstate the warden",
+        "resultText": "Post resumed mid-lap, seals checked, thirty-plus-one years of service reconciled in a morning. The best door he's ever seen gets its warden back, and the dawn lap becomes, again, as reliable as the dawn."
+      }
+    ]
+  },
+  {
+    "id": "cm_tamsin_1",
+    "title": "The Collection",
+    "body": "Tamsin holds the campfire like a stage — three stories in, each one polished to a killing edge: the bridge that wasn't there, the duel fought in a flooded church, the winter she guarded a man who turned out to be two children in a long coat.\n\nThen, gauging the fire's warmth just so, she brings out the manuscript. Oilskin-wrapped, thick, corners soft with travel.\n\n'The saga,' she says. 'Working title: *The Guild That Argued With the Sky.* Everything you people do goes in here — the shards, the audiences, the campus that shouldn't exist. I've collected stories my whole life. This is the first one big enough to spend a life ON.' She pats it. 'I take commissions on chapter titles. I do not take edits.'",
+    "choices": [
+      {
+        "label": "Ask to hear the guild's chapter so far",
+        "resultText": "She reads twenty minutes by firelight, and it's GOOD — your own campaigns, rendered mythic and true at once, everyone recognizable and slightly taller. When she stops, nobody speaks for a moment. 'That's the reaction I keep the pen for,' she says, satisfied."
+      },
+      {
+        "label": "Ask which of her three stories was true",
+        "resultText": "'All of them,' she says, wounded. Then, honest: 'The FACTS wander. The stories are true. That's the trade — I'm not a chronicler, I'm a KEEPER. Petra files what happened. I keep what it MEANT.' The distinction, you realize, is a creed."
+      }
+    ]
+  },
+  {
+    "id": "cm_tamsin_2",
+    "title": "The Chapter She Skips",
+    "body": "You've heard Tamsin tell forty stories, and mapped the hole in the middle of them: every saga has a hedge-knight, and the hedge-knight has no hedge, no house, no before.\n\nWhen you finally ask, she's quiet long enough that you think she'll deal a deflection off the bottom of the deck. Instead she pokes the fire and tells it plain, no polish — the first unpolished thing you've ever heard from her.\n\n'House Greywood was six farms and a name. Debt took it — no fire, no villains, just arithmetic and a bad decade. They struck our name off the rolls while I was off collecting stories worth more than mine.' She looks up. 'I skip the chapter because I can't FIX it in the telling. Everything else I keep, I keep well. That one I just... have.'",
+    "choices": [
+      {
+        "label": "Some chapters aren't kept. They're carried. Say so.",
+        "resultText": "She turns the words over like a coin. 'Carried, not kept.' A slow nod. 'That's the sentence I've been circling for nine years. It goes in the saga — chapter unnumbered, one page, carried.' She writes it that night. It stays one page. It stays IN."
+      },
+      {
+        "label": "Point out the guild's rolls have room for a name",
+        "resultText": "'Greywood, on a roll again.' She laughs — then stops, because it's not nothing. It goes in the muster book that week, her hand steadier than usual. 'Six farms and a name,' she says. 'The farms are gone. Turns out the name travels.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_tamsin_3",
+    "title": "The Shelf That Keeps",
+    "body": "Tamsin stands at the edge of the frozen library wing, manuscript under her arm, negotiating with visible awe.\n\n'Ten thousand books hang in this room, and the unmake can't touch one of them.' She turns. 'My whole trade has one enemy — forgetting. Fires, floods, heirs who can't read. And this room is the one shelf in creation the sky can't clear.'\n\nShe holds up the saga. 'Terms: the manuscript lives HERE, in the held light, updated every time I'm home. In exchange, the guild gets its saga kept where endings can't reach it.' A breath — and there it is, under the showmanship, the actual stake: 'Everything I've ever kept got lost eventually. Everyone. I'd like to keep ONE thing somewhere the arithmetic can't find it. And then, personally, I intend to outlive my material — but that's chapter last, and I don't spoil endings.'",
+    "choices": [
+      {
+        "label": "Grant the shelf — the saga enters the Second",
+        "resultText": "You walk her through the edge; she places the manuscript on an empty shelf between hanging books, where it will be mid-kept forever. She stands looking at it a long moment. 'Un-forgettable,' she says finally, meaning it literally, meaning it entirely."
+      },
+      {
+        "label": "Grant it — and commission the saga as the guild's official chronicle",
+        "resultText": "Keeper of the Guild's Story, by appointment — commissions on chapter titles, no edits, updates every homecoming. She shakes on it and immediately retitles three chapters out of pure celebration. The record of the guild that argues with the sky now argues alongside it."
+      }
+    ]
+  },
+  {
+    "id": "cm_tamsin_3r",
+    "title": "The Shelf That Keeps (Her Book Is Already On It)",
+    "body": "At the library wing's edge, Tamsin stops mid-negotiation, staring past you into the held light.\n\nOn a shelf between hanging books — where no book of hers has ever been placed — sits a manuscript. Oilskin-wrapped. Corners soft with travel. HERS. The saga, complete through chapters she hasn't written yet, in a rendering that no longer happened.\n\nShe walks in and reads standing up for an hour. When she comes out her eyes are wet and her grin is enormous. 'The ending's not spoiled,' she reports. 'She skipped chapter last too — left a note instead: *finish it yourself, coward. — T.G.*' She hefts her own working copy. 'I have NOTES from MYSELF. This is the best material I have ever been handed.'",
+    "choices": [
+      {
+        "label": "Shelve the new draft beside the old",
+        "resultText": "Two sagas, side by side in the held light — the story and its retelling, arguing companionably across renderings. She updates both, forever after, and lets exactly one person per year read the note. It keeps morale astonishing."
+      }
+    ]
+  },
+  {
+    "id": "cm_tamsin_reprise",
+    "title": "Chapter Last, Deferred Again",
+    "body": "Tamsin meets you with the manuscript packed and the negotiation pre-concluded.\n\n'Shelf in the frozen wing, updates every homecoming, no edits, name on the muster rolls, one carried chapter.' She ticks them off on her fingers. 'I've struck this deal — the terms are worn smooth in my mouth like a story on its fortieth telling. The sky redealt the world and kept my CONTRACT, which honestly is the most flattering review of my negotiating I have ever received.' She shoulders the saga. 'Re-execute the terms. The shelf's waiting. It remembers the weight.'",
+    "choices": [
+      {
+        "label": "Re-execute the terms",
+        "resultText": "Shelf granted, saga placed, name entered, chapter carried — the whole deal re-struck in an afternoon. Chapter last remains unwritten, on schedule, by a keeper who fully intends to keep outliving her material, one rendering at a time."
+      }
+    ]
   }
 ]

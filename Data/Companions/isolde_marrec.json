@@ -1,22 +1,22 @@
 {
-	"id": "isolde_marrec",
-	"name": "Isolde Marrec",
-	"school": "Chronomancer",
-	"unitClass": "Arcane",
-	"personalityTrait": "Cunning",
-	"backstory": "A court wizard's former retainer, released as repayment of a Major favor. Her old patron still watches how she is treated.",
-	"recruitmentCost": 0,
-	"isAvailable": false,
-	"unlockCondition": "Redeem a Major favor at a court for a named retainer",
-	"contributedCardIds": [
-		"chronomancer_hasten_and_hinder",
-		"chronomancer_glimpse"
-	],
-	"baseHP": 14,
-	"baseSpeed": 2,
-	"baseArmor": 0,
-	"baseAttackDamage": 0,
-	"baseAttackRange": 0,
-	"baseMana": 3,
-	"availableStanceIds": []
+  "id": "isolde_marrec",
+  "name": "Isolde Marrec",
+  "school": "Chronomancer",
+  "unitClass": "Arcane",
+  "personalityTrait": "Cunning",
+  "backstory": "A court wizard's former retainer, released as repayment of a Major favor. Her old patron still watches how she is treated.",
+  "recruitmentCost": 0,
+  "isAvailable": false,
+  "unlockCondition": "Reach Favored standing at any court",
+  "contributedCardIds": [
+    "chronomancer_hasten_and_hinder",
+    "chronomancer_glimpse"
+  ],
+  "baseHP": 14,
+  "baseSpeed": 2,
+  "baseArmor": 0,
+  "baseAttackDamage": 0,
+  "baseAttackRange": 0,
+  "baseMana": 3,
+  "availableStanceIds": []
 }

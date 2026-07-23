@@ -93,6 +93,8 @@ public static class CompanionUnlocks
             .Count(f => f.StartsWith("fragment_") && f.EndsWith("_trial_passed")) ?? 0;
         bool corruptionAnywhere = save.Cycle?.Campaign?.CorruptionLevels?.Values
             .Any(v => v > 0) ?? false;
+        bool courtFavored = save.Cycle?.Council?.Courts?.Values
+            .Any(ct => ct.Band() >= CourtStandingBand.Favored) ?? false;
 
         foreach (var c in save.Companions)
         {
@@ -111,6 +113,7 @@ public static class CompanionUnlocks
                 "maren_gravesong"    => honoredDead >= 3,
                 "ruslan_vane"        => corruptionAnywhere,
                 "seraphine_duskwell" => save.HasFlag("qe_negotiation_deal"),
+                "isolde_marrec"      => courtFavored,
 
                 // New companions (roster expansion, 2026-07-22).
                 "odile_vantrec"   => save.HasFlag("qe_siege_fell"),

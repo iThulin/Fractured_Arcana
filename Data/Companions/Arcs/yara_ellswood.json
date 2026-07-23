@@ -1,0 +1,59 @@
+{
+  "companionId": "yara_ellswood",
+  "arcName": "The Other Way",
+  "arcSummary": "Yara was a king's forester until the day she was ordered to look the other way. She quit instead. She has never said what she saw.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "What She Saw",
+      "summary": "Crown survey markers on the route — the same kind she was ordered to ignore. She stops pretending she hasn't been watching for them.",
+      "encounterId": "cm_yara_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_yara_1",
+      "remembranceFlag": "remember_yara_1",
+      "remembranceEncounterId": "cm_yara_1r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The Stand She Didn't Take",
+      "summary": "The ground she was marched away from is a day off the route. She has been a quiet passenger long enough.",
+      "encounterId": "cm_yara_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_yara_2",
+      "remembranceFlag": "remember_yara_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "A Warden's Oath",
+      "summary": "She has written an oath for the guild's scouts and wardens. It is three words long.",
+      "encounterId": "cm_yara_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_yara_3",
+      "remembranceFlag": "remember_yara_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_yara",
+  "arcCompleteFlag": "arc_yara_complete",
+  "arcCompleteMetaFlag": "remember_yara_arc_complete",
+  "repriseEncounterId": "cm_yara_reprise"
+}

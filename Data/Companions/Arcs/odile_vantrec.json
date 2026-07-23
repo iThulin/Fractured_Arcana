@@ -1,0 +1,59 @@
+{
+  "companionId": "odile_vantrec",
+  "arcName": "A New Banner",
+  "arcSummary": "Odile held the gate of a falling province until the granaries were empty, then walked out behind the last wagon. Her banner burned. She has not chosen a new one.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Granary Road",
+      "summary": "The route crosses the evacuation road she held open. She walks it counting wagons that aren't there.",
+      "encounterId": "cm_odile_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_odile_1",
+      "remembranceFlag": "remember_odile_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The Scattered",
+      "summary": "Her province's people resettled in threes and fives across two kingdoms. Word of a cluster ahead — and they still use her title.",
+      "encounterId": "cm_odile_2",
+      "requiresParty": false,
+      "location": "any",
+      "completionFlag": "arc_odile_2",
+      "remembranceFlag": "remember_odile_2",
+      "remembranceEncounterId": "cm_odile_2r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "Colors",
+      "summary": "The campus gatehouse has an empty banner pole. She has noticed it every day since she arrived.",
+      "encounterId": "cm_odile_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_odile_3",
+      "remembranceFlag": "remember_odile_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_odile",
+  "arcCompleteFlag": "arc_odile_complete",
+  "arcCompleteMetaFlag": "remember_odile_arc_complete",
+  "repriseEncounterId": "cm_odile_reprise"
+}

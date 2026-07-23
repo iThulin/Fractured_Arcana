@@ -1,0 +1,59 @@
+{
+  "companionId": "kael_ashblade",
+  "arcName": "Round Four",
+  "arcSummary": "Kael survived three rounds in the pit against a summoned elemental. Unsummoned is not dead. Somewhere, it is still counting.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "How He Counts",
+      "summary": "Kael counts everything in rounds — meals, marches, arguments. Tonight he explains where the count started.",
+      "encounterId": "cm_kael_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_kael_1",
+      "remembranceFlag": "remember_kael_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "Round Four",
+      "summary": "Something with a furnace heart has been manifesting along the route. Kael has started stretching.",
+      "encounterId": "cm_kael_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_kael_2",
+      "remembranceFlag": "remember_kael_2",
+      "remembranceEncounterId": "cm_kael_2r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "The Bell, Not the Pit",
+      "summary": "The campus bell tolls at every milestone. Kael has been listening to it strangely, and has a proposal.",
+      "encounterId": "cm_kael_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_kael_3",
+      "remembranceFlag": "remember_kael_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_kael",
+  "arcCompleteFlag": "arc_kael_complete",
+  "arcCompleteMetaFlag": "remember_kael_arc_complete",
+  "repriseEncounterId": "cm_kael_reprise"
+}

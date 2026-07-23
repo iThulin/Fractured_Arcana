@@ -1,0 +1,59 @@
+{
+  "companionId": "isolde_marrec",
+  "arcName": "The Retainer's Release",
+  "arcSummary": "Isolde was released from a court wizard's service as repayment of a Major favor. Released — but her old patron still writes, and the letters know too much.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Letters",
+      "summary": "Another letter has found her, three days ahead of your own itinerary. She thinks it's time you read one.",
+      "encounterId": "cm_isolde_1",
+      "requiresParty": false,
+      "location": "any",
+      "completionFlag": "arc_isolde_1",
+      "remembranceFlag": "remember_isolde_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The Watcher's Man",
+      "summary": "Someone has been pacing the expedition for two days. Isolde recognizes the technique. She trained it.",
+      "encounterId": "cm_isolde_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_isolde_2",
+      "remembranceFlag": "remember_isolde_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "Released, Properly",
+      "summary": "Inside the Second, where the sky cannot read, she intends to answer the last letter.",
+      "encounterId": "cm_isolde_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_isolde_3",
+      "remembranceFlag": "remember_isolde_3",
+      "remembranceEncounterId": "cm_isolde_3r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_isolde",
+  "arcCompleteFlag": "arc_isolde_complete",
+  "arcCompleteMetaFlag": "remember_isolde_arc_complete",
+  "repriseEncounterId": "cm_isolde_reprise"
+}

@@ -1,0 +1,59 @@
+{
+  "companionId": "tamsin_greywood",
+  "arcName": "Material",
+  "arcSummary": "Tamsin collects stories the way others collect scars, and has plenty of both. She is writing the guild's saga. There is one chapter she always skips.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Collection",
+      "summary": "Campfire. She trades stories like currency and pays out three of her best. Then she takes out the manuscript.",
+      "encounterId": "cm_tamsin_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_tamsin_1",
+      "remembranceFlag": "remember_tamsin_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The Chapter She Skips",
+      "summary": "Every saga she tells has a hole in the middle, shaped like a hedge-knight with no hedge and no house.",
+      "encounterId": "cm_tamsin_2",
+      "requiresParty": false,
+      "location": "any",
+      "completionFlag": "arc_tamsin_2",
+      "remembranceFlag": "remember_tamsin_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "The Shelf That Keeps",
+      "summary": "She wants one shelf in the frozen library wing — the one place the unmake cannot edit — for the saga. Terms apply.",
+      "encounterId": "cm_tamsin_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_tamsin_3",
+      "remembranceFlag": "remember_tamsin_3",
+      "remembranceEncounterId": "cm_tamsin_3r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_tamsin",
+  "arcCompleteFlag": "arc_tamsin_complete",
+  "arcCompleteMetaFlag": "remember_tamsin_arc_complete",
+  "repriseEncounterId": "cm_tamsin_reprise"
+}

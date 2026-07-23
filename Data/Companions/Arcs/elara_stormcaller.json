@@ -1,0 +1,59 @@
+{
+  "companionId": "elara_stormcaller",
+  "arcName": "The Burned Charter",
+  "arcSummary": "Elara burned her enforcer's charter after a mission went wrong. She has never said which clause failed her — or which one she failed.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "What the Mission Was",
+      "summary": "A burn scar on the route loosens twelve years of silence.",
+      "encounterId": "cm_elara_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_elara_1",
+      "remembranceFlag": "remember_elara_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The Survivor",
+      "summary": "Someone walked out of that fire. Word is they're at a waystation ahead, and Elara has gone very quiet.",
+      "encounterId": "cm_elara_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_elara_2",
+      "remembranceFlag": "remember_elara_2",
+      "remembranceEncounterId": "cm_elara_2r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "A Charter Worth Keeping",
+      "summary": "She has drafted a new charter. It is one clause long.",
+      "encounterId": "cm_elara_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_elara_3",
+      "remembranceFlag": "remember_elara_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_elara",
+  "arcCompleteFlag": "arc_elara_complete",
+  "arcCompleteMetaFlag": "remember_elara_arc_complete",
+  "repriseEncounterId": "cm_elara_reprise"
+}
