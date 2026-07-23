@@ -54,5 +54,6 @@
   "hallBlockedText": "",
   "hallAnchorFlag": "hall_anchor_miro",
   "arcCompleteFlag": "arc_miro_complete",
-  "arcCompleteMetaFlag": "remember_miro_arc_complete"
+  "arcCompleteMetaFlag": "remember_miro_arc_complete",
+  "repriseEncounterId": "cm_miro_reprise"
 }

@@ -318,28 +318,39 @@ public static class QuestLogView
         }
 
         // Where it fires + party note. The log shows the mission either way;
-        // expedition stages that need the companion say so plainly.
-        string where = m.NextStage.Location switch
+        // expedition stages that need the companion say so plainly. A reprise
+        // supersedes all of it: one beat, anywhere, no party requirement.
+        string locText;
+        if (m.HasReprise)
         {
-            "campus" => "at the campus",
-            "expedition" => "in the field",
-            _ => "anywhere",
-        };
-        string partyNote = "";
-        if (m.NextStage.RequiresParty)
-            partyNote = m.IsInParty ? "  ·  they are with you" : "  ·  bring them along";
+            locText = "   ✦  you have walked this road with them before — a reprise will serve";
+        }
+        else
+        {
+            string where = m.NextStage.Location switch
+            {
+                "campus" => "at the campus",
+                "expedition" => "in the field",
+                _ => "anywhere",
+            };
+            string partyNote = "";
+            if (m.NextStage.RequiresParty)
+                partyNote = m.IsInParty ? "  ·  they are with you" : "  ·  bring them along";
+            locText = $"   ○  {where}{partyNote}";
+        }
         var loc = new Label
         {
-            Text = $"   ○  {where}{partyNote}",
+            Text = locText,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         loc.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
         loc.AddThemeColorOverride("font_color", UITheme.POINegotiation);
         card.AddChild(loc);
 
-        // Campus-located stages get a launch button when a campus host has
-        // supplied a callback (the global overlay stays read-only).
-        if (beginMission != null && m.NextStage.Location != "expedition")
+        // Campus-located stages (and reprises, which fire anywhere) get a
+        // launch button when a campus host has supplied a callback (the
+        // global overlay stays read-only).
+        if (beginMission != null && (m.HasReprise || m.NextStage.Location != "expedition"))
         {
             var begin = new Button
             {

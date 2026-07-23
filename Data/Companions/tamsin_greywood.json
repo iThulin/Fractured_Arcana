@@ -1,0 +1,22 @@
+{
+	"id": "tamsin_greywood",
+	"name": "Tamsin Greywood",
+	"school": "None",
+	"unitClass": "Fighter",
+	"personalityTrait": "Reckless",
+	"backstory": "A hedge-knight who collects stories the way others collect scars, and has plenty of both. She hires on with whoever generates the best material. A guild that argues with the sky, she reckons, is a career.",
+	"recruitmentCost": 85,
+	"isAvailable": false,
+	"unlockCondition": "Uncover 5 entries in the Hall of Lore",
+	"contributedCardIds": [],
+	"baseHP": 19,
+	"baseSpeed": 2,
+	"baseArmor": 1,
+	"baseAttackDamage": 6,
+	"baseAttackRange": 1,
+	"baseMana": 0,
+	"availableStanceIds": [
+		"duelist",
+		"reckless"
+	]
+}

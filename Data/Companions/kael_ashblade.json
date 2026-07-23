@@ -1,22 +1,22 @@
 {
-	"id": "kael_ashblade",
-	"name": "Kael Ashblade",
-	"school": "None",
-	"unitClass": "Fighter",
-	"personalityTrait": "Reckless",
-	"backstory": "A pit fighter who caught the guild's eye after surviving three rounds against a summoned elemental.",
-	"recruitmentCost": 80,
-	"isAvailable": false,
-	"unlockCondition": "Complete 2 combat encounters",
-	"contributedCardIds": [],
-	"baseHP": 18,
-	"baseSpeed": 2,
-	"baseArmor": 0,
-	"baseAttackDamage": 7,
-	"baseAttackRange": 1,
-	"baseMana": 0,
-	"availableStanceIds": [
-		"aggressive",
-		"reckless"
-	]
+  "id": "kael_ashblade",
+  "name": "Kael Ashblade",
+  "school": "None",
+  "unitClass": "Fighter",
+  "personalityTrait": "Reckless",
+  "backstory": "A pit fighter who caught the guild's eye after surviving three rounds against a summoned elemental.",
+  "recruitmentCost": 80,
+  "isAvailable": false,
+  "unlockCondition": "The guild's record: 2 combats won (any timeline)",
+  "contributedCardIds": [],
+  "baseHP": 18,
+  "baseSpeed": 2,
+  "baseArmor": 0,
+  "baseAttackDamage": 7,
+  "baseAttackRange": 1,
+  "baseMana": 0,
+  "availableStanceIds": [
+    "aggressive",
+    "reckless"
+  ]
 }

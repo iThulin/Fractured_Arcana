@@ -1,22 +1,22 @@
 {
-	"id": "ruslan_vane",
-	"name": "Ruslan Vane",
-	"school": "None",
-	"unitClass": "Fighter",
-	"personalityTrait": "Reckless",
-	"backstory": "His village sits under corruption now. He works cheap because he has nowhere to send the money, and fights like a man with rent already paid.",
-	"recruitmentCost": 45,
-	"isAvailable": false,
-	"unlockCondition": "Displaced: appears in hiring halls bordering corrupted territory",
-	"contributedCardIds": [],
-	"baseHP": 21,
-	"baseSpeed": 2,
-	"baseArmor": 0,
-	"baseAttackDamage": 8,
-	"baseAttackRange": 1,
-	"baseMana": 0,
-	"availableStanceIds": [
-		"berserk",
-		"reckless"
-	]
+  "id": "ruslan_vane",
+  "name": "Ruslan Vane",
+  "school": "None",
+  "unitClass": "Fighter",
+  "personalityTrait": "Reckless",
+  "backstory": "His village sits under corruption now. He works cheap because he has nowhere to send the money, and fights like a man with rent already paid.",
+  "recruitmentCost": 45,
+  "isAvailable": false,
+  "unlockCondition": "Corruption takes hold anywhere in the world",
+  "contributedCardIds": [],
+  "baseHP": 21,
+  "baseSpeed": 2,
+  "baseArmor": 0,
+  "baseAttackDamage": 8,
+  "baseAttackRange": 1,
+  "baseMana": 0,
+  "availableStanceIds": [
+    "berserk",
+    "reckless"
+  ]
 }

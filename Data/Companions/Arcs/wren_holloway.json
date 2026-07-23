@@ -46,7 +46,9 @@
       "remembranceFlag": "remember_wren_3",
       "remembranceEncounterId": "",
       "requiredFlag": "",
-      "setMetaFlags": ["campus_wren_room_chosen"],
+      "setMetaFlags": [
+        "campus_wren_room_chosen"
+      ],
       "loyaltyDelta": 3
     }
   ],
@@ -54,5 +56,6 @@
   "hallBlockedText": "",
   "hallAnchorFlag": "hall_anchor_wren",
   "arcCompleteFlag": "arc_wren_complete",
-  "arcCompleteMetaFlag": "remember_wren_arc_complete"
+  "arcCompleteMetaFlag": "remember_wren_arc_complete",
+  "repriseEncounterId": "cm_wren_reprise"
 }

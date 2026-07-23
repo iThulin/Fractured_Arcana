@@ -1,22 +1,22 @@
 {
-	"id": "ondrej_vael",
-	"name": "Ondrej Vael",
-	"school": "Arcanist",
-	"unitClass": "Arcane",
-	"personalityTrait": "Stoic",
-	"backstory": "An adept seconded to the guild when his school united behind its archmage. He treats every spell like a ledger entry: nothing cast that is not accounted for.",
-	"recruitmentCost": 0,
-	"isAvailable": false,
-	"unlockCondition": "Seconded to the guild after uniting with the Arcanist archmage",
-	"contributedCardIds": [
-		"arcanist_arcane_missile",
-		"arcanist_warding_glyph"
-	],
-	"baseHP": 13,
-	"baseSpeed": 2,
-	"baseArmor": 0,
-	"baseAttackDamage": 0,
-	"baseAttackRange": 0,
-	"baseMana": 3,
-	"availableStanceIds": []
+  "id": "ondrej_vael",
+  "name": "Ondrej Vael",
+  "school": "Arcanist",
+  "unitClass": "Arcane",
+  "personalityTrait": "Stoic",
+  "backstory": "An adept seconded to the guild when his school united behind its archmage. He treats every spell like a ledger entry: nothing cast that is not accounted for.",
+  "recruitmentCost": 0,
+  "isAvailable": false,
+  "unlockCondition": "Seconded automatically when the Arcanist archmage unites",
+  "contributedCardIds": [
+    "arcanist_arcane_missile",
+    "arcanist_warding_glyph"
+  ],
+  "baseHP": 13,
+  "baseSpeed": 2,
+  "baseArmor": 0,
+  "baseAttackDamage": 0,
+  "baseAttackRange": 0,
+  "baseMana": 3,
+  "availableStanceIds": []
 }

@@ -1,0 +1,59 @@
+{
+  "companionId": "dagny_thornhelm",
+  "arcName": "The Route",
+  "arcSummary": "Twelve years guarding the same route for the same family. Then the family sold the route, and the route did not include her.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Old Route",
+      "summary": "The expedition crosses ground she guarded for twelve years. Her feet still know it. Her voice takes longer.",
+      "encounterId": "cm_dagny_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_dagny_1",
+      "remembranceFlag": "remember_dagny_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The Buyer",
+      "summary": "The new owner of her route is trading at a waystation ahead. She would like a word. She is not sure which word.",
+      "encounterId": "cm_dagny_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_dagny_2",
+      "remembranceFlag": "remember_dagny_2",
+      "remembranceEncounterId": "cm_dagny_2r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "A Route of Her Own",
+      "summary": "She has drawn something on the campus map and would like it approved.",
+      "encounterId": "cm_dagny_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_dagny_3",
+      "remembranceFlag": "remember_dagny_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_dagny",
+  "arcCompleteFlag": "arc_dagny_complete",
+  "arcCompleteMetaFlag": "remember_dagny_arc_complete",
+  "repriseEncounterId": "cm_dagny_reprise"
+}

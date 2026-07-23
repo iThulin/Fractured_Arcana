@@ -1,0 +1,19 @@
+{
+	"id": "petra_quillane",
+	"name": "Petra Quillane",
+	"school": "None",
+	"unitClass": "Arcane",
+	"personalityTrait": "Curious",
+	"backstory": "A copyist who keeps finding her own handwriting in books she never wrote. She has started leaving notes for whoever keeps borrowing her hand. Nobody has ever met her in a first rendering.",
+	"recruitmentCost": 100,
+	"isAvailable": false,
+	"unlockCondition": "The world has been read more than once (a prior timeline exists)",
+	"contributedCardIds": [],
+	"baseHP": 14,
+	"baseSpeed": 2,
+	"baseArmor": 0,
+	"baseAttackDamage": 0,
+	"baseAttackRange": 0,
+	"baseMana": 3,
+	"availableStanceIds": []
+}

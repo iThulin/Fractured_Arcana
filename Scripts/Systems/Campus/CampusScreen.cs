@@ -1034,6 +1034,8 @@ public partial class CampusScreen : Control
         // Seed echo-eligible flags from permanent records (quest_hooks §5, step 6).
         // Runs after world generation so echo encounters can reference the new world.
         EchoSeeder.Seed(SaveManager.ActiveSave);
+        // Roster rotation: which starters are present this rendering (2026-07-22).
+        CompanionUnlocks.SeedCycleRotation(SaveManager.ActiveSave);
         SaveManager.Save();
         GD.Print($"[Campus] Generated cycle {cycle.CycleNumber} world (seed {seed}, " +
                  $"{g.Kingdoms.Count} territories, {g.World.Pois.Count} POIs, " +
@@ -1891,7 +1893,13 @@ public partial class CampusScreen : Control
     private void RefreshAll()
     {
         if (SaveManager.ActiveSave != null)
+        {
             QuestTracker.SyncCompletions(SaveManager.ActiveSave);
+            // Companion unlock rules (2026-07-22): evaluate on every campus
+            // refresh; toast anyone the guild's record just earned.
+            foreach (var name in CompanionUnlocks.Sync(SaveManager.ActiveSave))
+                _campusToasts?.Push($"{name} can now be recruited.", QuestToastKind.Unlock);
+        }
         PlayerSession.ClearRunState();
         BuildingEffectApplier.CalculateRunBonuses(SaveManager.ActiveSave);
         BuildingEffectApplier.ApplyCampusEffects(SaveManager.ActiveSave);

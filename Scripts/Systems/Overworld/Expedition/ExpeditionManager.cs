@@ -3764,6 +3764,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     private void EmitCombatDeed(EncounterRouter router, Vector2I resultHex)
     {
+        // Cross-cycle combat record (deed:combat_won) — powers proven-guild
+        // companion unlocks (CompanionUnlocks) and future deed-count quests.
+        SaveManager.ActiveSave?.Ledger?.RecordDeed("combat_won");
+
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle?.Council == null)
             return;

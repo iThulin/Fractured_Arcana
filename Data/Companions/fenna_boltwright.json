@@ -1,22 +1,22 @@
 {
-	"id": "fenna_boltwright",
-	"name": "Fenna Boltwright",
-	"school": "Tinker",
-	"unitClass": "Arcane",
-	"personalityTrait": "Curious",
-	"backstory": "Dismantled her family's mill at nine to see how it worked, rebuilt it better by eleven. She hires on wherever the workshop is best.",
-	"recruitmentCost": 120,
-	"isAvailable": false,
-	"unlockCondition": "Build the Enchanter's Workshop at the campus",
-	"contributedCardIds": [
-		"tinker_arc_bolt",
-		"tinker_deploy_turret"
-	],
-	"baseHP": 14,
-	"baseSpeed": 2,
-	"baseArmor": 0,
-	"baseAttackDamage": 0,
-	"baseAttackRange": 0,
-	"baseMana": 3,
-	"availableStanceIds": []
+  "id": "fenna_boltwright",
+  "name": "Fenna Boltwright",
+  "school": "Tinker",
+  "unitClass": "Arcane",
+  "personalityTrait": "Curious",
+  "backstory": "Dismantled her family's mill at nine to see how it worked, rebuilt it better by eleven. She hires on wherever the workshop is best.",
+  "recruitmentCost": 120,
+  "isAvailable": false,
+  "unlockCondition": "Complete any campus building",
+  "contributedCardIds": [
+    "tinker_arc_bolt",
+    "tinker_deploy_turret"
+  ],
+  "baseHP": 14,
+  "baseSpeed": 2,
+  "baseArmor": 0,
+  "baseAttackDamage": 0,
+  "baseAttackRange": 0,
+  "baseMana": 3,
+  "availableStanceIds": []
 }

@@ -54,5 +54,6 @@
   "hallBlockedText": "",
   "hallAnchorFlag": "hall_anchor_seraphine",
   "arcCompleteFlag": "arc_seraphine_complete",
-  "arcCompleteMetaFlag": "remember_seraphine_arc_complete"
+  "arcCompleteMetaFlag": "remember_seraphine_arc_complete",
+  "repriseEncounterId": "cm_seraphine_reprise"
 }

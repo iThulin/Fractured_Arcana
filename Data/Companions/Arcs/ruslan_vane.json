@@ -1,0 +1,59 @@
+{
+  "companionId": "ruslan_vane",
+  "arcName": "Nowhere to Send It",
+  "arcSummary": "Ruslan works cheap because his village sits under corruption and there is nowhere to send the money. The money was never the point.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Wage",
+      "summary": "Payday. He takes half and pushes the rest back across the table, same as always. Ask him why, once.",
+      "encounterId": "cm_ruslan_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_ruslan_1",
+      "remembranceFlag": "remember_ruslan_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "Within Sight of It",
+      "summary": "The route passes within sight of his village. He wants to look. He does not want to look alone.",
+      "encounterId": "cm_ruslan_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_ruslan_2",
+      "remembranceFlag": "remember_ruslan_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "A New Address",
+      "summary": "He has found somewhere to send it.",
+      "encounterId": "cm_ruslan_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_ruslan_3",
+      "remembranceFlag": "remember_ruslan_3",
+      "remembranceEncounterId": "cm_ruslan_3r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_ruslan",
+  "arcCompleteFlag": "arc_ruslan_complete",
+  "arcCompleteMetaFlag": "remember_ruslan_arc_complete",
+  "repriseEncounterId": "cm_ruslan_reprise"
+}

@@ -54,5 +54,6 @@
   "hallBlockedText": "",
   "hallAnchorFlag": "hall_anchor_corvin",
   "arcCompleteFlag": "arc_corvin_complete",
-  "arcCompleteMetaFlag": "remember_corvin_arc_complete"
+  "arcCompleteMetaFlag": "remember_corvin_arc_complete",
+  "repriseEncounterId": "cm_corvin_reprise"
 }

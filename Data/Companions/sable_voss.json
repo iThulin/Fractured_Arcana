@@ -1,22 +1,22 @@
 {
-	"id": "sable_voss",
-	"name": "Sable Voss",
-	"school": "None",
-	"unitClass": "Ranger",
-	"personalityTrait": "Cunning",
-	"backstory": "A poacher turned scout. She knows seventeen ways to kill something before it knows she's there.",
-	"recruitmentCost": 80,
-	"isAvailable": false,
-	"unlockCondition": "Complete 2 combat encounters",
-	"contributedCardIds": [],
-	"baseHP": 14,
-	"baseSpeed": 3,
-	"baseArmor": 0,
-	"baseAttackDamage": 5,
-	"baseAttackRange": 3,
-	"baseMana": 0,
-	"availableStanceIds": [
-		"aimed",
-		"skirmish"
-	]
+  "id": "sable_voss",
+  "name": "Sable Voss",
+  "school": "None",
+  "unitClass": "Ranger",
+  "personalityTrait": "Cunning",
+  "backstory": "A poacher turned scout. She knows seventeen ways to kill something before it knows she's there.",
+  "recruitmentCost": 80,
+  "isAvailable": false,
+  "unlockCondition": "The guild's record: 2 combats won (any timeline)",
+  "contributedCardIds": [],
+  "baseHP": 14,
+  "baseSpeed": 3,
+  "baseArmor": 0,
+  "baseAttackDamage": 5,
+  "baseAttackRange": 3,
+  "baseMana": 0,
+  "availableStanceIds": [
+    "aimed",
+    "skirmish"
+  ]
 }

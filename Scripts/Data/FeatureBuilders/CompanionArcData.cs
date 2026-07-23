@@ -128,4 +128,13 @@ public class CompanionArcData
 
     /// <summary>Eternal flag set on arc completion (for cross-cycle tracking).</summary>
     public string ArcCompleteMetaFlag = "";
+
+    // ── Reprise (roster sustainability, 2026-07-22) ─────────────────────
+    /// <summary>One-beat encounter offered INSTEAD of the stage ladder when
+    /// the arc was completed in a prior timeline (ArcCompleteMetaFlag present
+    /// on the ledger). Completing it completes the whole arc at once — the
+    /// player has walked this road before; the shorthand version. Location
+    /// "any", no party requirement. Empty = re-runs replay the full ladder
+    /// (with remembrance variants).</summary>
+    public string RepriseEncounterId = "";
 }

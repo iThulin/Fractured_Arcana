@@ -1,0 +1,22 @@
+{
+	"id": "odile_vantrec",
+	"name": "Odile Vantrec",
+	"school": "None",
+	"unitClass": "Fighter",
+	"personalityTrait": "Stoic",
+	"backstory": "Marshal of a province that fell. She held the gate long enough for the granaries to empty into wagons, then walked out behind the last one. Her banner burned with the siege; she has not chosen a new one yet.",
+	"recruitmentCost": 110,
+	"isAvailable": false,
+	"unlockCondition": "A kingdom falls to siege anywhere in the world",
+	"contributedCardIds": [],
+	"baseHP": 20,
+	"baseSpeed": 2,
+	"baseArmor": 2,
+	"baseAttackDamage": 7,
+	"baseAttackRange": 1,
+	"baseMana": 0,
+	"availableStanceIds": [
+		"guardian",
+		"duelist"
+	]
+}

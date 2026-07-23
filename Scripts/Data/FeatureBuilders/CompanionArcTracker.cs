@@ -50,6 +50,10 @@ public class CompanionArcStatus
     /// <summary>Whether the companion is currently in the active party.</summary>
     public bool IsInParty = false;
 
+    /// <summary>True when the arc was completed in a PRIOR timeline and a
+    /// reprise encounter exists — the one-beat shorthand replaces the ladder.</summary>
+    public bool HasReprise = false;
+
     /// <summary>Whether the companion has been anchored in the Hall.</summary>
     public bool IsAnchored = false;
 }
@@ -140,6 +144,17 @@ public static class CompanionArcTracker
             }
         }
 
+        // Reprise: arc finished in a prior timeline + reprise authored + not
+        // yet complete this cycle -> the shorthand replaces the ladder.
+        if (!status.IsComplete && status.IsRecruited &&
+            !string.IsNullOrEmpty(arc.RepriseEncounterId) &&
+            !string.IsNullOrEmpty(arc.ArcCompleteMetaFlag))
+        {
+            var repriseMeta = save.Ledger?.MetaNarrativeFlags;
+            status.HasReprise = repriseMeta != null &&
+                                repriseMeta.Contains(arc.ArcCompleteMetaFlag);
+        }
+
         // Party membership
         var partyIds = save.Cycle?.ActivePartyCompanionIds;
         if (partyIds != null)
@@ -193,6 +208,15 @@ public static class CompanionArcTracker
     {
         var status = StatusOf(companionId, save);
         if (status?.NextStage == null) return null;
+
+        // Reprise (2026-07-22): the shorthand supersedes the ladder — any
+        // location, no party requirement. You have walked this road before.
+        if (status.HasReprise)
+        {
+            var rArc = CompanionArcLoader.Load(companionId);
+            if (!string.IsNullOrEmpty(rArc?.RepriseEncounterId))
+                return rArc.RepriseEncounterId;
+        }
 
         var stage = status.NextStage;
 
@@ -318,6 +342,8 @@ public static class CompanionArcTracker
                 if (!string.IsNullOrEmpty(s.RemembranceEncounterId))
                     _encounterIndex[s.RemembranceEncounterId] = arc.CompanionId;
             }
+            if (!string.IsNullOrEmpty(arc.RepriseEncounterId))
+                _encounterIndex[arc.RepriseEncounterId] = arc.CompanionId;
         }
         return _encounterIndex;
     }
@@ -353,6 +379,22 @@ public static class CompanionArcTracker
 
         var status = StatusOf(companionId, save);
         if (status?.NextStage == null) return null;
+
+        // Reprise: one beat completes every remaining stage (guarded against
+        // authoring loops by the stage count).
+        var rArc = CompanionArcLoader.Load(companionId);
+        if (status.HasReprise && rArc != null && rArc.RepriseEncounterId == encounterId)
+        {
+            int guard = rArc.Stages?.Count ?? 0;
+            while (guard-- > 0)
+            {
+                var cur = StatusOf(companionId, save);
+                if (cur == null || cur.IsComplete || cur.NextStage == null) break;
+                CompleteStage(companionId, save);
+            }
+            return StatusOf(companionId, save);
+        }
+
         var stage = status.NextStage;
         bool matches = stage.EncounterId == encounterId ||
                        (!string.IsNullOrEmpty(stage.RemembranceEncounterId) &&

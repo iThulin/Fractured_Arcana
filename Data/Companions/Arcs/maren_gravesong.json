@@ -1,0 +1,59 @@
+{
+  "companionId": "maren_gravesong",
+  "arcName": "The Longer Ledger",
+  "arcSummary": "Maren records the names of the dead nobody else will. The guild's ledger is the first one longer than hers.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "Names, Properly",
+      "summary": "She has read the guild's ledger of honored dead. She has corrections.",
+      "encounterId": "cm_maren_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_maren_1",
+      "remembranceFlag": "remember_maren_1",
+      "remembranceEncounterId": "cm_maren_1r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "The Unrecorded",
+      "summary": "A corrupted place where the dead are losing their names. She intends to write them down anyway.",
+      "encounterId": "cm_maren_2",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_maren_2",
+      "remembranceFlag": "remember_maren_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "The Reading",
+      "summary": "One evening, every name, aloud. The campus should hear who it costs.",
+      "encounterId": "cm_maren_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_maren_3",
+      "remembranceFlag": "remember_maren_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_maren",
+  "arcCompleteFlag": "arc_maren_complete",
+  "arcCompleteMetaFlag": "remember_maren_arc_complete",
+  "repriseEncounterId": "cm_maren_reprise"
+}

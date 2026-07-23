@@ -226,5 +226,341 @@
         "resultText": "Her eyes go bright. 'A reciprocal clause. NOW you're negotiating.' She initials it instantly — being auditable, it turns out, was the thing nobody ever thought she was worth."
       }
     ]
+  },
+  {
+    "id": "cm_bram_rescue",
+    "title": "The Grove That Held",
+    "body": "The blight has circled this grove and stopped, the way water circles a stone. Inside the untouched green, a man sits against an oak with a walking staff across his knees and the look of someone at the far end of a long argument.\n\n'Two lunations,' he says, without greeting. 'It didn't get in. I don't know what I did. I just didn't leave.' He is half-starved and entirely calm. The grove leans toward him slightly, the way rooms lean toward their oldest resident.\n\nHis name is Bram. The grove, he says, can manage without him now. He isn't sure he can say the same the other way around.",
+    "choices": [
+      {
+        "label": "Take him in — the guild has room for a man groves trust",
+        "resultText": "He stands, bows to the oak — not to you — and shoulders his pack. 'I'll want to come back,' he says. 'Groves remember who held them.'",
+        "companionUnlock": "bram_thistlewade",
+        "setFlags": [
+          "bram_rescued"
+        ]
+      },
+      {
+        "label": "Leave supplies and directions to the campus",
+        "resultText": "He finds the campus nine days later anyway, thinner and unbothered. 'The grove said to hurry,' he explains, as if that settles anything.",
+        "companionUnlock": "bram_thistlewade",
+        "setFlags": [
+          "bram_rescued"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cm_maren_1",
+    "title": "Names, Properly",
+    "body": "Maren walks beside you with the guild's ledger of honored dead open across one arm, her own longer ledger balanced on the other, cross-referencing at a pace that would trip anyone else.\n\n'Three errors,' she says at last. 'This one died facing the wrong way — it matters, write it. This one had a daughter; the daughter should be findable. And this one—' her finger stops. 'This one I already have. I recorded them two years before they ever met your guild.'\n\nShe closes both books. 'Your dead are kept better than most. I'd like the charge of them anyway. Nobody should be a line item in a book nobody reads.'",
+    "choices": [
+      {
+        "label": "Give her the charge of the guild's dead",
+        "resultText": "She accepts the ledger the way other people accept a rank. That night, and every night after, she reads three names before sleeping. Different three each night. She is going around the whole list."
+      },
+      {
+        "label": "Ask about the one she already had",
+        "resultText": "She shows you the older entry: same name, a village, a kindness noted. 'Everyone is in somebody's book before they're in yours,' she says. 'I just try to be the somebody.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_maren_1r",
+    "title": "Names, Properly (Her Own Hand)",
+    "body": "Maren opens the guild's ledger of honored dead and stops on the first page.\n\nThe marginalia is in her hand. Not similar — hers, the particular way she crosses a seven, annotating deaths she has never read in a book she has never held. From a rendering that no longer happened.\n\nShe is quiet for a long time. 'I keep the names,' she says finally, 'so the dead stay real when nobody else remembers. It didn't occur to me somebody was doing the same for me.' She takes up the pen. 'The charge is mine, then. Apparently it always is.'",
+    "choices": [
+      {
+        "label": "It always is",
+        "resultText": "She nods once and starts reading names — from her own annotations, trusting the woman who wrote them completely."
+      }
+    ]
+  },
+  {
+    "id": "cm_maren_2",
+    "title": "The Unrecorded",
+    "body": "The corrupted village is quiet in the wrong way — not empty, unwritten. The grave markers stand in rows, and the names on them are going: not weathered, RETREATING, letters unspelling themselves as the Astrologer's influence re-drafts what this place was.\n\nMaren stands among them with her ledger and her jaw set. 'He edits,' she says — she will not use the name. 'The dead are the easiest edit. Nobody argues for them.'\n\nShe uncaps her ink. 'I argue for them. Read me the stones that still have letters. We do this fast and we do this right.'",
+    "choices": [
+      {
+        "label": "Read her the stones, fastest first",
+        "resultText": "You call names; she writes faster than the letters fade. Forty-one names cross from stone to page before the last marker goes smooth. Forty-one arguments the edit loses."
+      },
+      {
+        "label": "Copy alongside her, two ledgers at once",
+        "resultText": "Two hands, two books, one village kept. When it's done she checks your pages for errors, finds one, corrects it without comment, and re-inks your seven the way she crosses hers."
+      }
+    ]
+  },
+  {
+    "id": "cm_maren_3",
+    "title": "The Reading",
+    "body": "Maren asks for one evening, the refectory, and everyone who can be spared. No explanation. She stands at the head of the long table with the guild's ledger and hers, side by side.\n\nThen she reads. Every name. The guild's dead, timeline by timeline — the ones this rendering remembers and the ones only the ledger does. Where she has details, she gives one each: died facing the enemy; had a daughter; held the door.\n\nIt takes the whole evening. Nobody leaves. The frozen feast steams gently at the room's far end, patient, while the living hear out the cost of every reset, itemized.",
+    "choices": [
+      {
+        "label": "Stay to the last name",
+        "resultText": "The final name hangs in the air with the bell's long note. 'That's the ledger,' Maren says, closing it. 'Same time next year. It will be longer.' It is the closest to hopeful you have ever heard her."
+      },
+      {
+        "label": "Add a name she doesn't have — one you carried alone",
+        "resultText": "She writes it without asking why you kept it private, adds the one detail you offer, and reads it back into the room. Carried alone no longer."
+      }
+    ]
+  },
+  {
+    "id": "cm_maren_reprise",
+    "title": "The Ledger, Resumed",
+    "body": "Maren sets both ledgers on the table between you — hers, and the guild's — and taps the marginalia in her own hand from a rendering that no longer happened.\n\n'We've done this,' she says. 'You, me, the reading, the whole road. The books remember even when I don't.' She uncaps her ink. 'I'm not walking the long way to a conclusion I've already signed. The dead are mine to keep. Confirmed?'",
+    "choices": [
+      {
+        "label": "Confirmed",
+        "resultText": "She re-inks the old marginalia so it holds another rendering, takes the charge of the guild's dead, and schedules the reading. The whole road, one evening: the loom already knew the way."
+      }
+    ]
+  },
+  {
+    "id": "cm_ruslan_1",
+    "title": "The Wage",
+    "body": "Payday at a roadside camp. Ruslan counts his share with a soldier's efficiency, keeps half, and pushes the rest back across the table like something that might bite.\n\n'Guild fund,' he says. Same as every payday.\n\nThe fire spits. He watches you not ask, and something in him decides. 'It went home. The money. Every job, most of every wage — my mother, my brother's kids, roof for the winter.' He turns a coin over. 'Village is under it now. The corruption. Post doesn't go there. Nothing goes there.' He sets the coin down flat, precise. 'A wage with no address is just weight.'",
+    "choices": [
+      {
+        "label": "Hold the weight for him — the fund keeps his name on it",
+        "resultText": "'Fine. But write it separate.' He watches you mark the ledger: Vane — held. Not spent. Held. It matters more than he wants it to."
+      },
+      {
+        "label": "Tell him weight is what walls are made of",
+        "resultText": "He grunts, which is Ruslan for a whole conversation, and pockets one extra coin. 'For the wall, then. When there's a wall.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_ruslan_2",
+    "title": "Within Sight of It",
+    "body": "The route crests a ridge, and there it is: his village, in the middle distance, under corruption the way a field lies under weather. Roofs still standing. Smoke from two chimneys — people still live there, in the Astrologer's marches, because leaving is its own kind of dying.\n\nRuslan stops walking. He does not go closer, and no one suggests it.\n\n'Second chimney from the well,' he says evenly. 'That one's ours.' A long silence. 'They're not dead. They're EDITED. My mother says his phrases now, probably. Thinks they're hers.' His hand finds his sword grip, and releases it — the enemy here is not a thing swords reach.",
+    "choices": [
+      {
+        "label": "Stand with him until he's ready to move",
+        "resultText": "He watches the smoke for the space of ten breaths, then turns down the far side of the ridge. 'Two chimneys,' he says, to himself, filing it. Proof of roofs. Proof of winter fires. Proof, at minimum, of holding."
+      },
+      {
+        "label": "Promise him this region's corruption is on the guild's list",
+        "resultText": "'Don't promise me,' he says, without heat. 'Promise the second chimney.' He walks on. From that day his fights in corrupted country have a different arithmetic — you would not want to be what stands between him and a cleansing."
+      }
+    ]
+  },
+  {
+    "id": "cm_ruslan_3",
+    "title": "A New Address",
+    "body": "Ruslan finds you at the campus with his wage pouch and, for the first time in living memory, something like nervousness.\n\n'Been thinking about the weight.' He sets the pouch down. 'Money with no address. Except there's an address now.' He nods at the campus around you — the lit refectory, the bell that finished its note. 'This place holds. When the sky tears it up and re-deals, this place is still here. That's the only roof I know of that the weather can't reach.'\n\n'So it goes here. The fund proper. And when you cleanse my province — when, not if — the campus pays for the first roofs. That's the address. Mine, theirs, whoever needs one.'",
+    "choices": [
+      {
+        "label": "Accept the terms — the Vane fund builds roofs",
+        "resultText": "He shakes on it, once, hard. Lighter by a pouch and by something else. Every payday after, the ledger line reads: Vane — roofs, pending."
+      },
+      {
+        "label": "Match it from the guild's coffers",
+        "resultText": "He stares at the doubled entry, then laughs — an alarming, unpracticed sound. 'Then it's a proper fund. Half the wage was always the easy part.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_ruslan_3r",
+    "title": "A New Address (Already Known)",
+    "body": "Ruslan sets his wage pouch down at the campus with none of the nervousness you remember from a rendering that no longer happened.\n\n'I know what I'm about to do,' he says. 'Don't know how I know. The pouch knows the way to the table.' He slides it over. 'Roofs fund. You match it, if the pattern holds.' A beat. 'The pattern holds, doesn't it. Somewhere you remember, we already shook on this.'",
+    "choices": [
+      {
+        "label": "The pattern holds. Shake on it again.",
+        "resultText": "'Good,' he says, and shakes — once, hard, the same grip across two renderings. Some sentences the sky insists on. Some, a man insists on right back."
+      }
+    ]
+  },
+  {
+    "id": "cm_bram_1",
+    "title": "What Held It",
+    "body": "The grove is exactly as he left it: green, quiet, ringed by a blight-line that stops like a tide against nothing. Bram walks in and exhales two lunations of held breath.\n\n'I used to think it was me,' he says, one hand on the oak. 'Standing here. Refusing.' He shakes his head slowly. 'It wasn't. Watch.'\n\nHe steps outside the ring. The grove... attends. There is no other word — the way the leaves angle after him, the way the blight-line tenses. He steps back in and the whole green settles like a dog that found its person.\n\n'It held ME,' he says. 'I just gave it a reason to bother.'",
+    "choices": [
+      {
+        "label": "Ask the grove how — properly, the Druid way",
+        "resultText": "Bram translates the long silence that answers: it doesn't know either. It had never refused anything before. It refused because someone finally stayed to see whether it could. Wanting a witness, it turns out, is not only a human thing.",
+        "loreId": "grove_that_held"
+      },
+      {
+        "label": "Give it a reason to keep bothering — pledge the guild to this ground",
+        "resultText": "Bram relays the pledge with his palm flat on the oak. The blight-line, over the following lunation, retreats the width of one furrow. It is showing off, he says. Groves are terrible about praise."
+      }
+    ]
+  },
+  {
+    "id": "cm_bram_1r",
+    "title": "What Held It (It Remembers)",
+    "body": "The grove starts leaning toward you both before you clear the treeline — before it could possibly know you were coming, unless it knew you were coming.\n\nBram stops at the blight-line and laughs under his breath. 'It remembers. The sky redealt the whole world and this one acre kept its notes.' The oak's shade falls across the exact spot where, in a rendering that no longer happened, you pledged the guild to this ground.\n\n'No point asking it how it held, then,' Bram says. 'It'll just say what it said before.' He puts his palm on the bark anyway, for the pleasure of the answer.",
+    "choices": [
+      {
+        "label": "Renew the pledge on the remembered spot",
+        "resultText": "The blight-line gives back a furrow's width on the spot, no lunation of deliberation this time. Groves are terrible about praise, and worse about reunions."
+      }
+    ]
+  },
+  {
+    "id": "cm_bram_2",
+    "title": "Seedlings",
+    "body": "Bram stands at the bubble's edge with a cloth roll of cuttings from the grove and a question he has clearly lost sleep over.\n\n'Inside the Second, nothing grows. Nothing dies either.' He unrolls the cloth: six green slips, patient. 'If I plant them in there, are they safe, or are they prisoners? A moment that holds you forever—' he looks up at the frozen campus, at everything it keeps, '—I genuinely cannot tell if that's shelter. And I'm the one who's supposed to know what green things want.'\n\nHe waits. He wants a gardener's answer or a jailer's, and he trusts you to know which one you're giving.",
+    "choices": [
+      {
+        "label": "Plant them at the edge — half in the Second, half in the world",
+        "resultText": "Rooted across the boundary, the cuttings become the only living things anywhere that both grow AND keep. Bram checks them daily and says nothing, which is how he prays."
+      },
+      {
+        "label": "Shelter is a cage that loves you. Plant them inside.",
+        "resultText": "He plants all six in the courtyard's held light. They do not grow. They do not fade. They are — six green commas in the world's long sentence. He decides he can live with commas."
+      }
+    ]
+  },
+  {
+    "id": "cm_bram_3",
+    "title": "The Second Grove",
+    "body": "Bram fetches you without explanation, which from him means everything.\n\nThe cuttings have made their decision. Where they stand, the Second has... adjusted — a pocket of campus air where the stillness breathes. New leaves, small ones, the first NEW anything inside the held moment: not frozen, not racing, growing at the pace of a place that has all the time there is.\n\n'A second grove,' Bram says. His voice does the thing it did at the first one. 'The anchor holds the campus. The campus holds them. They held anyway.' He kneels, checks the soil out of habit, and finds it perfect, out of gratitude.\n\n'I stayed to see whether a grove could refuse,' he says. 'Now one's staying for me.'",
+    "choices": [
+      {
+        "label": "Name it the Thistlewade Grove",
+        "resultText": "He objects for form's sake and carves no sign, but the guild calls it that anyway, and he is never anywhere else at dusk."
+      },
+      {
+        "label": "Let it name itself in time",
+        "resultText": "'That's the right answer,' he says, relieved. 'They pick their own names. Takes about forty years.' He settles in, visibly, for the wait. Inside the Second, forty years is no obstacle at all."
+      }
+    ]
+  },
+  {
+    "id": "cm_bram_reprise",
+    "title": "The Grove, Resumed",
+    "body": "Bram meets you with a cloth roll of cuttings already prepared and the calm of a man skipping to a known ending.\n\n'The grove leaned at me this morning like it had minutes of a meeting I missed,' he says. 'And I know what these want—' he taps the cuttings, '—the way you know a road you've walked. Grove at the edge. Green in the Second. Me at dusk.' He shoulders the roll. 'Some plantings the sky re-deals, and some plantings hold. Shall we skip to the holding?'",
+    "choices": [
+      {
+        "label": "Skip to the holding",
+        "resultText": "Grove visited, cuttings planted, dusk kept — the remembered road walked in an afternoon. The second grove takes faster this time, like soil that recognizes the seed."
+      }
+    ]
+  },
+  {
+    "id": "cm_dagny_1",
+    "title": "The Old Route",
+    "body": "Half a day out, Dagny stops calling terrain by its features and starts calling it by name. Miller's rise. The wet cut. Second ford, the one that lies.\n\n'Twelve years on this route,' she says, when she catches you noticing. 'Thornhelm and daughters, four wagons, spring and fall. I know where it floods, where it narrows, where the toll-men pretend not to live.' Her pace never changes; her feet are twelve years certain.\n\nAt the crest she stops. 'Then the family sold it. Route, contracts, schedule. The buyer got the maps.' A beat. 'I wasn't on the maps. Twelve years, and I was filed under equipment they didn't need to convey.'",
+    "choices": [
+      {
+        "label": "Their maps are worthless without what's in her head",
+        "resultText": "'That's the joke,' she agrees. 'The route was never the road. It was knowing which ford lies.' She walks on, and the expedition moves faster all day, riding twelve years of someone else's diligence."
+      },
+      {
+        "label": "Ask what she'd have wanted — a share? a farewell?",
+        "resultText": "She thinks about it for a full mile. 'A sentence,' she says finally. 'One sentence acknowledging I existed. The money I earned. The sentence they owed.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_dagny_2",
+    "title": "The Buyer",
+    "body": "The waystation is busy, and there — tallying crates with a courteous, forgettable face — is the man who bought Dagny's route. She spots him instantly. Her hand does not go to her weapon, which somehow makes it worse.\n\nThe confrontation she has carried for two years dies in the walking of ten paces, because the buyer looks up, recognizes her, and is DELIGHTED.\n\n'Thornhelm's guard! You're famous — every waystation ledger has margin notes about you. I offered to keep you on, you know. The family said you'd already gone.' He says it kindly, factually. He is not a villain. Nobody in this story is a villain. That was never the shape of the wound.\n\nDagny stands very still, re-filing two years of anger that suddenly has no address.",
+    "choices": [
+      {
+        "label": "Give her the moment — say nothing",
+        "resultText": "'They told him I'd gone,' she repeats, on the road after. 'They didn't even sell me. They LOST me. Like a strap. Like a buckle.' A long silence. 'Better, somehow. A buckle can walk off and guard something worth twelve years.'"
+      },
+      {
+        "label": "Tell the buyer what the margin notes were worth",
+        "resultText": "You itemize her, briefly: fords that lie, floods, toll-men. The buyer's face does honest arithmetic and lands on awe. 'That was never in the purchase,' he admits. Dagny stands a little differently the rest of the day."
+      }
+    ]
+  },
+  {
+    "id": "cm_dagny_2r",
+    "title": "The Buyer (The Words Ready)",
+    "body": "You have watched this meeting go sideways before, in a rendering that no longer happened — watched two years of anger find no address and have to be re-filed on the road.\n\nSo this time, at the waystation door, you tell her what's coming: he's courteous. He offered to keep you on. They said you'd already gone.\n\nDagny receives it like a scouting report — which is to say, professionally, and with one long breath. Then she walks the ten paces with the words already chosen.\n\n'I'm the margin notes,' she tells the buyer, before he can be delighted at her. 'The family lost me like a buckle. Their error. I guard a campus now — the one address the weather can't reach.' She sets a Thornhelm route-token on his crate: returned, with prejudice, twelve years paid in full.",
+    "choices": [
+      {
+        "label": "Walk out with her",
+        "resultText": "Prepared lands better than surprised. On the road she flips her remaining route-token — hers, the guild's — and pockets it. 'Knew the words this time,' she says. 'Wonder who I practiced on.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_dagny_3",
+    "title": "A Route of Her Own",
+    "body": "Dagny has drawn on the campus map — in pencil, apologetically, awaiting approval — a patrol route. It rings the grounds and the near approaches: the gate, the walls, the road in, the blind spot by the old orchard that has bothered her since arriving.\n\n'Every worthwhile place has a route,' she says. 'Someone who walks it, spring and fall, wet and dry, until the place and the person have memorized each other.' She squares the map. 'Twelve years, I kept somebody else's. I'd like one that can't be sold out from under me.'\n\n'The campus can't be bought. Can't be lost. Can't file me under equipment.' She holds out the pencil. 'Make it official.'",
+    "choices": [
+      {
+        "label": "Ink the route — the Thornhelm Round, permanent",
+        "resultText": "She walks it that same evening, learning her ground the way she learns everything: completely, on foot, in all weathers. Within a lunation the campus has a rhythm it did not have before — her boots at dusk, as reliable as the bell."
+      },
+      {
+        "label": "Add her to the campus charter by name",
+        "resultText": "Dagny Thornhelm, Keeper of the Round — written, witnessed, unsellable. She reads her own name on the charter twice. 'A sentence acknowledging I existed,' she says quietly. 'Took thirteen years. Worth it.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_dagny_reprise",
+    "title": "The Round, Resumed",
+    "body": "Dagny meets you with the campus map already marked — in ink this time, no apology.\n\n'My feet know a route here,' she says. 'Gate, walls, orchard blind spot. I've never walked it, and my boots disagree.' She taps the map. 'We've done this, haven't we. Somewhere the sky shuffled away, I keep a Round here, and it can't be sold, and my name's on a charter.'\n\nShe holds out the pen, entirely certain. 'Twelve years I kept a route that forgot me. This one remembers me across the end of the world. Sign it back to me.'",
+    "choices": [
+      {
+        "label": "Sign it back to her",
+        "resultText": "The Thornhelm Round, re-inked in an afternoon: route, charter, name. Her boots take up the dusk rhythm that same night, exactly on the old beat. Some routes, once walked, stay walked."
+      }
+    ]
+  },
+  {
+    "id": "cm_wren_reprise",
+    "title": "The Fourth Chance, Shorthand",
+    "body": "Wren meets you with her slate already lettered and a look that dares you to make her do the whole speech again.\n\n'Three washouts, a thesis, a frozen quill, a room I choose. We've done it — I can FEEL that we've done it; the chalk practically writes itself.' She spins the slate: her declared specialization, the Anchorhold, thirty-second of thirty-one. 'The sky redealt the world and kept my paperwork. Rude of it. Efficient, though.' She holds out the chalk. 'Faculty signature. Same as last time.'",
+    "choices": [
+      {
+        "label": "Sign it — same as last time",
+        "resultText": "Slate hung, room chosen, thesis re-graded 'promising' by executive authority. The whole arc, one corridor's walk: the fourth chance, fourth-chanced."
+      }
+    ]
+  },
+  {
+    "id": "cm_corvin_reprise",
+    "title": "The Sentence, Kept",
+    "body": "Corvin finds you on the wall at dusk, and for once he opens his mouth without waiting a lunation.\n\n'The words came back this morning. All of it — the fights, the roll, the borrowed cadence at the end.' He watches the frozen skyline. 'Except I know how it ends. I've ended it. Somewhere the sky shuffled away, I stood on this wall and chose.' He turns. 'A man shouldn't have to desert the same war twice. Witness it once more and be done.'",
+    "choices": [
+      {
+        "label": "Witness it",
+        "resultText": "'I am choosing where to stand. Here.' Once, in his own cadence, unrehearsed and unhurried — a sentence so thoroughly his that no rendering can lend it out again. He nods, paid up, and goes back to his forty words a lunation."
+      }
+    ]
+  },
+  {
+    "id": "cm_miro_reprise",
+    "title": "The Dream, Skipped Ahead",
+    "body": "Miro is waiting at the campus gate with his pack already down and the notebook open to its last page.\n\n'New entry this morning. Want to hear it?' He reads: 'The gate. The question. The answer about remembering. The post. You let me skip ahead this time.' He closes it, delighted and slightly smug. 'I dreamed the SHORTCUT. Do you know how rare recursive foreshadowing is? I ask the best questions and I dream the best dreams.'\n\nHe toes his pack against the gatehouse wall, already home. 'So: gate post, remembered answer, choosing to matter. Confirm?'",
+    "choices": [
+      {
+        "label": "Confirmed — the gate was always his",
+        "resultText": "The whole arc settles into place in one conversation, the way a remembered song needs only its first bar. The campus regains its dreaming gatekeeper, and the drafts stop misplacing him."
+      }
+    ]
+  },
+  {
+    "id": "cm_seraphine_reprise",
+    "title": "Renegotiation, Precedent Cited",
+    "body": "Seraphine books the table formally, then sits without her usual preamble and slides one page across: her terms, drafted, initialed — including item three, the clause about renderings, already invoked.\n\n'Precedent,' she says. 'Somewhere the sky shuffled away, we executed this agreement. I wrote the inheritance clause specifically so the next me wouldn't have to walk the whole road again — audit, strongroom, clause four, all of it.' She sets down the pen with a small, genuine smile. 'It worked. I'm the next me. Honor the clause.'",
+    "choices": [
+      {
+        "label": "Honor the clause — signed as equals, again",
+        "resultText": "Party of the first part, this rendering and all that follow — the words hold across the end of the world, exactly as she drafted them to. She files the page under R, for precedent. Both meanings."
+      }
+    ]
+  },
+  {
+    "id": "cm_ruslan_reprise",
+    "title": "The Weight, Already Addressed",
+    "body": "Payday. Ruslan counts his share, keeps half — and then stops, pouch in hand, frowning at his own arm like it's acting on old orders.\n\n'This goes somewhere,' he says slowly. 'The fund. The roofs. We shook on it — I can feel the handshake and I never made it.' He looks at the campus walls around you, then sets the whole pouch on the table, decision arriving ahead of the memory. 'The sky redealt the world and my wage still knows its address. Fine. Roofs fund, matched if the pattern holds, second chimney first when the province comes clean. Shake.'",
+    "choices": [
+      {
+        "label": "Shake — the pattern holds",
+        "resultText": "Once, hard, the grip that crosses renderings. The ledger line reads Vane — roofs, pending, in ink that might as well be older than the timeline. The whole road, one payday."
+      }
+    ]
   }
 ]

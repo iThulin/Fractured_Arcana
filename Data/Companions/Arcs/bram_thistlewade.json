@@ -1,0 +1,59 @@
+{
+  "companionId": "bram_thistlewade",
+  "arcName": "The Grove That Held",
+  "arcSummary": "Bram held a grove against the blight, alone, for two lunations. He still doesn't know how. The grove might.",
+  "recruitEncounterId": "cm_bram_rescue",
+  "recruitFlag": "bram_rescued",
+  "recruitLocation": "expedition",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "What Held It",
+      "summary": "Return with him to the grove the blight circled but never touched. One of you should ask it how.",
+      "encounterId": "cm_bram_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_bram_1",
+      "remembranceFlag": "remember_bram_1",
+      "remembranceEncounterId": "cm_bram_1r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "Seedlings",
+      "summary": "He wants to plant cuttings from the grove inside the Second, where nothing grows and nothing dies. It is either sanctuary or a cage; he needs to know which.",
+      "encounterId": "cm_bram_2",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_bram_2",
+      "remembranceFlag": "remember_bram_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "The Second Grove",
+      "summary": "The cuttings have made their decision.",
+      "encounterId": "cm_bram_3",
+      "requiresParty": false,
+      "location": "any",
+      "completionFlag": "arc_bram_3",
+      "remembranceFlag": "remember_bram_3",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_bram",
+  "arcCompleteFlag": "arc_bram_complete",
+  "arcCompleteMetaFlag": "remember_bram_arc_complete",
+  "repriseEncounterId": "cm_bram_reprise"
+}
