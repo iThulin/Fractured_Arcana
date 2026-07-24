@@ -36,6 +36,7 @@
 [ext_resource type="ArrayMesh" uid="uid://67powmk7dj6h" path="res://Assets/Terrain/Painterly_Rocks/Rock_9.tres" id="23_3oinc"]
 [ext_resource type="Material" uid="uid://brf6b5tpj6geu" path="res://Assets/Materials/PainterlyMaterials/Painterly_rocks.tres" id="24_k1fpm"]
 [ext_resource type="Script" uid="uid://dh1cdr75p3xg1" path="res://Scripts/Systems/Combat/Terrain/CanopyOcclusionManager.cs" id="29_6m6xa"]
+[ext_resource type="Shader" uid="uid://dvlcmpjwn3pgx" path="res://Assets/Shaders/painterly_water.gdshader" id="29_onrkg"]
 [ext_resource type="Script" uid="uid://dt2tyjio5prr8" path="res://Scripts/Systems/Combat/Core/MovementZoneRenderer.cs" id="30_q7oa6"]
 
 [sub_resource type="Resource" id="Resource_6jt2h"]
@@ -122,12 +123,13 @@ offset_right = 82.0
 offset_bottom = 968.0
 text = "Remove"
 
-[node name="HexGridManager" type="Node3D" parent="." unique_id=1283187122 node_paths=PackedStringArray("ThemeSun", "ThemeWorldEnvironment")]
+[node name="HexGridManager" type="Node3D" parent="." unique_id=1283187122 node_paths=PackedStringArray("ThemeSun", "ThemeWorldEnvironment", "WaterSunLight")]
 script = ExtResource("6_duw5d")
 GridWidth = 15
 GridHeight = 15
 HexRadius = 1.325
 LayoutType = 1
+Theme = 5
 TerrainDensity = 0.4
 TerrainRoughness = 0.4
 HeightVariation = 1.0
@@ -159,6 +161,8 @@ RockScale = 1.6
 RockScaleJitter = 0.8
 RockBareBias = 1.0
 VistaRingDepth = 4
+WaterShader = ExtResource("29_onrkg")
+WaterSunLight = NodePath("../DirectionalLight3D")
 
 [node name="CanopyOcclusionManager" type="Node3D" parent="HexGridManager" unique_id=1562116521]
 script = ExtResource("29_6m6xa")

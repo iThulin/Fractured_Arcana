@@ -214,10 +214,16 @@ public static class HexMeshBuilder
         {
             var nE = grid.GetTileOrVista(tile.Axial + HexDirection.All[(6 - e) % 6]);
             nbr[e] = nE;
-            // Water never blends into land: the water tile stays flat at its own
-            // surface to the boundary; the land neighbour drops/terraces to it.
-            bool waterEdge = nE != null &&
+            // Water/land seams were historically ALWAYS a cliff ("water stays
+            // flat to the boundary") because the splat terrain itself was the
+            // water surface. With the painterly water plane that reason is gone:
+            // when BeachBlendWaterShores is on, shores ramp like any terrain and
+            // the ramp∩waterline intersection draws an organic shoreline (the
+            // plane extends under the bank). Seams steeper than the cliff
+            // threshold still cliff — deep plunges stay dramatic.
+            bool waterStraddle = nE != null &&
                 ((tile.TerrainType == TileTerrainType.Water) != (nE.TerrainType == TileTerrainType.Water));
+            bool waterEdge = !grid.BeachBlendWaterShores && waterStraddle;
 
             isCliff[e] = nE != null &&
                 (Math.Abs(tile.Height - nE.Height) > threshold || waterEdge);
@@ -233,18 +239,37 @@ public static class HexMeshBuilder
                 : 0f;
             midY[e] = midBase + midNoise;
 
+            // TEXTURE never crosses a water/land seam even when the HEIGHT ramps
+            // (beach blend): blending the blue splat up the bank reads as spill.
+            // Land keeps its grass down to the waterline; the bed keeps water.
+            bool texBlends = blends && !waterStraddle;
+
+            // Water-side continuation: the LAND texture flows over the bed's
+            // rim band and fades to water toward the tile interior — the
+            // submerged bank reads as the same material as the shore, and both
+            // sides agree on 100% land at the shared boundary (no visible
+            // texture line). Strictly one-directional: land never turns blue.
+            bool waterContinuation = waterStraddle && grid.BeachBlendWaterShores &&
+                tile.TerrainType == TileTerrainType.Water;
+
             if (splatMode)
             {
                 (edgeIndices[e], edgeWeightsA[e], edgeWeightsB[e]) = SplatForEdge(grid, tile, e);
-                edgeWeightsM[e] = blends ? new Color(0.5f, 0.5f, 0f, 0f) : ownWeights;
+                edgeWeightsM[e] = texBlends ? new Color(0.5f, 0.5f, 0f, 0f)
+                    : waterContinuation ? new Color(0f, 1f, 0f, 0f) // 100% nE (land) at the rim
+                    : ownWeights;
             }
             else
             {
-                if (blends)
+                if (texBlends)
                 {
                     Color mc = (ownColor + TerrainColor(grid, nE.TerrainType)) / 2f;
                     mc.A = 1f;
                     midColor[e] = mc;
+                }
+                else if (waterContinuation)
+                {
+                    midColor[e] = TerrainColor(grid, nE.TerrainType);
                 }
                 else
                 {
@@ -433,7 +458,9 @@ public static class HexMeshBuilder
         float t = (rho - solidFactor) / (1f - solidFactor);
 
         var nE = grid.GetTileOrVista(tile.Axial + HexDirection.All[(6 - e) % 6]);
-        bool waterEdge = nE != null &&
+        // Must mirror the Build() edge rule exactly (BeachBlendWaterShores
+        // included) or grass/props float above ramped shores.
+        bool waterEdge = !grid.BeachBlendWaterShores && nE != null &&
             ((tile.TerrainType == TileTerrainType.Water) != (nE.TerrainType == TileTerrainType.Water));
         bool blends = nE != null
             && Math.Abs(tile.Height - nE.Height) <= grid.CliffHeightThreshold
@@ -532,24 +559,53 @@ public static class HexMeshBuilder
     {
         var (m0, m1, m2, tA, tB) = CornerComponent(grid, tile, cornerIndex, startSlot);
 
+        // WEIGHTED mean: water members pull shared shore corners DOWN
+        // (WaterShoreCornerSink > 1) so the boundary ring near water sits
+        // safely below the waterline and the visible waterline crosses on the
+        // inner, noise-dominated part of the ramp. Unweighted, a 2-land/1-water
+        // corner averages to almost exactly the default waterline — alternating
+        // above/below along the outline — which reads as spiky wedges and
+        // z-coplanar artifacts at every shore corner. Uniform (all-land or
+        // all-water) components are unaffected: constant weights cancel.
         float sum = 0f;
-        int n = 0;
+        float wsum = 0f;
         if (m0)
-        { sum += tile.Height; n++; }
+        { float w = ShoreCornerWeight(grid, tile); sum += tile.Height * w; wsum += w; }
         if (m1)
-        { sum += tA.Height; n++; }
+        { float w = ShoreCornerWeight(grid, tA); sum += tA.Height * w; wsum += w; }
         if (m2)
-        { sum += tB.Height; n++; }
+        { float w = ShoreCornerWeight(grid, tB); sum += tB.Height * w; wsum += w; }
 
-        if (n == 0)
+        if (wsum <= 0f)
             return tile.Height * HexTile.HeightStep;
 
-        return (sum / n) * HexTile.HeightStep;
+        return (sum / wsum) * HexTile.HeightStep;
     }
+
+    private static float ShoreCornerWeight(HexGridManager grid, TileData t)
+        => t.TerrainType == TileTerrainType.Water ? grid.WaterShoreCornerSink : 1f;
 
     public static Color CornerColor(HexGridManager grid, TileData tile, int cornerIndex)
     {
-        var (m0, m1, m2, tA, tB) = CornerComponent(grid, tile, cornerIndex, 0);
+        var (m0, m1, m2, tA, tB) = CornerComponent(grid, tile, cornerIndex, 0, textureRules: true);
+
+        // Water-side continuation (non-splat path): corners shared with land
+        // take the land tiles' mean color so the bed rim continues the shore.
+        if (grid.BeachBlendWaterShores && tile.TerrainType == TileTerrainType.Water)
+        {
+            Color lsum = new Color(0f, 0f, 0f, 0f);
+            int ln = 0;
+            if (tA != null && tA.TerrainType != TileTerrainType.Water)
+            { lsum += TerrainColor(grid, tA.TerrainType); ln++; }
+            if (tB != null && tB.TerrainType != TileTerrainType.Water)
+            { lsum += TerrainColor(grid, tB.TerrainType); ln++; }
+            if (ln > 0)
+            {
+                Color lc = lsum / ln;
+                lc.A = 1f;
+                return lc;
+            }
+        }
 
         Color sum = new Color(0f, 0f, 0f, 0f);
         int n = 0;
@@ -568,19 +624,21 @@ public static class HexMeshBuilder
         return c;
     }
 
-    /// <summary>True when two tiles share a smooth blended surface rather than meet at a cliff: both present, within the height threshold, and not a water/land straddle.</summary>
-    private static bool BlendConnected(TileData x, TileData y, int threshold)
+    /// <summary>True when two tiles share a smooth blended surface rather than meet at a cliff: both present, within the height threshold, and — unless BeachBlendWaterShores — not a water/land straddle.</summary>
+    private static bool BlendConnected(TileData x, TileData y, int threshold, bool beachBlend)
     {
         if (x == null || y == null)
             return false;
-        if ((x.TerrainType == TileTerrainType.Water) != (y.TerrainType == TileTerrainType.Water))
+        if (!beachBlend && (x.TerrainType == TileTerrainType.Water) != (y.TerrainType == TileTerrainType.Water))
             return false;
         return Math.Abs(x.Height - y.Height) <= threshold;
     }
 
     private static (bool m0, bool m1, bool m2, TileData tA, TileData tB)
-        CornerComponent(HexGridManager grid, TileData tile, int cornerIndex, int startSlot)
+        CornerComponent(HexGridManager grid, TileData tile, int cornerIndex, int startSlot, bool textureRules = false)
     {
+        // textureRules: texture/color components NEVER join across water/land,
+        // even when beach blend welds the heights — keeps the blue on the bed.
         int threshold = grid.CliffHeightThreshold;
 
         var tA = grid.GetTileOrVista(tile.Axial + HexDirection.All[(7 - cornerIndex) % 6]);
@@ -591,9 +649,10 @@ public static class HexMeshBuilder
         // Height-AND-terrain aware: a water/land pair is a barrier, never a blend,
         // so it must not join a corner component — same predicate the per-edge
         // waterEdge rule uses, so edges and corners agree.
-        bool a01 = BlendConnected(tile, tA, threshold);
-        bool a02 = BlendConnected(tile, tB, threshold);
-        bool a12 = BlendConnected(tA, tB, threshold);
+        bool beachBlend = grid.BeachBlendWaterShores && !textureRules;
+        bool a01 = BlendConnected(tile, tA, threshold, beachBlend);
+        bool a02 = BlendConnected(tile, tB, threshold, beachBlend);
+        bool a12 = BlendConnected(tA, tB, threshold, beachBlend);
 
         bool m0 = startSlot == 0;
         bool m1 = startSlot == 1 && p1;
@@ -627,17 +686,45 @@ public static class HexMeshBuilder
             nA != null ? (int)nA.TerrainType : ownIdx,
             nB != null ? (int)nB.TerrainType : ownIdx);
 
-        var (c0, cThird, cNe, _, _) = CornerComponent(grid, tile, e, 0);
+        var (c0, cThird, cNe, _, _) = CornerComponent(grid, tile, e, 0, textureRules: true);
         int cntA = (c0 ? 1 : 0) + (cThird ? 1 : 0) + (cNe ? 1 : 0);
         float wA = 1f / Math.Max(1, cntA);
         var weightsCornerA = new Color(c0 ? wA : 0f, cNe ? wA : 0f, cThird ? wA : 0f, 0f);
 
-        var (d0, dNe, dThird, _, _) = CornerComponent(grid, tile, (e + 1) % 6, 0);
+        var (d0, dNe, dThird, _, _) = CornerComponent(grid, tile, (e + 1) % 6, 0, textureRules: true);
         int cntB = (d0 ? 1 : 0) + (dNe ? 1 : 0) + (dThird ? 1 : 0);
         float wB = 1f / Math.Max(1, cntB);
         var weightsCornerB = new Color(d0 ? wB : 0f, dNe ? wB : 0f, 0f, dThird ? wB : 0f);
 
+        // Water-side continuation (matches the edge-mid rule in Build): a water
+        // tile's rim corners take the mean texture of the corner's LAND tiles —
+        // the same value those land tiles compute for themselves, so the corner
+        // is watertight. All-water corners keep their own (water) texture.
+        if (grid.BeachBlendWaterShores && tile.TerrainType == TileTerrainType.Water)
+        {
+            bool neLand = nE != null && nE.TerrainType != TileTerrainType.Water;
+            bool naLand = nA != null && nA.TerrainType != TileTerrainType.Water;
+            bool nbLand = nB != null && nB.TerrainType != TileTerrainType.Water;
+
+            if (neLand || naLand)
+                weightsCornerA = MakeLandCornerWeights(neLand, naLand, thirdSlotIsB: false);
+            if (neLand || nbLand)
+                weightsCornerB = MakeLandCornerWeights(neLand, nbLand, thirdSlotIsB: true);
+        }
+
         return (indices, weightsCornerA, weightsCornerB);
+    }
+
+    /// <summary>Rim-corner weights for a water tile continuing its neighbors' land texture: slot1 = nE, slot2 = nA (corner A) or slot3 = nB (corner B).</summary>
+    private static Color MakeLandCornerWeights(bool neLand, bool thirdLand, bool thirdSlotIsB)
+    {
+        int cnt = (neLand ? 1 : 0) + (thirdLand ? 1 : 0);
+        float w = 1f / Math.Max(1, cnt);
+        return new Color(
+            0f,
+            neLand ? w : 0f,
+            (!thirdSlotIsB && thirdLand) ? w : 0f,
+            (thirdSlotIsB && thirdLand) ? w : 0f);
     }
 
     public static Color TerrainColor(HexGridManager grid, TileTerrainType terrain)

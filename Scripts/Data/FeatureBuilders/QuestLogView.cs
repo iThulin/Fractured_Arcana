@@ -23,9 +23,12 @@ public static class QuestLogView
     public static string BuildInto(VBoxContainer box, GuildSaveData save,
         System.Action<CompanionArcStatus> beginMission = null)
     {
-        if (box == null) return "";
-        foreach (var c in box.GetChildren()) c.QueueFree();
-        if (save == null) return "No guild loaded.";
+        if (box == null)
+            return "";
+        foreach (var c in box.GetChildren())
+            c.QueueFree();
+        if (save == null)
+            return "No guild loaded.";
 
         var quests = QuestLoader.LoadAll();
         int active = 0, done = 0, locked = 0;
@@ -54,7 +57,8 @@ public static class QuestLogView
                 foreach (var q in eternal)
                     if (string.Equals(q.Category, cat, System.StringComparison.OrdinalIgnoreCase))
                         inCat.Add(q);
-                if (inCat.Count == 0) continue;
+                if (inCat.Count == 0)
+                    continue;
 
                 var catLabel = new Label { Text = cat };
                 catLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
@@ -68,12 +72,16 @@ public static class QuestLogView
                     // Collapsed (user ruling 2026-07-22): undiscovered quests
                     // roll up into one line per category instead of a card
                     // each — eight unmet dossiers were drowning the real log.
-                    if (status == QuestStatus.Locked) { locked++; lockedInCat++; continue; }
-                    else if (status == QuestStatus.Complete) done++;
-                    else active++;
+                    if (status == QuestStatus.Locked)
+                    { locked++; lockedInCat++; continue; }
+                    else if (status == QuestStatus.Complete)
+                        done++;
+                    else
+                        active++;
                     AddCard(box, q, status, save);
                 }
-                if (lockedInCat > 0) AddLockedSummary(box, cat, lockedInCat);
+                if (lockedInCat > 0)
+                    AddLockedSummary(box, cat, lockedInCat);
             }
         }
 
@@ -98,7 +106,8 @@ public static class QuestLogView
                 foreach (var q in timeline)
                     if (string.Equals(q.Category, cat, System.StringComparison.OrdinalIgnoreCase))
                         inCat.Add(q);
-                if (inCat.Count == 0) continue;
+                if (inCat.Count == 0)
+                    continue;
 
                 var catLabel = new Label { Text = cat };
                 catLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
@@ -112,12 +121,16 @@ public static class QuestLogView
                     // Collapsed (user ruling 2026-07-22): undiscovered quests
                     // roll up into one line per category instead of a card
                     // each — eight unmet dossiers were drowning the real log.
-                    if (status == QuestStatus.Locked) { locked++; lockedInCat++; continue; }
-                    else if (status == QuestStatus.Complete) done++;
-                    else active++;
+                    if (status == QuestStatus.Locked)
+                    { locked++; lockedInCat++; continue; }
+                    else if (status == QuestStatus.Complete)
+                        done++;
+                    else
+                        active++;
                     AddCard(box, q, status, save);
                 }
-                if (lockedInCat > 0) AddLockedSummary(box, cat, lockedInCat);
+                if (lockedInCat > 0)
+                    AddLockedSummary(box, cat, lockedInCat);
             }
         }
 
@@ -262,7 +275,7 @@ public static class QuestLogView
                     var hl = new Label
                     {
                         Text = revealed
-                            ? $"      "{arch.WeaknessHints[i - 1]}""
+                            ? $"      '{arch.WeaknessHints[i - 1]}'"
                             : "      —  an unrecorded weakness  —",
                         AutowrapMode = TextServer.AutowrapMode.WordSmart,
                     };
@@ -284,7 +297,8 @@ public static class QuestLogView
     private static void AddCompanionMissionCard(VBoxContainer parent, CompanionArcStatus m,
         System.Action<CompanionArcStatus> beginMission)
     {
-        if (m?.NextStage == null) return;
+        if (m?.NextStage == null)
+            return;
         var card = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         card.AddThemeConstantOverride("separation", 3);
 
@@ -411,8 +425,10 @@ public static class QuestLogView
     /// <summary>Clear <paramref name="box"/> and render the discovered-lore codex.</summary>
     public static void BuildLoreInto(VBoxContainer box, GuildSaveData save)
     {
-        if (box == null) return;
-        foreach (var c in box.GetChildren()) c.QueueFree();
+        if (box == null)
+            return;
+        foreach (var c in box.GetChildren())
+            c.QueueFree();
         var lore = save?.UnlockedLoreEntries;
         if (lore == null || lore.Count == 0)
         {
@@ -438,7 +454,8 @@ public static class QuestLogView
 
     private static string Prettify(string id)
     {
-        if (string.IsNullOrEmpty(id)) return "";
+        if (string.IsNullOrEmpty(id))
+            return "";
         var parts = id.Replace('_', ' ').Split(' ');
         for (int i = 0; i < parts.Length; i++)
             if (parts[i].Length > 0)
@@ -448,12 +465,14 @@ public static class QuestLogView
 
     private static string ToRoman(int num)
     {
-        if (num <= 0) return num.ToString();
+        if (num <= 0)
+            return num.ToString();
         string[] thousands = { "", "M", "MM", "MMM" };
         string[] hundreds = { "", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM" };
         string[] tens = { "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC" };
         string[] ones = { "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX" };
-        if (num >= 4000) return num.ToString(); // safety
+        if (num >= 4000)
+            return num.ToString(); // safety
         return thousands[num / 1000] + hundreds[num % 1000 / 100]
              + tens[num % 100 / 10] + ones[num % 10];
     }

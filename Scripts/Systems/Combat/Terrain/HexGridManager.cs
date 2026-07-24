@@ -444,6 +444,10 @@ public partial class HexGridManager : Node3D
         // once _lastWorldFloor + the splat template exist. See HexGridManager.Vista.cs.
         GenerateVistaRing(field);
 
+        // Water bodies (playable + vista water) must sit in real basins dug
+        // below their banks BEFORE heights bake. See WaterPlane partial.
+        DigWaterBasins();
+
         ApplyTileHeights();
         ApplyTileVisuals();
         BuildVistaMeshes();
@@ -459,6 +463,7 @@ public partial class HexGridManager : Node3D
         SpawnFlowerProps();
         SpawnRockProps();
         SpawnCanopyProps();
+        SpawnWaterPlane();
         RefreshAllTileLabels();
 
         RecomputeGridBounds();
