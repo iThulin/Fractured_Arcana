@@ -20,7 +20,11 @@
 				"min_moisture": 0.72
 			},
 			{
-				"terrain": "stone"
+				"terrain": "stone",
+				"min_elevation": 0.78
+			},
+			{
+				"terrain": "sand"
 			}
 		]
 	},
@@ -43,6 +47,18 @@
 			0.6
 		],
 		"fog_density": 0.007
+	},
+	"sand": {
+		"light": [
+			0.78,
+			0.65,
+			0.42
+		],
+		"warm": [
+			0.56,
+			0.4,
+			0.24
+		]
 	},
 	"features": [
 		{

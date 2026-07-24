@@ -15,7 +15,11 @@
 		"palette": [
 			{
 				"terrain": "water",
-				"max_elevation": 0.48
+				"max_elevation": 0.42
+			},
+			{
+				"terrain": "sand",
+				"max_elevation": 0.56
 			},
 			{
 				"terrain": "stone",

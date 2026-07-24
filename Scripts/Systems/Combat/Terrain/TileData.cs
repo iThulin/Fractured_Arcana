@@ -26,7 +26,10 @@ public enum TileTerrainType
     Forest,
     Stone,
     Arcane,
-    Ice
+    Ice,
+    // APPEND ONLY: the ordinal is the texture-array layer index
+    // (TerrainTextureLibrary) and is stored in saves — never reorder.
+    Sand
 }
 
 /// <summary>Elemental imbuement currently applied to a tile. <see cref="None"/> means the tile has no active imbuement.</summary>

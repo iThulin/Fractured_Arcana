@@ -33,6 +33,9 @@
 		},
 		"water": {
 			"$ref": "#/$defs/water"
+		},
+		"sand": {
+			"$ref": "#/$defs/sand"
 		}
 	},
 	"$defs": {
@@ -96,7 +99,8 @@
 				"water",
 				"lava",
 				"arcane",
-				"ice"
+				"ice",
+				"sand"
 			]
 		},
 		"shape": {
@@ -387,6 +391,19 @@
 					"type": "number",
 					"minimum": 0.1,
 					"maximum": 4
+				}
+			}
+		},
+		"sand": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Sand palette override for this map's sand_ground splat treatment (light = dune crests, warm = hollows). Omitted fields keep the shader defaults (beach).",
+			"properties": {
+				"light": {
+					"$ref": "#/$defs/color"
+				},
+				"warm": {
+					"$ref": "#/$defs/color"
 				}
 			}
 		}

@@ -259,6 +259,7 @@ public partial class TooltipManager : Control
         TileTerrainType.Stone  => "Stone",
         TileTerrainType.Arcane => "Arcane Ground",
         TileTerrainType.Ice    => "Ice",
+        TileTerrainType.Sand   => "Sand",
         _                      => t.ToString()
     };
 

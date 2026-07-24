@@ -63,6 +63,33 @@ public partial class HexGridManager
         return _terrainMaterialTemplate;
     }
 
+    /// <summary>
+    /// Pushes the active recipe's sand palette (or the shader defaults) into
+    /// the SHARED splat template. Must run BEFORE ApplyTileVisuals — tiles
+    /// duplicate the template. The default constants MIRROR terrain_splat's
+    /// sand_light/sand_warm — keep them in sync if the shader defaults change.
+    /// Reset matters: the template persists across regens.
+    /// </summary>
+    private void ApplyRecipeSandStyle()
+    {
+        var template = GetTerrainMaterialTemplate();
+        if (template == null)
+            return;
+
+        Color light = new Color(0.85f, 0.76f, 0.57f);
+        Color warm = new Color(0.70f, 0.56f, 0.38f);
+
+        SandSpec sand = _activeRecipe?.Sand;
+        if (sand != null)
+        {
+            light = sand.Light ?? light;
+            warm = sand.Warm ?? warm;
+        }
+
+        template.SetShaderParameter("sand_light", light);
+        template.SetShaderParameter("sand_warm", warm);
+    }
+
     private void RebuildTerrainMesh(TileData tile)
     {
         if (tile.TileView == null)
@@ -153,6 +180,7 @@ public partial class HexGridManager
             TileTerrainType.Lava => UITheme.CombatTileLava,
             TileTerrainType.Arcane => UITheme.CombatTileArcane,
             TileTerrainType.Ice => UITheme.CombatTileIce,
+            TileTerrainType.Sand => UITheme.CombatTileSand,
             _ => Colors.White
         };
 

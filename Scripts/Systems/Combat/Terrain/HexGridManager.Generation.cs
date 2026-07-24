@@ -99,6 +99,11 @@ public partial class HexGridManager
                 tile.ElementStrength = 1.0f;
                 break;
 
+            case TileTerrainType.Sand:
+                tile.IsWalkable = true;
+                tile.MoveCost = 1;
+                break;
+
             default:
                 tile.IsWalkable = true;
                 tile.MoveCost = 1;
@@ -299,6 +304,12 @@ public partial class HexGridManager
                     break;
 
                 case TileTerrainType.Arcane:
+                    tile.IsWalkable = true;
+                    tile.IsBlocked = false;
+                    tile.MoveCost = 1;
+                    break;
+
+                case TileTerrainType.Sand:
                     tile.IsWalkable = true;
                     tile.IsBlocked = false;
                     tile.MoveCost = 1;

@@ -99,6 +99,7 @@ public static class HexMeshBuilder
             TileTerrainType.Ice => (grid.IceNoiseAmp, grid.IceNoiseFreq),
             TileTerrainType.Lava => (grid.LavaNoiseAmp, grid.LavaNoiseFreq),
             TileTerrainType.Arcane => (grid.ArcaneNoiseAmp, grid.ArcaneNoiseFreq),
+            TileTerrainType.Sand => (grid.SandNoiseAmp, grid.SandNoiseFreq),
             _ => (grid.GrassNoiseAmp, grid.GrassNoiseFreq)
         };
     }
@@ -793,6 +794,7 @@ public static class HexMeshBuilder
             TileTerrainType.Lava => UITheme.CombatTileLava,
             TileTerrainType.Arcane => UITheme.CombatTileArcane,
             TileTerrainType.Ice => UITheme.CombatTileIce,
+            TileTerrainType.Sand => UITheme.CombatTileSand,
             _ => Colors.White
         };
     }

@@ -210,6 +210,7 @@ public static class UITheme
     public static readonly Color CombatTileLava = new Color(0.85f, 0.28f, 0.08f, 1f);
     public static readonly Color CombatTileArcane = new Color(0.48f, 0.22f, 0.75f, 1f);
     public static readonly Color CombatTileIce = new Color(0.65f, 0.85f, 0.98f, 1f);
+    public static readonly Color CombatTileSand = new Color(0.82f, 0.71f, 0.52f, 1f);
 
     public static readonly Color SpawnTintPlayer = new Color(0.25f, 0.75f, 1.00f, 1f);
     public static readonly Color SpawnTintEnemy = new Color(1.00f, 0.30f, 0.30f, 1f);

@@ -118,6 +118,31 @@ uniform float stone_mottle : hint_range(0.0, 0.5) = 0.12;
 /** World-space scale of the brightness mottle. */
 uniform float stone_mottle_scale : hint_range(0.01, 1.0) = 0.25;
 
+// ── Sand ground tonal mass ─────────────────────────────────────
+group_uniforms sand_ground;
+/** Painterly flat-color sand treatment — matches pastel/stone: NO textures, all procedural. Leave the Sand Texture/Normal exports empty. */
+uniform bool  use_sand_ground = true;
+/** Texture-array layer of Sand ( = (int)TileTerrainType.Sand = 7 ). */
+uniform int   sand_layer = 7;
+/** Blend strength over the base sand splat color. */
+uniform float sand_strength : hint_range(0.0, 1.0) = 0.95;
+/** Pale dry-sand tone (dune crests, light masses). */
+uniform vec3  sand_light : source_color = vec3(0.85, 0.76, 0.57);
+/** Warm deeper tan (hollows, wet-adjacent masses). */
+uniform vec3  sand_warm : source_color = vec3(0.70, 0.56, 0.38);
+/** Scale of the large dune color masses. */
+uniform float sand_tint_scale : hint_range(0.005, 0.4) = 0.065;
+/** Scale of the wind-stroke bands (stretched long across X, like the gusts). */
+uniform float sand_stroke_scale : hint_range(0.01, 1.0) = 0.16;
+/** Strength of the soft posterized stroke banding. */
+uniform float sand_stroke_strength : hint_range(0.0, 0.5) = 0.18;
+/** Fine grain mottle scale. */
+uniform float sand_mottle_scale : hint_range(0.01, 1.0) = 0.3;
+/** Fine grain mottle strength. */
+uniform float sand_mottle : hint_range(0.0, 0.5) = 0.13;
+/** Fake dune undulation bent into the normal (the water trick) — hides low-poly faceting under the flat colour. */
+uniform float sand_normal_strength : hint_range(0.0, 1.0) = 0.35;
+
 // ── Cliff treatment (steep faces: contact shadow + sparse cracks + top moss) ──
 group_uniforms cliff_treatment;
 /** Distinct rock tone, base contact shadow, sparse cracks, and top-settled moss. */
@@ -244,9 +269,9 @@ group_uniforms vista;
 /** PER-INSTANCE flag (Forward+ instance uniform), set to 1.0 by HexTile.MarkAsVista(). Vista tiles render without grid lines and slightly muted so the playable boundary stays readable. Playable tiles never set it (default 0 = no effect). */
 instance uniform float vista_fade : hint_range(0.0, 1.0) = 0.0;
 /** How far vista tiles desaturate toward grey. */
-uniform float vista_desaturation : hint_range(0.0, 1.0) = 0.3;
+uniform float vista_desaturation : hint_range(0.0, 1.0) = 0.18;
 /** How much vista tiles darken. */
-uniform float vista_darken : hint_range(0.0, 0.6) = 0.12;
+uniform float vista_darken : hint_range(0.0, 0.6) = 0.05;
 /** PER-INSTANCE horizon melt (0 = inner vista, 1 = outermost ring), set by HexTile.MarkAsVista from the ring index. Blends the tile toward horizon_color so the world dissolves into the atmosphere instead of ending on a rim. */
 instance uniform float vista_horizon : hint_range(0.0, 1.0) = 0.0;
 /** Colour the outer vista rings melt toward — set from code to the active theme's fog colour on every atmosphere apply. */
@@ -266,22 +291,9 @@ uniform float shore_dither_scale : hint_range(0.1, 4.0) = 0.55;
 /** How far the noise pushes the handoff around. 0 = the old clean gradient. */
 uniform float shore_dither_strength : hint_range(0.0, 1.5) = 0.4;
 
-float tsp_hash21(vec2 p) {
-	p = fract(p * vec2(123.34, 345.45));
-	p += dot(p, p + 34.345);
-	return fract(p.x * p.y);
-}
-
-float tsp_vnoise(vec2 p) {
-	vec2 i = floor(p);
-	vec2 f = fract(p);
-	float a = tsp_hash21(i);
-	float b = tsp_hash21(i + vec2(1.0, 0.0));
-	float c = tsp_hash21(i + vec2(0.0, 1.0));
-	float d = tsp_hash21(i + vec2(1.0, 1.0));
-	vec2 u = f * f * (3.0 - 2.0 * f);
-	return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-}
+// NOTE: the former inline hash/value-noise helpers were REMOVED — that hash
+// produced flat plateaus with straight lattice seams. Sample the shared
+// ground-noise textures (stone_noise_tex etc.) for any procedural variation.
 
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
@@ -370,9 +382,8 @@ void fragment() {
 			// can't read as blocky squares along the transition.
 			vec2 dp = v_world_pos.xz * shore_dither_scale;
 			vec2 dr = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * dp;
-			float n = tsp_vnoise(dp) * 0.55
-				+ tsp_vnoise(dr * 2.3 + 13.1) * 0.30
-				+ tsp_vnoise(dp * 5.1 + 41.7) * 0.15;
+			float n = texture(stone_noise_tex, dp * 0.15).r * 0.6
+				+ texture(stone_noise_tex, dr * 0.4 + vec2(0.13, 0.71)).r * 0.4;
 			float shifted = clamp(frac + (n - 0.5) * dither_amt, 0.0, 1.0);
 			// gentle contrast: painted patches, not mud
 			shifted = mix(shifted, smoothstep(0.2, 0.8, shifted), 0.45);
@@ -473,6 +484,51 @@ void fragment() {
 
 		float stone_mask = (1.0 - cliff_mix) * stone_strength * stone_weight * (1.0 - is_skirt);
 		albedo = mix(albedo, stone_col, stone_mask);
+	}
+
+	// ── Sand ground tonal mass (sand tops only) ──────────────────
+	if (use_sand_ground) {
+		float sdl = float(sand_layer);
+		float sand_weight =
+			(abs(v_indices.r - sdl) < 0.5 ? w.r : 0.0) +
+			(abs(v_indices.g - sdl) < 0.5 ? w.g : 0.0) +
+			(abs(v_indices.b - sdl) < 0.5 ? w.b : 0.0) +
+			(abs(v_indices.a - sdl) < 0.5 ? w.a : 0.0);
+
+		if (sand_weight > 0.001) {
+			// Noise from the SHARED ground-noise texture (stone_noise_tex — the
+			// same sampler the stone treatment uses). The earlier inline hash
+			// noise produced flat plateaus meeting at perfectly straight lattice
+			// seams across the map. Two rotated octaves for organic dune masses.
+			vec2 sp = v_world_pos.xz * sand_tint_scale;
+			vec2 spr = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * sp;
+			float dune = texture(stone_noise_tex, sp).r * 0.6
+				+ texture(stone_noise_tex, spr * 2.3 + vec2(0.31, 0.77)).r * 0.4;
+			vec3 sand_col = mix(sand_light, sand_warm, dune);
+
+			// Soft posterized wind-stroke bands, stretched long across X.
+			float stroke = texture(stone_noise_tex,
+				vec2(v_world_pos.x * 0.25, v_world_pos.z) * sand_stroke_scale).r;
+			stroke = floor(stroke * 5.0) / 5.0 * 0.6 + stroke * 0.4;
+			sand_col *= 1.0 + (stroke - 0.5) * sand_stroke_strength;
+
+			// Fine grain mottle.
+			float smv = texture(stone_noise_tex, v_world_pos.xz * sand_mottle_scale + vec2(0.41, 0.12)).r;
+			sand_col *= 1.0 + (smv - 0.5) * sand_mottle * 2.0;
+
+			float sand_mask = (1.0 - cliff_mix) * sand_strength * sand_weight * (1.0 - is_skirt);
+			albedo = mix(albedo, sand_col, sand_mask);
+
+			// FAKE UNDULATION (water-section trick): bend the normal with the
+			// dune-noise gradient so toon light rolls across the sand and the
+			// low-poly facets stop reading through the flat colour.
+			float eps = 0.02;
+			vec2 sp2 = v_world_pos.xz * sand_tint_scale * 2.0;
+			float hR = texture(stone_noise_tex, sp2 + vec2(eps, 0.0)).r - texture(stone_noise_tex, sp2 - vec2(eps, 0.0)).r;
+			float hU = texture(stone_noise_tex, sp2 + vec2(0.0, eps)).r - texture(stone_noise_tex, sp2 - vec2(0.0, eps)).r;
+			vec3 sn = normalize(vec3(-hR * sand_normal_strength * 8.0, 1.0, -hU * sand_normal_strength * 8.0));
+			tn = normalize(mix(tn, sn, sand_mask));
+		}
 	}
 
 	// ── Water (water-layer tops only) ────────────────────────────

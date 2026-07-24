@@ -83,6 +83,9 @@ public partial class HexGridManager : Node3D
     /// <summary>Ramped beaches: water/land seams blend instead of cliffing (rule mirrored inside HexMeshBuilder), and the plane extends one tile under the bank so the waterline is the organic terrain∩surface intersection, not a hex edge.</summary>
     [Export] public bool BeachBlendWaterShores = true;
 
+    /// <summary>Sand tiles bordering water settle to the body's lowest bank height, so beaches meet the water AT GRADE (the ramp becomes submerged shallows) instead of dropping off a bank. Grass/stone shores keep their banks.</summary>
+    [Export] public bool FlattenSandShores = true;
+
     /// <summary>How strongly water tiles pull shared shore corners down in the height weld. 1 = plain average (DEFAULT — leave it). Values > 1 were a fix for waterline ties under the old bed-derived surface model; with the bank-lip waterline they only create steep pinched corner wedges that the splat's cliff retexture paints as small dark triangles at shore corners.</summary>
     [Export(PropertyHint.Range, "0.25,4.0,0.05")] public float WaterShoreCornerSink = 1.0f;
 
@@ -438,6 +441,27 @@ public partial class HexGridManager : Node3D
                     dug++;
                 }
             }
+
+            // BEACH FLATTEN: sand bordering this body settles to the body's
+            // lowest bank height, so beaches meet the water at grade (user-
+            // directed: the flush case reads right; raised sand banks drop
+            // off too fast). Lowering TO the minimum cannot change the
+            // minimum, so the waterline solve is unaffected.
+            if (FlattenSandShores)
+            {
+                foreach (var t in body)
+                {
+                    foreach (var dir in HexDirs)
+                    {
+                        var nbr = GetTileOrVista(t.Axial + dir);
+                        if (nbr != null &&
+                            nbr.TerrainType == TileTerrainType.Sand &&
+                            nbr.Height > adjLandMin &&
+                            !SandTileHasOpposingWater(nbr))
+                            nbr.Height = adjLandMin;
+                    }
+                }
+            }
         }
 
         if (dug > 0)
@@ -454,6 +478,28 @@ public partial class HexGridManager : Node3D
             maxSurface = Mathf.Max(maxSurface, y);
         if (maxSurface > float.MinValue)
             GetTerrainMaterialTemplate()?.SetShaderParameter("grid_fade_below_y", maxSurface);
+    }
+
+    /// <summary>
+    /// True when a sand tile has water on OPPOSING sides (a bar/channel pinch,
+    /// not an open beach). Such tiles must NOT be flattened: lowering a pinch
+    /// to the bank minimum lets both bodies' skirts flood across it at their
+    /// own (differing) surface heights, producing the "broken / floating
+    /// portion of water" over a sunken sandbar. Left unflattened, the bar
+    /// stays a hair above the waterline (the lip guarantees it) so neither
+    /// skirt floods it and it reads as a clean sandbar between the two waters.
+    /// </summary>
+    private bool SandTileHasOpposingWater(TileData sand)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            var a = GetTileOrVista(sand.Axial + HexDirs[i]);
+            var b = GetTileOrVista(sand.Axial + HexDirs[i + 3]);
+            if (a != null && a.TerrainType == TileTerrainType.Water &&
+                b != null && b.TerrainType == TileTerrainType.Water)
+                return true;
+        }
+        return false;
     }
 
     /// <summary>

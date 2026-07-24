@@ -133,6 +133,7 @@ public static class TerrainTextureLibrary
         TileTerrainType.Stone => grid.StoneTexture,
         TileTerrainType.Arcane => grid.ArcaneTexture,
         TileTerrainType.Ice => grid.IceTexture,
+        TileTerrainType.Sand => grid.SandTexture,
         _ => null
     };
 
@@ -145,6 +146,7 @@ public static class TerrainTextureLibrary
         TileTerrainType.Stone => grid.StoneNormal,
         TileTerrainType.Arcane => grid.ArcaneNormal,
         TileTerrainType.Ice => grid.IceNormal,
+        TileTerrainType.Sand => grid.SandNormal,
         _ => null
     };
 

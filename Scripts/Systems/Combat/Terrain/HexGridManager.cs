@@ -149,6 +149,8 @@ public partial class HexGridManager : Node3D
     [Export] public Texture2D LavaNormal;
     [Export] public Texture2D ArcaneTexture;
     [Export] public Texture2D ArcaneNormal;
+    [Export] public Texture2D SandTexture;
+    [Export] public Texture2D SandNormal;
     /// <summary>All source textures are normalised to this square size when packed.</summary>
     [Export] public int TerrainTextureSize = 512;
     /// <summary>World units → UV. Lower = bigger texture features.</summary>
@@ -183,6 +185,9 @@ public partial class HexGridManager : Node3D
 
     [Export] public float ArcaneNoiseAmp = 0.20f;
     [Export] public float ArcaneNoiseFreq = 0.30f;
+
+    [Export] public float SandNoiseAmp = 0.14f;
+    [Export] public float SandNoiseFreq = 0.30f;
 
     // Parent for all scattered prop fields (painterly grass/flowers/rocks/canopy).
     [ExportGroup("Tile Props")]
@@ -447,6 +452,10 @@ public partial class HexGridManager : Node3D
         // Water bodies (playable + vista water) must sit in real basins dug
         // below their banks BEFORE heights bake. See WaterPlane partial.
         DigWaterBasins();
+
+        // Per-recipe sand palette into the shared splat template — before
+        // tiles duplicate it in ApplyTileVisuals. See Visuals partial.
+        ApplyRecipeSandStyle();
 
         ApplyTileHeights();
         ApplyTileVisuals();

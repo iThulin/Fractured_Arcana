@@ -161,7 +161,6 @@ RockScale = 1.6
 RockScaleJitter = 0.8
 RockBareBias = 1.0
 VistaRingDepth = 4
-EnableWaterPlane = false
 WaterShader = ExtResource("29_onrkg")
 WaterSunLight = NodePath("../DirectionalLight3D")
 

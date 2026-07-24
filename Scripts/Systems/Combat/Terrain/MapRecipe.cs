@@ -126,6 +126,22 @@ public sealed class WaterSpec
     public Color Col(string key, Color def) => Raw != null ? MapRecipe.Col(Raw, key, def) : def;
 }
 
+/// <summary>
+/// Optional per-recipe sand style (S2): overrides the splat sand_ground
+/// palette for this map. Example: { "light": [0.78,0.65,0.42], "warm": [0.56,0.40,0.24] }
+/// </summary>
+public sealed class SandSpec
+{
+    public Color? Light;
+    public Color? Warm;
+
+    public static SandSpec FromDict(Godot.Collections.Dictionary d) => new()
+    {
+        Light = d.ContainsKey("light") ? MapRecipe.Col(d, "light", default) : null,
+        Warm = d.ContainsKey("warm") ? MapRecipe.Col(d, "warm", default) : null
+    };
+}
+
 /// <summary>One feature operation. Typed convenience getters read from the raw param bag.</summary>
 public sealed class FeatureOp
 {
@@ -170,6 +186,7 @@ public sealed class MapRecipe
     public BaseTerrainSpec BaseTerrain;
     public AtmosphereSpec Atmosphere;
     public WaterSpec Water;
+    public SandSpec Sand;
     public List<FeatureOp> Features = new();
 
     public static MapRecipe FromDict(Godot.Collections.Dictionary d)
@@ -191,6 +208,9 @@ public sealed class MapRecipe
 
         if (d.ContainsKey("water"))
             r.Water = WaterSpec.FromDict(d["water"].AsGodotDictionary());
+
+        if (d.ContainsKey("sand"))
+            r.Sand = SandSpec.FromDict(d["sand"].AsGodotDictionary());
 
         if (d.ContainsKey("features"))
         {
