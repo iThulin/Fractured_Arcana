@@ -2360,10 +2360,22 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 }
             }
 
+            // Quest event shim (step 1 spec — raise finally wired 2026-07-23):
+            // qe_negotiation_deal (+kingdom variant) for quest gating and the
+            // Seraphine unlock.
+            foreach (var qt in QuestEvents.Raise(QuestEvents.NegotiationDeal,
+                     kingdomAligned ? kingdom : null))
+                _toasts?.Push(qt.Text, qt.Kind);
+
             ShowInfo($"Deal struck. Gold: {(NegotiationContext.GoldDelta >= 0 ? "+" : "")}{NegotiationContext.GoldDelta}{taught}{buried}");
         }
         else
+        {
+            foreach (var qt in QuestEvents.Raise(QuestEvents.NegotiationWalkaway,
+                     NegotiationContext.OriginKingdomId))
+                _toasts?.Push(qt.Text, qt.Kind);
             ShowInfo("No deal reached.");
+        }
         NegotiationContext.Clear();
         UpdateUI();
     }

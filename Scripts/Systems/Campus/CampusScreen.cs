@@ -1022,8 +1022,8 @@ public partial class CampusScreen : Control
             rng.Randomize();
             cycle.WorldSeed = (int)rng.Randi();
         }
-        //int seed = cycle.WorldSeed;
-        int seed = -2085197503; // for testing — deterministic world generation
+        int seed = cycle.WorldSeed; // playtest 2026-07-23: real per-cycle seeds restored
+        // int seed = -2085197503; // (dev) pin for deterministic world generation
         var g = WorldGenerator.Generate(seed, cycle.SelectedSchool);
         cycle.World = g.World;
         cycle.Kingdoms = g.Kingdoms;
