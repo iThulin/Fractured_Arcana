@@ -20,6 +20,10 @@
 shader_type spatial;
 render_mode specular_disabled;
 
+group_uniforms debug;
+/** Diagnostic false-coloring by surface kind (GREEN backface, MAGENTA skirt, RED wall, ORANGE steep top, dim = ordinary). Solved the 2026-07-24 black-triangle hunt in one screenshot — leave available. */
+uniform bool debug_surfaces = false;
+
 /** Packed per-terrain albedo array (sRGB). Layer index = (int)TileTerrainType. */
 uniform sampler2DArray terrain_textures : source_color, filter_linear_mipmap, repeat_enable;
 /** Packed per-terrain normal array (linear). Same layer indices as albedo. */
@@ -230,6 +234,10 @@ uniform float grid_line_width : hint_range(0.0, 0.3) = 0.04;
 uniform float grid_line_softness : hint_range(0.001, 0.2) = 0.02;
 /** Grid line opacity. 0 = off. */
 uniform float grid_line_strength : hint_range(0.0, 1.0) = 0.4;
+/** World Y below which grid lines fade out. Set from code to the map's waterline (HexGridManager.WaterPlane) — submerged grid lines read as hard geometric outlines beneath the organic water edge. -1000 = never fade. */
+uniform float grid_fade_below_y = -1000.0;
+/** Vertical span of the underwater grid fade. */
+uniform float grid_fade_span : hint_range(0.01, 1.0) = 0.15;
 
 // ── Vista de-emphasis (non-playable perimeter tiles) ───────────
 group_uniforms vista;
@@ -247,6 +255,33 @@ uniform vec3 horizon_color : source_color = vec3(0.75, 0.78, 0.82);
 uniform float horizon_strength : hint_range(0.0, 1.0) = 0.18;
 /** Horizon melt on the outer SKIRT/void faces (the literal edge of the world). These can dissolve much harder than the tops — they're what reads as "the board ends here". */
 uniform float horizon_skirt_strength : hint_range(0.0, 1.0) = 0.85;
+
+// ── Shore splat dither ─────────────────────────────────────────
+group_uniforms shore_dither;
+/** Mottles the land↔water splat handoff with world noise so the bed transition reads as organic patches instead of a clean fade that kinks exactly at the hex boundary. */
+uniform bool use_shore_dither = true;
+// (Reuses the existing water_layer uniform from the water group below.)
+/** Spatial scale of the dither noise (world units). Lower = larger, calmer patches. */
+uniform float shore_dither_scale : hint_range(0.1, 4.0) = 0.55;
+/** How far the noise pushes the handoff around. 0 = the old clean gradient. */
+uniform float shore_dither_strength : hint_range(0.0, 1.5) = 0.4;
+
+float tsp_hash21(vec2 p) {
+	p = fract(p * vec2(123.34, 345.45));
+	p += dot(p, p + 34.345);
+	return fract(p.x * p.y);
+}
+
+float tsp_vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	float a = tsp_hash21(i);
+	float b = tsp_hash21(i + vec2(1.0, 0.0));
+	float c = tsp_hash21(i + vec2(0.0, 1.0));
+	float d = tsp_hash21(i + vec2(1.0, 1.0));
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
 
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
@@ -310,6 +345,42 @@ void fragment() {
 	bw /= (bw.x + bw.y + bw.z);
 
 	vec4 w = v_weights;
+
+	// 1 above the map waterline, 0 submerged (waterline pushed from code;
+	// -1000 when the map has no water → always 1).
+	float above_water = smoothstep(grid_fade_below_y - grid_fade_span, grid_fade_below_y, v_world_pos.y);
+
+	// ── Shore splat dither: organic land↔water texture handoff ──
+	// Strength fades CONTINUOUSLY through the waterline (a hard submerged
+	// gate leaves a visible seam mid-band) and is zero on dry land, so water
+	// texture can never be pushed onto the emerged bank.
+	float dither_amt = use_shore_dither && v_skirt < 0.75
+		? shore_dither_strength * (1.0 - above_water)
+		: 0.0;
+	if (dither_amt > 0.01) {
+		vec4 is_water = vec4(
+			abs(v_indices.r - float(water_layer)) < 0.5 ? 1.0 : 0.0,
+			abs(v_indices.g - float(water_layer)) < 0.5 ? 1.0 : 0.0,
+			abs(v_indices.b - float(water_layer)) < 0.5 ? 1.0 : 0.0,
+			abs(v_indices.a - float(water_layer)) < 0.5 ? 1.0 : 0.0);
+		float total_w = max(w.r + w.g + w.b + w.a, 0.0001);
+		float frac = dot(w, is_water) / total_w;
+		if (frac > 0.02 && frac < 0.98) {
+			// Second octave rotated ~37° so the value-noise grid alignment
+			// can't read as blocky squares along the transition.
+			vec2 dp = v_world_pos.xz * shore_dither_scale;
+			vec2 dr = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * dp;
+			float n = tsp_vnoise(dp) * 0.55
+				+ tsp_vnoise(dr * 2.3 + 13.1) * 0.30
+				+ tsp_vnoise(dp * 5.1 + 41.7) * 0.15;
+			float shifted = clamp(frac + (n - 0.5) * dither_amt, 0.0, 1.0);
+			// gentle contrast: painted patches, not mud
+			shifted = mix(shifted, smoothstep(0.2, 0.8, shifted), 0.45);
+			float ws = shifted / max(frac, 0.001);
+			float ls = (1.0 - shifted) / max(1.0 - frac, 0.001);
+			w *= mix(vec4(ls), vec4(ws), is_water);
+		}
+	}
 	w /= max(w.r + w.g + w.b + w.a, 0.0001);
 
 	// ── Base terrain albedo ──────────────────────────────────────
@@ -333,6 +404,11 @@ void fragment() {
 	float steep = 1.0 - abs(geom.y);
 	float cliff_mix = smoothstep(0.0, 1.0,
 		clamp((steep - cliff_blend_start) * cliff_blend_sharpness, 0.0, 1.0));
+	// No cliff retexture UNDERWATER: shore-corner welds create steep little
+	// bed wedges that this slope test painted dark grey — the "black
+	// triangles at land-water corners" bug. Submerged slopes keep their own
+	// texture; the water surface provides the depth mood instead.
+	cliff_mix *= above_water;
 
 	vec3 albedo = mix(terrain_albedo, cliff_albedo, cliff_mix);
 	vec3 tn = normalize(mix(terrain_n, cliff_n, cliff_mix));
@@ -340,7 +416,14 @@ void fragment() {
 	albedo *= mix(1.0, 1.0 - wall_darkening, cliff_mix);
 
 	// Skirt detection: section-4 boundary faces carry vertex-colour alpha = 1.
-	float is_skirt = step(0.5, v_skirt);
+	// THRESHOLD 0.75, NOT 0.5: COLOR.a doubles as the slot-3 corner splat
+	// weight, which legitimately reaches EXACTLY 0.5 at shore corners
+	// (2-member texture component: own + one land neighbour, water excluded).
+	// step(0.5, ...) misread those fragments as skirt faces and painted them
+	// skirt_color (near-black) — THE black-triangle-at-shore-corners bug,
+	// identified via the debug_surfaces magenta classification. Ancient: it
+	// predates the water work (the old "grey triangles at water corners").
+	float is_skirt = step(0.75, v_skirt);
 
 	// ── Pastel ground gradient (grassland tops only) ─────────────
 	if (use_pastel_ground) {
@@ -473,7 +556,7 @@ void fragment() {
 		float dist_to_edge = apothem - hx;
 		float line = 1.0 - smoothstep(grid_line_width, grid_line_width + grid_line_softness, dist_to_edge);
 		float top_face = smoothstep(0.45, 0.8, abs(geom.y));
-		albedo = mix(albedo, grid_line_color, line * grid_line_strength * top_face * (1.0 - is_skirt) * (1.0 - vista_fade));
+		albedo = mix(albedo, grid_line_color, line * grid_line_strength * top_face * (1.0 - is_skirt) * (1.0 - vista_fade) * above_water);
 	}
 
 	// ── Vista de-emphasis: mute non-playable perimeter tiles ─────
@@ -487,15 +570,34 @@ void fragment() {
 	//    fog colour — SUBTLE on top faces (close-range melt reads as
 	//    ice, not haze), STRONG on the skirt/void faces at the rim ──
 	if (vista_horizon > 0.001) {
-		float melt = vista_horizon * mix(horizon_strength, horizon_skirt_strength, is_skirt);
+		// Top-face melt is suppressed underwater — the water SURFACE carries
+		// the horizon dissolve out there (painterly_water horizon group);
+		// melting the bed just reads as a white seabed through the water.
+		float melt = vista_horizon * mix(horizon_strength * above_water, horizon_skirt_strength, is_skirt);
 		albedo = mix(albedo, horizon_color, melt);
 	}
 
-	ALBEDO = albedo;
-	ROUGHNESS = roughness_value;
-	NORMAL_MAP = tn * 0.5 + 0.5;
-	NORMAL_MAP_DEPTH = normal_strength;
-	EMISSION = highlight_color * highlight_strength;
+	// ── TEMP DIAGNOSTIC OVERRIDE ──
+	if (debug_surfaces) {
+		float dbg_top = smoothstep(0.45, 0.8, abs(v_world_normal.y));
+		vec3 dbg;
+		if (!FRONT_FACING) dbg = vec3(0.0, 1.0, 0.0);            // backface: hole / flipped winding
+		else if (v_skirt > 0.5) dbg = vec3(1.0, 0.0, 1.0);        // skirt face
+		else if (dbg_top < 0.5) dbg = vec3(1.0, 0.0, 0.0);        // wall / vertical side face
+		else if (steep > 0.45) dbg = vec3(1.0, 0.6, 0.0);         // steep top surface
+		else dbg = albedo * 0.45;                                  // ordinary ground, dimmed
+		ALBEDO = dbg;
+		EMISSION = dbg * 0.6; // readable regardless of lighting
+		ROUGHNESS = 1.0;
+		NORMAL_MAP = vec3(0.5, 0.5, 1.0);
+		NORMAL_MAP_DEPTH = 0.0;
+	} else {
+		ALBEDO = albedo;
+		ROUGHNESS = roughness_value;
+		NORMAL_MAP = tn * 0.5 + 0.5;
+		NORMAL_MAP_DEPTH = normal_strength;
+		EMISSION = highlight_color * highlight_strength;
+	}
 }
 
 void light() {

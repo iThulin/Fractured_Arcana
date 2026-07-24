@@ -203,9 +203,11 @@ public static class HexMeshBuilder
 
         var nbr = new TileData[6];
         var isCliff = new bool[6];
+        var isShore = new bool[6];
         var midY = new float[6];
         var midColor = new Color[6];
-        var edgeIndices = new Color[6];
+        var edgeIndices = new Color[6];   // A-half layout (slot2 = nA)
+        var edgeIndicesB = new Color[6];  // B-half layout (slot2 = nB)
         var edgeWeightsA = new Color[6];
         var edgeWeightsB = new Color[6];
         var edgeWeightsM = new Color[6];
@@ -225,8 +227,18 @@ public static class HexMeshBuilder
                 ((tile.TerrainType == TileTerrainType.Water) != (nE.TerrainType == TileTerrainType.Water));
             bool waterEdge = !grid.BeachBlendWaterShores && waterStraddle;
 
+            // Beach blend: water/land seams NEVER cliff, at ANY height delta.
+            // A shoreline mixing blend edges (Δ≤threshold) and cliff edges
+            // (Δ>threshold, e.g. dug sea -2 against land +1) welds the cliff's
+            // rim into the shore corner via the blending neighbour and leaves a
+            // pinched DARK WALL SLIVER exactly at land-water corners (the
+            // long-standing black-triangle bug). Steep shores are steep
+            // underwater ramps instead; land/land cliffs are unaffected.
+            bool shoreRamp = grid.BeachBlendWaterShores && waterStraddle;
+            isShore[e] = waterStraddle;
+
             isCliff[e] = nE != null &&
-                (Math.Abs(tile.Height - nE.Height) > threshold || waterEdge);
+                ((Math.Abs(tile.Height - nE.Height) > threshold && !shoreRamp) || waterEdge);
 
             bool blends = nE != null && !isCliff[e];
 
@@ -254,7 +266,7 @@ public static class HexMeshBuilder
 
             if (splatMode)
             {
-                (edgeIndices[e], edgeWeightsA[e], edgeWeightsB[e]) = SplatForEdge(grid, tile, e);
+                (edgeIndices[e], edgeIndicesB[e], edgeWeightsA[e], edgeWeightsB[e]) = SplatForEdge(grid, tile, e);
                 edgeWeightsM[e] = texBlends ? new Color(0.5f, 0.5f, 0f, 0f)
                     : waterContinuation ? new Color(0f, 1f, 0f, 0f) // 100% nE (land) at the rim
                     : ownWeights;
@@ -294,6 +306,18 @@ public static class HexMeshBuilder
                 centerXZ, splatMode, innerAttr, ownIndices, grid, tile);
         }
 
+        // Corners whose three tiles include ANY water: adjacent edges must
+        // take the smooth band path (see edgeSteps below).
+        var waterCorner = new bool[6];
+        for (int ci = 0; ci < 6; ci++)
+        {
+            var cA2 = grid.GetTileOrVista(tile.Axial + HexDirection.All[(7 - ci) % 6]);
+            var cB2 = grid.GetTileOrVista(tile.Axial + HexDirection.All[(6 - ci) % 6]);
+            waterCorner[ci] = tile.TerrainType == TileTerrainType.Water
+                || (cA2 != null && cA2.TerrainType == TileTerrainType.Water)
+                || (cB2 != null && cB2.TerrainType == TileTerrainType.Water);
+        }
+
         // ── 2) Bridge strips ──────────────────────────────────────────────
         for (int e = 0; e < 6; e++)
         {
@@ -302,15 +326,25 @@ public static class HexMeshBuilder
             Vector2 cB = Corner(e2, radius);
             Vector2 mid = (cA + cB) * 0.5f;
 
-            Color idx = splatMode ? edgeIndices[e] : ownIndices;
+            Color idxA = splatMode ? edgeIndices[e] : ownIndices;
+            Color idxB = splatMode ? edgeIndicesB[e] : ownIndices;
             Color inA = splatMode ? ownWeights : ownColor;
             Color attrA = splatMode ? edgeWeightsA[e] : cornerColor[e];
             Color attrB = splatMode ? edgeWeightsB[e] : cornerColor[e2];
             Color attrM = splatMode ? edgeWeightsM[e] : midColor[e];
 
-            AddBridgeHalf(st, centerXZ, splatMode, idx, solidFactor, terraceSteps,
+            // Shores never terrace — and neither does ANY edge touching a
+            // water-adjacent corner. The corner welds give even equal-height
+            // land-land edges near shores a nonzero band delta, and the
+            // terrace quantizer turns that into one-step stair risers exactly
+            // at shore corners (the black-triangle bug; bisect-confirmed:
+            // terrain-side, blend-dependent, corner-clustered, non-hex-aligned).
+            int e2c = (e + 1) % 6;
+            int edgeSteps = (isShore[e] || waterCorner[e] || waterCorner[e2c])
+                ? 0 : terraceSteps;
+            AddBridgeHalf(st, centerXZ, splatMode, idxA, solidFactor, edgeSteps,
                 cA, cornerY[e], attrA, mid, midY[e], attrM, inA, grid, tile, subdiv);
-            AddBridgeHalf(st, centerXZ, splatMode, idx, solidFactor, terraceSteps,
+            AddBridgeHalf(st, centerXZ, splatMode, idxB, solidFactor, edgeSteps,
                 mid, midY[e], attrM, cB, cornerY[e2], attrB, inA, grid, tile, subdiv);
         }
 
@@ -339,7 +373,8 @@ public static class HexMeshBuilder
             float botYM = SampleSurfaceWorldY(grid, nbr[e], midXZ[e].X, midXZ[e].Y, solidFactor, terraceSteps) - ownTop;
             float botYB = SampleSurfaceWorldY(grid, nbr[e], cornerXZ[e2].X, cornerXZ[e2].Y, solidFactor, terraceSteps) - ownTop;
 
-            Color idx = splatMode ? edgeIndices[e] : ownIndices;
+            Color idxA = splatMode ? edgeIndices[e] : ownIndices;
+            Color idxB = splatMode ? edgeIndicesB[e] : ownIndices;
             Color attrA = splatMode ? edgeWeightsA[e] : cornerColor[e];
             Color attrB = splatMode ? edgeWeightsB[e] : cornerColor[e2];
             Color attrM = splatMode ? edgeWeightsM[e] : midColor[e];
@@ -355,10 +390,10 @@ public static class HexMeshBuilder
                 botB.A = 1f;
             }
 
-            AddWallQuad(st, centerXZ, splatMode, idx,
+            AddWallQuad(st, centerXZ, splatMode, idxA,
                 cA, topYA, attrA, mid, topYM, attrM,
                 botYA, botYM, botA, botM);
-            AddWallQuad(st, centerXZ, splatMode, idx,
+            AddWallQuad(st, centerXZ, splatMode, idxB,
                 mid, topYM, attrM, cB, topYB, attrB,
                 botYM, botYB, botM, botB);
         }
@@ -374,7 +409,8 @@ public static class HexMeshBuilder
             Vector2 cB = Corner(e2, radius);
             Vector2 mid = (cA + cB) * 0.5f;
 
-            Color idx = splatMode ? edgeIndices[e] : ownIndices;
+            Color idxA = splatMode ? edgeIndices[e] : ownIndices;
+            Color idxB = splatMode ? edgeIndicesB[e] : ownIndices;
             Color topA = splatMode ? edgeWeightsA[e] : cornerColor[e];
             Color topB = splatMode ? edgeWeightsB[e] : cornerColor[e2];
             Color topM = splatMode ? edgeWeightsM[e] : midColor[e];
@@ -400,10 +436,10 @@ public static class HexMeshBuilder
                 botB.A = 1f;
             }
 
-            AddWallQuad(st, centerXZ, splatMode, idx,
+            AddWallQuad(st, centerXZ, splatMode, idxA,
                 cA, cornerY[e], topA, mid, midY[e], topM,
                 floorLocal, floorLocal, botA, botM);
-            AddWallQuad(st, centerXZ, splatMode, idx,
+            AddWallQuad(st, centerXZ, splatMode, idxB,
                 mid, midY[e], topM, cB, cornerY[e2], topB,
                 floorLocal, floorLocal, botM, botB);
         }
@@ -458,13 +494,14 @@ public static class HexMeshBuilder
         float t = (rho - solidFactor) / (1f - solidFactor);
 
         var nE = grid.GetTileOrVista(tile.Axial + HexDirection.All[(6 - e) % 6]);
-        // Must mirror the Build() edge rule exactly (BeachBlendWaterShores
-        // included) or grass/props float above ramped shores.
-        bool waterEdge = !grid.BeachBlendWaterShores && nE != null &&
+        // Must mirror the Build() edge rule exactly (shores always ramp under
+        // beach blend, any delta) or grass/props float above ramped shores.
+        bool straddle = nE != null &&
             ((tile.TerrainType == TileTerrainType.Water) != (nE.TerrainType == TileTerrainType.Water));
         bool blends = nE != null
-            && Math.Abs(tile.Height - nE.Height) <= grid.CliffHeightThreshold
-            && !waterEdge;
+            && (straddle
+                ? grid.BeachBlendWaterShores
+                : Math.Abs(tile.Height - nE.Height) <= grid.CliffHeightThreshold);
 
         Vector2 cornerEworld = originXZ + cE;
         Vector2 cornerFworld = originXZ + cF;
@@ -490,7 +527,13 @@ public static class HexMeshBuilder
         float rimNoise = NoiseOwn(grid, tile, rimXZ.X, rimXZ.Y);
         float smoothBandY = ownTop + ownNoise + (edgeY - rimNoise) * t;
 
-        if (terraceSteps <= 0 || Mathf.Abs(edgeY) < FlatEpsilon)
+        var wcA = grid.GetTileOrVista(tile.Axial + HexDirection.All[(7 - e) % 6]);
+        var wcB = grid.GetTileOrVista(tile.Axial + HexDirection.All[(5 - e) % 6]);
+        bool waterNearCorner = tile.TerrainType == TileTerrainType.Water
+            || (nE != null && nE.TerrainType == TileTerrainType.Water)
+            || (wcA != null && wcA.TerrainType == TileTerrainType.Water)
+            || (wcB != null && wcB.TerrainType == TileTerrainType.Water);
+        if (terraceSteps <= 0 || straddle || waterNearCorner || Mathf.Abs(edgeY) < FlatEpsilon)
             return smoothBandY;
 
         int hStepSpan = Mathf.Max(1, Mathf.RoundToInt(Mathf.Abs(edgeY) / HexTile.HeightStep));
@@ -624,13 +667,14 @@ public static class HexMeshBuilder
         return c;
     }
 
-    /// <summary>True when two tiles share a smooth blended surface rather than meet at a cliff: both present, within the height threshold, and — unless BeachBlendWaterShores — not a water/land straddle.</summary>
+    /// <summary>True when two tiles share a smooth blended surface rather than meet at a cliff. Water/land straddles: ALWAYS weld under beach blend (shores never cliff, any delta — mixed blend/cliff shore corners produce dark wall slivers), never without it. Land pairs: the height threshold as ever.</summary>
     private static bool BlendConnected(TileData x, TileData y, int threshold, bool beachBlend)
     {
         if (x == null || y == null)
             return false;
-        if (!beachBlend && (x.TerrainType == TileTerrainType.Water) != (y.TerrainType == TileTerrainType.Water))
-            return false;
+        bool straddle = (x.TerrainType == TileTerrainType.Water) != (y.TerrainType == TileTerrainType.Water);
+        if (straddle)
+            return beachBlend;
         return Math.Abs(x.Height - y.Height) <= threshold;
     }
 
@@ -671,7 +715,7 @@ public static class HexMeshBuilder
         return (m0, m1 && p1, m2 && p2, tA, tB);
     }
 
-    private static (Color indices, Color weightsCornerA, Color weightsCornerB)
+    private static (Color indicesA, Color indicesB, Color weightsCornerA, Color weightsCornerB)
         SplatForEdge(HexGridManager grid, TileData tile, int e)
     {
         float ownIdx = (int)tile.TerrainType;
@@ -680,11 +724,21 @@ public static class HexMeshBuilder
         var nA = grid.GetTileOrVista(tile.Axial + HexDirection.All[(7 - e) % 6]);
         var nB = grid.GetTileOrVista(tile.Axial + HexDirection.All[(5 - e) % 6]);
 
-        var indices = new Color(
+        // PER-HALF index layouts so NO WEIGHT ever occupies the ALPHA channel:
+        // alpha is the skirt flag, and a corner weight of 0.5 (ancient) or 1.0
+        // (texture continuation) in alpha misclassified shore corners as
+        // near-black skirt faces — THE black-triangle bug (magenta-confirmed).
+        // A-half slot2 = nA; B-half slot2 = nB; slot3 unused (own).
+        var indicesA = new Color(
             ownIdx,
             nE != null ? (int)nE.TerrainType : ownIdx,
             nA != null ? (int)nA.TerrainType : ownIdx,
-            nB != null ? (int)nB.TerrainType : ownIdx);
+            ownIdx);
+        var indicesB = new Color(
+            ownIdx,
+            nE != null ? (int)nE.TerrainType : ownIdx,
+            nB != null ? (int)nB.TerrainType : ownIdx,
+            ownIdx);
 
         var (c0, cThird, cNe, _, _) = CornerComponent(grid, tile, e, 0, textureRules: true);
         int cntA = (c0 ? 1 : 0) + (cThird ? 1 : 0) + (cNe ? 1 : 0);
@@ -694,7 +748,8 @@ public static class HexMeshBuilder
         var (d0, dNe, dThird, _, _) = CornerComponent(grid, tile, (e + 1) % 6, 0, textureRules: true);
         int cntB = (d0 ? 1 : 0) + (dNe ? 1 : 0) + (dThird ? 1 : 0);
         float wB = 1f / Math.Max(1, cntB);
-        var weightsCornerB = new Color(d0 ? wB : 0f, dNe ? wB : 0f, 0f, dThird ? wB : 0f);
+        // Third member (nB) in SLOT2 under the B-half layout — alpha stays 0.
+        var weightsCornerB = new Color(d0 ? wB : 0f, dNe ? wB : 0f, dThird ? wB : 0f, 0f);
 
         // Water-side continuation (matches the edge-mid rule in Build): a water
         // tile's rim corners take the mean texture of the corner's LAND tiles —
@@ -707,24 +762,24 @@ public static class HexMeshBuilder
             bool nbLand = nB != null && nB.TerrainType != TileTerrainType.Water;
 
             if (neLand || naLand)
-                weightsCornerA = MakeLandCornerWeights(neLand, naLand, thirdSlotIsB: false);
+                weightsCornerA = MakeLandCornerWeights(neLand, naLand);
             if (neLand || nbLand)
-                weightsCornerB = MakeLandCornerWeights(neLand, nbLand, thirdSlotIsB: true);
+                weightsCornerB = MakeLandCornerWeights(neLand, nbLand);
         }
 
-        return (indices, weightsCornerA, weightsCornerB);
+        return (indicesA, indicesB, weightsCornerA, weightsCornerB);
     }
 
-    /// <summary>Rim-corner weights for a water tile continuing its neighbors' land texture: slot1 = nE, slot2 = nA (corner A) or slot3 = nB (corner B).</summary>
-    private static Color MakeLandCornerWeights(bool neLand, bool thirdLand, bool thirdSlotIsB)
+    /// <summary>Rim-corner weights for a water tile continuing its neighbors' land texture: slot1 = nE, slot2 = the corner's third tile (nA on the A-half layout, nB on the B-half layout). ALPHA IS NEVER A WEIGHT — it is the skirt flag.</summary>
+    private static Color MakeLandCornerWeights(bool neLand, bool thirdLand)
     {
         int cnt = (neLand ? 1 : 0) + (thirdLand ? 1 : 0);
         float w = 1f / Math.Max(1, cnt);
         return new Color(
             0f,
             neLand ? w : 0f,
-            (!thirdSlotIsB && thirdLand) ? w : 0f,
-            (thirdSlotIsB && thirdLand) ? w : 0f);
+            thirdLand ? w : 0f,
+            0f);
     }
 
     public static Color TerrainColor(HexGridManager grid, TileTerrainType terrain)

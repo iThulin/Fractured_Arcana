@@ -170,6 +170,19 @@ uniform float sparkle_sun_boost : hint_range(0.0, 6.0, 0.1) = 2.2;
 /** Tightness of the sun-glint region. Higher = narrower lane of glitter. */
 uniform float sparkle_sun_focus : hint_range(1.0, 32.0, 1.0) = 8.0;
 
+// ---- Horizon melt (endless-sea dissolve over the vista ring) ----
+group_uniforms horizon;
+/** Fog/horizon colour the far water melts toward. Set from code with the atmosphere — same source as the terrain splat's horizon_color. */
+uniform vec3 water_horizon_color : source_color = vec3(0.75, 0.78, 0.82);
+/** World distance from board_center where the melt begins (≈ the playable edge; set from code). */
+uniform float horizon_melt_start = 18.0;
+/** Distance where the melt saturates (≈ the vista outer edge; set from code). */
+uniform float horizon_melt_end = 26.0;
+/** Maximum melt at the far edge. 1 = fully dissolves into the fog. */
+uniform float horizon_melt_max : hint_range(0.0, 1.0) = 0.85;
+/** Board centre in world XZ (set from code). */
+uniform vec2 board_center = vec2(0.0);
+
 // ---- Toon lighting ----
 group_uniforms toon;
 /** Number of flat shading steps on the diffuse response. */
@@ -334,6 +347,12 @@ void fragment()
         col = mix(vec3(luma), col, saturation);
     }
 
+    // Endless-sea horizon: far water dissolves toward the atmosphere the way
+    // the vista terrain does, going opaque so the bed vanishes with it.
+    float horizon_t = smoothstep(horizon_melt_start, horizon_melt_end, distance(p, board_center)) * horizon_melt_max;
+    col = mix(col, water_horizon_color, horizon_t);
+    EMISSION *= (1.0 - horizon_t);
+
     ALBEDO = clamp(col, 0.0, 1.0);
     ROUGHNESS = 1.0;
     SPECULAR = 0.0;
@@ -344,6 +363,7 @@ void fragment()
     // Spill feather: water seeping onto neighboring tiles thins out and
     // vanishes well before the skirt's outer hex edge could show.
     float spill_fade = 1.0 - smoothstep(spill_fade_start, spill_fade_end, v_spill);
+    a = mix(a, 1.0, horizon_t); // opaque haze at the horizon
     ALPHA = clamp(a, 0.0, 1.0) * edge_fade * spill_fade;
 }
 

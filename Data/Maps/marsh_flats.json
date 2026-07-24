@@ -44,6 +44,12 @@
 		],
 		"fog_density": 0.014
 	},
+	"water": {
+		"profile": "murky_swamp",
+		"foam_strength": 0.45,
+		"alpha_shallow": 0.6,
+		"ripple": 0.35
+	},
 	"features": [
 		{
 			"feature": "lake",

@@ -105,6 +105,27 @@ public sealed class AtmosphereSpec
     };
 }
 
+/// <summary>
+/// Optional per-recipe water personality (S1.5): a named profile from
+/// HexGridManager.WaterPlane's preset table plus inline field overrides.
+/// Example: { "profile": "murky_swamp", "foam_strength": 0.45 }
+/// </summary>
+public sealed class WaterSpec
+{
+    public string Profile = "";
+    public Godot.Collections.Dictionary Raw;
+
+    public static WaterSpec FromDict(Godot.Collections.Dictionary d) => new()
+    {
+        Profile = MapRecipe.Str(d, "profile", ""),
+        Raw = d
+    };
+
+    public bool Has(string key) => Raw != null && Raw.ContainsKey(key);
+    public float Flt(string key, float def) => Has(key) ? Raw[key].AsSingle() : def;
+    public Color Col(string key, Color def) => Raw != null ? MapRecipe.Col(Raw, key, def) : def;
+}
+
 /// <summary>One feature operation. Typed convenience getters read from the raw param bag.</summary>
 public sealed class FeatureOp
 {
@@ -148,6 +169,7 @@ public sealed class MapRecipe
     public ShapeSpec Shape;
     public BaseTerrainSpec BaseTerrain;
     public AtmosphereSpec Atmosphere;
+    public WaterSpec Water;
     public List<FeatureOp> Features = new();
 
     public static MapRecipe FromDict(Godot.Collections.Dictionary d)
@@ -166,6 +188,9 @@ public sealed class MapRecipe
 
         if (d.ContainsKey("atmosphere"))
             r.Atmosphere = AtmosphereSpec.FromDict(d["atmosphere"].AsGodotDictionary());
+
+        if (d.ContainsKey("water"))
+            r.Water = WaterSpec.FromDict(d["water"].AsGodotDictionary());
 
         if (d.ContainsKey("features"))
         {

@@ -52,6 +52,11 @@
 		],
 		"fog_density": 0.009
 	},
+	"water": {
+		"profile": "murky_swamp",
+		"cloud_strength": 0.35,
+		"sparkle": 0.5
+	},
 	"features": [
 		{
 			"feature": "rocky_outcrop",

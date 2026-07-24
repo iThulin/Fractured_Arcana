@@ -48,6 +48,10 @@
 		],
 		"fog_density": 0.007
 	},
+	"water": {
+		"profile": "clear_lake",
+		"shore_lip": 0.1
+	},
 	"features": [
 		{
 			"feature": "lake",

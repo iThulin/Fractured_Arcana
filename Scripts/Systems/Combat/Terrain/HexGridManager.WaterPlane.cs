@@ -28,6 +28,35 @@ using System.Collections.Generic;
 //                 export wins, else shader + WindNoise.CreateSeamless().
 // ============================================================
 
+/// <summary>
+/// A water personality (S1.5): tint, motion, foam, sparkle, clarity and
+/// shoreline character for one kind of wet map. Resolved per map from the
+/// recipe's "water" block (profile name + overrides) or a theme fallback.
+/// Base motion/sparkle numbers assume the shader's authored defaults —
+/// retune both together if those change.
+/// </summary>
+public sealed class WaterProfile
+{
+    public Color ShallowColor = new(0.28f, 0.50f, 0.47f);
+    public Color DeepColor = new(0.10f, 0.22f, 0.34f);
+    public Color FoamColor = new(0.90f, 0.93f, 0.90f);
+    public float ReflectionStrength = 0.85f;
+    public float CloudStrength = 0.55f;
+    /// <summary>Scales swell/ripple amplitude + micro-normal wobble + swell speed. 1 = lake, ~0.2 = still bog, ~1.5 = choppy coast.</summary>
+    public float RippleScale = 1f;
+    public float FoamStrength = 0.55f;
+    /// <summary>Second detached foam line position in depth-band units (0 = off; ~1.6 works for coasts).</summary>
+    public float FoamLinePos = 0f;
+    public float SparkleScale = 1f;
+    public float AlphaShallow = 0.55f;
+    public float AlphaDeep = 0.92f;
+    /// <summary>Surface below the lowest bank. The shoreline's personality: ~0.03 marsh film, ~0.10 lake edge, ~0.12+ coast.</summary>
+    public float ShoreLip = 0.06f;
+    public float MaxDepthWorld = 1.5f;
+
+    public WaterProfile Clone() => (WaterProfile)MemberwiseClone();
+}
+
 public partial class HexGridManager : Node3D
 {
     // ── Tuning ──────────────────────────────────────────────────────────────
@@ -54,8 +83,8 @@ public partial class HexGridManager : Node3D
     /// <summary>Ramped beaches: water/land seams blend instead of cliffing (rule mirrored inside HexMeshBuilder), and the plane extends one tile under the bank so the waterline is the organic terrain∩surface intersection, not a hex edge.</summary>
     [Export] public bool BeachBlendWaterShores = true;
 
-    /// <summary>How strongly water tiles pull shared shore corners down in the height weld (1 = plain average). Keeps the hex boundary ring below the waterline so the shoreline crosses on the noisy inner ramp — cures spiky corner wedges and z-flicker at shore corners.</summary>
-    [Export(PropertyHint.Range, "1.0,4.0,0.1")] public float WaterShoreCornerSink = 2.0f;
+    /// <summary>How strongly water tiles pull shared shore corners down in the height weld. 1 = plain average (DEFAULT — leave it). Values > 1 were a fix for waterline ties under the old bed-derived surface model; with the bank-lip waterline they only create steep pinched corner wedges that the splat's cliff retexture paints as small dark triangles at shore corners.</summary>
+    [Export(PropertyHint.Range, "0.25,4.0,0.05")] public float WaterShoreCornerSink = 1.0f;
 
     /// <summary>Explicit water material. When set it wins outright; assign its water_noise slot yourself (materials don't auto-inject noise — style guide §8).</summary>
     [Export] public Material WaterMaterial;
@@ -71,6 +100,134 @@ public partial class HexGridManager : Node3D
 
     private const string WaterPlaneGroup = "water_plane";
     private ShaderMaterial _waterMaterialCache;
+    private WaterProfile _waterProfile;
+
+    // ── Water personalities (S1.5) ──────────────────────────────────────────
+
+    private static readonly Dictionary<string, WaterProfile> WaterProfiles = new()
+    {
+        ["clear_lake"] = new WaterProfile(), // shader defaults; lip/depth follow the inspector exports
+
+        ["murky_swamp"] = new WaterProfile
+        {
+            ShallowColor = new Color(0.30f, 0.40f, 0.29f),
+            DeepColor = new Color(0.13f, 0.19f, 0.13f),
+            FoamColor = new Color(0.82f, 0.86f, 0.78f),
+            ReflectionStrength = 0.45f,
+            CloudStrength = 0.25f,
+            RippleScale = 0.25f,
+            FoamStrength = 0.30f,
+            SparkleScale = 0.3f,
+            AlphaShallow = 0.72f,
+            AlphaDeep = 0.96f,
+            ShoreLip = 0.03f,
+            MaxDepthWorld = 0.8f
+        },
+
+        ["grey_coast"] = new WaterProfile
+        {
+            ShallowColor = new Color(0.34f, 0.46f, 0.50f),
+            DeepColor = new Color(0.15f, 0.25f, 0.33f),
+            ReflectionStrength = 0.75f,
+            CloudStrength = 0.65f,
+            RippleScale = 1.5f,
+            FoamStrength = 0.90f,
+            FoamLinePos = 1.6f,
+            SparkleScale = 1.2f,
+            ShoreLip = 0.12f,
+            MaxDepthWorld = 2.0f
+        },
+
+        ["black_bog"] = new WaterProfile
+        {
+            ShallowColor = new Color(0.15f, 0.17f, 0.15f),
+            DeepColor = new Color(0.05f, 0.06f, 0.07f),
+            FoamColor = new Color(0.70f, 0.74f, 0.66f),
+            ReflectionStrength = 0.90f, // the dark mirror
+            CloudStrength = 0.35f,
+            RippleScale = 0.15f,
+            FoamStrength = 0.15f,
+            SparkleScale = 0.15f,
+            AlphaShallow = 0.85f,
+            AlphaDeep = 0.98f,
+            ShoreLip = 0.02f,
+            MaxDepthWorld = 0.6f
+        }
+    };
+
+    /// <summary>Profile for maps generated from the enum Theme path (no recipe).</summary>
+    private static string ThemeDefaultWaterProfile(MapTheme theme) => theme switch
+    {
+        MapTheme.OvergrownRuins => "murky_swamp",
+        _ => "clear_lake"
+    };
+
+    /// <summary>
+    /// Recipe "water" block → named preset → inline overrides. The clear_lake
+    /// preset takes its lip/depth from the inspector exports so live tuning of
+    /// the default look keeps working.
+    /// </summary>
+    private WaterProfile ResolveWaterProfile()
+    {
+        string name = _activeRecipe?.Water?.Profile;
+        if (string.IsNullOrEmpty(name))
+            name = ThemeDefaultWaterProfile(Theme);
+
+        WaterProfile p = (WaterProfiles.TryGetValue(name, out var found)
+            ? found : WaterProfiles["clear_lake"]).Clone();
+
+        if (name == "clear_lake")
+        {
+            p.ShoreLip = WaterShoreLip;
+            p.MaxDepthWorld = WaterMaxDepthWorld;
+        }
+
+        WaterSpec w = _activeRecipe?.Water;
+        if (w != null)
+        {
+            p.ShallowColor = w.Col("shallow_color", p.ShallowColor);
+            p.DeepColor = w.Col("deep_color", p.DeepColor);
+            p.FoamColor = w.Col("foam_color", p.FoamColor);
+            p.ReflectionStrength = w.Flt("reflection_strength", p.ReflectionStrength);
+            p.CloudStrength = w.Flt("cloud_strength", p.CloudStrength);
+            p.RippleScale = w.Flt("ripple", p.RippleScale);
+            p.FoamStrength = w.Flt("foam_strength", p.FoamStrength);
+            p.FoamLinePos = w.Flt("foam_line", p.FoamLinePos);
+            p.SparkleScale = w.Flt("sparkle", p.SparkleScale);
+            p.AlphaShallow = w.Flt("alpha_shallow", p.AlphaShallow);
+            p.AlphaDeep = w.Flt("alpha_deep", p.AlphaDeep);
+            p.ShoreLip = w.Flt("shore_lip", p.ShoreLip);
+            p.MaxDepthWorld = w.Flt("max_depth", p.MaxDepthWorld);
+        }
+
+        return p;
+    }
+
+    /// <summary>
+    /// Writes a profile onto a (per-map, duplicated) material instance.
+    /// Motion/sparkle bases mirror the shader's authored defaults.
+    /// </summary>
+    private static void ApplyWaterProfile(ShaderMaterial mat, WaterProfile p)
+    {
+        mat.SetShaderParameter("shallow_color", p.ShallowColor);
+        mat.SetShaderParameter("deep_color", p.DeepColor);
+        mat.SetShaderParameter("foam_color", p.FoamColor);
+        mat.SetShaderParameter("reflection_strength", p.ReflectionStrength);
+        mat.SetShaderParameter("cloud_strength", p.CloudStrength);
+        mat.SetShaderParameter("foam_strength", p.FoamStrength);
+        mat.SetShaderParameter("foam_line_pos", p.FoamLinePos);
+        mat.SetShaderParameter("alpha_shallow", p.AlphaShallow);
+        mat.SetShaderParameter("alpha_deep", p.AlphaDeep);
+
+        float r = p.RippleScale;
+        mat.SetShaderParameter("swell_amplitude", 0.04f * r);
+        mat.SetShaderParameter("ripple_amplitude", 0.025f * r);
+        mat.SetShaderParameter("micro_normal_strength", 0.22f * Mathf.Min(r, 1.5f));
+        mat.SetShaderParameter("swell_speed", 0.45f * (0.5f + 0.5f * r));
+
+        mat.SetShaderParameter("sparkle_ambient", 0.25f * p.SparkleScale);
+        mat.SetShaderParameter("sparkle_sun_boost", 2.2f * p.SparkleScale);
+    }
 
     // ── Public entry points (called from GenerateMap with the other fields) ──
 
@@ -105,9 +262,21 @@ public partial class HexGridManager : Node3D
             return;
         }
 
-        Material mat = ResolveWaterMaterial();
-        if (mat == null)
+        Material baseMat = ResolveWaterMaterial();
+        if (baseMat == null)
             return;
+
+        _waterProfile = ResolveWaterProfile();
+
+        // Per-map material INSTANCE so profile params never mutate the shared
+        // base (a user-assigned WaterMaterial export stays pristine).
+        Material mat = baseMat;
+        if (baseMat is ShaderMaterial baseSm)
+        {
+            var inst = (ShaderMaterial)baseSm.Duplicate();
+            ApplyWaterProfile(inst, _waterProfile);
+            mat = inst;
+        }
 
         // Per-BODY waterline: flood-fill connected water tiles, then set each
         // body's surface from its own bed and its lowest adjacent land lip.
@@ -137,7 +306,10 @@ public partial class HexGridManager : Node3D
             }
         }
 
-        GD.Print($"[WaterPlane] Building water surface over {waterTiles.Count} tiles (+{skirt.Count} shore-skirt tiles).");
+        string profileName = _activeRecipe?.Water?.Profile;
+        if (string.IsNullOrEmpty(profileName))
+            profileName = ThemeDefaultWaterProfile(Theme) + " (theme default)";
+        GD.Print($"[WaterPlane] Building water surface over {waterTiles.Count} tiles (+{skirt.Count} shore-skirt tiles), profile: {profileName}.");
 
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
@@ -165,8 +337,24 @@ public partial class HexGridManager : Node3D
         parent.AddChild(mi);
         mi.GlobalTransform = Transform3D.Identity; // vertices are world-space
 
-        if (WaterSunLight != null && mat is ShaderMaterial sm)
-            sm.SetShaderParameter("sun_direction", -WaterSunLight.GlobalTransform.Basis.Z);
+        if (mat is ShaderMaterial waterSm)
+        {
+            // Endless-sea horizon: the SURFACE melt takes over from the vista
+            // bed melt (suppressed underwater in terrain_splat). Colour comes
+            // from the same source ApplyHorizon pushes to the splat template.
+            Variant hc = GetTerrainMaterialTemplate()?.GetShaderParameter("horizon_color") ?? default;
+            if (hc.VariantType == Variant.Type.Color)
+                waterSm.SetShaderParameter("water_horizon_color", hc.AsColor());
+
+            Vector3 boardCenter = (GridBoundsMin + GridBoundsMax) * 0.5f;
+            float halfSpan = Mathf.Max(GridBoundsMax.X - GridBoundsMin.X, GridBoundsMax.Z - GridBoundsMin.Z) * 0.5f;
+            waterSm.SetShaderParameter("board_center", new Vector2(boardCenter.X, boardCenter.Z));
+            waterSm.SetShaderParameter("horizon_melt_start", halfSpan + HexRadius * 1.5f);
+            waterSm.SetShaderParameter("horizon_melt_end", halfSpan + HexRadius * 1.75f * (VistaRingDepth + 1.5f));
+
+            if (WaterSunLight != null)
+                waterSm.SetShaderParameter("sun_direction", -WaterSunLight.GlobalTransform.Basis.Z);
+        }
     }
 
     // ── Material resolution (mirrors ResolvePainterlyGrassMaterial) ─────────
@@ -212,6 +400,10 @@ public partial class HexGridManager : Node3D
     /// </summary>
     public void DigWaterBasins()
     {
+        // Reset the splat grid-line fade each generation so a dry map doesn't
+        // inherit the previous map's waterline.
+        GetTerrainMaterialTemplate()?.SetShaderParameter("grid_fade_below_y", -1000f);
+
         if (!EnableWaterPlane)
             return;
 
@@ -250,6 +442,18 @@ public partial class HexGridManager : Node3D
 
         if (dug > 0)
             GD.Print($"[WaterPlane] Dug {dug} water tile(s) below their banks so basins exist.");
+
+        // Push the waterline into the SHARED splat template now — tiles
+        // duplicate it when their meshes build (later in the sequence), so this
+        // must happen first. Grid lines fade out under water; submerged hex
+        // lines read as hard geometry against the organic waterline.
+        _waterProfile = ResolveWaterProfile();
+        Dictionary<Vector2I, float> surfaces = ComputeBodyWaterlines(waterTiles);
+        float maxSurface = float.MinValue;
+        foreach (float y in surfaces.Values)
+            maxSurface = Mathf.Max(maxSurface, y);
+        if (maxSurface > float.MinValue)
+            GetTerrainMaterialTemplate()?.SetShaderParameter("grid_fade_below_y", maxSurface);
     }
 
     /// <summary>
@@ -350,8 +554,9 @@ public partial class HexGridManager : Node3D
             // the lowest bank, so water reads at grade and spills into the
             // neighbors' noise dips (the user-directed marsh look). FillDepth
             // only governs landless bodies (open sea).
+            float lip = _waterProfile?.ShoreLip ?? WaterShoreLip;
             float surfaceY = adjLandMinTop != float.MaxValue
-                ? adjLandMinTop - WaterShoreLip
+                ? adjLandMinTop - lip
                 : bedMinTop + WaterFillDepth;
             // Safety floor only — DigWaterBasins guarantees room below the lip.
             surfaceY = Mathf.Max(surfaceY, bedMaxTop + 0.05f);
@@ -516,6 +721,7 @@ public partial class HexGridManager : Node3D
         }
 
         float thickness = Mathf.Max(waterY - bedY, 0f);
-        return Mathf.Clamp(thickness / WaterMaxDepthWorld, 0f, 1f);
+        float maxDepth = _waterProfile?.MaxDepthWorld ?? WaterMaxDepthWorld;
+        return Mathf.Clamp(thickness / maxDepth, 0f, 1f);
     }
 }

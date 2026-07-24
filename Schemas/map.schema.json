@@ -30,6 +30,9 @@
 			"items": {
 				"$ref": "#/$defs/feature"
 			}
+		},
+		"water": {
+			"$ref": "#/$defs/water"
 		}
 	},
 	"$defs": {
@@ -307,6 +310,83 @@
 				},
 				"strength": {
 					"type": "number"
+				}
+			}
+		},
+		"water": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Water personality (S1.5). 'profile' names a preset in HexGridManager.WaterPlane (clear_lake, murky_swamp, grey_coast, black_bog); other fields override it.",
+			"properties": {
+				"profile": {
+					"type": "string",
+					"enum": [
+						"clear_lake",
+						"murky_swamp",
+						"grey_coast",
+						"black_bog"
+					]
+				},
+				"shallow_color": {
+					"$ref": "#/$defs/color"
+				},
+				"deep_color": {
+					"$ref": "#/$defs/color"
+				},
+				"foam_color": {
+					"$ref": "#/$defs/color"
+				},
+				"reflection_strength": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"cloud_strength": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"ripple": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 3,
+					"description": "Motion scale: ~0.2 still bog, 1 lake, ~1.5 choppy coast."
+				},
+				"foam_strength": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"foam_line": {
+					"type": "number",
+					"minimum": 0,
+					"description": "Second detached foam line position in depth-band units. 0 = off."
+				},
+				"sparkle": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 3
+				},
+				"alpha_shallow": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"alpha_deep": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"shore_lip": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 0.4,
+					"description": "Surface below the lowest bank: ~0.03 marsh film, ~0.10 lake edge, ~0.12+ coast."
+				},
+				"max_depth": {
+					"type": "number",
+					"minimum": 0.1,
+					"maximum": 4
 				}
 			}
 		}
