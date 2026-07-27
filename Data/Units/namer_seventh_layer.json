@@ -1,0 +1,31 @@
+{
+  "id": "namer_seventh_layer",
+  "threatLabel": "The Seventh Layer",
+  "role": "elite",
+  "factionId": "namer",
+  "intelDescription": "It does not stop you. It waits, and it makes whatever you do next worse.",
+  "maxHealth": 48,
+  "baseSpeed": 1,
+  "armor": 4,
+  "attackRange": 1,
+  "attackDamage": 8,
+  "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": [
+    "bulwark"
+  ],
+  "abilities": [
+    {
+      "key": "requiem",
+      "trigger": "onAllyDeath",
+      "name": "Another Layer",
+      "intelDescription": "Each of its own that falls binds the working tighter \u2014 +2 damage, stacking.",
+      "params": {
+        "amount": "2"
+      }
+    }
+  ],
+  "colorR": 0.16,
+  "colorG": 0.28,
+  "colorB": 0.48
+}

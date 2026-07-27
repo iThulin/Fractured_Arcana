@@ -70,7 +70,11 @@ public partial class Unit : Node3D
     [Export] public int StartArmor = 0;
     [Export] public int StartShield = 0;
     [Export] public int StartBaseSpeed = 2;
-    [Export] public int MoveRange = 3;
+    /// <summary>Tiles one move action covers. (2026-07-27) Baseline dropped 3 -> 2
+    /// for EVERY unit, player and enemy alike, so that `slowed` is a clean halving
+    /// (2 -> 1) instead of the lopsided 3 -> 1 it used to be. The `charge` tag buys
+    /// the difference back — see ChargeMoveRangeBonus.</summary>
+    [Export] public int MoveRange = 2;
     [Export] public int StartMaxMana = 3;
     [Export] public int StartMana = 3;
     public bool IsDeathQueued { get; private set; }
@@ -148,7 +152,7 @@ public partial class Unit : Node3D
     private Label3D _intentLabel;
 
     /// <summary>Shows or updates the floating intent glyph (e.g. "▲ 7", "✦ ?"). Follows the glyph-label pattern: CallDeferred add_child per README §8.</summary>
-    public void SetIntentDisplay(string text, Color color)
+    public void SetIntentDisplay(string text, Color color, int fontSize = 40)
     {
         if (_intentLabel == null)
         {
@@ -156,7 +160,7 @@ public partial class Unit : Node3D
             {
                 Name = "IntentIndicator",
                 Text = text,
-                FontSize = 40,
+                FontSize = fontSize,
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 NoDepthTest = true,
                 Position = new Vector3(0f, 2.75f, 0f),
@@ -168,6 +172,7 @@ public partial class Unit : Node3D
         {
             _intentLabel.Visible = true;
             _intentLabel.Text = text;
+            _intentLabel.FontSize = fontSize;
             _intentLabel.Modulate = color;
         }
     }
@@ -905,7 +910,16 @@ public partial class Unit : Node3D
     /// grants). This is the single per-move-reach value ALL movement paths read — the
     /// highlight (`GetReachableTiles`), the cost map (`GetReachableTilesWithCost`), the
     /// commit (`TryMoveTo`), and the SPD stat. `BaseSpeed` drives the AP count, not reach.</summary>
-    public int EffectiveMoveRange => EffectiveMovement(MoveRange);
+    public int EffectiveMoveRange
+        => EffectiveMovement(MoveRange + (HasBehaviorTag("charge") ? ChargeMoveRangeBonus : 0));
+
+    /// <summary>Extra per-move reach the `charge` behaviour tag grants (2026-07-27).
+    /// Tier-2 movement erased charge's identity — once every mover spent its whole AP
+    /// budget, "the one that actually covers ground" described everything. This is
+    /// where charge earns it back: a longer stride, not more actions, so it closes
+    /// distance without gaining attacks. Added INSIDE EffectiveMovement's budget so
+    /// `slowed` halves the bonus too and `rooted` still zeroes it outright.</summary>
+    public const int ChargeMoveRangeBonus = 1;
 
     // Selection visual methods
     private void CreateSelectionRing()

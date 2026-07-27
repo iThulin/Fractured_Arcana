@@ -81,7 +81,7 @@
 				"name": "convergence_vanguard",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "cinder_charger"
 					},
 					{
 						"archetype": "Wizard"
@@ -95,7 +95,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_mind_render"
 					}
 				]
 			},
@@ -106,7 +106,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "cinder_charger"
 					}
 				]
 			}
@@ -144,7 +144,7 @@
 				"name": "multi_school_cell",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_mind_render"
 					},
 					{
 						"archetype": "Wizard"
@@ -178,7 +178,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_mind_render"
 					}
 				]
 			},
@@ -211,7 +211,7 @@
 						"archetype": "cinder_charger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_mind_render"
 					}
 				]
 			},
@@ -239,7 +239,7 @@
 				"name": "all_schools_war",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_mind_render"
 					},
 					{
 						"archetype": "Wizard"
@@ -268,7 +268,7 @@
 						"archetype": "Defender"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_mind_render"
 					},
 					{
 						"archetype": "Ranger"
@@ -284,7 +284,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_mind_render"
 					},
 					{
 						"archetype": "Brute"

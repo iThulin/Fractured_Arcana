@@ -72,7 +72,7 @@
 				"name": "grave_robbers",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "carrion_hound"
 					},
 					{
 						"archetype": "Ranger"
@@ -83,7 +83,7 @@
 				"name": "bog_patrol",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "mire_lurker"
 					},
 					{
 						"archetype": "Soldier"
@@ -127,7 +127,7 @@
 						"archetype": "mire_lurker"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_grave_caller"
 					}
 				]
 			},
@@ -155,7 +155,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_grave_caller"
 					}
 				]
 			},
@@ -183,7 +183,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_grave_caller"
 					}
 				]
 			}
@@ -213,7 +213,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_grave_caller"
 					},
 					{
 						"archetype": "Defender"
@@ -250,7 +250,7 @@
 						"archetype": "Defender"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_grave_caller"
 					},
 					{
 						"archetype": "Ranger"

@@ -1,0 +1,20 @@
+{
+  "id": "astrologer_sealkeeper",
+  "threatLabel": "Keeper of the Seal",
+  "role": "line",
+  "factionId": "astrologer",
+  "intelDescription": "It already knows where you will be standing. It is waiting there.",
+  "maxHealth": 26,
+  "baseSpeed": 1,
+  "armor": 4,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": [
+    "bulwark"
+  ],
+  "colorR": 0.24,
+  "colorG": 0.4,
+  "colorB": 0.58
+}

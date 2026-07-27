@@ -1050,6 +1050,10 @@ public partial class CombatManager : Node3D
         int ap = Mathf.Max(0, enemy.MaxActionPoints);
         int moveRange = Mathf.Max(1, enemy.EffectiveMoveRange);
         int attackCost = Mathf.Max(1, MartialAPCosts.AttackCost(enemy.AttackRange));
+        // (2026-07-27) The AI reserves its attack cost before moving, so the reachable
+        // envelope is the POST-reserve budget — without this the zone would over-draw
+        // by attackCost x moveRange (3-6 tiles) now that AP includes the attack.
+        int moveAp = Mathf.Max(0, ap - attackCost);
         int attackRange = Mathf.Max(1, enemy.AttackRange);
         var start = enemy.CurrentTile.Axial;
 
@@ -1057,10 +1061,10 @@ public partial class CombatManager : Node3D
         var standMoves = new Dictionary<Vector2I, int> { [start] = 0 };
         if (ap > 0 && !enemy.HasBehaviorTag("immobile"))
         {
-            foreach (var kv in grid.GetReachableTilesWithBudget(enemy, ap * moveRange))
+            foreach (var kv in grid.GetReachableTilesWithBudget(enemy, moveAp * moveRange))
             {
                 int moves = Mathf.CeilToInt(kv.Value / (float)moveRange);
-                if (moves >= 1 && moves <= ap
+                if (moves >= 1 && moves <= moveAp
                     && (!standMoves.TryGetValue(kv.Key, out var m) || moves < m))
                     standMoves[kv.Key] = moves;
             }
@@ -2233,39 +2237,88 @@ public partial class CombatManager : Node3D
         }
     }
 
-    /// Move to a specific distance from target (Ranger kiting).
+    /// Move to a specific distance from target (Ranger/Wizard kiting). Tier-2 economy:
+    /// each AP buys a hop of up to EffectiveMoveRange, and the strike's cost is held in
+    /// reserve — see MoveTowardTile.
     private async System.Threading.Tasks.Task MoveToDistance(Unit enemy, Unit target, int desiredDist)
     {
-        var nextStep = grid.GetFirstStepToDistance(enemy, target.CurrentTile.Axial, desiredDist);
-        if (nextStep == null)
-            return;
+        int moves = 0;
+        const int SafetyCap = 6;
 
-        if (enemy.TryMoveTo(grid, nextStep))
+        for (int i = 0; i < SafetyCap; i++)
         {
-            string msg = $"{enemy.Name} repositions.";
+            if (!IsValidActor(enemy))
+                break;
+            if (target == null || !IsInstanceValid(target) || target.CurrentTile == null)
+                break;
+            if (!CanSpendMoveAP(enemy))
+                break;
+
+            var goal = target.CurrentTile.Axial;
+            if (grid.Distance(enemy.CurrentTile.Axial, goal) == desiredDist)
+                break;                                  // already at the preferred band
+
+            var dest = BestMoveDestination(enemy,
+                           c => -100 * Math.Abs(grid.Distance(c, goal) - desiredDist))
+                       ?? grid.GetFirstStepToDistance(enemy, goal, desiredDist);
+            if (dest == null)
+                break;                                  // nowhere better to stand
+            if (!enemy.TryMoveTo(grid, dest))
+                break;
+
+            moves++;
+            await ToSignal(GetTree().CreateTimer(0.15f), "timeout");
+        }
+
+        if (moves > 0)
+        {
+            string msg = $"{enemy.Name} repositions ({moves} move{(moves == 1 ? "" : "s")}).";
             GD.Print(msg);
             combatUI?.AppendActionLog(msg);
-            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
         }
     }
 
     /// Move away from target until at least minDist away (Ranger/Wizard retreat).
+    /// Tier-2 economy: each AP buys a hop of up to EffectiveMoveRange, with the shot's
+    /// cost held in reserve. This is what makes enemy kiting real — a 2-speed ranger
+    /// cornered at range 1 opens its whole preferred band in a single turn.
     private async System.Threading.Tasks.Task MoveAwayFrom(Unit enemy, Unit target, int minDist)
     {
-        // Already far enough — no need to move
-        if (grid.Distance(enemy.CurrentTile, target.CurrentTile) >= minDist)
-            return;
+        int moves = 0;
+        const int SafetyCap = 6;
 
-        var nextStep = grid.GetFirstStepAwayFrom(enemy, target.CurrentTile.Axial);
-        if (nextStep == null)
-            return;
-
-        if (enemy.TryMoveTo(grid, nextStep))
+        for (int i = 0; i < SafetyCap; i++)
         {
-            string msg = $"{enemy.Name} falls back.";
+            if (!IsValidActor(enemy))
+                break;
+            if (target == null || !IsInstanceValid(target) || target.CurrentTile == null)
+                break;
+
+            var goal = target.CurrentTile.Axial;
+            if (grid.Distance(enemy.CurrentTile.Axial, goal) >= minDist)
+                break;                                  // far enough — don't flee the map
+            if (!CanSpendMoveAP(enemy))
+                break;
+
+            // Cap the reward at minDist so it backs off to its band and stops, rather
+            // than running for the far corner of the arena.
+            var dest = BestMoveDestination(enemy,
+                           c => 100 * Math.Min(grid.Distance(c, goal), minDist))
+                       ?? grid.GetFirstStepAwayFrom(enemy, goal);
+            if (dest == null)
+                break;                                  // backed into a corner
+            if (!enemy.TryMoveTo(grid, dest))
+                break;
+
+            moves++;
+            await ToSignal(GetTree().CreateTimer(0.15f), "timeout");
+        }
+
+        if (moves > 0)
+        {
+            string msg = $"{enemy.Name} falls back ({moves} move{(moves == 1 ? "" : "s")}).";
             GD.Print(msg);
             combatUI?.AppendActionLog(msg);
-            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
         }
     }
 
@@ -3061,7 +3114,7 @@ public partial class CombatManager : Node3D
             wizard.DisplayName = wizardName;
             wizard.IsMartial = false;
             wizard.CompanionId = "wizard";
-            wizard.MoveRange = 3;
+            wizard.MoveRange = 2;   // baseline reach (2026-07-27)
             wizard.MaxActionPoints = wizard.Stats.BaseSpeed;      // ← add this
             wizard.CurrentActionPoints = wizard.MaxActionPoints;  // ← add this
 
@@ -3118,7 +3171,11 @@ public partial class CombatManager : Node3D
             {
                 unit.AttackDamage = companion.BaseAttackDamage;
                 unit.AttackRange = companion.BaseAttackRange;
-                unit.MoveRange = isMartial ? 4 : 3;
+                // (2026-07-27) Martials no longer get a reach premium — everything
+                // stands on the same 2-tile baseline, so slowed halves cleanly for
+                // the party too. Martial mobility still comes from their AP (3 vs an
+                // arcane companion's 2), not from a bigger stride.
+                unit.MoveRange = 2;
 
                 unit.MartialClass = companion.UnitClass switch
                 {
@@ -3456,6 +3513,7 @@ public partial class CombatManager : Node3D
         EncounterTier.Skirmish => HexGridManager.MapDensityPreset.Sparse,
         EncounterTier.Battle => HexGridManager.MapDensityPreset.Standard,
         EncounterTier.Siege => HexGridManager.MapDensityPreset.Dense,
+        EncounterTier.Ambush => HexGridManager.MapDensityPreset.Standard,
         _ => HexGridManager.MapDensityPreset.Standard,
     };
 
@@ -3647,7 +3705,12 @@ public partial class CombatManager : Node3D
             unit.FactionId = p.Def.FactionId;
             unit.AttackRange = p.AttackRange;
             unit.AttackDamage = p.AttackDamage;
-            unit.MaxActionPoints = p.BaseSpeed;
+            // Tier-2 AP economy (2026-07-27): AP = movement budget (BaseSpeed move
+            // actions) PLUS the cost of one attack, so a unit that advances at full
+            // speed can still afford to strike. Sizing it as BaseSpeed alone would
+            // disarm every AP-1 caster and every AP-0 turret the moment attacks
+            // started costing AP (ranged costs 2) — 22% of authored pool slots.
+            unit.MaxActionPoints = p.BaseSpeed + MartialAPCosts.AttackCost(p.AttackRange);
             unit.CurrentActionPoints = unit.MaxActionPoints;
             unit.SetBodyColor(p.BodyColor);
             unit.RefreshNameLabel();
@@ -4024,7 +4087,8 @@ public partial class CombatManager : Node3D
 
             AddChild(unit);
             unit.PlaceOnTile(tile);
-            unit.MaxActionPoints = unit.Stats.BaseSpeed;
+            unit.MaxActionPoints = unit.Stats.BaseSpeed
+                                 + MartialAPCosts.AttackCost(unit.AttackRange);
             unit.CurrentActionPoints = unit.MaxActionPoints;
 
             string suffix = unitKind.Replace("_", " ");
@@ -4128,7 +4192,9 @@ public partial class CombatManager : Node3D
         AddChild(unit);
         unit.OnDied += HandleUnitDeath;
         unit.PlaceOnTile(tile);
-        unit.MaxActionPoints = def.BaseSpeed;
+        // Same tier-2 budget as SpawnAndPlaceEnemies — risen/summoned units fight
+        // identically to deployed ones.
+        unit.MaxActionPoints = def.BaseSpeed + MartialAPCosts.AttackCost(def.AttackRange);
         unit.CurrentActionPoints = unit.MaxActionPoints;
 
         int sameKind = 1;

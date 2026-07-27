@@ -75,7 +75,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "dire_wolf"
 					}
 				]
 			},
@@ -83,7 +83,7 @@
 				"name": "deep_hunters",
 				"enemies": [
 					{
-						"archetype": "Ranger"
+						"archetype": "mire_lurker"
 					},
 					{
 						"archetype": "Ranger"
@@ -97,7 +97,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "beast_direboar"
 					}
 				]
 			}
@@ -127,7 +127,7 @@
 						"archetype": "dire_wolf"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					}
 				]
 			},
@@ -155,7 +155,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					}
 				]
 			},
@@ -166,7 +166,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					},
 					{
 						"archetype": "Soldier"
@@ -210,7 +210,7 @@
 				"name": "storm_convergence",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					},
 					{
 						"archetype": "Wizard"
@@ -233,7 +233,7 @@
 						"archetype": "Defender"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					},
 					{
 						"archetype": "Soldier"
@@ -283,7 +283,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					}
 				]
 			},

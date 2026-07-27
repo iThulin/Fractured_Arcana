@@ -82,7 +82,7 @@
 				"name": "archive_guards",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "archive_ward"
 					},
 					{
 						"archetype": "Wizard"
@@ -104,7 +104,7 @@
 				"name": "ward_constructs",
 				"enemies": [
 					{
-						"archetype": "Defender"
+						"archetype": "basalt_sentinel"
 					},
 					{
 						"archetype": "Soldier"
@@ -145,7 +145,7 @@
 				"name": "arcane_wardens",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_arclance_savant"
 					},
 					{
 						"archetype": "Defender"
@@ -190,7 +190,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_arclance_savant"
 					},
 					{
 						"archetype": "Soldier"
@@ -223,7 +223,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_arclance_savant"
 					},
 					{
 						"archetype": "Defender"
@@ -276,7 +276,7 @@
 						"archetype": "Defender"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_arclance_savant"
 					},
 					{
 						"archetype": "Soldier"

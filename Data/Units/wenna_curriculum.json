@@ -1,0 +1,29 @@
+{
+  "id": "wenna_curriculum",
+  "threatLabel": "The Aldric Curriculum",
+  "role": "elite",
+  "factionId": "wenna",
+  "intelDescription": "It goes for whoever is standing best. Killing it does not end the lesson.",
+  "maxHealth": 50,
+  "baseSpeed": 1,
+  "armor": 2,
+  "attackRange": 1,
+  "attackDamage": 9,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_target_highest_hp",
+  "abilities": [
+    {
+      "key": "deathburst",
+      "trigger": "onDeath",
+      "name": "Deathburst",
+      "intelDescription": "The curriculum outlives the lecturer \u2014 two Proctors take the front when it falls.",
+      "params": {
+        "count": "2",
+        "unit": "wenna_proctor"
+      }
+    }
+  ],
+  "colorR": 0.62,
+  "colorG": 0.49,
+  "colorB": 0.26
+}

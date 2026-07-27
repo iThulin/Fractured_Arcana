@@ -1,0 +1,20 @@
+{
+  "id": "namer_bound_servant",
+  "threatLabel": "Bound in Sevens",
+  "role": "line",
+  "factionId": "namer",
+  "intelDescription": "Bound in sevens and worth very little alone. Splitting them is the whole working.",
+  "maxHealth": 18,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "pack"
+  ],
+  "colorR": 0.34,
+  "colorG": 0.52,
+  "colorB": 0.76
+}

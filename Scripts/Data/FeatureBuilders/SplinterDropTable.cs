@@ -28,6 +28,7 @@ public static class SplinterDropTable
         EncounterTier.Skirmish => RollRange(2, 3),
         EncounterTier.Battle   => RollRange(4, 6),
         EncounterTier.Siege    => RollRange(8, 12),
+        EncounterTier.Ambush   => RollRange(3, 5),
         _                      => RollRange(3, 5),
     };
 

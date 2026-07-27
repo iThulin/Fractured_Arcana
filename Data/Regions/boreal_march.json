@@ -64,7 +64,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "frost_tusk"
 					}
 				]
 			},
@@ -72,7 +72,7 @@
 				"name": "still_hunters",
 				"enemies": [
 					{
-						"archetype": "Ranger"
+						"archetype": "frost_stalker"
 					},
 					{
 						"archetype": "Ranger"
@@ -124,7 +124,7 @@
 				"name": "frozen_moment",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_hourglass_magus"
 					},
 					{
 						"archetype": "Wizard"
@@ -152,7 +152,7 @@
 				"name": "timelost_host",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_hourglass_magus"
 					},
 					{
 						"archetype": "Defender"
@@ -202,7 +202,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_hourglass_magus"
 					},
 					{
 						"archetype": "Brute"
@@ -245,7 +245,7 @@
 						"archetype": "Brute"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_hourglass_magus"
 					}
 				]
 			}

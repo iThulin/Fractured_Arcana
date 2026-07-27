@@ -1,0 +1,17 @@
+{
+  "id": "namer_first_layer",
+  "threatLabel": "First Layer",
+  "role": "line",
+  "factionId": "namer",
+  "intelDescription": "The outermost working, and the only one you can see. There are six more.",
+  "maxHealth": 20,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "colorR": 0.22,
+  "colorG": 0.38,
+  "colorB": 0.62
+}

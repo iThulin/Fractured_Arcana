@@ -158,6 +158,20 @@
             "archetype": "conductor_wake_keeper"
           }
         ]
+      },
+      {
+        "name": "last_call",
+        "enemies": [
+          {
+            "archetype": "conductor_honored_dead"
+          },
+          {
+            "archetype": "conductor_wake_keeper"
+          },
+          {
+            "archetype": "conductor_wake_keeper"
+          }
+        ]
       }
     ]
   },

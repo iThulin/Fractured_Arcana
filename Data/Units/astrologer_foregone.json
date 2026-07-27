@@ -1,0 +1,30 @@
+{
+  "id": "astrologer_foregone",
+  "threatLabel": "The Foregone Conclusion",
+  "role": "elite",
+  "factionId": "astrologer",
+  "intelDescription": "Two turns to read the passage aloud. What it read then happens, and the struck are slowed by the reading.",
+  "maxHealth": 34,
+  "baseSpeed": 1,
+  "armor": 1,
+  "attackRange": 5,
+  "attackDamage": 8,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_charge",
+  "casterSpell": "chrono",
+  "abilities": [
+    {
+      "key": "deathburst",
+      "trigger": "onDeath",
+      "name": "Deathburst",
+      "intelDescription": "The seal closes behind it \u2014 a Keeper steps into the gap on its death.",
+      "params": {
+        "count": "1",
+        "unit": "astrologer_sealkeeper"
+      }
+    }
+  ],
+  "colorR": 0.18,
+  "colorG": 0.3,
+  "colorB": 0.48
+}

@@ -45,10 +45,10 @@
         "name": "workshop_patrol",
         "enemies": [
           {
-            "archetype": "Soldier"
+            "archetype": "engineer_bench_turret"
           },
           {
-            "archetype": "Defender"
+            "archetype": "engineer_half_finished"
           }
         ]
       },
@@ -56,10 +56,10 @@
         "name": "korro_scouts",
         "enemies": [
           {
-            "archetype": "Defender"
+            "archetype": "engineer_half_finished"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "engineer_half_finished"
           }
         ]
       }
@@ -69,13 +69,13 @@
         "name": "deployed_battery",
         "enemies": [
           {
-            "archetype": "Defender"
+            "archetype": "engineer_bench_turret"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "engineer_bench_turret"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "engineer_half_finished"
           }
         ]
       },
@@ -83,13 +83,13 @@
         "name": "field_assembly",
         "enemies": [
           {
-            "archetype": "Brute"
+            "archetype": "engineer_shop_frame"
           },
           {
-            "archetype": "Defender"
+            "archetype": "engineer_bench_turret"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_forge_warden"
           }
         ]
       },
@@ -97,13 +97,13 @@
         "name": "prototype_squad",
         "enemies": [
           {
-            "archetype": "Defender"
+            "archetype": "engineer_grand_turret"
           },
           {
-            "archetype": "Defender"
+            "archetype": "engineer_half_finished"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "caster_forge_warden"
           }
         ]
       }
@@ -113,16 +113,16 @@
         "name": "full_deployment",
         "enemies": [
           {
-            "archetype": "Brute"
+            "archetype": "engineer_grand_turret"
           },
           {
-            "archetype": "Defender"
+            "archetype": "engineer_bench_turret"
           },
           {
-            "archetype": "Defender"
+            "archetype": "engineer_half_finished"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_forge_warden"
           }
         ]
       },
@@ -130,16 +130,16 @@
         "name": "workshop_ascendant",
         "enemies": [
           {
-            "archetype": "Brute"
+            "archetype": "engineer_shop_frame"
           },
           {
-            "archetype": "Brute"
+            "archetype": "engineer_bench_turret"
           },
           {
-            "archetype": "Defender"
+            "archetype": "engineer_bench_turret"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "caster_forge_warden"
           }
         ]
       }
@@ -149,13 +149,27 @@
         "name": "field_test",
         "enemies": [
           {
-            "archetype": "Ranger"
+            "archetype": "engineer_half_finished"
           },
           {
-            "archetype": "Defender"
+            "archetype": "engineer_half_finished"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_forge_warden"
+          }
+        ]
+      },
+      {
+        "name": "bench_test",
+        "enemies": [
+          {
+            "archetype": "engineer_half_finished"
+          },
+          {
+            "archetype": "engineer_bench_turret"
+          },
+          {
+            "archetype": "engineer_half_finished"
           }
         ]
       }

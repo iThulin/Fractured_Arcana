@@ -45,10 +45,10 @@
         "name": "first_layer",
         "enemies": [
           {
-            "archetype": "Defender"
+            "archetype": "namer_first_layer"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "namer_bound_servant"
           }
         ]
       },
@@ -56,10 +56,10 @@
         "name": "bound_watch",
         "enemies": [
           {
-            "archetype": "Soldier"
+            "archetype": "namer_bound_servant"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "namer_bound_servant"
           }
         ]
       }
@@ -69,13 +69,13 @@
         "name": "three_layers",
         "enemies": [
           {
-            "archetype": "Defender"
+            "archetype": "namer_seventh_layer"
           },
           {
-            "archetype": "Defender"
+            "archetype": "namer_bound_servant"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "caster_veil_witch"
           }
         ]
       },
@@ -83,13 +83,13 @@
         "name": "the_named",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "namer_bound_servant"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "namer_bound_servant"
           },
           {
-            "archetype": "Defender"
+            "archetype": "namer_first_layer"
           }
         ]
       },
@@ -97,13 +97,13 @@
         "name": "fifth_working",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "namer_first_layer"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "namer_bound_servant"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_veil_witch"
           }
         ]
       }
@@ -113,16 +113,16 @@
         "name": "six_layers",
         "enemies": [
           {
-            "archetype": "Defender"
+            "archetype": "namer_first_layer"
           },
           {
-            "archetype": "Defender"
+            "archetype": "namer_bound_servant"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "namer_bound_servant"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "caster_veil_witch"
           }
         ]
       },
@@ -130,16 +130,16 @@
         "name": "seventh_layer",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "namer_seventh_layer"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "namer_first_layer"
           },
           {
-            "archetype": "Defender"
+            "archetype": "namer_bound_servant"
           },
           {
-            "archetype": "Brute"
+            "archetype": "caster_veil_witch"
           }
         ]
       }
@@ -149,13 +149,27 @@
         "name": "the_next_thing",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "namer_bound_servant"
           },
           {
-            "archetype": "Defender"
+            "archetype": "namer_bound_servant"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "caster_veil_witch"
+          }
+        ]
+      },
+      {
+        "name": "fourth_layer",
+        "enemies": [
+          {
+            "archetype": "namer_bound_servant"
+          },
+          {
+            "archetype": "namer_bound_servant"
+          },
+          {
+            "archetype": "namer_first_layer"
           }
         ]
       }

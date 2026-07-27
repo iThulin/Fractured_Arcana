@@ -68,7 +68,7 @@
 				"name": "ash_patrol",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "cinder_charger"
 					},
 					{
 						"archetype": "Brute"
@@ -79,7 +79,7 @@
 				"name": "lava_scouts",
 				"enemies": [
 					{
-						"archetype": "Ranger"
+						"archetype": "mirage_hunter"
 					},
 					{
 						"archetype": "Wizard"
@@ -90,7 +90,7 @@
 				"name": "waste_wardens",
 				"enemies": [
 					{
-						"archetype": "Defender"
+						"archetype": "basalt_sentinel"
 					},
 					{
 						"archetype": "Soldier"
@@ -123,7 +123,7 @@
 						"archetype": "basalt_sentinel"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_ember_adept"
 					}
 				]
 			},
@@ -148,7 +148,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_ember_adept"
 					},
 					{
 						"archetype": "Brute"
@@ -198,7 +198,7 @@
 						"archetype": "cinder_charger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_ember_adept"
 					}
 				]
 			},
@@ -232,7 +232,7 @@
 						"archetype": "Brute"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_ember_adept"
 					},
 					{
 						"archetype": "Ranger"
@@ -279,7 +279,7 @@
 						"archetype": "Brute"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_ember_adept"
 					},
 					{
 						"archetype": "Soldier"

@@ -1,0 +1,20 @@
+{
+  "id": "aurel_marginalia",
+  "threatLabel": "Marginalia",
+  "role": "line",
+  "factionId": "aurel",
+  "intelDescription": "It works the edges of the page. Crowd it and it simply moves to a cleaner margin.",
+  "maxHealth": 18,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "scout"
+  ],
+  "colorR": 0.66,
+  "colorG": 0.4,
+  "colorB": 0.82
+}

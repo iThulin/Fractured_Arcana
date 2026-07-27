@@ -1,0 +1,17 @@
+{
+  "id": "aurel_annotator",
+  "threatLabel": "Annotator",
+  "role": "line",
+  "factionId": "aurel",
+  "intelDescription": "It does not interfere. It stays at range and writes down what you failed to do.",
+  "maxHealth": 18,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 3,
+  "attackDamage": 4,
+  "preferredDistance": 3,
+  "behaviorKey": "ranged_kite",
+  "colorR": 0.52,
+  "colorG": 0.24,
+  "colorB": 0.7
+}

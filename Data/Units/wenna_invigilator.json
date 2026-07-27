@@ -1,0 +1,17 @@
+{
+  "id": "wenna_invigilator",
+  "threatLabel": "Invigilator",
+  "role": "line",
+  "factionId": "wenna",
+  "intelDescription": "It finds whoever is struggling most and attends to them personally.",
+  "maxHealth": 16,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_hunt_wounded",
+  "colorR": 0.85,
+  "colorG": 0.74,
+  "colorB": 0.46
+}

@@ -71,7 +71,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Ranger"
+						"archetype": "bolt_sentry"
 					}
 				]
 			},
@@ -79,7 +79,7 @@
 				"name": "pass_patrol",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "clockwork_bulwark"
 					},
 					{
 						"archetype": "Ranger"
@@ -90,7 +90,7 @@
 				"name": "highland_scouts",
 				"enemies": [
 					{
-						"archetype": "Ranger"
+						"archetype": "crag_ambusher"
 					},
 					{
 						"archetype": "Soldier"
@@ -249,7 +249,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_forge_warden"
 					}
 				]
 			}
