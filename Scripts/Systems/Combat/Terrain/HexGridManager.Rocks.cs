@@ -29,8 +29,17 @@ public partial class HexGridManager : Node3D
     /// <summary>Optional relative spawn weights, parallel to RockMeshes. Leave empty for equal odds.</summary>
     [Export] public float[] RockMeshWeights;
 
+    /// <summary>Separate LARGE-boulder pool used ONLY on stone/mountain tiles. Drop big rounded rock-face meshes here; grass keeps the small scree in RockMeshes. Empty = mountains reuse RockMeshes.</summary>
+    [Export] public Mesh[] MountainRockMeshes;
+
+    /// <summary>Optional weights parallel to MountainRockMeshes.</summary>
+    [Export] public float[] MountainRockMeshWeights;
+
     /// <summary>Material for the rocks. REQUIRED — assign painterly_rock.tres. Skipped if null (never rendered material-less).</summary>
     [Export] public Material RockMaterial;
+
+    /// <summary>Optional SEPARATE material for the mountain/stone boulder pool. Mountains want a warm dry rock palette; meadow scree wants the cool mossy one. Null = mountains reuse RockMaterial.</summary>
+    [Export] public Material MountainRockMaterial;
 
     [Export(PropertyHint.Range, "0,12,1")] public int RocksPerTile = 2;
     [Export(PropertyHint.Range, "0.05,3.0,0.05")] public float RockScale = 0.4f;
@@ -46,6 +55,15 @@ public partial class HexGridManager : Node3D
     [Export(PropertyHint.Range, "0,0.8,0.02")] public float RockTiltJitter = 0.30f;
 
     [Export] public bool RockOnForest = true;
+
+    /// <summary>Scatter boulders/scree on STONE tiles too (mountains). Off = old grass-only behaviour.</summary>
+    [Export] public bool RockOnStone = true;
+
+    /// <summary>Rock COUNT multiplier on stone tiles — mountains want more scree/boulders than meadows. Applied on top of RocksPerTile.</summary>
+    [Export(PropertyHint.Range, "1,8,0.5")] public float RockStoneDensityMult = 2.0f;
+
+    /// <summary>Rock SCALE multiplier on stone tiles — bigger, protruding boulders on rock faces.</summary>
+    [Export(PropertyHint.Range, "1,4,0.1")] public float RockStoneScaleMult = 1.7f;
 
     /// <summary>Per-instance tint via custom data, read by painterly_rock (use_instance_tint). Turn OFF for one uniform rock colour.</summary>
     [Export] public bool UseRockColorVariation = true;
@@ -75,32 +93,49 @@ public partial class HexGridManager : Node3D
             return;
         }
 
-        // ── Variant pool (skip nulls, align weights) ──
+        // ── Variant pools (skip nulls, align weights) ──
+        // TWO pools sharing one variant list: the grass scree pool (RockMeshes)
+        // and the mountain boulder pool (MountainRockMeshes). variantIsMountain
+        // flags which is which; grassIdx/mountainIdx let PickVariant draw from
+        // the right pool per tile. Stone tiles draw mountain boulders when that
+        // pool is non-empty, else fall back to the scree pool.
         var variantMeshes = new List<Mesh>();
         var variantWeights = new List<float>();
-        if (RockMeshes != null)
+        var variantIsMountain = new List<bool>();
+
+        void AddPool(Mesh[] meshes, float[] weights, bool mountain)
         {
-            for (int i = 0; i < RockMeshes.Length; i++)
+            if (meshes == null)
+                return;
+            for (int i = 0; i < meshes.Length; i++)
             {
-                if (RockMeshes[i] == null)
+                if (meshes[i] == null)
                     continue;
-                variantMeshes.Add(RockMeshes[i]);
-                float wgt = (RockMeshWeights != null && i < RockMeshWeights.Length)
-                    ? Mathf.Max(0f, RockMeshWeights[i])
-                    : 1f;
-                variantWeights.Add(wgt);
+                variantMeshes.Add(meshes[i]);
+                variantWeights.Add((weights != null && i < weights.Length) ? Mathf.Max(0f, weights[i]) : 1f);
+                variantIsMountain.Add(mountain);
             }
         }
+        AddPool(RockMeshes, RockMeshWeights, false);
+        AddPool(MountainRockMeshes, MountainRockMeshWeights, true);
+
         if (variantMeshes.Count == 0)
         {
             GD.PushWarning("[HexGridManager] RockMeshes empty — rocks skipped. Assign at least one rock mesh.");
             return;
         }
 
+        // Per-pool index lists + weight sums for weighted picking within a pool.
+        var grassIdx = new List<int>();
+        var mtnIdx = new List<int>();
+        float grassWsum = 0f, mtnWsum = 0f;
+        for (int v = 0; v < variantMeshes.Count; v++)
+        {
+            if (variantIsMountain[v]) { mtnIdx.Add(v); mtnWsum += variantWeights[v]; }
+            else { grassIdx.Add(v); grassWsum += variantWeights[v]; }
+        }
+
         int variantCount = variantMeshes.Count;
-        float totalWeight = 0f;
-        foreach (float wgt in variantWeights)
-            totalWeight += wgt;
 
         float densityScalar = DensityPreset switch
         {
@@ -132,7 +167,8 @@ public partial class HexGridManager : Node3D
 
         bool IsRockSurface(TileData t) =>
             t.TerrainType == TileTerrainType.Grass ||
-            (RockOnForest && t.TerrainType == TileTerrainType.Forest);
+            (RockOnForest && t.TerrainType == TileTerrainType.Forest) ||
+            (RockOnStone && t.TerrainType == TileTerrainType.Stone);
 
         bool useColors = UseRockColorVariation;
         bool paletteOk = RockPalette != null && RockPalette.Length > 0;
@@ -145,21 +181,23 @@ public partial class HexGridManager : Node3D
                 colBuckets[v] = new List<Color>();
         }
 
-        int PickVariant()
+        // Weighted pick WITHIN a pool. Stone tiles with a non-empty mountain
+        // pool draw big boulders; everything else draws scree.
+        int PickVariant(bool mountain)
         {
-            if (variantCount == 1)
-                return 0;
-            if (totalWeight <= 0f)
-                return rng.RandiRange(0, variantCount - 1);
-            float r = rng.RandfRange(0f, totalWeight);
+            var idx = (mountain && mtnIdx.Count > 0) ? mtnIdx : grassIdx;
+            float wsum = (mountain && mtnIdx.Count > 0) ? mtnWsum : grassWsum;
+            if (idx.Count == 1 || wsum <= 0f)
+                return idx[rng.RandiRange(0, idx.Count - 1)];
+            float r = rng.RandfRange(0f, wsum);
             float acc = 0f;
-            for (int v = 0; v < variantCount; v++)
+            foreach (int v in idx)
             {
                 acc += variantWeights[v];
                 if (r <= acc)
                     return v;
             }
-            return variantCount - 1;
+            return idx[idx.Count - 1];
         }
 
         // Playable tiles at full density, vista tiles at VistaScatterDensity
@@ -169,7 +207,9 @@ public partial class HexGridManager : Node3D
             if (tile.TileView == null || tile.IsBlocked || !IsRockSurface(tile))
                 continue;
 
-            int count = Mathf.Max(0, Mathf.RoundToInt(RocksPerTile * densityScalar * scatterDensity));
+            bool isStone = tile.TerrainType == TileTerrainType.Stone;
+            float stoneCountMult = isStone ? RockStoneDensityMult : 1f;
+            int count = Mathf.Max(0, Mathf.RoundToInt(RocksPerTile * densityScalar * scatterDensity * stoneCountMult));
             Vector3 top = tile.TileView.GlobalPosition;
 
             for (int i = 0; i < count; i++)
@@ -190,11 +230,15 @@ public partial class HexGridManager : Node3D
                 float wx = top.X + p.X;
                 float wz = top.Z + p.Y;
 
-                // Bare bias: prefer LOW clump noise (sparse grass), the inverse of flowers.
-                if (RockBareBias > 0f)
+                // Bare bias: prefer LOW clump noise so rocks CLUSTER into scree
+                // fields instead of an even carpet. Stone uses HALF strength —
+                // mountains read rocky but still clumped, with bare rock faces
+                // showing between the scree, not a solid blanket.
+                float effBias = isStone ? RockBareBias * 0.5f : RockBareBias;
+                if (effBias > 0f)
                 {
                     float cn = clumpNoise.GetNoise2D(wx, wz) * 0.5f + 0.5f; // 0..1
-                    float accept = Mathf.Lerp(1f, 1f - cn, RockBareBias);
+                    float accept = Mathf.Lerp(1f, 1f - cn, effBias);
                     if (rng.Randf() > accept)
                         continue;
                 }
@@ -205,14 +249,15 @@ public partial class HexGridManager : Node3D
                 float yaw = rng.RandfRange(0f, Mathf.Tau);
                 float tiltA = rng.RandfRange(0f, RockTiltJitter);
                 float tiltDir = rng.RandfRange(0f, Mathf.Tau);
-                float s = Mathf.Max(0.02f, RockScale * (1f + rng.RandfRange(-RockScaleJitter, RockScaleJitter)));
+                float stoneScaleMult = isStone ? RockStoneScaleMult : 1f;
+                float s = Mathf.Max(0.02f, RockScale * stoneScaleMult * (1f + rng.RandfRange(-RockScaleJitter, RockScaleJitter)));
 
                 var basis = new Basis(Vector3.Up, yaw);
                 var tiltAxis = new Vector3(Mathf.Cos(tiltDir), 0f, Mathf.Sin(tiltDir));
                 basis = new Basis(tiltAxis, tiltA) * basis;
                 basis = basis.Scaled(new Vector3(s, s, s));
 
-                int variant = PickVariant();
+                int variant = PickVariant(isStone);
                 tfBuckets[variant].Add(new Transform3D(basis, pos));
 
                 if (colBuckets != null)
@@ -268,14 +313,21 @@ public partial class HexGridManager : Node3D
                 mx.Z = Mathf.Max(mx.Z, o.Z);
             }
             float meshExtent = variantMeshes[v].GetAabb().Size.Length();
-            float grow = Mathf.Max(2.0f, meshExtent * RockScale * (1f + RockScaleJitter) + 1.0f);
+            // Account for the larger stone boulders so their AABB isn't too tight (culling pop).
+            float maxScaleMult = RockOnStone ? Mathf.Max(1f, RockStoneScaleMult) : 1f;
+            float grow = Mathf.Max(2.0f, meshExtent * RockScale * maxScaleMult * (1f + RockScaleJitter) + 1.0f);
             mm.CustomAabb = new Aabb(mn, mx - mn).Grow(grow);
 
             var mmi = new MultiMeshInstance3D
             {
                 Name = $"RockPropField_{v}",
                 Multimesh = mm,
-                MaterialOverride = RockMaterial,
+                // Mountain boulders get their own material when one is assigned,
+                // so stone tiles can run a warm dry palette while grass scree
+                // keeps the cool mossy one. Same shader, different .tres.
+                MaterialOverride = (variantIsMountain[v] && MountainRockMaterial != null)
+                    ? MountainRockMaterial
+                    : RockMaterial,
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.On // rocks cast shadows
             };
             mmi.AddToGroup(RockPropGroup);

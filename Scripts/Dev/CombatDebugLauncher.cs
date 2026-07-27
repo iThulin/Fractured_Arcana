@@ -135,8 +135,13 @@ public partial class CombatDebugLauncher : CanvasLayer
             Convert.ToInt32(PlayerSession.SelectedSchool));
         _tierOpt = AddEnumDropdown(form, "Tier:", Enum.GetValues(typeof(EncounterTier)),
             (int)EncounterTier.Battle);
+        // Show the recipe each overworld terrain resolves to, so "Mountain"
+        // reads as "Mountain → highland_crags" (the debug picker uses overworld
+        // terrain names; the recipe files use their own names — this bridges them).
+        TerrainRecipeMap.EnsureLoaded();
         _mapOpt = AddEnumDropdown(form, "Map / terrain:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
-            (int)OverworldHex.TerrainType.Grassland);
+            (int)OverworldHex.TerrainType.Grassland,
+            v => $"{v} → {TerrainRecipeMap.Resolve((OverworldHex.TerrainType)v)}");
         // Debug stand-in for overworld adjacency: pretends ALL six neighbouring
         // world hexes are this terrain, so the vista ring leans toward it.
         // Same as the map terrain = no bias (pure field continuation).
@@ -299,7 +304,8 @@ public partial class CombatDebugLauncher : CanvasLayer
 
     // ── UI helpers ────────────────────────────────────────────────────────
 
-    private OptionButton AddEnumDropdown(VBoxContainer form, string label, Array values, int selectedId)
+    private OptionButton AddEnumDropdown(VBoxContainer form, string label, Array values, int selectedId,
+        Func<object, string> labelFn = null)
     {
         var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         row.AddThemeConstantOverride("separation", 8);
@@ -308,7 +314,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         var opt = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         foreach (var v in values)
         {
-            opt.AddItem(v.ToString(), Convert.ToInt32(v));
+            opt.AddItem(labelFn != null ? labelFn(v) : v.ToString(), Convert.ToInt32(v));
         }
         for (int i = 0; i < opt.ItemCount; i++)
         {

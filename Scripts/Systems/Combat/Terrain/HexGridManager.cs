@@ -115,7 +115,7 @@ public partial class HexGridManager : Node3D
     [Export(PropertyHint.Range, "0.05,2,0.05")] public float TerrainNoiseFrequency = 0.6f;
 
     /// <summary>Inner-hex subdivision. 1 = old flat fan, 3-4 = rolling relief. Higher = smoother bumps but more verts per tile.</summary>
-    [Export(PropertyHint.Range, "1,6,1")] public int TerrainNoiseSubdiv = 4;
+    [Export(PropertyHint.Range, "1,6,1")] public int TerrainNoiseSubdiv = 5;
 
     /// <summary>
     /// Height-step difference above which an edge renders as a sheer cliff
@@ -171,8 +171,8 @@ public partial class HexGridManager : Node3D
     [Export] public float ForestNoiseAmp = 0.22f;
     [Export] public float ForestNoiseFreq = 0.7f;
 
-    [Export] public float StoneNoiseAmp = 0.34f;
-    [Export] public float StoneNoiseFreq = 0.40f;
+    [Export] public float StoneNoiseAmp = 0.52f;
+    [Export] public float StoneNoiseFreq = 0.68f;
 
     [Export] public float WaterNoiseAmp = 0.03f;
     [Export] public float WaterNoiseFreq = 0.4f;

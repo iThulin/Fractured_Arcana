@@ -52,6 +52,26 @@ uniform float cliff_blend_sharpness : hint_range(0.5, 16.0) = 8.0;
 /** Residual darkening multiplied onto cliff faces on top of the texture. */
 uniform float wall_darkening : hint_range(0.0, 1.0) = 0.12;
 
+// ── Slope dirt / scree (S9) ────────────────────────────────────
+// Moderate slopes (below the cliff/rock threshold) expose earth — the band
+// between flat grass tops and vertical rock. Without it, hill/mountain faces
+// read as extruded grass columns. Procedural (house style: no textures).
+group_uniforms slope_dirt;
+/** Master toggle for the slope earth band. */
+uniform bool use_slope_dirt = true;
+/** Steepness (0 flat .. 1 vertical) where earth begins showing on slopes. */
+uniform float slope_dirt_start : hint_range(0.0, 1.0) = 0.22;
+/** Softness of the grass→earth ramp. */
+uniform float slope_dirt_soft : hint_range(0.01, 0.5) = 0.18;
+/** Overall strength of the earth band (fades out into the rock cliff above). */
+uniform float slope_dirt_strength : hint_range(0.0, 1.0) = 0.55;
+/** Darker exposed-earth tone (hollows). */
+uniform vec3  slope_dirt_low : source_color = vec3(0.40, 0.32, 0.22);
+/** Lighter scree/dry-earth tone (crests). */
+uniform vec3  slope_dirt_high : source_color = vec3(0.52, 0.44, 0.32);
+/** Scale of the earth mottle noise. */
+uniform float slope_dirt_noise_scale : hint_range(0.005, 0.4) = 0.06;
+
 // ── Toon lighting (match the grass tuner) ──────────────────────
 group_uniforms toon;
 /** Number of flat shading steps. Match the scene contract (6). */
@@ -108,15 +128,25 @@ uniform float stone_strength : hint_range(0.0, 1.0) = 0.85;
 /** Seamless noise driving the tonal drift. ASSIGN (Painterly_wind_noise). */
 uniform sampler2D stone_noise_tex : hint_default_white, repeat_enable, filter_linear;
 /** Cool end of the stone hue drift. Desaturated. */
-uniform vec3  stone_cool : source_color = vec3(0.42, 0.45, 0.50);
+uniform vec3  stone_cool : source_color = vec3(0.34, 0.35, 0.41);
 /** Warm end of the stone hue drift. */
-uniform vec3  stone_warm : source_color = vec3(0.52, 0.50, 0.47);
+uniform vec3  stone_warm : source_color = vec3(0.58, 0.52, 0.43);
 /** World-space scale of the cool/warm drift. Lower = bigger masses. */
 uniform float stone_tint_scale : hint_range(0.005, 0.4) = 0.05;
 /** Finer brightness mottle, sampled independently of hue. */
 uniform float stone_mottle : hint_range(0.0, 0.5) = 0.12;
 /** World-space scale of the brightness mottle. */
 uniform float stone_mottle_scale : hint_range(0.01, 1.0) = 0.25;
+/** Horizontal rock strata: alternating darker/lighter layers by world Y. The signature of a cliff face — shows on vertical faces, near-uniform on flat tops. */
+uniform float stone_strata_strength : hint_range(0.0, 0.6) = 0.16;
+/** Strata band frequency (bands per world unit of height). */
+uniform float stone_strata_freq : hint_range(0.5, 8.0) = 2.6;
+/** World Y where elevation lightening begins (peaks catch warm light). */
+uniform float stone_elev_low : hint_range(-2.0, 4.0) = 0.2;
+/** World Y where elevation lightening saturates. */
+uniform float stone_elev_high : hint_range(-2.0, 6.0) = 2.6;
+/** How much peaks lighten/warm toward sunlit rock. */
+uniform float stone_elev_lighten : hint_range(0.0, 1.0) = 0.45;
 
 // ── Sand ground tonal mass ─────────────────────────────────────
 group_uniforms sand_ground;
@@ -165,6 +195,14 @@ uniform float cliff_crack_strength : hint_range(0.0, 0.8) = 0.15;
 uniform vec3  cliff_moss : source_color = vec3(0.40, 0.50, 0.28);
 /** Moss coverage. 0 = bare; raise for mossier ledges. */
 uniform float cliff_moss_amount : hint_range(0.0, 1.0) = 0.0;
+/** S11: fake rocky relief bent into the cliff-face normal so toon light breaks the flat wall into craggy rock (no geometry change). This is what stops tall steps reading as smooth extruded columns. */
+uniform float cliff_relief_strength : hint_range(0.0, 1.0) = 0.5;
+/** Scale of the cliff-face relief bumps (face-plane world units). */
+uniform float cliff_relief_scale : hint_range(0.05, 2.0) = 0.5;
+/** S11: vertical crevice facets — dark seams running DOWN the face that split one wide hex pane into stacked rock columns. The key de-extrusion cue. */
+uniform float cliff_facet_strength : hint_range(0.0, 0.8) = 0.35;
+/** Horizontal frequency of the vertical facet crevices. */
+uniform float cliff_facet_scale : hint_range(0.2, 4.0) = 1.3;
 
 // ── Painterly ground detail (mottling + small stones) ──────────
 group_uniforms ground_detail;
@@ -351,6 +389,33 @@ vec3 pastel_gradient(float t) {
 	return mix(pastel_mid, pastel_high, (t - pastel_mid_pos) / max(1.0 - pastel_mid_pos, 0.0001));
 }
 
+// Painterly rock colour, shared by cliff FACES and stone TOPS so they read as
+// one material. Cool→warm hue drift + noise-warped horizontal strata (the
+// cliff-face signature, keyed on world Y) + elevation lightening (peaks catch
+// warm sun) + fine mottle. All procedural — no rock texture.
+vec3 rock_paint(vec3 wp) {
+	float hue = texture(stone_noise_tex, wp.xz * stone_tint_scale).r;
+	vec3 c = mix(stone_cool, stone_warm, hue);
+
+	// Strata: soft alternating bands by height, the band lines warped by
+	// low-freq noise so they wave like real sedimentary layers instead of
+	// ruler-straight contours. Near-flat tops see ~one band (uniform); the
+	// bands only reveal themselves down a vertical face.
+	float warp = texture(stone_noise_tex, wp.xz * 0.13 + vec2(2.1, 5.7)).r;
+	float band = sin((wp.y + warp * 0.7) * stone_strata_freq * 3.14159);
+	band = smoothstep(-0.5, 0.5, band);
+	c *= 1.0 + (band - 0.5) * stone_strata_strength;
+
+	// Elevation lighten: peaks drift toward a lighter, warmer sunlit tone.
+	float elev = smoothstep(stone_elev_low, stone_elev_high, wp.y);
+	c = mix(c, min(c * 1.3 + vec3(0.06, 0.05, 0.03), vec3(1.0)), elev * stone_elev_lighten);
+
+	// Fine mottle.
+	float mv = texture(stone_noise_tex, wp.xz * stone_mottle_scale + vec2(0.37, 0.61)).r;
+	c *= 1.0 + (mv - 0.5) * stone_mottle * 2.0;
+	return c;
+}
+
 void fragment() {
 	vec3 geom = normalize(v_world_normal);
 	vec3 bw = pow(abs(geom), vec3(triplanar_sharpness));
@@ -408,8 +473,11 @@ void fragment() {
 		sample_normal_top(v_indices.a, v_world_pos) * w.a;
 
 	// ── Cliff layer (rock) ───────────────────────────────────────
+	// Painterly rock (strata + elevation) instead of the flat cliff-layer
+	// texture sample — the empty slot rendered steep faces as solid grey,
+	// the biggest reason mountains read as clay.
 	float cl = float(cliff_layer);
-	vec3 cliff_albedo = sample_albedo(cl, v_world_pos, bw);
+	vec3 cliff_albedo = rock_paint(v_world_pos);
 	vec3 cliff_n = sample_normal_wall(cl, v_world_pos, bw);
 
 	float steep = 1.0 - abs(geom.y);
@@ -476,11 +544,7 @@ void fragment() {
 			(abs(v_indices.b - sl) < 0.5 ? w.b : 0.0) +
 			(abs(v_indices.a - sl) < 0.5 ? w.a : 0.0);
 
-		float hue = texture(stone_noise_tex, v_world_pos.xz * stone_tint_scale).r;
-		vec3 stone_col = mix(stone_cool, stone_warm, hue);
-
-		float mv = texture(stone_noise_tex, v_world_pos.xz * stone_mottle_scale + vec2(0.37, 0.61)).r;
-		stone_col *= 1.0 + (mv - 0.5) * stone_mottle * 2.0;
+		vec3 stone_col = rock_paint(v_world_pos);
 
 		float stone_mask = (1.0 - cliff_mix) * stone_strength * stone_weight * (1.0 - is_skirt);
 		albedo = mix(albedo, stone_col, stone_mask);
@@ -528,6 +592,22 @@ void fragment() {
 			float hU = texture(stone_noise_tex, sp2 + vec2(0.0, eps)).r - texture(stone_noise_tex, sp2 - vec2(0.0, eps)).r;
 			vec3 sn = normalize(vec3(-hR * sand_normal_strength * 8.0, 1.0, -hU * sand_normal_strength * 8.0));
 			tn = normalize(mix(tn, sn, sand_mask));
+		}
+	}
+
+	// ── Slope dirt / scree (S9): earth on moderate slopes ────────
+	// Lives in the band between grass tops and rock cliffs: ramps in above
+	// slope_dirt_start and fades out as cliff_mix (rock) takes over, so the
+	// progression reads grass → earth → rock. Gated to dry, above-water,
+	// non-skirt faces so it never muddies water beds or the map-edge skirt.
+	if (use_slope_dirt) {
+		float dirt = smoothstep(slope_dirt_start, slope_dirt_start + slope_dirt_soft, steep);
+		dirt *= (1.0 - cliff_mix) * above_water * (1.0 - is_skirt) * slope_dirt_strength;
+		if (dirt > 0.001) {
+			float dn = texture(stone_noise_tex, v_world_pos.xz * slope_dirt_noise_scale).r * 0.6
+				+ texture(stone_noise_tex, v_world_pos.xz * slope_dirt_noise_scale * 2.7 + vec2(5.3, 1.9)).r * 0.4;
+			vec3 dirt_col = mix(slope_dirt_low, slope_dirt_high, dn);
+			albedo = mix(albedo, dirt_col, dirt);
 		}
 	}
 
@@ -595,6 +675,25 @@ void fragment() {
 		float upface = smoothstep(0.15, 0.5, geom.y);
 		float li = texture(cliff_crack_tex, crack_uv * cliff_crack_scale * 0.4 + vec2(0.7, 0.2)).r;
 		cliff_col = mix(cliff_col, cliff_moss, smoothstep(0.6, 0.9, li) * upface * cliff_moss_amount);
+
+		// S11 — vertical facet crevices: dark seams running DOWN the face that
+		// split one wide flat hex pane into stacked rock columns. Keyed on the
+		// horizontal position across the face, wandered by noise so seams
+		// aren't evenly spaced. This is the primary "stop reading as an
+		// extruded prism" cue.
+		float acrossf = crack_uv.x * cliff_facet_scale + texture(cliff_crack_tex, crack_uv * 0.25).r * 0.8;
+		float seam = abs(fract(acrossf) - 0.5) * 2.0;
+		seam = 1.0 - smoothstep(0.0, 0.16, seam);
+		cliff_col *= 1.0 - seam * cliff_facet_strength;
+
+		// S11 — fake rocky relief: bend the working normal on the face plane so
+		// toon light rolls over crags instead of a mirror-flat wall (the sand /
+		// water undulation trick, applied to cliffs). No geometry change.
+		vec2 rp = crack_uv * cliff_relief_scale;
+		float rR = texture(cliff_crack_tex, rp + vec2(0.03, 0.0)).r - texture(cliff_crack_tex, rp - vec2(0.03, 0.0)).r;
+		float rU = texture(cliff_crack_tex, rp + vec2(0.0, 0.03)).r - texture(cliff_crack_tex, rp - vec2(0.0, 0.03)).r;
+		vec3 relief_n = normalize(vec3(rR * cliff_relief_strength * 6.0, rU * cliff_relief_strength * 6.0, 1.0));
+		tn = normalize(mix(tn, relief_n, face));
 
 		albedo = mix(albedo, cliff_col, face);
 	}
