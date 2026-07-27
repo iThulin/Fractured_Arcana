@@ -45,10 +45,10 @@
         "name": "covenant_watch",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "joren_earths_argument"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_ember_adept"
           }
         ]
       },
@@ -56,10 +56,10 @@
         "name": "elemental_scouts",
         "enemies": [
           {
-            "archetype": "Soldier"
+            "archetype": "joren_fires_argument"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "joren_fires_argument"
           }
         ]
       }
@@ -69,13 +69,13 @@
         "name": "storm_covenant",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "joren_storms_argument"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "joren_fires_argument"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_ember_adept"
           }
         ]
       },
@@ -83,13 +83,13 @@
         "name": "covenant_warband",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "joren_fires_argument"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "joren_earths_argument"
           },
           {
-            "archetype": "Brute"
+            "archetype": "caster_ember_adept"
           }
         ]
       },
@@ -97,13 +97,13 @@
         "name": "answering_host",
         "enemies": [
           {
-            "archetype": "Brute"
+            "archetype": "joren_fires_argument"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "joren_fires_argument"
           },
           {
-            "archetype": "Defender"
+            "archetype": "joren_earths_argument"
           }
         ]
       }
@@ -113,16 +113,16 @@
         "name": "the_argument",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "joren_storms_argument"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "joren_earths_argument"
           },
           {
-            "archetype": "Brute"
+            "archetype": "joren_fires_argument"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "caster_ember_adept"
           }
         ]
       },
@@ -130,16 +130,16 @@
         "name": "four_elements",
         "enemies": [
           {
-            "archetype": "Brute"
+            "archetype": "joren_earths_argument"
           },
           {
-            "archetype": "Defender"
+            "archetype": "joren_fires_argument"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "joren_fires_argument"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "caster_ember_adept"
           }
         ]
       }
@@ -149,13 +149,27 @@
         "name": "elemental_surge",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "joren_fires_argument"
           },
           {
-            "archetype": "Brute"
+            "archetype": "joren_earths_argument"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_ember_adept"
+          }
+        ]
+      },
+      {
+        "name": "the_storm_answers",
+        "enemies": [
+          {
+            "archetype": "joren_fires_argument"
+          },
+          {
+            "archetype": "joren_fires_argument"
+          },
+          {
+            "archetype": "joren_earths_argument"
           }
         ]
       }

@@ -1,0 +1,17 @@
+{
+  "id": "joren_storms_argument",
+  "threatLabel": "The Storm's Argument",
+  "role": "elite",
+  "factionId": "joren",
+  "intelDescription": "Storm wants to move. It never closes and it never stops \u2014 you will have to corner the weather.",
+  "maxHealth": 30,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 4,
+  "attackDamage": 6,
+  "preferredDistance": 3,
+  "behaviorKey": "ranged_kite",
+  "colorR": 0.58,
+  "colorG": 0.74,
+  "colorB": 0.9
+}

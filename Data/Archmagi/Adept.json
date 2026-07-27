@@ -45,10 +45,10 @@
         "name": "academy_patrol",
         "enemies": [
           {
-            "archetype": "Soldier"
+            "archetype": "wenna_invigilator"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "caster_mind_render"
           }
         ]
       },
@@ -56,10 +56,10 @@
         "name": "graduate_watch",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "wenna_invigilator"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "wenna_invigilator"
           }
         ]
       }
@@ -69,13 +69,13 @@
         "name": "academy_warband",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "wenna_proctor"
           },
           {
-            "archetype": "Defender"
+            "archetype": "wenna_invigilator"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_mind_render"
           }
         ]
       },
@@ -83,13 +83,13 @@
         "name": "curriculum_host",
         "enemies": [
           {
-            "archetype": "Ranger"
+            "archetype": "wenna_invigilator"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "wenna_invigilator"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "wenna_proctor"
           }
         ]
       },
@@ -97,13 +97,13 @@
         "name": "the_assessed",
         "enemies": [
           {
-            "archetype": "Brute"
+            "archetype": "wenna_curriculum"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "wenna_invigilator"
           },
           {
-            "archetype": "Defender"
+            "archetype": "caster_mind_render"
           }
         ]
       }
@@ -113,16 +113,16 @@
         "name": "full_faculty",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "wenna_curriculum"
           },
           {
-            "archetype": "Defender"
+            "archetype": "wenna_proctor"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "wenna_invigilator"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "caster_mind_render"
           }
         ]
       },
@@ -130,16 +130,16 @@
         "name": "academy_ascendant",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "wenna_proctor"
           },
           {
-            "archetype": "Brute"
+            "archetype": "wenna_proctor"
           },
           {
-            "archetype": "Defender"
+            "archetype": "wenna_invigilator"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "caster_mind_render"
           }
         ]
       }
@@ -149,13 +149,27 @@
         "name": "field_examination",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "wenna_invigilator"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "wenna_invigilator"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_mind_render"
+          }
+        ]
+      },
+      {
+        "name": "surprise_viva",
+        "enemies": [
+          {
+            "archetype": "wenna_invigilator"
+          },
+          {
+            "archetype": "wenna_invigilator"
+          },
+          {
+            "archetype": "wenna_proctor"
           }
         ]
       }

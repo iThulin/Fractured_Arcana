@@ -45,10 +45,10 @@
         "name": "circle_initiates",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_marginalia"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_annotator"
           }
         ]
       },
@@ -56,10 +56,10 @@
         "name": "annotated_watch",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_annotator"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "aurel_annotator"
           }
         ]
       }
@@ -69,13 +69,13 @@
         "name": "circle_wardens",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_annotator"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_marginalia"
           },
           {
-            "archetype": "Defender"
+            "archetype": "caster_arclance_savant"
           }
         ]
       },
@@ -83,13 +83,13 @@
         "name": "revised_formation",
         "enemies": [
           {
-            "archetype": "Defender"
+            "archetype": "aurel_marginalia"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_marginalia"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "aurel_annotator"
           }
         ]
       },
@@ -97,13 +97,13 @@
         "name": "the_corrected",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_second_verse"
           },
           {
-            "archetype": "Brute"
+            "archetype": "aurel_marginalia"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_arclance_savant"
           }
         ]
       }
@@ -113,16 +113,16 @@
         "name": "full_annotation",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_second_verse"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_annotator"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_marginalia"
           },
           {
-            "archetype": "Defender"
+            "archetype": "caster_arclance_savant"
           }
         ]
       },
@@ -130,16 +130,16 @@
         "name": "circle_ascendant",
         "enemies": [
           {
-            "archetype": "Brute"
+            "archetype": "aurel_annotator"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_annotator"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_marginalia"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "caster_arclance_savant"
           }
         ]
       }
@@ -149,13 +149,27 @@
         "name": "the_revision",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_marginalia"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "aurel_annotator"
           },
           {
-            "archetype": "Brute"
+            "archetype": "caster_arclance_savant"
+          }
+        ]
+      },
+      {
+        "name": "footnotes",
+        "enemies": [
+          {
+            "archetype": "aurel_marginalia"
+          },
+          {
+            "archetype": "aurel_marginalia"
+          },
+          {
+            "archetype": "aurel_annotator"
           }
         ]
       }

@@ -160,6 +160,9 @@ public partial class EncounterRouter : Node
         EncounterTier.Skirmish => (int)GD.RandRange(8, 15),
         EncounterTier.Battle => (int)GD.RandRange(18, 30),
         EncounterTier.Siege => (int)GD.RandRange(40, 60),
+        // Ambush sits between Skirmish and Battle — was already the fallthrough
+        // value; made explicit now that the tier is actually routed.
+        EncounterTier.Ambush => (int)GD.RandRange(15, 25),
         _ => (int)GD.RandRange(15, 25),
     };
 
@@ -168,6 +171,7 @@ public partial class EncounterRouter : Node
         EncounterTier.Skirmish => HexGridManager.MapDensityPreset.Sparse,
         EncounterTier.Battle => HexGridManager.MapDensityPreset.Standard,
         EncounterTier.Siege => HexGridManager.MapDensityPreset.Dense,
+        EncounterTier.Ambush => HexGridManager.MapDensityPreset.Standard,
         _ => HexGridManager.MapDensityPreset.Standard,
     };
 }

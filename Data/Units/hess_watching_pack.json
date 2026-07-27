@@ -1,0 +1,20 @@
+{
+  "id": "hess_watching_pack",
+  "threatLabel": "The Watching Pack",
+  "role": "line",
+  "factionId": "hess",
+  "intelDescription": "They are not hers. They are here because something is about to happen, and they would like to be present.",
+  "maxHealth": 18,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "pack"
+  ],
+  "colorR": 0.48,
+  "colorG": 0.58,
+  "colorB": 0.28
+}

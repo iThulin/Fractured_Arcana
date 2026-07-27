@@ -1,0 +1,20 @@
+{
+  "id": "joren_fires_argument",
+  "threatLabel": "The Fire's Argument",
+  "role": "line",
+  "factionId": "joren",
+  "intelDescription": "Fire wants to spread. It closes the distance and does not put the question to a vote.",
+  "maxHealth": 18,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "charge"
+  ],
+  "colorR": 0.88,
+  "colorG": 0.36,
+  "colorB": 0.14
+}

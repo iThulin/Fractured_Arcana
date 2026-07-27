@@ -73,7 +73,7 @@
 						"archetype": "Soldier"
 					},
 					{
-						"archetype": "Defender"
+						"archetype": "clockwork_bulwark"
 					}
 				]
 			},
@@ -95,7 +95,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Defender"
+						"archetype": "clockwork_bulwark"
 					}
 				]
 			}
@@ -150,7 +150,7 @@
 						"archetype": "Soldier"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_forge_warden"
 					},
 					{
 						"archetype": "Ranger"
@@ -178,7 +178,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_forge_warden"
 					},
 					{
 						"archetype": "Defender"
@@ -251,7 +251,7 @@
 						"archetype": "Defender"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_forge_warden"
 					},
 					{
 						"archetype": "Soldier"

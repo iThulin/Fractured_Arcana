@@ -1,0 +1,28 @@
+{
+  "id": "aurel_second_verse",
+  "threatLabel": "The Second Verse",
+  "role": "elite",
+  "factionId": "aurel",
+  "intelDescription": "It will not close and it will not stop retreating. Every death on its side is a line the author forgot was there.",
+  "maxHealth": 34,
+  "baseSpeed": 2,
+  "armor": 1,
+  "attackRange": 4,
+  "attackDamage": 7,
+  "preferredDistance": 3,
+  "behaviorKey": "ranged_kite",
+  "abilities": [
+    {
+      "key": "requiem",
+      "trigger": "onAllyDeath",
+      "name": "The Second Verse",
+      "intelDescription": "Each of its own that falls adds a verse \u2014 +2 damage, stacking, for the rest of the fight.",
+      "params": {
+        "amount": "2"
+      }
+    }
+  ],
+  "colorR": 0.42,
+  "colorG": 0.11,
+  "colorB": 0.6
+}

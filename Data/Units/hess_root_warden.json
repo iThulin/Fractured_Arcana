@@ -1,0 +1,20 @@
+{
+  "id": "hess_root_warden",
+  "threatLabel": "Root Warden",
+  "role": "line",
+  "factionId": "hess",
+  "intelDescription": "The land decided this ground stays. Nothing rooted in it intends to move.",
+  "maxHealth": 26,
+  "baseSpeed": 1,
+  "armor": 4,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": [
+    "bulwark"
+  ],
+  "colorR": 0.32,
+  "colorG": 0.44,
+  "colorB": 0.16
+}

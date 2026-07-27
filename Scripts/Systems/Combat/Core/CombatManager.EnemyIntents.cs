@@ -138,6 +138,18 @@ public partial class CombatManager
     /// <summary>True (default): intent KIND glyph always visible, details need a reveal. False: everything hidden until revealed.</summary>
     public bool ShowIntentKindByDefault = true;
 
+    /// <summary>PLACEHOLDER TELEMETRY (2026-07-27, testing phase). Adds a second
+    /// line of ASCII markers under each enemy's intent glyph spelling out what the
+    /// new systems are about to do — movement budget, behaviour tags, triggered
+    /// abilities, caster rider. Deliberately ugly and deliberately not art: the
+    /// tokens are plain ASCII because the Label3D font is only known to cover the
+    /// handful of glyphs IntentGlyph already uses, and a box-drawing tofu is worse
+    /// than no marker. Flip this off in the inspector for the clean one-line
+    /// display. Replace with real iconography before ship.</summary>
+    [Export] public bool ShowDebugIntentMarkers = true;
+
+    private bool _markerLegendLogged = false;
+
     /// <summary>Camera beat before each enemy acts, so the glide arrives before the action lands.</summary>
     private const float EnemyFocusBeat = 0.4f;
 
@@ -197,6 +209,7 @@ public partial class CombatManager
             UpdateIntentDisplay(enemy);
         }
 
+        LogMarkerLegend();
         RefreshThreatTiles();
     }
 
@@ -362,8 +375,12 @@ public partial class CombatManager
 
             if (enemy.HasBehaviorTag("charge") && intent.TargetTile.HasValue)
             {
+                // (2026-07-27) Predict against the REAL envelope — AP-after-reserve x
+                // EffectiveMoveRange, charge bonus included — not the raw AP count.
+                // The old check compared tiles against action points, which only
+                // happened to line up while a move action was worth one hex.
                 int dist = grid.Distance(enemy.CurrentTile.Axial, intent.TargetTile.Value);
-                if (dist > 1 && dist - 1 <= enemy.MaxActionPoints)
+                if (dist > 1 && dist - 1 <= PredictedMoveTiles(enemy))
                     estimate += 1;
             }
 
@@ -440,7 +457,39 @@ public partial class CombatManager
             }
         }
 
-        // Otherwise: guard. Honest intent — no surprise attacks at execution.
+        // (2026-07-27) Nothing adjacent → ADVANCE AND STRIKE. This key used to
+        // return Guard here unconditionally, which meant a hold_until_near unit
+        // never closed a single tile in its life: it attacked only what was already
+        // adjacent at plan time, and its only movement (ExecuteGuardIntent) was
+        // toward its own ALLIES. Ignoring it was free, and it farmed +2 armor a turn
+        // — a 1:1 consumable damage pool — for the whole fight while contributing
+        // nothing. It is now a slow armoured soldier: it walks at you and swings.
+        //
+        // Identity kept vs melee_advance: the adjacency check above wins FIRST, so a
+        // defender never abandons the foe beside it to chase a nearer one. It holds
+        // the ground it is standing on; it just no longer waits forever to be given
+        // some.
+        if (MayMove(enemy, out _))
+        {
+            var mark = FindNearestPlayerUnit(enemy);
+            if (mark?.CurrentTile != null)
+            {
+                var markTile = mark.CurrentTile.Axial;
+                int advDmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5;
+                return new EnemyIntent
+                {
+                    Kind = IntentKind.Attack,
+                    TargetUnit = mark,
+                    TargetTile = markTile,
+                    ThreatTiles = { markTile },
+                    Value = advDmg,
+                    BaseValue = advDmg
+                };
+            }
+        }
+
+        // Planted (bulwark shielding a wounded ally), immobile, or nothing to hunt →
+        // guard. Honest intent — no surprise attacks at execution.
         return new EnemyIntent
         {
             Kind = IntentKind.Guard,
@@ -542,6 +591,96 @@ public partial class CombatManager
     // DISPLAY — intent glyph over each enemy + threat tile painting.
     // ════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Tiles this unit will cover on its next activation:
+    /// (MaxActionPoints - reserved attack AP) move actions x EffectiveMoveRange.
+    /// Reads MaxActionPoints, NOT CurrentActionPoints — intents are planned at the
+    /// TAIL of the enemy phase when the budget is already spent, so the current
+    /// value would read 0 all through the player's turn.</summary>
+    private int PredictedMoveTiles(Unit enemy)
+    {
+        if (enemy == null || enemy.HasBehaviorTag("immobile"))
+            return 0;
+        if (!MayMove(enemy, out _))
+            return 0;                                  // planted bulwark
+        int reach = enemy.EffectiveMoveRange;
+        if (reach <= 0)
+            return 0;                                  // rooted / frozen
+        return Mathf.Max(0, enemy.MaxActionPoints - ReservedAttackAP(enemy)) * reach;
+    }
+
+    /// <summary>PLACEHOLDER: the second display line — everything the new systems
+    /// added that the player otherwise cannot see. ASCII only, see
+    /// ShowDebugIntentMarkers.</summary>
+    private string BuildIntentMarkers(Unit enemy)
+    {
+        if (enemy == null)
+            return "";
+        var parts = new List<string>();
+
+        // Mobility — the most opaque thing after the tier-2 change.
+        int tiles = PredictedMoveTiles(enemy);
+        if (enemy.HasBehaviorTag("immobile"))
+            parts.Add("IMM");
+        else if (tiles <= 0)
+            parts.Add("PLANT");
+        else
+            parts.Add($"MOV{tiles}");
+
+        parts.Add($"AP{enemy.MaxActionPoints}");
+
+        // Behaviour tags — what the routine does that the glyph does not say.
+        if (enemy.HasBehaviorTag("charge"))
+            parts.Add("CHG+1");
+        if (enemy.HasBehaviorTag("pack"))
+            parts.Add(enemy.CurrentTile != null
+                      && CountAdjacentPackAllies(enemy, enemy.CurrentTile.Axial) > 0
+                      ? "PACK+1" : "PACK");
+        if (enemy.HasBehaviorTag("scout"))
+            parts.Add("FLANK");
+        if (enemy.HasBehaviorTag("bulwark"))
+            parts.Add("BLWK");
+        if (string.Equals(enemy.BehaviorKey, "melee_hunt_wounded", StringComparison.OrdinalIgnoreCase))
+            parts.Add("HUNTS-WEAK");
+
+        // Caster rider — which school blast comes out of the channel.
+        if (!string.IsNullOrEmpty(enemy.CasterSpell))
+            parts.Add($"SPELL:{enemy.CasterSpell}");
+
+        // Triggered abilities — the death events the player cannot otherwise plan
+        // around. Requiem shows LIVE stacks so the snowball is legible.
+        foreach (var ab in enemy.Abilities)
+        {
+            if (string.Equals(ab.Key, "deathburst", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"ONDEATH:SPAWN{ab.GetIntParam("count", 2)}");
+            else if (string.Equals(ab.Key, "requiem", StringComparison.OrdinalIgnoreCase))
+            {
+                int stacks = enemy.AbilityUseCounts.TryGetValue("requiem", out var n) ? n : 0;
+                int amt = ab.GetIntParam("amount", 2);
+                parts.Add(stacks > 0 ? $"REQ+{amt}(x{stacks})" : $"REQ+{amt}");
+            }
+        }
+
+        if (enemy.Role == "elite")
+            parts.Insert(0, "*ELITE*");
+
+        return string.Join(" ", parts);
+    }
+
+    /// <summary>PLACEHOLDER: one-time key so the ASCII tokens are decipherable.</summary>
+    private void LogMarkerLegend()
+    {
+        if (_markerLegendLogged || !ShowDebugIntentMarkers)
+            return;
+        _markerLegendLogged = true;
+        const string legend =
+            "[Markers] MOVn=tiles it can cover  APn=action points  CHG+1=charge rider  " +
+            "PACK(+1)=pack rider, live  FLANK=breaks off when crowded  BLWK=plants for wounded allies  " +
+            "IMM=cannot move  PLANT=held this turn  HUNTS-WEAK=targets lowest current HP  " +
+            "SPELL:x=channel rider  ONDEATH:SPAWNn=deathburst  REQ+n(xN)=requiem, live stacks  *ELITE*";
+        GD.Print(legend);
+        combatUI?.AppendActionLog(legend);
+    }
+
     private void UpdateIntentDisplay(Unit enemy)
     {
         if (enemy == null || !IsInstanceValid(enemy))
@@ -569,7 +708,14 @@ public partial class CombatManager
             ? new Color(1.0f, 0.55f, 0.45f)      // revealed — hot
             : new Color(0.85f, 0.85f, 0.85f);    // kind-only — neutral
 
-        enemy.SetIntentDisplay($"{glyph} {value}{suffix}", color);
+        string markers = ShowDebugIntentMarkers ? BuildIntentMarkers(enemy) : "";
+        string body = string.IsNullOrEmpty(markers)
+            ? $"{glyph} {value}{suffix}"
+            : $"{glyph} {value}{suffix}\n{markers}";
+
+        // The marker line is reference text, not a glyph — shrink it so two lines
+        // don't swallow the board.
+        enemy.SetIntentDisplay(body, color, string.IsNullOrEmpty(markers) ? 40 : 24);
     }
 
     /// <summary>
@@ -853,6 +999,12 @@ public partial class CombatManager
             }
             await StrikeTile(enemy, tile, dmg, ranged: false);
         }
+        else if (!MayMove(enemy, out _))
+        {
+            // Planted mid-advance (a bulwark's ally dropped below half after the
+            // plan locked). Brace rather than burn the turn doing nothing.
+            ApplyGuardArmor(enemy, GuardArmorValue);
+        }
         else
             combatUI?.AppendActionLog($"{enemy.Name} can't reach its mark.");
     }
@@ -946,27 +1098,84 @@ public partial class CombatManager
         return score;
     }
 
+    // ── Tier-2 movement economy (2026-07-27) ────────────────────────────────
+    // A move action now covers the unit's FULL EffectiveMoveRange instead of one
+    // adjacent hex, and attacks cost AP — the economy ShowEnemyThreatZone has
+    // documented and rendered since 2026-07-13 but the AI never obeyed.
+
+    /// <summary>AP the unit must keep back so its strike is still affordable after
+    /// moving. Spawn budget is BaseSpeed + this, so a full-speed advance always
+    /// leaves the attack paid for.</summary>
+    private static int ReservedAttackAP(Unit enemy)
+        => Mathf.Max(1, MartialAPCosts.AttackCost(enemy?.AttackRange ?? 1));
+
+    /// <summary>True while another move action is affordable WITHOUT eating the
+    /// strike. This is the gate every enemy mover loops on.</summary>
+    private static bool CanSpendMoveAP(Unit enemy)
+        => enemy != null && enemy.Stats.IsAlive
+           && enemy.CurrentActionPoints >= ReservedAttackAP(enemy) + 1;
+
+    /// <summary>Best destination reachable in ONE move action (path cost less than or
+    /// equal to EffectiveMoveRange), scored by <paramref name="score"/> — higher wins,
+    /// ties broken toward the cheaper path. Returns null when standing still already
+    /// scores best, so a caller's loop terminates naturally.
+    ///
+    /// NOTE: GetReachableTilesWithBudget will not path THROUGH an occupied tile, which
+    /// is stricter than the old GetFirstStep* helpers. Every caller therefore falls
+    /// back to its original single-step helper when this returns null, so a unit boxed
+    /// in by its own allies still shuffles forward rather than freezing.</summary>
+    private TileData BestMoveDestination(Unit enemy, Func<Vector2I, int> score)
+    {
+        if (enemy?.CurrentTile == null)
+            return null;
+        int reach = enemy.EffectiveMoveRange;
+        if (reach <= 0)
+            return null;
+
+        var start = enemy.CurrentTile.Axial;
+        int bestScore = score(start);
+        TileData best = null;
+        int bestCost = 0;
+
+        foreach (var kv in grid.GetReachableTilesWithBudget(enemy, reach))
+        {
+            if (kv.Key == start)
+                continue;
+            var tile = grid.GetTile(kv.Key);
+            if (tile == null || !tile.CanEnter(enemy))
+                continue;
+
+            int s = score(kv.Key);
+            if (s > bestScore || (s == bestScore && best != null && kv.Value < bestCost))
+            {
+                bestScore = s;
+                best = tile;
+                bestCost = kv.Value;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>Destination score for closing on a mark. Distance dominates at x100 so
+    /// the pack/scout preference (max 15) still only breaks TIES — the units-doc rule
+    /// that a tag never trades progress for formation.</summary>
+    private int ScoreTowardGoal(Unit enemy, Vector2I coord, Vector2I goal)
+        => -100 * grid.Distance(coord, goal) + StepPreferenceScore(enemy, coord, goal);
+
     /// <summary>charge: step toward the goal until adjacent, out of AP, or blocked.
     /// Each step re-pathfinds (honors terrain costs, rooted/slowed via TryMoveTo's
     /// own gates). Returns whether the unit moved at all.</summary>
     private async Task<bool> SprintTowardTile(Unit enemy, Vector2I goal)
     {
-        bool moved = false;
-        const int SafetyCap = 12;
+        // Tier 2 gave every mover the full-reach AP loop, so the charge sprint and the
+        // ordinary advance are now the same routine. Charge keeps its identity through
+        // its AP-3 chassis, its +1 arrival rider, and its telegraph estimate — not
+        // through being the only unit in the game allowed to walk more than one hex.
+        var before = enemy?.CurrentTile?.Axial;
+        await MoveTowardTile(enemy, goal, quiet: true);
 
-        for (int i = 0; i < SafetyCap; i++)
-        {
-            if (!IsValidActor(enemy) || grid.Distance(enemy.CurrentTile.Axial, goal) <= 1)
-                break;
-
-            var next = ChooseStepTowardTile(enemy, goal);
-            if (next == null || !enemy.TryMoveTo(grid, next))
-                break;
-
-            moved = true;
-            await ToSignal(GetTree().CreateTimer(0.15f), "timeout");
-        }
-
+        bool moved = IsValidActor(enemy) && before.HasValue
+                     && enemy.CurrentTile.Axial != before.Value;
         if (moved)
         {
             string sprintMsg = $"{enemy.Name} charges toward its mark!";
@@ -1167,6 +1376,40 @@ public partial class CombatManager
 
     // ── Guard: defender repositioning + telegraphed armor ───────────────────
 
+    /// <summary>True when some living player unit can actually SEE this unit.
+    /// (2026-07-27) Guard armor is gated on this: a unit behind a wall or across the
+    /// map can no longer farm +2 a turn while the fight happens elsewhere. Armor is a
+    /// 1:1 consumable pool (Unit.MitigateCore), so every free tick was 2 permanent
+    /// effective HP.</summary>
+    private bool AnyPlayerCanSee(Unit enemy)
+    {
+        if (enemy?.CurrentTile == null)
+            return false;
+        foreach (var p in playerUnits)
+        {
+            if (p == null || !IsInstanceValid(p) || !p.Stats.IsAlive || p.CurrentTile == null)
+                continue;
+            if (grid.HasLineOfSight(p.CurrentTile.Axial, enemy.CurrentTile.Axial))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>Applies the Guard armor tick, or explains why it did not. Single
+    /// place so both the planted branch and the repositioning branch obey the
+    /// line-of-sight gate.</summary>
+    private void ApplyGuardArmor(Unit enemy, int amount)
+    {
+        if (!AnyPlayerCanSee(enemy))
+        {
+            combatUI?.AppendActionLog($"{enemy.Name} holds position, unwatched.");
+            return;
+        }
+        enemy.Stats.Armor += amount;
+        enemy.RefreshHealthBar();
+        combatUI?.AppendActionLog($"{enemy.Name} braces (+{amount} armor).");
+    }
+
     private async Task ExecuteGuardIntent(Unit enemy, EnemyIntent intent)
     {
         if (!IsValidActor(enemy))
@@ -1181,9 +1424,7 @@ public partial class CombatManager
                 GD.Print(guardGate);
                 combatUI?.AppendActionLog(guardGate);
             }
-            enemy.Stats.Armor += intent.Value;
-            enemy.RefreshHealthBar();
-            combatUI?.AppendActionLog($"{enemy.Name} braces (+{intent.Value} armor).");
+            ApplyGuardArmor(enemy, intent.Value);
             return;
         }
 
@@ -1233,9 +1474,7 @@ public partial class CombatManager
             }
         }
 
-        enemy.Stats.Armor += intent.Value;
-        enemy.RefreshHealthBar();
-        combatUI?.AppendActionLog($"{enemy.Name} braces (+{intent.Value} armor).");
+        ApplyGuardArmor(enemy, intent.Value);
     }
 
     // ── Shared: tile-locked strike resolution ───────────────────────────────
@@ -1247,6 +1486,18 @@ public partial class CombatManager
     /// </summary>
     private async Task StrikeTile(Unit attacker, Vector2I tile, int damage, bool ranged, string label = null)
     {
+        // (2026-07-27) Enemies pay for actions on the SAME table as the player:
+        // MartialAPCosts.AttackMelee (1) / AttackRanged (2). The movers reserve this
+        // before spending anything on movement, so a refusal here means the unit was
+        // drained mid-turn (Chronomancer AP burn, a status), not a budgeting bug.
+        int apCost = ranged ? MartialAPCosts.AttackRanged : MartialAPCosts.AttackMelee;
+        if (attacker != null && !attacker.TrySpendAP(apCost))
+        {
+            combatUI?.AppendActionLog(
+                $"{attacker.Name} has no AP left to strike (needs {apCost}).");
+            return;
+        }
+
         // R3 follow-on (2026-07-10): when anyone can actually respond, the strike
         // enters the stack as a respondable object — dodge by vacating the tile,
         // shield up, or redirect it. Otherwise resolve directly (pacing unchanged).
@@ -1340,25 +1591,54 @@ public partial class CombatManager
         }
     }
 
-    /// <summary>Move one step toward a coordinate (tile-chase variant of MoveToward).
-    /// U2: routes through ChooseStepTowardTile so pack/scout tile preference applies.</summary>
-    private async Task MoveTowardTile(Unit enemy, Vector2I goal)
+    /// <summary>Advance toward a coordinate, spending the WHOLE AP budget one step
+    /// at a time. U2: routes through ChooseStepTowardTile so pack/scout tile
+    /// preference applies.
+    ///
+    /// (2026-07-27) This used to take exactly ONE step regardless of AP, which made
+    /// MaxActionPoints inert for every enemy that was not `charge`-tagged: ~90% of
+    /// authored pool slots advanced 1 hex per turn while a 2-AP arcane companion
+    /// covered 6 and a 3-AP martial covered 12. SprintTowardTile (the charge tag)
+    /// was the only mover in the codebase that ever spent a second point. The loop
+    /// shape below is deliberately the same as SprintTowardTile's so the two stay
+    /// comparable; `charge` now differentiates on its higher base AP and its +1
+    /// arrival rider, not on being the only unit allowed to walk.
+    ///
+    /// Stops on arrival (adjacent to the mark), AP exhaustion, or a blocked step.</summary>
+    private async Task MoveTowardTile(Unit enemy, Vector2I goal, bool quiet = false)
     {
-        if (!IsValidActor(enemy))
-            return;
+        int tiles = 0, moves = 0;
+        const int SafetyCap = 6;
 
-        var nextStep = ChooseStepTowardTile(enemy, goal);
-        if (nextStep == null)
-            return;
-
-        int pathCost = grid.GetMoveCostTo(enemy, nextStep);
-        if (pathCost < 0 || pathCost > enemy.EffectiveMoveRange)   // unified: honors rooted/slowed/grants
-            return;
-
-        if (enemy.TryMoveTo(grid, nextStep))
+        for (int i = 0; i < SafetyCap; i++)
         {
-            combatUI?.AppendActionLog($"{enemy.Name} advances on its mark.");
-            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+            if (!IsValidActor(enemy))
+                break;
+            if (grid.Distance(enemy.CurrentTile.Axial, goal) <= 1)
+                break;                                  // arrived — the strike follows
+            if (!CanSpendMoveAP(enemy))
+                break;                                  // out of movement AP, or the
+                                                        // rest is reserved for the hit
+
+            // Tier 2: one AP buys a hop of up to EffectiveMoveRange, not one hex.
+            var dest = BestMoveDestination(enemy, c => ScoreTowardGoal(enemy, c, goal))
+                       ?? ChooseStepTowardTile(enemy, goal);   // ally-boxed fallback
+            if (dest == null)
+                break;
+
+            int cost = grid.GetMoveCostTo(enemy, dest);
+            if (cost < 0 || cost > enemy.EffectiveMoveRange)   // honors rooted/slowed/grants
+                break;
+            if (!enemy.TryMoveTo(grid, dest))
+                break;                                  // blocked / tile taken
+
+            tiles += Mathf.Max(1, cost);
+            moves++;
+            await ToSignal(GetTree().CreateTimer(0.15f), "timeout");
         }
+
+        if (moves > 0 && !quiet)
+            combatUI?.AppendActionLog(
+                $"{enemy.Name} advances on its mark ({tiles} tile{(tiles == 1 ? "" : "s")}).");
     }
 }

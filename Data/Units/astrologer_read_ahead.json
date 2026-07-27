@@ -1,0 +1,20 @@
+{
+  "id": "astrologer_read_ahead",
+  "threatLabel": "Read-Ahead",
+  "role": "line",
+  "factionId": "astrologer",
+  "intelDescription": "It moves to where you have not gone yet. Closing the distance costs it nothing.",
+  "maxHealth": 18,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "charge"
+  ],
+  "colorR": 0.34,
+  "colorG": 0.54,
+  "colorB": 0.72
+}

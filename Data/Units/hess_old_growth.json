@@ -1,0 +1,29 @@
+{
+  "id": "hess_old_growth",
+  "threatLabel": "Old Growth",
+  "role": "elite",
+  "factionId": "hess",
+  "intelDescription": "Sixty years of not intervening, standing directly in your way.",
+  "maxHealth": 52,
+  "baseSpeed": 1,
+  "armor": 3,
+  "attackRange": 1,
+  "attackDamage": 8,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_target_highest_hp",
+  "abilities": [
+    {
+      "key": "deathburst",
+      "trigger": "onDeath",
+      "name": "Deathburst",
+      "intelDescription": "Fell it and what was sheltering underneath comes out \u2014 two of the Pack on its death.",
+      "params": {
+        "count": "2",
+        "unit": "hess_watching_pack"
+      }
+    }
+  ],
+  "colorR": 0.26,
+  "colorG": 0.36,
+  "colorB": 0.14
+}

@@ -1,0 +1,20 @@
+{
+  "id": "wenna_proctor",
+  "threatLabel": "Proctor",
+  "role": "line",
+  "factionId": "wenna",
+  "intelDescription": "It stands at the front of the hall and does not move. You come to it, or you don't.",
+  "maxHealth": 26,
+  "baseSpeed": 1,
+  "armor": 4,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": [
+    "bulwark"
+  ],
+  "colorR": 0.72,
+  "colorG": 0.6,
+  "colorB": 0.33
+}

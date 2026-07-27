@@ -58,7 +58,7 @@
 				"name": "highway_bandits",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "dust_raider"
 					},
 					{
 						"archetype": "Ranger"
@@ -69,7 +69,7 @@
 				"name": "militia_patrol",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "downs_lancer"
 					},
 					{
 						"archetype": "Soldier"
@@ -138,7 +138,7 @@
 						"archetype": "Defender"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_veil_witch"
 					},
 					{
 						"archetype": "Soldier"
@@ -166,7 +166,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_veil_witch"
 					},
 					{
 						"archetype": "Defender"
@@ -239,7 +239,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_veil_witch"
 					}
 				]
 			}
@@ -280,7 +280,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_veil_witch"
 					},
 					{
 						"archetype": "Ranger"

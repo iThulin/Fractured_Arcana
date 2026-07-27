@@ -39,10 +39,10 @@
         "name": "seal_watchers",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "astrologer_sealkeeper"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_hourglass_magus"
           }
         ]
       },
@@ -50,10 +50,10 @@
         "name": "time_scouts",
         "enemies": [
           {
-            "archetype": "Ranger"
+            "archetype": "astrologer_read_ahead"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "astrologer_read_ahead"
           }
         ]
       }
@@ -63,13 +63,13 @@
         "name": "keeper_warband",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "astrologer_sealkeeper"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "astrologer_read_ahead"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "caster_hourglass_magus"
           }
         ]
       },
@@ -77,13 +77,13 @@
         "name": "temporal_hunters",
         "enemies": [
           {
-            "archetype": "Ranger"
+            "archetype": "astrologer_read_ahead"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "astrologer_read_ahead"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "caster_hourglass_magus"
           }
         ]
       },
@@ -91,13 +91,13 @@
         "name": "shard_enforcers",
         "enemies": [
           {
-            "archetype": "Defender"
+            "archetype": "astrologer_foregone"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "astrologer_sealkeeper"
           },
           {
-            "archetype": "Brute"
+            "archetype": "astrologer_read_ahead"
           }
         ]
       }
@@ -107,16 +107,16 @@
         "name": "keeper_ascendant",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "astrologer_foregone"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "astrologer_sealkeeper"
           },
           {
-            "archetype": "Brute"
+            "archetype": "astrologer_read_ahead"
           },
           {
-            "archetype": "Defender"
+            "archetype": "caster_hourglass_magus"
           }
         ]
       }
@@ -126,13 +126,27 @@
         "name": "the_expected",
         "enemies": [
           {
-            "archetype": "Wizard"
+            "archetype": "astrologer_read_ahead"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "astrologer_read_ahead"
           },
           {
-            "archetype": "Defender"
+            "archetype": "caster_hourglass_magus"
+          }
+        ]
+      },
+      {
+        "name": "already_written",
+        "enemies": [
+          {
+            "archetype": "astrologer_read_ahead"
+          },
+          {
+            "archetype": "astrologer_read_ahead"
+          },
+          {
+            "archetype": "astrologer_sealkeeper"
           }
         ]
       }

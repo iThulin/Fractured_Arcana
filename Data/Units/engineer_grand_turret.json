@@ -1,0 +1,32 @@
+{
+  "id": "engineer_grand_turret",
+  "threatLabel": "The Grand Turret",
+  "role": "elite",
+  "factionId": "engineer",
+  "intelDescription": "Fully operational, bolted to the ground, and outranging everything you brought.",
+  "maxHealth": 46,
+  "baseSpeed": 0,
+  "armor": 3,
+  "attackRange": 5,
+  "attackDamage": 7,
+  "preferredDistance": 5,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "abilities": [
+    {
+      "key": "deathburst",
+      "trigger": "onDeath",
+      "name": "Deathburst",
+      "intelDescription": "It comes apart and the parts keep working \u2014 two Bench Turrets on its death.",
+      "params": {
+        "count": "2",
+        "unit": "engineer_bench_turret"
+      }
+    }
+  ],
+  "colorR": 0.42,
+  "colorG": 0.31,
+  "colorB": 0.06
+}

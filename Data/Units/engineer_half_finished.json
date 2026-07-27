@@ -1,0 +1,20 @@
+{
+  "id": "engineer_half_finished",
+  "threatLabel": "Half-Finished Thing",
+  "role": "line",
+  "factionId": "engineer",
+  "intelDescription": "Not finished. Going to try anyway. He will write down what happens.",
+  "maxHealth": 18,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "charge"
+  ],
+  "colorR": 0.68,
+  "colorG": 0.52,
+  "colorB": 0.16
+}

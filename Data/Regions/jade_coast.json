@@ -64,7 +64,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "tidewrack_raider"
 					}
 				]
 			},
@@ -75,7 +75,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Ranger"
+						"archetype": "dire_wolf"
 					}
 				]
 			},
@@ -86,7 +86,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Ranger"
+						"archetype": "mire_lurker"
 					}
 				]
 			}
@@ -124,7 +124,7 @@
 				"name": "tide_druids",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					},
 					{
 						"archetype": "Defender"
@@ -155,7 +155,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					},
 					{
 						"archetype": "Soldier"
@@ -205,7 +205,7 @@
 						"archetype": "Brute"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					},
 					{
 						"archetype": "Ranger"
@@ -219,7 +219,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					},
 					{
 						"archetype": "Defender"

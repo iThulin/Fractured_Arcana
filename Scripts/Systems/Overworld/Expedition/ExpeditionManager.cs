@@ -1425,8 +1425,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                      $"draw={(arch != null ? arch.Id : "(region pool)")}");
 
         _scaledDifficultyMult = DifficultyMultAt(coord);
-        // On a warfront the besieging patrols hit at siege weight too.
-        var patrolTier = _isWarfront ? EncounterTier.Siege : EncounterTier.Skirmish;
+        // On a warfront the besieging patrols hit at siege weight too. OFF a warfront
+        // the tier now says WHO caught you: an archmage's patrol was hunting you
+        // (Ambush — 3 enemies, Standard map, richer purse), while an unclaimed-wilds
+        // band merely blundered into you (Skirmish — 2 enemies, Sparse). This is the
+        // ONLY consumer of EncounterTier.Ambush; before it, every authored ambush
+        // composition in every region and archmage pool was unreachable data.
+        var patrolTier = _isWarfront
+            ? EncounterTier.Siege
+            : (arch != null ? EncounterTier.Ambush : EncounterTier.Skirmish);
         var encounterDef =
             (arch != null
                 ? EncounterPoolLoader.PickFromArchmage(arch, regionId, patrolTier, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))

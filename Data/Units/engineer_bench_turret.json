@@ -1,0 +1,20 @@
+{
+  "id": "engineer_bench_turret",
+  "threatLabel": "Bench Turret",
+  "role": "line",
+  "factionId": "engineer",
+  "intelDescription": "A turret is a question with a satisfying answer. It cannot follow you and does not need to.",
+  "maxHealth": 22,
+  "baseSpeed": 0,
+  "armor": 2,
+  "attackRange": 4,
+  "attackDamage": 6,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "colorR": 0.55,
+  "colorG": 0.41,
+  "colorB": 0.08
+}

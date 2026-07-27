@@ -68,7 +68,7 @@
 				"name": "deserters",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "carrion_hound"
 					},
 					{
 						"archetype": "Soldier"
@@ -82,7 +82,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "carrion_hound"
 					}
 				]
 			},
@@ -93,7 +93,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Ranger"
+						"archetype": "downs_lancer"
 					}
 				]
 			}
@@ -198,7 +198,7 @@
 						"archetype": "carrion_hound"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_mind_render"
 					}
 				]
 			},
@@ -293,7 +293,7 @@
 						"archetype": "Soldier"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_mind_render"
 					}
 				]
 			}

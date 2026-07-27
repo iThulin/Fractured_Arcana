@@ -1,0 +1,20 @@
+{
+  "id": "joren_earths_argument",
+  "threatLabel": "The Earth's Argument",
+  "role": "line",
+  "factionId": "joren",
+  "intelDescription": "Earth wants to stay. It will not come to you, and it does not break.",
+  "maxHealth": 26,
+  "baseSpeed": 1,
+  "armor": 4,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": [
+    "bulwark"
+  ],
+  "colorR": 0.46,
+  "colorG": 0.4,
+  "colorB": 0.32
+}

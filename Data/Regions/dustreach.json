@@ -58,7 +58,7 @@
 				"name": "dust_scavengers",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "dust_raider"
 					},
 					{
 						"archetype": "Ranger"
@@ -72,7 +72,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Ranger"
+						"archetype": "dust_raider"
 					}
 				]
 			},
@@ -80,7 +80,7 @@
 				"name": "scrap_pickers",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "carrion_hound"
 					},
 					{
 						"archetype": "Soldier"
@@ -138,7 +138,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_forge_warden"
 					},
 					{
 						"archetype": "Soldier"
@@ -188,7 +188,7 @@
 						"archetype": "dust_raider"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_forge_warden"
 					}
 				]
 			},
@@ -242,7 +242,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_forge_warden"
 					}
 				]
 			}

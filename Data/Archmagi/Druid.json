@@ -45,10 +45,10 @@
         "name": "compact_scouts",
         "enemies": [
           {
-            "archetype": "Ranger"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "hess_watching_pack"
           }
         ]
       },
@@ -56,10 +56,10 @@
         "name": "warden_watch",
         "enemies": [
           {
-            "archetype": "Ranger"
+            "archetype": "hess_root_warden"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "caster_thornspeaker"
           }
         ]
       }
@@ -69,13 +69,13 @@
         "name": "living_warband",
         "enemies": [
           {
-            "archetype": "Ranger"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Brute"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "hess_root_warden"
           }
         ]
       },
@@ -83,13 +83,13 @@
         "name": "compact_host",
         "enemies": [
           {
-            "archetype": "Ranger"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "hess_root_warden"
           },
           {
-            "archetype": "Defender"
+            "archetype": "caster_thornspeaker"
           }
         ]
       },
@@ -97,13 +97,13 @@
         "name": "old_growth",
         "enemies": [
           {
-            "archetype": "Brute"
+            "archetype": "hess_old_growth"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "caster_thornspeaker"
           }
         ]
       }
@@ -113,16 +113,16 @@
         "name": "the_compact_tide",
         "enemies": [
           {
-            "archetype": "Ranger"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Brute"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Soldier"
+            "archetype": "hess_root_warden"
           }
         ]
       },
@@ -130,16 +130,16 @@
         "name": "witness_host",
         "enemies": [
           {
-            "archetype": "Brute"
+            "archetype": "hess_old_growth"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "hess_root_warden"
           },
           {
-            "archetype": "Defender"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Wizard"
+            "archetype": "caster_thornspeaker"
           }
         ]
       }
@@ -149,13 +149,27 @@
         "name": "the_land_decides",
         "enemies": [
           {
-            "archetype": "Ranger"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Brute"
+            "archetype": "hess_watching_pack"
           },
           {
-            "archetype": "Ranger"
+            "archetype": "hess_root_warden"
+          }
+        ]
+      },
+      {
+        "name": "carrion_attends",
+        "enemies": [
+          {
+            "archetype": "hess_watching_pack"
+          },
+          {
+            "archetype": "hess_watching_pack"
+          },
+          {
+            "archetype": "caster_thornspeaker"
           }
         ]
       }

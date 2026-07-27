@@ -76,7 +76,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Soldier"
+						"archetype": "tidewrack_raider"
 					}
 				]
 			},
@@ -84,7 +84,7 @@
 				"name": "smugglers",
 				"enemies": [
 					{
-						"archetype": "Ranger"
+						"archetype": "tidewrack_raider"
 					},
 					{
 						"archetype": "Ranger"
@@ -95,7 +95,7 @@
 				"name": "stranded_crew",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "manor_shieldsworn"
 					},
 					{
 						"archetype": "Soldier"
@@ -184,7 +184,7 @@
 						"archetype": "Ranger"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_veil_witch"
 					}
 				]
 			}
@@ -228,7 +228,7 @@
 				"name": "cult_ritual",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_veil_witch"
 					},
 					{
 						"archetype": "Wizard"
@@ -292,7 +292,7 @@
 				"name": "fog_attack",
 				"enemies": [
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_veil_witch"
 					},
 					{
 						"archetype": "Ranger"

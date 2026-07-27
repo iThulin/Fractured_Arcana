@@ -77,7 +77,7 @@
 				"name": "patrol",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "dire_wolf"
 					},
 					{
 						"archetype": "Ranger"
@@ -88,7 +88,7 @@
 				"name": "scouts",
 				"enemies": [
 					{
-						"archetype": "Ranger"
+						"archetype": "crag_ambusher"
 					},
 					{
 						"archetype": "Ranger"
@@ -99,7 +99,7 @@
 				"name": "vanguard",
 				"enemies": [
 					{
-						"archetype": "Soldier"
+						"archetype": "beast_direboar"
 					},
 					{
 						"archetype": "Soldier"
@@ -174,7 +174,7 @@
 						"archetype": "Brute"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					}
 				]
 			},
@@ -241,7 +241,7 @@
 						"archetype": "Wizard"
 					},
 					{
-						"archetype": "Wizard"
+						"archetype": "caster_thornspeaker"
 					}
 				]
 			},
