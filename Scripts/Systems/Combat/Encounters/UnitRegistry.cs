@@ -208,7 +208,26 @@ public static class UnitRegistry
             "chitin", "veil",                                // U3c — auras (see auraKeys)
             "ritual", "summon_cadence", "field_repair",      // U3d — stack effects
             "bodyguard",                                     // U3d — radius aura
+            "redact", "overdraw_ward",                       // U3e — stack effects
+            "tithe_aura", "school_grudge",                   // U3e — auras (see auraKeys)
+            "action_tax", "binding_geas", "hand_cap",        // U3e — auras (see auraKeys)
             "debug_echo",   // U3b verification scaffold — remove with debug_trigger_probe
+        };
+        // U3e (spec §8, U3e exit criterion): Axis A attacks the player's hand, mana
+        // and action economy — the same resources the card draw already randomises.
+        // Elite-gating is the mitigation the spec names, so the gate is enforced HERE
+        // rather than trusted to pool authoring discipline.
+        //
+        // NOTE FOR §7a: three LINE units in the target roster carry Axis A keys —
+        // `censor` (redact), `tithe_warden` (tithe_aura) and `harrier` (binding_geas).
+        // §7a and this exit criterion contradict each other. This gate implements the
+        // exit criterion; those three need promoting to elite, or the spec needs a
+        // documented carve-out, before they can be authored.
+        var axisAKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "tithe_aura", "redact", "school_grudge",
+            "action_tax", "binding_geas", "overdraw_ward",
+            "hand_cap",
         };
         // U3c: auras are STATES, not events (units doc §5). They never enter the
         // trigger stack, so they have no BuildTriggeredEffect case and are exempt from
@@ -219,6 +238,11 @@ public static class UnitRegistry
         {
             "chitin", "veil",      // U3c — self, cached by Unit.RecacheSelfAuras
             "bodyguard",           // U3d — radius, recomputed by ApplyEnemyAuras
+            "tithe_aura",          // U3e — global, recomputed by ApplyEnemyAuras
+            "action_tax",          // U3e — radius, read at StartPlayerTurn
+            "binding_geas",        // U3e — read at Unit.OnMoved
+            "school_grudge",       // U3e — read on the "AbilityCast" bus event
+            "hand_cap",            // U3e — global, recomputed by ApplyEnemyAuras
         };
         // U3b: what the SCHEMA allows (units doc §5) — a superset of what runs.
         var knownTriggers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -307,6 +331,34 @@ public static class UnitRegistry
                 {
                     sb.AppendLine($"  {def.Id}: Trigger '{ab.Trigger}' has NO enemy call site — silent no-op");
                     ok = false;
+                }
+                // U3e: Axis A is elite-gated. A resource-denial key on a line unit is
+                // a rejection, not a warning — the failure mode it guards against is
+                // "every third encounter taxes your hand", which reads as the game
+                // being broken rather than as a fight being hard.
+                if (axisAKeys.Contains(ab.Key) && !def.IsElite && !def.IsBoss)
+                {
+                    sb.AppendLine($"  {def.Id}: Axis A key '{ab.Key}' on a '{def.Role}' unit — " +
+                                  "resource denial is elite/boss only (spec §8, U3e)");
+                    ok = false;
+                }
+                // U3e: school_grudge's school param must name a real CardSchool, or the
+                // ability is a silent no-op for the whole fight. Checked at load rather
+                // than discovered as "the elite never got stronger".
+                if (string.Equals(ab.Key, "school_grudge", StringComparison.OrdinalIgnoreCase))
+                {
+                    string sc = ab.GetStringParam("school", "");
+                    // "player" is the dynamic form (2026-07-28): resolved per cast against
+                    // the casting unit's own school. Anything else must name a real
+                    // CardSchool, or the ability is a silent no-op for the whole fight.
+                    bool okSchool = string.Equals(sc, "player", StringComparison.OrdinalIgnoreCase)
+                                    || Enum.TryParse<CardSchool>(sc, true, out _);
+                    if (!okSchool)
+                    {
+                        sb.AppendLine($"  {def.Id}: school_grudge school '{sc}' is neither " +
+                                      "a CardSchool nor \"player\"");
+                        ok = false;
+                    }
                 }
                 // U3c: aura keys and the "aura" trigger must agree in BOTH directions.
                 bool keyIsAura = auraKeys.Contains(ab.Key);

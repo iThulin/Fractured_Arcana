@@ -23,7 +23,22 @@ public class UnitDeckData
 	public List<Card> DrawPile = new();
 	public List<Card> Hand = new();
 	public List<Card> DiscardPile = new();
+
+	/// <summary>U3e: cards removed from the fight entirely (redact). NOT reshuffled by
+	/// <see cref="Reshuffle"/> — that is the whole point. A discarded card is a card you
+	/// will see again in two shuffles; an exiled one is gone, which is what turns hand
+	/// denial into attrition against a 10-card deck instead of a delay.</summary>
+	public List<Card> ExilePile = new();
+
+	/// <summary>Live hand cap. Lowered by the enemy `hand_cap` aura and restored when
+	/// its carrier dies — CombatManager.ApplyEnemyAuras recomputes it from
+	/// <see cref="BaseMaxHandSize"/> every pass, so it is never adjusted in place.</summary>
 	public int MaxHandSize = 5;
+
+	/// <summary>The unmodified cap this deck was built with. The restore point for
+	/// hand_cap; never mutated after construction.</summary>
+	public int BaseMaxHandSize = 5;
+
 	public CardSchool School = CardSchool.Adept;
 
 	private Random _rng = new();
@@ -32,6 +47,7 @@ public class UnitDeckData
 	{
 		School = school;
 		MaxHandSize = maxHandSize;
+		BaseMaxHandSize = maxHandSize;
 	}
 
 	/// <summary>
@@ -106,6 +122,18 @@ public class UnitDeckData
 			DiscardPile.Add(card);
 	}
 
+	/// <summary>U3e (redact): removes a card from hand for the rest of the combat.
+	/// Goes to <see cref="ExilePile"/>, which <see cref="Reshuffle"/> never touches —
+	/// so this shrinks the deck the player is drawing from rather than deferring the
+	/// card by one cycle. Returns true when a card was actually taken.</summary>
+	public bool ExileFromHand(Card card)
+	{
+		if (!Hand.Remove(card))
+			return false;
+		ExilePile.Add(card);
+		return true;
+	}
+
 	/// <summary>Empties the discard pile back into the draw pile and shuffles. Called automatically by <see cref="Draw"/> when the draw pile runs dry.</summary>
 	public void Reshuffle()
 	{
@@ -114,6 +142,12 @@ public class UnitDeckData
 		Shuffle();
 	}
 
-	/// <summary>Sum of all cards across the three zones. Used by save / sanity checks.</summary>
+	/// <summary>Sum of all cards across the three LIVE zones — what the unit can still
+	/// draw or play. Deliberately excludes <see cref="ExilePile"/>: an exiled card is no
+	/// longer part of this deck, and a count that pretends otherwise would hide exactly
+	/// the attrition redact exists to cause. Used by save / sanity checks.</summary>
 	public int TotalCards => DrawPile.Count + Hand.Count + DiscardPile.Count;
+
+	/// <summary>Every card this deck started the combat with, exile included.</summary>
+	public int TotalCardsEverOwned => TotalCards + ExilePile.Count;
 }

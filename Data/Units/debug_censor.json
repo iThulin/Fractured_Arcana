@@ -1,0 +1,27 @@
+{
+  "id": "debug_censor",
+  "threatLabel": "Censor (dbg)",
+  "role": "elite",
+  "intelDescription": "Whatever it hits loses a card for good. Play them or lose them.",
+  "maxHealth": 16,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 3,
+  "attackDamage": 4,
+  "preferredDistance": 3,
+  "behaviorKey": "ranged_kite",
+  "abilities": [
+    {
+      "key": "redact",
+      "trigger": "onAttack",
+      "name": "Redact",
+      "intelDescription": "Whoever it strikes loses a random card from hand — burned out of the deck for the rest of the fight.",
+      "params": {
+        "count": "1"
+      }
+    }
+  ],
+  "colorR": 0.2,
+  "colorG": 0.3,
+  "colorB": 0.45
+}

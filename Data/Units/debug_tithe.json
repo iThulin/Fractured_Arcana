@@ -1,0 +1,30 @@
+{
+  "id": "debug_tithe",
+  "threatLabel": "Tithe Warden (dbg)",
+  "role": "elite",
+  "intelDescription": "Your spells cost +1 mana while it lives. It is also the hardest thing on the board to reach.",
+  "maxHealth": 20,
+  "baseSpeed": 0,
+  "armor": 2,
+  "attackRange": 3,
+  "attackDamage": 3,
+  "preferredDistance": 3,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "abilities": [
+    {
+      "key": "tithe_aura",
+      "trigger": "aura",
+      "name": "Tithe",
+      "intelDescription": "Every spell you cast costs 1 more mana. Never more than a unit's whole pool.",
+      "params": {
+        "amount": "1"
+      }
+    }
+  ],
+  "colorR": 0.55,
+  "colorG": 0.45,
+  "colorB": 0.2
+}

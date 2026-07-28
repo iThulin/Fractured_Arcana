@@ -617,6 +617,33 @@ public partial class CombatManager
         {
             var locked = enemy.ChannelTile.Value;
             int rdmg = (enemy.AttackDamage > 0 ? enemy.AttackDamage : 4) + ChannelReleaseBonus;
+
+            // (2026-07-28, U3e) Ritardando — "their spells cost +1 this round" — finally
+            // does something. Enemies pay no mana, so the tax is charged in the only
+            // currency a caster spends: the channel is HELD for N extra activations
+            // before it lands. The player buys a round of safety and can see it: the
+            // marker keeps reading Channel instead of flipping to Release.
+            //
+            // Returning Channel (not Release) is what makes this safe with the U3a
+            // cycle: a Channel does not advance IntentCycleIndex, so a held channel
+            // cannot desynchronise a scripted unit's beat count.
+            // PURE READ. The counter is decremented at EXECUTION (ExecuteChannelStart),
+            // never here: PlanAllEnemyIntents is documented "safe to call redundantly"
+            // and runs once per enemy phase, so a decrement at plan time would burn the
+            // delay without an activation ever happening — the same plan-time/execution
+            // -time distinction that U3a's IntentCycleIndex is built on.
+            if (enemy.ChannelDelayRemaining > 0)
+            {
+                return new EnemyIntent
+                {
+                    Kind = IntentKind.Channel,
+                    TargetTile = locked,
+                    ThreatTiles = { locked },
+                    Value = rdmg,
+                    BaseValue = rdmg
+                };
+            }
+
             return new EnemyIntent
             {
                 Kind = IntentKind.Release,
@@ -784,7 +811,38 @@ public partial class CombatManager
                 parts.Add($"REGROW>{ab.GetIntParam("threshold", 20)}/rnd");
             else if (string.Equals(ab.Key, "mode_shift", StringComparison.OrdinalIgnoreCase) && !enemy.HasModeShifted)
                 parts.Add($"SHIFT@{Mathf.Max(0, ab.GetIntParam("threshold", 25) - enemy.DamageTakenThisCombat)}");
+            // U3e resource denial. Every one of these taxes something the player is
+            // ABOUT to spend, so an unstated one reads as the game cheating rather
+            // than as a fight being hard — §1a: a mechanic the player cannot read at
+            // decision time contributes zero identity.
+            else if (string.Equals(ab.Key, "tithe_aura", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"TITHE+{ab.GetIntParam("amount", 1)}");
+            else if (string.Equals(ab.Key, "redact", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"REDACT{ab.GetIntParam("count", 1)}(exile)");
+            else if (string.Equals(ab.Key, "hand_cap", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"HANDCAP-{ab.GetIntParam("amount", 1)}");
+            else if (string.Equals(ab.Key, "action_tax", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"TAX-{ab.GetIntParam("amount", 1)}AP/r{ab.GetIntParam("radius", 2)}");
+            else if (string.Equals(ab.Key, "binding_geas", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"GEAS{ab.GetIntParam("amount", 2)}/move");
+            else if (string.Equals(ab.Key, "school_grudge", StringComparison.OrdinalIgnoreCase))
+            {
+                int gst = enemy.AbilityUseCounts.TryGetValue("school_grudge", out var gn) ? gn : 0;
+                string sch = ab.GetStringParam("school", "?");
+                parts.Add(gst > 0
+                    ? $"GRUDGE:{sch}+{ab.GetIntParam("amount", 2)}(x{gst})"
+                    : $"GRUDGE:{sch}+{ab.GetIntParam("amount", 2)}");
+            }
+            else if (string.Equals(ab.Key, "overdraw_ward", StringComparison.OrdinalIgnoreCase))
+                parts.Add(enemy.ExtraActivationPending
+                    ? "OVERDRAWN>ACTS-TWICE"
+                    : $"OVERDRAW@{ab.GetIntParam("n", 4)}cards");
         }
+
+        // U3e: a held channel is the one state where the intent glyph alone LIES —
+        // it reads Channel on a turn the player expected Release. Name the cause.
+        if (enemy.ChannelDelayRemaining > 0)
+            parts.Add($"DRAGGED@{enemy.ChannelDelayRemaining}");
 
         // Caster rider — which school blast comes out of the channel.
         if (!string.IsNullOrEmpty(enemy.CasterSpell))
@@ -841,6 +899,11 @@ public partial class CombatManager
             "RITUAL+n(x/cap)=escalating ally damage  SUMMONn@r=spawns n in r rounds  REPAIR@r=armours an ally in r rounds  " +
             "CHITIN-n=every hit reduced by n  VEIL=immune beyond 1 tile  THORNSn=hits back  " +
             "REGROW>n/rnd=heals full unless it takes n this round  SHIFT@n=transforms in n more damage  " +
+            "TITHE+n=your spells cost n more mana  REDACTn(exile)=its attacks BURN n cards from your hand  " +
+            "HANDCAP-n=you hold n fewer cards; the overflow is discarded at end of turn  " +
+            "TAX-nAP/rR=your units start with n fewer AP within R  GEASn/move=n damage every time you move  " +
+            "GRUDGE:School+n=gains n damage per School half you cast  OVERDRAW@n=acts twice if you play n cards  " +
+            "DRAGGED@n=its channel is held n more activations (Ritardando)  " +
             "SHIFTED=already transformed  " +
             "CYCi/n>XXX=intent script, beat i of n, next beat XXX " +
             "(GRD=brace ADV=nearest BIG=highest-HP WEK=lowest-HP HLD=hold KIT=kite CHN=channel)  *ELITE*";
@@ -960,6 +1023,25 @@ public partial class CombatManager
     // locked intent against the board as the player left it.
     // ════════════════════════════════════════════════════════════════════════
 
+    /// <summary>U3a: closes out one executed beat — advance the script position, drop
+    /// the spent intent and its marker. Extracted in U3e because overdraw_ward's second
+    /// activation needs the same closing sequence mid-loop, and two copies of the
+    /// Channel rule would eventually disagree.
+    ///
+    /// A Channel is HALF a beat — the Release that follows completes it — so a
+    /// `ranged_charge` entry costs two activations and cannot be severed mid-channel by
+    /// the index. RunEnemyTurn's stun/postpone/negate branches `continue` before
+    /// reaching either call site, so a fizzled beat is RETRIED next round rather than
+    /// silently skipped.</summary>
+    private static void CloseOutIntentBeat(Unit enemy)
+    {
+        if (enemy.IntentCycle.Count > 0 && enemy.CurrentIntent?.Kind != IntentKind.Channel)
+            enemy.IntentCycleIndex++;
+
+        enemy.CurrentIntent = null;
+        enemy.ClearIntentDisplay();
+    }
+
     private async Task RunEnemyTurn()
     {
         // U3: settle any triggers queued since the last drain (deaths from the
@@ -989,6 +1071,17 @@ public partial class CombatManager
             CombatCamera?.FocusOn(enemy);
             combatUI?.SetActiveEnemy(enemy);   // V2: roster row = enemy-phase progress bar
             await ToSignal(GetTree().CreateTimer(EnemyFocusBeat), "timeout");
+
+            // U3e overdraw_ward: the charge armed last round is read AND SPENT here,
+            // at the very head of the activation — before the negate/postpone/stun
+            // branches below can `continue` past it. That is the ruling, not an
+            // accident of ordering: a Counterspell, a Postpone or a stun answers the
+            // overdraw, rather than deferring it to a round the player has stopped
+            // expecting it. Banking the charge would make the punish arrive detached
+            // from the turn that earned it, which is the one thing a telegraphed
+            // mechanic must never do.
+            bool actsTwice = enemy.ExtraActivationPending;
+            enemy.ExtraActivationPending = false;
 
             // ── Negate (Adept Counterspell): the action is cancelled outright ──
             if (enemy.NegateNextAction)
@@ -1023,6 +1116,7 @@ public partial class CombatManager
                 {
                     enemy.ChannelTile = null;
                     enemy.RemoveStatus("wizard_charging");
+                    enemy.ChannelDelayRemaining = 0;   // U3e: a broken channel owes nothing
                     combatUI?.AppendActionLog($"{enemy.Name}'s channel is broken!");
                 }
 
@@ -1068,6 +1162,63 @@ public partial class CombatManager
 
             await ExecuteIntent(enemy);
 
+            // U3e overdraw_ward: the SECOND activation lands here — after the first
+            // beat is fully closed out (script position advanced, intent cleared) and
+            // BEFORE onTurnEnd is queued. Both halves of that ordering are load-bearing:
+            //
+            //  - Closing the first beat first means a scripted unit spends TWO beats of
+            //    its cycle, not one beat twice. `[attack, attack, ritual]` under an
+            //    overdraw reaches the ritual a round early, which is legible escalation
+            //    rather than a stutter.
+            //  - onTurnEnd stays ONCE PER ROUND. Firing it per activation would double
+            //    regrowth's heal and re-arm this very ability against a count that has
+            //    not changed since — "turn end" means the end of the turn, and the unit
+            //    has had one turn containing two actions.
+            if (actsTwice && IsValidActor(enemy))
+            {
+                if (!enemy.CanAct())
+                {
+                    // Beat 1 is deliberately NOT closed out here: the shared tail
+                    // below closes it exactly once. Closing it in both places would
+                    // advance IntentCycleIndex twice for a ward that only ever took
+                    // one action, silently desynchronising its script.
+                    string denied = UIContent.FormatLogLine(enemy.Name, "Overdraw Ward",
+                        "cannot take its second action", "disabled");
+                    GD.Print(denied);
+                    combatUI?.AppendActionLog(denied);
+                }
+                else
+                {
+                    CloseOutIntentBeat(enemy);      // beat 1 done; the tail closes beat 2
+
+                    // Refresh ONLY the action budget. Deliberately NOT StartTurn():
+                    // that also runs TickStatuses, so a second activation would burn
+                    // an extra turn off every status on the unit — a ward under
+                    // `slowed` would shrug it off early, i.e. the punish would come
+                    // with a free cleanse attached. Nothing else StartTurn does is
+                    // wanted here (mana is unused by enemies; the disable clamp is
+                    // already covered by the CanAct gate above).
+                    enemy.CurrentActionPoints = enemy.MaxActionPoints;
+                    enemy.Stats.MovePoints = enemy.Stats.BaseSpeed;
+                    enemy.TilesMovedThisTurn = 0;   // the charge rider measures THIS action
+                    enemy.HasAttackedThisTurn = false;
+
+                    enemy.CurrentIntent = PlanIntent(enemy);
+                    if (enemy.CurrentIntent != null)
+                        enemy.CurrentIntent.Revealed = true;   // never a hidden bonus turn
+                    UpdateIntentDisplay(enemy);
+                    RefreshThreatTiles();
+
+                    string again = UIContent.FormatLogLine(enemy.Name, "Overdraw Ward",
+                        "acts a second time", $"round {roundNumber}");
+                    GD.Print(again);
+                    combatUI?.AppendActionLog(again);
+                    await ToSignal(GetTree().CreateTimer(EnemyFocusBeat), "timeout");
+
+                    await ExecuteIntent(enemy);
+                }
+            }
+
             // U3b: onTurnEnd — after the unit has acted, before the drain, so an
             // end-of-action ability resolves in the same window as the intent's kills.
             QueueAbilityTriggers(enemy, "onTurnEnd");
@@ -1077,18 +1228,7 @@ public partial class CombatManager
             await DrainTriggerStackAsync();
 
             if (enemy != null && IsInstanceValid(enemy))
-            {
-                // U3a: advance the script. A Channel is HALF a beat — the Release
-                // that follows completes it — so a `ranged_charge` entry costs two
-                // activations and cannot be severed mid-channel by the index. The
-                // stun/postpone branches above `continue` before reaching here, so a
-                // fizzled beat is RETRIED next round rather than silently skipped.
-                if (enemy.IntentCycle.Count > 0 && enemy.CurrentIntent?.Kind != IntentKind.Channel)
-                    enemy.IntentCycleIndex++;
-
-                enemy.CurrentIntent = null;
-                enemy.ClearIntentDisplay();
-            }
+                CloseOutIntentBeat(enemy);
 
             if (CheckCombatEnd())
                 return;
@@ -1440,6 +1580,26 @@ public partial class CombatManager
         if (!IsValidActor(enemy) || intent.TargetTile == null)
             return;
 
+        // (2026-07-28, U3e) Ritardando — a channel already under way, being HELD.
+        // The counter is spent here rather than in PlanWizard because this is the one
+        // place an activation has actually been consumed. Returns early: the tile was
+        // locked when the channel began and must not be re-aimed by a delay, or the
+        // player's Ritardando would hand the caster a free retarget onto whoever moved.
+        if (enemy.ChannelDelayRemaining > 0 && enemy.HasStatus("wizard_charging"))
+        {
+            enemy.ChannelDelayRemaining--;
+            enemy.ApplyStatus("wizard_charging", 2);   // hold the charge open
+            string drag = UIContent.FormatLogLine(enemy.Name, "Ritardando",
+                "the channel drags",
+                enemy.ChannelDelayRemaining > 0
+                    ? $"{enemy.ChannelDelayRemaining} more activation(s)"
+                    : "releases next activation");
+            GD.Print(drag);
+            combatUI?.AppendActionLog(drag);
+            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+            return;
+        }
+
         // Reposition relative to the remembered target (old wizard behaviour).
         // U2: immobile/planted-bulwark units channel from where they stand.
         if (IsValidActor(intent.TargetUnit) && MayMove(enemy, out string channelGate))
@@ -1459,6 +1619,14 @@ public partial class CombatManager
         enemy.ChannelTile = intent.TargetTile;
         enemy.ApplyStatus("wizard_charging", 2);
 
+        // U3e: the Ritardando tax is charged AT CHANNEL START and fixed for this cast,
+        // so casting it after a channel has begun does not retroactively lengthen a
+        // charge the player was already counting down. Read once, held on the unit.
+        enemy.ChannelDelayRemaining = Math.Max(0, State.EnemySpellCostIncrease);
+        if (enemy.ChannelDelayRemaining > 0)
+            GD.Print($"[Ritardando] {enemy.Name} channels under drag — " +
+                     $"+{enemy.ChannelDelayRemaining} activation(s) before release.");
+
         GD.Print($"{enemy.Name} begins channelling at {intent.TargetTile.Value}...");
         combatUI?.AppendActionLog($"{enemy.Name} begins channelling!");
         await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
@@ -1474,6 +1642,7 @@ public partial class CombatManager
         Vector2I? locked = enemy.ChannelTile ?? intent.TargetTile;
         enemy.ChannelTile = null;
         enemy.RemoveStatus("wizard_charging");
+        enemy.ChannelDelayRemaining = 0;   // U3e: the drag is spent with the charge
 
         if (locked == null)
             return;

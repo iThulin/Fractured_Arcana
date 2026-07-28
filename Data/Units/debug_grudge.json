@@ -1,0 +1,28 @@
+{
+  "id": "debug_grudge",
+  "threatLabel": "Grudge (dbg)",
+  "role": "elite",
+  "intelDescription": "Casting your own school feeds it. Splash, or watch it grow.",
+  "maxHealth": 34,
+  "baseSpeed": 2,
+  "armor": 1,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "abilities": [
+    {
+      "key": "school_grudge",
+      "trigger": "aura",
+      "name": "Grudge",
+      "intelDescription": "Gains +2 damage, permanently, every time a unit casts a half of its own school.",
+      "params": {
+        "school": "player",
+        "amount": "2"
+      }
+    }
+  ],
+  "colorR": 0.6,
+  "colorG": 0.2,
+  "colorB": 0.35
+}

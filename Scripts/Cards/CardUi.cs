@@ -97,6 +97,9 @@ public partial class CardUi : Control
     private Panel _fullDivider;
     private Panel _fullInfoPanel;
     private Label _fullManaLabel;
+    /// <summary>U3e: the half currently rendered in the full-card hover, so a tithe
+    /// change repaints its pip without re-running the whole populate pass.</summary>
+    private CardHalf _lastFullHalf;
     private Label _fullNameLabel;
     private Label _fullSpeedLabel;
     private RichTextLabel _fullRulesLabel;
@@ -350,7 +353,12 @@ public partial class CardUi : Control
         Label mana, Label name, Label speed, RichTextLabel rules,
         HBoxContainer elementTags)
     {
-        if (mana != null) mana.Text = (half?.ManaCost ?? 0).ToString();
+        // U3e: taxed price, not printed. Routed through the same helper the
+        // affordability refresh uses so populate-time and refresh-time can never
+        // disagree — at populate time the DeckUiManager back-reference may not be set
+        // yet, in which case this falls back to the printed cost and the first
+        // RefreshAffordability corrects it.
+        ApplyManaPip(mana, half);
         if (name != null) name.Text = half?.Name ?? "";
         if (speed != null) speed.Text = half?.Speed.ToString() ?? "Studied";
         if (rules != null) rules.Text = half?.RulesText ?? "";
@@ -516,7 +524,8 @@ public partial class CardUi : Control
         }
 
         // Spell info
-        if (_fullManaLabel != null) _fullManaLabel.Text = half.ManaCost.ToString();
+        _lastFullHalf = half;                       // U3e: so RefreshManaPips can repaint it
+        if (_fullManaLabel != null) ApplyManaPip(_fullManaLabel, half);
         if (_fullNameLabel != null) _fullNameLabel.Text = half.Name ?? "";
         if (_fullSpeedLabel != null) _fullSpeedLabel.Text = half.Speed.ToString();
         if (_fullRulesLabel != null) _fullRulesLabel.Text = half.RulesText ?? "";
@@ -676,12 +685,52 @@ public partial class CardUi : Control
     private bool HalfReactionLocked(CardHalf half)
         => _reactionWindow && half?.Speed != PlaySpeed.Reflex;
 
+    // ── U3e: the tithe has to be visible ON THE CARD ────────────────────────
+    // Before this, the pip printed half.ManaCost and HalfBaseColor compared
+    // half.ManaCost to available mana. Under a tithe_aura BOTH were wrong: the card
+    // showed a price the player would not pay, and a half they could no longer afford
+    // still read as castable. The action log said so; nobody reads the action log
+    // while deciding which card to drag. Playtest PT-U3e-1.
+
+    /// <summary>This half's price after the enemy mana tax. Falls back to the printed
+    /// cost outside combat, where no provider is wired.</summary>
+    private int EffCost(CardHalf half)
+    {
+        int printed = half?.ManaCost ?? 0;
+        return _deckUiManager?.EffectiveCost(printed) ?? printed;
+    }
+
+    private bool IsTaxed(CardHalf half) => EffCost(half) > (half?.ManaCost ?? 0);
+
+    /// <summary>Repaints both mana pips with the taxed number, tinted when inflated.
+    /// Called from RefreshAffordability rather than from ApplyCardData because the
+    /// DeckUiManager back-reference is set AFTER SetCard — at populate time there is
+    /// nothing to ask.</summary>
+    private void RefreshManaPips()
+    {
+        ApplyManaPip(_topManaLabel, TopHalf);
+        ApplyManaPip(_botManaLabel, BottomHalf);
+        if (_fullManaLabel != null && _lastFullHalf != null)
+            ApplyManaPip(_fullManaLabel, _lastFullHalf);
+    }
+
+    private void ApplyManaPip(Label label, CardHalf half)
+    {
+        if (label == null)
+            return;
+        label.Text = EffCost(half).ToString();
+        // Warning, not Danger: Danger already means "you cannot afford this". An
+        // inflated price the player CAN still pay is a different fact and must read
+        // as a different colour.
+        label.Modulate = IsTaxed(half) ? UITheme.Warning : Colors.White;
+    }
+
     /// <summary>Idle base color for a half: reaction-locked beats affordability.</summary>
     private Color HalfBaseColor(CardHalf half)
     {
         if (HalfReactionLocked(half))
             return UITheme.CardReactionLocked;
-        return (half?.ManaCost ?? 0) > _lastKnownMana
+        return EffCost(half) > _lastKnownMana
             ? UITheme.DangerDim : UITheme.SurfaceLight;
     }
 
@@ -723,6 +772,11 @@ public partial class CardUi : Control
     public void RefreshAffordability(int currentMana)
     {
         _lastKnownMana = currentMana;
+
+        // U3e: pips first, and OUTSIDE the discard-flag early-return below. A card
+        // flagged for overflow discard still has a price the player needs to read —
+        // the amber pulse owns the panel modulate, not the number.
+        RefreshManaPips();
 
         // Don't override panel colors if discard flagged — amber pulse takes visual priority
         if (_isDiscardFlagged) return;

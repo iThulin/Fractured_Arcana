@@ -262,15 +262,28 @@ public partial class CombatManager
     /// the counter. Filtering here and trusting it there would break that counterplay.</summary>
     private static bool ShouldQueueTrigger(UnitAbilityDef ab, Unit carrier, Unit target)
     {
-        if (!string.Equals(ab.Key, "retaliate", StringComparison.OrdinalIgnoreCase))
-            return true;
-        // Needs a living, locatable striker standing next to the carrier.
-        if (target == null || !IsInstanceValid(target) || !target.Stats.IsAlive)
-            return false;
-        if (target.CurrentTile == null || carrier.CurrentTile == null)
-            return false;
-        return HexGridManager.AxialDistance(target.CurrentTile.Axial,
-                                            carrier.CurrentTile.Axial) <= 1;
+        if (string.Equals(ab.Key, "retaliate", StringComparison.OrdinalIgnoreCase))
+        {
+            // Needs a living, locatable striker standing next to the carrier.
+            if (target == null || !IsInstanceValid(target) || !target.Stats.IsAlive)
+                return false;
+            if (target.CurrentTile == null || carrier.CurrentTile == null)
+                return false;
+            return HexGridManager.AxialDistance(target.CurrentTile.Axial,
+                                                carrier.CurrentTile.Axial) <= 1;
+        }
+
+        // U3e redact: a martial has no deck and a spent hand has nothing to take.
+        // Same reasoning as retaliate — a stack object that cannot possibly do
+        // anything still costs the player a beat of attention under R3.
+        if (string.Equals(ab.Key, "redact", StringComparison.OrdinalIgnoreCase))
+        {
+            if (target == null || !IsInstanceValid(target) || !target.Stats.IsAlive)
+                return false;
+            return target.DeckData != null && target.DeckData.Hand.Count > 0;
+        }
+
+        return true;
     }
 
     /// <summary>U3b: onStruck call site, wired to Unit.OnStruck at spawn. Fires only
@@ -365,6 +378,16 @@ public partial class CombatManager
                                                t.Def.GetStringParam("unit", ""), this);
             case "field_repair":
                 return new FieldRepairEffect(t.Carrier, t.Def.GetIntParam("amount", 3), this);
+            // ── U3e resource denial ──
+            // tithe_aura / school_grudge / action_tax / binding_geas / hand_cap are
+            // AURAS and have no case here — see LivingAuraCarriers and the §5
+            // states-not-events rule. Only the two EVENT-driven Axis A keys reach the
+            // dispatcher.
+            case "redact":
+                return new RedactEffect(t.Carrier, t.TargetUnit,
+                                        t.Def.GetIntParam("count", 1), this);
+            case "overdraw_ward":
+                return new OverdrawWardEffect(t.Carrier, t.Def.GetIntParam("n", 4), this);
             case "deathburst":
                 return new DeathburstEffect(t.SourceTile, t.SourceTeam, t.SourceName,
                     t.Def.GetIntParam("count", 2),
@@ -444,9 +467,73 @@ public partial class CombatManager
     /// guard, so redirection cannot chain and Unit.ApplyDamage cannot recurse.</summary>
     private void ApplyEnemyAuras()
     {
+        if (enemyUnits == null || State == null)
+            return;                       // called from HandleUnitDeath, which can fire
+                                          // during teardown before/after combat state exists
         foreach (var u in enemyUnits)
             if (u != null && IsInstanceValid(u))
                 u.BodyguardedBy = null;
+
+        // U3e tithe_aura: a GLOBAL (unpositioned) aura, unlike bodyguard's radius.
+        // Recomputed from scratch every pass — killing the warden must drop the tax
+        // in the same frame the corpse hits the floor, which is why HandleUnitDeath
+        // calls this too. Multiple wardens stack additively; the clamp in
+        // ManaCost.EffectiveAmount is what stops that from becoming a lockout.
+        int tithe = 0;
+        foreach (var u in enemyUnits)
+        {
+            if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive || u.Abilities == null)
+                continue;
+            foreach (var ab in u.Abilities)
+                if (string.Equals(ab.Trigger, "aura", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(ab.Key, "tithe_aura", StringComparison.OrdinalIgnoreCase))
+                    tithe += Math.Max(0, ab.GetIntParam("amount", 1));
+        }
+        if (tithe != State.PlayerSpellCostIncrease)
+        {
+            string msg = tithe > 0
+                ? UIContent.FormatLogLine("Tithe", "Tithe", $"your spells cost +{tithe} mana")
+                : UIContent.FormatLogLine("Tithe", "Tithe", "lifted — your spells cost their printed price");
+            GD.Print(msg);
+            AppendCombatLog(msg);
+        }
+        State.PlayerSpellCostIncrease = tithe;
+
+        // U3e hand_cap (PT-U3e-2): a global aura that lowers every player unit's hand
+        // ceiling while the carrier lives. It needs no machinery of its own — the two
+        // existing readers of MaxHandSize do all the work, and between them they are
+        // exactly the mechanic that was asked for:
+        //   · DiscardOverflowCards (EndPlayerTurn) forces the excess out, oldest first
+        //     — which IS the card the player has been saving
+        //   · DrawToFull (StartPlayerTurn) then refills only to the lowered cap
+        // Recomputed from BaseMaxHandSize rather than adjusted in place, so a dead
+        // carrier restores the cap without any teardown bookkeeping.
+        //
+        // Floored at 1: a player holding no cards has no game, and unlike action_tax
+        // there is no "stand somewhere else" answer to a global aura.
+        int handCap = 0;
+        foreach (var (carrier, ab) in LivingAuraCarriers("hand_cap"))
+            handCap += Math.Max(0, ab.GetIntParam("amount", 1));
+        if (playerUnits != null)
+        {
+            foreach (var pu in playerUnits)
+            {
+                if (pu?.DeckData == null)
+                    continue;
+                int want = Math.Max(1, pu.DeckData.BaseMaxHandSize - handCap);
+                if (want == pu.DeckData.MaxHandSize)
+                    continue;
+                pu.DeckData.MaxHandSize = want;
+                string hm = UIContent.FormatLogLine(pu.Name, "Hand Limit",
+                    handCap > 0 ? $"capped at {want}" : $"restored to {want}",
+                    $"base {pu.DeckData.BaseMaxHandSize}");
+                GD.Print(hm);
+                AppendCombatLog(hm);
+            }
+            deckManager?.RefreshDiscardFlags();   // repaint the overflow amber NOW
+        }
+
+        deckUiManager?.RefreshAffordability();   // the hand must re-read as un/affordable NOW
 
         foreach (var guard in enemyUnits)
         {
@@ -489,6 +576,201 @@ public partial class CombatManager
             if (string.Equals(ab.Key, "bodyguard", StringComparison.OrdinalIgnoreCase))
                 return true;
         return false;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // U3e — Axis A: resource denial. Every key below is an AURA (units doc §5:
+    // states, not events), so NONE of them queue a stack object or open a
+    // priority window. That is not an optimisation, it is the ruling: these fire
+    // on movement and on every card cast, and a window per cast would be the
+    // single worst click-fatigue regression available in this codebase (§10).
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Enumerates the living enemies carrying an aura ability with this key,
+    /// yielding (carrier, def). The one place that pairing is spelled out, so the four
+    /// Axis A handlers cannot drift on the "trigger must be aura" check.</summary>
+    private IEnumerable<(Unit carrier, UnitAbilityDef def)> LivingAuraCarriers(string key)
+    {
+        if (enemyUnits == null)
+            yield break;
+        foreach (var u in enemyUnits)
+        {
+            if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive || u.Abilities == null)
+                continue;
+            foreach (var ab in u.Abilities)
+            {
+                if (!string.Equals(ab.Trigger, "aura", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!string.Equals(ab.Key, key, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                yield return (u, ab);
+            }
+        }
+    }
+
+    /// <summary>U3e action_tax: player units standing inside a taxer's radius begin
+    /// their turn short of action points. Called from StartPlayerTurn AFTER StartTurn,
+    /// status ticks and hazard damage — everything that legitimately zeroes AP has
+    /// already run, so this can only ever subtract.
+    ///
+    /// Two rulings, both load-bearing:
+    /// - It NEVER RAISES AP. A frozen/stunned unit sits at 0 after StartTurn; a naive
+    ///   `Max(1, Max - tax)` would hand it a point back and quietly cure the status.
+    ///   The floor is computed from what the unit actually has, not from its maximum.
+    /// - A unit that had AP keeps AT LEAST ONE. Movement costs AP, so taxing a unit to
+    ///   zero would trap it inside the radius with no way to answer the aura — and
+    ///   "stand somewhere else" is the entire counterplay this key sells. A full-turn
+    ///   lockout from a passive aura is a stun, and stuns are cards, not weather.</summary>
+    private void ApplyEnemyActionTax()
+    {
+        if (playerUnits == null || enemyUnits == null)
+            return;
+        foreach (var victim in playerUnits)
+        {
+            if (victim == null || !IsInstanceValid(victim) || !victim.Stats.IsAlive
+                || victim.CurrentTile == null)
+                continue;
+
+            int tax = 0; string taxerName = null;
+            foreach (var (carrier, ab) in LivingAuraCarriers("action_tax"))
+            {
+                if (carrier.CurrentTile == null)
+                    continue;
+                int radius = Math.Max(1, ab.GetIntParam("radius", 2));
+                if (HexGridManager.AxialDistance(carrier.CurrentTile.Axial,
+                                                 victim.CurrentTile.Axial) > radius)
+                    continue;
+                tax += Math.Max(0, ab.GetIntParam("amount", 1));
+                taxerName ??= carrier.Name;
+            }
+            if (tax <= 0 || victim.CurrentActionPoints <= 0)
+                continue;
+
+            int floor = 1;                       // it had AP, so it keeps a way out
+            int before = victim.CurrentActionPoints;
+            victim.CurrentActionPoints = Math.Max(floor, before - tax);
+            int lost = before - victim.CurrentActionPoints;
+            if (lost <= 0)
+                continue;                    // already at the floor — nothing to report
+            victim.RefreshHealthBar();
+            string msg = UIContent.FormatLogLine(taxerName ?? "Aura", "Action Tax",
+                $"-{lost} AP to {victim.Name}", $"{victim.CurrentActionPoints}/{victim.MaxActionPoints}");
+            GD.Print(msg);
+            AppendCombatLog(msg);
+        }
+    }
+
+    /// <summary>U3e binding_geas: a player unit that walks takes damage on arrival.
+    /// Wired to Unit.OnMoved at spawn — once per COMMITTED move, i.e. once per AP
+    /// spent, which for a 3-AP martial crossing the board is three ticks. That is the
+    /// intended read ("stand and fight"), and it is also why the authored amount must
+    /// stay small; see the tuning note on debug_geas.json.
+    ///
+    /// Enemy movement is exempt: an aura that damaged its own side every step would
+    /// make the AI suicide into it, and the key is a player-facing tax by definition.
+    /// Radius comes from the CARRIER'S tile at arrival time, so stepping out of the
+    /// field on the last point of AP genuinely escapes the last tick.</summary>
+    private void HandleUnitMoved(Unit mover)
+    {
+        if (CombatSim.Active)
+            return;                       // preview runs mutate nothing (R22)
+        if (mover == null || !IsInstanceValid(mover) || !mover.Stats.IsAlive
+            || !mover.IsPlayerControlled || mover.CurrentTile == null)
+            return;
+
+        foreach (var (carrier, ab) in LivingAuraCarriers("binding_geas"))
+        {
+            if (carrier.CurrentTile == null)
+                continue;
+            int radius = ab.GetIntParam("radius", 0);
+            if (radius > 0 && HexGridManager.AxialDistance(carrier.CurrentTile.Axial,
+                                                           mover.CurrentTile.Axial) > radius)
+                continue;                 // radius 0 (the default) = board-wide
+            int amount = Math.Max(0, ab.GetIntParam("amount", 2));
+            if (amount <= 0)
+            {
+                GD.Print($"[Geas] {carrier.Name} has amount 0 — authored as a no-op.");
+                continue;
+            }
+            string msg = UIContent.FormatLogLine(carrier.Name, "Binding Geas",
+                $"{amount} damage → {mover.Name}", "moved");
+            GD.Print(msg);
+            AppendCombatLog(msg);
+            // Sourced to the CARRIER so veil/retaliate/thorns all read it correctly,
+            // and so a geas tick can never be credited to whoever happens to be
+            // mid-resolution (the AmbientDamageSource trap from U3c).
+            mover.ApplyDamage(amount, carrier);
+            if (!mover.Stats.IsAlive)
+                break;                    // walked into a grave; stop taxing the corpse
+        }
+    }
+
+    /// <summary>U3e school_grudge: the carrier grows permanently stronger every time
+    /// the player casts a half of the named school. The Gremlin Nob — it makes ONE
+    /// school actively bad for ONE fight, which is the first thing in this game that
+    /// gives attunement a downside.
+    ///
+    /// Reads CardHalf.School, NOT Card.School: CardRuntime notes a half may belong to
+    /// a different school than its parent card, and the HALF is what was cast. Driven
+    /// off the "AbilityCast" bus event, which fires at PUSH time — so the grudge lands
+    /// before the spell resolves and the player sees the cause and the effect in the
+    /// same beat.
+    ///
+    /// Deliberately NOT a stack object. Under R3 a queued trigger opens a priority
+    /// window; this fires on every single card the player plays, and a window per card
+    /// would break the anti-click-fatigue rule so badly it would end the phase.</summary>
+    private void ApplySchoolGrudge(StackItem item)
+    {
+        if (item?.Ability is not CardHalf half)
+            return;                       // enemy triggers and non-card abilities: nothing to resent
+        if (item.CasterUnit == null || !IsInstanceValid(item.CasterUnit)
+            || !item.CasterUnit.IsPlayerControlled)
+        {
+            // Not silent: a player cast that arrives with no CasterUnit means some
+            // cast path forgot to set it, and "the grudge is broken" would otherwise
+            // be indistinguishable from "nobody cast anything" (U3c lesson 3).
+            if (item.Caster == Me)
+                GD.Print($"[Grudge] '{half.Name}' cast with no CasterUnit — grudge cannot attribute it.");
+            return;
+        }
+
+        foreach (var (carrier, ab) in LivingAuraCarriers("school_grudge"))
+        {
+            string want = ab.GetStringParam("school", "");
+            CardSchool school;
+
+            // U3e revision (PT-U3e-3): the authored value may be the literal "player",
+            // meaning "whichever school the CASTING UNIT belongs to". A fixed school is
+            // either always-on or never-on depending on the run — most decks are one
+            // school with splashes — so a fixed grudge is a coin flip made at authoring
+            // time. Resolved per cast, it is always live and always answerable.
+            //
+            // Against the CASTER's school, not the wizard's: a splashed half from
+            // another school does not feed the grudge, so playing your off-school cards
+            // is the counterplay. That is the whole design — it makes ONE school bad for
+            // ONE fight, which is the first downside attunement has ever had.
+            if (string.Equals(want, "player", StringComparison.OrdinalIgnoreCase))
+            {
+                school = item.CasterUnit.School;
+            }
+            else if (!Enum.TryParse<CardSchool>(want, ignoreCase: true, out school))
+            {
+                GD.PrintErr($"[Grudge] {carrier.Name}: '{want}' is not a CardSchool — grudge never fires.");
+                continue;
+            }
+            if (half.School != school)
+                continue;
+            int amount = Math.Max(0, ab.GetIntParam("amount", 2));
+            carrier.AttackDamage += amount;
+            int stacks = carrier.AbilityUseCounts.TryGetValue("school_grudge", out var n) ? n + 1 : 1;
+            carrier.AbilityUseCounts["school_grudge"] = stacks;
+            string msg = UIContent.FormatLogLine(carrier.Name, "Grudge",
+                $"+{amount} damage — you cast {school}",
+                $"{stacks} stack{(stacks == 1 ? "" : "s")}, now {carrier.AttackDamage}");
+            GD.Print(msg);
+            AppendCombatLog(msg);
+        }
+        RefreshEnemyRoster();
     }
 
     private void ApplyItemAuras()
@@ -759,6 +1041,24 @@ public partial class CombatManager
             // they may hold another Reaction).
             await ToSignal(GetTree(), "process_frame");
 
+            // (2026-07-28, PT-U3e-4) HARD BAIL: priority is priority OVER SOMETHING.
+            // If the stack empties underneath this window there is nothing left to
+            // respond to, and holding the window is a deadlock — the loop exits only
+            // on _priorityPassed, and with a stop set the auto-close branch below can
+            // never fire. RunEnemyTurn then awaits a drain that never returns and the
+            // phase banner hangs forever.
+            //
+            // The reported repro was pressing Enter/Space during a trigger window,
+            // which reached the DEBUG ResolveTop() and drained the stack out from
+            // under the loop. That input path is now blocked at the source as well —
+            // both fixes ship, because "no input can empty the stack" is a claim about
+            // every future call site and this is a claim about this loop.
+            if (State.Stack.IsEmpty)
+            {
+                GD.Print($"[Priority] window closed on {topName} — the stack emptied underneath it.");
+                break;
+            }
+
             // Re-render on stack growth so a cast response appears immediately.
             int c = State.StackCount();
             if (c != lastCount)
@@ -844,6 +1144,21 @@ public partial class CombatManager
         State.ActiveCasterUnit = unit;
         try { return half.CanPlay(State, Me); }
         finally { State.ActiveCasterUnit = prev; }
+    }
+
+    /// <summary>U3e: repaints the hand after something OTHER than the player changed
+    /// it. DeckManager's own discard path drives `_activeDeck` — the deck of whoever
+    /// is selected — so calling DiscardCard for a non-selected unit would take the
+    /// card from the WRONG hand. Redact therefore mutates UnitDeckData directly and
+    /// calls this, which repaints only when the victim is the unit actually on
+    /// screen; every other unit's hand is redrawn by SelectUnit when the player
+    /// switches to it.</summary>
+    internal void RefreshHandFor(Unit victim)
+    {
+        if (victim == null || victim != selectedUnit)
+            return;
+        deckUiManager?.SafeRefreshUI();
+        RefreshDeckCounts();
     }
 }
 
@@ -1143,6 +1458,138 @@ public sealed class ModeShiftEffect : IEffect
         _carrier.PendingProfileId = _profile;
         string msg = UIContent.FormatLogLine(_carrier.Name, "Mode Shift",
             "something gives way", $"{_carrier.DamageTakenThisCombat}/{_threshold} — it changes next turn");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
+    }
+}
+
+/// <summary>Redact (U3e): the struck unit loses N random cards from its HAND. The
+/// Censor — the only key in the game that attacks a decision the player has already
+/// made rather than a resource they were going to spend.
+///
+/// Per-unit decks make this naturally targeted: it takes from whoever was hit, not
+/// from a party-wide pool, so who you leave in reach is the counterplay.
+///
+/// Does NOT go through DeckManager.DiscardCard. That method operates on `_activeDeck`
+/// — the SELECTED unit's deck — so calling it for an unselected victim would silently
+/// discard from the wrong hand. UnitDeckData.Discard is the per-unit primitive; the
+/// UI is repainted through CombatManager.RefreshHandFor, which no-ops unless the
+/// victim is the unit currently on screen.
+///
+/// Ruling 2026-07-28 (spec §10 flagged this as the first key to cut): SHIPPED, at
+/// count 1, elite-gated.
+///
+/// REVISED after playtest PT-U3e-2: the card is EXILED, not discarded. As a discard it
+/// was mechanically free — the hand refills to MaxHandSize at every turn start, so the
+/// player lost a card of *selection* and zero tempo, and the card came back in two
+/// shuffles anyway. Exiled, it is attrition against a 10-card deck: the draw pile the
+/// player will cycle through for the rest of the fight is permanently one card thinner,
+/// and the one it lost is the one they were holding on purpose.
+///
+/// The tempo half of hand denial is now a SEPARATE key — `hand_cap` — because the two
+/// are different mechanics that happened to share a name.</summary>
+public sealed class RedactEffect : IEffect
+{
+    private readonly Unit _carrier, _victim;
+    private readonly int _count;
+    private readonly CombatManager _cm;
+    private static readonly Random Rng = new();
+
+    public RedactEffect(Unit carrier, Unit victim, int count, CombatManager cm)
+    { _carrier = carrier; _victim = victim; _count = count; _cm = cm; }
+
+    public string[] Tags { get; private set; } = { "Ability", "Debuff" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        string who = _carrier != null && GodotObject.IsInstanceValid(_carrier) ? _carrier.Name : "Redact";
+
+        // Every early return says why. The queue-time gate already suppresses the
+        // hopeless cases; anything reaching here and doing nothing means the board
+        // changed inside the priority window, and that must be legible (U3c lesson 3).
+        if (_victim == null || !GodotObject.IsInstanceValid(_victim) || !_victim.Stats.IsAlive)
+        {
+            s.Log($"[Redact] {who}: the struck unit is gone — nothing to take.");
+            return;
+        }
+        if (_victim.DeckData == null)
+        {
+            s.Log($"[Redact] {who}: {_victim.Name} is a martial and holds no cards.");
+            return;
+        }
+        var hand = _victim.DeckData.Hand;
+        if (hand.Count == 0)
+        {
+            s.Log($"[Redact] {who}: {_victim.Name}'s hand is already empty.");
+            return;
+        }
+
+        int taken = 0;
+        var names = new List<string>();
+        for (int i = 0; i < _count && hand.Count > 0; i++)
+        {
+            var card = hand[Rng.Next(hand.Count)];
+            names.Add(card.CardName ?? card.TopHalf?.Name ?? "a card");
+            if (!_victim.DeckData.ExileFromHand(card))
+            {
+                s.Log($"[Redact] {who}: '{card.CardName}' was not in hand — nothing taken.");
+                break;
+            }
+            taken++;
+        }
+        _cm?.RefreshHandFor(_victim);
+
+        string msg = UIContent.FormatLogLine(who, "Redact",
+            $"{_victim.Name} loses {string.Join(", ", names)} — burned out of the deck",
+            $"{hand.Count} in hand, {_victim.DeckData.TotalCards} cards left");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
+    }
+}
+
+/// <summary>Overdraw Ward (U3e): if the player played N or more cards this round, the
+/// ward takes a SECOND activation next round. The Time Eater — it prices the burst
+/// turn, which is the one turn structure this game otherwise never punishes.
+///
+/// Reads GameState.SpellsCastThisTurn, which already exists and already resets at
+/// player-turn start; no new counter. Fires at onTurnEnd during the enemy phase, so
+/// the count it reads is the player turn that just finished — exactly "this round".
+///
+/// Arms a flag rather than acting: the extra activation is a whole turn's worth of
+/// threat and must be TELEGRAPHED, not sprung. The under-threshold case logs too —
+/// "three of four" is the information that makes the fourth card a decision.</summary>
+public sealed class OverdrawWardEffect : IEffect
+{
+    private readonly Unit _carrier;
+    private readonly int _n;
+    private readonly CombatManager _cm;
+    public OverdrawWardEffect(Unit carrier, int n, CombatManager cm)
+    { _carrier = carrier; _n = n; _cm = cm; }
+
+    public string[] Tags { get; private set; } = { "Ability", "Buff" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (_carrier == null || !GodotObject.IsInstanceValid(_carrier) || !_carrier.Stats.IsAlive)
+            return;
+        int cast = s.SpellsCastThisTurn;
+        if (cast < _n)
+        {
+            string under = UIContent.FormatLogLine(_carrier.Name, "Overdraw Ward",
+                "the hour holds", $"{cast}/{_n} cards");
+            GD.Print(under);
+            _cm?.AppendCombatLog(under);
+            return;
+        }
+        if (_carrier.ExtraActivationPending)
+            return;                                   // already armed; do not stack
+        _carrier.ExtraActivationPending = true;
+        string msg = UIContent.FormatLogLine(_carrier.Name, "Overdraw Ward",
+            "you spent too much time — it acts twice next round", $"{cast}/{_n} cards");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
     }

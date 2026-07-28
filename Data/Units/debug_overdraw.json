@@ -1,0 +1,27 @@
+{
+  "id": "debug_overdraw",
+  "threatLabel": "Overdraw Ward (dbg)",
+  "role": "elite",
+  "intelDescription": "Play three cards in a round and it takes two turns in the next one.",
+  "maxHealth": 30,
+  "baseSpeed": 1,
+  "armor": 1,
+  "attackRange": 3,
+  "attackDamage": 5,
+  "preferredDistance": 3,
+  "behaviorKey": "ranged_kite",
+  "abilities": [
+    {
+      "key": "overdraw_ward",
+      "trigger": "onTurnEnd",
+      "name": "Overdraw Ward",
+      "intelDescription": "If you played 3 or more cards this round, it acts twice next round.",
+      "params": {
+        "n": "3"
+      }
+    }
+  ],
+  "colorR": 0.25,
+  "colorG": 0.45,
+  "colorB": 0.45
+}

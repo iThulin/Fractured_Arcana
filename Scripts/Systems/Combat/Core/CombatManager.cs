@@ -157,6 +157,20 @@ public partial class CombatManager : Node3D
             deckUiManager.CardHalfHovered += OnCardHalfHovered;
 
             deckUiManager.SetManaProvider(() => selectedUnit?.Stats.Mana ?? 0);
+            // U3e: the hand renders TAXED prices, straight off the rules engine's own
+            // formula. ActiveCasterUnit is pinned to the selected unit for the call and
+            // restored, exactly as UnitCanPlay does — EffectiveAmount clamps against
+            // that unit's MaxMana, so asking without pinning would read whoever
+            // happened to be mid-resolution.
+            deckUiManager.SetEffectiveCostProvider(printed =>
+            {
+                if (State == null)
+                    return printed;
+                var prev = State.ActiveCasterUnit;
+                State.ActiveCasterUnit = selectedUnit;
+                try { return ManaCost.EffectiveAmount(State, printed); }
+                finally { State.ActiveCasterUnit = prev; }
+            });
         }
         else
         {
@@ -721,6 +735,17 @@ public partial class CombatManager : Node3D
             }
         }
 
+        // (2026-07-28, PT-U3e-4) These two lines deadlocked the enemy phase.
+        //
+        // Godot's DEFAULT action map puts SPACE in BOTH "ui_select" AND "ui_accept",
+        // so one press of the most obvious "get on with it" key fired Pass() *and*
+        // ResolveTop(). Pass() is the rules-engine priority pass — it does nothing for
+        // the R3 trigger window, whose exit is _priorityPassed — so the window stayed
+        // open while ResolveTop() drained the stack from under it. The drain loop then
+        // awaited a window that could never close, and the phase banner hung.
+        //
+        // Both halves are fixed here: Pass now MEANS pass while a window is open, and
+        // the debug resolver refuses to touch a stack the trigger loop owns.
         if (e.IsActionPressed("ui_select"))
         { Pass(); } // space by default
         if (e.IsActionPressed("ui_accept"))
@@ -1802,6 +1827,13 @@ public partial class CombatManager : Node3D
         currentPhase = CombatPhase.PlayerTurn;
         enemyPhaseRunning = false;
 
+        // (2026-07-28, U3e) Ritardando's "+1 enemy spell cost" expires HERE, not at
+        // the head of the enemy phase where it used to be cleared before it could
+        // ever apply. Cast during turn N, it holds every enemy channel through the
+        // enemy phase of round N, and lifts as turn N+1 begins — which is what "this
+        // round" reads as from the player's seat.
+        State.EnemySpellCostIncrease = 0;
+
         foreach (var unit in playerUnits)
         {
             if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
@@ -1909,10 +1941,17 @@ public partial class CombatManager : Node3D
         // Q2 (§7a): item AURAS (§5 states, not stack events) recompute here —
         // regen auras heal adjacent allies at each of your turn starts.
         ApplyItemAuras();
-        ApplyEnemyAuras();   // U3d — radius auras (bodyguard); idempotent
+        ApplyEnemyAuras();   // U3d — radius auras (bodyguard, tithe_aura); idempotent
 
         ProcessStatusEffects(playerUnits);
         ApplyHazardDamage(playerUnits);
+
+        // U3e action_tax: LAST, and deliberately so. StartTurn refilled AP,
+        // ProcessStatusEffects may have zeroed it (frozen/stunned/bound) and
+        // ApplyHazardDamage may have killed the unit outright — everything that has
+        // a legitimate claim on this turn's action points has now spoken. The tax
+        // only ever subtracts from what survives all of that.
+        ApplyEnemyActionTax();
 
         // Cleanups (imbue path callbacks, etc.)
         if (State.OnTurnEndCleanups != null)
@@ -2030,6 +2069,29 @@ public partial class CombatManager : Node3D
         EndPlayerTurn();
     }
 
+    /// <summary>Moves the selection off a corpse to the next living companion, or clears
+    /// it if the party is gone. Deferred from HandleUnitDeath — see the call site for why
+    /// it must not run synchronously.</summary>
+    private void SelectNextLivingAfterDeath()
+    {
+        if (selectedUnit != null && IsInstanceValid(selectedUnit) && selectedUnit.Stats.IsAlive)
+            return;                       // something already moved the selection
+
+        foreach (var u in playerUnits)
+        {
+            if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive)
+                continue;
+            SelectUnit(u);                // also re-points the camera and swaps the deck
+            return;
+        }
+
+        // Whole party down. CheckCombatEnd owns what happens next; just stop pointing
+        // the UI at a dead unit in the meantime.
+        selectedUnit = null;
+        ClearMoveTiles();
+        ClearTargetHighlight();
+    }
+
     private void DiscardOverflowCards(Unit unit)
     {
         if (unit?.DeckData == null)
@@ -2108,8 +2170,13 @@ public partial class CombatManager : Node3D
 
         currentPhase = CombatPhase.EnemyTurn;
 
-        // ── Reset per-round Chronomancer modifiers ────────────────────────────────
-        State.EnemySpellCostIncrease = 0;
+        // (2026-07-28, U3e) `State.EnemySpellCostIncrease = 0;` USED TO SIT HERE, at
+        // the head of the enemy phase. Ritardando is a Studied half — it can only be
+        // cast during the player's turn — so this line wiped the tax roughly one
+        // frame after the player paid 3 mana for it, before a single enemy acted. It
+        // never mattered, because nothing read the field either; both halves of that
+        // are fixed together. The reset now lives in StartPlayerTurn, so the value
+        // spans exactly the enemy phase it was bought for.
 
         if (State.RedirectAllTurnsRemaining > 0)
         {
@@ -2545,6 +2612,29 @@ public partial class CombatManager : Node3D
         // still has a tile — "when the unit dies, before removal" (units doc §5).
         // Queuing only; the drain runs at the next safe async point.
         QueueDeathTriggers(unit);
+
+        // (2026-07-28, PT-U3e-5) The camera and the selection used to stay parked on a
+        // companion that had just died — most visibly when binding_geas killed one
+        // mid-move, since the player was looking right at it. Harmless (the corpse
+        // drops out of the roster the moment anything else is clicked) but it reads as
+        // the game having lost track of itself at the exact moment it should be clearest.
+        //
+        // DEFERRED, and gated to the player turn with no window open. HandleUnitDeath
+        // runs INSIDE ApplyDamage, which can be inside an effect resolution or inside
+        // an open priority window that has auto-selected a responder — reselecting
+        // synchronously there would swap the active deck out from under a cast, or
+        // fight the window for the selection.
+        if (unit == selectedUnit && currentPhase == CombatPhase.PlayerTurn && !_priorityWindowOpen)
+            CallDeferred(nameof(SelectNextLivingAfterDeath));
+
+        // U3e: recompute the enemy aura field NOW, not at the next turn boundary.
+        // tithe_aura is a mana tax the player pays per cast — leaving it standing for
+        // the rest of the turn after its carrier is dead would make the hand read as
+        // unaffordable for a unit that no longer exists. Cheap (O(enemies²) over a
+        // handful of units) and idempotent, and it fixes bodyguard's stale-guard case
+        // at the source instead of relying on the null-out fallback in ApplyDamage.
+        if (unit.TeamId != 0)
+            ApplyEnemyAuras();
 
         HonoredDeadService.RecordDeath(unit);
         if (unit.IsConstruct)          // ← feed Schematics on any construct loss
@@ -3699,6 +3789,7 @@ public partial class CombatManager : Node3D
             AddChild(unit);
             unit.OnDied += HandleUnitDeath;
             unit.OnStruck += HandleUnitStruck;   // U3b
+            unit.OnMoved += HandleUnitMoved;     // U3e — binding_geas
             unit.PlaceOnTile(tile);
 
             unit.Name = $"{p.NamePrefix}_{i + 1}";
@@ -3798,6 +3889,7 @@ public partial class CombatManager : Node3D
 
         unit.OnDied += HandleUnitDeath;
         unit.OnStruck += HandleUnitStruck;   // U3b
+        unit.OnMoved += HandleUnitMoved;     // U3e — binding_geas
         unit.PlaceOnTile(tile);
 
         if (side == HexGridManager.SpawnSide.Player)
@@ -4101,6 +4193,21 @@ public partial class CombatManager : Node3D
             unit.StartShield = 0;
 
             AddChild(unit);
+            // U3e: binding_geas must tax a summoned spirit or a bonded beast exactly
+            // as it taxes a companion — a player-side unit that walks and is not
+            // charged reads as a bug, not as a rule.
+            //
+            // NOTE (2026-07-28, U3e sweep): this legacy summon path wires NEITHER
+            // OnDied NOR OnStruck, unlike all three of the other spawn sites. So
+            // spirits, Tinker constructs and bonded wildlife spawned here do not run
+            // HandleUnitDeath and never fire onStruck — which means Riposte and the
+            // U3c defensive keys are silent on them. That gap predates U3e and is
+            // NOT fixed here: wiring OnDied would newly route these units through
+            // memorial creation, kill counters and death triggers, which is a
+            // behaviour change too large to smuggle into a resource-denial phase.
+            // Logged for its own pass. (Lesson 5: refactors orphan call sites by
+            // bypassing their container.)
+            unit.OnMoved += HandleUnitMoved;     // U3e — binding_geas
             unit.PlaceOnTile(tile);
             unit.MaxActionPoints = unit.Stats.BaseSpeed
                                  + MartialAPCosts.AttackCost(unit.AttackRange);
@@ -4207,6 +4314,7 @@ public partial class CombatManager : Node3D
         AddChild(unit);
         unit.OnDied += HandleUnitDeath;
         unit.OnStruck += HandleUnitStruck;   // U3b
+        unit.OnMoved += HandleUnitMoved;     // U3e — binding_geas
         unit.PlaceOnTile(tile);
         // Same tier-2 budget as SpawnAndPlaceEnemies — risen/summoned units fight
         // identically to deployed ones.
@@ -5182,9 +5290,20 @@ public partial class CombatManager : Node3D
 
     private void OnGameEvent(GameEvent ge)
     {
-        if (ge.Type != "AbilityResolved")
-            return;
         if (ge.Payload is not StackItem item)
+            return;
+
+        // U3e school_grudge rides "AbilityCast", which fires at PUSH time in both
+        // Rules.TryCast and TryCastWithTargets. Push, not resolve: the grudge must
+        // land in the same beat the player sees the card leave their hand, or the
+        // cause and the effect are separated by the whole stack.
+        if (ge.Type == "AbilityCast")
+        {
+            ApplySchoolGrudge(item);
+            return;
+        }
+
+        if (ge.Type != "AbilityResolved")
             return;
         if (item.SourceCard != null && deckManager != null
             && item.Ability is CardHalf half && half.ConsumesCardOnResolve)
@@ -5196,13 +5315,35 @@ public partial class CombatManager : Node3D
 
     void Pass()
     {
+        // (2026-07-28) While an R3 trigger window is open, "pass" has exactly one
+        // meaning and it is not the rules-engine priority pass — it is the thing the
+        // Pass button does. Routing here was the difference between the key working
+        // and the key silently doing nothing while the player watched a frozen banner.
+        if (_priorityWindowOpen)
+        {
+            OnPriorityPassPressed();
+            return;
+        }
         var advanced = State.Priority.PassPriority(State);
         if (!advanced)
             GD.Print($"Pass. Priority → {(State.Priority.PriorityHolder == Me ? "Me" : "Opp")}");
     }
 
+    /// <summary>DEBUG lever (Enter / R): pop one stack object by hand.
+    ///
+    /// (2026-07-28) Now refuses while the trigger loop owns the stack. DrainTriggerStackAsync
+    /// pushes objects, opens a priority window per object, and resolves them itself; a
+    /// second resolver running underneath it desynchronises the loop's bookkeeping and,
+    /// in the reported repro, emptied the stack while a window was open and deadlocked
+    /// the enemy phase. A debug key must not be able to corrupt the rules loop.</summary>
     void ResolveTop()
     {
+        if (_priorityWindowOpen || _triggerDrainRunning)
+        {
+            GD.Print("[Debug] ResolveTop ignored — the trigger stack is being drained. " +
+                     "Pass (Space) to resolve the top object.");
+            return;
+        }
         if (State.Stack.IsEmpty)
         { GD.Print("Stack empty."); return; }
         GD.Print($"Resolving top… (stack size before: {State.StackCount()})");

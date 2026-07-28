@@ -1,0 +1,27 @@
+{
+  "id": "debug_handcap",
+  "threatLabel": "Archivist (dbg)",
+  "role": "elite",
+  "intelDescription": "You hold fewer cards while it stands. Whatever you were saving goes first.",
+  "maxHealth": 24,
+  "baseSpeed": 1,
+  "armor": 2,
+  "attackRange": 3,
+  "attackDamage": 4,
+  "preferredDistance": 3,
+  "behaviorKey": "ranged_kite",
+  "abilities": [
+    {
+      "key": "hand_cap",
+      "trigger": "aura",
+      "name": "Archive",
+      "intelDescription": "Your units hold 2 fewer cards. The excess is discarded at the end of your turn, oldest first.",
+      "params": {
+        "amount": "2"
+      }
+    }
+  ],
+  "colorR": 0.4,
+  "colorG": 0.35,
+  "colorB": 0.55
+}

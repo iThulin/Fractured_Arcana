@@ -352,6 +352,23 @@ public partial class DeckUiManager : Node2D
 		_getMana = provider;
 	}
 
+	private Func<int, int> _getEffectiveCost;
+
+	/// <summary>U3e: maps a half's PRINTED mana cost to what it will actually cost,
+	/// after tithe_aura. Wired by CombatManager to ManaCost.EffectiveAmount so the
+	/// hand and the rules engine cannot disagree about a number the player is about
+	/// to act on — the same "one formula, two readers" rule the R22 damage preview
+	/// follows. Unset (menus, deck editor) = identity, so nothing outside combat
+	/// changes.</summary>
+	public void SetEffectiveCostProvider(Func<int, int> provider)
+	{
+		_getEffectiveCost = provider;
+	}
+
+	/// <summary>The taxed price of a printed cost. Identity when no provider is set.</summary>
+	public int EffectiveCost(int printedCost)
+		=> _getEffectiveCost?.Invoke(printedCost) ?? printedCost;
+
 	public void RefreshAffordability()
 	{
 		int mana = _getMana?.Invoke() ?? 999;

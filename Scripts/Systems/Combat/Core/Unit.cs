@@ -140,6 +140,34 @@ public partial class Unit : Node3D
     /// assigned one, which is what bounds redirection to a single hop.</summary>
     public Unit BodyguardedBy = null;
 
+    // ── U3e: resource-denial state ──────────────────────────────────────────
+    /// <summary>U3e (overdraw_ward): this unit takes a SECOND activation the next
+    /// time it acts. Armed by OverdrawWardEffect at onTurnEnd when the player
+    /// overspent their hand; consumed — unconditionally, at the head of the
+    /// activation — in RunEnemyTurn, so a unit that is stunned, negated or postponed
+    /// spends the charge on the turn it was owed rather than banking it forever.</summary>
+    public bool ExtraActivationPending = false;
+
+    /// <summary>Activations this unit must still spend HOLDING a channel before the
+    /// blast lands (Ritardando / GameState.EnemySpellCostIncrease). Enemies pay no
+    /// mana, so "your spells cost more" is charged in the only currency a caster
+    /// actually spends: time. Set AND decremented in ExecuteChannelStart — never in
+    /// PlanWizard, which only reads it: planning runs once per enemy phase and is
+    /// documented safe to repeat, so a decrement there would burn the delay without
+    /// an activation ever being spent.
+    /// Zero for every caster in every fight where the player never cast Ritardando,
+    /// which is the entire pre-2026-07-28 history of this field's sibling.</summary>
+    public int ChannelDelayRemaining = 0;
+
+    /// <summary>U3e: fired after a SUCCESSFUL TryMoveTo — once per committed move,
+    /// which is once per AP spent, not once per tile crossed. Wired to
+    /// CombatManager.HandleUnitMoved at spawn, exactly like OnStruck. Exists so
+    /// binding_geas has ONE call site that a future movement refactor cannot orphan
+    /// by bypassing its container (the trap that stranded Riposte through all of U2).
+    /// Not fired for PlaceOnTile: teleports, pushes and pulls are not the unit
+    /// walking, and geas answers walking.</summary>
+    public event Action<Unit> OnMoved;
+
     /// <summary>U3c: recomputes cached SELF auras from Abilities. Called at spawn
     /// after Abilities are assigned, and again after a mode_shift swaps the profile.
     /// Radius auras that affect OTHER units (bodyguard, tithe_aura) are U3d and need
@@ -615,6 +643,13 @@ public partial class Unit : Node3D
         TrySpendAP(1);
         TilesMovedThisTurn += pathCost;   // Charge rider: distance covered this turn
         PlaceOnTile(dest);
+
+        // U3e binding_geas. AFTER PlaceOnTile, so the handler measures the geas
+        // radius against where the unit ARRIVED, not where it set off — "damage on
+        // arrival" has to mean arrival or the aura reads as random. PlaceOnTile has
+        // already run TrapSystem/ConduitLink entry hooks, so this sits in the same
+        // company as every other consequence of stepping onto a tile.
+        OnMoved?.Invoke(this);
         return true;
     }
 

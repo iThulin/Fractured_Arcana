@@ -28,8 +28,42 @@ public sealed class ManaCost : ICost
     public int Amount;
     public ManaCost(int a) { Amount = a; }
 
+    /// <summary>U3e (tithe_aura): the price actually charged, after the enemy mana
+    /// tax. ONE function, called from BOTH CanPay and Pay — a tax applied at payment
+    /// but not at affordability lets the player cast a spell they cannot afford and
+    /// fall to zero mana having "paid" four. (The existing DISCOUNT deliberately does
+    /// NOT live here: RulesManager pays full price and refunds afterwards, so a
+    /// discount can never make an unaffordable spell castable. A tax cannot use that
+    /// shape, which is why it goes in the cost object instead of the cast path.)
+    ///
+    /// Rulings baked in, both 2026-07-28:
+    /// - PLAYER-SIDE ONLY. Enemies never route through ManaCost — their casts go via
+    ///   ApplyCasterRider — but AI/scripted casts DO reach the Entity fallback below,
+    ///   and taxing those would be silent friendly fire.
+    /// - CLAMPED TO MaxMana (spec §9 decision 1). Unclamped, a 3-cost half under a +1
+    ///   tithe at MaxMana 3 becomes literally UNCASTABLE — a lockout on the top of the
+    ///   curve, not a tax on it. Clamped, the tithe bites exactly where the player
+    ///   reads it as a tax: it deletes the two-spell turn and leaves the one big spell
+    ///   payable. A half already costing MaxMana is therefore untaxed, by design.
+    /// - Free (0-cost) halves stay free. A half with no ManaCost in its Costs array is
+    ///   untaxable by construction, so taxing 0-cost halves but not cost-less ones
+    ///   would be a distinction the player cannot see.</summary>
+    public static int EffectiveAmount(GameState s, int baseAmount)
+    {
+        int tax = s?.PlayerSpellCostIncrease ?? 0;
+        if (tax <= 0 || baseAmount <= 0)
+            return baseAmount;
+        var u = s.ActiveCasterUnit;
+        if (u == null || !u.IsPlayerControlled)
+            return baseAmount;
+        int ceiling = Math.Max(baseAmount, u.Stats.MaxMana);
+        return Math.Min(baseAmount + tax, ceiling);
+    }
+
     public bool CanPay(GameState s, Entity caster)
     {
+        int due = EffectiveAmount(s, Amount);
+
         // Active unit's mana is authoritative
         if (s.ActiveCasterUnit != null)
         {
@@ -39,23 +73,28 @@ public sealed class ManaCost : ICost
             // phase flag alone gates it.
             if (s.EnemyPhaseContext && s.ActiveCasterUnit.Attunement is FateAttunement fateAvail)
                 available += fateAvail.Charges;
-            return available >= Amount;
+            return available >= due;
         }
 
         // Fallback for AI / scripted casts that don't set ActiveCasterUnit
-        return s.Mana.TryGetValue(caster, out var m) && m >= Amount;
+        return s.Mana.TryGetValue(caster, out var m) && m >= due;
     }
 
     public void Pay(GameState s, Entity caster)
     {
+        int due = EffectiveAmount(s, Amount);
+
         if (s.ActiveCasterUnit != null)
         {
             var u = s.ActiveCasterUnit;
-            int fromMana = Math.Min(Amount, u.Stats.Mana);
+            if (due > Amount)
+                GD.Print($"[Tithe] {u.Name} pays {due} for a {Amount}-cost half (+{due - Amount} tithe).");
+
+            int fromMana = Math.Min(due, u.Stats.Mana);
             if (fromMana > 0)
                 u.TrySpendMana(fromMana);
 
-            int shortfall = Amount - fromMana;
+            int shortfall = due - fromMana;
             if (shortfall > 0 && s.EnemyPhaseContext && u.Attunement is FateAttunement fatePay)
             {
                 fatePay.SpendCharges(shortfall);
@@ -68,7 +107,7 @@ public sealed class ManaCost : ICost
         }
         else if (s.Mana.ContainsKey(caster))
         {
-            s.Mana[caster] -= Amount;
+            s.Mana[caster] -= due;
         }
     }
 }

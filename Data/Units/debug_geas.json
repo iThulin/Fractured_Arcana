@@ -1,0 +1,30 @@
+{
+  "id": "debug_geas",
+  "threatLabel": "Harrier (dbg)",
+  "role": "elite",
+  "intelDescription": "Repositioning costs health. Stand and fight.",
+  "maxHealth": 18,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "charge"
+  ],
+  "abilities": [
+    {
+      "key": "binding_geas",
+      "trigger": "aura",
+      "name": "Binding Geas",
+      "intelDescription": "Each of your units takes 2 damage every time it moves.",
+      "params": {
+        "amount": "2"
+      }
+    }
+  ],
+  "colorR": 0.45,
+  "colorG": 0.25,
+  "colorB": 0.45
+}

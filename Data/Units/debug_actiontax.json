@@ -1,0 +1,32 @@
+{
+  "id": "debug_actiontax",
+  "threatLabel": "Warden of Hours (dbg)",
+  "role": "elite",
+  "intelDescription": "Standing near it costs you an action. Fight it from somewhere else.",
+  "maxHealth": 26,
+  "baseSpeed": 0,
+  "armor": 3,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": [
+    "immobile",
+    "bulwark"
+  ],
+  "abilities": [
+    {
+      "key": "action_tax",
+      "trigger": "aura",
+      "name": "Toll of Hours",
+      "intelDescription": "Your units within 2 tiles begin their turn with 1 less action point. Never fewer than 1.",
+      "params": {
+        "radius": "2",
+        "amount": "1"
+      }
+    }
+  ],
+  "colorR": 0.3,
+  "colorG": 0.35,
+  "colorB": 0.5
+}

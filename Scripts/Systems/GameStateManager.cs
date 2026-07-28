@@ -70,9 +70,36 @@ public sealed class GameState
     public int NextSpellCostReduction = 0;
 
     /// <summary>
-    /// Extra mana cost applied to enemy spells this round. Reset in StartEnemyTurn.
+    /// Extra cost applied to enemy spells this round (Ritardando). Enemies pay no
+    /// mana — the only "spell" they cast is the ranged_charge Channel→Release — so
+    /// this is charged in the currency they DO spend: the channel is held for N extra
+    /// activations before the blast lands. Read at ExecuteChannelStart into
+    /// Unit.ChannelDelayRemaining.
+    ///
+    /// (2026-07-28, U3e) Was a DEAD FIELD: written by CostModifyEffect, reset in
+    /// StartEnemyTurn, and read by nothing at all — so Ritardando's "+1 cost" clause
+    /// did nothing for its entire life. Worse, the reset sat at the HEAD of
+    /// StartEnemyTurn, which wiped the value the player had just paid 3 mana to set,
+    /// before a single enemy acted. The reset now lives in StartPlayerTurn so the
+    /// tax spans exactly the enemy phase it was bought for.
     /// </summary>
     public int EnemySpellCostIncrease = 0;
+
+    /// <summary>
+    /// U3e (tithe_aura): extra mana every PLAYER spell costs while a tithe carrier
+    /// lives. The sibling of EnemySpellCostIncrease in name only — this one is
+    /// actually consumed, in ManaCost.CanPay and ManaCost.Pay, so affordability is
+    /// tested at the TAXED price rather than at the printed one.
+    ///
+    /// A STATE, not an event: recomputed wholesale by CombatManager.ApplyEnemyAuras
+    /// at every player-turn start, at the head of the enemy phase, and on any death,
+    /// so killing the warden drops the tax on the same frame. Never written by hand.
+    ///
+    /// Ruling (spec §9 open decision 1, 2026-07-28): the tax is CLAMPED so a taxed
+    /// cost can never exceed the caster's MaxMana. tithe_aura prices your curve; it
+    /// does not delete cards from your hand. See ManaCost.EffectiveAmount.
+    /// </summary>
+    public int PlayerSpellCostIncrease = 0;
 
     /// <summary>
     /// Turns remaining on the redirect-all effect.

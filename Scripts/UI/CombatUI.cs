@@ -988,9 +988,12 @@ public partial class CombatUI : CanvasLayer
 				UITheme.FontSizeSmall, UITheme.Gold);
 			_inspectBlock.AddChild(nameLine);
 
-			if (!string.IsNullOrEmpty(ab.IntelDescription))
+			// §5d: never blank. The authored line wins; UIContent carries the floor
+			// so a key can no longer ship with no player-facing sentence at all.
+			string abLine = UIContent.DescribeAbility(ab.Key, ab.IntelDescription);
+			if (!string.IsNullOrEmpty(abLine))
 			{
-				var intel = MakeLabel(ab.IntelDescription, UITheme.FontSizeSmall, UITheme.TextDim);
+				var intel = MakeLabel(abLine, UITheme.FontSizeSmall, UITheme.TextDim);
 				intel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 				_inspectBlock.AddChild(intel);
 			}
@@ -1230,9 +1233,10 @@ public partial class CombatUI : CanvasLayer
 					string icon = UIContent.AbilityIcon(ab.Key);
 					var chip = MakeLabel(uses > 0 ? $"{icon}{uses}" : icon,
 						UITheme.FontSizeSmall, UITheme.Gold);
+					string chipLine = UIContent.DescribeAbility(ab.Key, ab.IntelDescription);
 					chip.TooltipText = uses > 0
-						? $"{ab.Name} ×{uses}: {ab.IntelDescription}"
-						: $"{ab.Name}: {ab.IntelDescription}";
+						? $"{ab.Name} ×{uses}: {chipLine}"
+						: $"{ab.Name}: {chipLine}";
 					chip.CustomMinimumSize = new Vector2(14, 0);
 					row.AddChild(chip);
 				}

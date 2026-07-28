@@ -42,11 +42,72 @@ public static class UIContent
     };
 
     // ── Ability icons (keyed by AbilityKey) — proven glyph range only ───────
+    // Every glyph below already renders somewhere in this UI. Do NOT add one that
+    // does not: an unproven codepoint ships as a tofu box on the roster row, and a
+    // roster row is exactly where the player looks to find out what they are fighting.
     private static readonly Dictionary<string, string> AbilityIcons = new(System.StringComparer.OrdinalIgnoreCase)
     {
-        { "requiem",    "✦" },
-        { "deathburst", "✸" },
+        { "requiem",        "✦" },
+        { "deathburst",     "✸" },
+        // U3c — defensive shape
+        { "chitin",         "◈" },
+        { "veil",           "○" },
+        { "retaliate",      "✕" },
+        { "regrowth",       "❖" },
+        { "mode_shift",     "◆" },
+        // U3d — composition
+        { "bodyguard",      "▲" },
+        { "ritual",         "✧" },
+        { "summon_cadence", "●" },
+        { "field_repair",   "⚙" },
+        // U3e — resource denial
+        { "tithe_aura",     "☽" },
+        { "redact",         "☰" },
+        { "school_grudge",  "⚡" },
+        { "action_tax",     "⚠" },
+        { "binding_geas",   "⛓" },
+        { "overdraw_ward",  "★" },
+        { "hand_cap",       "✕" },
     };
+
+    // ── Ability lines (keyed by AbilityKey) — §5d: a key without its string is
+    // not done. These are the FALLBACK: a unit JSON's own intelDescription wins,
+    // because a Censor and a Tithe Warden should not read identically just because
+    // they share a key. What this table guarantees is that no authored key can ever
+    // render as blank on the inspect panel.
+    private static readonly Dictionary<string, string> AbilityLines = new(System.StringComparer.OrdinalIgnoreCase)
+    {
+        { "requiem",        "Grows stronger each time one of its allies dies." },
+        { "deathburst",     "Something else arrives when it dies." },
+        { "chitin",         "Reduces every incoming hit. Chip damage does nothing; burst still lands." },
+        { "veil",           "Cannot be harmed from more than a tile away. Close with it or leave it." },
+        { "retaliate",      "Answers every adjacent strike with damage of its own." },
+        { "regrowth",       "Closes its wounds entirely unless it is hurt badly enough in a single round." },
+        { "mode_shift",     "Becomes something else once it has taken enough punishment." },
+        { "bodyguard",      "Steps in front of nearby allies — damage aimed at them lands on it instead." },
+        { "ritual",         "Makes every one of its allies hit harder, again each round, up to a ceiling." },
+        { "summon_cadence", "Brings reinforcements on a fixed clock. The count is public; race it." },
+        { "field_repair",   "Armours whichever of its allies is worst hurt." },
+        { "tithe_aura",     "Your spells cost more mana while it lives." },
+        { "redact",         "Its attacks burn cards out of the hand of whoever it hits — those cards are gone for the rest of the fight." },
+        { "hand_cap",       "Your units hold fewer cards while it lives. The overflow is discarded at the end of your turn." },
+        { "school_grudge",  "Grows permanently stronger every time you cast from one particular school." },
+        { "action_tax",     "Your units begin their turn short of action points while standing near it." },
+        { "binding_geas",   "Every step your units take costs them health." },
+        { "overdraw_ward",  "Acts twice next round if you played too many cards this one." },
+    };
+
+    /// <summary>§5d: the plain-language line for an ability. The unit's authored
+    /// intelDescription wins; this table is the floor. An unknown key returns an
+    /// honest TODO rather than an empty string — a missing entry should read as
+    /// unfinished in playtest, not silently vanish.</summary>
+    public static string DescribeAbility(string abilityKey, string authoredLine = null)
+    {
+        if (!string.IsNullOrWhiteSpace(authoredLine))
+            return authoredLine;
+        return AbilityLines.TryGetValue(abilityKey ?? "", out var line)
+            ? line : $"(ability '{abilityKey}' — no description authored)";
+    }
 
     /// <summary>Behavior line + tag clauses in one sentence, e.g.
     /// "Advances on the nearest unit and strikes. Pack: +1 damage beside a packmate."</summary>
