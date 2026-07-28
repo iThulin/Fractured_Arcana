@@ -125,6 +125,18 @@ public sealed class Resolver
         var prevCaster = s.ActiveCasterUnit;
         if (item.CasterUnit != null && GodotObject.IsInstanceValid(item.CasterUnit))
             s.ActiveCasterUnit = item.CasterUnit;
+
+        // 2026-07-28: pin the DAMAGE SOURCE for the same window. Deliberately assigned
+        // from item.CasterUnit — which is captured at CAST time — and NOT from
+        // ActiveCasterUnit, which is derived from `selectedUnit` on some paths and so
+        // can name whoever the player happens to have highlighted rather than whoever
+        // actually cast. That distinction is the thornback bug: a spell from a distant
+        // unit was crediting an adjacent bystander, and thorns answered the bystander.
+        // Assigned unconditionally, including null: an unknown source must read as
+        // unknown (veil lets it through, thorns does not fire) rather than inherit a
+        // stale unit from the previous resolution.
+        var prevDamageSource = Unit.AmbientDamageSource;
+        Unit.AmbientDamageSource = item.CasterUnit;
         try
         {
             foreach (var eff in item.Ability.Effects)
@@ -133,6 +145,7 @@ public sealed class Resolver
         finally
         {
             s.ActiveCasterUnit = prevCaster;
+            Unit.AmbientDamageSource = prevDamageSource;
         }
 
         // Set AFTER the effect loop (2026-07-10): "last resolved" must mean the

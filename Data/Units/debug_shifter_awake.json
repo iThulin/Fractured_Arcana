@@ -1,0 +1,18 @@
+{
+  "id": "debug_shifter_awake",
+  "threatLabel": "Awakened Guardian (dbg)",
+  "intelDescription": "The armour is gone and it is much faster now.",
+  "maxHealth": 40,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 10,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [
+    "charge"
+  ],
+  "colorR": 0.85,
+  "colorG": 0.25,
+  "colorB": 0.2
+}

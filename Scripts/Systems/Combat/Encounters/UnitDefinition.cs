@@ -59,6 +59,22 @@ public class UnitDefinition
         return false;
     }
 
+    /// <summary>U3a — ordered intent script. Each entry names a PLANNER from the
+    /// same catalog BehaviorKey draws on, so a script is written in the vocabulary
+    /// the AI already speaks. EMPTY (every pre-U3a JSON) = the unit plans from
+    /// BehaviorKey on every activation, exactly as before. Additive schema change.
+    ///
+    /// This is the identity axis the roster was missing: six behaviour keys vary
+    /// only WHO a unit walks at, which is invisible at decision time and answered
+    /// the same way every time. A unit whose beat 3 differs from its beat 1 is a
+    /// memory. See enemy_identity_spec_v1 §4.</summary>
+    public List<string> IntentCycle = new();
+
+    /// <summary>True (default) = the cycle repeats forever — rotations.
+    /// False = it runs ONCE and then falls through to BehaviorKey — openings
+    /// (a wind-up, an entrance, a one-time transformation).</summary>
+    public bool CycleLoops = true;
+
     /// <summary>Triggered abilities (units doc §5, U3). Hard cap two per unit —
     /// the item system's two-effect legibility ceiling applied to enemies.
     /// Additive schema change: JSONs without the field deserialize empty.</summary>

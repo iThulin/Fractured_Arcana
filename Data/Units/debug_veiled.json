@@ -1,0 +1,24 @@
+{
+  "id": "debug_veiled",
+  "threatLabel": "Veiled Thing (dbg)",
+  "intelDescription": "You cannot shoot it. You have to walk up to it.",
+  "maxHealth": 20,
+  "baseSpeed": 1,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "abilities": [
+    {
+      "key": "veil",
+      "trigger": "aura",
+      "name": "Veil",
+      "intelDescription": "Damage from more than one tile away is turned aside.",
+      "params": {}
+    }
+  ],
+  "colorR": 0.5,
+  "colorG": 0.45,
+  "colorB": 0.7
+}

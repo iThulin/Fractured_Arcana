@@ -369,13 +369,18 @@ public partial class HexGridManager : Node3D
         return new Vector2I((a.X + b.X) / 2, (a.Y + b.Y) / 2);
     }
 
-    public int Distance(Vector2I a, Vector2I b)
+    /// <summary>U3c: hex distance, extracted STATIC so callers with no grid
+    /// reference (Unit's damage path, for the veil aura) share this exact formula
+    /// rather than re-deriving it. Same no-parallel-formula rule as MitigateCore.</summary>
+    public static int AxialDistance(Vector2I a, Vector2I b)
     {
         int ax = a.X, az = a.Y, ay = -ax - az;
         int bx = b.X, bz = b.Y, by = -bx - bz;
 
         return (Math.Abs(ax - bx) + Math.Abs(ay - by) + Math.Abs(az - bz)) / 2;
     }
+
+    public int Distance(Vector2I a, Vector2I b) => AxialDistance(a, b);
 
     public int Distance(HexTile a, HexTile b) => Distance(a.Axial, b.Axial);
 

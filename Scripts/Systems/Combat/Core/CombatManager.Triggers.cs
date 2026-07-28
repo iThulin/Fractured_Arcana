@@ -122,6 +122,12 @@ public partial class CombatManager
         /// is the dead unit (Deathburst).</summary>
         public Unit Carrier;
 
+        /// <summary>U3b: the unit this trigger happened TO — the struck victim for
+        /// onAttack, null for triggers with no second party. Deliberately separate
+        /// from ItemTarget so the enemy-Def path never reads item-only fields (the
+        /// exact mistake that made shield_self/apply_bleed silent no-ops on units).</summary>
+        public Unit TargetUnit;
+
         // ── Q2 item path (set → this is an item trigger, not an enemy Def) ──
         public string ItemKey;        // effect key when Def == null
         public int ItemValue;         // magnitude
@@ -215,6 +221,106 @@ public partial class CombatManager
         }
     }
 
+    /// <summary>U3b: queues one unit's abilities matching <paramref name="trigger"/>.
+    /// The single entry point for every NON-death enemy trigger. onDeath/onAllyDeath
+    /// keep their bespoke helper because their context is a corpse — the carrier is
+    /// null, or is somebody else — which this signature cannot express.</summary>
+    private void QueueAbilityTriggers(Unit carrier, string trigger, Unit target = null)
+    {
+        if (carrier == null || !IsInstanceValid(carrier) || carrier.Abilities == null)
+            return;
+        foreach (var ab in carrier.Abilities)
+        {
+            if (!string.Equals(ab.Trigger, trigger, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (!ShouldQueueTrigger(ab, carrier, target))
+                continue;
+            _pendingTriggers.Add(new QueuedTrigger
+            {
+                Def = ab,
+                SourceName = carrier.Name,
+                SourceTeam = carrier.TeamId,
+                SourceTile = carrier.CurrentTile?.Axial ?? Vector2I.Zero,
+                Carrier = carrier,
+                TargetUnit = target,
+            });
+        }
+    }
+
+    /// <summary>Queue-time viability gate (2026-07-28, playtest PT-U3-3). An ability
+    /// whose precondition ALREADY fails should never become a stack object: under R3
+    /// every trigger opens a priority window, so a trigger that cannot possibly do
+    /// anything costs the player a beat of attention and then silently evaporates.
+    /// Playtest reported exactly that — a thornback pushing a trigger onto the stack
+    /// for a distant caster it could never reach, and for a striker it could not
+    /// identify at all.
+    ///
+    /// This does NOT replace the resolution-time check. Both exist, for different
+    /// reasons: this one suppresses dead stack objects using the board as it stands
+    /// now; the check inside ThornsEffect re-tests adjacency after the window closes,
+    /// which is what lets the player shove the retaliator away in response and dodge
+    /// the counter. Filtering here and trusting it there would break that counterplay.</summary>
+    private static bool ShouldQueueTrigger(UnitAbilityDef ab, Unit carrier, Unit target)
+    {
+        if (!string.Equals(ab.Key, "retaliate", StringComparison.OrdinalIgnoreCase))
+            return true;
+        // Needs a living, locatable striker standing next to the carrier.
+        if (target == null || !IsInstanceValid(target) || !target.Stats.IsAlive)
+            return false;
+        if (target.CurrentTile == null || carrier.CurrentTile == null)
+            return false;
+        return HexGridManager.AxialDistance(target.CurrentTile.Axial,
+                                            carrier.CurrentTile.Axial) <= 1;
+    }
+
+    /// <summary>U3b: onStruck call site, wired to Unit.OnStruck at spawn. Fires only
+    /// when the unit LOST HP and SURVIVED — a fully-absorbed hit is not a wound, and
+    /// a fatal one is onDeath's business.</summary>
+    private void HandleUnitStruck(Unit struck, int hpLoss, Unit source)
+    {
+        QueueAbilityTriggers(struck, "onStruck", source);
+
+        // Riposte re-hook (2026-07-28). ResolveRetaliation was called from
+        // PerformAttack / PerformRangedAttack — but the U2 intent-AI migration routed
+        // every enemy attack through ExecuteIntent -> StrikeTile -> ResolveStrike, and
+        // left those two methods behind. PerformAttack now has ZERO callers;
+        // PerformRangedAttack has exactly one (Tinker constructs). So the player's
+        // Riposte card fired only against a construct's shot and never against the
+        // enemy AI — an orphaned hook, not dead code.
+        //
+        // Unit.OnStruck (U3b) is the correct home: it fires on ANY damage with a known
+        // source, so Riposte now answers melee, ranged, spells and constructs alike,
+        // through ONE call site that cannot be orphaned by a future AI refactor. Both
+        // legacy calls were removed to avoid a double-fire.
+        //
+        // Terminates: ResolveRetaliation deals its damage with NO source, so the
+        // victim's own OnStruck sees source == null and returns — no ping-pong.
+        ResolveRetaliation(struck, source);
+    }
+
+    /// <summary>U3b: onSpawn call site. Fires INLINE, mirroring FireItemSpawnTriggers
+    /// and §5's initial-state carve-out — at deployment there is no priority window to
+    /// open and nothing to respond with. Still routes through the one dispatcher.
+    /// KNOWN DIVERGENCE: a unit spawned mid-combat (Deathburst, summon_cadence) also
+    /// resolves its onSpawn un-respondably. Revisit if a spawn ability ever needs to
+    /// be answerable.</summary>
+    private void FireEnemySpawnTriggers(Unit unit)
+    {
+        if (unit?.Abilities == null)
+            return;
+        foreach (var ab in unit.Abilities)
+        {
+            if (!string.Equals(ab.Trigger, "onSpawn", StringComparison.OrdinalIgnoreCase))
+                continue;
+            var eff = BuildTriggeredEffect(new QueuedTrigger
+            {
+                Def = ab, SourceName = unit.Name, SourceTeam = unit.TeamId,
+                SourceTile = unit.CurrentTile?.Axial ?? Vector2I.Zero, Carrier = unit,
+            });
+            eff?.Resolve(State, unit.IsPlayerControlled ? Me : Opp, null, new EffectSnapshot());
+        }
+    }
+
     /// <summary>True when death triggers are queued or on the stack — combat-end
     /// evaluation defers until the stack settles.</summary>
     private bool TriggersOutstanding => _pendingTriggers.Count > 0 || !State.Stack.IsEmpty;
@@ -232,6 +338,33 @@ public partial class CombatManager
             // ── Enemy roster keys (U3) ──
             case "requiem":
                 return new RequiemEffect(t.Carrier, t.Def.GetIntParam("amount", 2), this);
+            // U3b VERIFICATION SCAFFOLD — remove with debug_trigger_probe before ship.
+            case "debug_echo":
+                return new DebugEchoEffect(t.Def?.Trigger ?? "?", t.SourceName,
+                                           t.TargetUnit, roundNumber, this);
+            // ── U3c defensive shapes ──
+            // chitin / veil are AURAS — states, not events (units doc §5). They are
+            // cached on Unit at spawn and read inline in the damage path; they never
+            // reach this dispatcher, and the registry exempts them from needing a case.
+            case "retaliate":
+                return new ThornsEffect(t.Carrier, t.TargetUnit,
+                                           t.Def.GetIntParam("amount", 3), this);
+            case "regrowth":
+                return new RegrowthEffect(t.Carrier, t.Def.GetIntParam("threshold", 20), this);
+            case "mode_shift":
+                return new ModeShiftEffect(t.Carrier, t.Def.GetIntParam("threshold", 25),
+                                           t.Def.GetStringParam("profile", ""), this);
+            // ── U3d composition ──
+            // bodyguard is an AURA (Unit.BodyguardedBy, recomputed in ApplyEnemyAuras)
+            // and therefore has no case here — see auraKeys in UnitRegistry.
+            case "ritual":
+                return new RitualEffect(t.Carrier, t.Def.GetIntParam("amount", 1),
+                                        t.Def.GetIntParam("cap", 3), this);
+            case "summon_cadence":
+                return new SummonCadenceEffect(t.Carrier, t.Def.GetIntParam("count", 1),
+                                               t.Def.GetStringParam("unit", ""), this);
+            case "field_repair":
+                return new FieldRepairEffect(t.Carrier, t.Def.GetIntParam("amount", 3), this);
             case "deathburst":
                 return new DeathburstEffect(t.SourceTile, t.SourceTeam, t.SourceName,
                     t.Def.GetIntParam("count", 2),
@@ -300,6 +433,64 @@ public partial class CombatManager
     /// <summary>Recomputes item AURAS (§5: states, not stack events). Called at
     /// the start of each player turn. Regen auras heal adjacent allies — a pure
     /// per-turn event, so no accumulation bookkeeping.</summary>
+    /// <summary>U3d: recomputes RADIUS auras on the enemy side — auras that affect
+    /// OTHER units, as opposed to the U3c self-auras (chitin/veil) which are cached on
+    /// the unit at spawn. Full clear-then-reassign, so a guard dying, moving, or being
+    /// displaced is reflected without any teardown bookkeeping. Called at the start of
+    /// each player turn and at the head of the enemy phase; cheap (O(enemies^2) over a
+    /// handful of units) and idempotent, so extra calls are harmless.
+    ///
+    /// Bounded to ONE HOP: a unit that itself carries bodyguard is never assigned a
+    /// guard, so redirection cannot chain and Unit.ApplyDamage cannot recurse.</summary>
+    private void ApplyEnemyAuras()
+    {
+        foreach (var u in enemyUnits)
+            if (u != null && IsInstanceValid(u))
+                u.BodyguardedBy = null;
+
+        foreach (var guard in enemyUnits)
+        {
+            if (guard == null || !IsInstanceValid(guard) || !guard.Stats.IsAlive
+                || guard.CurrentTile == null || guard.Abilities == null)
+                continue;
+            foreach (var ab in guard.Abilities)
+            {
+                if (!string.Equals(ab.Trigger, "aura", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!string.Equals(ab.Key, "bodyguard", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                int radius = Math.Max(1, ab.GetIntParam("radius", 1));
+                foreach (var ward in enemyUnits)
+                {
+                    if (ward == null || ward == guard || !IsInstanceValid(ward)
+                        || !ward.Stats.IsAlive || ward.CurrentTile == null)
+                        continue;
+                    if (ward.TeamId != guard.TeamId)
+                        continue;
+                    if (ward.BodyguardedBy != null)
+                        continue;                       // first guard wins, deterministically
+                    if (CarriesBodyguard(ward))
+                        continue;                       // guards are never guarded — one hop
+                    if (HexGridManager.AxialDistance(guard.CurrentTile.Axial,
+                                                     ward.CurrentTile.Axial) > radius)
+                        continue;
+                    ward.BodyguardedBy = guard;
+                }
+            }
+        }
+    }
+
+    /// <summary>True when this unit carries a bodyguard aura of its own.</summary>
+    private static bool CarriesBodyguard(Unit u)
+    {
+        if (u?.Abilities == null)
+            return false;
+        foreach (var ab in u.Abilities)
+            if (string.Equals(ab.Key, "bodyguard", StringComparison.OrdinalIgnoreCase))
+                return true;
+        return false;
+    }
+
     private void ApplyItemAuras()
     {
         foreach (var granter in playerUnits)
@@ -689,6 +880,296 @@ public sealed class RequiemEffect : IEffect
         // V3 (§9): fixed grammar via FormatLogLine — [Source] Ability: effect (state).
         string msg = UIContent.FormatLogLine(_carrier.Name, "Requiem",
             $"+{_amount} damage", $"{stacks} stack{(stacks == 1 ? "" : "s")}, now {_carrier.AttackDamage}");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
+    }
+}
+
+/// <summary>Ritual (U3d): every living ally gains +N attack damage, cumulatively,
+/// each time this fires. The Cultist — it makes kill PRIORITY a real decision instead
+/// of "hit the nearest thing". CAPPED (spec §9 open decision 2): uncapped, a six-round
+/// siege ends at +6 on every enemy, and it compounds with requiem, which already
+/// stacks. The cap is reported in the log line so the player can see the ceiling.</summary>
+public sealed class RitualEffect : IEffect
+{
+    private readonly Unit _carrier;
+    private readonly int _amount, _cap;
+    private readonly CombatManager _cm;
+    public RitualEffect(Unit carrier, int amount, int cap, CombatManager cm)
+    { _carrier = carrier; _amount = amount; _cap = cap; _cm = cm; }
+
+    public string[] Tags { get; private set; } = { "Ability", "Buff" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (_carrier == null || !GodotObject.IsInstanceValid(_carrier) || !_carrier.Stats.IsAlive)
+            return;
+        int given = _carrier.AbilityUseCounts.TryGetValue("ritual", out var n) ? n : 0;
+        if (given >= _cap)
+        {
+            s.Log($"[Ritual] {_carrier.Name} is at its ceiling (+{given}) — no further escalation.");
+            return;
+        }
+        int step = Math.Min(_amount, _cap - given);
+        int buffed = 0;
+        foreach (var u in s.UnitsInPlay)
+        {
+            if (u == null || !GodotObject.IsInstanceValid(u) || !u.Stats.IsAlive)
+                continue;
+            if (u.TeamId != _carrier.TeamId)
+                continue;
+            u.AttackDamage += step;
+            buffed++;
+        }
+        _carrier.AbilityUseCounts["ritual"] = given + step;
+        string msg = UIContent.FormatLogLine(_carrier.Name, "Ritual",
+            $"+{step} damage to {buffed} all{(buffed == 1 ? "y" : "ies")}",
+            $"{given + step}/{_cap} total");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
+    }
+}
+
+/// <summary>Summon Cadence (U3d): spawns on a CLOCK rather than on death. This is
+/// deathburst's missing half — deathburst only fires once the unit is already dead, so
+/// the player never sees pressure building and cannot choose to race it. A telegraphed
+/// cadence is a decision; a posthumous surprise is not. Reuses the same summon seam.</summary>
+public sealed class SummonCadenceEffect : IEffect
+{
+    private readonly Unit _carrier;
+    private readonly int _count;
+    private readonly string _unitId;
+    private readonly CombatManager _cm;
+    public SummonCadenceEffect(Unit carrier, int count, string unitId, CombatManager cm)
+    { _carrier = carrier; _count = count; _unitId = unitId; _cm = cm; }
+
+    public string[] Tags { get; private set; } = { "Ability", "Summon" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (_carrier == null || !GodotObject.IsInstanceValid(_carrier) || !_carrier.Stats.IsAlive
+            || _carrier.CurrentTile == null)
+            return;
+        if (s.OnSummonRequested == null || s.Grid == null || string.IsNullOrEmpty(_unitId))
+        {
+            s.Log("[SummonCadence] no summon seam or no unit id — no effect.");
+            return;
+        }
+        int spawned = 0;
+        foreach (var neighbor in s.Grid.GetNeighbors(_carrier.CurrentTile.Axial))
+        {
+            if (spawned >= _count)
+                break;
+            var td = s.Grid.GetTile(neighbor);
+            if (td == null || !td.IsWalkable || td.IsBlocked || td.IsOccupied)
+                continue;
+            if (s.OnSummonRequested(_unitId, td, _carrier.TeamId) != null)
+                spawned++;
+        }
+        string msg = spawned > 0
+            ? UIContent.FormatLogLine(_carrier.Name, "Assembly", $"{spawned} more come online")
+            : UIContent.FormatLogLine(_carrier.Name, "Assembly", "no room to deploy — nothing arrives");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
+    }
+}
+
+/// <summary>Field Repair (U3d): armour to the most-wounded living ally on a cadence.
+/// Generalises the `forge` branch of ApplyCasterRider out of the caster path and into
+/// the key catalog, so a non-caster can carry the Tinker's verb.</summary>
+public sealed class FieldRepairEffect : IEffect
+{
+    private readonly Unit _carrier;
+    private readonly int _amount;
+    private readonly CombatManager _cm;
+    public FieldRepairEffect(Unit carrier, int amount, CombatManager cm)
+    { _carrier = carrier; _amount = amount; _cm = cm; }
+
+    public string[] Tags { get; private set; } = { "Ability", "Buff" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (_carrier == null || !GodotObject.IsInstanceValid(_carrier) || !_carrier.Stats.IsAlive)
+            return;
+        Unit best = null; float worst = -1f;
+        foreach (var u in s.UnitsInPlay)
+        {
+            if (u == null || !GodotObject.IsInstanceValid(u) || !u.Stats.IsAlive)
+                continue;
+            if (u.TeamId != _carrier.TeamId || u.Stats.MaxHealth <= 0)
+                continue;
+            float missing = 1f - (float)u.Stats.Health / u.Stats.MaxHealth;
+            if (missing > worst) { worst = missing; best = u; }
+        }
+        if (best == null || worst <= 0f)
+        {
+            s.Log($"[FieldRepair] {_carrier.Name} finds nothing to patch.");
+            return;
+        }
+        best.Stats.Armor += _amount;
+        best.RefreshHealthBar();
+        string msg = UIContent.FormatLogLine(_carrier.Name, "Field Repair",
+            $"+{_amount} armour → {best.Name}");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
+    }
+}
+
+/// <summary>Thorns — the enemy `retaliate` ability key (U3c). Named ThornsEffect,
+/// NOT RetaliateEffect: Effect.cs already owns that name for the player's Riposte
+/// card, which arms Unit.RetaliateDamage. The two are separate mechanics today —
+/// see the note on ResolveRetaliation. A unit that answers being hit in melee. Fires on
+/// onStruck; the striker is carried as the trigger's TargetUnit. Adjacency is
+/// re-checked at RESOLUTION, not at queue time — displacement in response (the
+/// Enchanter's whole kit) legitimately dodges the counter, which is the counterplay.
+/// Damage is dealt with no source, so two retaliators cannot ping-pong forever.</summary>
+public sealed class ThornsEffect : IEffect
+{
+    private readonly Unit _carrier, _striker;
+    private readonly int _amount;
+    private readonly CombatManager _cm;
+    public ThornsEffect(Unit carrier, Unit striker, int amount, CombatManager cm)
+    { _carrier = carrier; _striker = striker; _amount = amount; _cm = cm; }
+
+    public string[] Tags { get; private set; } = { "Ability", "Damage" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (_carrier == null || !GodotObject.IsInstanceValid(_carrier) || !_carrier.Stats.IsAlive)
+            return;
+        if (_striker == null || !GodotObject.IsInstanceValid(_striker) || !_striker.Stats.IsAlive)
+        {
+            // Was a SILENT return until 2026-07-28. A null striker means the damage
+            // path did not name its source (DoT, terrain — or a call site that has not
+            // been taught to pass one), and saying nothing made that indistinguishable
+            // from "the ability is broken". It cost a playtest cycle to find.
+            s.Log("[Retaliate] no identifiable striker — nothing to answer.");
+            return;
+        }
+        if (_striker.CurrentTile == null || _carrier.CurrentTile == null)
+            return;
+        if (HexGridManager.AxialDistance(_striker.CurrentTile.Axial, _carrier.CurrentTile.Axial) > 1)
+        {
+            s.Log($"[Retaliate] {_striker.Name} struck from outside reach — no answer.");
+            return;
+        }
+        string msg = UIContent.FormatLogLine(_carrier.Name, "Retaliate",
+            $"{_amount} damage → {_striker.Name}");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
+        _striker.ApplyDamage(_amount);    // no source: retaliation cannot be retaliated
+    }
+}
+
+/// <summary>Regrowth (U3c): heals to FULL at the end of its action unless it took at
+/// least `threshold` HP of damage this round. Punishes spreading damage across the
+/// board and rewards committing to one target — the opposite lesson from chitin.</summary>
+public sealed class RegrowthEffect : IEffect
+{
+    private readonly Unit _carrier;
+    private readonly int _threshold;
+    private readonly CombatManager _cm;
+    public RegrowthEffect(Unit carrier, int threshold, CombatManager cm)
+    { _carrier = carrier; _threshold = threshold; _cm = cm; }
+
+    public string[] Tags { get; private set; } = { "Ability", "Heal" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (_carrier == null || !GodotObject.IsInstanceValid(_carrier) || !_carrier.Stats.IsAlive)
+            return;
+        if (_carrier.DamageTakenThisRound >= _threshold)
+        {
+            string held = UIContent.FormatLogLine(_carrier.Name, "Regrowth",
+                "cut too deep to close", $"{_carrier.DamageTakenThisRound}/{_threshold} this round");
+            GD.Print(held);
+            _cm?.AppendCombatLog(held);
+            return;
+        }
+        int missing = _carrier.Stats.MaxHealth - _carrier.Stats.Health;
+        if (missing <= 0)
+            return;
+        _carrier.Stats.Health = _carrier.Stats.MaxHealth;
+        _carrier.RefreshHealthBar();
+        string msg = UIContent.FormatLogLine(_carrier.Name, "Regrowth",
+            $"knits shut (+{missing} HP)", $"needed {_threshold} in one round");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
+    }
+}
+
+/// <summary>Mode Shift (U3c): once cumulative combat damage crosses `threshold`, the
+/// unit adopts another UnitDefinition's profile — stats, behaviour key and tags. Once
+/// per combat. The swap is QUEUED here and applied at the head of the unit's next
+/// activation (CombatManager.EnemyIntents), never mid-turn: §7a P2 says the UI states
+/// rules and never lies about the turn in progress, and a unit that transformed
+/// between telegraph and execution would be exactly that lie.</summary>
+public sealed class ModeShiftEffect : IEffect
+{
+    private readonly Unit _carrier;
+    private readonly int _threshold;
+    private readonly string _profile;
+    private readonly CombatManager _cm;
+    public ModeShiftEffect(Unit carrier, int threshold, string profile, CombatManager cm)
+    { _carrier = carrier; _threshold = threshold; _profile = profile; _cm = cm; }
+
+    public string[] Tags { get; private set; } = { "Ability", "Buff" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (_carrier == null || !GodotObject.IsInstanceValid(_carrier) || !_carrier.Stats.IsAlive)
+            return;
+        if (_carrier.HasModeShifted || !string.IsNullOrEmpty(_carrier.PendingProfileId))
+            return;                                   // already shifted, or already armed
+        if (_carrier.DamageTakenThisCombat < _threshold)
+            return;
+        if (string.IsNullOrEmpty(_profile) || UnitRegistry.Get(_profile) == null)
+        {
+            GD.PrintErr($"[ModeShift] {_carrier.Name}: profile '{_profile}' does not resolve — no shift.");
+            return;
+        }
+        _carrier.PendingProfileId = _profile;
+        string msg = UIContent.FormatLogLine(_carrier.Name, "Mode Shift",
+            "something gives way", $"{_carrier.DamageTakenThisCombat}/{_threshold} — it changes next turn");
+        GD.Print(msg);
+        _cm?.AppendCombatLog(msg);
+    }
+}
+
+/// <summary>U3b VERIFICATION SCAFFOLD — remove with the debug_trigger_probe unit.
+/// Announces that a trigger fired, with its round and victim. This is the phase's
+/// exit criterion made executable: author one echo per trigger, play one fight, read
+/// the log. A trigger that fires twice, at the wrong moment, or not at all is visible
+/// immediately instead of surfacing as a mystery in some later ability.</summary>
+public sealed class DebugEchoEffect : IEffect
+{
+    private readonly string _trigger, _sourceName;
+    private readonly Unit _target;
+    private readonly int _round;
+    private readonly CombatManager _cm;
+    public DebugEchoEffect(string trigger, string sourceName, Unit target, int round, CombatManager cm)
+    { _trigger = trigger; _sourceName = sourceName; _target = target; _round = round; _cm = cm; }
+
+    public string[] Tags { get; private set; } = { "Ability", "Debug" };
+    public IEffect WithTag(string tag) { Tags = new[] { tag }; return this; }
+    public IEnumerable<IEffect> Children => Array.Empty<IEffect>();
+
+    public void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        string tgt = _target != null && GodotObject.IsInstanceValid(_target) ? $" -> {_target.Name}" : "";
+        string msg = UIContent.FormatLogLine(_sourceName, "Echo", $"{_trigger} fired{tgt}", $"round {_round}");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
     }

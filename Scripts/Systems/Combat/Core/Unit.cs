@@ -100,10 +100,67 @@ public partial class Unit : Node3D
     public string BehaviorKey = "";
     /// <summary>Composable behavior modifiers (pack/bulwark/charge/scout/immobile) — units doc §4a.</summary>
     public List<string> BehaviorTags = new();
+    /// <summary>U3a: ordered intent script copied from the UnitDefinition. Empty =
+    /// plan from BehaviorKey every activation (all pre-U3a units).</summary>
+    public List<string> IntentCycle = new();
+    /// <summary>U3a: false = the cycle runs once, then BehaviorKey takes over.</summary>
+    public bool CycleLoops = true;
+    /// <summary>U3a: how many beats of the script this unit has COMPLETED. Advanced
+    /// in RunEnemyTurn after a beat executes — never at plan time, so a stunned or
+    /// postponed unit retries its beat instead of silently skipping one.</summary>
+    public int IntentCycleIndex = 0;
     /// <summary>Triggered abilities from the UnitDefinition (units doc §5, U3).
     /// Shared defs are stateless; per-unit ability STATE (stacking bonuses etc.)
     /// lives on the unit's own stats, which handlers mutate.</summary>
     public List<UnitAbilityDef> Abilities = new();
+    // ── U3c: self-aura cache + damage bookkeeping ───────────────────────────
+    /// <summary>Chitin (aura): flat reduction applied to EVERY incoming damage
+    /// instance. Cached at spawn by RecacheSelfAuras — auras are states, not stack
+    /// events (units doc §5), so this is read inline at damage time and never
+    /// queued. Fed into MitigateCore so the R22 drag preview shows the real number.</summary>
+    public int ChitinAmount = 0;
+    /// <summary>Veil (aura): damage from a source more than 1 tile away is negated.
+    /// Sources with no board position (DoTs, terrain) are NOT blocked — veil answers
+    /// shooting, not existing.</summary>
+    public bool HasVeil = false;
+    /// <summary>HP lost since the current round began. Reset in StartPlayerTurn.
+    /// Read by regrowth.</summary>
+    public int DamageTakenThisRound = 0;
+    /// <summary>HP lost across the whole combat. Read by mode_shift's threshold.</summary>
+    public int DamageTakenThisCombat = 0;
+    /// <summary>Unit id whose profile this unit adopts at the head of its NEXT
+    /// activation. Set by mode_shift; applied and cleared in RunEnemyTurn — the
+    /// shift is telegraph-honest (§7a P2), never mid-turn.</summary>
+    public string PendingProfileId = "";
+    /// <summary>True once a mode_shift has fired. Shifts are once per combat.</summary>
+    public bool HasModeShifted = false;
+    /// <summary>U3d: the ally currently intercepting damage aimed at this unit
+    /// (bodyguard aura). Recomputed every round by CombatManager.ApplyEnemyAuras —
+    /// never authored, never persisted. A unit that ITSELF carries bodyguard is never
+    /// assigned one, which is what bounds redirection to a single hop.</summary>
+    public Unit BodyguardedBy = null;
+
+    /// <summary>U3c: recomputes cached SELF auras from Abilities. Called at spawn
+    /// after Abilities are assigned, and again after a mode_shift swaps the profile.
+    /// Radius auras that affect OTHER units (bodyguard, tithe_aura) are U3d and need
+    /// a real recompute pass — this handles only auras a unit carries on itself.</summary>
+    public void RecacheSelfAuras()
+    {
+        ChitinAmount = 0;
+        HasVeil = false;
+        if (Abilities == null)
+            return;
+        foreach (var ab in Abilities)
+        {
+            if (!string.Equals(ab.Trigger, "aura", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (string.Equals(ab.Key, "chitin", StringComparison.OrdinalIgnoreCase))
+                ChitinAmount += ab.GetIntParam("amount", 2);
+            else if (string.Equals(ab.Key, "veil", StringComparison.OrdinalIgnoreCase))
+                HasVeil = true;
+        }
+    }
+
     /// <summary>V3: per-ability use counters (Requiem stacks etc.) — combat-
     /// transient state for log grammar + §8 state chips. Keyed by ability Key.</summary>
     public readonly Dictionary<string, int> AbilityUseCounts = new();
@@ -371,7 +428,29 @@ public partial class Unit : Node3D
     /// Parameters: the tile the unit just LEFT (may be null on first placement).
     /// </summary>
     public event Action<TileData> OnTileLeft;
+    /// <summary>Ambient damage source (2026-07-28, playtest PT-U3-2). The unit
+    /// currently resolving an ability, pinned by RulesManager.ResolveTop for the
+    /// duration of that resolution and restored afterwards.
+    ///
+    /// WHY THIS EXISTS: ApplyDamage grew an optional `source` for U3c's veil/thorns,
+    /// and only 9 of 84 call sites were threaded. The other 75 live in the per-school
+    /// effect files, so veil saw a null source for most spells and let them through.
+    /// Threading 75 sites by hand is the wrong shape of fix — it gets 73 right, misses
+    /// two silently, and every spell written afterwards has to remember. Capturing it
+    /// once where the caster is ALREADY known makes every present and future effect
+    /// correct without touching them.
+    ///
+    /// Static because Unit holds no GameState reference; single-combat game, and
+    /// CombatSim.Active is the existing precedent. An explicit `source` argument always
+    /// wins over this — the enemy strike path passes its attacker directly.</summary>
+    public static Unit AmbientDamageSource = null;
+
     public event Action<Unit> OnDied;
+    /// <summary>U3b: raised after damage lands on a unit that LOST HP and SURVIVED.
+    /// Carries HP actually lost, not the raw amount — an ability that reacts to being
+    /// wounded must not fire on a hit the armour ate whole. CombatManager subscribes
+    /// at spawn (HandleUnitStruck).</summary>
+    public event Action<Unit, int, Unit> OnStruck;
 
     public override void _Ready()
     {
@@ -559,7 +638,8 @@ public partial class Unit : Node3D
     /// link/redirect rerouting: ApplyDamage handles those before this runs;
     /// the preview surfaces them as a warning instead.</summary>
     public static (int shieldLoss, int armorLoss, int hpLoss, bool immortalSave) MitigateCore(
-        int amount, int shield, int armor, int health, bool shrouded, bool immortal)
+        int amount, int shield, int armor, int health, bool shrouded, bool immortal,
+        int chitin = 0)
     {
         if (amount <= 0)
             return (0, 0, 0, false);
@@ -567,6 +647,17 @@ public partial class Unit : Node3D
         // Shrouded: incoming hits are capped at 5 ("max 5 damage per hit").
         if (shrouded && amount > 5)
             amount = 5;
+
+        // U3c chitin: flat reduction PER INSTANCE, before shield/armor absorb it.
+        // This is what makes chip damage fail and burst succeed — the whole point of
+        // the key. Applied here rather than at the call site so the damage preview
+        // and the real resolution structurally cannot disagree.
+        if (chitin > 0)
+        {
+            amount = Math.Max(0, amount - chitin);
+            if (amount == 0)
+                return (0, 0, 0, false);
+        }
 
         int remaining = amount;
 
@@ -591,15 +682,56 @@ public partial class Unit : Node3D
     /// <summary>Instance convenience over MitigateCore against LIVE stats.</summary>
     public (int shieldLoss, int armorLoss, int hpLoss, bool immortalSave) ComputeMitigation(int amount)
         => MitigateCore(amount, Stats.Shield, Stats.Armor, Stats.Health,
-            HasStatus("shrouded"), HasStatus("immortal"));
+            HasStatus("shrouded"), HasStatus("immortal"), ChitinAmount);
 
-    public void ApplyDamage(int amount)
+    /// <summary>U3c: <paramref name="source"/> is the unit that dealt this damage,
+    /// when one is known. Optional, so all pre-U3c callers are unaffected; the enemy
+    /// strike path and the card damage path both pass it. Null means "no attributable
+    /// attacker" (DoT, terrain, self-damage) — veil and retaliate both treat null as
+    /// un-answerable and let the damage through.</summary>
+    public void ApplyDamage(int amount, Unit source = null)
     {
         if (amount <= 0 || IsDeathQueued)
             return;
 
+        // Fall back to whoever is mid-resolution when the call site did not say.
+        source ??= AmbientDamageSource;
+
+        // U3c veil: negate damage from anything not standing next to us. Checked
+        // BEFORE mitigation and before links, so a veiled unit reads as untouchable
+        // rather than as heavily armoured.
+        if (HasVeil && source != null && GodotObject.IsInstanceValid(source)
+            && source.CurrentTile != null && CurrentTile != null
+            && HexGridManager.AxialDistance(source.CurrentTile.Axial, CurrentTile.Axial) > 1)
+        {
+            GD.Print($"{Name} is Veiled — {amount} damage from {source.Name} at range is turned aside.");
+            return;
+        }
+
         // R22 sim gate: preview runs record damage into the ledger and mutate
         // NOTHING — no links, no mitigation, no death, no health bar.
+        // U3d bodyguard: an ally is standing in front of this unit. Ordered BEFORE
+        // the CombatSim gate: the R22 drag preview must attribute this damage to the
+        // GUARD, not to the ward the player is pointing at. Placed after the gate it
+        // compiled and ran correctly in a real fight while the preview quietly lied —
+        // the same trap chitin fell into. Also before mitigation, so the damage is
+        // absorbed by the GUARD's shield/armour: interposing a 4-armour bulwark has to
+        // actually matter. One hop only — a unit carrying bodyguard is never assigned
+        // one (ApplyEnemyAuras enforces it), so this cannot chain or recurse.
+        if (BodyguardedBy != null)
+        {
+            var guard = BodyguardedBy;
+            if (guard != this && GodotObject.IsInstanceValid(guard)
+                && guard.Stats.IsAlive && !guard.IsDeathQueued)
+            {
+                if (!CombatSim.Active)
+                    GD.Print($"{guard.Name} steps in front of {Name} — takes {amount} instead.");
+                guard.ApplyDamage(amount, source);
+                return;
+            }
+            BodyguardedBy = null;      // guard died between recompute and this hit
+        }
+
         if (CombatSim.Active)
         {
             CombatSim.RecordDamage(this, amount);
@@ -646,6 +778,19 @@ public partial class Unit : Node3D
 
         RefreshHealthBar();
         GD.Print($"{Name} HP:{Stats.Health}/{Stats.MaxHealth} Shield:{Stats.Shield} Armor:{Stats.Armor}");
+
+        // U3c: bookkeeping for regrowth (per round) and mode_shift (per combat).
+        // Counts HP actually lost, so a hit the armour ate whole moves neither.
+        if (hpLoss > 0)
+        {
+            DamageTakenThisRound += hpLoss;
+            DamageTakenThisCombat += hpLoss;
+        }
+
+        // U3b: wounded-and-standing. Ordered before the death check so a lethal hit
+        // raises onDeath ONLY — a corpse does not react to being hurt.
+        if (hpLoss > 0 && Stats.IsAlive)
+            OnStruck?.Invoke(this, hpLoss, source);
 
         if (!Stats.IsAlive && !IsDeathQueued)
         {

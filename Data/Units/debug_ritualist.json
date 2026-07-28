@@ -1,0 +1,27 @@
+{
+  "id": "debug_ritualist",
+  "threatLabel": "Ritualist (dbg)",
+  "intelDescription": "Every round it lives, everything else hits harder. Cap +3.",
+  "maxHealth": 16,
+  "baseSpeed": 1,
+  "armor": 0,
+  "attackRange": 3,
+  "attackDamage": 3,
+  "preferredDistance": 1,
+  "behaviorKey": "ranged_kite",
+  "abilities": [
+    {
+      "key": "ritual",
+      "trigger": "onTurnEnd",
+      "name": "Ritual",
+      "intelDescription": "+1 damage to every ally each turn, to a maximum of +3.",
+      "params": {
+        "amount": "1",
+        "cap": "3"
+      }
+    }
+  ],
+  "colorR": 0.75,
+  "colorG": 0.2,
+  "colorB": 0.55
+}

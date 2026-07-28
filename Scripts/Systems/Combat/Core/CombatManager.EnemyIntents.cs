@@ -229,18 +229,109 @@ public partial class CombatManager
             { "ranged_kite",             PlanRanger },
             { "ranged_charge",           PlanWizard },
             { "melee_hunt_wounded",      PlanStalker },   // units doc §4 'stalker'
+            { "hold_ground",             PlanHoldGround }, // U3a: cycle-only wind-up beat
         };
 
-        if (!_behaviorPlanners.TryGetValue(enemy.BehaviorKey ?? "", out var planner))
+        // U3a: an authored IntentCycle overrides BehaviorKey for THIS activation.
+        // The index counts COMPLETED beats and is advanced in RunEnemyTurn, never
+        // here — PlanAllEnemyIntents runs at the tail of every enemy phase and would
+        // otherwise burn a beat per planning pass rather than per action.
+        string key = CycleKeyFor(enemy);
+
+        if (!_behaviorPlanners.TryGetValue(key ?? "", out var planner))
         {
             // Fail loudly once per unknown key, then run the safest routine.
             // The registry assertion catches authored typos before they get here.
-            if (_warnedBehaviorKeys.Add(enemy.BehaviorKey ?? ""))
-                GD.PrintErr($"[EnemyAI] Unknown BehaviorKey '{enemy.BehaviorKey}' on {enemy.Name} — falling back to melee_advance.");
+            if (_warnedBehaviorKeys.Add(key ?? ""))
+                GD.PrintErr($"[EnemyAI] Unknown behaviour key '{key}' on {enemy.Name} — falling back to melee_advance.");
             planner = PlanSoldier;
         }
 
         return ApplyPlanTags(enemy, planner(enemy));
+    }
+
+    /// <summary>U3a: which planner key drives this activation. An empty cycle —
+    /// every unit authored before U3a — returns BehaviorKey, so this is a no-op for
+    /// the entire existing roster. A non-looping cycle that has run out also falls
+    /// through to BehaviorKey, which is what makes "opening" scripts expressible
+    /// (wind up once, then fight normally forever).</summary>
+    private static string CycleKeyFor(Unit enemy)
+    {
+        int n = enemy.IntentCycle?.Count ?? 0;
+        if (n == 0)
+            return enemy.BehaviorKey;
+        if (!enemy.CycleLoops && enemy.IntentCycleIndex >= n)
+            return enemy.BehaviorKey;                 // script spent
+        return enemy.IntentCycle[enemy.IntentCycleIndex % n];
+    }
+
+    /// <summary>U3d: rounds remaining until an everyNRounds ability next fires. The
+    /// cadence is evaluated as roundNumber % n == 0 against the GLOBAL counter, so this
+    /// is exact rather than an estimate — which is what lets the marker promise it.</summary>
+    private int RoundsUntilCadence(UnitAbilityDef ab)
+    {
+        int n = Math.Max(1, ab.GetIntParam("n", 2));
+        int rem = n - (roundNumber % n);
+        return rem == n ? 0 : rem;     // 0 = fires on the round now being planned
+    }
+
+    /// <summary>U3c: swaps a unit onto another definition's profile — stats,
+    /// behaviour key, tags, abilities and colour. Health carries across as a
+    /// FRACTION, not reset: a Guardian that breaks open at 20% must not heal by
+    /// transforming. Once per combat. The cycle index resets so the new profile's
+    /// script, if it has one, starts at beat 1.</summary>
+    private void ApplyPendingProfile(Unit enemy)
+    {
+        if (enemy == null || string.IsNullOrEmpty(enemy.PendingProfileId))
+            return;
+        var def = UnitRegistry.Get(enemy.PendingProfileId);
+        enemy.PendingProfileId = "";
+        if (def == null)
+            return;
+
+        float frac = enemy.Stats.MaxHealth > 0
+                   ? (float)enemy.Stats.Health / enemy.Stats.MaxHealth : 1f;
+        enemy.Stats.MaxHealth = def.MaxHealth;
+        enemy.Stats.Health = Mathf.Clamp(Mathf.RoundToInt(def.MaxHealth * frac), 1, def.MaxHealth);
+        enemy.Stats.Armor = def.Armor;
+        enemy.Stats.BaseSpeed = def.BaseSpeed;
+        enemy.AttackRange = def.AttackRange;
+        enemy.AttackDamage = def.AttackDamage;
+        enemy.BehaviorKey = def.BehaviorKey;
+        enemy.BehaviorTags = new List<string>(def.BehaviorTags);
+        enemy.Abilities = def.Abilities;
+        enemy.IntentCycle = new List<string>(def.IntentCycle);
+        enemy.CycleLoops = def.CycleLoops;
+        enemy.IntentCycleIndex = 0;
+        enemy.MaxActionPoints = def.BaseSpeed + MartialAPCosts.AttackCost(def.AttackRange);
+        enemy.CurrentActionPoints = enemy.MaxActionPoints;
+        enemy.RecacheSelfAuras();
+        enemy.SetBodyColor(def.BodyColor);
+        enemy.HasModeShifted = true;
+        enemy.RefreshHealthBar();
+
+        string msg = UIContent.FormatLogLine(enemy.Name, "Mode Shift",
+            $"becomes {def.ThreatLabel}", $"{enemy.Stats.Health}/{enemy.Stats.MaxHealth} HP");
+        GD.Print(msg);
+        combatUI?.AppendActionLog(msg);
+        RefreshEnemyRoster();
+    }
+
+    /// <summary>U3a: cycle-only planner — brace, strike nothing. Guard is the one
+    /// IntentKind that already resolves to a non-offensive action, so a script that
+    /// wants a wind-up beat (the Lagavulin opening) spends it here rather than
+    /// inventing a new kind. Deliberately NOT authorable as a BehaviorKey: a unit
+    /// whose only routine is hold_ground would never fight, and the registry
+    /// validator rejects it outside an IntentCycle.</summary>
+    private EnemyIntent PlanHoldGround(Unit enemy)
+    {
+        return new EnemyIntent
+        {
+            Kind = IntentKind.Guard,
+            TargetUnit = enemy,
+            Value = GuardArmorValue,
+            BaseValue = GuardArmorValue
+        };
     }
 
     private EnemyIntent PlanSoldier(Unit enemy)
@@ -628,6 +719,28 @@ public partial class CombatManager
 
         parts.Add($"AP{enemy.MaxActionPoints}");
 
+        // U3a: script position and the NEXT beat. Per the units doc's mimic note the
+        // cycle telegraphs ONE STEP AHEAD by design — a script the player cannot read
+        // a beat early is not a telegraph, it is a surprise, and by the spec's own
+        // test an identity the player cannot perceive at decision time is worth zero.
+        if (enemy.IntentCycle != null && enemy.IntentCycle.Count > 0)
+        {
+            int n = enemy.IntentCycle.Count;
+            int i = enemy.IntentCycleIndex;
+            if (!enemy.CycleLoops && i >= n)
+            {
+                parts.Add($"CYC-/{n}");                       // opening spent
+            }
+            else
+            {
+                bool hasNextBeat = enemy.CycleLoops || i + 1 < n;
+                string next = hasNextBeat
+                            ? CycleToken(enemy.IntentCycle[(i + 1) % n])
+                            : CycleToken(enemy.BehaviorKey);  // falls through after
+                parts.Add($"CYC{(i % n) + 1}/{n}>{next}");
+            }
+        }
+
         // Behaviour tags — what the routine does that the glyph does not say.
         if (enemy.HasBehaviorTag("charge"))
             parts.Add("CHG+1");
@@ -641,6 +754,37 @@ public partial class CombatManager
             parts.Add("BLWK");
         if (string.Equals(enemy.BehaviorKey, "melee_hunt_wounded", StringComparison.OrdinalIgnoreCase))
             parts.Add("HUNTS-WEAK");
+
+        // U3c defensive shapes — the reason a player's damage is not landing, stated
+        // rather than left to be inferred from a health bar that will not move.
+        if (enemy.ChitinAmount > 0)
+            parts.Add($"CHITIN-{enemy.ChitinAmount}");
+        if (enemy.HasVeil)
+            parts.Add("VEIL");
+        if (enemy.HasModeShifted)
+            parts.Add("SHIFTED");
+        if (enemy.BodyguardedBy != null)
+            parts.Add("GUARDED");
+        foreach (var ab in enemy.Abilities)
+        {
+            if (string.Equals(ab.Key, "bodyguard", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"GUARDS-r{ab.GetIntParam("radius", 1)}");
+            else if (string.Equals(ab.Key, "ritual", StringComparison.OrdinalIgnoreCase))
+            {
+                int given = enemy.AbilityUseCounts.TryGetValue("ritual", out var rn) ? rn : 0;
+                parts.Add($"RITUAL+{ab.GetIntParam("amount", 1)}({given}/{ab.GetIntParam("cap", 3)})");
+            }
+            else if (string.Equals(ab.Key, "summon_cadence", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"SUMMON{ab.GetIntParam("count", 1)}@{RoundsUntilCadence(ab)}");
+            else if (string.Equals(ab.Key, "field_repair", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"REPAIR@{RoundsUntilCadence(ab)}");
+            else if (string.Equals(ab.Key, "retaliate", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"THORNS{ab.GetIntParam("amount", 3)}");
+            else if (string.Equals(ab.Key, "regrowth", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"REGROW>{ab.GetIntParam("threshold", 20)}/rnd");
+            else if (string.Equals(ab.Key, "mode_shift", StringComparison.OrdinalIgnoreCase) && !enemy.HasModeShifted)
+                parts.Add($"SHIFT@{Mathf.Max(0, ab.GetIntParam("threshold", 25) - enemy.DamageTakenThisCombat)}");
+        }
 
         // Caster rider — which school blast comes out of the channel.
         if (!string.IsNullOrEmpty(enemy.CasterSpell))
@@ -666,6 +810,22 @@ public partial class CombatManager
         return string.Join(" ", parts);
     }
 
+    /// <summary>U3a: three-letter ASCII tag for a planner key, for the CYC marker.
+    /// ASCII on purpose — IntentGlyph's standing note is that the Label3D font is
+    /// only known to cover the six glyphs it already uses, and a tofu box is worse
+    /// than no marker.</summary>
+    private static string CycleToken(string key) => (key ?? "").ToLowerInvariant() switch
+    {
+        "hold_ground"             => "GRD",
+        "melee_advance"           => "ADV",
+        "melee_target_highest_hp" => "BIG",
+        "melee_hunt_wounded"      => "WEK",
+        "hold_until_near"         => "HLD",
+        "ranged_kite"             => "KIT",
+        "ranged_charge"           => "CHN",
+        _                         => "???",
+    };
+
     /// <summary>PLACEHOLDER: one-time key so the ASCII tokens are decipherable.</summary>
     private void LogMarkerLegend()
     {
@@ -676,7 +836,14 @@ public partial class CombatManager
             "[Markers] MOVn=tiles it can cover  APn=action points  CHG+1=charge rider  " +
             "PACK(+1)=pack rider, live  FLANK=breaks off when crowded  BLWK=plants for wounded allies  " +
             "IMM=cannot move  PLANT=held this turn  HUNTS-WEAK=targets lowest current HP  " +
-            "SPELL:x=channel rider  ONDEATH:SPAWNn=deathburst  REQ+n(xN)=requiem, live stacks  *ELITE*";
+            "SPELL:x=channel rider  ONDEATH:SPAWNn=deathburst  REQ+n(xN)=requiem, live stacks  " +
+            "GUARDS-rN=intercepts damage for allies within N  GUARDED=an ally is taking its hits  " +
+            "RITUAL+n(x/cap)=escalating ally damage  SUMMONn@r=spawns n in r rounds  REPAIR@r=armours an ally in r rounds  " +
+            "CHITIN-n=every hit reduced by n  VEIL=immune beyond 1 tile  THORNSn=hits back  " +
+            "REGROW>n/rnd=heals full unless it takes n this round  SHIFT@n=transforms in n more damage  " +
+            "SHIFTED=already transformed  " +
+            "CYCi/n>XXX=intent script, beat i of n, next beat XXX " +
+            "(GRD=brace ADV=nearest BIG=highest-HP WEK=lowest-HP HLD=hold KIT=kite CHN=channel)  *ELITE*";
         GD.Print(legend);
         combatUI?.AppendActionLog(legend);
     }
@@ -808,6 +975,11 @@ public partial class CombatManager
                 && pu.Attunement is FateAttunement fateWindow)
                 fateWindow.OnEnemyTurnStart();
 
+        // U3d: recompute radius auras before the enemies act — the player has just
+        // spent a turn moving, killing and displacing, so last turn's guard assignments
+        // are stale.
+        ApplyEnemyAuras();
+
         var snapshot = enemyUnits.ToList();
         foreach (var enemy in snapshot)
         {
@@ -877,7 +1049,28 @@ public partial class CombatManager
                     $"locked strike drawn to ({newTile.X}, {newTile.Y})"));
             }
 
+            // U3c: a mode_shift armed last round lands HERE — at the head of the
+            // unit's activation, before it plans or acts, so the intent it telegraphs
+            // is the intent the new profile will actually execute.
+            ApplyPendingProfile(enemy);
+
+            // U3b: everyNRounds — evaluated against the GLOBAL round counter rather
+            // than a per-unit tally. Deterministic, save-safe, and legible: "every 3rd
+            // round" is a fact the player can read off the phase banner, where a
+            // per-unit countdown would drift silently whenever a unit lost a turn.
+            foreach (var ab in enemy.Abilities)
+            {
+                if (!string.Equals(ab.Trigger, "everyNRounds", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (roundNumber % Math.Max(1, ab.GetIntParam("n", 2)) == 0)
+                    QueueAbilityTriggers(enemy, "everyNRounds");
+            }
+
             await ExecuteIntent(enemy);
+
+            // U3b: onTurnEnd — after the unit has acted, before the drain, so an
+            // end-of-action ability resolves in the same window as the intent's kills.
+            QueueAbilityTriggers(enemy, "onTurnEnd");
 
             // U3: an intent's kills queue triggers — resolve the stack (with
             // priority windows) before the next enemy acts.
@@ -885,6 +1078,14 @@ public partial class CombatManager
 
             if (enemy != null && IsInstanceValid(enemy))
             {
+                // U3a: advance the script. A Channel is HALF a beat — the Release
+                // that follows completes it — so a `ranged_charge` entry costs two
+                // activations and cannot be severed mid-channel by the index. The
+                // stun/postpone branches above `continue` before reaching here, so a
+                // fizzled beat is RETRIED next round rather than silently skipped.
+                if (enemy.IntentCycle.Count > 0 && enemy.CurrentIntent?.Kind != IntentKind.Channel)
+                    enemy.IntentCycleIndex++;
+
                 enemy.CurrentIntent = null;
                 enemy.ClearIntentDisplay();
             }
@@ -916,6 +1117,10 @@ public partial class CombatManager
             intent = PlanIntent(enemy);
             if (intent == null)
                 return;
+            // U3a: publish the improvised plan so the cycle advance below reads the
+            // kind that ACTUALLY executed (a mid-round spawn can improvise a Channel,
+            // which must not be counted as a completed beat).
+            enemy.CurrentIntent = intent;
         }
 
         switch (intent.Kind)
@@ -1575,7 +1780,7 @@ public partial class CombatManager
             string ff = $"{attackerName} {verb} its own ally {victim.Name} for {damage}!";
             GD.Print(ff);
             combatUI?.AppendActionLog(ff);
-            victim.ApplyDamage(damage);
+            victim.ApplyDamage(damage, attacker);
             LastStrikeVictim = victim;
         }
         else
@@ -1586,9 +1791,15 @@ public partial class CombatManager
                 : $"{attackerName} {verb} {victim.Name} for {damage} damage.";
             GD.Print(hit);
             combatUI?.AppendActionLog(hit);
-            victim.ApplyDamage(damage);
+            victim.ApplyDamage(damage, attacker);
             LastStrikeVictim = victim;
         }
+
+        // U3b: onAttack. ResolveStrike is the ONE place both strike paths meet — the
+        // stack route (EnemyStrikeEffect) and the direct route both land here — so a
+        // single call site cannot be bypassed by whichever path a given strike took.
+        // Queued, not resolved: the drain that follows every strike carries it.
+        QueueAbilityTriggers(attacker, "onAttack", LastStrikeVictim);
     }
 
     /// <summary>Advance toward a coordinate, spending the WHOLE AP budget one step

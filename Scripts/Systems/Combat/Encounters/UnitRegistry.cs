@@ -188,6 +188,13 @@ public static class UnitRegistry
             "melee_advance", "melee_target_highest_hp", "hold_until_near",
             "ranged_kite", "ranged_charge", "melee_hunt_wounded",
         };
+        // U3a: keys legal ONLY inside an IntentCycle. hold_ground braces and never
+        // advances, so a unit whose base routine were hold_ground would stand still
+        // for the whole fight — legal as a scripted beat, never as a BehaviorKey.
+        var cycleOnlyKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "hold_ground",
+        };
         var knownTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "pack", "bulwark", "charge", "scout", "immobile",
@@ -197,17 +204,73 @@ public static class UnitRegistry
         var knownAbilityKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "requiem", "deathburst",
+            "retaliate", "regrowth", "mode_shift",          // U3c — stack effects
+            "chitin", "veil",                                // U3c — auras (see auraKeys)
+            "ritual", "summon_cadence", "field_repair",      // U3d — stack effects
+            "bodyguard",                                     // U3d — radius aura
+            "debug_echo",   // U3b verification scaffold — remove with debug_trigger_probe
         };
+        // U3c: auras are STATES, not events (units doc §5). They never enter the
+        // trigger stack, so they have no BuildTriggeredEffect case and are exempt from
+        // that audit — they are cached on Unit by RecacheSelfAuras and read inline in
+        // the damage path. An aura key MUST use trigger "aura", and a non-aura key must
+        // NOT: a chitin authored as onStruck would silently vanish.
+        var auraKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "chitin", "veil",      // U3c — self, cached by Unit.RecacheSelfAuras
+            "bodyguard",           // U3d — radius, recomputed by ApplyEnemyAuras
+        };
+        // U3b: what the SCHEMA allows (units doc §5) — a superset of what runs.
         var knownTriggers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "onSpawn", "onDeath", "onAllyDeath", "onAttack", "onStruck", "onTurnEnd", "everyNRounds",
+            "aura",   // U3c — continuous state, never queued
+        };
+        // U3b: triggers with a REAL enemy-side call site. This is the check that was
+        // missing: before U3b only onDeath/onAllyDeath were wired, so authoring any
+        // other trigger produced a SILENT NO-OP that nothing caught — the same trap
+        // that nearly put shield_self/apply_bleed onto unit JSONs. Adding a name here
+        // without its call site re-opens it.
+        var wiredTriggers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "onDeath",      // QueueDeathTriggers
+            "onAllyDeath",  // QueueDeathTriggers
+            "onSpawn",      // FireEnemySpawnTriggers
+            "onAttack",     // ResolveStrike
+            "onStruck",     // Unit.OnStruck -> HandleUnitStruck
+            "onTurnEnd",    // RunEnemyTurn
+            "everyNRounds", // RunEnemyTurn
+            "aura",         // U3c — Unit.RecacheSelfAuras + the ApplyDamage/MitigateCore path
         };
         foreach (var def in _cache.Values)
         {
             if (!knownKeys.Contains(def.BehaviorKey))
             {
-                sb.AppendLine($"  {def.Id}: UNKNOWN BehaviorKey '{def.BehaviorKey}'");
+                sb.AppendLine(cycleOnlyKeys.Contains(def.BehaviorKey)
+                    ? $"  {def.Id}: '{def.BehaviorKey}' is CYCLE-ONLY — illegal as a BehaviorKey"
+                    : $"  {def.Id}: UNKNOWN BehaviorKey '{def.BehaviorKey}'");
                 ok = false;
+            }
+            // U3a: every scripted beat must name a real planner, and a script made
+            // only of non-advancing beats would deadlock the unit.
+            if (def.IntentCycle.Count > 0)
+            {
+                bool anyAdvancing = false;
+                foreach (var beat in def.IntentCycle)
+                {
+                    if (knownKeys.Contains(beat))
+                        anyAdvancing = true;
+                    else if (!cycleOnlyKeys.Contains(beat))
+                    {
+                        sb.AppendLine($"  {def.Id}: UNKNOWN IntentCycle beat '{beat}'");
+                        ok = false;
+                    }
+                }
+                if (!anyAdvancing && def.CycleLoops)
+                {
+                    sb.AppendLine($"  {def.Id}: looping IntentCycle has no advancing beat — unit would never act");
+                    ok = false;
+                }
             }
             foreach (var tag in def.BehaviorTags)
             {
@@ -240,6 +303,21 @@ public static class UnitRegistry
                     sb.AppendLine($"  {def.Id}: UNKNOWN ability Trigger '{ab.Trigger}'");
                     ok = false;
                 }
+                else if (!wiredTriggers.Contains(ab.Trigger))
+                {
+                    sb.AppendLine($"  {def.Id}: Trigger '{ab.Trigger}' has NO enemy call site — silent no-op");
+                    ok = false;
+                }
+                // U3c: aura keys and the "aura" trigger must agree in BOTH directions.
+                bool keyIsAura = auraKeys.Contains(ab.Key);
+                bool trigIsAura = string.Equals(ab.Trigger, "aura", StringComparison.OrdinalIgnoreCase);
+                if (keyIsAura != trigIsAura)
+                {
+                    sb.AppendLine(keyIsAura
+                        ? $"  {def.Id}: aura key '{ab.Key}' must use trigger 'aura', not '{ab.Trigger}'"
+                        : $"  {def.Id}: '{ab.Key}' is not an aura but uses trigger 'aura' — would never fire");
+                    ok = false;
+                }
             }
         }
 
@@ -250,6 +328,8 @@ public static class UnitRegistry
             Armor = 1, AttackRange = 2, AttackDamage = 6, PreferredDistance = 2,
             BehaviorKey = "melee_advance",
             BehaviorTags = new List<string> { "pack", "scout" },
+            IntentCycle = new List<string> { "hold_ground", "melee_advance" },
+            CycleLoops = false,
             Abilities = new List<UnitAbilityDef>
             {
                 new() { Key = "requiem", Trigger = "onAllyDeath", Name = "Requiem",
@@ -262,6 +342,8 @@ public static class UnitRegistry
         bool rok = rt != null && rt.Id == probe.Id && rt.MaxHealth == probe.MaxHealth &&
                    rt.AttackDamage == probe.AttackDamage && rt.BehaviorKey == probe.BehaviorKey &&
                    rt.BehaviorTags.Count == 2 && rt.HasTag("pack") && rt.HasTag("scout") &&
+                   rt.IntentCycle.Count == 2 && rt.IntentCycle[0] == "hold_ground" &&
+                   rt.CycleLoops == false &&
                    rt.Abilities.Count == 1 && rt.Abilities[0].Key == "requiem" &&
                    rt.Abilities[0].Trigger == "onAllyDeath" &&
                    rt.Abilities[0].GetIntParam("amount", 0) == 2 &&
@@ -270,8 +352,13 @@ public static class UnitRegistry
         ok &= rok;
 
         // U1 JSONs have no behaviorTags key — must deserialize to empty list, not null.
-        bool aok = Get("generic_soldier").BehaviorTags != null;
-        sb.AppendLine(aok ? "  Additive-schema (missing tags → empty): OK" : "  Additive-schema: FAIL (null tags)");
+        // U3a: and no intentCycle key — must deserialize empty (NOT null) and
+        // CycleLoops must default TRUE, or every legacy unit changes behaviour.
+        bool aok = Get("generic_soldier").BehaviorTags != null
+                && Get("generic_soldier").IntentCycle != null
+                && Get("generic_soldier").IntentCycle.Count == 0
+                && Get("generic_soldier").CycleLoops;
+        sb.AppendLine(aok ? "  Additive-schema (missing tags/cycle → empty): OK" : "  Additive-schema: FAIL");
         ok &= aok;
 
         // Legacy alias resolution (the loader's contract).

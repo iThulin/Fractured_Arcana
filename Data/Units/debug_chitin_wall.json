@@ -1,0 +1,26 @@
+{
+  "id": "debug_chitin_wall",
+  "threatLabel": "Chitin Wall (dbg)",
+  "intelDescription": "Small hits do nothing. Bring one big one.",
+  "maxHealth": 30,
+  "baseSpeed": 1,
+  "armor": 2,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "abilities": [
+    {
+      "key": "chitin",
+      "trigger": "aura",
+      "name": "Chitin",
+      "intelDescription": "Every hit against it is reduced by 3.",
+      "params": {
+        "amount": "3"
+      }
+    }
+  ],
+  "colorR": 0.45,
+  "colorG": 0.4,
+  "colorB": 0.3
+}

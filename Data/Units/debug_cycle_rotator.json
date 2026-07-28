@@ -1,0 +1,11 @@
+{
+  "id": "debug_cycle_rotator",
+  "threatLabel": "Master of Three (dbg)",
+  "intelDescription": "Soldier, then archer, then mage. It always tells you which is next.",
+  "maxHealth": 24, "baseSpeed": 2, "armor": 0,
+  "attackRange": 3, "attackDamage": 5, "preferredDistance": 3,
+  "behaviorKey": "melee_advance",
+  "intentCycle": ["melee_advance", "ranged_kite", "ranged_charge"],
+  "cycleLoops": true,
+  "colorR": 0.85, "colorG": 0.5, "colorB": 0.15
+}

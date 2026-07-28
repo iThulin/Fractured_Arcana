@@ -1,0 +1,31 @@
+{
+  "id": "debug_assembler",
+  "threatLabel": "Assembler (dbg)",
+  "intelDescription": "It builds one more every second round. Race it.",
+  "maxHealth": 26,
+  "baseSpeed": 0,
+  "armor": 2,
+  "attackRange": 4,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "abilities": [
+    {
+      "key": "summon_cadence",
+      "trigger": "everyNRounds",
+      "name": "Assembly",
+      "intelDescription": "Brings one Bench Turret online every 2 rounds.",
+      "params": {
+        "n": "2",
+        "count": "1",
+        "unit": "engineer_bench_turret"
+      }
+    }
+  ],
+  "colorR": 0.6,
+  "colorG": 0.45,
+  "colorB": 0.15
+}

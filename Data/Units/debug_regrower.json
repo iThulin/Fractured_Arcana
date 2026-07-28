@@ -1,0 +1,26 @@
+{
+  "id": "debug_regrower",
+  "threatLabel": "Regrower (dbg)",
+  "intelDescription": "Twenty damage in one round, or you undo nothing.",
+  "maxHealth": 34,
+  "baseSpeed": 1,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "abilities": [
+    {
+      "key": "regrowth",
+      "trigger": "onTurnEnd",
+      "name": "Regrowth",
+      "intelDescription": "Heals to full unless it took 20 damage this round.",
+      "params": {
+        "threshold": "20"
+      }
+    }
+  ],
+  "colorR": 0.2,
+  "colorG": 0.6,
+  "colorB": 0.35
+}

@@ -9,3 +9,6 @@
 *.old
 *.lscache
 .DS_Store
+
+# Compile-check output (tools/build-check.cmd)
+build.log

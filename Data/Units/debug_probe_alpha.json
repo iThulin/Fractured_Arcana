@@ -1,0 +1,31 @@
+{
+  "id": "debug_probe_alpha",
+  "threatLabel": "Probe Alpha (dbg)",
+  "intelDescription": "Fires on spawn and on attack.",
+  "maxHealth": 18,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 3,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "abilities": [
+    {
+      "key": "debug_echo",
+      "trigger": "onSpawn",
+      "name": "Echo (onSpawn)",
+      "intelDescription": "U3b scaffold: announces onSpawn.",
+      "params": {}
+    },
+    {
+      "key": "debug_echo",
+      "trigger": "onAttack",
+      "name": "Echo (onAttack)",
+      "intelDescription": "U3b scaffold: announces onAttack.",
+      "params": {}
+    }
+  ],
+  "colorR": 0.9,
+  "colorG": 0.4,
+  "colorB": 0.9
+}

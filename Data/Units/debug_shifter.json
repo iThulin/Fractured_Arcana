@@ -1,0 +1,30 @@
+{
+  "id": "debug_shifter",
+  "threatLabel": "Slumbering Guardian (dbg)",
+  "intelDescription": "Rooted and armoured \u2014 until it isn't.",
+  "maxHealth": 40,
+  "baseSpeed": 0,
+  "armor": 5,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "abilities": [
+    {
+      "key": "mode_shift",
+      "trigger": "onStruck",
+      "name": "Mode Shift",
+      "intelDescription": "At 20 cumulative damage it breaks open and comes for you.",
+      "params": {
+        "threshold": "20",
+        "profile": "debug_shifter_awake"
+      }
+    }
+  ],
+  "colorR": 0.4,
+  "colorG": 0.4,
+  "colorB": 0.45
+}

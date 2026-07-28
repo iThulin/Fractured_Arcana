@@ -1,0 +1,31 @@
+{
+  "id": "debug_probe_beta",
+  "threatLabel": "Probe Beta (dbg)",
+  "intelDescription": "Fires when wounded and at the end of its action.",
+  "maxHealth": 30,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 3,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "abilities": [
+    {
+      "key": "debug_echo",
+      "trigger": "onStruck",
+      "name": "Echo (onStruck)",
+      "intelDescription": "U3b scaffold: announces onStruck.",
+      "params": {}
+    },
+    {
+      "key": "debug_echo",
+      "trigger": "onTurnEnd",
+      "name": "Echo (onTurnEnd)",
+      "intelDescription": "U3b scaffold: announces onTurnEnd.",
+      "params": {}
+    }
+  ],
+  "colorR": 0.4,
+  "colorG": 0.9,
+  "colorB": 0.9
+}

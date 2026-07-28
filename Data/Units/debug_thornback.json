@@ -1,0 +1,26 @@
+{
+  "id": "debug_thornback",
+  "threatLabel": "Thornback (dbg)",
+  "intelDescription": "Hitting it in melee costs you 3.",
+  "maxHealth": 22,
+  "baseSpeed": 1,
+  "armor": 2,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "abilities": [
+    {
+      "key": "retaliate",
+      "trigger": "onStruck",
+      "name": "Retaliate",
+      "intelDescription": "Deals 3 back to anything that strikes it from an adjacent tile.",
+      "params": {
+        "amount": "3"
+      }
+    }
+  ],
+  "colorR": 0.3,
+  "colorG": 0.5,
+  "colorB": 0.25
+}

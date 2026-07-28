@@ -1657,14 +1657,14 @@ public partial class CombatManager : Node3D
             // Bypass armor — apply directly to health
             int savedArmor = target.Stats.Armor;
             target.Stats.Armor = 0;
-            target.ApplyDamage(damage);
+            target.ApplyDamage(damage, attacker);
             if (target.Stats.IsAlive)
                 target.Stats.Armor = savedArmor;
             combatUI?.AppendActionLog($"[Aimed] Armor ignored.");
         }
         else
         {
-            target.ApplyDamage(damage);
+            target.ApplyDamage(damage, attacker);
         }
 
         // ── AoE: Reckless hits all adjacent enemies ────────────────────────
@@ -1682,7 +1682,7 @@ public partial class CombatManager : Node3D
                     continue;        // already hit
                 if (splashVictim.TeamId == attacker.TeamId)
                     continue; // skip allies
-                splashVictim.ApplyDamage(damage);
+                splashVictim.ApplyDamage(damage, attacker);
                 combatUI?.AppendActionLog($"[Reckless] {splashVictim.Name} takes {damage} damage.");
             }
         }
@@ -1909,6 +1909,7 @@ public partial class CombatManager : Node3D
         // Q2 (§7a): item AURAS (§5 states, not stack events) recompute here —
         // regen auras heal adjacent allies at each of your turn starts.
         ApplyItemAuras();
+        ApplyEnemyAuras();   // U3d — radius auras (bodyguard); idempotent
 
         ProcessStatusEffects(playerUnits);
         ApplyHazardDamage(playerUnits);
@@ -2161,6 +2162,14 @@ public partial class CombatManager : Node3D
             return;
 
         roundNumber++;
+
+        // U3c: regrowth asks "did it take THRESHOLD damage this round?", so the tally
+        // resets as the round turns over — after the enemy phase has read it, before
+        // the player can start adding to it again.
+        foreach (var u in State.UnitsInPlay)
+            if (u != null && IsInstanceValid(u))
+                u.DamageTakenThisRound = 0;
+
         StartPlayerTurn();
     }
 
@@ -2324,28 +2333,12 @@ public partial class CombatManager : Node3D
 
     // ── Attack execution ─────────────────────────────────────────────────
 
-    private async System.Threading.Tasks.Task PerformAttack(Unit enemy, Unit target)
-    {
-        int dmg = enemy.ModifyOutgoingAttackDamage(enemy.AttackDamage > 0 ? enemy.AttackDamage : 5);
-        if (dmg <= 0)
-        {
-            combatUI?.AppendActionLog($"{enemy.Name}'s attack misses {target.Name}.");
-            return;
-        }
+    // PerformAttack REMOVED 2026-07-28. Orphaned by the U2 intent-AI migration:
+    // every enemy attack now routes ExecuteIntent -> StrikeTile -> ResolveStrike, and
+    // this method had zero callers. It also carried one of the two stale
+    // ResolveRetaliation call sites (Riposte now hangs off Unit.OnStruck instead).
+    // PerformRangedAttack is KEPT — Tinker constructs still call it.
 
-        string msg = $"{enemy.Name} attacks {target.Name} for {dmg} damage.";
-        GD.Print(msg);
-        combatUI?.AppendActionLog(msg);
-
-        target.ApplyDamage(dmg);
-        ResolveRetaliation(target, enemy);
-
-        RefreshSelectedUnitUI();
-        RefreshEnemyRoster();
-        RefreshPlayerUnitBar();
-        RefreshDeckCounts();
-        await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
-    }
 
     /// <summary>Riposte: a defender with RetaliateDamage strikes back at whoever just hit it.</summary>
     private void ResolveRetaliation(Unit defender, Unit attacker)
@@ -2392,8 +2385,10 @@ public partial class CombatManager : Node3D
         GD.Print(msg);
         combatUI?.AppendActionLog(msg);
 
-        target.ApplyDamage(dmg);
-        ResolveRetaliation(target, enemy);
+        target.ApplyDamage(dmg, enemy);
+        // Riposte moved to the single OnStruck hook (HandleUnitStruck) 2026-07-28 —
+        // calling it here too would fire it twice for the one live caller of this
+        // method (Tinker constructs, CombatManager.Constructs.cs).
 
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();
@@ -3157,6 +3152,20 @@ public partial class CombatManager : Node3D
 
             unit.CompanionId = companion.Id;
 
+            // (2026-07-28, playtest PT-U3-1) THE missing line. `isMartial` was computed
+            // above and used for mana and the stat block, but never written to the unit,
+            // so every companion spawned with Unit.IsMartial == false (the field default)
+            // regardless of UnitClass. Two systems read that flag and both broke:
+            //   * SelectUnit (~1235): `if (!unit.IsMartial …)` seeds a SPELL DECK and shows
+            //     the hand — Fighters and Rangers were dealt cards they cannot cast
+            //     (their mana is already forced to 0 four lines above, so the hand was
+            //     unplayable as well as wrong).
+            //   * TryMartialAttack (~1472): `if (!attacker.IsMartial) return;` — the
+            //     attack input silently no-ops, so martials could not attack AT ALL.
+            // The `[Spawn] … IsMartial=False` line for a Fighter has been printing the
+            // symptom to the console this whole time.
+            unit.IsMartial = isMartial;
+
             // K2.5: carry expedition HP into this fight. GetActiveParty already
             // filtered out stabilized (0) companions, so this is always ≥1.
             if (PlayerSession.IsOnExpedition && companion.ExpeditionHP >= 0)
@@ -3689,6 +3698,7 @@ public partial class CombatManager : Node3D
 
             AddChild(unit);
             unit.OnDied += HandleUnitDeath;
+            unit.OnStruck += HandleUnitStruck;   // U3b
             unit.PlaceOnTile(tile);
 
             unit.Name = $"{p.NamePrefix}_{i + 1}";
@@ -3700,6 +3710,8 @@ public partial class CombatManager : Node3D
             unit.DefinitionId = p.Def.Id;
             unit.BehaviorKey = p.Def.BehaviorKey;
             unit.BehaviorTags = new List<string>(p.Def.BehaviorTags);
+            unit.IntentCycle = new List<string>(p.Def.IntentCycle);
+            unit.CycleLoops = p.Def.CycleLoops;
             unit.Abilities = p.Def.Abilities;   // defs are stateless — share, don't copy
             unit.Role = p.Def.Role;
             unit.FactionId = p.Def.FactionId;
@@ -3714,6 +3726,8 @@ public partial class CombatManager : Node3D
             unit.CurrentActionPoints = unit.MaxActionPoints;
             unit.SetBodyColor(p.BodyColor);
             unit.RefreshNameLabel();
+            unit.RecacheSelfAuras();        // U3c — chitin/veil are read inline, not queued
+            FireEnemySpawnTriggers(unit);   // U3b — after the def is fully applied
 
 
 
@@ -3783,6 +3797,7 @@ public partial class CombatManager : Node3D
         AddChild(unit);
 
         unit.OnDied += HandleUnitDeath;
+        unit.OnStruck += HandleUnitStruck;   // U3b
         unit.PlaceOnTile(tile);
 
         if (side == HexGridManager.SpawnSide.Player)
@@ -4191,6 +4206,7 @@ public partial class CombatManager : Node3D
 
         AddChild(unit);
         unit.OnDied += HandleUnitDeath;
+        unit.OnStruck += HandleUnitStruck;   // U3b
         unit.PlaceOnTile(tile);
         // Same tier-2 budget as SpawnAndPlaceEnemies — risen/summoned units fight
         // identically to deployed ones.
@@ -4210,6 +4226,8 @@ public partial class CombatManager : Node3D
         unit.DefinitionId = def.Id;
         unit.BehaviorKey = def.BehaviorKey;
         unit.BehaviorTags = new List<string>(def.BehaviorTags);
+        unit.IntentCycle = new List<string>(def.IntentCycle);
+        unit.CycleLoops = def.CycleLoops;
         unit.Abilities = def.Abilities;
         unit.Role = def.Role;
         unit.FactionId = def.FactionId;
@@ -4218,6 +4236,8 @@ public partial class CombatManager : Node3D
         unit.AttackDamage = def.AttackDamage;
         unit.SetBodyColor(def.BodyColor);
         unit.RefreshNameLabel();
+        unit.RecacheSelfAuras();        // U3c
+        FireEnemySpawnTriggers(unit);   // U3b
 
         if (teamId == 0)
             playerUnits.Add(unit);
@@ -5093,7 +5113,7 @@ public partial class CombatManager : Node3D
             int hpLoss = 0;
             foreach (int hit in perVictim[v])
             {
-                var (sL, aL, hL, _) = Unit.MitigateCore(hit, shield, armor, hp, shrouded, immortal);
+                var (sL, aL, hL, _) = Unit.MitigateCore(hit, shield, armor, hp, shrouded, immortal, v.ChitinAmount);
                 shield -= sL; armor -= aL; hp -= hL; hpLoss += hL;
             }
             if (hpLoss > 0)

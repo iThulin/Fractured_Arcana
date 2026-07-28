@@ -301,7 +301,7 @@ public sealed class DealDamageEffect : EffectBase
 
 			if (obj is Unit u)
 			{
-				u.ApplyDamage(totalDamage);
+				u.ApplyDamage(totalDamage, s.ActiveCasterUnit);
 				s.Log($"HIT unit {u.Name}");
 				hit++;
 				victim = u;
@@ -312,7 +312,7 @@ public sealed class DealDamageEffect : EffectBase
 			else if (obj is TileData td && td.Occupant != null)
 			{
 				victim = td.Occupant;
-				victim.ApplyDamage(totalDamage);
+				victim.ApplyDamage(totalDamage, s.ActiveCasterUnit);
 				s.Log($"HIT tile occupant {victim.Name} on {td.Axial}");
 				hit++;
 			}
@@ -322,7 +322,7 @@ public sealed class DealDamageEffect : EffectBase
 				if (tileData != null && tileData.Occupant != null)
 				{
 					victim = tileData.Occupant;
-					victim.ApplyDamage(totalDamage);
+					victim.ApplyDamage(totalDamage, s.ActiveCasterUnit);
 					s.Log($"HIT tile occupant {victim.Name} on {tileData.Axial}");
 					hit++;
 				}
@@ -333,7 +333,7 @@ public sealed class DealDamageEffect : EffectBase
 			if (victim != null && victim.HasStatus("arcane_mark"))
 			{
 				victim.RemoveStatus("arcane_mark");
-				victim.ApplyDamage(ArcaneMarkBonus);
+				victim.ApplyDamage(ArcaneMarkBonus, s.ActiveCasterUnit);
 				s.Log($"[ArcaneMark] {victim.Name} takes {ArcaneMarkBonus} bonus damage. Mark consumed.");
 			}
 		}

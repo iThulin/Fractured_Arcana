@@ -1,0 +1,11 @@
+{
+  "id": "debug_cycle_opener",
+  "threatLabel": "Slumbering Thing (dbg)",
+  "intelDescription": "It braces twice, then it wakes up and comes for you.",
+  "maxHealth": 30, "baseSpeed": 2, "armor": 2,
+  "attackRange": 1, "attackDamage": 7, "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "intentCycle": ["hold_ground", "hold_ground"],
+  "cycleLoops": false,
+  "colorR": 0.35, "colorG": 0.3, "colorB": 0.5
+}

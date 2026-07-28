@@ -1,0 +1,29 @@
+{
+  "id": "debug_bodyguard",
+  "threatLabel": "Interposer (dbg)",
+  "intelDescription": "You cannot shoot past it. Kill it or go around.",
+  "maxHealth": 28,
+  "baseSpeed": 1,
+  "armor": 4,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "hold_until_near",
+  "behaviorTags": [
+    "bulwark"
+  ],
+  "abilities": [
+    {
+      "key": "bodyguard",
+      "trigger": "aura",
+      "name": "Bodyguard",
+      "intelDescription": "Takes damage aimed at any ally within 1 tile.",
+      "params": {
+        "radius": "1"
+      }
+    }
+  ],
+  "colorR": 0.35,
+  "colorG": 0.45,
+  "colorB": 0.65
+}
