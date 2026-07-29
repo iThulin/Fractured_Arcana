@@ -137,6 +137,24 @@ public sealed class Resolver
         // stale unit from the previous resolution.
         var prevDamageSource = Unit.AmbientDamageSource;
         Unit.AmbientDamageSource = item.CasterUnit;
+
+        // Perfected cards (2026-07-29): the Magnum Opus bonus applies to exactly THIS
+        // card's resolution — pinned onto the caster for the effect loop and restored
+        // after, the same shape as the caster/damage-source pins above. Unit-level
+        // BonusSpellDamage is how DealDamageEffect already reads flat bonuses, so the
+        // bonus flows through every damage/heal leaf without those effects changing.
+        int perfectedBonus = 0;
+        if (item.SourceCard != null && item.CasterUnit != null
+            && GodotObject.IsInstanceValid(item.CasterUnit)
+            && s.PerfectedCards.TryGetValue(item.SourceCard.InstanceId, out perfectedBonus)
+            && perfectedBonus > 0)
+        {
+            item.CasterUnit.BonusSpellDamage += perfectedBonus;
+            s.Log($"[Perfected] {item.Ability?.Name} resolves with +{perfectedBonus}.");
+        }
+        else perfectedBonus = 0;
+
+        s.ResolutionDepth++;   // GameState.RequestCardChoice: a resolver pass is live
         try
         {
             foreach (var eff in item.Ability.Effects)
@@ -144,6 +162,10 @@ public sealed class Resolver
         }
         finally
         {
+            s.ResolutionDepth--;
+            if (perfectedBonus > 0 && item.CasterUnit != null
+                && GodotObject.IsInstanceValid(item.CasterUnit))
+                item.CasterUnit.BonusSpellDamage -= perfectedBonus;
             s.ActiveCasterUnit = prevCaster;
             Unit.AmbientDamageSource = prevDamageSource;
         }
@@ -218,6 +240,8 @@ public static class Rules
         }
 
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
+        snap.ChosenOption = s.PendingChooseOneIndex;   // choose-one: see TryCastWithTargets
+        s.PendingChooseOneIndex = -1;
         var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap,
                                    CasterUnit = s.ActiveCasterUnit };
 
@@ -233,6 +257,15 @@ public static class Rules
 
     public static bool TryCastWithTargets(Ability a, GameState s, Entity caster, TargetSet targets, Card sourceCard)
     {
+        // Per-card discount (2026-07-29): pin the card being cast so
+        // ManaCost.EffectiveAmount prices it — for the affordability check inside
+        // CanCast AND for the payment below. Pinned through both, cleared in finally:
+        // affordability and payment must price the same card or the player can cast a
+        // spell they cannot afford (the exact failure the tithe comment warns about,
+        // mirrored).
+        s.CostContextCard = sourceCard;
+        try
+        {
         if (!CanCast(a, s, caster))
         {
             s.Log("Cast failed (timing/conditions/cost).");
@@ -294,28 +327,72 @@ public static class Rules
             }
         }
 
-        // Pay at full price, then refund the discount.
-        // This avoids needing to mutate ManaCost internals.
-        if (!freeResponse)
-            foreach (var c in a.Costs)
-                c.Pay(s, caster);
-
-        if (manaDiscount > 0 && s.Mana.ContainsKey(caster))
-        {
-            int maxMana = s.ActiveCasterUnit?.Stats.MaxMana ?? 5;
-            s.Mana[caster] = Math.Min(s.Mana[caster] + manaDiscount, maxMana);
-            s.Log($"[CostReduction] Refunded {manaDiscount} mana (discount applied).");
-        }
-
         // ── Chronomancer: consume queued cost reduction ──────────────────────────
+        // (2026-07-29) Folded in BEFORE the refund. Previously this was consumed
+        // AFTER the refund block had already run, so Accelerando's discount was
+        // eaten and never paid back — the log even printed the amount it wasn't
+        // refunding.
         if (s.NextSpellCostReduction > 0)
         {
             manaDiscount += s.NextSpellCostReduction;
             s.NextSpellCostReduction = 0; // single-use, consumed here
-            s.Log($"[CostModify] Applied {manaDiscount} mana discount.");
         }
 
+        // Pay at the per-card EFFECTIVE price (tithe and per-card discount live in
+        // ManaCost.EffectiveAmount, priced against CostContextCard pinned above),
+        // then refund the GLOBAL discounts. Global discounts keep the
+        // pay-full-then-refund shape deliberately: they can never make an
+        // unaffordable spell castable. The per-card discount deliberately does the
+        // opposite — "this card costs 1 less" must make the card castable at the
+        // lower price, which is why it prices the cost instead of refunding it.
+        if (!freeResponse)
+            foreach (var c in a.Costs)
+                c.Pay(s, caster);
+
+        if (!freeResponse && manaDiscount > 0)
+        {
+            // (2026-07-29) Refund the UNIT's pool, not just the legacy dict — the
+            // unit's mana is authoritative (ManaCost.CanPay reads it), so a refund
+            // that only touched s.Mana never actually came back to the player.
+            var refundUnit = s.ActiveCasterUnit;
+            if (refundUnit != null)
+            {
+                int paid = 0;
+                foreach (var c in a.Costs)
+                    if (c is ManaCost m)
+                        paid += ManaCost.EffectiveAmount(s, m.Amount);
+                int refund = Math.Min(manaDiscount, paid);
+                if (refund > 0)
+                {
+                    refundUnit.Stats.Mana = Math.Min(refundUnit.Stats.Mana + refund,
+                                                     refundUnit.Stats.MaxMana);
+                    if (s.Mana.ContainsKey(caster))
+                        s.Mana[caster] = refundUnit.Stats.Mana;
+                    s.Log($"[CostReduction] Refunded {refund} mana (discount applied).");
+                }
+            }
+            else if (s.Mana.ContainsKey(caster))
+            {
+                s.Mana[caster] = Math.Min(s.Mana[caster] + manaDiscount, 5);
+                s.Log($"[CostReduction] Refunded {manaDiscount} mana (discount applied).");
+            }
+        }
+
+        // Per-card discount is single-use: consumed by the cast it just priced.
+        // EXCEPT Perfected cards — Magnum Opus' cost-0 is permanent for the fight.
+        if (sourceCard != null
+            && !s.PerfectedCards.ContainsKey(sourceCard.InstanceId)
+            && s.CardCostDeltas.Remove(sourceCard.InstanceId))
+            s.Log($"[CardDiscount] {sourceCard.CardName}'s discount consumed.");
+
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
+
+        // Choose-one (2026-07-29): move the mode pick onto the snapshot so it rides
+        // the stack with this item. Reset unconditionally — a stale index must not
+        // leak onto the next cast.
+        snap.ChosenOption = s.PendingChooseOneIndex;
+        s.PendingChooseOneIndex = -1;
+
         var item = new StackItem { Ability = a, Caster = caster, Targets = targets, Snapshot = snap,
                                    SourceCard = sourceCard, CasterUnit = s.ActiveCasterUnit };
 
@@ -324,5 +401,10 @@ public static class Rules
         s.Bus.Emit("AbilityCast", item);
         s.Log($"Cast (preselected) → {a.Name} [{a.Speed}] (stack size {s.StackCount()})");
         return true;
+        }
+        finally
+        {
+            s.CostContextCard = null;
+        }
     }
 }

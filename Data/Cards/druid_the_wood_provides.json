@@ -1,0 +1,46 @@
+{
+	"id": "druid_the_wood_provides",
+	"status": "wip",
+	"name": "The Wood Provides",
+	"school": "Druid",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "The Wood Provides",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Harvest living tiles within 2: heal 2 per tile consumed. Then look at the top 3 cards; keep 1, bottom the rest.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "harvest_growth",
+					"radius": 2,
+					"heal_per": 2
+				},
+				{
+					"type": "scry",
+					"look": 3,
+					"keep": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Fallow",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 1 Wilding.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "gain_wilding",
+			"amount": 1
+		}
+	}
+}

@@ -1,0 +1,120 @@
+{
+	"id": "elementalist_elemental_convergence",
+	"status": "wip",
+	"name": "Elemental Convergence",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Convergence",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Choose an element \u2014 Fire, Ice, or Storm. Imbue the target tile and its ring with it.",
+		"tags": [
+			"fire",
+			"ice",
+			"storm"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "choose_one",
+			"options": [
+				{
+					"label": "Fire",
+					"description": "Imbue the target tile and its ring with Fire.",
+					"effect": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "fire"
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 1,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "fire"
+								}
+							}
+						]
+					}
+				},
+				{
+					"label": "Ice",
+					"description": "Imbue the target tile and its ring with Ice.",
+					"effect": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "ice"
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 1,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "ice"
+								}
+							}
+						]
+					}
+				},
+				{
+					"label": "Storm",
+					"description": "Imbue the target tile and its ring with Storm.",
+					"effect": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "storm"
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "ring",
+									"radius": 1,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "storm"
+								}
+							}
+						]
+					}
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Elemental Sense",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Gain 1 attunement per unique element on tiles within 3.",
+		"tags": [
+			"fire",
+			"ice",
+			"storm"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "attunement_per_nearby_element",
+			"radius": 3
+		}
+	}
+}

@@ -28,14 +28,13 @@
 		"name": "Shove",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Deal 4 damage. Push target 1 tile. If pushed adjacent to a memorial, deal 3 bonus damage.",
+		"rules_text": "Deal 4 damage. Push target 1 tile in a direction you choose. If pushed adjacent to a memorial, deal 3 bonus damage.",
 		"tags": [
 			"necrotic"
 		],
 		"targeting": {
-			"type": "unit",
+			"type": "unit_then_direction",
 			"range": 6,
-			"los": true,
 			"enemies_only": true
 		},
 		"effect": {
@@ -46,7 +45,7 @@
 					"amount": 4
 				},
 				{
-					"type": "push",
+					"type": "push_aimed",
 					"tiles": 1,
 					"collision_damage": 2
 				},

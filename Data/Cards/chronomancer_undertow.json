@@ -35,7 +35,24 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "advance"
+			"type": "choose_one",
+			"options": [
+				{
+					"label": "Advance",
+					"description": "Advance one of your scheduled spells \u2014 it resolves sooner.",
+					"effect": {
+						"type": "advance"
+					}
+				},
+				{
+					"label": "Postpone",
+					"description": "Postpone an enemy's next action by 1 turn.",
+					"effect": {
+						"type": "postpone",
+						"turns": 1
+					}
+				}
+			]
 		}
 	},
 	"upgrades": [

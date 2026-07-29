@@ -369,6 +369,26 @@ public partial class DeckUiManager : Node2D
 	public int EffectiveCost(int printedCost)
 		=> _getEffectiveCost?.Invoke(printedCost) ?? printedCost;
 
+	private Func<int, Card, int> _getEffectiveCostForCard;
+
+	/// <summary>Per-card variant (2026-07-29): prices a printed cost for one specific
+	/// card INSTANCE, so per-card discounts (Precognition's kept card, a Perfected
+	/// card) show on that copy's pip and affordability tint — and only that copy's.
+	/// Wired by CombatManager to the same ManaCost.EffectiveAmount the rules engine
+	/// pays with, with GameState.CostContextCard pinned for the read.</summary>
+	public void SetPerCardCostProvider(Func<int, Card, int> provider)
+	{
+		_getEffectiveCostForCard = provider;
+	}
+
+	/// <summary>The effective price of a printed cost on a specific card instance.
+	/// Falls back to the card-agnostic path when unwired or when the CardUi carries
+	/// no instance (previews, library).</summary>
+	public int EffectiveCost(int printedCost, Card card)
+		=> card != null && _getEffectiveCostForCard != null
+			? _getEffectiveCostForCard(printedCost, card)
+			: EffectiveCost(printedCost);
+
 	public void RefreshAffordability()
 	{
 		int mana = _getMana?.Invoke() ?? 999;

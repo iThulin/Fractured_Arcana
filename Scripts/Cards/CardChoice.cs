@@ -62,23 +62,71 @@ public sealed class CardChoiceRequest
     /// chaining, the later steps of the sequence the effect was part of.</summary>
     public Action<List<Card>> OnChosen;
 
+    /// <summary>When true, the ORDER of the picks is part of the answer (Spell Storm's
+    /// "resolve these in the order you choose", scry-reorder). The picker's selection
+    /// list already preserves click order; this flag additionally keeps a pick-all-N
+    /// request from auto-resolving as degenerate — picking all N is no decision, but
+    /// SEQUENCING all N is.</summary>
+    public bool OrderMatters;
+
+    /// <summary>When true, <see cref="PickCount"/> is a MAXIMUM: confirming with fewer
+    /// picks — including none — is a legal answer (opening-hand sculpt's "bottom up to
+    /// 2"). Also blocks the degenerate auto-resolve, because "take fewer than
+    /// everything" is always a real decision.</summary>
+    public bool AllowFewer;
+
+    /// <summary>Cast-time requests only (choose-one mode picks, the opening sculpt):
+    /// the player may dismiss the question, because nothing has been paid yet. A
+    /// RESOLUTION continuation must never set this — its effect has already held cards
+    /// out of the deck and the cast is already paid for; there is no coherent "no".</summary>
+    public bool AllowCancel;
+
+    /// <summary>Runs once if the player cancels (see <see cref="AllowCancel"/>).</summary>
+    public Action OnCancelled;
+
+    /// <summary>True when the candidates are synthetic option stubs (choose-one modes)
+    /// rather than real cards from a pile. The picker renders these as text panels —
+    /// instantiating a live CardUi for a card that does not exist would be a lie with
+    /// a drop shadow.</summary>
+    public bool SyntheticOptions;
+
+    /// <summary>When true, the no-UI/headless default is to pick NOTHING rather than
+    /// the first N. Set by requests whose action is destructive-if-unasked — the
+    /// opening sculpt must not bottom two random cards in a headless fight.</summary>
+    public bool DefaultToNone;
+
     /// <summary>True when there is no decision to make — the player would be picking
     /// every candidate. The seam resolves these immediately and shows no UI: a modal
     /// with one legal answer is a click the player cannot act on, which is the same
-    /// anti-click-fatigue rule R3 applies to priority windows.</summary>
-    public bool IsDegenerate => Candidates == null || Candidates.Count <= PickCount;
+    /// anti-click-fatigue rule R3 applies to priority windows. An up-to-N or
+    /// order-matters request is never degenerate — see those flags.</summary>
+    public bool IsDegenerate => !AllowFewer
+        && !(OrderMatters && (Candidates?.Count ?? 0) > 1)
+        && (Candidates == null || Candidates.Count <= PickCount);
 
-    /// <summary>The default answer — the first <see cref="PickCount"/> candidates.
-    /// Used for degenerate requests and as the fallback when no UI is listening.</summary>
+    /// <summary>The default answer — the first <see cref="PickCount"/> candidates (or
+    /// nothing, for <see cref="DefaultToNone"/> requests). Used for degenerate
+    /// requests and as the fallback when no UI is listening.</summary>
     public List<Card> DefaultPick()
     {
         var picked = new List<Card>();
-        if (Candidates == null)
+        if (Candidates == null || DefaultToNone)
             return picked;
         for (int i = 0; i < Candidates.Count && picked.Count < PickCount; i++)
             if (Candidates[i] != null)
                 picked.Add(Candidates[i]);
         return picked;
+    }
+
+    /// <summary>Fires the cancel path exactly once and disarms the continuation, so a
+    /// cancelled request can never ALSO complete. Only meaningful when
+    /// <see cref="AllowCancel"/> is set.</summary>
+    public void Cancel()
+    {
+        OnChosen = null;                 // a cancelled question has no answer
+        var cb = OnCancelled;
+        OnCancelled = null;
+        cb?.Invoke();
     }
 
     /// <summary>Fires the continuation exactly once. Null-safe and idempotent, because

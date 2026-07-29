@@ -9,7 +9,9 @@
 		"mana": 3,
 		"speed": "Studied",
 		"rules_text": "Deploy a Siege Engine on an empty tile within 2 (20 HP, 10 DMG, range 6). Immobile; 2 turn setup.",
-		"tags": [],
+		"tags": [
+			"construct"
+		],
 		"targeting": {
 			"type": "empty_tile",
 			"range": 2

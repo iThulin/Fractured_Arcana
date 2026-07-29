@@ -111,6 +111,18 @@ public partial class CombatManager : Node3D
     private SelectTwoStepTarget _twoStepTargeter;
     private TileData _twoStepChoice;     // set by the second click, consumed by the replay
 
+    // ── Choose-one mode pick (2026-07-29): "Choose one: A or B" ──────────────
+    // Same replay discipline as two-step targeting: the drop pauses, a mode picker
+    // (the card-choice modal with synthetic option stubs) collects the pick, and the
+    // drop is REPLAYED with _chooseOneIndex set. The index is consumed into a local
+    // at the top of OnCardDroppedOnTile, so any early-exit path (CastFail, cancel)
+    // discards it instead of leaking a stale mode onto the next unrelated cast.
+    private int? _chooseOneIndex;
+
+    // ── Opening-hand sculpt (2026-07-29): offered once, on turn one ──────────
+    private bool _openingSculptOffered = false;
+    private const int OpeningSculptMax = 2;
+
     // ── Movement zone renderer ──────────────────────────────────────────────
     private MovementZoneRenderer _zoneRenderer;
 
@@ -184,6 +196,19 @@ public partial class CombatManager : Node3D
                 State.ActiveCasterUnit = selectedUnit;
                 try { return ManaCost.EffectiveAmount(State, printed); }
                 finally { State.ActiveCasterUnit = prev; }
+            });
+            // Per-card variant (2026-07-29): same formula, with the card instance
+            // pinned so per-card discounts price only their own copy.
+            deckUiManager.SetPerCardCostProvider((printed, card) =>
+            {
+                if (State == null)
+                    return printed;
+                var prev = State.ActiveCasterUnit;
+                var prevCard = State.CostContextCard;
+                State.ActiveCasterUnit = selectedUnit;
+                State.CostContextCard = card;
+                try { return ManaCost.EffectiveAmount(State, printed); }
+                finally { State.ActiveCasterUnit = prev; State.CostContextCard = prevCard; }
             });
         }
         else
@@ -1839,6 +1864,57 @@ public partial class CombatManager : Node3D
     // Turn flow
     // ═══════════════════════════════════════════════════════════════════════
 
+    /// <summary>Turn-one hand sculpt: the player may bottom up to
+    /// <see cref="OpeningSculptMax"/> cards and redraw that many. Offered to the
+    /// currently selected unit (the wizard the fight opens on) — one modal, not one
+    /// per party member; a four-modal combat open would be the decision-fatigue
+    /// failure the design doc warns about.</summary>
+    private void OfferOpeningSculpt()
+    {
+        var unit = selectedUnit;
+        if (unit == null || !IsInstanceValid(unit) || unit.DeckData == null)
+        {
+            foreach (var u in playerUnits)
+                if (u != null && IsInstanceValid(u) && u.Stats.IsAlive && u.DeckData != null)
+                { unit = u; break; }
+        }
+        var hand = unit?.DeckData?.Hand;
+        if (hand == null || hand.Count <= 1)
+            return;
+
+        var deck = unit.DeckData;
+        int max = Math.Min(OpeningSculptMax, hand.Count);
+        var sculptUnit = unit;
+
+        var req = new CardChoiceRequest
+        {
+            Title = "Opening Hand",
+            Prompt = $"Bottom up to {max} card(s) and redraw that many — or cancel to keep your hand.",
+            Owner = sculptUnit,
+            Candidates = new List<Card>(hand),
+            PickCount = max,
+            AllowFewer = true,
+            AllowCancel = true,
+            DefaultToNone = true,
+            Source = "OpeningSculpt",
+            OnChosen = chosen =>
+            {
+                if (chosen == null || chosen.Count == 0)
+                    return;
+                int bottomed = 0;
+                foreach (var c in chosen)
+                    if (c != null && deck.Hand.Remove(c))
+                    { deck.DrawPile.Add(c); bottomed++; }
+                if (bottomed > 0)
+                    deck.Draw(bottomed);
+                State.OnDrawCards?.Invoke(sculptUnit);
+                GD.Print($"[OpeningSculpt] {sculptUnit.Name} bottomed {bottomed}, drew {bottomed}.");
+                combatUI?.AppendActionLog($"Sculpted opening hand: {bottomed} card(s) exchanged.");
+            },
+        };
+        State.DispatchCardChoice(req);
+    }
+
     private void StartPlayerTurn()
     {
         State.EnemyPhaseContext = false;   // Time Bank: reaction costs revert to pure mana
@@ -1940,6 +2016,54 @@ public partial class CombatManager : Node3D
                     State.Almanac.Remove(entry);
                 }
             }
+        }
+
+        // ── Foretold cards arrive (2026-07-29) ────────────────────────────────────
+        // The Almanac's sibling: the Almanac schedules EFFECTS, Foretell schedules
+        // CARDS. Runs AFTER the draw loop above, and deliberately ignores
+        // MaxHandSize — the player paid a card and a full turn for these; arriving
+        // over the cap keeps them rather than burning them.
+        if (State.Foretold != null && State.Foretold.Count > 0)
+        {
+            foreach (var entry in State.Foretold.ToList())
+            {
+                entry.TurnsUntilArrival--;
+                if (entry.TurnsUntilArrival > 0)
+                    continue;
+                State.Foretold.Remove(entry);
+                if (entry.Card == null)
+                    continue;
+
+                var owner = entry.Owner;
+                bool ownerAlive = owner != null && IsInstanceValid(owner)
+                                  && owner.Stats.IsAlive && owner.DeckData != null;
+                if (ownerAlive)
+                {
+                    owner.DeckData.Hand.Add(entry.Card);
+                    GD.Print($"[Foretell] {entry.Card.CardName} arrives in {owner.Name}'s hand.");
+                    combatUI?.AppendActionLog($"Foretold: {entry.Card.CardName} arrives.");
+                }
+                else if (owner != null && IsInstanceValid(owner) && owner.DeckData != null)
+                {
+                    // Owner fell before the future arrived — the card lands in their
+                    // discard rather than vanishing (cards cannot be lost, rule 1 of
+                    // the choice seam).
+                    owner.DeckData.DiscardPile.Add(entry.Card);
+                    GD.Print($"[Foretell] {owner.Name} fell — {entry.Card.CardName} goes to their discard.");
+                }
+            }
+            deckUiManager?.SafeRefreshUI();
+            RefreshDeckCounts();
+        }
+
+        // ── Opening-hand sculpt (2026-07-29) ──────────────────────────────────────
+        // Once per combat, on turn one: bottom up to N cards from the opening hand
+        // and redraw that many. AllowFewer + cancel = "keep everything" is one click;
+        // DefaultToNone = a headless fight keeps its dealt hand untouched.
+        if (!_openingSculptOffered && roundNumber == 1 && currentPhase == CombatPhase.PlayerTurn)
+        {
+            _openingSculptOffered = true;
+            OfferOpeningSculpt();
         }
 
         // ── Tick anchor durations ─────────────────────────────────────────────────
@@ -2216,6 +2340,77 @@ public partial class CombatManager : Node3D
         _twoStepVictim = null;
         _twoStepTargeter = null;
         _twoStepChoice = null;
+    }
+
+    // ── Choose-one mode pick (2026-07-29) ───────────────────────────────────
+
+    /// <summary>Finds the ChooseOneEffect in a half's effect tree (top level or
+    /// nested in a sequence). One per half is the supported shape; the first found
+    /// wins, matching ChooseOneEffect's single snapshot index.</summary>
+    private static ChooseOneEffect FindChooseOne(IEnumerable<IEffect> effects)
+    {
+        if (effects == null)
+            return null;
+        foreach (var e in effects)
+        {
+            if (e is ChooseOneEffect c)
+                return c;
+            if (e is EffectBase eb)
+            {
+                var nested = FindChooseOne(eb.Children);
+                if (nested != null)
+                    return nested;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>Pauses the drop and asks for the card's mode. The picker is the
+    /// card-choice modal rendering synthetic option stubs (label + description as a
+    /// text panel — they are not cards and must not look draggable). On confirm the
+    /// drop is REPLAYED with _chooseOneIndex set, down the same single-step path —
+    /// the identical discipline BeginTwoStep established, for the identical reason:
+    /// nothing about casting gets duplicated. Cancel is free; nothing has been paid.</summary>
+    private void BeginChooseOne(CardUi cardUi, bool isTop, HexTile tile, CardHalf half,
+                                ChooseOneEffect chooser)
+    {
+        var options = new List<Card>();
+        for (int i = 0; i < chooser.Options.Length; i++)
+        {
+            string label = i < chooser.Labels.Length ? chooser.Labels[i] : $"Option {i + 1}";
+            string desc = i < chooser.Descriptions.Length ? chooser.Descriptions[i] : "";
+            options.Add(new Card
+            {
+                CardName = label,
+                TopHalf = new CardHalf { Name = label, RulesText = desc, School = half.School },
+            });
+        }
+
+        var req = new CardChoiceRequest
+        {
+            Title = half.Name,
+            Prompt = "Choose one:",
+            Owner = selectedUnit,
+            Candidates = options,
+            PickCount = 1,
+            SyntheticOptions = true,
+            AllowCancel = true,
+            Source = "ChooseOne",
+            OnChosen = picked =>
+            {
+                int idx = picked != null && picked.Count > 0 ? options.IndexOf(picked[0]) : 0;
+                _chooseOneIndex = Math.Max(0, idx);
+                OnCardDroppedOnTile(cardUi, isTop, tile);
+            },
+            OnCancelled = () =>
+            {
+                GD.Print($"[ChooseOne] {half.Name} cancelled — nothing paid.");
+                combatUI?.AppendActionLog("Cast cancelled.");
+            },
+        };
+
+        combatUI?.AppendActionLog($"{half.Name}: choose a mode.");
+        OnCardChoiceRequested(req);
     }
 
     private void SelectNextLivingAfterDeath()
@@ -4834,6 +5029,12 @@ public partial class CombatManager : Node3D
         _draggedHalf = null;
         ClearTargetHighlight();
 
+        // Choose-one: consume the replay's mode pick immediately. Every early-exit
+        // path below then discards it for free — a stale index must never survive to
+        // an unrelated cast.
+        int? chosenMode = _chooseOneIndex;
+        _chooseOneIndex = null;
+
         if (isInDeploymentPhase)
         { GD.Print("Cannot cast during deployment."); return; }
 
@@ -4864,6 +5065,23 @@ public partial class CombatManager : Node3D
             GD.Print($"{selectedUnit.Name} is frozen and cannot act!");
             combatUI?.AppendActionLog($"{selectedUnit.Name} is frozen!");
             return;
+        }
+
+        // ── Choose-one: cast-time mode pick (2026-07-29) ──────────────────
+        // Both options are printed on the card — the information exists at cast
+        // time, so this is an input-layer choice (post_cast_design_space_v1 §3.1),
+        // NOT a resolution continuation: the mode is public when the spell goes on
+        // the stack, and cancelling is free because nothing has been paid. Checked
+        // BEFORE channel resolution so the pause cannot double-charge the channel
+        // surcharge on replay.
+        if (chosenMode == null)
+        {
+            var chooser = FindChooseOne(half.Effects);
+            if (chooser != null && chooser.Options.Length > 1)
+            {
+                BeginChooseOne(cardUi, isTop, tile, half, chooser);
+                return;                  // not a failure — the cast is PAUSED
+            }
         }
 
         // ── Channel resolution ────────────────────────────────────────────
@@ -5063,7 +5281,12 @@ public partial class CombatManager : Node3D
 
         State.ActiveCasterUnit = selectedUnit;
 
+        // Choose-one: hand the mode to the rules layer for exactly this cast. It is
+        // moved onto the EffectSnapshot inside TryCastWithTargets and reset there.
+        State.PendingChooseOneIndex = chosenMode ?? -1;
+
         var ok = Rules.TryCastWithTargets(resolvedHalf, State, Me, targets, cardUi.CardInstance);
+        State.PendingChooseOneIndex = -1;   // consumed on success; must not leak on failure
         GD.Print($"Cast result={ok} manaNow={State.Mana[Me]}");
 
         // R22 self-check: once the cast settles, compare actual HP delta to the
@@ -5193,8 +5416,19 @@ public partial class CombatManager : Node3D
 
             if (deckManager != null && cardUi.CardInstance != null)
             {
-                deckManager.DiscardCard(cardUi.CardInstance);
-                GD.Print($"Discarded: {cardUi.CardInstance.CardName}");
+                // Perfected cards (Magnum Opus, 2026-07-29) are not discarded after
+                // use — the card stays in hand, still costing 0.
+                if (State.PerfectedCards.ContainsKey(cardUi.CardInstance.InstanceId))
+                {
+                    GD.Print($"Perfected: {cardUi.CardInstance.CardName} returns to hand.");
+                    combatUI?.AppendActionLog($"{cardUi.CardInstance.CardName} is Perfected — it returns to your hand.");
+                    deckUiManager?.SafeRefreshUI();
+                }
+                else
+                {
+                    deckManager.DiscardCard(cardUi.CardInstance);
+                    GD.Print($"Discarded: {cardUi.CardInstance.CardName}");
+                }
             }
 
             State.ActiveCasterUnit = null;

@@ -37,9 +37,9 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "scry",
+			"type": "foretell",
 			"look": 4,
-			"keep": 2,
+			"set_aside": 2,
 			"discount": 1
 		}
 	},
@@ -99,7 +99,7 @@
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.keep",
+					"field": "effect.set_aside",
 					"value": 3
 				},
 				{
@@ -202,9 +202,9 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "scry",
+								"type": "foretell",
 								"look": 6,
-								"keep": 3,
+								"set_aside": 3,
 								"discount": 2
 							},
 							{

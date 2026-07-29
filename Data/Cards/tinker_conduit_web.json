@@ -26,7 +26,9 @@
 		"mana": 2,
 		"speed": "Studied",
 		"rules_text": "Deploy a Familiar on an empty tile beside you (12 HP, 3 DMG, 2 SPD). Once per turn it echoes a spell you cast, while it lives.",
-		"tags": [],
+		"tags": [
+			"construct"
+		],
 		"targeting": {
 			"type": "empty_tile",
 			"range": 1

@@ -37,21 +37,20 @@
 		"name": "Gust",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Push target enemy 2 tiles. Deal 3 damage.",
+		"rules_text": "Push target enemy 2 tiles in a direction you choose. Deal 3 damage.",
 		"tags": [
 			"storm"
 		],
 		"targeting": {
-			"type": "unit",
+			"type": "unit_then_direction",
 			"range": 6,
-			"los": false,
 			"enemies_only": true
 		},
 		"effect": {
 			"type": "sequence",
 			"steps": [
 				{
-					"type": "push",
+					"type": "push_aimed",
 					"tiles": 2,
 					"collision_damage": 3
 				},
@@ -157,7 +156,7 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "push",
+								"type": "push_aimed",
 								"tiles": 3,
 								"collision_damage": 4
 							},
@@ -253,7 +252,7 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "push",
+								"type": "push_aimed",
 								"tiles": 3,
 								"collision_damage": 5
 							},
@@ -343,7 +342,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Storm Blade",
-			"description": "Storm Blade: Gust unifies ice and storm — pushes, freezes, and imbues landing tile with Storm.",
+			"description": "Storm Blade: Gust unifies ice and storm \u2014 pushes, freezes, and imbues landing tile with Storm.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -352,7 +351,7 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "push",
+								"type": "push_aimed",
 								"tiles": 4,
 								"collision_damage": 6
 							},

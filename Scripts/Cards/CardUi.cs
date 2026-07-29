@@ -697,10 +697,14 @@ public partial class CardUi : Control
     private int EffCost(CardHalf half)
     {
         int printed = half?.ManaCost ?? 0;
-        return _deckUiManager?.EffectiveCost(printed) ?? printed;
+        // Per-card (2026-07-29): priced against THIS card instance, so a discount on
+        // one copy of Magic Missile does not repaint every copy in hand.
+        return _deckUiManager?.EffectiveCost(printed, CardInstance) ?? printed;
     }
 
     private bool IsTaxed(CardHalf half) => EffCost(half) > (half?.ManaCost ?? 0);
+
+    private bool IsDiscounted(CardHalf half) => EffCost(half) < (half?.ManaCost ?? 0);
 
     /// <summary>Repaints both mana pips with the taxed number, tinted when inflated.
     /// Called from RefreshAffordability rather than from ApplyCardData because the
@@ -721,8 +725,12 @@ public partial class CardUi : Control
         label.Text = EffCost(half).ToString();
         // Warning, not Danger: Danger already means "you cannot afford this". An
         // inflated price the player CAN still pay is a different fact and must read
-        // as a different colour.
-        label.Modulate = IsTaxed(half) ? UITheme.Warning : Colors.White;
+        // as a different colour. A DISCOUNTED price (2026-07-29: Precognition's kept
+        // card, a Perfected card) reads as a third — the affordance colour, because a
+        // lowered price is an invitation.
+        label.Modulate = IsTaxed(half) ? UITheme.Warning
+                       : IsDiscounted(half) ? UITheme.Success
+                       : Colors.White;
     }
 
     /// <summary>Idle base color for a half: reaction-locked beats affordability.</summary>

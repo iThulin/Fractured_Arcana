@@ -202,7 +202,11 @@ public sealed class StealManaEffect : EffectBase
 }
 
 /// <summary>
-/// Return N cards from discard to hand (most recent first), then optionally draw. 
+/// Return N cards from discard to hand — the player's pick, not "most recent first".
+/// (2026-07-29) "Return A CARD from your discard" was silently returning the top of
+/// the pile; it now publishes a CardChoiceRequest over the discard's contents. The
+/// discard is public information, so nothing is revealed — the request goes straight
+/// to the pile. Then optionally draw.
 /// JSON: { "type":"return_from_discard","count":n,"draw":m }
 /// </summary>
 public sealed class ReturnFromDiscardEffect : EffectBase
@@ -211,20 +215,50 @@ public sealed class ReturnFromDiscardEffect : EffectBase
 	public ReturnFromDiscardEffect(int count, int draw) { Count = count; DrawN = draw; }
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		var d = FindCasterUnit(s, caster)?.DeckData;
+		var unit = FindCasterUnit(s, caster);
+		var d = unit?.DeckData;
 		if (d == null)
 			return;
-		int n = Math.Min(Count, d.DiscardPile.Count), returned = 0;
-		for (int i = 0; i < n; i++)
+
+		// R22: the drag preview replays real effects — one that moved cards between
+		// piles would corrupt the deck on hover. (This guard was MISSING here; the
+		// old top-of-pile version mutated the discard during previews.)
+		if (CombatSim.Active)
+			return;
+
+		if (d.DiscardPile.Count == 0)
 		{
-			var c = d.DiscardPile[d.DiscardPile.Count - 1];
-			d.DiscardPile.RemoveAt(d.DiscardPile.Count - 1);
-			d.Hand.Add(c);
-			returned++;
+			if (DrawN > 0) d.Draw(DrawN);
+			s.Log("[ReturnFromDiscard] discard is empty — nothing to return.");
+			return;
 		}
-		if (DrawN > 0)
-			d.Draw(DrawN);
-		s.Log($"[ReturnFromDiscard] returned {returned}, drew {DrawN}.");
+
+		// Most recent first — that is how a player thinks about their discard.
+		var candidates = Enumerable.Reverse(d.DiscardPile).ToList();
+		int pick = Math.Min(Count, candidates.Count);
+
+		var req = new CardChoiceRequest
+		{
+			Title = "Arcane Recall",
+			Prompt = $"Return {pick} card(s) from your discard to your hand.",
+			Owner = unit,
+			Candidates = candidates,
+			PickCount = pick,
+			Source = "ReturnFromDiscard",
+			OnChosen = chosen =>
+			{
+				int returned = 0;
+				if (chosen != null)
+					foreach (var c in chosen)
+						if (c != null && d.DiscardPile.Remove(c))
+						{ d.Hand.Add(c); returned++; }
+				if (DrawN > 0)
+					d.Draw(DrawN);
+				s.OnDrawCards?.Invoke(unit);
+				s.Log($"[ReturnFromDiscard] returned {returned}, drew {DrawN}.");
+			},
+		};
+		s.RequestCardChoice(req);
 	}
 }
 
@@ -407,30 +441,36 @@ public sealed class CreateArcaneConstructEffect : EffectBase
 /// <summary>
 /// Summons a Living Spell — a unit that embodies a spell and auto-casts it each
 /// turn against the nearest enemy. The auto-cast AI lives on the unit side (not
-/// in this effect); the effect handles the summoning and initial stats.
+/// in this effect); the effect handles the exile choice, the summoning, and stats.
+///
+/// (2026-07-29) The printed card says "Exile a spell from your hand … HP = mana x5,
+/// DMG = mana x2". Neither clause existed: nothing was exiled and the stats were
+/// flat defaults (the card's own hp_per_mana / damage_per_mana JSON was not even
+/// read by the loader). Now: the player chooses the card to exile via the choice
+/// seam; the construct's stats scale with the exiled card's top-half mana. With an
+/// empty hand it falls back to the flat stats and exiles nothing, which the log says.
 /// JSON: { "type": "summon_living_spell", "unit": "LivingSpell",
-///         "hp": n, "damage": n, "duration": n }
+///         "hp_per_mana": n, "damage_per_mana": n, "hp": n, "damage": n, "duration": n }
 /// </summary>
 public sealed class SummonLivingSpellEffect : EffectBase
 {
 	public string UnitKind;
 	public int HP, Damage, Duration;
+	public int HpPerMana, DamagePerMana;
 
-	public SummonLivingSpellEffect(string kind, int hp, int damage, int duration)
+	public SummonLivingSpellEffect(string kind, int hp, int damage, int duration,
+								   int hpPerMana = 0, int damagePerMana = 0)
 	{
 		UnitKind = kind;
 		HP = hp;
 		Damage = damage;
 		Duration = duration;
+		HpPerMana = hpPerMana;
+		DamagePerMana = damagePerMana;
 	}
 
-	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	private void Summon(GameState s, Unit casterUnit, int team, int hp, int damage, string origin)
 	{
-		if (s.OnSummonRequested == null)
-		{ s.Log("[SummonLivingSpell] No summon handler."); return; }
-
-		var casterUnit = FindCasterUnit(s, caster);
-		int team = casterUnit?.TeamId ?? 0;
 		int bonusDmg = casterUnit?.BonusSpellDamage ?? 0;
 
 		TileData spawnTile = null;
@@ -449,15 +489,64 @@ public sealed class SummonLivingSpellEffect : EffectBase
 		if (spell == null)
 			return;
 
-		spell.Stats.MaxHealth = HP;
-		spell.Stats.Health = HP;
-		spell.AttackDamage = Damage + bonusDmg;
+		spell.Stats.MaxHealth = hp;
+		spell.Stats.Health = hp;
+		spell.AttackDamage = damage + bonusDmg;
 
 		if (Duration > 0)
 			spell.ApplyStatus("living_spell", Duration);
 
 		s.UnitsInPlay?.Add(spell);
-		s.Log($"[SummonLivingSpell] {UnitKind} manifested at {spawnTile.Axial} ({HP}HP / {spell.AttackDamage}ATK). Auto-cast AI needs unit-side integration.");
+		s.Log($"[SummonLivingSpell] {UnitKind} ({origin}) manifested at {spawnTile.Axial} " +
+			  $"({hp}HP / {spell.AttackDamage}ATK). Auto-cast AI needs unit-side integration.");
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (s.OnSummonRequested == null)
+		{ s.Log("[SummonLivingSpell] No summon handler."); return; }
+
+		if (CombatSim.Active)
+			return;
+
+		var casterUnit = FindCasterUnit(s, caster);
+		int team = casterUnit?.TeamId ?? 0;
+
+		var hand = casterUnit?.DeckData?.Hand;
+		bool scales = HpPerMana > 0 || DamagePerMana > 0;
+		if (hand == null || hand.Count == 0 || !scales)
+		{
+			Summon(s, casterUnit, team, HP, Damage,
+				   hand == null || hand.Count == 0 ? "no card to exile" : "flat stats");
+			return;
+		}
+
+		var deck = casterUnit.DeckData;
+		var req = new CardChoiceRequest
+		{
+			Title = "Living Spell",
+			Prompt = $"Exile a spell from your hand. The Living Spell gets HP = mana x{HpPerMana}, " +
+					 $"DMG = mana x{DamagePerMana}.",
+			Owner = casterUnit,
+			Candidates = new List<Card>(hand),
+			PickCount = 1,
+			Source = "LivingSpell",
+			OnChosen = chosen =>
+			{
+				var card = chosen != null && chosen.Count > 0 ? chosen[0] : null;
+				if (card == null || !deck.ExileFromHand(card))
+				{
+					Summon(s, casterUnit, team, HP, Damage, "exile failed — flat stats");
+					return;
+				}
+				int mana = Math.Max(1, card.TopHalf?.ManaCost ?? 1);
+				int hp = Math.Max(1, HpPerMana * mana);
+				int dmg = Math.Max(1, DamagePerMana * mana);
+				s.OnDrawCards?.Invoke(casterUnit);
+				Summon(s, casterUnit, team, hp, dmg, $"embodies '{card.CardName}' ({mana} mana)");
+			},
+		};
+		s.RequestCardChoice(req);
 	}
 }
 
@@ -546,17 +635,37 @@ public sealed class BindCardLeafEffect : EffectBase
 		if (unit?.DeckData == null)
 			return;
 
-		// Bind the first card in hand (card-selection UI is a future feature)
+		if (CombatSim.Active)
+			return;
+
 		var hand = unit.DeckData.Hand;
 		if (hand.Count == 0)
 		{ s.Log("[BindCard] Hand is empty — nothing to bind."); return; }
 
-		var card = hand[0];
-		hand.RemoveAt(0);
+		// (2026-07-29) "Exile A CARD from your hand" is the player's pick — this used
+		// to bind hand[0] with a "future feature" comment. Hand choices go through
+		// the same request seam as pile choices; only the Candidates differ.
+		var req = new CardChoiceRequest
+		{
+			Title = "Tome Bind",
+			Prompt = "Bind a card from your hand. Its top half auto-casts each turn while bound.",
+			Owner = unit,
+			Candidates = new List<Card>(hand),
+			PickCount = 1,
+			Source = "BindCard",
+			OnChosen = chosen =>
+			{
+				var card = chosen != null && chosen.Count > 0 ? chosen[0] : null;
+				if (card == null || !hand.Remove(card))
+				{ s.Log("[BindCard] the chosen card left the hand — nothing bound."); return; }
 
-		s.ActiveEffects ??= new List<PersistentEffect>();
-		s.ActiveEffects.Add(new BoundCardAura(card, Turns, caster, unit));
-		s.Log($"[BindCard] '{card.CardName}' bound for {Turns} turns; auto-casts each turn start.");
+				s.ActiveEffects ??= new List<PersistentEffect>();
+				s.ActiveEffects.Add(new BoundCardAura(card, Turns, caster, unit));
+				s.OnDrawCards?.Invoke(unit);
+				s.Log($"[BindCard] '{card.CardName}' bound for {Turns} turns; auto-casts each turn start.");
+			},
+		};
+		s.RequestCardChoice(req);
 	}
 }
 
@@ -571,34 +680,94 @@ public sealed class ReplicateLastSpellLeafEffect : EffectBase
 	}
 }
 
+/// <summary>
+/// Spell Storm: reveal the top <see cref="Count"/> cards and cast their top halves
+/// for free — in an order the PLAYER chooses (2026-07-29). Sequencing three free
+/// spells is most of the card's skill expression, and the seam's OrderMatters flag
+/// exists for exactly this: pick-all-N is degenerate, ORDER-all-N is not.
+///
+/// (Previously this cast only the single top card, in deck order, whatever the
+/// card's `count` said — the loader never read it.)
+/// Targets are inherited from the storm's own cast, as before; per-cast retargeting
+/// stays future work and the card text's "targeting enemies of your choice" is
+/// honest only up to that limit.
+/// JSON: { "type": "cast_deck_top", "count": n, "half": "top" }
+/// </summary>
 public sealed class CastDeckTopEffect : EffectBase
 {
+	public int Count;
+	public CastDeckTopEffect(int count = 1) { Count = Math.Max(1, count); }
+
+	private void CastOne(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap,
+						 UnitDeckData deck, Card card)
+	{
+		if (card.TopHalf?.Effects == null || card.TopHalf.Effects.Length == 0)
+		{
+			deck.DiscardPile.Add(card);
+			s.Log($"[CastDeckTop] '{card.CardName}' has no effects.");
+			return;
+		}
+		s.Log($"[CastDeckTop] Auto-casting '{card.CardName}'.");
+		foreach (var eff in card.TopHalf.Effects)
+			eff.Resolve(s, caster, targets, snap);
+		deck.DiscardPile.Add(card);
+	}
+
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var unit = FindCasterUnit(s, caster);
-		if (unit?.DeckData == null)
+		var deck = unit?.DeckData;
+		if (deck == null)
 			return;
 
-		var pile = unit.DeckData.DrawPile;
-		if (pile.Count == 0 && unit.DeckData.DiscardPile.Count > 0)
-			unit.DeckData.Reshuffle();
-		if (pile.Count == 0)
+		if (CombatSim.Active)
+			return;
+
+		if (deck.DrawPile.Count < Count && deck.DiscardPile.Count > 0)
+			deck.Reshuffle();
+
+		int take = Math.Min(Count, deck.DrawPile.Count);
+		if (take <= 0)
 		{ s.Log("[CastDeckTop] Deck is empty."); return; }
 
-		var card = pile[0];
-		pile.RemoveAt(0);
-		if (card.TopHalf?.Effects == null || card.TopHalf.Effects.Length == 0)
+		var revealed = deck.DrawPile.GetRange(0, take);
+		deck.DrawPile.RemoveRange(0, take);          // held out until answered
+
+		if (take == 1)
 		{
-			unit.DeckData.DiscardPile.Add(card);
-			s.Log($"[CastDeckTop] Top card '{card.CardName}' has no effects.");
+			CastOne(s, caster, targets, snap, deck, revealed[0]);
 			return;
 		}
 
-		s.Log($"[CastDeckTop] Auto-casting '{card.CardName}' from deck top.");
-		foreach (var eff in card.TopHalf.Effects)
-			eff.Resolve(s, caster, targets, snap);
+		var req = new CardChoiceRequest
+		{
+			Title = "Spell Storm",
+			Prompt = $"Cast these {take} top halves for free — click them in the order they should resolve.",
+			Owner = unit,
+			Candidates = revealed,
+			PickCount = take,
+			OrderMatters = true,
+			Source = "CastDeckTop",
+			OnChosen = chosen =>
+			{
+				// Resolve in click order; anything the UI failed to hand back still
+				// resolves (revealed order) — a card must not vanish because a modal
+				// glitched.
+				var order = new List<Card>();
+				if (chosen != null)
+					foreach (var c in chosen)
+						if (c != null && revealed.Contains(c) && !order.Contains(c))
+							order.Add(c);
+				foreach (var c in revealed)
+					if (c != null && !order.Contains(c))
+						order.Add(c);
 
-		unit.DeckData.DiscardPile.Add(card);
+				foreach (var c in order)
+					CastOne(s, caster, targets, snap, deck, c);
+				s.OnDrawCards?.Invoke(unit);
+			},
+		};
+		s.RequestCardChoice(req);
 	}
 }
 
@@ -616,21 +785,63 @@ public sealed class ConvergenceLeafEffect : EffectBase
 	}
 }
 
+/// <summary>
+/// Magnum Opus (2026-07-29, rebuilt on the choice seam): CHOOSE a card in your hand;
+/// it becomes Perfected for the fight — both halves cost 0 (a permanent per-card
+/// discount that survives casting), it resolves with +<see cref="BonusDamage"/>
+/// (pinned in Resolver.ResolveTop), and it returns to hand instead of discarding
+/// (CombatManager's discard step checks GameState.PerfectedCards).
+///
+/// The old version granted the caster +3 BonusSpellDamage on EVERY spell forever and
+/// never asked anything — a different, quietly stronger card than the one printed.
+/// JSON: { "type": "perfect_card", "count": n, "bonus": n }
+/// </summary>
 public sealed class PerfectCardEffect : EffectBase
 {
-	public int BonusDamage, Draw;
-	public PerfectCardEffect(int bd, int draw) { BonusDamage = bd; Draw = draw; }
+	public int BonusDamage, Count;
+	public PerfectCardEffect(int bd, int count) { BonusDamage = bd; Count = Math.Max(1, count); }
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var unit = FindCasterUnit(s, caster);
-		if (unit == null)
+		if (unit?.DeckData == null)
 			return;
-		if (BonusDamage > 0)
-			unit.BonusSpellDamage += BonusDamage;
-		if (Draw > 0)
-			unit.DeckData?.Draw(Draw);
-		s.Log($"[PerfectCard] +{BonusDamage} permanent spell damage this combat, drew {Draw}. (per-card selection pending UI)");
+
+		if (CombatSim.Active)
+			return;
+
+		var hand = unit.DeckData.Hand;
+		if (hand.Count == 0)
+		{ s.Log("[PerfectCard] Hand is empty — nothing to perfect."); return; }
+
+		int pick = Math.Min(Count, hand.Count);
+		var req = new CardChoiceRequest
+		{
+			Title = "Magnum Opus",
+			Prompt = $"Perfect {pick} card(s): both halves cost 0, +{BonusDamage} on resolve, " +
+					 "and it returns to your hand when cast.",
+			Owner = unit,
+			Candidates = new List<Card>(hand),
+			PickCount = pick,
+			Source = "PerfectCard",
+			OnChosen = chosen =>
+			{
+				if (chosen == null)
+					return;
+				foreach (var card in chosen)
+				{
+					if (card == null)
+						continue;
+					s.PerfectedCards[card.InstanceId] = BonusDamage;
+					// 99 floors both halves at 0 through ManaCost.EffectiveAmount;
+					// TryCastWithTargets skips consuming deltas on Perfected cards.
+					s.AddCardDiscount(card, 99);
+					s.Log($"[PerfectCard] '{card.CardName}' is Perfected — cost 0, +{BonusDamage}, not consumed on cast.");
+				}
+				s.OnDrawCards?.Invoke(unit);
+			},
+		};
+		s.RequestCardChoice(req);
 	}
 }
 

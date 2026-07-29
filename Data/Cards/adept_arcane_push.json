@@ -8,16 +8,15 @@
 		"name": "Force Push",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Push target enemy 2 tiles.",
+		"rules_text": "Push target enemy 2 tiles in a direction you choose; collisions deal 2.",
 		"tags": [],
 		"targeting": {
-			"type": "unit",
+			"type": "unit_then_direction",
 			"range": 4,
-			"los": true,
 			"enemies_only": true
 		},
 		"effect": {
-			"type": "push",
+			"type": "push_aimed",
 			"tiles": 2,
 			"collision_damage": 2
 		}
@@ -50,7 +49,7 @@
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "push",
+						"type": "push_aimed",
 						"tiles": 3,
 						"collision_damage": 2
 					}
@@ -87,7 +86,7 @@
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "push",
+						"type": "push_aimed",
 						"tiles": 3,
 						"collision_damage": 4
 					}
@@ -140,9 +139,8 @@
 					"half": "top",
 					"field": "targeting",
 					"value": {
-						"type": "unit",
+						"type": "unit_then_direction",
 						"range": 5,
-						"los": true,
 						"enemies_only": true
 					}
 				},
@@ -150,7 +148,7 @@
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "push",
+						"type": "push_aimed",
 						"tiles": 3,
 						"collision_damage": 5
 					}
@@ -175,7 +173,7 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "push",
+								"type": "push_aimed",
 								"tiles": 4,
 								"collision_damage": 5
 							},

@@ -155,6 +155,99 @@ public sealed class GameState
         Log($"[{req.Source}] no choice UI is listening — taking the default.");
         req.Complete(req.DefaultPick());
     }
+
+    /// <summary>Publish-or-queue for effects that want a choice (2026-07-29). The slot
+    /// holds ONE request; a second effect in the same resolution folds its request
+    /// behind whatever is already there and dispatches DIRECTLY from the continuation —
+    /// by then Resolver.ResolveTop has cleared the slot and stopped looking at it, so a
+    /// second assignment would sit unread until some unrelated later resolution
+    /// happened to publish it. Extracted from ScryEffect so the fourth and fifth
+    /// choice effects cannot re-implement the queueing subtly differently.</summary>
+    public void RequestCardChoice(CardChoiceRequest req)
+    {
+        if (req == null)
+            return;
+        if (PendingChoice != null)
+            PendingChoice.Then(_ => DispatchCardChoice(req));
+        else if (ResolutionDepth > 0)
+            PendingChoice = req;          // Resolver.ResolveTop publishes it after unwind
+        else
+            // No resolver pass is coming — the effect is running inside a
+            // continuation (Spell Storm's ordered casts), an Almanac tick, or some
+            // other out-of-band resolve. Parking the request in the slot here would
+            // strand it (and the cards it holds) until an unrelated cast happened to
+            // publish it. Dispatch directly instead.
+            DispatchCardChoice(req);
+    }
+
+    /// <summary>Depth counter for Resolver.ResolveTop's effect loop. Non-zero means a
+    /// resolver pass is running and will publish whatever lands in
+    /// <see cref="PendingChoice"/>; zero means effects are resolving out-of-band and
+    /// <see cref="RequestCardChoice"/> must dispatch directly. See that method.</summary>
+    public int ResolutionDepth = 0;
+
+    // ── Per-card cost modifiers (2026-07-29) ─────────────────────────────────
+
+    /// <summary>Per-card-INSTANCE mana discounts, keyed by Card.InstanceId. This is
+    /// the field the scry doc-comment said "does not exist yet": NextSpellCostReduction
+    /// is single-use and global, so it cannot express "THIS specific card costs 1
+    /// less" (Precognition, Borrowed Future, Eternal Recall). Keyed by Guid rather
+    /// than by Card because halves are SHARED between instances (CardDatabase's clone
+    /// is shallow) — a discount stored anywhere on the card object would discount
+    /// every copy in every deck. Combat-scoped: GameState dies with the fight, so a
+    /// discount can never leak into the next one. Consumed on cast in
+    /// Rules.TryCastWithTargets, EXCEPT for Perfected cards, whose zero-cost is
+    /// permanent for the fight.</summary>
+    public Dictionary<Guid, int> CardCostDeltas = new();
+
+    /// <summary>Magnum Opus (2026-07-29): cards Perfected this combat, mapping
+    /// InstanceId → flat bonus damage. A Perfected card keeps its cost-0 delta when
+    /// cast (see CardCostDeltas), gets its bonus pinned onto the caster for exactly
+    /// its own resolution (Resolver.ResolveTop), and returns to hand instead of
+    /// discarding (CombatManager's discard step).</summary>
+    public Dictionary<Guid, int> PerfectedCards = new();
+
+    /// <summary>Adds a mana discount to one specific card instance. Stacks.</summary>
+    public void AddCardDiscount(Card card, int amount)
+    {
+        if (card == null || amount <= 0)
+            return;
+        CardCostDeltas.TryGetValue(card.InstanceId, out int cur);
+        CardCostDeltas[card.InstanceId] = cur + amount;
+    }
+
+    /// <summary>The discount currently attached to a card instance (0 when none).</summary>
+    public int GetCardDiscount(Card card)
+        => card != null && CardCostDeltas.TryGetValue(card.InstanceId, out int v) ? v : 0;
+
+    /// <summary>The card whose costs are currently being evaluated — the per-card
+    /// analogue of ActiveCasterUnit, read by ManaCost.EffectiveAmount. Pinned by
+    /// Rules.TryCastWithTargets around affordability + payment, and by the UI's
+    /// effective-cost provider around its read. Like the tithe, the discount lives in
+    /// EffectiveAmount so affordability and payment cannot disagree: a card discounted
+    /// to 1 is CASTABLE at 1 mana, which the pay-full-then-refund shape used for the
+    /// global discounts structurally cannot express.</summary>
+    public Card CostContextCard;
+
+    // ── Foretell (2026-07-29) ────────────────────────────────────────────────
+
+    /// <summary>Cards set aside by ForetellEffect, waiting to enter their owner's
+    /// hand. Ticked in CombatManager.StartPlayerTurn, AFTER the normal draw — a
+    /// Foretold card arriving over MaxHandSize is kept, not burned; the player paid a
+    /// card and a turn for it. The cards live in NO deck pile while here (same
+    /// held-out convention as a scry's revealed cards), so deck counts exclude them
+    /// by construction.</summary>
+    public List<ForetoldEntry> Foretold = new();
+
+    // ── Choose-one (2026-07-29) ──────────────────────────────────────────────
+
+    /// <summary>Mode index for the next cast whose effect tree contains a
+    /// ChooseOneEffect. Set by CombatManager after the cast-time mode picker;
+    /// transferred onto EffectSnapshot.ChosenOption inside Rules.TryCastWithTargets /
+    /// TryCast and reset to -1 there. It rides the SNAPSHOT and not this field so a
+    /// Reaction cast between this spell going on the stack and resolving cannot
+    /// clobber the choice. -1 = no choice made (AI, headless) → option 0 resolves.</summary>
+    public int PendingChooseOneIndex = -1;
     public Unit ActiveCasterUnit;
 
     public Entity PlayerA = new() { Name = "A" };

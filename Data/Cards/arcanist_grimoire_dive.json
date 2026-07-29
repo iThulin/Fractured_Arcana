@@ -1,0 +1,41 @@
+{
+	"id": "arcanist_grimoire_dive",
+	"status": "wip",
+	"name": "Grimoire Dive",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Grimoire Dive",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Reveal the top 4 cards. Keep 1; gain 1 charge for each card put on the bottom.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "seek",
+			"look": 4,
+			"keep": 1,
+			"charge_per_bottomed": 1
+		}
+	},
+	"bottom": {
+		"name": "Deep Reference",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Return a card from your discard to your hand.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "return_from_discard",
+			"count": 1
+		}
+	}
+}

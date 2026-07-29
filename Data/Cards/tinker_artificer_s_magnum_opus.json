@@ -9,7 +9,9 @@
 		"mana": 5,
 		"speed": "Studied",
 		"rules_text": "Deploy the Arcanomechanical Colossus on an empty tile within 2 (40 HP, 13 DMG, 2 SPD, range 3). Each activation it fabricates a free Drone; when destroyed it detonates for 6 damage to adjacent enemies.",
-		"tags": [],
+		"tags": [
+			"construct"
+		],
 		"targeting": {
 			"type": "empty_tile",
 			"range": 2

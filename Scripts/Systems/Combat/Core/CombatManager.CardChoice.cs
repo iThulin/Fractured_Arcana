@@ -126,9 +126,24 @@ public partial class CombatManager
             row.AddChild(BuildChoiceCard(card));
         }
 
-        _choiceConfirmBtn = new Button { Text = ConfirmLabel(req), Disabled = true };
-        col.AddChild(_choiceConfirmBtn);
+        var btnRow = new HBoxContainer();
+        btnRow.AddThemeConstantOverride("separation", 10);
+        col.AddChild(btnRow);
+
+        _choiceConfirmBtn = new Button { Text = ConfirmLabel(req), Disabled = !req.AllowFewer };
+        btnRow.AddChild(_choiceConfirmBtn);
         _choiceConfirmBtn.Pressed += OnChoiceConfirmed;
+
+        // Cast-time questions (choose-one, the opening sculpt) may be dismissed —
+        // nothing has been paid. Resolution continuations never set AllowCancel, so
+        // this button structurally cannot appear on a question that already holds
+        // cards out of the deck.
+        if (req.AllowCancel)
+        {
+            var cancelBtn = new Button { Text = "Cancel" };
+            btnRow.AddChild(cancelBtn);
+            cancelBtn.Pressed += OnChoiceCancelled;
+        }
 
         string opened = $"[{req.Source}] {req.Prompt}";
         GD.Print(opened);
@@ -136,7 +151,11 @@ public partial class CombatManager
     }
 
     private string ConfirmLabel(CardChoiceRequest req)
-        => $"Confirm ({_choiceSelected.Count}/{req.PickCount})";
+        => req.AllowFewer
+            ? $"Confirm ({_choiceSelected.Count} / up to {req.PickCount})"
+            : req.OrderMatters
+                ? $"Confirm ({_choiceSelected.Count}/{req.PickCount}, in click order)"
+                : $"Confirm ({_choiceSelected.Count}/{req.PickCount})";
 
     /// <summary>One candidate, rendered as the REAL card.
     ///
@@ -164,6 +183,10 @@ public partial class CombatManager
         _choiceCardPanels[card] = holder;
 
         var scene = deckUiManager?.CardUIPackedScene;
+        // Synthetic options (choose-one modes) always render as text — they are not
+        // cards, and a live CardUi would imply they can be dragged, previewed, upgraded.
+        if (_activeChoice?.SyntheticOptions == true)
+            scene = null;
         if (scene != null && card.TopHalf != null)
         {
             var frame = new Control
@@ -239,7 +262,9 @@ public partial class CombatManager
             return;
         var head = new Label
         {
-            Text = $"{half.ManaCost}  {half.Name}",
+            // Synthetic option stubs have no cost array — printing "0  Advance"
+            // would invent a price for something that is not a card.
+            Text = half.Costs is { Length: > 0 } ? $"{half.ManaCost}  {half.Name}" : half.Name,
             Modulate = UITheme.Gold,
         };
         head.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
@@ -288,7 +313,9 @@ public partial class CombatManager
         if (_choiceConfirmBtn != null)
         {
             _choiceConfirmBtn.Text = ConfirmLabel(_activeChoice);
-            _choiceConfirmBtn.Disabled = _choiceSelected.Count != _activeChoice.PickCount;
+            _choiceConfirmBtn.Disabled = _activeChoice.AllowFewer
+                ? _choiceSelected.Count > _activeChoice.PickCount
+                : _choiceSelected.Count != _activeChoice.PickCount;
         }
     }
 
@@ -297,7 +324,8 @@ public partial class CombatManager
         var req = _activeChoice;
         if (req == null)
             return;
-        if (_choiceSelected.Count != req.PickCount)
+        if (req.AllowFewer ? _choiceSelected.Count > req.PickCount
+                           : _choiceSelected.Count != req.PickCount)
             return;
 
         var picked = new List<Card>(_choiceSelected);
@@ -312,6 +340,20 @@ public partial class CombatManager
         RefreshDeckCounts();
         deckUiManager?.SafeRefreshUI();
 
+        ShowNextChoice();
+    }
+
+    /// <summary>Dismisses a cancellable (cast-time) question. The request's Cancel()
+    /// disarms its continuation, so a cancelled pick can never also complete.</summary>
+    private void OnChoiceCancelled()
+    {
+        var req = _activeChoice;
+        if (req == null)
+            return;
+        _activeChoice = null;
+        TeardownChoiceUi();
+        GD.Print($"[{req.Source}] cancelled.");
+        req.Cancel();
         ShowNextChoice();
     }
 

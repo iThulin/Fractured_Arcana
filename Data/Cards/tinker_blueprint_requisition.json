@@ -1,0 +1,37 @@
+{
+	"id": "tinker_blueprint_requisition",
+	"status": "wip",
+	"name": "Blueprint Requisition",
+	"school": "Tinker",
+	"rarity": "Common",
+	"top": {
+		"name": "Requisition",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Look at the top 5 cards of your deck. Keep a construct card; the rest go to the bottom.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "seek",
+			"look": 5,
+			"keep": 1,
+			"filter_tag": "construct"
+		}
+	},
+	"bottom": {
+		"name": "Spare Parts",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Repair all constructs you control for 3 HP.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "repair_constructs",
+			"amount": 3
+		}
+	}
+}

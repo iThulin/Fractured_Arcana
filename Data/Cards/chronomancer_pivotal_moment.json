@@ -1,0 +1,46 @@
+{
+	"id": "chronomancer_pivotal_moment",
+	"status": "wip",
+	"name": "Pivotal Moment",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Pivotal Moment",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Look at the top 3 cards. Put 1 back on top; the rest go to the bottom. Gain 1 Foresight.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "scry",
+					"count": 3
+				},
+				{
+					"type": "gain_foresight",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Later",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Foretell: set the top card of your deck aside. Next turn it's in your hand and costs 1 less.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "foretell",
+			"look": 1,
+			"set_aside": 1,
+			"discount": 1
+		}
+	}
+}

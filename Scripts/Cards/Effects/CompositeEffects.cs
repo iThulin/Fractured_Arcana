@@ -84,6 +84,54 @@ public sealed class SequenceEffect : EffectBase
     }
 }
 
+/// <summary>
+/// Choose One — the cast-time modal (2026-07-29). Holds N option effects; exactly one
+/// resolves, selected by <see cref="EffectSnapshot.ChosenOption"/>, which CombatManager
+/// sets from a mode picker BEFORE the cast is paid.
+///
+/// This is deliberately NOT a post-cast continuation. Both options are printed on the
+/// card, so the information the player needs exists at cast time — by the bucket test
+/// (post_cast_choice_v1 §1) that makes it an input-layer choice: the pick is public
+/// when the spell goes on the stack (a Reaction can respond to the chosen mode), the
+/// preview can model the chosen mode, and cancelling is free because nothing has been
+/// paid. The index rides the snapshot so a Reaction cast while this waits on the
+/// stack cannot clobber it.
+///
+/// With no pick recorded (AI cast, headless test), option 0 — the FIRST authored
+/// option, by convention the safest — resolves, and the log says so.
+/// JSON: { "type": "choose_one", "options": [
+///          { "label": "...", "description": "...", "effect": {...} }, ... ] }
+/// </summary>
+public sealed class ChooseOneEffect : EffectBase
+{
+    public IEffect[] Options = Array.Empty<IEffect>();
+    public string[] Labels = Array.Empty<string>();
+    public string[] Descriptions = Array.Empty<string>();
+
+    public override IEnumerable<IEffect> Children => Options;
+
+    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+    {
+        if (Options.Length == 0)
+        { s?.Log("[ChooseOne] no options authored — no-op."); return; }
+
+        int idx = snap?.ChosenOption ?? -1;
+        if (idx < 0 || idx >= Options.Length)
+        {
+            if (idx != -1)
+                s?.Log($"[ChooseOne] option {idx} out of range — using option 0.");
+            else
+                s?.Log($"[ChooseOne] no mode was picked (AI/headless) — using option 0" +
+                       (Labels.Length > 0 ? $" ({Labels[0]})." : "."));
+            idx = 0;
+        }
+        else if (Labels.Length > idx)
+            s?.Log($"[ChooseOne] resolving '{Labels[idx]}'.");
+
+        Options[idx].Resolve(s, caster, targets, snap);
+    }
+}
+
 /// <summary>Branches on a predicate. <see cref="Then"/> is required; <see cref="Else"/> is optional (no-ops when null). Reads <see cref="PredicateContext.LastResult"/> if the predicate needs it (e.g. <c>was_lethal</c>).</summary>
 public sealed class ConditionalEffect : EffectBase
 {
@@ -169,10 +217,19 @@ public sealed class PushDamageEffect : EffectBase
     public int PushTiles;
     public int DamagePerTile;
 
-    public PushDamageEffect(int pushTiles, int damagePerTile)
+    /// <summary>Aimed mode (2026-07-29): with a `unit_then_direction` targeter, the
+    /// TargetSet arrives as [victim, aim-tile] and the shove walks the CHOSEN axis
+    /// instead of away-from-caster — Gore hurls the boar's victim where the player
+    /// points it, which is the entire reason to cast Gore next to a wall. Falls back
+    /// to the derived direction when no aim tile is present, so the same effect class
+    /// serves both authorings.</summary>
+    public bool Aimed;
+
+    public PushDamageEffect(int pushTiles, int damagePerTile, bool aimed = false)
     {
         PushTiles = pushTiles;
         DamagePerTile = damagePerTile;
+        Aimed = aimed;
     }
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
@@ -183,6 +240,16 @@ public sealed class PushDamageEffect : EffectBase
         if (targets == null)
             return;
 
+        // Aimed: [victim, tile] via the shared TwoStep reader; the aim tile is the
+        // direction, not the landing spot — same convention as PushAimedEffect.
+        Vector2I? aimedDir = null;
+        if (Aimed && TwoStep.Read(s, targets, "PushDamage", out var aimedVictim, out var aimTile))
+        {
+            var d = aimTile.Axial - aimedVictim.CurrentTile.Axial;
+            if (d != Vector2I.Zero)
+                aimedDir = d;
+        }
+
         var casterPos = casterUnit.CurrentTile.Axial;
 
         foreach (var obj in targets.Items)
@@ -190,25 +257,36 @@ public sealed class PushDamageEffect : EffectBase
             var victim = ResolveTargetUnit(s, obj);
             if (victim == null || victim.CurrentTile == null)
                 continue;
+            if (Aimed && obj is TileData)
+                continue;   // the aim tile's occupant is a bystander, not a target
 
             int pushed = 0;
             for (int i = 0; i < PushTiles; i++)
             {
                 var current = victim.CurrentTile.Axial;
                 TileData bestTile = null;
-                int bestDist = -1;
 
-                foreach (var neighbor in s.Grid.GetNeighbors(current))
+                if (aimedDir.HasValue)
                 {
-                    var td = s.Grid.GetTile(neighbor);
-                    if (td == null || !td.CanEnter(victim))
-                        continue;
-
-                    int distFromCaster = s.Grid.Distance(casterPos, neighbor);
-                    if (distFromCaster > bestDist)
-                    {
-                        bestDist = distFromCaster;
+                    var td = s.Grid.GetTile(current + aimedDir.Value);
+                    if (td != null && td.CanEnter(victim))
                         bestTile = td;
+                }
+                else
+                {
+                    int bestDist = -1;
+                    foreach (var neighbor in s.Grid.GetNeighbors(current))
+                    {
+                        var td = s.Grid.GetTile(neighbor);
+                        if (td == null || !td.CanEnter(victim))
+                            continue;
+
+                        int distFromCaster = s.Grid.Distance(casterPos, neighbor);
+                        if (distFromCaster > bestDist)
+                        {
+                            bestDist = distFromCaster;
+                            bestTile = td;
+                        }
                     }
                 }
 

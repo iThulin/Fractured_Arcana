@@ -53,7 +53,7 @@
 		},
 		"status": {
 			"type": "string",
-			"description": "Controls whether this card is loaded into the game. Required on every card — no card may exist without a declared status.\n\n  'ready' — Fully built and integrated. Loads into CardDatabase normally. Appears in CardLibrary and is draftable.\n  'wip'   — Built but not yet balanced or fully tested. Loads only when DevMode is enabled in CardLoaderV2. Does not appear in CardLibrary.\n  'stub'  — Placeholder only. Never loaded regardless of build mode. Effect chains may be empty or missing.",
+			"description": "Controls whether this card is loaded into the game. Required on every card \u2014 no card may exist without a declared status.\n\n  'ready' \u2014 Fully built and integrated. Loads into CardDatabase normally. Appears in CardLibrary and is draftable.\n  'wip'   \u2014 Built but not yet balanced or fully tested. Loads only when DevMode is enabled in CardLoaderV2. Does not appear in CardLibrary.\n  'stub'  \u2014 Placeholder only. Never loaded regardless of build mode. Effect chains may be empty or missing.",
 			"enum": [
 				"ready",
 				"wip",
@@ -107,7 +107,7 @@
 				},
 				"speed": {
 					"type": "string",
-					"description": "When this half can be played. Studied = your turn only; Reflex = your turn or any reaction window (two-speed ruling 2026-07-10). Sorcery/Instant/Reaction are legacy aliases still accepted by the loader (Sorcery→Studied, Instant/Reaction→Reflex).",
+					"description": "When this half can be played. Studied = your turn only; Reflex = your turn or any reaction window (two-speed ruling 2026-07-10). Sorcery/Instant/Reaction are legacy aliases still accepted by the loader (Sorcery\u2192Studied, Instant/Reaction\u2192Reflex).",
 					"enum": [
 						"Studied",
 						"Reflex",
@@ -123,7 +123,7 @@
 				},
 				"tags": {
 					"type": "array",
-					"description": "Element and school tags read at cast time by attunement, buff systems, and targeting selectors. Required on every half — use an empty array [] for halves with no elemental or school identity.",
+					"description": "Element and school tags read at cast time by attunement, buff systems, and targeting selectors. Required on every half \u2014 use an empty array [] for halves with no elemental or school identity.",
 					"items": {
 						"type": "string",
 						"minLength": 1
@@ -131,7 +131,7 @@
 				},
 				"requires": {
 					"type": "array",
-					"description": "Pre-cast validation checks. Card cannot be played unless ALL conditions are met. Checked in CheckCastRequirements() in CombatManager.\n\nTile-target checks (block selection of invalid tiles via the targeter):\n  'memorial_tile'         — Targeted tile must have an active memorial.\n  'memorial_or_spirit_tile' — Targeted tile must have a memorial OR be occupied by a friendly spirit.\n  'fire_tile'             — Targeted tile must be Fire terrain or imbued with Fire.\n  'ice_tile'              — Targeted tile must be Ice terrain or imbued with Frost.\n  'storm_tile'            — Targeted tile must be Storm terrain or imbued with Lightning.\n  'stone_tile'            — Targeted tile must be Stone terrain or imbued with Earth.\n  'empty_tile'            — Targeted tile must have no occupant.\n\nBoard-state checks (evaluated against global game state at cast time):\n  'any_memorial'          — At least one memorial must exist anywhere on the board.\n  'any_spirit'            — At least one friendly spirit must be alive on the board.\n  'spirit_or_memorial'    — At least one friendly spirit OR one memorial must exist.\n\nOther:\n  'ally_adjacent'         — A friendly unit must be adjacent to the caster.\n  'enemy_adjacent'        — An enemy unit must be adjacent to the caster.",
+					"description": "Pre-cast validation checks. Card cannot be played unless ALL conditions are met. Checked in CheckCastRequirements() in CombatManager.\n\nTile-target checks (block selection of invalid tiles via the targeter):\n  'memorial_tile'         \u2014 Targeted tile must have an active memorial.\n  'memorial_or_spirit_tile' \u2014 Targeted tile must have a memorial OR be occupied by a friendly spirit.\n  'fire_tile'             \u2014 Targeted tile must be Fire terrain or imbued with Fire.\n  'ice_tile'              \u2014 Targeted tile must be Ice terrain or imbued with Frost.\n  'storm_tile'            \u2014 Targeted tile must be Storm terrain or imbued with Lightning.\n  'stone_tile'            \u2014 Targeted tile must be Stone terrain or imbued with Earth.\n  'empty_tile'            \u2014 Targeted tile must have no occupant.\n\nBoard-state checks (evaluated against global game state at cast time):\n  'any_memorial'          \u2014 At least one memorial must exist anywhere on the board.\n  'any_spirit'            \u2014 At least one friendly spirit must be alive on the board.\n  'spirit_or_memorial'    \u2014 At least one friendly spirit OR one memorial must exist.\n\nOther:\n  'ally_adjacent'         \u2014 A friendly unit must be adjacent to the caster.\n  'enemy_adjacent'        \u2014 An enemy unit must be adjacent to the caster.",
 					"items": {
 						"type": "string",
 						"enum": [
@@ -183,7 +183,9 @@
 						"nearest_to_target",
 						"adjacent_to_target",
 						"element_tile",
-						"empty_tile"
+						"empty_tile",
+						"unit_then_direction",
+						"unit_then_tile"
 					]
 				},
 				"range": {
@@ -227,12 +229,24 @@
 					"type": "string",
 					"description": "Tag key (e.g. 'fire', 'undead') used to filter units. Used by: by_tag.",
 					"minLength": 1
+				},
+				"dest_range": {
+					"type": "integer",
+					"description": "unit_then_tile: max distance from the victim for the destination tile."
+				},
+				"friendlies_only": {
+					"type": "boolean",
+					"description": "unit_then_*: step one may only pick friendly units."
+				},
+				"constructs_only": {
+					"type": "boolean",
+					"description": "unit_then_*: step one may only pick constructs."
 				}
 			}
 		},
 		"Effect": {
 			"type": "object",
-			"description": "An effect node — leaf or composite. Must always have a non-empty 'type'. An effect object with no type or with type:'' is invalid and will be flagged here before it silently becomes an EmptyEffect at runtime. If an effect is not yet authored, mark the card status as 'stub' or 'wip' rather than leaving type blank.",
+			"description": "An effect node \u2014 leaf or composite. Must always have a non-empty 'type'. An effect object with no type or with type:'' is invalid and will be flagged here before it silently becomes an EmptyEffect at runtime. If an effect is not yet authored, mark the card status as 'stub' or 'wip' rather than leaving type blank.",
 			"required": [
 				"type"
 			],
@@ -336,7 +350,13 @@
 						"enhance_construct",
 						"mana_per_kill",
 						"negate_action",
-						"retaliate"
+						"retaliate",
+						"choose_one",
+						"seek",
+						"foretell",
+						"exile_discard_for_memorial",
+						"push_aimed",
+						"move_to_tile"
 					]
 				},
 				"amount": {
@@ -376,7 +396,7 @@
 				},
 				"tiles": {
 					"type": "integer",
-					"description": "Tiles to push, pull, or move. NOTE: this is 'tiles' not 'amount' — a common typo source. Used by: move, push, push_damage, pull, advance_all_spirits, pull_all_to_memorial.",
+					"description": "Tiles to push, pull, or move. NOTE: this is 'tiles' not 'amount' \u2014 a common typo source. Used by: move, push, push_damage, pull, advance_all_spirits, pull_all_to_memorial.",
 					"minimum": 1
 				},
 				"collision_damage": {
@@ -454,7 +474,7 @@
 				},
 				"attunement_set_to": {
 					"type": "integer",
-					"description": "Target attunement counter value the effect snaps the caster to. Used by: elemental_convergence. See README §7 — distinct from the deprecated 'attunement_counters' field.",
+					"description": "Target attunement counter value the effect snaps the caster to. Used by: elemental_convergence. See README \u00a77 \u2014 distinct from the deprecated 'attunement_counters' field.",
 					"minimum": 0,
 					"maximum": 4
 				},
@@ -465,13 +485,13 @@
 				},
 				"attunement_counters": {
 					"type": "integer",
-					"description": "DEPRECATED — was used by an older form of elemental_convergence. Use 'attunement_set_to' instead. Retained in the schema only because one legacy card still references it; the runtime ignores this field.",
+					"description": "DEPRECATED \u2014 was used by an older form of elemental_convergence. Use 'attunement_set_to' instead. Retained in the schema only because one legacy card still references it; the runtime ignores this field.",
 					"minimum": 0,
 					"maximum": 4
 				},
 				"cards_per_tiles": {
 					"type": "integer",
-					"description": "DEPRECATED — no runtime effect reads this field. Retained only because one legacy card still references it. Likely meant to be 'tiles_per_draw' on cataclysm.",
+					"description": "DEPRECATED \u2014 no runtime effect reads this field. Retained only because one legacy card still references it. Likely meant to be 'tiles_per_draw' on cataclysm.",
 					"minimum": 1
 				},
 				"status": {
@@ -548,7 +568,7 @@
 				},
 				"fraction": {
 					"type": "number",
-					"description": "Fraction of a value (0.0–1.0). Used by: heal_fraction_of_damage.",
+					"description": "Fraction of a value (0.0\u20131.0). Used by: heal_fraction_of_damage.",
 					"minimum": 0,
 					"maximum": 1
 				},
@@ -657,7 +677,7 @@
 				"draw_per": {
 					"type": "integer",
 					"description": "Cards drawn per memorial consumed. Used by: consume_all_memorials_in_range, consume_all_memorials_global.",
-					"minimum": 1
+					"minimum": 0
 				},
 				"grief_per": {
 					"type": "integer",
@@ -833,139 +853,200 @@
 					"description": "When true, enemies pulsed by the zone are also slowed for 1 turn. Used by: disruption_field."
 				},
 				"armor_per": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"bonus": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"both_halves": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"casts": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"charge_cost": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"consume": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"cost_reduction": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"cumulative_bonus": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"damage_per": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"direction": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"echo_range": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"enemy_damage_reduction": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"exile_count": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"exile_on_lethal": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"extra_targets": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"half": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"heal_per": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"hp_per_mana": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"kind": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"look": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"mana": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"max_spend": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"per_stage": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"refund": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"replicate_both_halves": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"retain_buffs": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"retarget": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"scaling": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"scope": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"self_damage_per_charge": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"source": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"split": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"split_range": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"steal": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"to": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"trigger": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"trigger_count": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"trigger_glyph": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"trigger_glyph_on_death": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"trigger_glyphs": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"trigger_on_arrive": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"triggers": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"value": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"value_mult": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"wilding": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 — see the school registry partial that registers this effect's type for semantics)."
+					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
+				},
+				"options": {
+					"type": "array",
+					"description": "choose_one: the modes. Exactly one option's effect resolves, picked by the player at cast time (CombatManager mode picker). Option 0 is the default for AI/headless casts \u2014 author the safest mode first.",
+					"minItems": 2,
+					"items": {
+						"type": "object",
+						"required": [
+							"effect"
+						],
+						"additionalProperties": false,
+						"properties": {
+							"label": {
+								"type": "string",
+								"description": "Short mode name shown on the option stub."
+							},
+							"description": {
+								"type": "string",
+								"description": "One-line explanation shown under the label."
+							},
+							"effect": {
+								"$ref": "#/$defs/Effect"
+							}
+						}
+					}
+				},
+				"filter_tag": {
+					"type": "string",
+					"description": "seek: only revealed cards with this tag (on either half) are offered. Omit/null = every revealed card matches. A whiff (no matches) auto-resolves and bottoms everything."
+				},
+				"charge_per_bottomed": {
+					"type": "integer",
+					"description": "seek: Arcanist charge banked per card put on the bottom (Grimoire Dive)."
+				},
+				"set_aside": {
+					"type": "integer",
+					"description": "foretell: how many revealed cards the player sets aside. They arrive in hand at the start of the player's next turn (GameState.Foretold), carrying `discount` as a per-card cost reduction."
+				},
+				"aimed": {
+					"type": "boolean",
+					"description": "push_damage: walk the axis toward a player-chosen aim tile instead of away-from-caster. Pair with a unit_then_direction targeter; the TargetSet arrives as [victim, aim-tile]."
+				},
+				"discount": {
+					"type": "integer",
+					"description": "scry/foretell: per-card mana discount attached to kept/set-aside cards (GameState.CardCostDeltas). Holds until that copy is cast; consumed by the cast."
+				},
+				"keep": {
+					"type": "integer",
+					"description": "scry: how many revealed cards the player keeps to hand (alias: draw). Also used by seek."
+				},
+				"status_duration": {
+					"type": "integer",
+					"description": "prepare_glyph and kin: duration of the status applied on trigger."
+				},
+				"bonus_per_other": {
+					"type": "integer",
+					"description": "trigger_all_glyphs: bonus damage per other glyph triggered in the same network."
+				},
+				"ends_turn": {
+					"type": "boolean",
+					"description": "move_to_tile: the relocated unit's turn ends (AP to 0, HasActed)."
 				}
 			}
 		},
@@ -1123,7 +1204,7 @@
 					"minLength": 1
 				},
 				"value": {
-					"description": "Replacement value. Can be any JSON type — string, number, boolean, object, or array."
+					"description": "Replacement value. Can be any JSON type \u2014 string, number, boolean, object, or array."
 				}
 			}
 		}

@@ -50,10 +50,11 @@ public sealed class GainForesightEffect : EffectBase
 /// publishes a <see cref="CardChoiceRequest"/> and finishes in a continuation; see
 /// CardChoice.cs for why that is a continuation rather than an await.
 ///
-/// <see cref="Discount"/> is still NOT implemented, and says so in the log rather
-/// than silently doing nothing: a per-card cost reduction needs a per-card modifier
-/// field, which does not exist yet. GameState.NextSpellCostReduction is single-use
-/// and global, so it cannot express "this specific card costs 1 less".
+/// (2026-07-29) <see cref="Discount"/> is implemented: kept cards get a per-card
+/// discount via <see cref="GameState.AddCardDiscount"/> — the per-card modifier field
+/// the previous version of this comment said did not exist. The discount rides the
+/// card INSTANCE (GameState.CardCostDeltas), holds until that copy is cast, and is
+/// consumed by the cast (Rules.TryCastWithTargets).
 ///
 /// JSON: { "type": "scry", "look": n, "keep": n, "discount": n }
 /// </summary>
@@ -106,18 +107,19 @@ public sealed class ScryEffect : EffectBase
 
 		int keep = Math.Clamp(Keep, 0, look);
 
-		if (Discount > 0)
-			s.Log($"[Scry] discount {Discount} is not implemented — kept cards cost full price.");
-
 		var req = new CardChoiceRequest
 		{
 			Title = "Scry",
 			Prompt = ToHand
-				? $"Keep {keep} of {look}. The rest go to the bottom of your deck."
+				? Discount > 0
+					? $"Keep {keep} of {look} (kept cards cost {Discount} less). The rest go to the bottom of your deck."
+					: $"Keep {keep} of {look}. The rest go to the bottom of your deck."
 				: $"Put {keep} of {look} back on top. The rest go to the bottom.",
 			Owner = casterUnit,
 			Candidates = revealed,
 			PickCount = keep,
+			// Reorder mode: putting N back on top in a chosen order IS the decision.
+			OrderMatters = !ToHand,
 			Source = "Scry",
 			OnChosen = chosen =>
 			{
@@ -134,7 +136,12 @@ public sealed class ScryEffect : EffectBase
 					if (ToHand)
 					{
 						foreach (var c in chosen)
-							if (c != null) deck.Hand.Add(c);
+							if (c != null)
+							{
+								deck.Hand.Add(c);
+								if (Discount > 0)
+									s.AddCardDiscount(c, Discount);
+							}
 					}
 					else
 					{
@@ -148,22 +155,15 @@ public sealed class ScryEffect : EffectBase
 					? "nothing"
 					: string.Join(", ", chosen.ConvertAll(c => c?.CardName ?? "a card"));
 				s.Log($"[Scry] {casterUnit.Name} {(ToHand ? "keeps" : "puts back on top")} {names} " +
+					  (ToHand && Discount > 0 && chosen?.Count > 0 ? $"(each costs {Discount} less) " : "") +
 					  $"({look - (chosen?.Count ?? 0)} to the bottom).");
 			},
 		};
 
-		// Two effects could each want a choice in one resolution. The slot holds one,
-		// so queue behind whatever is already there — dropping a request would
-		// silently eat the cards this one just held out of the deck.
-		//
-		// The chained request DISPATCHES rather than re-filling the slot: by the time
-		// that continuation runs, Resolver.ResolveTop has already cleared PendingChoice
-		// and stopped looking at it, so a second assignment would sit there unread
-		// until some unrelated later resolution happened to publish it.
-		if (s.PendingChoice != null)
-			s.PendingChoice.Then(_ => s.DispatchCardChoice(req));
-		else
-			s.PendingChoice = req;
+		// Two effects could each want a choice in one resolution — the shared
+		// publish-or-queue path (GameState.RequestCardChoice) queues behind whatever
+		// is already in the slot.
+		s.RequestCardChoice(req);
 	}
 }
 
@@ -421,18 +421,46 @@ public sealed class PostponeEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (targets == null)
-			return;
+		bool hit = false;
+		if (targets?.Items != null)
+			foreach (var obj in targets.Items)
+			{
+				var unit = ResolveTargetUnit(s, obj);
+				if (unit == null || unit.IsPlayerControlled)
+					continue;
 
-		foreach (var obj in targets.Items)
+				unit.PostponedTurns += Turns;
+				unit.ApplyStatus("delayed", Turns);
+				hit = true;
+				s.Log($"[Postpone] {unit.Name} postponed {Turns} turn(s) (total: {unit.PostponedTurns}).");
+			}
+
+		// (2026-07-29) Self-targeted casts reach here with no enemy in the TargetSet —
+		// Riptide's postpone mode is a self-targeted choose_one. Fall back to the
+		// nearest living enemy rather than silently doing nothing: "the card did
+		// nothing" and "the targeting is wired wrong" must not look identical (U3c).
+		if (!hit)
 		{
-			var unit = ResolveTargetUnit(s, obj);
-			if (unit == null || unit.IsPlayerControlled)
-				continue;
-
-			unit.PostponedTurns += Turns;
-			unit.ApplyStatus("delayed", Turns);
-			s.Log($"[Postpone] {unit.Name} postponed {Turns} turn(s) (total: {unit.PostponedTurns}).");
+			var me = s.ActiveCasterUnit;
+			Unit nearest = null; int best = int.MaxValue;
+			if (me?.CurrentTile != null && s.Grid != null && s.UnitsInPlay != null)
+				foreach (var u in s.UnitsInPlay)
+				{
+					if (u == null || !u.Stats.IsAlive || u.IsPlayerControlled)
+						continue;
+					if (u.CurrentTile == null)
+						continue;
+					int d = s.Grid.Distance(me.CurrentTile.Axial, u.CurrentTile.Axial);
+					if (d < best) { best = d; nearest = u; }
+				}
+			if (nearest != null)
+			{
+				nearest.PostponedTurns += Turns;
+				nearest.ApplyStatus("delayed", Turns);
+				s.Log($"[Postpone] No targeted enemy — postponed the nearest, {nearest.Name}, {Turns} turn(s).");
+			}
+			else
+				s.Log("[Postpone] No enemy to postpone.");
 		}
 	}
 }

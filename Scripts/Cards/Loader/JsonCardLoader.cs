@@ -196,6 +196,69 @@ public static partial class CardScriptRegistry
         RegisterEffect("for_each_target", n =>
             new ForEachTargetEffect(BuildEffect(n.GetProperty("do"))));
 
+        // Choose One — cast-time modal (2026-07-29). Exactly one option resolves,
+        // picked by the player before the cast is paid (CombatManager mode picker).
+        // { "type": "choose_one", "options": [
+        //     { "label": "...", "description": "...", "effect": { ... } }, ... ] }
+        RegisterEffect("choose_one", n =>
+        {
+            var effects = new List<IEffect>();
+            var labels = new List<string>();
+            var descriptions = new List<string>();
+            foreach (var opt in n.GetProperty("options").EnumerateArray())
+            {
+                effects.Add(BuildEffect(opt.GetProperty("effect")));
+                labels.Add(opt.TryGetProperty("label", out var l)
+                    ? l.GetString() : $"Option {effects.Count}");
+                descriptions.Add(opt.TryGetProperty("description", out var d)
+                    ? d.GetString() : "");
+            }
+            return new ChooseOneEffect
+            {
+                Options = effects.ToArray(),
+                Labels = labels.ToArray(),
+                Descriptions = descriptions.ToArray(),
+            };
+        });
+
+        // Seek — filtered tutor over the top of the deck (2026-07-29).
+        // { "type": "seek", "look": n, "keep": n, "filter_tag": "construct",
+        //   "charge_per_bottomed": n }
+        RegisterEffect("seek", n =>
+        {
+            int look = n.TryGetProperty("look", out var l) ? l.GetInt32() : 5;
+            int keep = n.TryGetProperty("keep", out var k) ? k.GetInt32() : 1;
+            string tag = n.TryGetProperty("filter_tag", out var f) ? f.GetString() : null;
+            int cpb = n.TryGetProperty("charge_per_bottomed", out var c) ? c.GetInt32() : 0;
+            return new SeekEffect(look, keep, tag, cpb).WithTag("CardDraw");
+        });
+
+        // Foretell — delayed hand (2026-07-29). Set-aside cards arrive next turn
+        // with a per-card discount. { "type": "foretell", "look": n, "set_aside": n,
+        //   "discount": n }
+        RegisterEffect("foretell", n =>
+        {
+            int look = n.TryGetProperty("look", out var l) ? l.GetInt32() : 3;
+            int aside = n.TryGetProperty("set_aside", out var a) ? a.GetInt32() : 1;
+            int discount = n.TryGetProperty("discount", out var d) ? d.GetInt32() : 0;
+            return new ForetellEffect(look, aside, discount).WithTag("CardDraw");
+        });
+
+        // Remembrance — exile from discard, leave memorials (2026-07-29).
+        // { "type": "exile_discard_for_memorial", "count": n, "strength": "solid" }
+        RegisterEffect("exile_discard_for_memorial", n =>
+        {
+            int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 1;
+            string strengthStr = n.TryGetProperty("strength", out var st) ? st.GetString() : "solid";
+            var strength = strengthStr?.ToLowerInvariant() switch
+            {
+                "faint" => MemorialStrength.Faint,
+                "strong" => MemorialStrength.Strong,
+                _ => MemorialStrength.Solid,
+            };
+            return new ExileDiscardForMemorialEffect(count, strength).WithTag("Memorial");
+        });
+
         RegisterEffect("empty", _ => new EmptyEffect());
 
         // Retarget: run a new targeter mid-sequence, execute child effect
@@ -348,22 +411,25 @@ public static partial class CardScriptRegistry
             return new PushEffect(tiles, collisionDmg).WithTag("Movement");
         });
 
-        // Push + damage: { "type": "push_damage", "tiles": n, "damage_per_tile": m }
+        // Push + damage: { "type": "push_damage", "tiles": n, "damage_per_tile": m,
+        //                  "aimed": bool }  — aimed pairs with a unit_then_direction targeter
         RegisterEffect("push_damage", n =>
         {
             int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 1;
             int dmgPerTile = n.TryGetProperty("damage_per_tile", out var d) ? d.GetInt32() : 0;
-            return new PushDamageEffect(tiles, dmgPerTile).WithTag("Movement");
+            bool aimed = n.TryGetProperty("aimed", out var am) && am.GetBoolean();
+            return new PushDamageEffect(tiles, dmgPerTile, aimed).WithTag("Movement");
         });
 
         // Pull: { "type": "pull", "tiles": n }
         // Aimed displacement (2026-07-28) — pair with a unit_then_* targeter.
-        // { "type": "push_aimed", "tiles": n, "collision_damage": n }
+        // { "type": "push_aimed", "tiles": n, "collision_damage": n, "damage": n }
         RegisterEffect("push_aimed", n =>
         {
             int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 2;
             int cd = n.TryGetProperty("collision_damage", out var c) ? c.GetInt32() : 0;
-            return new PushAimedEffect(tiles, cd).WithTag("Displace");
+            int dmg = n.TryGetProperty("damage", out var dm) ? dm.GetInt32() : 0;
+            return new PushAimedEffect(tiles, cd, dmg).WithTag("Displace");
         });
 
         // { "type": "move_to_tile", "ends_turn": bool }

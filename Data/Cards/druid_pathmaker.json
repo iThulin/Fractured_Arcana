@@ -28,20 +28,20 @@
 		"name": "Thrash",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Push target 2 tiles, dealing 3 damage per tile moved.",
+		"rules_text": "Push target 2 tiles in a direction you choose, dealing 3 damage per tile moved.",
 		"tags": [
 			"growth"
 		],
 		"targeting": {
-			"type": "unit",
+			"type": "unit_then_direction",
 			"range": 4,
-			"los": true,
 			"enemies_only": true
 		},
 		"effect": {
 			"type": "push_damage",
 			"tiles": 2,
-			"damage_per_tile": 3
+			"damage_per_tile": 3,
+			"aimed": true
 		}
 	},
 	"upgrades": [

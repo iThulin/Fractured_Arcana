@@ -1,0 +1,36 @@
+{
+	"id": "necromancer_remembrance",
+	"status": "wip",
+	"name": "Remembrance",
+	"school": "Necromancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Remembrance",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Choose a card in your discard; exile it to leave a memorial on your tile.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "exile_discard_for_memorial",
+			"count": 1,
+			"strength": "solid"
+		}
+	},
+	"bottom": {
+		"name": "Sit With It",
+		"mana": 0,
+		"speed": "Instant",
+		"rules_text": "Gain 1 Grief.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "gain_grief",
+			"amount": 1
+		}
+	}
+}

@@ -142,13 +142,17 @@ public static partial class CardScriptRegistry
             return new ChargeCostModifierLeafEffect(cpm, turns).WithTag("Charge");
         });
 
-        // Permanent spell-damage boost (full card-selection UI pending)
-        // { "type": "perfect_card", "bonus_damage": n, "draw": n }
+        // Perfect chosen card(s): cost 0, +bonus on resolve, returns to hand on cast
+        // (2026-07-29 — real selection; previously a flat caster-wide damage buff that
+        // read `bonus_damage`, a key no card ever authored: Magnum Opus writes
+        // `bonus` and `count`, both of which were silently dropped.)
+        // { "type": "perfect_card", "count": n, "bonus": n }
         RegisterEffect("perfect_card", n =>
         {
-            int bd = n.TryGetProperty("bonus_damage", out var b) ? b.GetInt32() : 3;
-            int draw = n.TryGetProperty("draw", out var d) ? d.GetInt32() : 0;
-            return new PerfectCardEffect(bd, draw).WithTag("Charge");
+            int bonus = n.TryGetProperty("bonus", out var b) ? b.GetInt32()
+                      : n.TryGetProperty("bonus_damage", out var bd) ? bd.GetInt32() : 3;
+            int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 1;
+            return new PerfectCardEffect(bonus, count).WithTag("Charge");
         });
 
         // All spells free for N turns; exile cards on expire
@@ -181,10 +185,14 @@ public static partial class CardScriptRegistry
         RegisterEffect("replicate_last_spell", _ =>
             new ReplicateLastSpellLeafEffect().WithTag("Charge"));
 
-        // Immediately resolve the top card of the deck
-        // { "type": "cast_deck_top" }
-        RegisterEffect("cast_deck_top", _ =>
-            new CastDeckTopEffect().WithTag("CardDraw"));
+        // Cast the top N cards' top halves, in a player-chosen resolution order
+        // (2026-07-29 — `count` is finally read; Spell Storm authored count:3 and got 1)
+        // { "type": "cast_deck_top", "count": n }
+        RegisterEffect("cast_deck_top", n =>
+        {
+            int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 1;
+            return new CastDeckTopEffect(count).WithTag("CardDraw");
+        });
 
         // Each spell pulses damage to nearest enemy for N turns
         // { "type": "convergence", "damage": n, "range": n, "turns": n }
@@ -212,15 +220,20 @@ public static partial class CardScriptRegistry
             return new CreateArcaneConstructEffect(kind, hp, dmg, spd, dur).WithTag("Summon");
         });
 
-        // Summon a unit that embodies a spell (auto-cast AI needs unit integration)
-        // { "type": "summon_living_spell", "unit": "LivingSpell", "hp": n, "damage": n, "duration": n }
+        // Summon a unit that embodies an exiled spell (auto-cast AI needs unit integration)
+        // (2026-07-29 — hp_per_mana / damage_per_mana are finally read; Living Spell
+        // authored them and got flat 8HP/5DMG with no exile at all)
+        // { "type": "summon_living_spell", "unit": "LivingSpell",
+        //   "hp_per_mana": n, "damage_per_mana": n, "hp": n, "damage": n, "duration": n }
         RegisterEffect("summon_living_spell", n =>
         {
             string kind = n.TryGetProperty("unit", out var u) ? u.GetString() : "LivingSpell";
             int hp = n.TryGetProperty("hp", out var h) ? h.GetInt32() : 8;
             int dmg = n.TryGetProperty("damage", out var d) ? d.GetInt32() : 5;
             int dur = n.TryGetProperty("duration", out var du) ? du.GetInt32() : 3;
-            return new SummonLivingSpellEffect(kind, hp, dmg, dur).WithTag("Summon");
+            int hpm = n.TryGetProperty("hp_per_mana", out var hm) ? hm.GetInt32() : 0;
+            int dpm = n.TryGetProperty("damage_per_mana", out var dp) ? dp.GetInt32() : 0;
+            return new SummonLivingSpellEffect(kind, hp, dmg, dur, hpm, dpm).WithTag("Summon");
         });
     }
 }

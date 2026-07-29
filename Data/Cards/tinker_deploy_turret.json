@@ -9,7 +9,9 @@
 		"mana": 2,
 		"speed": "Studied",
 		"rules_text": "Deploy a Turret on an empty tile within 2 (10 HP, 5 DMG, range 3). It auto-attacks the nearest enemy at the end of your turn.",
-		"tags": [],
+		"tags": [
+			"construct"
+		],
 		"targeting": {
 			"type": "empty_tile",
 			"range": 2

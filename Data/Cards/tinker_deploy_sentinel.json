@@ -9,7 +9,9 @@
 		"mana": 2,
 		"speed": "Studied",
 		"rules_text": "Deploy a Sentinel on an empty tile within 2 (8 HP, 1 DMG). It grants +2 armor to allies within 1 tile each round.",
-		"tags": [],
+		"tags": [
+			"construct"
+		],
 		"targeting": {
 			"type": "empty_tile",
 			"range": 2

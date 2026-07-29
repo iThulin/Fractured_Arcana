@@ -220,6 +220,19 @@ public abstract class EffectBase : IEffect
 		}
 		return null;
 	}
+
+	/// <summary>True when <paramref name="targets"/> is the two-step aim shape —
+	/// [victim Unit, aim TileData] from a unit_then_* targeter (2026-07-29). The tile
+	/// in that shape is DIRECTION METADATA, not a second target: a damage or status
+	/// leaf in the same sequence as an aimed push must not also hit whoever happens
+	/// to stand on the tile the player used to point. Unit-facing leaf loops call
+	/// this and skip Items[1]. Tile-consuming effects (imbue, glyph placement) do
+	/// not — for them the tile may genuinely be the payload.</summary>
+	protected static bool IsAimShape(TargetSet targets)
+		=> targets?.Items != null
+		   && targets.Items.Count == 2
+		   && targets.Items[0] is Unit
+		   && targets.Items[1] is TileData;
 }
 
 // ── Leaf effects ────────────────────────────────────────────────────────
@@ -295,9 +308,13 @@ public sealed class DealDamageEffect : EffectBase
 		}
 
 		// ── Main damage loop ─────────────────────────────────────────────
+		bool aimShape = IsAimShape(targets);   // [victim, aim-tile]: the tile is not a target
 		foreach (var obj in targets.Items)
 		{
 			Unit victim = null;
+
+			if (aimShape && obj is TileData)
+				continue;
 
 			if (obj is Unit u)
 			{
@@ -749,10 +766,19 @@ public sealed class PushAimedEffect : EffectBase
 	public int Tiles;
 	public int CollisionDamage;
 
-	public PushAimedEffect(int tiles, int collisionDamage = 0)
+	/// <summary>Flat damage dealt to the victim after the shove (2026-07-29). Exists
+	/// so "push 2 and deal 3" cards (Gust) can be ONE aimed effect: authored as
+	/// [push_aimed, damage] in a sequence, the damage leaf would also resolve against
+	/// the aim TILE's occupant — Items[1] is a TileData and ResolveTargetUnit happily
+	/// returns whoever stands there. Folding the damage in here keeps it on the
+	/// victim alone.</summary>
+	public int Damage;
+
+	public PushAimedEffect(int tiles, int collisionDamage = 0, int damage = 0)
 	{
 		Tiles = tiles;
 		CollisionDamage = collisionDamage;
+		Damage = damage;
 	}
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
@@ -781,6 +807,8 @@ public sealed class PushAimedEffect : EffectBase
 
 		if (collided && CollisionDamage > 0)
 			victim.ApplyDamage(CollisionDamage);
+		if (Damage > 0)
+			victim.ApplyDamage(Damage);
 	}
 }
 
@@ -1539,8 +1567,11 @@ public sealed class ApplyStatusEffect : EffectBase
 	{
 		if (targets == null)
 			return;
+		bool aimShape = IsAimShape(targets);   // [victim, aim-tile]: the tile is not a target
 		foreach (var obj in targets.Items)
 		{
+			if (aimShape && obj is TileData)
+				continue;
 			var victim = ResolveTargetUnit(s, obj);
 			if (victim != null)
 			{

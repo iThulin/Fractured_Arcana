@@ -1,0 +1,66 @@
+{
+	"id": "enchanter_contingency_glyph",
+	"status": "wip",
+	"name": "Contingency Glyph",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Contingency",
+		"mana": 2,
+		"speed": "Sorcery",
+		"rules_text": "Choose one \u2014 prepare a Snare glyph on the target tile, or trigger all of your prepared glyphs.",
+		"tags": [],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "choose_one",
+			"options": [
+				{
+					"label": "Lay the Snare",
+					"description": "Prepare a glyph here. When an enemy enters: 4 damage and rooted for 1 turn.",
+					"effect": {
+						"type": "prepare_glyph",
+						"trigger": "enter",
+						"damage": 4,
+						"status": "rooted",
+						"status_duration": 1
+					}
+				},
+				{
+					"label": "Spring the Web",
+					"description": "Trigger all of your prepared glyphs, +1 damage per other glyph triggered.",
+					"effect": {
+						"type": "trigger_all_glyphs",
+						"bonus_per_other": 1,
+						"consume": true
+					}
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Read the Weave",
+		"mana": 1,
+		"speed": "Instant",
+		"rules_text": "Look at the top 2 cards; put 1 back on top, bottom the other. Gain 1 Weave.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "scry",
+					"count": 2
+				},
+				{
+					"type": "gain_weave",
+					"amount": 1
+				}
+			]
+		}
+	}
+}

@@ -50,14 +50,29 @@ public sealed class ManaCost : ICost
     ///   would be a distinction the player cannot see.</summary>
     public static int EffectiveAmount(GameState s, int baseAmount)
     {
-        int tax = s?.PlayerSpellCostIncrease ?? 0;
-        if (tax <= 0 || baseAmount <= 0)
+        if (s == null || baseAmount <= 0)
             return baseAmount;
+
+        int amount = baseAmount;
         var u = s.ActiveCasterUnit;
-        if (u == null || !u.IsPlayerControlled)
-            return baseAmount;
-        int ceiling = Math.Max(baseAmount, u.Stats.MaxMana);
-        return Math.Min(baseAmount + tax, ceiling);
+
+        int tax = s.PlayerSpellCostIncrease;
+        if (tax > 0 && u != null && u.IsPlayerControlled)
+        {
+            int ceiling = Math.Max(baseAmount, u.Stats.MaxMana);
+            amount = Math.Min(baseAmount + tax, ceiling);
+        }
+
+        // Per-card discount (2026-07-29): the card being priced is pinned on
+        // GameState.CostContextCard by the cast path and the UI provider — the same
+        // one-formula-for-CanPay-Pay-and-pips discipline the tithe established.
+        // Applied AFTER the tithe (a taxed, discounted card nets out), floored at 0.
+        // Free halves stay free and cannot go negative — a discount is not a refund.
+        int discount = s.GetCardDiscount(s.CostContextCard);
+        if (discount > 0)
+            amount = Math.Max(0, amount - discount);
+
+        return amount;
     }
 
     public bool CanPay(GameState s, Entity caster)
@@ -119,6 +134,13 @@ public sealed class TargetSet { public List<object> Items = new(); }
 public sealed class EffectSnapshot
 {
     public float DamageMultiplier = 1.0f;
+
+    /// <summary>Choose-one (2026-07-29): which option of a ChooseOneEffect this cast
+    /// selected. Lives on the snapshot — not on GameState — because the snapshot
+    /// travels with the StackItem: a Reaction cast while this spell waits on the
+    /// stack cannot clobber it. -1 = no choice was made (AI cast, headless test);
+    /// ChooseOneEffect resolves option 0 and says so.</summary>
+    public int ChosenOption = -1;
 }
 
 public interface ITargetSelector { bool Select(GameState s, Entity caster, out TargetSet targets); }

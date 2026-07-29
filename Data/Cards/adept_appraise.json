@@ -1,0 +1,36 @@
+{
+	"id": "adept_appraise",
+	"status": "wip",
+	"name": "Appraise",
+	"school": "Adept",
+	"rarity": "Common",
+	"top": {
+		"name": "Appraise",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Look at the top 3 cards of your deck. Keep 1; the rest go to the bottom.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "scry",
+			"look": 3,
+			"keep": 1
+		}
+	},
+	"bottom": {
+		"name": "Second Look",
+		"mana": 0,
+		"speed": "Instant",
+		"rules_text": "Gain 1 mana.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "gain_mana",
+			"amount": 1
+		}
+	}
+}
