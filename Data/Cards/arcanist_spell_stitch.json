@@ -24,7 +24,7 @@
 		"name": "Arcane Drift",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Move 1 tile per spell cast this turn (max 4). Gain 2 armor per tile moved.",
+		"rules_text": "Gain 1 movement and 2 armor per spell cast this turn (max 4).",
 		"tags": [
 			"arcane"
 		],
@@ -107,7 +107,7 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Seamless",
-			"description": "Seamless: the bound card is not discarded — it returns to hand.",
+			"description": "Seamless: the bound card is not discarded \u2014 it returns to hand.",
 			"changes": [
 				{
 					"half": "top",

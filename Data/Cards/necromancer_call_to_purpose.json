@@ -37,7 +37,7 @@
 		"name": "Necrotic Surge",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Deal 5 damage. Heal for half the damage dealt.",
+		"rules_text": "Deal 4 damage. Heal for half the damage dealt.",
 		"tags": [
 			"necrotic"
 		],
@@ -52,7 +52,7 @@
 			"steps": [
 				{
 					"type": "damage",
-					"amount": 5
+					"amount": 4
 				},
 				{
 					"type": "heal_fraction_of_damage",
@@ -67,7 +67,7 @@
 			"half": "both",
 			"top_name": "Call to Purpose+",
 			"bottom_name": "Necrotic Surge+",
-			"description": "Spirits gain +4 damage. Surge deals 7 damage.",
+			"description": "Spirits gain +4 damage. Surge deals 6 damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -82,12 +82,12 @@
 				{
 					"half": "bottom",
 					"field": "effect.steps[0].amount",
-					"value": 7
+					"value": 6
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Heal for half the damage dealt."
+					"value": "Deal 6 damage. Heal for half the damage dealt."
 				}
 			]
 		},

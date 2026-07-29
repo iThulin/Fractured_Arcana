@@ -4886,6 +4886,39 @@ public partial class CombatManager : Node3D
                     }
                     break;
 
+                case "memorial_or_spirit_nearby":
+                {
+                    // (2026-07-29, audit follow-up) This key was AUTHORED on
+                    // Unfinished Business from day one but had no case here — an
+                    // unknown requires key falls through the switch and silently
+                    // PASSES, so the card's gate never existed. Target-relative:
+                    // a memorial or friendly spirit within 2 of the TARGET.
+                    var anchor = FirstTargetTile(targets);
+                    bool nearby = false;
+                    if (anchor != null)
+                    {
+                        if (State.Memorials != null
+                            && State.Memorials.GetMemorialsInRange(anchor.Axial, 2).Count > 0)
+                            nearby = true;
+                        if (!nearby)
+                            foreach (var u in State.UnitsInPlay)
+                            {
+                                if (u == null || !u.IsSpirit || !u.Stats.IsAlive
+                                    || u.SummonerTeamId != selectedUnit?.TeamId
+                                    || u.CurrentTile == null)
+                                    continue;
+                                if (grid.Distance(anchor.Axial, u.CurrentTile.Axial) <= 2)
+                                { nearby = true; break; }
+                            }
+                    }
+                    if (!nearby)
+                    {
+                        failReason = "Requires a memorial or spirit within 2 tiles of the target!";
+                        return false;
+                    }
+                    break;
+                }
+
                 case "any_spirit":
                     // Board-state check: at least one friendly spirit must be in play.
                     bool hasSpirit = false;
@@ -4943,6 +4976,29 @@ public partial class CombatManager : Node3D
         }
 
         return true;
+    }
+
+    /// <summary>First resolvable tile in a TargetSet — the anchor for
+    /// target-relative requires checks (memorial_or_spirit_nearby). Falls back to
+    /// the caster's tile for self-targeted casts, mirroring TargetHasTileType.</summary>
+    private TileData FirstTargetTile(TargetSet targets)
+    {
+        if (targets?.Items != null)
+            foreach (var obj in targets.Items)
+            {
+                if (obj is TileData td)
+                    return td;
+                if (obj is HexTile tv)
+                {
+                    var t = grid.GetTile(tv.Axial);
+                    if (t != null) return t;
+                }
+                if (obj is Unit u && u.CurrentTile != null)
+                    return u.CurrentTile;
+                if (obj is Entity && selectedUnit?.CurrentTile != null)
+                    return selectedUnit.CurrentTile;
+            }
+        return selectedUnit?.CurrentTile;
     }
 
     private bool TargetHasTileType(TargetSet targets, TileTerrainType terrain, TileElementType element)

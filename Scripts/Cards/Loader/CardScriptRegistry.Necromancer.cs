@@ -217,12 +217,13 @@ public static partial class CardScriptRegistry
         });
 
         // Consume all memorials globally, gain mana/draw per memorial
-        // { "type": "consume_all_memorials_global", "mana_per": n, "draw_per": n }
+        // { "type": "consume_all_memorials_global", "mana_per": n, "draw_per": n, "spare_strong": bool }
         RegisterEffect("consume_all_memorials_global", n =>
         {
             int mana = n.TryGetProperty("mana_per", out var m) ? m.GetInt32() : 0;
             int draw = n.TryGetProperty("draw_per", out var d) ? d.GetInt32() : 0;
-            return new ConsumeAllMemorialsGlobalEffect(mana, draw).WithTag("Terrain");
+            bool spare = n.TryGetProperty("spare_strong", out var sp) && sp.GetBoolean();
+            return new ConsumeAllMemorialsGlobalEffect(mana, draw, spare).WithTag("Terrain");
         });
 
         // Deal damage × memorial count to all enemies

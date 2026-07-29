@@ -47,13 +47,16 @@ public static partial class CardScriptRegistry
             return new EntangleEffect(radius, duration).WithTag("Debuff");
         });
 
-        // Harvest growth: { "type": "harvest_growth", "radius": 2, "heal_per": 3, "draw_per": 0 }
+        // Harvest growth: { "type": "harvest_growth", "radius": 2, "heal_per": 3, "draw_per": 0,
+        //                   "mana_per": 0, "mana_cap": 99 }
         RegisterEffect("harvest_growth", n =>
         {
             int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 2;
             int healPer = n.TryGetProperty("heal_per", out var h) ? h.GetInt32() : 0;
             int drawPer = n.TryGetProperty("draw_per", out var d) ? d.GetInt32() : 0;
-            return new HarvestGrowthEffect(radius, healPer, drawPer).WithTag("Growth");
+            int manaPer = n.TryGetProperty("mana_per", out var mp) ? mp.GetInt32() : 0;
+            int manaCap = n.TryGetProperty("mana_cap", out var mc) ? mc.GetInt32() : 99;
+            return new HarvestGrowthEffect(radius, healPer, drawPer, manaPer, manaCap).WithTag("Growth");
         });
 
         // Thornlash: { "type": "thornlash", "damage": 3, "per_stage": 2 }

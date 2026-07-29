@@ -19,7 +19,9 @@
 		"effect": {
 			"type": "summon",
 			"unit": "foundry",
-			"count": 1
+			"count": 1,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
 	},
 	"bottom": {
@@ -36,5 +38,140 @@
 			"charges": 3,
 			"amount": 3
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Foundry+",
+			"bottom_name": "Artificer's Doctrine+",
+			"description": "The Foundry stands taller. Doctrine builds bigger.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 8
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Blast Furnace",
+			"description": "The heart burns hotter.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 12
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Standing Doctrine",
+			"description": "Four builds by the book.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.charges",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Great Forge",
+			"description": "Industry at a discount.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Doctrine of Steel",
+			"description": "Bigger builds, and a spare page.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "master_schematic",
+								"charges": 3,
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Your next 3 constructs deploy with +4 HP and +4 damage. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Heart of Industry",
+			"description": "The Foundry outlasts the war.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 20
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Artificer's Creed",
+			"description": "Doctrine, and the hands to keep it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "master_schematic",
+								"charges": 4,
+								"amount": 4
+							},
+							{
+								"type": "repair_constructs",
+								"amount": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Your next 4 constructs deploy with +4 HP and +4 damage. All your constructs repair 5 HP."
+				}
+			]
+		}
+	]
 }

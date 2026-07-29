@@ -44,5 +44,176 @@
 				}
 			]
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Conduit Link+",
+			"bottom_name": "Magnetic Clamp+",
+			"description": "The clamp strikes harder on arrival.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 6
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Insulated Link",
+			"description": "The link shields the forger.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "create_link",
+								"mode": "split"
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Forge a Conduit Link between you and a construct within 4: damage either takes is split evenly. Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Heavy Clamp",
+			"description": "A longer pull.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].tiles",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Resonant Link",
+			"description": "The link hums with repair current.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "create_link",
+								"mode": "split"
+							},
+							{
+								"type": "repair_constructs",
+								"amount": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Forge a Conduit Link between you and a construct within 4. Your constructs repair 4 HP."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Crushing Clamp",
+			"description": "The clamp bites to the bone.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 8
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Soul of the Machine",
+			"description": "You and the machine, one circuit.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "create_link",
+								"mode": "split"
+							},
+							{
+								"type": "shield",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Forge a Conduit Link between you and a construct within 4. Gain 4 shield and draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Tractor Clamp",
+			"description": "Dragged in, pinned, punished.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move",
+								"tiles": 3
+							},
+							{
+								"type": "damage",
+								"amount": 8
+							},
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pull target enemy 3 tiles toward you. Deal 8 damage and root it for 1 turn."
+				}
+			]
+		}
+	]
 }

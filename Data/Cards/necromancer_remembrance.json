@@ -1,6 +1,6 @@
 {
 	"id": "necromancer_remembrance",
-	"status": "wip",
+	"status": "ready",
 	"name": "Remembrance",
 	"school": "Necromancer",
 	"rarity": "Uncommon",
@@ -32,5 +32,21 @@
 			"type": "gain_grief",
 			"amount": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Remembrance+",
+			"bottom_name": "Sit With It+",
+			"description": "The memory left behind is stronger.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.strength",
+					"value": "strong"
+				}
+			]
+		}
+	]
 }

@@ -946,10 +946,17 @@ public sealed class ConsumeAllMemorialsGlobalEffect : EffectBase
 	public int ManaPerMemorial;
 	public int DrawPerMemorial;
 
-	public ConsumeAllMemorialsGlobalEffect(int manaPerMemorial = 0, int drawPerMemorial = 0)
+	/// <summary>Audit #8 (2026-07-29): Memorial Wave was eating its own engine —
+	/// every memorial, including the Strong ones other cards spent turns building.
+	/// With this set, Strong memorials survive the consumption (and grant no
+	/// per-consumed reward, since they were not consumed).</summary>
+	public bool SpareStrong;
+
+	public ConsumeAllMemorialsGlobalEffect(int manaPerMemorial = 0, int drawPerMemorial = 0, bool spareStrong = false)
 	{
 		ManaPerMemorial = manaPerMemorial;
 		DrawPerMemorial = drawPerMemorial;
+		SpareStrong = spareStrong;
 	}
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
@@ -962,6 +969,11 @@ public sealed class ConsumeAllMemorialsGlobalEffect : EffectBase
 
 		foreach (var tile in memorials)
 		{
+			if (SpareStrong && tile?.Memorial?.Strength == MemorialStrength.Strong)
+			{
+				s.Log($"[ConsumeAllMemorials] Strong memorial at {tile.Axial} endures.");
+				continue;
+			}
 			s.Memorials.ConsumeMemorial(tile);
 
 			if (ManaPerMemorial > 0 && casterUnit != null)

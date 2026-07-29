@@ -33,5 +33,165 @@
 			"type": "etch_ward",
 			"amount": 3
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Overclock+",
+			"bottom_name": "Etched Ward+",
+			"description": "Overclock runs cooler. The ward etches deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.heat",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Coolant Loop",
+			"description": "All the speed, none of the burn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.heat",
+					"value": 0
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "A construct you control within range 3 acts twice this turn. No Heat."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Deep Etching",
+			"description": "The rune runs deeper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 5
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Synchronized Burst",
+			"description": "Twice the work, and a patch-up after.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "overclock",
+								"heat": 0
+							},
+							{
+								"type": "repair_constructs",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "A construct you control acts twice this turn (no Heat). Then all your constructs repair 3 HP."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Rune Field",
+			"description": "Two wards from one chisel.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "etch_ward",
+								"amount": 5
+							},
+							{
+								"type": "etch_ward",
+								"amount": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Etch TWO rune wards on tiles within 2. The next construct deployed on each enters with +5 HP and +5 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Perpetual Motion",
+			"description": "The machine never tires.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "overclock",
+								"heat": 0
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "A construct you control acts twice this turn (no Heat). Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Masterwork Etching",
+			"description": "The definitive rune.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 8
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 8
+				}
+			]
+		}
+	]
 }

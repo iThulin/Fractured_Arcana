@@ -31,5 +31,144 @@
 			"type": "set_construct_cap",
 			"cap": 8
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Conduit Singularity+",
+			"bottom_name": "Capacity+",
+			"description": "The collapse hits harder per link. The workshop holds nine.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.per_link",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.cap",
+					"value": 9
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Deep Collapse",
+			"description": "Each strand yields more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.per_link",
+					"value": 6
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Overcapacity",
+			"description": "Ten machines under one roof.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.cap",
+					"value": 10
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Chain Collapse",
+			"description": "The implosion leaves a spark behind.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "conduit_singularity",
+								"per_link": 6
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "All your Conduit Links collapse inward: the lowest-HP enemy takes 6 damage per link. Links are consumed. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Standing Army",
+			"description": "Capacity, and the doctrine to fill it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "set_construct_cap",
+								"cap": 10
+							},
+							{
+								"type": "master_schematic",
+								"charges": 1,
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "For the rest of the fight you may field up to 10 constructs. Your next construct deploys with +1 HP and +1 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Event Horizon",
+			"description": "Nothing escapes the collapse.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].per_link",
+					"value": 8
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Unlimited Works",
+			"description": "The cap comes off.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].cap",
+					"value": 99
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "For the rest of the fight your construct count is unlimited."
+				}
+			]
+		}
+	]
 }

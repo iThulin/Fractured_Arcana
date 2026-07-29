@@ -19,7 +19,9 @@
 		"effect": {
 			"type": "summon",
 			"unit": "tinker_colossus",
-			"count": 1
+			"count": 1,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
 	},
 	"bottom": {
@@ -34,5 +36,148 @@
 		"effect": {
 			"type": "construct_volley"
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Artificer's Magnum Opus+",
+			"bottom_name": "Full Salvo+",
+			"description": "The Colossus is forged sturdier and hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Reinforced Opus",
+			"description": "The Colossus is forged heavier.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 10
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Rolling Salvo",
+			"description": "The salvo comes cheaper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Master's Hand",
+			"description": "The masterpiece takes less to raise.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Double Salvo",
+			"description": "Every construct fires twice.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "construct_volley"
+							},
+							{
+								"type": "construct_volley"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Every ready construct you control immediately fires TWICE at the nearest enemy within its range."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Apex Colossus",
+			"description": "The final design.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 16
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 5
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Endless Barrage",
+			"description": "Fire, fire again, and patch the barrels.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "construct_volley"
+							},
+							{
+								"type": "construct_volley"
+							},
+							{
+								"type": "repair_constructs",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Every ready construct fires twice, then all your constructs repair 3 HP."
+				}
+			]
+		}
+	]
 }

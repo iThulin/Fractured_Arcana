@@ -234,11 +234,19 @@ public sealed class HarvestGrowthEffect : EffectBase
 	public int HealPer;
 	public int DrawPer;
 
-	public HarvestGrowthEffect(int radius, int healPer, int drawPer)
+	/// <summary>Deadfall (audit §6.2.6, 2026-07-29): mana per harvested tile, capped
+	/// by <see cref="ManaCap"/>. Ramp that costs board — the Druid-flavored home for
+	/// acceleration after Vein Tap's nerf.</summary>
+	public int ManaPer;
+	public int ManaCap;
+
+	public HarvestGrowthEffect(int radius, int healPer, int drawPer, int manaPer = 0, int manaCap = 99)
 	{
 		Radius = radius;
 		HealPer = healPer;
 		DrawPer = drawPer;
+		ManaPer = manaPer;
+		ManaCap = manaCap;
 	}
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
@@ -269,8 +277,15 @@ public sealed class HarvestGrowthEffect : EffectBase
 			new HealEffect(HealPer * harvested).Resolve(s, caster, targets, snap);
 		if (DrawPer > 0)
 			new DrawCardsEffect(DrawPer * harvested).Resolve(s, caster, targets, snap);
+		int manaGained = 0;
+		if (ManaPer > 0)
+		{
+			manaGained = Math.Min(ManaPer * harvested, ManaCap);
+			new GainManaEffect(manaGained).Resolve(s, caster, targets, snap);
+		}
 
-		s.Log($"[HarvestGrowth] Harvested {harvested} tile(s): +{HealPer * harvested} heal, +{DrawPer * harvested} draw.");
+		s.Log($"[HarvestGrowth] Harvested {harvested} tile(s): +{HealPer * harvested} heal, " +
+			  $"+{DrawPer * harvested} draw" + (manaGained > 0 ? $", +{manaGained} mana." : "."));
 	}
 }
 

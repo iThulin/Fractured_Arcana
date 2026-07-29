@@ -1,6 +1,6 @@
 {
 	"id": "enchanter_contingency_glyph",
-	"status": "wip",
+	"status": "ready",
 	"name": "Contingency Glyph",
 	"school": "Enchanter",
 	"rarity": "Uncommon",
@@ -62,5 +62,21 @@
 				}
 			]
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Contingency+",
+			"bottom_name": "Read the Weave+",
+			"description": "The snare bites harder; the weave banks more.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 2
+				}
+			]
+		}
+	]
 }

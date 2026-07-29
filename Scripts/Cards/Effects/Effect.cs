@@ -1644,7 +1644,17 @@ public sealed class SummonEffect : EffectBase
 {
 	public string UnitKind;
 	public int Count;
-	public SummonEffect(string kind, int count) { UnitKind = kind; Count = count; }
+
+	/// <summary>Flat stat bumps applied to each spawned unit (2026-07-29). Exists so
+	/// upgrade tiers can patch a summon card's OUTPUT — the unit stats live in the
+	/// summon handler's registry, which card-JSON field patches cannot reach, so
+	/// "the turret arrives sturdier" needs a knob on the card side. This is the knob
+	/// the new Tinker T1 tiers patch.</summary>
+	public int HpBonus;
+	public int DamageBonus;
+
+	public SummonEffect(string kind, int count, int hpBonus = 0, int damageBonus = 0)
+	{ UnitKind = kind; Count = count; HpBonus = hpBonus; DamageBonus = damageBonus; }
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
@@ -1699,8 +1709,18 @@ public sealed class SummonEffect : EffectBase
 			var spawned = s.OnSummonRequested(UnitKind, spawnTile, casterTeam);
 			if (spawned != null)
 			{
+				if (HpBonus > 0)
+				{
+					spawned.Stats.MaxHealth += HpBonus;
+					spawned.Stats.Health += HpBonus;
+				}
+				if (DamageBonus > 0)
+					spawned.AttackDamage += DamageBonus;
+				if (HpBonus > 0 || DamageBonus > 0)
+					spawned.RefreshHealthBar();
 				s.UnitsInPlay.Add(spawned);
-				s.Log($"[Summon] Spawned {UnitKind} at {spawnTile.Axial}.");
+				s.Log($"[Summon] Spawned {UnitKind} at {spawnTile.Axial}" +
+					  (HpBonus > 0 || DamageBonus > 0 ? $" (+{HpBonus}HP/+{DamageBonus}DMG)." : "."));
 			}
 			else
 			{

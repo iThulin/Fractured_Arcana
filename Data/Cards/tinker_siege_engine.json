@@ -19,7 +19,9 @@
 		"effect": {
 			"type": "summon",
 			"unit": "siege_engine",
-			"count": 1
+			"count": 1,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
 	},
 	"bottom": {
@@ -35,5 +37,154 @@
 			"type": "scuttle_constructs",
 			"blast": 5
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Siege Engine+",
+			"bottom_name": "Emergency Scuttle+",
+			"description": "The engine is armored. Scuttled cores blow harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "effect.blast",
+					"value": 7
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Armored Engine",
+			"description": "Plate worthy of the payload.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 8
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Controlled Demolition",
+			"description": "Salvage even the smoke.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "scuttle_constructs",
+								"blast": 7
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Destroy all your constructs. Each detonates for 7 damage to adjacent enemies. Every loss advances your Schematics. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Master Engine",
+			"description": "Heavier shot from a harder mount.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 8
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Chain Demolition",
+			"description": "The blasts feed each other.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].blast",
+					"value": 9
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Long Arm",
+			"description": "Artillery without answer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 12
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Glorious Demolition",
+			"description": "The grand finale, twice over.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "scuttle_constructs",
+								"blast": 10
+							},
+							{
+								"type": "master_schematic",
+								"charges": 2,
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Destroy all your constructs \u2014 each detonates for 10 damage to adjacent enemies and advances your Schematics. Your next 2 constructs deploy with +2 HP and +2 damage."
+				}
+			]
+		}
+	]
 }

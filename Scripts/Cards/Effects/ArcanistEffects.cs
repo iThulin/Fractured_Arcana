@@ -308,13 +308,20 @@ public sealed class GainChargePerKeywordEffect : EffectBase
 }
 
 /// <summary>
-/// Grant armor/shield per spell cast this turn (read from ArcaneAttunement), capped at max. Auto-move portion pending a movement helper.
-/// JSON: { "type":"move_per_spell_cast","max":n,"armor_per":n,"shield_per":n }
+/// Arcane Drift (audit #16, 2026-07-29 — the movement finally exists): grants
+/// MOVEMENT, armor/shield, and optionally charge per spell cast this turn, capped
+/// at Max. Movement is granted as Stats.BonusMoveRange — the same this-turn
+/// movement currency other dash effects use and StartTurn resets — so the player
+/// spends it through normal movement rather than an auto-walk. (The old version
+/// granted only the armor and logged "movement step pending"; the card's text
+/// promised movement for its entire life.)
+/// JSON: { "type":"move_per_spell_cast","max":n,"armor_per":n,"shield_per":n,"charge_per":n }
 /// </summary>
 public sealed class MovePerSpellCastEffect : EffectBase
 {
-	public int Max, ArmorPer, ShieldPer;
-	public MovePerSpellCastEffect(int max, int armorPer, int shieldPer) { Max = max; ArmorPer = armorPer; ShieldPer = shieldPer; }
+	public int Max, ArmorPer, ShieldPer, ChargePer;
+	public MovePerSpellCastEffect(int max, int armorPer, int shieldPer, int chargePer = 0)
+	{ Max = max; ArmorPer = armorPer; ShieldPer = shieldPer; ChargePer = chargePer; }
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var u = FindCasterUnit(s, caster);
@@ -322,12 +329,17 @@ public sealed class MovePerSpellCastEffect : EffectBase
 			return;
 		int spells = (u.Attunement is ArcaneAttunement a) ? a.SpellsCastThisTurn : 0;
 		int n = Math.Min(Max, spells);
+		u.Stats.BonusMoveRange += n;
 		if (ArmorPer > 0)
 			u.Stats.Armor += ArmorPer * n;
 		if (ShieldPer > 0)
 			u.Stats.Shield += ShieldPer * n;
+		if (ChargePer > 0 && u.Attunement is ArcaneAttunement arc)
+			arc.Add(ChargePer * n);
 		u.RefreshHealthBar();
-		s.Log($"[MovePerSpellCast] {spells} spells → +{ArmorPer * n} armor, +{ShieldPer * n} shield. (movement step pending move helper)");
+		s.Log($"[ArcaneDrift] {spells} spells → +{n} movement this turn, +{ArmorPer * n} armor" +
+			  (ShieldPer > 0 ? $", +{ShieldPer * n} shield" : "") +
+			  (ChargePer > 0 ? $", +{ChargePer * n} charge." : "."));
 	}
 }
 

@@ -8,7 +8,7 @@
 		"name": "Chain Lightning",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 6 damage to target. Chains to 2 nearest enemies (3 damage each).",
+		"rules_text": "Deal 6 damage to target. Chains to 2 nearest enemies (2 damage each).",
 		"tags": [
 			"storm"
 		],
@@ -33,7 +33,7 @@
 					},
 					"do": {
 						"type": "damage",
-						"amount": 3
+						"amount": 2
 					}
 				},
 				{
@@ -44,7 +44,7 @@
 					},
 					"do": {
 						"type": "damage",
-						"amount": 3
+						"amount": 2
 					}
 				}
 			]
@@ -105,17 +105,17 @@
 				{
 					"half": "top",
 					"field": "effect.steps[1].do.amount",
-					"value": 4
+					"value": 3
 				},
 				{
 					"half": "top",
 					"field": "effect.steps[2].do.amount",
-					"value": 4
+					"value": 3
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage to target. Chains to 2 nearest enemies (4 damage each)."
+					"value": "Deal 7 damage. Chains to 2 nearest enemies (3 damage each)."
 				},
 				{
 					"half": "bottom",

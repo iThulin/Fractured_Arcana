@@ -1,6 +1,6 @@
 {
 	"id": "elementalist_elemental_convergence",
-	"status": "wip",
+	"status": "ready",
 	"name": "Elemental Convergence",
 	"school": "Elementalist",
 	"rarity": "Uncommon",
@@ -116,5 +116,21 @@
 			"type": "attunement_per_nearby_element",
 			"radius": 3
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Convergence+",
+			"bottom_name": "Elemental Sense+",
+			"description": "The reading reaches further.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 4
+				}
+			]
+		}
+	]
 }

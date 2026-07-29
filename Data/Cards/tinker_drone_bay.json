@@ -19,7 +19,9 @@
 		"effect": {
 			"type": "summon",
 			"unit": "drone",
-			"count": 2
+			"count": 2,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
 	},
 	"bottom": {
@@ -34,5 +36,161 @@
 		"effect": {
 			"type": "redirector_field"
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Drone Bay+",
+			"bottom_name": "Redirector Field+",
+			"description": "Drones roll out reinforced.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Extended Bay",
+			"description": "A third drone rolls out.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Braced Redirector",
+			"description": "The reroute leaves a shield behind.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "redirector_field"
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "The next damage you would take is rerouted in full to your sturdiest construct. Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Hardened Drones",
+			"description": "Reinforced chassis on the line.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Deflection Grid",
+			"description": "Reroute, and plate beneath it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "redirector_field"
+							},
+							{
+								"type": "armor",
+								"amount": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "The next damage you would take is rerouted in full to your sturdiest construct. Gain 4 armor."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Swarm Bay",
+			"description": "The sky fills with rotors.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deploy FOUR Drones on empty tiles within 2. Drones advance and fire on their own."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Total Redirection",
+			"description": "The next TWO blows find the machines.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "redirector_field"
+							},
+							{
+								"type": "redirector_field"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "The next TWO instances of damage you would take are rerouted in full to your sturdiest construct."
+				}
+			]
+		}
+	]
 }

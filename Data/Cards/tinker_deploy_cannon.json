@@ -19,7 +19,9 @@
 		"effect": {
 			"type": "summon",
 			"unit": "cannon",
-			"count": 1
+			"count": 1,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
 	},
 	"bottom": {
@@ -35,7 +37,128 @@
 		"effect": {
 			"type": "summon",
 			"unit": "tinker_barrier",
-			"count": 1
+			"count": 1,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Deploy Cannon+",
+			"bottom_name": "Mobile Barrier+",
+			"description": "The cannon lands heavier. The barrier holds longer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "effect.hp_bonus",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Long Cannon",
+			"description": "Heavier shot, heavier plate.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Twin Barriers",
+			"description": "Two walls from one kit.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.count",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Rapid Emplacement",
+			"description": "The gun goes up in moments.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Fortified Barrier",
+			"description": "The wall holds.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.hp_bonus",
+					"value": 8
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Grand Battery",
+			"description": "Two guns speak as one.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deploy TWO Cannons on empty tiles within 2. 1 turn setup before they fire."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Wall of Iron",
+			"description": "A fortress line.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.count",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deploy THREE Barriers on empty tiles within 1. They block line of sight and movement."
+				}
+			]
+		}
+	]
 }

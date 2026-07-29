@@ -19,7 +19,9 @@
 		"effect": {
 			"type": "summon",
 			"unit": "sentinel",
-			"count": 1
+			"count": 1,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
 	},
 	"bottom": {
@@ -35,5 +37,143 @@
 			"type": "repair_constructs",
 			"amount": 6
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Deploy Sentinel+",
+			"bottom_name": "Repair Pulse+",
+			"description": "The sentinel endures. Repairs run deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 8
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Watchful Sentinel",
+			"description": "It stands longer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 6
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Field Repairs",
+			"description": "Repairs, and cover for the mechanic.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "repair_constructs",
+								"amount": 8
+							},
+							{
+								"type": "armor",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Repair all constructs you control for 8 HP. Gain 2 armor."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Twin Sentinels",
+			"description": "A matched pair of guardians.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Overhaul",
+			"description": "Stripped and rebuilt on the field.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 12
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Bastion Sentinel",
+			"description": "The guardian perfected.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 10
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Total Refit",
+			"description": "Good as new, and a spare schematic.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "repair_constructs",
+								"amount": 15
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Repair all constructs you control for 15 HP. Draw 1 card."
+				}
+			]
+		}
+	]
 }

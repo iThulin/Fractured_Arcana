@@ -1,6 +1,6 @@
 {
 	"id": "chronomancer_pivotal_moment",
-	"status": "wip",
+	"status": "ready",
 	"name": "Pivotal Moment",
 	"school": "Chronomancer",
 	"rarity": "Common",
@@ -42,5 +42,31 @@
 			"set_aside": 1,
 			"discount": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Pivotal Moment+",
+			"bottom_name": "Later+",
+			"description": "A wider glimpse; a cheaper future.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].count",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.discount",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Foretell: set the top card of your deck aside. Next turn it's in your hand and costs 2 less."
+				}
+			]
+		}
+	]
 }

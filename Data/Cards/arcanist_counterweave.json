@@ -1,0 +1,69 @@
+{
+	"id": "arcanist_counterweave",
+	"status": "ready",
+	"name": "Counterweave",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Counterweave",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 3 shield. Gain 1 charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "shield",
+					"amount": 3
+				},
+				{
+					"type": "gain_charge",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Stored Spark",
+		"mana": 0,
+		"speed": "Sorcery",
+		"rules_text": "Gain 2 charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "gain_charge",
+			"amount": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Counterweave+",
+			"bottom_name": "Stored Spark+",
+			"description": "The weave holds more; the spark banks more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 3
+				}
+			]
+		}
+	]
+}

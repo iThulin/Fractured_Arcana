@@ -1,0 +1,71 @@
+{
+	"id": "druid_root_step",
+	"status": "ready",
+	"name": "Root-Step",
+	"school": "Druid",
+	"rarity": "Common",
+	"top": {
+		"name": "Root-Step",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Teleport to any empty living tile within 4.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "teleport"
+		},
+		"requires": [
+			"growth_tile"
+		]
+	},
+	"bottom": {
+		"name": "Verdant Rest",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 2 armor. Gain 1 Wilding.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "armor",
+					"amount": 2
+				},
+				{
+					"type": "gain_wilding",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Root-Step+",
+			"bottom_name": "Verdant Rest+",
+			"description": "Step further through the wood; rest deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "empty_tile",
+						"range": 5
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 3
+				}
+			]
+		}
+	]
+}

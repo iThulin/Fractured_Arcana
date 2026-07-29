@@ -1,0 +1,76 @@
+{
+	"id": "elementalist_cinder_read",
+	"status": "ready",
+	"name": "Cinder Read",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Cinder Read",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Deal 2 damage. Imbue the target's tile with Fire. Draw 1 card.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 2
+				},
+				{
+					"type": "imbue_tile",
+					"element": "fire"
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Ashen Focus",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 3 armor.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "armor",
+			"amount": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Cinder Read+",
+			"bottom_name": "Ashen Focus+",
+			"description": "The reading burns hotter; the focus hardens.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 4
+				}
+			]
+		}
+	]
+}

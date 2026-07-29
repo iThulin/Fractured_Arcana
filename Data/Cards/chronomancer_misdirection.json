@@ -21,7 +21,7 @@
 		}
 	},
 	"bottom": {
-		"name": "Sidestep",
+		"name": "Blink Between",
 		"mana": 1,
 		"speed": "Reflex",
 		"rules_text": "When an enemy attacks: teleport to an adjacent empty tile and gain 2 shield.",
@@ -50,7 +50,7 @@
 			"tier": 1,
 			"half": "both",
 			"top_name": "Misdirection+",
-			"bottom_name": "Sidestep+",
+			"bottom_name": "Blink Between+",
 			"description": "Cheaper redirect; sturdier sidestep.",
 			"changes": [
 				{

@@ -19,7 +19,9 @@
 		"effect": {
 			"type": "summon",
 			"unit": "turret",
-			"count": 1
+			"count": 1,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
 	},
 	"bottom": {
@@ -46,5 +48,122 @@
 				"count": 1
 			}
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Deploy Turret+",
+			"bottom_name": "Recalibrate+",
+			"description": "The turret lands tougher and hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Flak Turret",
+			"description": "Up-gunned and up-armored.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Fine Calibration",
+			"description": "The busy workshop reads deeper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.then.count",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Twin Turrets",
+			"description": "Interlocking fields of fire.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Master Calibration",
+			"description": "Even a quiet shop reads well.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.else.count",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Turret Nest",
+			"description": "No approach is safe.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deploy THREE Turrets on empty tiles within 2. They auto-attack the nearest enemy at the end of your turn."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Perfect Calibration",
+			"description": "The machine reads the whole board.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "draw",
+						"count": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 3 cards."
+				}
+			]
+		}
+	]
 }

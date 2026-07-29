@@ -19,7 +19,9 @@
 		"effect": {
 			"type": "summon",
 			"unit": "grand_turret",
-			"count": 1
+			"count": 1,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
 	},
 	"bottom": {
@@ -45,5 +47,137 @@
 				}
 			]
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Grand Turret+",
+			"bottom_name": "Master Schematic+",
+			"description": "The turret is reinforced. Schematics grant bigger bonuses.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Siege Optics",
+			"description": "It sees further and hits harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Grand Schematic",
+			"description": "The library grows.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].count",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Emplacement Crew",
+			"description": "The great gun rises faster.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Archive of Designs",
+			"description": "Three builds banked.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].charges",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Great Gun",
+			"description": "Nothing on the field outranges it.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 10
+				},
+				{
+					"half": "top",
+					"field": "effect.damage_bonus",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Master's Doctrine",
+			"description": "Draw deep, build big.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 4
+							},
+							{
+								"type": "master_schematic",
+								"charges": 3,
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 4 cards. Your next 3 constructs deploy with +3 HP and +3 damage."
+				}
+			]
+		}
+	]
 }

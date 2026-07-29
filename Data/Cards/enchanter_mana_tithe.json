@@ -38,7 +38,7 @@
 		"name": "Sap",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 5 damage and steal 1 buff from the target.",
+		"rules_text": "Deal 4 damage and steal 1 buff from the target.",
 		"tags": [
 			"enchant"
 		],
@@ -53,7 +53,7 @@
 			"steps": [
 				{
 					"type": "damage",
-					"amount": 5
+					"amount": 4
 				},
 				{
 					"type": "dispel",
@@ -84,7 +84,7 @@
 				{
 					"half": "bottom",
 					"field": "effect.steps[0].amount",
-					"value": 7
+					"value": 6
 				},
 				{
 					"half": "bottom",

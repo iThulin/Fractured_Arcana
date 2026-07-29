@@ -146,7 +146,11 @@
 							"any_spirit",
 							"spirit_or_memorial",
 							"ally_adjacent",
-							"enemy_adjacent"
+							"enemy_adjacent",
+							"growth_tile",
+							"any_growth",
+							"old_growth_tile",
+							"memorial_or_spirit_nearby"
 						]
 					}
 				},
@@ -356,7 +360,8 @@
 						"foretell",
 						"exile_discard_for_memorial",
 						"push_aimed",
-						"move_to_tile"
+						"move_to_tile",
+						"mana_debt"
 					]
 				},
 				"amount": {
@@ -1047,6 +1052,30 @@
 				"ends_turn": {
 					"type": "boolean",
 					"description": "move_to_tile: the relocated unit's turn ends (AP to 0, HasActed)."
+				},
+				"hp_bonus": {
+					"type": "integer",
+					"description": "summon: flat +HP applied to each spawned unit. The upgrade-tier knob for summon cards, whose base stats live in the unit registry."
+				},
+				"damage_bonus": {
+					"type": "integer",
+					"description": "summon: flat +damage applied to each spawned unit."
+				},
+				"with_caster": {
+					"type": "boolean",
+					"description": "swap_units: with a single targeted unit, swap it with the caster (Bolt-Hole)."
+				},
+				"mana_cap": {
+					"type": "integer",
+					"description": "harvest_growth: ceiling on total mana gained from mana_per."
+				},
+				"spare_strong": {
+					"type": "boolean",
+					"description": "consume_all_memorials_global: Strong memorials survive the consumption."
+				},
+				"charge_per": {
+					"type": "integer",
+					"description": "move_per_spell_cast: Arcanist charge banked per spell counted."
 				}
 			}
 		},

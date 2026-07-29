@@ -42,5 +42,172 @@
 			"type": "salvage_construct",
 			"draw": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Fabricate Armor+",
+			"bottom_name": "Salvage+",
+			"description": "Thicker plate. Salvage recovers an extra card.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.then.amount",
+					"value": 9
+				},
+				{
+					"half": "top",
+					"field": "effect.else.amount",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "effect.draw",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Layered Plate",
+			"description": "Plate over plate.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.then.amount",
+					"value": 11
+				},
+				{
+					"half": "top",
+					"field": "effect.else.amount",
+					"value": 7
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Efficient Salvage",
+			"description": "Nothing wasted, ever.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "salvage_construct",
+								"draw": 2
+							},
+							{
+								"type": "mana_gain",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Scrap a construct you control within 3: gain armor equal to its remaining HP, draw 2 cards, and gain 1 mana."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Ablative Fabrication",
+			"description": "The plate peaks higher.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.then.amount",
+					"value": 12
+				},
+				{
+					"half": "top",
+					"field": "effect.else.amount",
+					"value": 8
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Full Recovery",
+			"description": "Every bolt accounted for.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].draw",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Juggernaut Plate",
+			"description": "A walking fortress.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "has_construct"
+						},
+						"then": {
+							"type": "armor",
+							"amount": 14
+						},
+						"else": {
+							"type": "armor",
+							"amount": 9
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 9 armor. If you control a construct, gain 14 instead."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Perfect Reclamation",
+			"description": "The scrap becomes the next design.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "salvage_construct",
+								"draw": 3
+							},
+							{
+								"type": "master_schematic",
+								"charges": 1,
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Scrap a construct within 3: gain armor equal to its remaining HP, draw 3 cards. Your next construct deploys with +2 HP and +2 damage."
+				}
+			]
+		}
+	]
 }

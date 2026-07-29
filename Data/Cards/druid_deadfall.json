@@ -1,0 +1,72 @@
+{
+	"id": "druid_deadfall",
+	"status": "ready",
+	"name": "Deadfall",
+	"school": "Druid",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Deadfall",
+		"mana": 1,
+		"speed": "Sorcery",
+		"rules_text": "Harvest living tiles within 1: gain 1 mana per tile consumed (max 3).",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "harvest_growth",
+			"radius": 1,
+			"heal_per": 0,
+			"draw_per": 0,
+			"mana_per": 1,
+			"mana_cap": 3
+		},
+		"requires": [
+			"any_growth"
+		]
+	},
+	"bottom": {
+		"name": "Leaf Fall",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 1 Wilding. Draw 1 card.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "gain_wilding",
+					"amount": 1
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Deadfall+",
+			"bottom_name": "Leaf Fall+",
+			"description": "The deadfall yields more; the fall reaches further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.mana_cap",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.radius",
+					"value": 2
+				}
+			]
+		}
+	]
+}

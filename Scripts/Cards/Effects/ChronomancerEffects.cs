@@ -419,6 +419,24 @@ public sealed class PostponeEffect : EffectBase
 	public int Turns;
 	public PostponeEffect(int turns) { Turns = turns; }
 
+	/// <summary>Audit alteration #18 (2026-07-29): a unit that is already Delayed
+	/// cannot be postponed again until it has taken the loss. Lag + Hinder + Delay
+	/// Rune + Drag all feed the same PostponedTurns counter at ~2 mana per stolen
+	/// turn with no diminishing returns — an uncapped chain-stun that trivializes
+	/// solo bosses. The cap is HERE, not in the card data, so no future postpone
+	/// card can reintroduce the loop by accident.</summary>
+	internal static bool TryPostpone(GameState s, Unit unit, int turns, string tag)
+	{
+		if (unit.HasStatus("delayed"))
+		{
+			s.Log($"[{tag}] {unit.Name} is already Delayed — a unit cannot be postponed again before it pays the turn.");
+			return false;
+		}
+		unit.PostponedTurns += turns;
+		unit.ApplyStatus("delayed", turns);
+		return true;
+	}
+
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		bool hit = false;
@@ -429,8 +447,8 @@ public sealed class PostponeEffect : EffectBase
 				if (unit == null || unit.IsPlayerControlled)
 					continue;
 
-				unit.PostponedTurns += Turns;
-				unit.ApplyStatus("delayed", Turns);
+				if (!TryPostpone(s, unit, Turns, "Postpone"))
+					continue;
 				hit = true;
 				s.Log($"[Postpone] {unit.Name} postponed {Turns} turn(s) (total: {unit.PostponedTurns}).");
 			}
@@ -455,9 +473,8 @@ public sealed class PostponeEffect : EffectBase
 				}
 			if (nearest != null)
 			{
-				nearest.PostponedTurns += Turns;
-				nearest.ApplyStatus("delayed", Turns);
-				s.Log($"[Postpone] No targeted enemy — postponed the nearest, {nearest.Name}, {Turns} turn(s).");
+				if (TryPostpone(s, nearest, Turns, "Postpone"))
+					s.Log($"[Postpone] No targeted enemy — postponed the nearest, {nearest.Name}, {Turns} turn(s).");
 			}
 			else
 				s.Log("[Postpone] No enemy to postpone.");
@@ -487,8 +504,10 @@ public sealed class SkipEnemyTurnEffect : EffectBase
 			if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
 				continue;
 
-			unit.PostponedTurns += Turns;
-			unit.ApplyStatus("delayed", Turns);
+			// Same cap as PostponeEffect (#18): already-Delayed units are already
+			// losing their turn; banking a second on top is the chain-stun loop.
+			if (!PostponeEffect.TryPostpone(s, unit, Turns, "SkipEnemyTurn"))
+				continue;
 			s.Log($"[SkipEnemyTurn] {unit.Name} skips {Turns} turn(s).");
 		}
 	}
@@ -1405,4 +1424,61 @@ public class RedirectAuraPersistentEffect : PersistentEffect
 
         return best;
     }
+}
+
+/// <summary>
+/// Borrowed Mana (audit §6.2 addition, 2026-07-29): gain mana now, repay it at the
+/// start of your next turn. The school's answer to tithe_aura pressure without
+/// giving the zero-economy school real ramp — the debt makes it tempo, not value.
+/// JSON: { "type": "mana_debt", "amount": n }  (the GAIN is a separate mana_gain
+/// step; this leaf only books the repayment)
+/// </summary>
+public sealed class ManaDebtLeafEffect : EffectBase
+{
+	public int Amount;
+	public ManaDebtLeafEffect(int amount) { Amount = Math.Max(0, amount); }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (Amount <= 0)
+			return;
+		var unit = s.ActiveCasterUnit;
+		s.ActiveEffects ??= new List<PersistentEffect>();
+		s.ActiveEffects.Add(new ManaDebtPersistentEffect(Amount, caster, unit));
+		s.Log($"[ManaDebt] {unit?.Name ?? "caster"} owes {Amount} mana next turn.");
+	}
+}
+
+/// <summary>Collects the Borrowed Mana debt on the owner's next turn start, then
+/// expires. Drains to a floor of 0 — a debt cannot make mana negative; if the
+/// player spent everything, the shortfall is simply forgiven (and logged), which is
+/// deliberately lenient: a debt that could brick the turn after a defensive
+/// emergency would make the card unplayable at its rarity.</summary>
+public class ManaDebtPersistentEffect : PersistentEffect
+{
+	private readonly int _amount;
+	private readonly Unit _unit;
+
+	public ManaDebtPersistentEffect(int amount, Entity owner, Unit unit)
+	{
+		_amount = amount;
+		Owner = owner;
+		_unit = unit;
+		TurnsRemaining = 1;
+	}
+
+	public override void Tick(GameState s)
+	{
+		TurnsRemaining = 0;
+		if (_unit == null || !GodotObject.IsInstanceValid(_unit) || !_unit.Stats.IsAlive)
+			return;
+		int due = Math.Min(_amount, _unit.Stats.Mana);
+		if (due > 0)
+			_unit.TrySpendMana(due);
+		if (s.Mana.ContainsKey(Owner))
+			s.Mana[Owner] = _unit.Stats.Mana;
+		s.Log(due < _amount
+			? $"[ManaDebt] {_unit.Name} repays {due}/{_amount} — the rest is forgiven."
+			: $"[ManaDebt] {_unit.Name} repays {due} mana.");
+	}
 }

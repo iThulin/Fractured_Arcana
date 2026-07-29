@@ -1,6 +1,6 @@
 {
 	"id": "adept_appraise",
-	"status": "wip",
+	"status": "ready",
 	"name": "Appraise",
 	"school": "Adept",
 	"rarity": "Common",
@@ -32,5 +32,21 @@
 			"type": "gain_mana",
 			"amount": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Appraise+",
+			"bottom_name": "Second Look+",
+			"description": "See deeper into the deck.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.look",
+					"value": 4
+				}
+			]
+		}
+	]
 }

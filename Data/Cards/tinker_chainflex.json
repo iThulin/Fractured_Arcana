@@ -8,7 +8,7 @@
 		"name": "Chainflex",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Forge Conduit Links chaining the units in the area, each to the next. Linked units split incoming damage.",
+		"rules_text": "Forge Conduit Links chaining YOUR units in the area, each to the next. Linked units split incoming damage.",
 		"tags": [],
 		"targeting": {
 			"type": "aoe",
@@ -36,5 +36,199 @@
 			"type": "move_to_tile",
 			"ends_turn": true
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Chainflex+",
+			"bottom_name": "Redeploy+",
+			"description": "Redeployed constructs may still act this turn.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "move_to_tile",
+						"ends_turn": false
+					}
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Braided Links",
+			"description": "Forging the chain plates you too.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "create_link",
+								"mode": "split"
+							},
+							{
+								"type": "armor",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Forge Conduit Links chaining YOUR units in the area, each to the next. Linked units split incoming damage. Gain 2 armor."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Rapid Redeploy",
+			"description": "The move costs nothing.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Mending Weave",
+			"description": "The chain patches what it binds.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "create_link",
+								"mode": "split"
+							},
+							{
+								"type": "armor",
+								"amount": 2
+							},
+							{
+								"type": "repair_constructs",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Chain YOUR units to split incoming damage. Gain 2 armor; your constructs repair 3 HP."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Combat Drop",
+			"description": "The construct lands ready to fight.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_to_tile",
+								"ends_turn": false
+							},
+							{
+								"type": "enhance_construct",
+								"hp": 2,
+								"damage": 1,
+								"range": 0
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move a construct you control up to 3 tiles. It may still act, and is permanently rebuilt: +2 HP, +1 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Living Chain",
+			"description": "The web is armor.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "create_link",
+								"mode": "split"
+							},
+							{
+								"type": "armor",
+								"amount": 3
+							},
+							{
+								"type": "shield",
+								"amount": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Chain YOUR units to split incoming damage. Gain 3 armor and 4 shield."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Blitz Redeploy",
+			"description": "Anywhere, instantly, better.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_to_tile",
+								"ends_turn": false
+							},
+							{
+								"type": "enhance_construct",
+								"hp": 3,
+								"damage": 2,
+								"range": 0
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move a construct you control up to 3 tiles. It may still act, and is permanently rebuilt: +3 HP, +2 damage."
+				}
+			]
+		}
+	]
 }

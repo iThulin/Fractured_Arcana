@@ -215,5 +215,13 @@ public static partial class CardScriptRegistry
         });
 
         RegisterEffect("event_control", _ => new EventControlLeafEffect());
+
+        // Borrowed Mana's repayment (2026-07-29): books a next-turn mana drain.
+        // { "type": "mana_debt", "amount": n }
+        RegisterEffect("mana_debt", n =>
+        {
+            int amount = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 2;
+            return new ManaDebtLeafEffect(amount).WithTag("Mana");
+        });
     }
 }

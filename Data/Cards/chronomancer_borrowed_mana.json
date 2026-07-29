@@ -1,0 +1,74 @@
+{
+	"id": "chronomancer_borrowed_mana",
+	"status": "ready",
+	"name": "Borrowed Mana",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Borrowed Mana",
+		"mana": 0,
+		"speed": "Sorcery",
+		"rules_text": "Gain 2 mana. At the start of your next turn, repay 2 mana.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "mana_gain",
+					"amount": 2
+				},
+				{
+					"type": "mana_debt",
+					"amount": 2
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Repay in Kind",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 2 shield. Gain 1 Foresight.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "shield",
+					"amount": 2
+				},
+				{
+					"type": "gain_foresight",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Borrowed Mana+",
+			"bottom_name": "Repay in Kind+",
+			"description": "Borrow more against the same debt; the repayment shields harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 3
+				}
+			]
+		}
+	]
+}

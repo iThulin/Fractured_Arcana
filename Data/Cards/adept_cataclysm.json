@@ -8,7 +8,7 @@
 		"name": "Cataclysm",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Deal 4 damage to ALL units within 3 tiles including allies.",
+		"rules_text": "Deal 5 damage to ALL units within 3 tiles including allies.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -16,7 +16,7 @@
 		"effect": {
 			"type": "aoe_all",
 			"radius": 3,
-			"damage": 4
+			"damage": 5
 		}
 	},
 	"bottom": {
@@ -45,7 +45,7 @@
 					"value": {
 						"type": "aoe_all",
 						"radius": 3,
-						"damage": 5
+						"damage": 6
 					}
 				},
 				{
@@ -81,7 +81,7 @@
 					"value": {
 						"type": "aoe_all",
 						"radius": 4,
-						"damage": 5
+						"damage": 6
 					}
 				},
 				{

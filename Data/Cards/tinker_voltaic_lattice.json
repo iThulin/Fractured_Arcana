@@ -19,7 +19,9 @@
 		"effect": {
 			"type": "summon",
 			"unit": "lattice_node",
-			"count": 1
+			"count": 1,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
 	},
 	"bottom": {
@@ -39,5 +41,114 @@
 			"slows": true,
 			"turns": 3
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Voltaic Lattice+",
+			"bottom_name": "Disruption Field+",
+			"description": "The node endures. The field bites harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Twin Nodes",
+			"description": "The lattice spreads.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Wider Field",
+			"description": "The static reaches further.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Hardened Node",
+			"description": "The node endures fire.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.hp_bonus",
+					"value": 5
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Storm Field",
+			"description": "The field bites harder.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 5
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Lattice Grid",
+			"description": "A web of humming pylons.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.count",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deploy THREE Lattice Nodes on empty tiles within 2. Friendly constructs within 2 tiles of a node gain +2 damage each round."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Endless Storm",
+			"description": "It does not stop crackling.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.turns",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 5
+				}
+			]
+		}
+	]
 }

@@ -8,7 +8,7 @@
 		"name": "Spell Fracture",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 5 damage. Gain 1 charge per unique keyword on this card's other half.",
+		"rules_text": "Deal 5 damage. Gain 2 charge.",
 		"tags": [
 			"arcane"
 		],
@@ -27,7 +27,8 @@
 				},
 				{
 					"type": "gain_charge_per_keyword",
-					"source": "other_half"
+					"source": "other_half",
+					"multiplier": 2
 				}
 			]
 		}
@@ -127,7 +128,7 @@
 				{
 					"half": "top",
 					"field": "effect.steps[1].multiplier",
-					"value": 2
+					"value": 3
 				},
 				{
 					"half": "top",

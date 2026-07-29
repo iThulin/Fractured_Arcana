@@ -41,20 +41,178 @@
 		}
 	},
 	"bottom": {
-		"name": "Wire Trap",
+		"name": "Bolt-Hole",
 		"mana": 1,
-		"speed": "Studied",
-		"rules_text": "Arm a hidden trap on a tile within 2. The first enemy to enter takes 5 damage and is rooted for 1 turn.",
+		"speed": "Reflex",
+		"rules_text": "Swap positions with a construct you control within 3.",
 		"tags": [],
 		"targeting": {
-			"type": "tile",
-			"range": 2
+			"type": "unit",
+			"range": 3,
+			"friendlies_only": true
 		},
 		"effect": {
-			"type": "place_trap",
-			"damage": 5,
-			"status": "rooted",
-			"duration": 1
+			"type": "swap_units",
+			"with_caster": true
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Shock Net+",
+			"bottom_name": "Bolt-Hole+",
+			"description": "The net bites harder beside a construct. Bolt-Hole reaches further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].then.amount",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 4,
+						"friendlies_only": true
+					}
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Wide Net",
+			"description": "The net holds longer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].duration",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Greased Chassis",
+			"description": "The escape is free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Live Net",
+			"description": "Current through every strand.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].then.amount",
+					"value": 8
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Emergency Bolt",
+			"description": "Swap out with your guard up.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "swap_units",
+								"with_caster": true
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Swap positions with a construct you control within 4. Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Tesla Net",
+			"description": "It bites whether or not the machines are near.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 2
+							},
+							{
+								"type": "damage",
+								"amount": 6
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Root target enemy for 2 turns and deal 6 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Quantum Bolt",
+			"description": "Somewhere else, shielded, and a fresh idea.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "swap_units",
+								"with_caster": true
+							},
+							{
+								"type": "shield",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Swap positions with a construct you control within 4. Gain 4 shield and draw 1 card."
+				}
+			]
+		}
+	]
 }

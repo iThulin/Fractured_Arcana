@@ -8,14 +8,14 @@
 		"name": "Vein Tap",
 		"mana": 0,
 		"speed": "Studied",
-		"rules_text": "Gain 3 mana.",
+		"rules_text": "Gain 2 mana.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
 		},
 		"effect": {
 			"type": "mana_gain",
-			"amount": 3
+			"amount": 2
 		}
 	},
 	"bottom": {

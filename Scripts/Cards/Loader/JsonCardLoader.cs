@@ -330,7 +330,9 @@ public static partial class CardScriptRegistry
         {
             var kind = n.GetProperty("unit").GetString();
             var count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 1;
-            return new SummonEffect(kind, count).WithTag("Summon");
+            int hpB = n.TryGetProperty("hp_bonus", out var hb) ? hb.GetInt32() : 0;
+            int dmgB = n.TryGetProperty("damage_bonus", out var db) ? db.GetInt32() : 0;
+            return new SummonEffect(kind, count, hpB, dmgB).WithTag("Summon");
         });
 
         // Create rubble: { "type": "create_rubble" }

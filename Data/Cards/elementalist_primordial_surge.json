@@ -25,7 +25,7 @@
 		}
 	},
 	"bottom": {
-		"name": "Cataclysm",
+		"name": "Unmaking",
 		"mana": 3,
 		"speed": "Studied",
 		"rules_text": "Remove imbuement from all tiles in radius 4. Deal 2 damage per tile cleared. Draw 1 card per 3 tiles cleared.",
@@ -50,7 +50,7 @@
 			"tier": 1,
 			"half": "both",
 			"top_name": "Primordial Surge+",
-			"bottom_name": "Cataclysm+",
+			"bottom_name": "Unmaking+",
 			"description": "Primordial Surge deals more per adjacent element. Cataclysm deals more per tile.",
 			"changes": [
 				{
@@ -171,7 +171,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Primordial Catastrophe",
-			"description": "Primordial Catastrophe: The surge becomes apocalyptic — maximum radius, all elements, massive damage.",
+			"description": "Primordial Catastrophe: The surge becomes apocalyptic \u2014 maximum radius, all elements, massive damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -199,7 +199,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Eternal Cycle",
-			"description": "Eternal Cycle: Cataclysm and re-imbue happen simultaneously — destroy and rebuild.",
+			"description": "Eternal Cycle: Cataclysm and re-imbue happen simultaneously \u2014 destroy and rebuild.",
 			"changes": [
 				{
 					"half": "bottom",

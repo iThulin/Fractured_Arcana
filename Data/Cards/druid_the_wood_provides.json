@@ -1,6 +1,6 @@
 {
 	"id": "druid_the_wood_provides",
-	"status": "wip",
+	"status": "ready",
 	"name": "The Wood Provides",
 	"school": "Druid",
 	"rarity": "Uncommon",
@@ -42,5 +42,31 @@
 			"type": "gain_wilding",
 			"amount": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Wood Provides+",
+			"bottom_name": "Fallow+",
+			"description": "The wood gives more back.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].heal_per",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Wilding."
+				}
+			]
+		}
+	]
 }

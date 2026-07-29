@@ -43,7 +43,7 @@
 		"name": "Memorial Wave",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 3 damage to all enemies per memorial on the board. Consume all memorials. Draw 1 card per memorial consumed.",
+		"rules_text": "Deal 3 damage to all enemies per memorial on the board. Consume all memorials (Strong memorials endure). Draw 1 card per memorial consumed.",
 		"tags": [
 			"necrotic"
 		],
@@ -62,7 +62,8 @@
 				},
 				{
 					"type": "consume_all_memorials_global",
-					"draw_per": 1
+					"draw_per": 1,
+					"spare_strong": true
 				}
 			]
 		}
@@ -148,7 +149,8 @@
 							},
 							{
 								"type": "consume_all_memorials_global",
-								"draw_per": 1
+								"draw_per": 1,
+								"spare_strong": true
 							}
 						]
 					}
@@ -208,7 +210,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon two Revenant Elders — one at target memorial, one at the nearest other. Spirits +3 damage. Memorials protected."
+					"value": "Summon two Revenant Elders \u2014 one at target memorial, one at the nearest other. Spirits +3 damage. Memorials protected."
 				}
 			]
 		},
@@ -241,7 +243,8 @@
 									"hp": 6,
 									"damage": 3,
 									"speed": 1
-								}
+								},
+								"spare_strong": true
 							}
 						]
 					}
@@ -257,7 +260,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "The Deathless Covenant",
-			"description": "The Deathless Covenant: Elder cannot die — becomes a Strong memorial and rises again next turn.",
+			"description": "The Deathless Covenant: Elder cannot die \u2014 becomes a Strong memorial and rises again next turn.",
 			"changes": [
 				{
 					"half": "top",
@@ -288,7 +291,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon the Covenant Elder (25HP 8DMG). Cannot die — becomes a Strong memorial on death, rises again next turn. Spirits +3 damage. Memorials protected."
+					"value": "Summon the Covenant Elder (25HP 8DMG). Cannot die \u2014 becomes a Strong memorial on death, rises again next turn. Spirits +3 damage. Memorials protected."
 				}
 			]
 		},

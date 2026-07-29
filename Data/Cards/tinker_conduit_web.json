@@ -36,7 +36,142 @@
 		"effect": {
 			"type": "summon",
 			"unit": "familiar",
-			"count": 1
+			"count": 1,
+			"hp_bonus": 0,
+			"damage_bonus": 0
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Conduit Web+",
+			"bottom_name": "Clockwork Familiar+",
+			"description": "Strands bite harder. The Familiar is sturdier.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.line_damage",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.hp_bonus",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage_bonus",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Barbed Web",
+			"description": "The strands cut deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.line_damage",
+					"value": 5
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Gilded Familiar",
+			"description": "A finer clockwork.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.hp_bonus",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage_bonus",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Wide Web",
+			"description": "The web comes cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Twin Familiars",
+			"description": "Two echoes at your shoulder.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.count",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Grid Awakens",
+			"description": "The web strikes on its own.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "create_link",
+								"mode": "mirror",
+								"line_damage": 6
+							},
+							{
+								"type": "damage_per_construct",
+								"amount_per": 2,
+								"max": 10
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Weave Mirror links chaining the enemies in the area (strands deal 6). Then deal damage equal to twice your constructs (max 10) to the target."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Soulbound Familiar",
+			"description": "It remembers every spell you ever cast.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.hp_bonus",
+					"value": 8
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage_bonus",
+					"value": 3
+				}
+			]
+		}
+	]
 }

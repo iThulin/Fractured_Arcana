@@ -53,5 +53,139 @@
 				}
 			]
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Arc Bolt+",
+			"bottom_name": "Kinetic Plate+",
+			"description": "Arc Bolt hits harder. Kinetic Plate armors more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.amount",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 5
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Forked Arc",
+			"description": "The bolt arcs one link further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.arc",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Kinetic Shell",
+			"description": "Heavier base plate.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 6
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Grid Surge",
+			"description": "The bolt itself strikes harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.amount",
+					"value": 8
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Reactive Plate",
+			"description": "The construct-backed shield deepens.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].then.amount",
+					"value": 6
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Storm Grid",
+			"description": "Every strand of the web carries the blast.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "arc_damage",
+						"amount": 9,
+						"arc": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 9 damage. The bolt arcs through Conduit Links: each linked partner of the target takes 4."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Bulwark Chassis",
+			"description": "Plate and field, both at full charge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "armor",
+								"amount": 8
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "has_construct"
+								},
+								"then": {
+									"type": "shield",
+									"amount": 8
+								},
+								"else": {
+									"type": "empty"
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 8 armor. If you control a construct, also gain 8 shield."
+				}
+			]
+		}
+	]
 }

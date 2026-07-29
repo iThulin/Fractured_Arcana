@@ -34,5 +34,148 @@
 			"damage": 2,
 			"range": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Assembly Line+",
+			"bottom_name": "Etched Masterwork+",
+			"description": "The line runs a turn longer. Masterwork rebuilds bigger.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.hp",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Extended Line",
+			"description": "The line runs longer still.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 5
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Master Etching",
+			"description": "Bigger rebuilds.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.hp",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Automated Works",
+			"description": "The line pays for itself.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Perfected Etching",
+			"description": "The rebuild reaches further.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.hp",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.range",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Eternal Line",
+			"description": "The line never stops.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.turns",
+					"value": 99
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight: at the start of your turn a free Drone rolls off the line onto an empty tile beside you (respects your construct cap)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Living Metal",
+			"description": "Rebuilt, and made whole.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "enhance_construct",
+								"hp": 6,
+								"damage": 4,
+								"range": 2
+							},
+							{
+								"type": "repair_constructs",
+								"amount": 6
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Permanently rebuild a construct: +6 HP, +4 damage, +2 range. Then all your constructs repair 6 HP."
+				}
+			]
+		}
+	]
 }

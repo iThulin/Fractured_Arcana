@@ -1,6 +1,6 @@
 {
 	"id": "arcanist_grimoire_dive",
-	"status": "wip",
+	"status": "ready",
 	"name": "Grimoire Dive",
 	"school": "Arcanist",
 	"rarity": "Uncommon",
@@ -37,5 +37,31 @@
 			"type": "return_from_discard",
 			"count": 1
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Grimoire Dive+",
+			"bottom_name": "Deep Reference+",
+			"description": "Dive deeper; the reference also draws.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.look",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.draw",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Return a card from your discard to your hand. Draw 1 card."
+				}
+			]
+		}
+	]
 }

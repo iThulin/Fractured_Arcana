@@ -196,12 +196,25 @@ public sealed class DispelEffect : EffectBase
 /// </summary>
 public sealed class SwapUnitsEffect : EffectBase
 {
+	/// <summary>Bolt-Hole mode (2026-07-29): with a single targeted unit, swap it
+	/// with the CASTER instead of failing. Lets "swap positions with a construct you
+	/// control" be a one-click unit target rather than a two-unit selection.</summary>
+	public bool WithCaster;
+
+	public SwapUnitsEffect(bool withCaster = false) { WithCaster = withCaster; }
+
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var units = new List<Unit>();
 		if (targets?.Items != null)
 			foreach (var o in targets.Items)
 			{ var u = ResolveTargetUnit(s, o); if (u != null) units.Add(u); }
+		if (units.Count == 1 && WithCaster)
+		{
+			var me = s.ActiveCasterUnit;
+			if (me != null && me != units[0])
+				units.Insert(0, me);
+		}
 		if (units.Count < 2)
 		{ s.Log("[SwapUnits] need two units."); return; }
 		var a = units[0];

@@ -42,7 +42,7 @@
 		"name": "Flash Freeze",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Deal 4 damage to all enemies within 3. Freeze all enemies within 3 for 1 turn.",
+		"rules_text": "Deal 2 damage to all enemies within 3. Freeze all enemies within 3 for 1 turn.",
 		"tags": [
 			"ice"
 		],
@@ -61,7 +61,7 @@
 				"steps": [
 					{
 						"type": "damage",
-						"amount": 4
+						"amount": 2
 					},
 					{
 						"type": "apply_status",
@@ -93,7 +93,7 @@
 				{
 					"half": "bottom",
 					"field": "effect.do.steps[0].amount",
-					"value": 5
+					"value": 3
 				},
 				{
 					"half": "bottom",
@@ -258,7 +258,7 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Supercooled",
-			"description": "Supercooled: Flash Freeze shatters frozen enemies — dealing bonus damage if already frozen.",
+			"description": "Supercooled: Flash Freeze shatters frozen enemies \u2014 dealing bonus damage if already frozen.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -367,7 +367,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Absolute Devastation",
-			"description": "Absolute Devastation: Fire and ice combine — the battlefield is scorched and frozen simultaneously.",
+			"description": "Absolute Devastation: Fire and ice combine \u2014 the battlefield is scorched and frozen simultaneously.",
 			"changes": [
 				{
 					"half": "bottom",

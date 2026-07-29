@@ -133,7 +133,11 @@ public static partial class CardScriptRegistry
 
         // Swap positions of two targeted units
         // { "type": "swap_units" }
-        RegisterEffect("swap_units", _ => new SwapUnitsEffect().WithTag("Movement"));
+        RegisterEffect("swap_units", n =>
+        {
+            bool withCaster = n.TryGetProperty("with_caster", out var w) && w.GetBoolean();
+            return new SwapUnitsEffect(withCaster).WithTag("Movement");
+        });
 
         // Geas: status whose on-move punish lives in the status system
         // { "type": "geas", "duration": n }

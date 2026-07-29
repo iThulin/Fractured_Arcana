@@ -1,6 +1,6 @@
 {
 	"id": "tinker_blueprint_requisition",
-	"status": "wip",
+	"status": "ready",
 	"name": "Blueprint Requisition",
 	"school": "Tinker",
 	"rarity": "Common",
@@ -33,5 +33,148 @@
 			"type": "repair_constructs",
 			"amount": 3
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Requisition+",
+			"bottom_name": "Spare Parts+",
+			"description": "Dig deeper; repair more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.look",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Deep Requisition",
+			"description": "Dig further down the pile.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.look",
+					"value": 7
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Field Kit",
+			"description": "Patch the machines, brace yourself.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "repair_constructs",
+								"amount": 4
+							},
+							{
+								"type": "armor",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Repair all constructs you control for 4 HP. Gain 2 armor."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Priority Requisition",
+			"description": "The paperwork is free.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Machine Empathy",
+			"description": "You can hear where it hurts.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 6
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Total Requisition",
+			"description": "Take two designs from the archive.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "seek",
+						"look": 8,
+						"keep": 2,
+						"filter_tag": "construct"
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Look at the top 8 cards of your deck. Keep up to 2 construct cards; the rest go to the bottom."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Master Mechanic",
+			"description": "Everything runs, and you learn something.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "repair_constructs",
+								"amount": 8
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Repair all constructs you control for 8 HP. Draw 1 card."
+				}
+			]
+		}
+	]
 }

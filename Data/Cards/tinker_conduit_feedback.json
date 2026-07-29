@@ -8,7 +8,7 @@
 		"name": "Conduit Feedback",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal damage equal to twice the number of constructs you control (max 10).",
+		"rules_text": "Deal damage equal to three times the number of constructs you control (max 12).",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -18,8 +18,8 @@
 		},
 		"effect": {
 			"type": "damage_per_construct",
-			"amount_per": 2,
-			"max": 10
+			"amount_per": 3,
+			"max": 12
 		}
 	},
 	"bottom": {
@@ -36,5 +36,154 @@
 			"type": "etch_ward",
 			"amount": 4
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Conduit Feedback+",
+			"bottom_name": "Workshop+",
+			"description": "Feedback caps higher. The workshop etches deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.max",
+					"value": 15
+				},
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 6
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Cascade Feedback",
+			"description": "Each machine feeds more back.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.amount_per",
+					"value": 4
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Greater Workshop",
+			"description": "Deeper etching.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.amount",
+					"value": 8
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Feedback Loop",
+			"description": "The discharge pays a dividend.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage_per_construct",
+								"amount_per": 4,
+								"max": 16
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal damage equal to four times your constructs (max 16). Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Twin Workshops",
+			"description": "Two runes, two forges.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "etch_ward",
+								"amount": 6
+							},
+							{
+								"type": "etch_ward",
+								"amount": 6
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Etch TWO workshop runes on tiles within 4. The next construct deployed on each enters with +6 HP and +6 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Total Discharge",
+			"description": "The whole grid, all at once.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].amount_per",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[0].max",
+					"value": 25
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal damage equal to five times the number of constructs you control (max 25)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Grand Workshop",
+			"description": "The definitive forge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.steps[0].amount",
+					"value": 10
+				},
+				{
+					"half": "bottom",
+					"field": "effect.steps[1].amount",
+					"value": 10
+				}
+			]
+		}
+	]
 }

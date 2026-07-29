@@ -8,7 +8,7 @@
 		"name": "Eruption",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 5 damage to target. Imbue target's tile with Fire.",
+		"rules_text": "Deal 6 damage to target. Imbue target's tile with Fire.",
 		"tags": [
 			"fire"
 		],
@@ -23,7 +23,7 @@
 			"steps": [
 				{
 					"type": "damage",
-					"amount": 5
+					"amount": 6
 				},
 				{
 					"type": "imbue_tile",
@@ -77,7 +77,7 @@
 				{
 					"half": "top",
 					"field": "effect.steps[0].amount",
-					"value": 6
+					"value": 7
 				},
 				{
 					"half": "top",
@@ -110,7 +110,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Inferno",
-			"description": "Inferno: Eruption spreads fire outward — imbues target tile and adjacent ring.",
+			"description": "Inferno: Eruption spreads fire outward \u2014 imbues target tile and adjacent ring.",
 			"changes": [
 				{
 					"half": "top",

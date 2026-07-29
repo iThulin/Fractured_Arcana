@@ -101,14 +101,15 @@ public static partial class CardScriptRegistry
             return new GainChargePerKeywordEffect(mult).WithTag("Charge");
         });
 
-        // Grant armor/shield per spell cast this turn
-        // { "type": "move_per_spell_cast", "max": n, "armor_per": n, "shield_per": n }
+        // Movement + armor/shield/charge per spell cast this turn (Arcane Drift)
+        // { "type": "move_per_spell_cast", "max": n, "armor_per": n, "shield_per": n, "charge_per": n }
         RegisterEffect("move_per_spell_cast", n =>
         {
             int max = n.TryGetProperty("max", out var mx) ? mx.GetInt32() : 4;
             int armorPer = n.TryGetProperty("armor_per", out var a) ? a.GetInt32() : 0;
             int shieldPer = n.TryGetProperty("shield_per", out var sh) ? sh.GetInt32() : 0;
-            return new MovePerSpellCastEffect(max, armorPer, shieldPer).WithTag("Movement");
+            int chargePer = n.TryGetProperty("charge_per", out var cp) ? cp.GetInt32() : 0;
+            return new MovePerSpellCastEffect(max, armorPer, shieldPer, chargePer).WithTag("Movement");
         });
 
         // Spend charge, deal flat damage, exile on lethal
