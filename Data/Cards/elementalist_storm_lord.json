@@ -159,7 +159,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 6 damage in cone. Push 2 (collision 5). Slow. Imbue tiles with Storm."
+					"value": "Deal 6 damage in cone. Push 2 (collisions deal 5 damage). They are Slowed for 1 turn. Imbue tiles with Storm."
 				}
 			]
 		},
@@ -167,7 +167,7 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Vortex",
-			"description": "Vortex: Eye of the Storm pulls then repels — enemies are first pulled in then blasted out.",
+			"description": "Vortex: Eye of the Storm pulls then repels \u2014 enemies are first pulled in then blasted out.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -259,7 +259,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage in wide cone. Push 3 (collision 5). Slow. Imbue tiles with Storm."
+					"value": "Deal 7 damage in wide cone. Push 3 (collisions deal 5 damage). They are Slowed for 1 turn. Imbue tiles with Storm."
 				}
 			]
 		},
@@ -364,7 +364,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 9 damage in wide cone. Push 3 (collision 6). Stun 1 turn. Imbue tiles with Storm."
+					"value": "Deal 9 damage in wide cone. Push 3 (collisions deal 6 damage). They are Stunned for 1 turn. Imbue tiles with Storm."
 				}
 			]
 		},

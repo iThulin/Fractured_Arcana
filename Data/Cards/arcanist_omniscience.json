@@ -24,7 +24,7 @@
 		"name": "Arcane Apotheosis",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Permanent: gain +1 charge per spell cast. Your Replicate copies also copy the bottom half. Spells that cost 3+ gain Reflex speed.",
+		"rules_text": "For the rest of the fight: gain +1 Charge per spell cast. Your Replicate copies also copy the bottom half. Spells that cost 3+ gain Reflex speed.",
 		"tags": [
 			"arcane"
 		],
@@ -64,7 +64,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Permanent: +1 charge per spell cast. Replicate copies the bottom half too. Spells costing 2+ gain Reflex speed."
+					"value": "For the rest of the fight: +1 Charge per spell cast. Replicate copies the bottom half too. Spells costing 2+ gain Reflex speed."
 				}
 			]
 		},
@@ -100,7 +100,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Permanent: +2 charge per spell cast. Replicate copies the bottom half too. Spells costing 2+ gain Reflex speed."
+					"value": "For the rest of the fight: +2 Charge per spell cast. Replicate copies the bottom half too. Spells costing 2+ gain Reflex speed."
 				}
 			]
 		},
@@ -130,7 +130,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 5 charge. Draw your entire deck. This turn, all spells cost 0. End of turn: discard hand, exile 1 random card from discard."
+					"value": "Gain 5 Charge. Draw your entire deck. This turn, all spells cost 0. End of turn: discard hand, exile 1 random card from discard."
 				}
 			]
 		},
@@ -148,7 +148,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Permanent: +2 charge per spell cast. Replicate copies the bottom half too. ALL your spells gain Reflex speed."
+					"value": "For the rest of the fight: +2 Charge per spell cast. Replicate copies the bottom half too. All your spells gain Reflex speed."
 				}
 			]
 		},
@@ -178,7 +178,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 6 charge. Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand (no exile)."
+					"value": "Gain 6 Charge. Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand (no exile)."
 				}
 			]
 		},
@@ -202,7 +202,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Permanent: +2 charge per spell cast. Replicate copies both halves. All spells gain Reflex speed. Your first spell each turn is free."
+					"value": "For the rest of the fight: +2 Charge per spell cast. Replicate copies both halves. All spells gain Reflex speed. Your first spell each turn is free."
 				}
 			]
 		}

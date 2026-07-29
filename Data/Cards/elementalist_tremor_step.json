@@ -8,7 +8,7 @@
 		"name": "Tremor Step",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Move 2. Imbue tiles with Stone. Gain 3 armor per tile moved.",
+		"rules_text": "Move 2 tiles. Imbue tiles with Stone. Gain 3 armor per tile moved.",
 		"tags": [
 			"earth"
 		],
@@ -72,7 +72,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Move 2. Imbue tiles with Stone. Gain 4 armor per tile moved."
+					"value": "Move 2 tiles. Imbue tiles with Stone. Gain 4 armor per tile moved."
 				},
 				{
 					"half": "bottom",
@@ -90,7 +90,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Seismic",
-			"description": "Seismic: Tremor Step shakes the ground — enemies adjacent to stone tiles you imbue take 3 damage.",
+			"description": "Seismic: Tremor Step shakes the ground \u2014 enemies adjacent to stone tiles you imbue take 3 damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -211,7 +211,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Move 3. Imbue path with Stone. On arrival, push enemies within 2 outward (collision 3) and deal 3 damage."
+					"value": "Move 3. Imbue path with Stone. On arrival, push enemies within 2 outward (collisions deal 3 damage) and deal 3 damage."
 				}
 			]
 		},
@@ -255,7 +255,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 5 damage to all enemies within 2. Imbue tiles with Storm. Stun for 1 turn."
+					"value": "Deal 5 damage to all enemies within 2. Imbue tiles with Storm. They are Stunned for 1 turn."
 				}
 			]
 		},
@@ -263,7 +263,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Earthquake",
-			"description": "Earthquake: The ground buckles — all enemies on stone tiles take 8 damage.",
+			"description": "Earthquake: The ground buckles \u2014 all enemies on stone tiles take 8 damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -314,7 +314,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Tempest Stride",
-			"description": "Tempest Stride: Both halves fuse — move through enemies, dealing storm damage to all in range.",
+			"description": "Tempest Stride: Both halves fuse \u2014 move through enemies, dealing storm damage to all in range.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -365,7 +365,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage to enemies within 2. Imbue tiles with Storm. Stun for 1. Gain 8 armor."
+					"value": "Deal 6 damage to enemies within 2. Imbue their tiles with Storm. They are Stunned for 1 turn. Gain 8 armor."
 				}
 			]
 		}

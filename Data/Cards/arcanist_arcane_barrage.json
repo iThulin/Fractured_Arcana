@@ -8,7 +8,7 @@
 		"name": "Arcane Barrage",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Spend all charge (min 1). Deal 4 damage per charge spent, split freely among enemies in range.",
+		"rules_text": "Spend all Charge (min 1). Deal 4 damage per Charge spent, split freely among enemies in range.",
 		"tags": [
 			"arcane"
 		],
@@ -30,7 +30,7 @@
 		"name": "Power Siphon",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 5 damage. Steal 1 mana from the target. Gain 1 charge.",
+		"rules_text": "Deal 5 damage. Steal 1 mana from the target. Gain 1 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -74,7 +74,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend all charge (min 1). Deal 5 damage per charge, split freely among enemies in range."
+					"value": "Spend all Charge (min 1). Deal 5 damage per Charge, split freely among enemies in range."
 				},
 				{
 					"half": "bottom",
@@ -84,7 +84,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Steal 1 mana. Gain 1 charge."
+					"value": "Deal 7 damage. Steal 1 mana. Gain 1 Charge."
 				}
 			]
 		},
@@ -102,7 +102,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend all but 2 charge (min 1). Deal 5 damage per charge, split among enemies."
+					"value": "Spend all but 2 Charge (min 1). Deal 5 damage per Charge, split among enemies."
 				}
 			]
 		},
@@ -120,7 +120,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Steal 2 mana. Gain 1 charge."
+					"value": "Deal 7 damage. Steal 2 mana. Gain 1 Charge."
 				}
 			]
 		},
@@ -138,7 +138,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend all but 2 charge (min 1). Deal 6 damage per charge, split among enemies."
+					"value": "Spend all but 2 Charge (min 1). Deal 6 damage per Charge, split among enemies."
 				}
 			]
 		},
@@ -172,7 +172,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Steal 2 mana. Gain 2 charge."
+					"value": "Deal 7 damage. Steal 2 mana. Gain 2 Charge."
 				}
 			]
 		},
@@ -195,7 +195,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend all charge (min 1). Deal 7 damage per charge, split freely among enemies in range."
+					"value": "Spend all Charge (min 1). Deal 7 damage per Charge, split freely among enemies in range."
 				}
 			]
 		},
@@ -233,7 +233,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 9 damage. Steal 2 mana. Gain 2 charge. Heal for half the damage dealt."
+					"value": "Deal 9 damage. Steal 2 mana. Gain 2 Charge. Heal for half the damage dealt."
 				}
 			]
 		}

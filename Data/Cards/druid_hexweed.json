@@ -8,7 +8,7 @@
 		"name": "Hexweed",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Weaken target for 2 turns and seed growth beneath it. Gain 1 Wilding.",
+		"rules_text": "Seed growth beneath target enemy. It is Weakened for 2 turns. Gain 1 Wilding.",
 		"tags": [
 			"growth"
 		],
@@ -39,7 +39,7 @@
 		"name": "Wither",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Poison target enemy for 2 turns.",
+		"rules_text": "Target enemy is Poisoned for 2 turns.",
 		"tags": [
 			"growth"
 		],
@@ -69,7 +69,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Weaken target for 3 turns and seed growth beneath it. Gain 1 Wilding."
+					"value": "Target enemy is Weakened for 3 turns and seed growth beneath it. Gain 1 Wilding."
 				},
 				{
 					"half": "bottom",
@@ -79,7 +79,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Poison target enemy for 3 turns."
+					"value": "Target enemy is Poisoned for 3 turns."
 				}
 			],
 			"top_name": "Hexweed+",
@@ -98,7 +98,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Weaken target for 3 turns and seed growth beneath it and its ring. Gain 1 Wilding."
+					"value": "Target enemy is Weakened for 3 turns and seed growth beneath it and its ring. Gain 1 Wilding."
 				}
 			],
 			"top_name": "Creeping Hex"
@@ -130,7 +130,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Poison target for 3 turns and weaken for 2."
+					"value": "Target enemy is Poisoned for 3 turns and weaken for 2."
 				}
 			],
 			"bottom_name": "Blight"
@@ -168,7 +168,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Weaken 3, seed Thicket nearby, root foes on it. Gain 1 Wilding."
+					"value": "Target is Weakened for 3 turns. Seed a Thicket nearby. Enemies on it are Rooted for 1 turn. Gain 1 Wilding."
 				}
 			],
 			"top_name": "Throttlevine"
@@ -208,7 +208,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Poison target 3 turns; adjacent enemies poisoned 2."
+					"value": "Target enemy is Poisoned for 3 turns. Adjacent enemies Poisoned 2."
 				}
 			],
 			"bottom_name": "Contagion"
@@ -246,7 +246,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Weaken 4, seed Thicket, root foes within 2 for 2. Gain 2 Wilding."
+					"value": "Target is Weakened for 4 turns. Seed a Thicket. Enemies within 2 are Rooted for 2 turns. Gain 2 Wilding."
 				}
 			],
 			"top_name": "Strangleroot"
@@ -286,7 +286,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Poison target 4; all enemies within 2 poisoned 3."
+					"value": "Target is Poisoned for 4 turns. All enemies within 2 are Poisoned for 3 turns."
 				}
 			],
 			"bottom_name": "Plague"

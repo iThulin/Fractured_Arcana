@@ -94,7 +94,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Reveal ALL enemy intent. Gain 2 Foresight. Draw a card."
+					"value": "Reveal all enemy intent. Gain 2 Foresight. Draw 1 card."
 				}
 			]
 		},
@@ -124,7 +124,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When you would be hit: gain 8 shield; the attacker takes 3."
+					"value": "When you would be hit: gain 8 shield. The attacker takes 3."
 				}
 			]
 		},
@@ -137,7 +137,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Reveal all enemy intent; postpone one revealed action 1 turn. Gain 2 Foresight, draw 1."
+					"value": "Reveal all enemy intent. Postpone one revealed action 1 turn. Gain 2 Foresight, draw 1 card."
 				}
 			]
 		},
@@ -155,7 +155,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When you would be hit: gain 10 shield; the first time it breaks, re-apply 10. Attackers take 3."
+					"value": "When you would be hit: gain 10 shield. The first time it breaks, re-apply 10. Attackers take 3."
 				}
 			]
 		},
@@ -188,7 +188,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Reveal all enemy intent; redirect one revealed action to a target you choose. +2 Foresight."
+					"value": "Reveal all enemy intent. Redirect one revealed action to a target you choose. Gain 2 Foresight."
 				}
 			]
 		},

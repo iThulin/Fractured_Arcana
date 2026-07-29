@@ -8,7 +8,7 @@
 		"name": "Overclock",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "A construct you control within range 3 acts twice this turn and gains 2 Heat. At its Burnout threshold it detonates.",
+		"rules_text": "A construct you control within 3 acts twice this turn and gains 2 Heat. At its Burnout threshold it detonates.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -68,7 +68,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "A construct you control within range 3 acts twice this turn. No Heat."
+					"value": "A construct you control within 3 acts twice this turn. No Heat."
 				}
 			]
 		},
@@ -141,7 +141,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Etch TWO rune wards on tiles within 2. The next construct deployed on each enters with +5 HP and +5 damage."
+					"value": "Etch 2 rune wards on tiles within 2. The next construct deployed on each enters with +5 HP and +5 damage."
 				}
 			]
 		},

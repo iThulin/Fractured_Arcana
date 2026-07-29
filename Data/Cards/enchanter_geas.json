@@ -134,7 +134,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Compulsion for 2 turns: the enemy is rooted, and takes 8 if it casts. Gain 1 Weave."
+					"value": "Compulsion for 2 turns: the enemy is Rooted, and takes 8 if it casts. Gain 1 Weave."
 				}
 			]
 		},
@@ -201,7 +201,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Compulsion (3 turns) on all enemies within 2: rooted, and 8 damage if they cast. Gain 2 Weave."
+					"value": "Compulsion (3 turns) on all enemies within 2: Rooted, and 8 damage if they cast. Gain 2 Weave."
 				}
 			]
 		},

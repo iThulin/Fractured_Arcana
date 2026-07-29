@@ -8,7 +8,7 @@
 		"name": "Cascade Bolt",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 7 damage. Gain 1 charge. If you have 3+ charge, chain 3 damage to the nearest other enemy.",
+		"rules_text": "Deal 7 damage. Gain 1 Charge. If you have 3+ Charge, chain 3 damage to the nearest other enemy.",
 		"tags": [
 			"arcane"
 		],
@@ -56,7 +56,7 @@
 		"name": "Arcane Recall",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Spend 1 charge. Return a card from your discard to your hand.",
+		"rules_text": "Spend 1 Charge. Return a card from your discard to your hand.",
 		"tags": [
 			"arcane"
 		],
@@ -85,7 +85,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Gain 1 charge. If you have 3+ charge, chain 5 damage to the nearest other enemy."
+					"value": "Deal 7 damage. Gain 1 Charge. If you have 3+ Charge, chain 5 damage to the nearest other enemy."
 				},
 				{
 					"half": "bottom",
@@ -113,7 +113,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Gain 1 charge. If you have 2+ charge, chain 5 damage to the nearest other enemy."
+					"value": "Deal 7 damage. Gain 1 Charge. If you have 2+ Charge, chain 5 damage to the nearest other enemy."
 				}
 			]
 		},
@@ -179,7 +179,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Gain 1 charge. If you have 2+ charge, chain 5 damage to the 2 nearest other enemies."
+					"value": "Deal 7 damage. Gain 1 Charge. If you have 2+ Charge, chain 5 damage to the 2 nearest other enemies."
 				}
 			]
 		},
@@ -233,7 +233,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 9 damage. Gain 1 charge. If you have 2+ charge, chain 7 damage to the 2 nearest other enemies."
+					"value": "Deal 9 damage. Gain 1 Charge. If you have 2+ Charge, chain 7 damage to the 2 nearest other enemies."
 				}
 			]
 		},

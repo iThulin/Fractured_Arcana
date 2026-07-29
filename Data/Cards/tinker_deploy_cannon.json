@@ -8,7 +8,7 @@
 		"name": "Deploy Cannon",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deploy a Cannon on an empty tile within 2 (8 HP, 8 DMG, range 5). 1 turn setup before it can fire.",
+		"rules_text": "Deploy a Cannon on an empty tile within 2 (HP 8 / DMG 8 / RNG 5). 1 turn of setup before it can fire.",
 		"tags": [
 			"construct"
 		],
@@ -28,7 +28,7 @@
 		"name": "Mobile Barrier",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deploy a Barrier on an empty tile within 1 (8 HP). Blocks line of sight and movement.",
+		"rules_text": "Deploy a Barrier on an empty tile within 1 (HP 8). Blocks line of sight and movement.",
 		"tags": [],
 		"targeting": {
 			"type": "empty_tile",
@@ -138,7 +138,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deploy TWO Cannons on empty tiles within 2. 1 turn setup before they fire."
+					"value": "Deploy 2 Cannons on empty tiles within 2. 1 turn of setup before they fire."
 				}
 			]
 		},
@@ -156,7 +156,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deploy THREE Barriers on empty tiles within 1. They block line of sight and movement."
+					"value": "Deploy 3 Barriers on empty tiles within 1. They block line of sight and movement."
 				}
 			]
 		}

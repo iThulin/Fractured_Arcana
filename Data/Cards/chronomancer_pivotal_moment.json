@@ -8,7 +8,7 @@
 		"name": "Pivotal Moment",
 		"mana": 1,
 		"speed": "Instant",
-		"rules_text": "Look at the top 3 cards. Put 1 back on top; the rest go to the bottom. Gain 1 Foresight.",
+		"rules_text": "Look at the top 3 cards. Put 1 back on top. The rest go to the bottom. Gain 1 Foresight.",
 		"tags": [],
 		"targeting": {
 			"type": "self"

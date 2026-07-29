@@ -8,7 +8,7 @@
 		"name": "The Honored Dead",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Summon a Revenant Elder on target memorial (20HP 6DMG 2SPD). Spirits within range 3 gain +2 damage. On death: leaves 2 memorials and grants 2 Grief.",
+		"rules_text": "Summon a Revenant Elder on target memorial (HP 20 / DMG 6 / SPD 2). Spirits within 3 gain +2 damage. On death: leaves 2 memorials and grants 2 Grief.",
 		"tags": [
 			"spirit"
 		],
@@ -94,7 +94,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon a Revenant Elder (25HP 8DMG 2SPD). Spirits within range 3 gain +3 damage. Death: 2 memorials + 2 Grief."
+					"value": "Summon a Revenant Elder (HP 25 / DMG 8 / SPD 2). Spirits within 3 gain +3 damage. Death: 2 memorials + 2 Grief."
 				},
 				{
 					"half": "bottom",
@@ -104,7 +104,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 4 damage to all enemies per memorial. Consume all memorials. Draw 1 per memorial consumed."
+					"value": "Deal 4 damage to all enemies per memorial. Consume all memorials. Draw 1 card per memorial consumed."
 				}
 			]
 		},
@@ -122,7 +122,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon Revenant Elder (25HP 8DMG). Spirits +3 damage within range 3. Memorials protected from enemy effects. Death: 2 memorials + 2 Grief."
+					"value": "Summon Revenant Elder (HP 25 / DMG 8). Spirits +3 damage within 3. Memorials protected from enemy effects. Death: 2 memorials + 2 Grief."
 				}
 			]
 		},
@@ -158,7 +158,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 4 damage/memorial to all. Push all enemies 2 tiles from nearest memorial. Consume all: draw 1 per memorial."
+					"value": "Deal 4 damage/memorial to all. Push all enemies 2 tiles from nearest memorial. Consume all: draw 1 card per memorial."
 				}
 			]
 		},
@@ -210,7 +210,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon two Revenant Elders \u2014 one at target memorial, one at the nearest other. Spirits +3 damage. Memorials protected."
+					"value": "Summon 2 Revenant Elders \u2014 one at target memorial, one at the nearest other. Spirits +3 damage. Memorials protected."
 				}
 			]
 		},
@@ -252,7 +252,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "4 damage/memorial to all. Push 2 from memorial. Per memorial: summon Spirit (6HP 3DMG), then consume (draw 1)."
+					"value": "4 damage/memorial to all. Push 2 from memorial. Per memorial: summon Spirit (HP 6 / DMG 3), then consume (draw 1 card)."
 				}
 			]
 		},
@@ -291,7 +291,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon the Covenant Elder (25HP 8DMG). Cannot die \u2014 becomes a Strong memorial on death, rises again next turn. Spirits +3 damage. Memorials protected."
+					"value": "Summon the Covenant Elder (HP 25 / DMG 8). Cannot die \u2014 becomes a Strong memorial on death, rises again next turn. Spirits +3 damage. Memorials protected."
 				}
 			]
 		},
@@ -329,7 +329,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 4 damage/memorial to all. Push 2 from nearest memorial. Draw 1 per memorial. Strengthen all memorials instead of consuming."
+					"value": "Deal 4 damage/memorial to all. Push 2 from nearest memorial. Draw 1 card per memorial. Strengthen all memorials instead of consuming."
 				}
 			]
 		}

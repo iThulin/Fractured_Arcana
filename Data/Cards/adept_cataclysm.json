@@ -8,7 +8,7 @@
 		"name": "Cataclysm",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Deal 5 damage to ALL units within 3 tiles including allies.",
+		"rules_text": "Deal 5 damage to all units within 3 including allies.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -51,7 +51,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage to ALL units within 3 tiles, including allies."
+					"value": "Deal 5 damage to all units within 3, including allies."
 				},
 				{
 					"half": "bottom",
@@ -87,7 +87,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage to ALL units within 4 tiles, including allies."
+					"value": "Deal 5 damage to all units within 4, including allies."
 				}
 			],
 			"top_name": "Greater Cataclysm"
@@ -130,7 +130,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage to ALL units within 4 tiles, including allies."
+					"value": "Deal 7 damage to all units within 4, including allies."
 				}
 			],
 			"top_name": "Devastation"
@@ -152,7 +152,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 9 damage to ALL units within 4 tiles, including allies."
+					"value": "Deal 9 damage to all units within 4, including allies."
 				}
 			],
 			"top_name": "Worldbreaker"

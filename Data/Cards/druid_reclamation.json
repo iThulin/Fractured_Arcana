@@ -37,7 +37,7 @@
 		"name": "Harvest the Field",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Harvest living tiles within 3: heal 2 and draw 1 per tile consumed.",
+		"rules_text": "Harvest living tiles within 3: heal 2 HP and draw 1 card per tile consumed.",
 		"tags": [
 			"growth"
 		],
@@ -78,7 +78,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest within 3: heal 3 and draw 1 per tile."
+					"value": "Harvest within 3: heal 3 HP and draw 1 card per tile."
 				}
 			],
 			"top_name": "Reclamation+",
@@ -125,7 +125,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest within 4: heal 4 and draw 1 per tile."
+					"value": "Harvest within 4: heal 4 HP and draw 1 card per tile."
 				}
 			],
 			"bottom_name": "Glean"
@@ -177,7 +177,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest within 4: heal 5 and draw 1 per tile."
+					"value": "Harvest within 4: heal 5 HP and draw 1 card per tile."
 				}
 			],
 			"bottom_name": "Reap"
@@ -239,7 +239,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest within 5: heal 6 and draw 2 per tile."
+					"value": "Harvest within 5: heal 6 HP and draw 2 cards per tile."
 				}
 			],
 			"bottom_name": "Famine's End"

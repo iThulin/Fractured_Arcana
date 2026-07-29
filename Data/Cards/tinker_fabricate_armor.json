@@ -32,7 +32,7 @@
 		"name": "Salvage",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Scrap a construct you control within range 3: gain armor equal to its remaining HP and draw 1 card.",
+		"rules_text": "Scrap a construct you control within 3: gain armor equal to its remaining HP and draw 1 card.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",

@@ -8,7 +8,7 @@
 		"name": "Snare Glyph",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters, root it 1 turn and deal 4 damage.",
+		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters: it is Rooted for 1 turn and takes 4 damage.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -67,7 +67,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 3. When an enemy enters, root it 1 turn and deal 6 damage."
+					"value": "Prepare a glyph within 3. When an enemy enters, root for 1 turn and deal 6 damage."
 				},
 				{
 					"half": "bottom",
@@ -100,7 +100,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 3. When an enemy enters, deal 6 and apply Hex (weakened) for 2 turns."
+					"value": "Prepare a glyph within 3. When an enemy enters, deal 6 and apply Hex (Weakened) for 2 turns."
 				}
 			]
 		},
@@ -144,7 +144,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a reusable glyph. Each enemy entering is rooted 2 turns, takes 6, and is Hexed 2 turns."
+					"value": "Prepare a reusable glyph. Each enemy entering is Rooted for 2 turns, takes 6, and is Hexed for 2 turns."
 				}
 			]
 		},

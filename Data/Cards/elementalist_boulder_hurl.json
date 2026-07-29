@@ -8,7 +8,7 @@
 		"name": "Boulder Hurl",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 6 damage and push 2 tiles (collisions deal 4). If you stand on Stone, deal 9 instead.",
+		"rules_text": "Deal 6 damage and push 2 tiles (collisions deal 4 damage). If you stand on Stone, deal 9 instead.",
 		"tags": [
 			"earth"
 		],
@@ -232,7 +232,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Mountain Fall",
-			"description": "Mountain Fall: The boulder falls from a great height — stuns the target.",
+			"description": "Mountain Fall: The boulder falls from a great height \u2014 stuns the target.",
 			"changes": [
 				{
 					"half": "top",
@@ -273,7 +273,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 13 damage, push 3, stun 1 turn. Adjacent enemies take 5 splash damage."
+					"value": "Deal 13 damage, push 3, stun for 1 turn. Adjacent enemies take 5 splash damage."
 				}
 			]
 		},

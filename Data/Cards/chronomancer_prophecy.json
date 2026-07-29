@@ -8,7 +8,7 @@
 		"name": "Written in the Stars",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Schedule: end of your 2nd turn from now, deal 14 to all enemies. Spend 1 Foresight to Fast-Forward.",
+		"rules_text": "Schedule: at the end of your 2nd turn from now, deal 14 damage to all enemies. Spend 1 Foresight to Fast-Forward.",
 		"tags": [
 			"temporal"
 		],
@@ -29,7 +29,7 @@
 		"name": "Borrowed Future",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Look at top 4; set 2 aside. Next turn they're in hand and cost 1 less.",
+		"rules_text": "Look at the top 4 cards. Set 2 aside. Next turn they're in hand and cost 1 less.",
 		"tags": [
 			"temporal"
 		],
@@ -69,7 +69,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Look at top 5; set 2 aside. Next turn in hand, cost 1 less."
+					"value": "Look at the top 5 cards. Set 2 aside. Next turn in hand, cost 1 less."
 				}
 			]
 		},
@@ -105,7 +105,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Look at top 5; set 3 aside. Next turn in hand, cost 1 less."
+					"value": "Look at the top 5 cards. Set 3 aside. Next turn in hand, cost 1 less."
 				}
 			]
 		},
@@ -167,7 +167,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Look at top 5; set 3 aside. Next turn in hand, cost 2 less."
+					"value": "Look at the top 5 cards. Set 3 aside. Next turn in hand, cost 2 less."
 				}
 			]
 		},
@@ -185,7 +185,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "End of next turn: 22 +3 per Foresight, to all enemies. Burn (2) meanwhile. Fast-Forward for 1 Foresight."
+					"value": "End of next turn: 22 +3 per Foresight, to all enemies. Burned for 2 turns meanwhile. Fast-Forward for 1 Foresight."
 				}
 			]
 		},
@@ -217,7 +217,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Look at top 6; set 3 aside (cost 2 less next turn). Gain 1 Foresight."
+					"value": "Look at the top 6 cards. Set 3 aside (cost 2 less next turn). Gain 1 Foresight."
 				}
 			]
 		}

@@ -27,7 +27,7 @@
 		"name": "Slow Field",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Apply Temporal Drag to enemies within 1: half movement, spells cost +1.",
+		"rules_text": "Enemies within 1 suffer Temporal Drag: half movement, spells cost 1 more.",
 		"tags": [
 			"temporal"
 		],
@@ -68,7 +68,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Apply Temporal Drag to enemies within 2."
+					"value": "Enemies within 2 suffer Temporal Drag."
 				}
 			]
 		},
@@ -99,7 +99,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Postpone target's next action 2 turns. Apply Delayed."
+					"value": "Postpone target's next action 2 turns. It is Delayed."
 				}
 			]
 		},
@@ -117,7 +117,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Apply Temporal Drag (3) to enemies within 2."
+					"value": "Enemies within 2 suffer Temporal Drag for 3 turns."
 				}
 			]
 		},
@@ -164,7 +164,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Temporal Drag (3) within 2. Enemies cannot Reflex-cast in the field."
+					"value": "Temporal Drag for 3 turns within 2. Enemies cannot Reflex-cast in the field."
 				}
 			]
 		},
@@ -216,7 +216,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Temporal Drag (3) within 3. Re-applies around you each turn."
+					"value": "Temporal Drag for 3 turns within 3. Re-applies around you each turn."
 				}
 			]
 		}

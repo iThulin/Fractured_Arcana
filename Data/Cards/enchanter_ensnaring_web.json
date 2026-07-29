@@ -8,7 +8,7 @@
 		"name": "Ensnaring Web",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Prepare a web of glyphs on a 2-tile radius within 4. Enemies that enter are slowed 1 turn. Lasts 3 turns.",
+		"rules_text": "Prepare a web of glyphs on a 2-tile radius within 4. Enemies that enter are Slowed for 1 turn. Lasts 3 turns.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -68,7 +68,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a web (radius 2) within 4. Enemies entering take 3 and are slowed 1 turn. Lasts 3 turns."
+					"value": "Prepare a web (radius 2) within 4. Enemies entering take 3 and are Slowed for 1 turn. Lasts 3 turns."
 				},
 				{
 					"half": "bottom",
@@ -96,7 +96,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a web (radius 2) within 4. Enemies entering take 3 and are rooted 1 turn. Lasts 3 turns."
+					"value": "Prepare a web (radius 2) within 4. Enemies entering take 3 and are Rooted for 1 turn. Lasts 3 turns."
 				}
 			]
 		},
@@ -140,7 +140,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a web (radius 3) within 4. Enemies entering take 5 and are rooted 1 turn. Lasts 3 turns."
+					"value": "Prepare a web (radius 3) within 4. Enemies entering take 5 and are Rooted for 1 turn. Lasts 3 turns."
 				}
 			]
 		},
@@ -158,7 +158,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Refresh all triggered glyphs; they deal +2 this turn. Draw 1 card. Gain 3 Weave."
+					"value": "Refresh all triggered glyphs. They deal +2 this turn. Draw 1 card. Gain 3 Weave."
 				}
 			]
 		},
@@ -223,7 +223,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Refresh all glyphs (+3 this turn) and trigger them all without consuming. Draw 1. Gain 3 Weave."
+					"value": "Refresh all glyphs (+3 this turn) and trigger them all without consuming. Draw 1 card. Gain 3 Weave."
 				}
 			]
 		}

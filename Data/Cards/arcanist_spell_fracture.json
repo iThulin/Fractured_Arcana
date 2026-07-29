@@ -8,7 +8,7 @@
 		"name": "Spell Fracture",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 5 damage. Gain 2 charge.",
+		"rules_text": "Deal 5 damage. Gain 2 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -37,7 +37,7 @@
 		"name": "Arcane Trap",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Create an Arcane Trap on a tile within 2. When an enemy enters, spend 1 charge to deal 7 damage.",
+		"rules_text": "Create an Arcane Trap on a tile within 2. When an enemy enters, spend 1 Charge to deal 7 damage.",
 		"tags": [
 			"arcane"
 		],
@@ -69,7 +69,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Gain 1 charge per unique keyword on this card's other half."
+					"value": "Deal 7 damage. Gain 1 Charge per unique keyword on this card's other half."
 				},
 				{
 					"half": "bottom",
@@ -79,7 +79,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create an Arcane Trap within 2. When an enemy enters, spend 1 charge to deal 9 damage."
+					"value": "Create an Arcane Trap within 2. When an enemy enters, spend 1 Charge to deal 9 damage."
 				}
 			]
 		},
@@ -97,7 +97,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Gain 1 charge per unique keyword on this card's other half and in your discard."
+					"value": "Deal 7 damage. Gain 1 Charge per unique keyword on this card's other half and in your discard."
 				}
 			]
 		},
@@ -115,7 +115,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create an Arcane Trap within 2. On enter: spend 1 charge to deal 9 damage and root."
+					"value": "Create an Arcane Trap within 2. On enter: spend 1 Charge to deal 9 damage and root."
 				}
 			]
 		},
@@ -133,7 +133,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Gain 2 charge per unique keyword on this card's other half and in your discard."
+					"value": "Deal 7 damage. Gain 2 Charge per unique keyword on this card's other half and in your discard."
 				}
 			]
 		},
@@ -151,7 +151,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create an Arcane Trap. Any enemy entering it or an adjacent tile takes 9 damage and is rooted (spend 1 charge)."
+					"value": "Create an Arcane Trap. Any enemy entering it or an adjacent tile takes 9 damage and is Rooted (spend 1 Charge)."
 				}
 			]
 		},
@@ -195,7 +195,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 9 to target and 5 to the nearest other enemy. Gain 2 charge per unique keyword (other half + discard)."
+					"value": "Deal 9 to target and 5 to the nearest other enemy. Gain 2 Charge per unique keyword (other half + discard)."
 				}
 			]
 		},
@@ -222,7 +222,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create an Arcane Trap (2-tile radius). On trigger: spend 1 charge to deal 14 and stun, then rearm."
+					"value": "Create an Arcane Trap (2-tile radius). On trigger: spend 1 Charge to deal 14 and stun, then rearm."
 				}
 			]
 		}

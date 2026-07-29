@@ -8,7 +8,7 @@
 		"name": "Dominion",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Name every enemy within 2 of the target for 1 turn (half damage, cannot move). Gain 2 Weave.",
+		"rules_text": "Every enemy within 2 of the target is Named for 1 turn (half damage, cannot move). Gain 2 Weave.",
 		"tags": [
 			"enchant"
 		],
@@ -76,7 +76,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Name every enemy within 2 of the target for 2 turns. Gain 2 Weave."
+					"value": "Every enemy within 2 of the target is Named for 2 turn. Gain 2 Weave."
 				},
 				{
 					"half": "bottom",
@@ -117,7 +117,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 and Name every enemy within 2 of the target for 2 turns. Gain 2 Weave."
+					"value": "Deal 4 and Every enemy within 2 of the target is Named for 2 turn. Gain 2 Weave."
 				}
 			]
 		},
@@ -153,7 +153,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 and Name every enemy within 3 of the target for 2 turns. Gain 2 Weave."
+					"value": "Deal 4 and Every enemy within 3 of the target is Named for 2 turn. Gain 2 Weave."
 				}
 			]
 		},
@@ -171,7 +171,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare wards (radius 2). Allies gain 6 armor, 3 shield, +2 damage, and heal 3/turn. Lasts 3 turns."
+					"value": "Prepare wards (radius 2). Allies gain 6 armor, 3 shield, +2 damage, and heal 3 per turn. Lasts 3 turns."
 				}
 			]
 		},
@@ -225,7 +225,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 to and Name EVERY enemy on the board for 3 turns. Gain 2 Weave."
+					"value": "Deal 5 damage to every enemy on the board and Name them for 3 turns. Gain 2 Weave."
 				}
 			]
 		},
@@ -253,7 +253,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare permanent wards (radius 3). Allies gain 8 armor, 6 shield, +3 damage, heal 4/turn."
+					"value": "Prepare permanent wards (radius 3). Allies gain 8 armor, 6 shield, +3 damage, heal 4 per turn."
 				}
 			]
 		}

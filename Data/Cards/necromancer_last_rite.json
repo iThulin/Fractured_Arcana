@@ -183,7 +183,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. If lethal, strike adjacent enemy for 5, root 1 turn, and leave a memorial."
+					"value": "Deal 7 damage. If lethal, strike adjacent enemy for 5, root for 1 turn, and leave a memorial."
 				}
 			]
 		},
@@ -299,7 +299,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. If lethal: strike adjacent for 5 (root 1), leave memorial, summon Spirit (8HP 4DMG)."
+					"value": "Deal 7 damage. If lethal: strike adjacent for 5 (root 1), leave memorial, summon Spirit (HP 8 / DMG 4)."
 				}
 			]
 		},
@@ -386,7 +386,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage to all enemies. Each kill: strike adjacent for 5 (root 1), leave memorial, summon Spirit (8HP 4DMG)."
+					"value": "Deal 7 damage to all enemies. Each kill: strike adjacent for 5 (root 1), leave memorial, summon Spirit (HP 8 / DMG 4)."
 				}
 			]
 		},

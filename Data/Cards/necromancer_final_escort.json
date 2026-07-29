@@ -8,7 +8,7 @@
 		"name": "Final Escort",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Summon a Spirit on target memorial within range 4 (10HP 5DMG 1SPD).",
+		"rules_text": "Summon a Spirit on target memorial within 4 (HP 10 / DMG 5 / SPD 1).",
 		"tags": [
 			"spirit"
 		],
@@ -31,7 +31,7 @@
 		"name": "Spirit Wall",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Summon a Spirit Wall on target memorial within range 4 (8HP, blocks movement).",
+		"rules_text": "Summon a Spirit Wall on target memorial within 4 (HP 8, blocks movement).",
 		"tags": [
 			"spirit"
 		],
@@ -71,7 +71,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon a Spirit on target memorial within range 4 (13HP 6DMG 1SPD)."
+					"value": "Summon a Spirit on target memorial within 4 (HP 13 / DMG 6 / SPD 1)."
 				},
 				{
 					"half": "bottom",
@@ -81,7 +81,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon a Spirit Wall on target memorial within range 4 (12HP, blocks movement)."
+					"value": "Summon a Spirit Wall on target memorial within 4 (12 HP, blocks movement)."
 				}
 			]
 		},
@@ -99,7 +99,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon a Spirit on target memorial within range 4 (13HP 6DMG 1SPD). Leaves a memorial when it falls."
+					"value": "Summon a Spirit on target memorial within 4 (HP 13 / DMG 6 / SPD 1). Leaves a memorial when it falls."
 				}
 			]
 		},
@@ -122,7 +122,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon a Spirit Wall on target memorial within range 4 (12HP, blocks movement). Enemies adjacent deal 2 less damage."
+					"value": "Summon a Spirit Wall on target memorial within 4 (12 HP, blocks movement). Enemies adjacent deal 2 less damage."
 				}
 			]
 		},
@@ -165,7 +165,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon a Spirit at target memorial (13HP 6DMG). Summon a second Spirit at the nearest other memorial (10HP 5DMG)."
+					"value": "Summon a Spirit at target memorial (HP 13 / DMG 6). Summon a second Spirit at the nearest other memorial (HP 10 / DMG 5)."
 				}
 			]
 		},
@@ -188,7 +188,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon a Spirit Wall on target memorial (12HP, blocks movement). Attackers take 4 damage and are pushed 1 tile."
+					"value": "Summon a Spirit Wall on target memorial (12 HP, blocks movement). Attackers take 4 damage and are pushed 1 tile."
 				}
 			]
 		},
@@ -224,7 +224,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon a Spirit from every memorial on the board (10HP 5DMG 1SPD each)."
+					"value": "Summon a Spirit from every memorial on the board (10 HP 5DMG 1SPD each)."
 				}
 			]
 		},
@@ -252,7 +252,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon a Spirit Wall on target memorial (20HP, blocks movement). Cannot be reduced below 1HP in a single hit. Regenerates 3HP per turn."
+					"value": "Summon a Spirit Wall on target memorial (20 HP, blocks movement). Cannot be reduced below 1 HP in a single hit. Regenerates 3 HP per turn."
 				}
 			]
 		}

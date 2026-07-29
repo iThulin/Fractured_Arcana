@@ -27,7 +27,7 @@
 		"name": "The Whole Wood Turns",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Advance living tiles within 3 of the target, root enemies there for 2 turns.",
+		"rules_text": "Advance living tiles within 3 of the target. Enemies there are Rooted for 2 turns.",
 		"tags": [
 			"growth"
 		],
@@ -113,7 +113,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 4 Wilding, force a Riot, and draw a card."
+					"value": "Gain 4 Wilding, force a Riot, and draw 1 card."
 				}
 			],
 			"top_name": "Rouse the Wild"
@@ -165,7 +165,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 4 Wilding, force a Riot, draw 2, spread Thickets within 4."
+					"value": "Gain 4 Wilding, force a Riot, draw 2 cards, spread Thickets within 4."
 				}
 			],
 			"top_name": "Frenzy"
@@ -234,7 +234,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Advance growth within 4, force a Riot, draw 2, spread within 5."
+					"value": "Advance growth within 4, force a Riot, draw 2 cards, spread within 5."
 				}
 			],
 			"top_name": "The Long Spring"

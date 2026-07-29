@@ -8,7 +8,7 @@
 		"name": "Voltaic Lattice",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deploy a Lattice Node on an empty tile within 2 (6 HP). Friendly constructs within 2 tiles gain +2 damage each round.",
+		"rules_text": "Deploy a Lattice Node on an empty tile within 2 (HP 6). Friendly constructs within 2 gain +2 damage each round.",
 		"tags": [
 			"construct"
 		],
@@ -28,7 +28,7 @@
 		"name": "Disruption Field",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Project a disruption zone (radius 2) on target tile for 3 turns: enemies inside take 3 damage and are slowed each round.",
+		"rules_text": "Project a disruption zone (radius 2) on target tile for 3 turns: enemies inside take 3 damage and are Slowed each round.",
 		"tags": [],
 		"targeting": {
 			"type": "tile",
@@ -128,7 +128,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deploy THREE Lattice Nodes on empty tiles within 2. Friendly constructs within 2 tiles of a node gain +2 damage each round."
+					"value": "Deploy 3 Lattice Nodes on empty tiles within 2. Friendly constructs within 2 of a node gain +2 damage each round."
 				}
 			]
 		},

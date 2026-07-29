@@ -27,7 +27,7 @@
 		"name": "Sigil Slide",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Move 2. Leave a glyph on your origin tile: the next ally to step on it gains 2 shield.",
+		"rules_text": "Move 2 tiles. Leave a glyph on your origin tile: the next ally to step on it gains 2 shield.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -77,7 +77,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move 2. Leave a glyph: the next ally to step on it gains 4 shield."
+					"value": "Move 2 tiles. Leave a glyph: the next ally to step on it gains 4 shield."
 				}
 			]
 		},
@@ -100,7 +100,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 3. When an enemy enters, deal 7 damage and slow them 1 turn."
+					"value": "Prepare a glyph within 3. When an enemy enters, deal 7 damage and slow for 1 turn."
 				}
 			]
 		},
@@ -118,7 +118,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move 2. Leave a glyph: the next ally to step on it gains 4 shield and +2 damage."
+					"value": "Move 2 tiles. Leave a glyph: the next ally to step on it gains 4 shield and +2 damage."
 				}
 			]
 		},
@@ -141,7 +141,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a hidden glyph within 3. When an enemy enters, deal 9 damage and slow them 1 turn."
+					"value": "Prepare a hidden glyph within 3. When an enemy enters, deal 9 damage and slow for 1 turn."
 				}
 			]
 		},
@@ -177,7 +177,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Teleport within range 4. Leave a glyph (ally: 4 shield, +2 damage). Draw 1 card."
+					"value": "Teleport within 4. Leave a glyph (ally: 4 shield, +2 damage). Draw 1 card."
 				}
 			]
 		},
@@ -242,7 +242,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Teleport within range 4. Leave a 3-turn reusable ward (allies: 6 shield, 4 armor, +2 damage). Draw 1."
+					"value": "Teleport within 4. Leave a 3-turn reusable ward (allies: 6 shield, 4 armor, +2 damage). Draw 1 card."
 				}
 			]
 		}

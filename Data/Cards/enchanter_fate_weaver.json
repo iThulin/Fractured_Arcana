@@ -8,7 +8,7 @@
 		"name": "Fate Weaver",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Prepare a glyph within 4. Whenever any spell is cast within 3 tiles of it, draw 1 card. Lasts 3 turns.",
+		"rules_text": "Prepare a glyph within 4. Whenever any spell is cast within 3 of it, draw 1 card. Lasts 3 turns.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -62,7 +62,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 4. When any spell is cast within 3 of it, draw 1 and gain 1 mana. Lasts 3 turns."
+					"value": "Prepare a glyph within 4. When any spell is cast within 3 of it, draw 1 card and gain 1 mana. Lasts 3 turns."
 				},
 				{
 					"half": "bottom",
@@ -90,7 +90,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 4. When any spell casts within 3, draw 1, gain 1 mana, gain 1 Weave. Lasts 3 turns."
+					"value": "Prepare a glyph within 4. When any spell casts within 3, draw 1 card, gain 1 mana, gain 1 Weave. Lasts 3 turns."
 				}
 			]
 		},
@@ -136,7 +136,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a permanent glyph. When any spell casts within 4, draw 1, gain 1 mana, gain 1 Weave."
+					"value": "Prepare a permanent glyph. When any spell casts within 4, draw 1 card, gain 1 mana, gain 1 Weave."
 				}
 			]
 		},
@@ -182,7 +182,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Permanent glyph. When any spell casts within 4: draw 1, gain 1 mana, 1 Weave, and spawn a 3-damage glyph nearby."
+					"value": "Permanent glyph. When any spell casts within 4: draw 1 card, gain 1 mana, 1 Weave, and spawn a 3-damage glyph nearby."
 				}
 			]
 		},

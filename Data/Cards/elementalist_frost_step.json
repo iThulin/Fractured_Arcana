@@ -8,7 +8,7 @@
 		"name": "Frost Step",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Move 2. Imbue tiles with Ice. Gain 2 armor per tile.",
+		"rules_text": "Move 2 tiles. Imbue tiles with Ice. Gain 2 armor per tile.",
 		"tags": [
 			"ice"
 		],
@@ -26,7 +26,7 @@
 		"name": "Updraft",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Push target enemy 2 tiles. If they collide deal 5.",
+		"rules_text": "Push target enemy 2 tiles. Collisions deal 5 damage.",
 		"tags": [
 			"storm"
 		],
@@ -78,7 +78,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Push target enemy 3 tiles. If they collide deal 6."
+					"value": "Push target enemy 3 tiles. Collisions deal 6 damage."
 				}
 			]
 		},
@@ -131,7 +131,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Push all enemies within 2 tiles outward. Collision: 4 damage."
+					"value": "Push all enemies within 2 outward. Collision: 4 damage."
 				}
 			]
 		},
@@ -224,7 +224,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Push all enemies within 2 outward. Slow adjacent enemies."
+					"value": "Push all enemies within 2 outward. Adjacent enemies are Slowed for 1 turn."
 				}
 			]
 		},
@@ -336,7 +336,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Push all enemies within 3, three tiles outward. Stun enemies within 2."
+					"value": "Push all enemies within 3 by 3 tiles outward. Enemies within 2 are Stunned for 1 turn."
 				}
 			]
 		}

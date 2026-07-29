@@ -8,7 +8,7 @@
 		"name": "Hex Mark",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Apply Hex to an enemy (weakened, -damage) for 2 turns. Gain 1 Weave.",
+		"rules_text": "Target enemy is Hexed (Weakened, -damage) for 2 turns. Gain 1 Weave.",
 		"tags": [
 			"enchant"
 		],
@@ -69,7 +69,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Apply Hex to an enemy for 3 turns. Gain 1 Weave."
+					"value": "Target enemy is Hexed for 3 turns. Gain 1 Weave."
 				},
 				{
 					"half": "bottom",
@@ -238,7 +238,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 and Name an enemy (half damage, cannot move) for 2 turns. Gain 2 Weave."
+					"value": "Deal 5 damage. Name an enemy for 2 turns (half damage, cannot move). Gain 2 Weave."
 				}
 			]
 		},

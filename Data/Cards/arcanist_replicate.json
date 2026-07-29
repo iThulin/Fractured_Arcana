@@ -96,7 +96,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Copy the last spell you cast (keeping buffs) and cast it with new targets. Gain 1 charge. Costs 0."
+					"value": "Copy the last spell you cast (keeping buffs) and cast it with new targets. Gain 1 Charge. Costs 0."
 				}
 			]
 		},
@@ -155,7 +155,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Copy each of the last 2 spells you cast this turn (keeping buffs) and recast them with new targets. Gain 1 charge. Costs 0."
+					"value": "Copy each of the last 2 spells you cast this turn (keeping buffs) and recast them with new targets. Gain 1 Charge. Costs 0."
 				}
 			]
 		},
@@ -191,7 +191,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Copy the last 2 spells you cast (both halves, keeping buffs) and recast with new targets. Gain 1 charge. Costs 0."
+					"value": "Copy the last 2 spells you cast (both halves, keeping buffs) and recast with new targets. Gain 1 Charge. Costs 0."
 				}
 			]
 		},
@@ -227,7 +227,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 4 damage per spell cast this turn to ALL enemies. Minimum 2."
+					"value": "Deal 4 damage per spell cast this turn to all enemies. Minimum 2."
 				}
 			]
 		}

@@ -8,7 +8,7 @@
 		"name": "Unfinished Business",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Immobilize target enemy for 1 turn. Requires a memorial or spirit within 2 tiles of the target.",
+		"rules_text": "Immobilize target enemy for 1 turn. Requires a memorial or spirit within 2 of the target.",
 		"tags": [
 			"spirit"
 		],
@@ -64,7 +64,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Immobilize target enemy for 2 turns. Requires a memorial or spirit within 2 tiles of the target."
+					"value": "Immobilize target enemy for 2 turns. Requires a memorial or spirit within 2 of the target."
 				},
 				{
 					"half": "bottom",
@@ -106,7 +106,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Immobilize target for 2 turns. Apply Haunted (3 damage/turn) for 2 turns."
+					"value": "Immobilize target for 2 turns. The target is Haunted (3 damage/turn) for 2 turns."
 				}
 			]
 		},
@@ -127,7 +127,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Pull target enemy onto the nearest memorial tile within range 6."
+					"value": "Pull target enemy onto the nearest memorial tile within 6."
 				}
 			]
 		},
@@ -163,7 +163,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Immobilize 2 turns. Haunted 2 turns. If target dies while affected, leaves a Strong memorial."
+					"value": "Immobilize 2 turns. Haunted for 2 turns. If target dies while affected, leaves a Strong memorial."
 				}
 			]
 		},
@@ -192,7 +192,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Pull all enemies within range 3 one tile toward the nearest memorial."
+					"value": "Pull all enemies within 3 one tile toward the nearest memorial."
 				}
 			]
 		},
@@ -233,7 +233,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Bind target until your next turn — cannot act or be freed. Haunted 2 turns. Leaves a Strong memorial on death."
+					"value": "Bind target until your next turn \u2014 cannot act or be freed. Haunted for 2 turns. Leaves a Strong memorial on death."
 				}
 			]
 		},

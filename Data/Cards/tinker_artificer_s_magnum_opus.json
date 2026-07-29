@@ -8,7 +8,7 @@
 		"name": "Artificer's Magnum Opus",
 		"mana": 5,
 		"speed": "Studied",
-		"rules_text": "Deploy the Arcanomechanical Colossus on an empty tile within 2 (40 HP, 13 DMG, 2 SPD, range 3). Each activation it fabricates a free Drone; when destroyed it detonates for 6 damage to adjacent enemies.",
+		"rules_text": "Deploy the Arcanomechanical Colossus on an empty tile within 2 (HP 40 / DMG 13 / SPD 2 / RNG 3). Each activation it fabricates a free Drone. When destroyed it detonates for 6 damage to adjacent enemies.",
 		"tags": [
 			"construct"
 		],
@@ -125,7 +125,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Every ready construct you control immediately fires TWICE at the nearest enemy within its range."
+					"value": "Every ready construct you control immediately fires twice at the nearest enemy within its range."
 				}
 			]
 		},

@@ -22,7 +22,7 @@
 		"name": "Farsight",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 1 mana. Draw a card.",
+		"rules_text": "Gain 1 mana. Draw 1 card.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -89,7 +89,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 1 mana. Draw a card."
+					"value": "Gain 1 mana. Draw 1 card."
 				}
 			],
 			"top_name": "Arcane Sight+",
@@ -149,7 +149,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 2 mana. Draw a card."
+					"value": "Gain 2 mana. Draw 1 card."
 				}
 			],
 			"bottom_name": "Deep Sight"

@@ -80,7 +80,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Draw a card. Gain 1 mana."
+					"value": "Draw 1 card. Gain 1 mana."
 				}
 			],
 			"top_name": "Reserve+",
@@ -183,7 +183,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 4 mana. Draw a card."
+					"value": "Gain 4 mana. Draw 1 card."
 				}
 			],
 			"top_name": "Boundless Reserve"

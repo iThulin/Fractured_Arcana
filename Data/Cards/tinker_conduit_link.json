@@ -8,7 +8,7 @@
 		"name": "Conduit Link",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Forge a Conduit Link between you and a construct within range 4. While both endpoints live, damage either one takes is split evenly between them.",
+		"rules_text": "Forge a Conduit Link between you and a construct within 4. While both endpoints live, damage either one takes is split evenly between them.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",

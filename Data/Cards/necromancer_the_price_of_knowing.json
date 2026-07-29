@@ -37,7 +37,7 @@
 		"name": "Grave Road",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Move 2 tiles. If you end on a memorial tile, draw a card.",
+		"rules_text": "Move 2 tiles. If you end on a memorial tile, draw 1 card.",
 		"tags": [
 			"necrotic"
 		],
@@ -89,7 +89,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move 3 tiles. If you end on a memorial tile, draw a card."
+					"value": "Move 3 tiles. If you end on a memorial tile, draw 1 card."
 				}
 			]
 		},

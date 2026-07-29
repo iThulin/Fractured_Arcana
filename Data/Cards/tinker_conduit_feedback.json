@@ -8,7 +8,7 @@
 		"name": "Conduit Feedback",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal damage equal to three times the number of constructs you control (max 12).",
+		"rules_text": "Deal damage equal to 3 times the number of constructs you control (max 12).",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -110,7 +110,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal damage equal to four times your constructs (max 16). Draw 1 card."
+					"value": "Deal damage equal to 4 times your constructs (max 16). Draw 1 card."
 				}
 			]
 		},
@@ -140,7 +140,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Etch TWO workshop runes on tiles within 4. The next construct deployed on each enters with +6 HP and +6 damage."
+					"value": "Etch 2 workshop runes on tiles within 4. The next construct deployed on each enters with +6 HP and +6 damage."
 				}
 			]
 		},
@@ -163,7 +163,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal damage equal to five times the number of constructs you control (max 25)."
+					"value": "Deal damage equal to 5 times the number of constructs you control (max 25)."
 				}
 			]
 		},

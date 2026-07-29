@@ -8,7 +8,7 @@
 		"name": "Spell Prism",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Create a Prism on a tile within 2 (8 HP). When a spell passes through its line of sight it splits: resolve once on the original target and once on the nearest enemy within 2 of the Prism.",
+		"rules_text": "Create a Prism on a tile within 2 (HP 8). When a spell passes through its line of sight it splits: resolve once on the original target and once on the nearest enemy within 2 of the Prism.",
 		"tags": [
 			"arcane"
 		],
@@ -27,7 +27,7 @@
 		"name": "Charged Conduit",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Imbue a tile: the next spell cast from this tile gains +2 damage per charge you have, then consumes all charge.",
+		"rules_text": "Imbue a tile: the next spell cast from this tile gains +2 damage per Charge you have, then consumes all Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -62,7 +62,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Prism within 2 (12 HP). Spells passing through it split to the nearest enemy within 3."
+					"value": "Create a Prism within 2 (HP 12). Spells passing through it split to the nearest enemy within 3."
 				},
 				{
 					"half": "bottom",
@@ -72,7 +72,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue a tile: the next spell cast from it gains +3 damage per charge, then consumes all charge."
+					"value": "Imbue a tile: the next spell cast from it gains +3 damage per Charge, then consumes all Charge."
 				}
 			]
 		},
@@ -90,7 +90,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Prism within 2 (12 HP). Spells passing through it copy at full damage to the nearest enemy within 3."
+					"value": "Create a Prism within 2 (HP 12). Spells passing through it copy at full damage to the nearest enemy within 3."
 				}
 			]
 		},
@@ -108,7 +108,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue a tile: the next spell from it gains +3 per charge, then consumes half your charge (round up)."
+					"value": "Imbue a tile: the next spell from it gains +3 per Charge, then consumes half your Charge (round up)."
 				}
 			]
 		},
@@ -126,7 +126,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Prism within 2 (12 HP). Spells passing through copy at full damage to the 2 nearest enemies within 3."
+					"value": "Create a Prism within 2 (HP 12). Spells passing through copy at full damage to the 2 nearest enemies within 3."
 				}
 			]
 		},
@@ -144,7 +144,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue a tile: next spell from it gains +3 per charge, consumes half (round up), then refunds half of that."
+					"value": "Imbue a tile: next spell from it gains +3 per Charge, consumes half (round up), then refunds half of that."
 				}
 			]
 		},
@@ -169,7 +169,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Prism within 2 (20 HP). Spells passing through copy at full damage to ALL enemies within 3."
+					"value": "Create a Prism within 2 (HP 20). Spells passing through copy at full damage to all enemies within 3."
 				}
 			]
 		},
@@ -193,7 +193,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue a tile: next spell from it gains +4 per charge, consumes half your charge, then refunds all of that."
+					"value": "Imbue a tile: next spell from it gains +4 per Charge, consumes half your Charge, then refunds all of that."
 				}
 			]
 		}

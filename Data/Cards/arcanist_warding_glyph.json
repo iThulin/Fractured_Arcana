@@ -8,7 +8,7 @@
 		"name": "Warding Glyph",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 4 shield. Gain 1 charge.",
+		"rules_text": "Gain 4 shield. Gain 1 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -79,7 +79,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 6 shield. Gain 1 charge."
+					"value": "Gain 6 shield. Gain 1 Charge."
 				},
 				{
 					"half": "bottom",
@@ -107,7 +107,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 6 shield (becomes armor at end of turn). Gain 1 charge."
+					"value": "Gain 6 shield (becomes armor at end of turn). Gain 1 Charge."
 				}
 			]
 		},
@@ -169,7 +169,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 6 shield (becomes armor). Grant 4 armor to nearest ally. Gain 1 charge."
+					"value": "Gain 6 shield (becomes armor). Grant 4 armor to nearest ally. Gain 1 Charge."
 				}
 			]
 		},
@@ -243,7 +243,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 9 shield (becomes armor). Grant 4 armor to all allies within 2. Gain 2 charge."
+					"value": "Gain 9 shield (becomes armor). Grant 4 armor to all allies within 2. Gain 2 Charge."
 				}
 			]
 		},

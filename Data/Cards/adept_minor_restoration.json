@@ -8,7 +8,7 @@
 		"name": "Minor Restoration",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Heal target self or ally for 4 HP.",
+		"rules_text": "Heal yourself or an ally 4 HP.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -54,7 +54,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Heal self or ally for 6 HP."
+					"value": "Heal yourself or an ally 6 HP."
 				},
 				{
 					"half": "bottom",
@@ -97,7 +97,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Heal self or ally for 8 HP."
+					"value": "Heal yourself or an ally 8 HP."
 				}
 			],
 			"top_name": "Restoration"
@@ -157,7 +157,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Heal self or ally within 4 tiles for 9 HP."
+					"value": "Heal yourself or an ally within 4 9 HP."
 				}
 			],
 			"top_name": "Greater Restoration"
@@ -186,7 +186,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Heal self or ally for 12 HP and cleanse their negative statuses."
+					"value": "Heal yourself or an ally 12 HP and cleanse their negative statuses."
 				}
 			],
 			"top_name": "Full Mending"

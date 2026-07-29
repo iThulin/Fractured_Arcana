@@ -8,7 +8,7 @@
 		"name": "Flare",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 3 damage. Apply Blinded for 1 turn.",
+		"rules_text": "Deal 3 damage. The target is Blinded for 1 turn.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -71,7 +71,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 damage. Apply Blinded for 1 turn."
+					"value": "Deal 4 damage. The target is Blinded for 1 turn."
 				},
 				{
 					"half": "bottom",
@@ -92,7 +92,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Reveal every enemy. Draw a card."
+					"value": "Reveal every enemy. Draw 1 card."
 				}
 			],
 			"top_name": "Flare+",
@@ -124,7 +124,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 damage. Apply Blinded for 2 turns."
+					"value": "Deal 4 damage. The target is Blinded for 2 turns."
 				}
 			],
 			"top_name": "Burning Flare"
@@ -157,7 +157,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Reveal every enemy. Draw a card and gain 1 mana."
+					"value": "Reveal every enemy. Draw 1 card and gain 1 mana."
 				}
 			],
 			"bottom_name": "Full Accounting"
@@ -193,7 +193,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage. Blind and Weaken the target for 1 turn."
+					"value": "Deal 5 damage. The target is Blinded and Weakened for 1 turn."
 				}
 			],
 			"top_name": "Dazzling Flare"
@@ -224,7 +224,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Apply Blinded for 2 turns."
+					"value": "Deal 7 damage. The target is Blinded for 2 turns."
 				}
 			],
 			"top_name": "Solar Flare"

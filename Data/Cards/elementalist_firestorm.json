@@ -42,7 +42,7 @@
 		"name": "Flash Freeze",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Deal 2 damage to all enemies within 3. Freeze all enemies within 3 for 1 turn.",
+		"rules_text": "Deal 2 damage to all enemies within 3. All enemies within 3 are Frozen for 1 turn.",
 		"tags": [
 			"ice"
 		],
@@ -103,7 +103,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 5 damage to all enemies within 3. Freeze for 2 turns."
+					"value": "Deal 5 damage to all enemies within 3. They are Frozen for 2 turns."
 				}
 			]
 		},
@@ -152,7 +152,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 6 damage to all within 3. Apply Burn (2). Imbue all tiles within 3 with Fire."
+					"value": "Deal 6 damage to all enemies within 3. They are Burned for 2 turns. Imbue all tiles within 3 with Fire."
 				}
 			]
 		},
@@ -201,7 +201,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 5 damage to all within 3. Freeze 2 turns. Imbue all tiles within 3 with Ice."
+					"value": "Deal 5 damage to all within 3. They are Frozen for 2 turns. Imbue all tiles within 3 with Ice."
 				}
 			]
 		},
@@ -250,7 +250,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage to all within 4. Burn (2). Imbue all tiles within 4 with Fire."
+					"value": "Deal 7 damage to all within 4. Burned for 2 turns. Imbue all tiles within 4 with Fire."
 				}
 			]
 		},
@@ -310,7 +310,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 5 damage (12 if already frozen) to all within 3. Freeze 2 turns. Imbue tiles with Ice."
+					"value": "Deal 5 damage (12 if already Frozen) to all within 3. They are Frozen for 2 turns. Imbue tiles with Ice."
 				}
 			]
 		},
@@ -359,7 +359,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 8 damage to ALL enemies. Burn (3). Imbue every tile within 6 with Fire."
+					"value": "Deal 8 damage to all enemies. Burned for 3 turns. Imbue every tile within 6 with Fire."
 				}
 			]
 		},
@@ -413,7 +413,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 8 damage to all within 4. Freeze (2) and Burn (2). Imbue all tiles within 4 with Ice."
+					"value": "Deal 8 damage to all within 4. Frozen for 2 turns and Burned for 2 turns. Imbue all tiles within 4 with Ice."
 				}
 			]
 		}

@@ -27,7 +27,7 @@
 		"name": "Riptide",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Choose: advance one of your scheduled spells, or postpone an enemy spell 1 turn.",
+		"rules_text": "Choose one \u2014 advance one of your scheduled spells, or postpone an enemy spell 1 turn.",
 		"tags": [
 			"temporal"
 		],
@@ -83,7 +83,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "When an enemy casts: redirect it to any enemy you choose. +1 Foresight."
+					"value": "When an enemy casts: redirect it to any enemy you choose. Gain 1 Foresight."
 				},
 				{
 					"half": "bottom",
@@ -117,7 +117,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Redirect the spell to any enemy you choose; it gains +3 power. +1 Foresight."
+					"value": "Redirect the spell to any enemy you choose. It gains +3 power. Gain 1 Foresight."
 				}
 			]
 		},
@@ -130,7 +130,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Advance one of your spells AND postpone ALL enemy spells on the stack 1 turn."
+					"value": "Advance one of your spells AND postpone all enemy spells on the stack 1 turn."
 				}
 			]
 		},
@@ -143,7 +143,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Redirect the spell so it hits two enemies you choose. +1 Foresight."
+					"value": "Redirect the spell so it hits 2 enemies you choose. Gain 1 Foresight."
 				}
 			]
 		},
@@ -177,7 +177,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Advance your spell; postpone an enemy spell 2 turns and Root its caster."
+					"value": "Advance your spell. Postpone an enemy spell 2 turns. Its caster is Rooted for 1 turn."
 				}
 			]
 		},
@@ -211,7 +211,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Redirect the enemy spell to a target you choose, then Echo a copy at a second chosen target. +1 Foresight."
+					"value": "Redirect the enemy spell to a target you choose, then Echo a copy at a second chosen target. Gain 1 Foresight."
 				}
 			]
 		},
@@ -224,7 +224,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Resolve ALL your scheduled spells now; suspend every enemy spell on the stack until your next turn."
+					"value": "Resolve all your scheduled spells now. Suspend every enemy spell on the stack until your next turn."
 				}
 			]
 		}

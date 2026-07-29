@@ -8,7 +8,7 @@
 		"name": "The Bear's Ground",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "At a patch of Old Growth, a Bear emerges (24HP 7DMG 1SPD).",
+		"rules_text": "At a patch of Old Growth, a Bear emerges (HP 24 / DMG 7 / SPD 1).",
 		"tags": [
 			"growth"
 		],
@@ -28,7 +28,7 @@
 		"name": "Hold",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Root enemies on living ground within 2 for 2 turns, then gain 6 armor.",
+		"rules_text": "Enemies on living ground within 2 are Rooted for 2 turns. You gain 6 armor.",
 		"tags": [
 			"growth"
 		],
@@ -64,7 +64,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "At a patch of Old Growth, a Bear emerges (24HP 7DMG 1SPD)."
+					"value": "At a patch of Old Growth, a Bear emerges (HP 24 / DMG 7 / SPD 1)."
 				},
 				{
 					"half": "bottom",
@@ -74,7 +74,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root enemies on living ground within 2 for 2 turns, gain 9 armor."
+					"value": "Enemies on living ground within 2 are Rooted for 2 turns, gain 9 armor."
 				}
 			],
 			"top_name": "The Bear's Ground+",
@@ -95,7 +95,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "At any growth, a Bear emerges (24HP 7DMG 1SPD)."
+					"value": "At any growth, a Bear emerges (HP 24 / DMG 7 / SPD 1)."
 				}
 			],
 			"top_name": "Mother Bear"
@@ -113,7 +113,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root enemies on living ground within 3 for 2 turns, gain 9 armor."
+					"value": "Enemies on living ground within 3 are Rooted for 2 turns, gain 9 armor."
 				}
 			],
 			"bottom_name": "Bulwark"
@@ -173,7 +173,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root enemies within 3 for 3 turns, gain 14 armor."
+					"value": "Enemies within 3 are Rooted for 3 turns, gain 14 armor."
 				}
 			],
 			"bottom_name": "Living Wall"
@@ -214,7 +214,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "At growth, two Bears emerge. Gain 1 Wilding."
+					"value": "At growth, 2 Bears emerge. Gain 1 Wilding."
 				}
 			],
 			"top_name": "The Great Bear"
@@ -245,7 +245,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root enemies within 3 for 3 turns, gain 20 armor."
+					"value": "Enemies within 3 are Rooted for 3 turns, gain 20 armor."
 				}
 			],
 			"bottom_name": "Unbreakable"

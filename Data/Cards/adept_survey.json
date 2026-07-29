@@ -8,7 +8,7 @@
 		"name": "Survey",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Draw a card. Reveal the next action of all enemies.",
+		"rules_text": "Draw 1 card. Reveal the next action of all enemies.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -151,7 +151,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 1 mana. Draw a card."
+					"value": "Gain 1 mana. Draw 1 card."
 				}
 			],
 			"bottom_name": "Field Report"

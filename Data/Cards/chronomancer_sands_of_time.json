@@ -8,7 +8,7 @@
 		"name": "Hasten the Hour",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Advance one of your scheduled spells — it resolves at the end of this turn.",
+		"rules_text": "Advance one of your scheduled spells \u2014 it resolves at the end of this turn.",
 		"tags": [
 			"temporal"
 		],
@@ -88,7 +88,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Postpone target enemy's next action 1 turn; the enemy is Slowed."
+					"value": "Postpone target enemy's next action 1 turn. The enemy is Slowed."
 				}
 			]
 		},
@@ -148,7 +148,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Postpone target enemy's next action 2 turns; it gains Temporal Drag (2)."
+					"value": "Postpone target enemy's next action 2 turns. It gains Temporal Drag for 2 turns."
 				}
 			]
 		},
@@ -161,7 +161,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Resolve ALL your scheduled spells immediately. Gain 1 Foresight."
+					"value": "Resolve all your scheduled spells immediately. Gain 1 Foresight."
 				}
 			]
 		},
@@ -237,7 +237,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Shelve target enemy's next action — it acts only when you allow it. Gain 1 Foresight."
+					"value": "Shelve target enemy's next action \u2014 it acts only when you allow it. Gain 1 Foresight."
 				}
 			]
 		}

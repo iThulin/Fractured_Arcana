@@ -8,7 +8,7 @@
 		"name": "Echo Decoy",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Summon a temporal Decoy (10HP) on a tile within 3. Enemy single-target actions within 2 of it must target it. Lasts 3 turns.",
+		"rules_text": "Summon a temporal Decoy (HP 10) on a tile within 3. Enemy single-target actions within 2 of it must target it. Lasts 3 turns.",
 		"tags": [
 			"temporal"
 		],
@@ -65,7 +65,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Decoy (14HP). Enemy single-target actions within 2 must target it. 3 turns."
+					"value": "Decoy (HP 14). Enemy single-target actions within 2 must target it. 3 turns."
 				},
 				{
 					"half": "bottom",
@@ -75,7 +75,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Pull all enemies within 3 two tiles toward your Decoy."
+					"value": "Pull all enemies within 3 2 tiles toward your Decoy."
 				}
 			]
 		},
@@ -88,7 +88,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Decoy (14HP) reflects 3 damage when struck. Forces targeting within 2. 3 turns."
+					"value": "Decoy (HP 14) reflects 3 damage when struck. Forces targeting within 2. 3 turns."
 				}
 			]
 		},
@@ -120,7 +120,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Pull enemies within 3 two tiles toward your Decoy; Slow them."
+					"value": "Pull enemies within 3 by 2 tiles toward your Decoy. They are Slowed for 1 turn."
 				}
 			]
 		},
@@ -157,7 +157,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon two Decoys (14HP). Enemy single-target actions near either must target it. 3 turns."
+					"value": "Summon 2 Decoys (HP 14). Enemy single-target actions near either must target it. 3 turns."
 				}
 			]
 		},
@@ -189,7 +189,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Pull all enemies within 5 three tiles toward the Decoy; collisions deal 3; Slow."
+					"value": "Pull all enemies within 5 3 tiles toward the Decoy. Collisions deal 3 damage. They are Slowed for 1 turn."
 				}
 			]
 		},
@@ -202,7 +202,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Decoy (20HP). Enemy single-target actions within 3 must hit it. When it dies or expires, it deals all damage absorbed to enemies within 2."
+					"value": "Decoy (HP 20). Enemy single-target actions within 3 must hit it. When it dies or expires, it deals all damage absorbed to enemies within 2."
 				}
 			]
 		},
@@ -234,7 +234,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Pull EVERY enemy toward the Decoy; collisions deal 4; Root them 1 turn."
+					"value": "Pull every enemy toward the Decoy. Collisions deal 4 damage. They are Rooted for 1 turn."
 				}
 			]
 		}

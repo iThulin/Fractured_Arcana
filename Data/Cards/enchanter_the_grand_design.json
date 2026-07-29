@@ -163,7 +163,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Rest of fight: glyphs spread to radius 2, cost 1 less, trigger THREE times, and bank 1 Weave on prepare."
+					"value": "Rest of fight: glyphs spread to radius 2, cost 1 less, trigger 3 times, and bank 1 Weave on prepare."
 				}
 			]
 		},
@@ -187,7 +187,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare your effects permanently within 4. Enemies are Named, take 4 per tile moved, cannot teleport."
+					"value": "Prepare your effects for the rest of the fight within 4. Enemies are Named, take 4 per tile moved, cannot teleport."
 				}
 			]
 		}

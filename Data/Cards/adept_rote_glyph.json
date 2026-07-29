@@ -8,7 +8,7 @@
 		"name": "Rote Glyph",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Place a Glyph on target empty tile within 3. The first enemy to enter triggers it: deal 3 damage and apply Slowed for 1 turn.",
+		"rules_text": "Place a glyph on target empty tile within 3. The first enemy to enter triggers it: deal 3 damage and it is Slowed for 1 turn.",
 		"tags": [],
 		"requires": [
 			"empty_tile"
@@ -61,7 +61,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place a Glyph within 3: the first enemy to enter takes 4 damage and is Slowed 1 turn."
+					"value": "Place a Glyph within 3: the first enemy to enter takes 4 damage and is Slowed for 1 turn."
 				},
 				{
 					"half": "bottom",
@@ -107,7 +107,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place a Glyph within 4: 5 damage and Slowed 1 turn."
+					"value": "Place a Glyph within 4: 5 damage and Slowed for 1 turn."
 				}
 			],
 			"top_name": "Practiced Glyph"
@@ -143,7 +143,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place a Glyph within 4: 6 damage and Rooted 1 turn."
+					"value": "Place a Glyph within 4: 6 damage and Rooted for 1 turn."
 				}
 			],
 			"top_name": "Binding Rote"
@@ -166,7 +166,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place a Glyph within 4: 8 damage and Stunned 1 turn."
+					"value": "Place a Glyph within 4: 8 damage and Stunned for 1 turn."
 				}
 			],
 			"top_name": "Rote Perfected"

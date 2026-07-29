@@ -8,7 +8,7 @@
 		"name": "Temporal Sovereign",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Rest of fight: take a 2nd turn each round with 2 mana and 1 draw. Spend 2 Foresight.",
+		"rules_text": "For the rest of the fight: take a 2nd turn each round with 2 mana and 1 card drawn. Spend 2 Foresight.",
 		"tags": [
 			"temporal"
 		],
@@ -25,7 +25,7 @@
 		"name": "Chronostasis",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "All enemies skip their next turn; their stacked spells are suspended. You act normally.",
+		"rules_text": "All enemies skip their next turn. Their stacked spells are suspended. You act normally.",
 		"tags": [
 			"temporal"
 		],
@@ -58,7 +58,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "All enemies skip their next turn; stacked spells suspended."
+					"value": "All enemies skip their next turn. Stacked spells suspended."
 				}
 			]
 		},
@@ -76,7 +76,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Rest of fight: 2nd turn each round, 3 mana, draw 2. Spend 2 Foresight."
+					"value": "Rest of fight: 2nd turn each round, 3 mana, draw 2 cards. Spend 2 Foresight."
 				}
 			]
 		},
@@ -120,7 +120,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Rest of fight: 2nd turn each round, 3 mana, draw 2, +1 Foresight. Spend 2 Foresight."
+					"value": "Rest of fight: 2nd turn each round, 3 mana, draw 2 cards, +1 Foresight. Spend 2 Foresight."
 				}
 			]
 		},
@@ -151,7 +151,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "All enemies skip their next two turns and take 5. Spells suspended."
+					"value": "All enemies skip their next 2 turns and take 5. Spells suspended."
 				}
 			]
 		},
@@ -173,7 +173,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Rest of fight: a full 2nd turn each round (4 mana, draw 2, +1 Foresight). Spend 2 Foresight."
+					"value": "Rest of fight: a full 2nd turn each round (4 mana, draw 2 cards, +1 Foresight). Spend 2 Foresight."
 				}
 			]
 		},
@@ -209,7 +209,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Enemies skip their next two turns and take 5. Take an immediate extra turn now."
+					"value": "Enemies skip their next 2 turns and take 5. Take an immediate extra turn now."
 				}
 			]
 		}

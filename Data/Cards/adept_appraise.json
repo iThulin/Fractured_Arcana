@@ -8,7 +8,7 @@
 		"name": "Appraise",
 		"mana": 1,
 		"speed": "Sorcery",
-		"rules_text": "Look at the top 3 cards of your deck. Keep 1; the rest go to the bottom.",
+		"rules_text": "Look at the top 3 cards of your deck. Keep 1. The rest go to the bottom.",
 		"tags": [],
 		"targeting": {
 			"type": "self"

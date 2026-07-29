@@ -8,7 +8,7 @@
 		"name": "Overcharge",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Spend all charge (min 2). Deal 5 damage per charge spent to target. Lose 4 HP per charge spent.",
+		"rules_text": "Spend all Charge (min 2). Deal 5 damage per Charge spent to target. Lose 4 HP per Charge spent.",
 		"tags": [
 			"arcane"
 		],
@@ -58,7 +58,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend all charge (min 2). Deal 5 damage per charge to target. Lose 3 HP per charge."
+					"value": "Spend all Charge (min 2). Deal 5 damage per Charge to target. Lose 3 HP per Charge."
 				},
 				{
 					"half": "bottom",
@@ -86,7 +86,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend all charge (min 2). Deal 6 damage per charge. Lose 3 HP per charge."
+					"value": "Spend all Charge (min 2). Deal 6 damage per Charge. Lose 3 HP per Charge."
 				}
 			]
 		},
@@ -122,7 +122,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend all charge (min 2). Deal 6 per charge. Lose 3 HP per charge beyond the first 3."
+					"value": "Spend all Charge (min 2). Deal 6 per Charge. Lose 3 HP per Charge beyond the first 3."
 				}
 			]
 		},
@@ -181,7 +181,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend all charge (min 2). Deal 6 per charge to target. Deal 6 to all enemies within 2. No self-damage."
+					"value": "Spend all Charge (min 2). Deal 6 per Charge to target. Deal 6 to all enemies within 2. No self-damage."
 				}
 			]
 		},

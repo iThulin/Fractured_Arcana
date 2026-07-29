@@ -37,7 +37,7 @@
 		"name": "Arcane Slide",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Move 2. Gain 1 charge.",
+		"rules_text": "Move 2 tiles. Gain 1 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -84,7 +84,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move 2. Gain 2 charge."
+					"value": "Move 2 tiles. Gain 2 Charge."
 				}
 			]
 		},
@@ -120,7 +120,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move 3. Gain 2 charge."
+					"value": "Move 3. Gain 2 Charge."
 				}
 			]
 		},
@@ -167,7 +167,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Teleport to any tile in range 4. Gain 2 charge."
+					"value": "Teleport to any tile in range 4. Gain 2 Charge."
 				}
 			]
 		},
@@ -218,7 +218,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Teleport to any tile in range 4. Gain 2 charge. Draw 1 card."
+					"value": "Teleport to any tile in range 4. Gain 2 Charge. Draw 1 card."
 				}
 			]
 		}

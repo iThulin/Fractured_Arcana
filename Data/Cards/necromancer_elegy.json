@@ -8,7 +8,7 @@
 		"name": "Elegy",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 5 damage. Apply Haunted (3 damage at start of target's turn) for 1 turn.",
+		"rules_text": "Deal 5 damage. The target is Haunted (3 damage at the start of its turn) for 1 turn.",
 		"tags": [
 			"necrotic"
 		],
@@ -37,7 +37,7 @@
 		"name": "Memorial Step",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Teleport to any memorial tile within range 5.",
+		"rules_text": "Teleport to any memorial tile within 5.",
 		"tags": [
 			"spirit"
 		],
@@ -73,7 +73,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Apply Haunted (2 turns)."
+					"value": "Deal 7 damage. The target is Haunted for 2 turns."
 				},
 				{
 					"half": "bottom",
@@ -127,7 +127,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Apply Haunted (2 turns). Spread Haunted (1 turn) to adjacent enemies."
+					"value": "Deal 7 damage. The target is Haunted for 2 turns. Spread Haunted (1 turn) to adjacent enemies."
 				}
 			]
 		},
@@ -208,7 +208,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Apply Haunted (2 turns, spreads 1 turn). Enemies that die while Haunted leave a Strong memorial."
+					"value": "Deal 7 damage. The target is Haunted for 2 turns (spreadss 1 turn). Enemies that die while Haunted leave a Strong memorial."
 				}
 			]
 		},
@@ -295,7 +295,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage to all enemies. Apply Haunted (2 turns). Kills leave Strong memorials."
+					"value": "Deal 7 damage to all enemies. The target is Haunted for 2 turns. Kills leave Strong memorials."
 				}
 			]
 		},

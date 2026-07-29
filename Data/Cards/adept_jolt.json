@@ -131,7 +131,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 damage. Push target 1 tile and Slow it for 1 turn."
+					"value": "Deal 4 damage. Push target 1 tile. It is Slowed for 1 turn."
 				}
 			],
 			"top_name": "Static Jolt"
@@ -183,7 +183,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 damage. Push target 2 tiles; collisions deal 3."
+					"value": "Deal 4 damage. Push target 2 tiles. Collisions deal 3 damage."
 				}
 			],
 			"top_name": "Arc Jolt"
@@ -219,7 +219,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage. Push 2 tiles (collisions deal 3) and Stun for 1 turn."
+					"value": "Deal 5 damage. Push target 2 tiles (collisions deal 3 damage). It is Stunned for 1 turn."
 				}
 			],
 			"top_name": "Thunderclap"

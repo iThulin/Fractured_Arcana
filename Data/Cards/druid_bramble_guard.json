@@ -8,7 +8,7 @@
 		"name": "Bramble Guard",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 6 armor and root enemies on living ground within 1 for 1 turn.",
+		"rules_text": "Gain 6 armor. Enemies on living ground within 1 are Rooted for 1 turn.",
 		"tags": [
 			"growth"
 		],

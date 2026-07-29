@@ -8,7 +8,7 @@
 		"name": "Mire",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Seed growth within 2 of the target, then root enemies on living ground there for 1 turn.",
+		"rules_text": "Seed growth within 2 of the target. Enemies on living ground there are Rooted for 1 turn.",
 		"tags": [
 			"growth"
 		],
@@ -37,7 +37,7 @@
 		"name": "Sink",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Slow target for 2 turns and deal 2 damage, +1 per growth stage under it.",
+		"rules_text": "Deal 2 damage, +1 per growth stage under it. The target is Slowed for 2 turns.",
 		"tags": [
 			"growth"
 		],
@@ -87,7 +87,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Slow target 2 turns; deal 4 damage, +1 per growth stage under it."
+					"value": "Target enemy is Slowed for 2 turns. Deal 4 damage, +1 per growth stage under it."
 				}
 			],
 			"top_name": "Mire+",
@@ -124,7 +124,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Slow target 2 turns; deal 4 damage, +3 per growth stage under it."
+					"value": "Target enemy is Slowed for 2 turns. Deal 4 damage, +3 per growth stage under it."
 				}
 			],
 			"bottom_name": "Drown"
@@ -189,7 +189,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Slow target 3 turns; deal 7 damage, +3 per growth stage under it."
+					"value": "Target enemy is Slowed for 3 turns. Deal 7 damage, +3 per growth stage under it."
 				}
 			],
 			"bottom_name": "Founder"
@@ -259,7 +259,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Slow 3 and root 1; deal 9 damage, +4 per growth stage under it."
+					"value": "Target is Slowed for 3 turns and Rooted for 1 turn. Deal 9 damage, +4 per growth stage under it."
 				}
 			],
 			"bottom_name": "Engulf"

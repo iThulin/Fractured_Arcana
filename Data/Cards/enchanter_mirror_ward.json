@@ -25,7 +25,7 @@
 		"name": "Phase Shift",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Swap the positions of any 2 units within range 3. If either lands on a glyph, trigger it.",
+		"rules_text": "Swap the positions of any 2 units within 3. If either lands on a glyph, trigger it.",
 		"tags": [
 			"enchant"
 		],
@@ -66,7 +66,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Swap any 2 units within range 5. If either lands on a glyph, trigger it."
+					"value": "Swap any 2 units within 5. If either lands on a glyph, trigger it."
 				}
 			]
 		},
@@ -102,7 +102,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Cycle the positions of any 3 units within range 5. Glyph landings trigger."
+					"value": "Cycle the positions of any 3 units within 5. Glyph landings trigger."
 				}
 			]
 		},
@@ -138,7 +138,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Swap 2 units within range 5; any enemy moved is Named for 1 turn. Glyph landings trigger."
+					"value": "Swap 2 units within 5. Any enemy moved is Named for 1 turn. Glyph landings trigger."
 				}
 			]
 		},
@@ -185,7 +185,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Reposition every unit within range 5 as you choose. Enemies moved are Named 1 turn; glyph landings trigger."
+					"value": "Reposition every unit within 5 as you choose. Enemies moved are Named for 1 turn. Glyph landings trigger."
 				}
 			]
 		}

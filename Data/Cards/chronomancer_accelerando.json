@@ -71,7 +71,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "All enemies Slowed (2); spells cost +1."
+					"value": "All enemies Slowed for 2 turns. Spells cost +1."
 				}
 			]
 		},
@@ -135,7 +135,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "All enemies Slowed (2); each postpones its next action 1 turn."
+					"value": "All enemies Slowed for 2 turns. Each postpones its next action 1 turn."
 				}
 			]
 		},
@@ -168,7 +168,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "This turn: first spell costs 0, rest cost 1 less. +1 damage; 1 Foresight each."
+					"value": "This turn: first spell costs 0, rest cost 1 less. +1 damage. 1 Foresight each."
 				}
 			]
 		},
@@ -199,7 +199,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 3 to all enemies; Slow (2); spells cost +1."
+					"value": "Deal 3 to all enemies. Slowed for 2 turns. Spells cost +1."
 				}
 			]
 		},
@@ -247,7 +247,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "All enemies Slowed (2). Any still Slowed at end of round skip their next turn."
+					"value": "All enemies Slowed for 2 turns. Any still Slowed at end of round skip their next turn."
 				}
 			]
 		}

@@ -150,7 +150,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 14 damage to all enemies. Apply Burn (2). Imbue all tiles randomly."
+					"value": "Deal 14 damage to all enemies. They are Burned for 2 turns. Imbue all tiles randomly."
 				}
 			]
 		},
@@ -240,7 +240,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 16 damage to all enemies. Burn (2). Stun (1). Imbue all tiles randomly."
+					"value": "Deal 16 damage to all enemies. Burned for 2 turns. Stunned for 1 turn. Imbue all tiles randomly."
 				}
 			]
 		},
@@ -346,7 +346,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 18 damage to all enemies. Burn (3). Stun (2). Imbue all tiles randomly. Draw 2."
+					"value": "Deal 18 damage to all enemies. Burned for 3 turns. Stunned for 2 turns. Imbue all tiles randomly. Draw 2 cards."
 				}
 			]
 		},
@@ -354,7 +354,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Eternal Flame",
-			"description": "Eternal Flame: Immortal rebirth — if you would die this turn, survive with 1 hp instead.",
+			"description": "Eternal Flame: Immortal rebirth \u2014 if you would die this turn, survive with 1 hp instead.",
 			"changes": [
 				{
 					"half": "bottom",

@@ -8,7 +8,7 @@
 		"name": "Thermal Vent",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Destroy a Fire tile. Deal 5 damage to all enemies within 2 tiles of it. Gain 1 mana.",
+		"rules_text": "Destroy a Fire tile. Deal 5 damage to all enemies within 2 of it. Gain 1 mana.",
 		"tags": [
 			"fire"
 		],
@@ -42,7 +42,7 @@
 		"name": "Glacial Rift",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Imbue a line of 3 tiles with Ice. Enemies on those tiles frozen for 1 turn.",
+		"rules_text": "Imbue a line of 3 tiles with Ice. Enemies on those tiles are Frozen for 1 turn.",
 		"tags": [
 			"ice"
 		],
@@ -92,7 +92,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Destroy a Fire tile. Deal 7 damage to all enemies within 2 tiles. Gain 1 mana."
+					"value": "Destroy a Fire tile. Deal 7 damage to all enemies within 2. Gain 1 mana."
 				},
 				{
 					"half": "bottom",
@@ -102,7 +102,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue a line of 3 tiles with Ice. Enemies frozen for 2 turns."
+					"value": "Imbue a line of 3 tiles with Ice. Enemies Frozen for 2 turns."
 				}
 			]
 		},
@@ -110,7 +110,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Detonator",
-			"description": "Detonator: Thermal Vent imbues adjacent tiles with fire before consuming — building the explosion.",
+			"description": "Detonator: Thermal Vent imbues adjacent tiles with fire before consuming \u2014 building the explosion.",
 			"changes": [
 				{
 					"half": "top",
@@ -297,7 +297,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue a line of 4 tiles with Ice. Enemies frozen for 2 turns. Draw 1."
+					"value": "Imbue a line of 4 tiles with Ice. Enemies Frozen for 2 turns. Draw 1 card."
 				}
 			]
 		},
@@ -369,7 +369,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Mana Surge",
-			"description": "Mana Surge: Glacial Rift feeds the wizard — each tile cleared grants mana.",
+			"description": "Mana Surge: Glacial Rift feeds the wizard \u2014 each tile cleared grants mana.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -426,7 +426,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue line (5) with Ice. Freeze 2 turns. Gain 2 mana. Draw 1."
+					"value": "Imbue line (5) with Ice. They are Frozen for 2 turns. Gain 2 mana. Draw 1 card."
 				}
 			]
 		}

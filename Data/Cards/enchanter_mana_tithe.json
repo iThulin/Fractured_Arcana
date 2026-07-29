@@ -107,7 +107,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Bind an enemy 3 turns: spells cost 2 more; you gain 2 mana when it casts. Gain 1 Weave."
+					"value": "Bind an enemy 3 turns: spells cost 2 more. You gain 2 mana when it casts. Gain 1 Weave."
 				}
 			]
 		},
@@ -143,7 +143,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Bind an enemy 3 turns: spells cost 2 more; you gain 2 mana and 1 Weave when it casts. Gain 1 Weave."
+					"value": "Bind an enemy 3 turns: spells cost 2 more. You gain 2 mana and 1 Weave when it casts. Gain 1 Weave."
 				}
 			]
 		},
@@ -179,7 +179,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 7, steal up to 2 buffs, and Hex the target for 2 turns."
+					"value": "Deal 7 damage. Steal up to 2 buffs. The target is Hexed for 2 turns."
 				}
 			]
 		},
@@ -226,7 +226,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Bind ALL enemies 3 turns: spells cost 2 more; you gain 2 mana and 1 Weave per enemy cast. Gain 2 Weave."
+					"value": "Bind all enemies 3 turns: spells cost 2 more. You gain 2 mana and 1 Weave per enemy cast. Gain 2 Weave."
 				}
 			]
 		},
@@ -262,7 +262,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 9, steal ALL buffs, and Name the target for 1 turn."
+					"value": "Deal 9 damage. Steal all buffs. The target is Named for 1 turn."
 				}
 			]
 		}

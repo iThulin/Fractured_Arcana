@@ -8,7 +8,7 @@
 		"name": "The Wood Provides",
 		"mana": 2,
 		"speed": "Sorcery",
-		"rules_text": "Harvest living tiles within 2: heal 2 per tile consumed. Then look at the top 3 cards; keep 1, bottom the rest.",
+		"rules_text": "Harvest living tiles within 2: heal 2 HP per tile consumed. Then look at the top 3 cards. Keep 1, bottom the rest.",
 		"tags": [],
 		"targeting": {
 			"type": "self"

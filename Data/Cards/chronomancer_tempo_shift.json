@@ -128,7 +128,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Postpone the enemy's action 2 turns; you gain an extra action."
+					"value": "Postpone the enemy's action 2 turns. You gain an extra action."
 				}
 			]
 		},
@@ -219,7 +219,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Target ally takes two extra actions and +4 movement; Slowed next turn."
+					"value": "Target ally takes two extra actions and +4 movement. Slowed next turn."
 				}
 			]
 		},

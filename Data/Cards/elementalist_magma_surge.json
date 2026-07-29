@@ -51,7 +51,7 @@
 		"name": "Forge Strike",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Requires Fire tile. Gain 6 armor. Deal 5 damage to adjacent enemies.",
+		"rules_text": "Gain 6 armor. Deal 5 damage to adjacent enemies. Requires a Fire tile.",
 		"tags": [
 			"fire",
 			"earth"
@@ -164,7 +164,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 8 damage. Apply Burn (2). Imbue tile and ring with Fire."
+					"value": "Deal 8 damage. The target is Burned for 2 turns. Imbue its tile and ring with Fire."
 				}
 			]
 		},
@@ -218,7 +218,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 9 damage. Apply Burn (2). Imbue all tiles within 2 of target with Fire."
+					"value": "Deal 9 damage. The target is Burned for 2 turns. Imbue all tiles within 2 of it with Fire."
 				}
 			]
 		},
@@ -275,7 +275,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 10 armor and 5 shield. Imbue your tile with Fire. Deal 7 damage + burn to adjacent enemies."
+					"value": "Gain 10 armor and 5 shield. Imbue your tile with Fire. Deal 7 damage + Burn to adjacent enemies."
 				}
 			]
 		},
@@ -330,7 +330,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 11 damage. Burn (3). Imbue tiles within 3 with Fire. Enemies on fire tiles take 4 extra."
+					"value": "Deal 11 damage. Burned for 3 turns. Imbue tiles within 3 with Fire. Enemies on fire tiles take 4 extra."
 				}
 			]
 		},
@@ -338,7 +338,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Iron Crucible",
-			"description": "Iron Crucible: Forge Strike becomes a transformation — massive armor and a storm of fire.",
+			"description": "Iron Crucible: Forge Strike becomes a transformation \u2014 massive armor and a storm of fire.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -387,7 +387,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 14 armor and 7 shield. Imbue adjacent tiles with Fire. Enemies within 2 take 8 damage and Burn (2)."
+					"value": "Gain 14 armor and 7 shield. Imbue adjacent tiles with Fire. Enemies within 2 take 8 damage and Burned for 2 turns."
 				}
 			]
 		}

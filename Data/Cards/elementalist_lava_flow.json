@@ -8,7 +8,7 @@
 		"name": "Lava Flow",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Imbue a line (2) of fire in target direction. Push enemies 2 tiles and deal 3 damage per tile.",
+		"rules_text": "Imbue a line (2) with Fire in target direction. Push enemies 2 tiles, dealing 3 damage per tile.",
 		"tags": [
 			"fire",
 			"earth"
@@ -47,7 +47,7 @@
 		"name": "Earth Anchor",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Root yourself. Gain 6 armor. Imbue your tile with Stone.",
+		"rules_text": "You are Rooted. Gain 6 armor. Imbue your tile with Stone.",
 		"tags": [
 			"earth"
 		],
@@ -99,7 +99,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root yourself. Gain 8 armor. Imbue your tile with Stone."
+					"value": "You are Rooted. Gain 8 armor. Imbue your tile with Stone."
 				}
 			]
 		},
@@ -180,7 +180,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root yourself. Gain 9 armor. Imbue your tile with Stone. No stone required."
+					"value": "You are Rooted. Gain 9 armor. Imbue your tile with Stone. No stone required."
 				}
 			]
 		},
@@ -260,7 +260,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root yourself. Gain 10 armor and 5 shield. Imbue your tile with Stone."
+					"value": "You are Rooted. Gain 10 armor and 5 shield. Imbue your tile with Stone."
 				}
 			]
 		},
@@ -268,7 +268,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Pyroclastic Wave",
-			"description": "Pyroclastic Wave: Lava Flow becomes a board event — burns all nearby enemies.",
+			"description": "Pyroclastic Wave: Lava Flow becomes a board event \u2014 burns all nearby enemies.",
 			"changes": [
 				{
 					"half": "top",
@@ -363,7 +363,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root yourself. Gain 12 armor and 6 shield. Imbue tiles within 1 with Stone. Draw 1."
+					"value": "You are Rooted. Gain 12 armor and 6 shield. Imbue tiles within 1 with Stone. Draw 1 card."
 				}
 			]
 		}

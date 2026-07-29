@@ -315,7 +315,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 8 damage. Apply Burn (2). Imbue tiles within 2 with Fire."
+					"value": "Deal 8 damage. The target is Burned for 2 turns. Imbue tiles within 2 with Fire."
 				}
 			]
 		},

@@ -37,7 +37,7 @@
 		"name": "Drain Glyph",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Prepare a glyph within 4. When an enemy enters, deal 5 and heal you for 5.",
+		"rules_text": "Prepare a glyph within 4. When an enemy enters: deal 5 damage and heal you 5 HP.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -82,7 +82,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 and Name an enemy for 2 turns (half damage, cannot move). Gain 1 Weave."
+					"value": "Deal 4 damage. Name an enemy for 2 turns (half damage, cannot move). Gain 1 Weave."
 				},
 				{
 					"half": "bottom",
@@ -97,7 +97,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 4. When an enemy enters, deal 7 and heal you 7."
+					"value": "Prepare a glyph within 4. When an enemy enters, deal 7 and heal you 7 HP."
 				}
 			]
 		},
@@ -115,7 +115,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 and Name an enemy for 3 turns. Gain 1 Weave."
+					"value": "Deal 4 damage. Name an enemy for 3 turns. Gain 1 Weave."
 				}
 			]
 		},
@@ -133,7 +133,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare a reusable glyph within 4. Each enemy entering takes 7 and heals you 7."
+					"value": "Prepare a reusable glyph within 4. Each enemy entering takes 7 and heals you 7 HP."
 				}
 			]
 		},
@@ -182,7 +182,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 and Name the target (3t) and the nearest other enemy (2t). Gain 2 Weave."
+					"value": "Deal 5 damage. Name the target for 3 turns and the nearest other enemy for 2 turns. Gain 2 Weave."
 				}
 			]
 		},
@@ -205,7 +205,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare a reusable glyph within 4. Each enemy entering takes 7, is Hexed 2t, and heals you 7."
+					"value": "Prepare a reusable glyph within 4. Each enemy entering takes 7, is Hexed for 2 turns, and heals you 7 HP."
 				}
 			]
 		},
@@ -240,7 +240,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 6 and Name an enemy permanently (half damage, cannot move) for this combat. Gain 2 Weave."
+					"value": "Deal 6 damage. Name an enemy for the rest of the fight (half damage, cannot move). Gain 2 Weave."
 				}
 			]
 		},
@@ -266,7 +266,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare a reusable glyph. Each enemy entering takes 9, is Named 1t, and heals you 9."
+					"value": "Prepare a reusable glyph. Each enemy entering takes 9, is Named for 1 turn, and heals you 9 HP."
 				}
 			]
 		}

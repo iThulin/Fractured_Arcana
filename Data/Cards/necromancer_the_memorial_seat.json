@@ -8,7 +8,7 @@
 		"name": "The Memorial Seat",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Place the Memorial Seat on target tile (30HP). While it stands: all spirits gain +2 DMG and +2 armor, healing and release effects trigger twice. If destroyed, take 8 damage.",
+		"rules_text": "Place the Memorial Seat on target tile (HP 30). While it stands: all spirits gain +2 damage and +2 armor, and healing and release effects trigger twice. If it is destroyed, take 8 damage.",
 		"tags": [
 			"spirit"
 		],
@@ -36,7 +36,7 @@
 		"name": "Hallowed Ground",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Hallow all tiles within range 2. For the rest of combat: any unit that dies on hallowed ground summons 2 spirits instead of 1.",
+		"rules_text": "Hallow all tiles within 2. For the rest of the fight: any unit that dies on hallowed ground summons 2 spirits instead of 1.",
 		"tags": [
 			"spirit"
 		],
@@ -73,7 +73,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place the Memorial Seat (40HP). Spirits: +2 DMG/+2 armor. Healing triggers twice. Destroyed: 8 damage."
+					"value": "Place the Memorial Seat (HP 40). Spirits: +2 DMG/+2 armor. Healing triggers twice. Destroyed: 8 damage."
 				},
 				{
 					"half": "bottom",
@@ -83,7 +83,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Hallow all tiles within range 3 permanently. Deaths on hallowed ground summon 2 spirits."
+					"value": "Hallow all tiles within 3 for the rest of the fight. Deaths on hallowed ground summon 2 spirits."
 				}
 			]
 		},
@@ -106,7 +106,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place the Memorial Seat (40HP). Spirits: +2/+2, healing x2, regen 2HP/turn within range 2. Destroyed: 8 dmg."
+					"value": "Place the Memorial Seat (HP 40). Spirits: +2/+2, healing x2, regen 2 HP/turn within 2. Destroyed: 8 dmg."
 				}
 			]
 		},
@@ -129,7 +129,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Hallow range 3 permanently. Deaths summon 2 spirits. Enemies entering hallowed ground are rooted 1 turn."
+					"value": "Hallow range 3 for the rest of the fight. Deaths summon 2 spirits. Enemies entering hallowed ground are Rooted for 1 turn."
 				}
 			]
 		},
@@ -147,7 +147,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place the Memorial Seat (40HP). Spirits: +2/+2, healing x2, regen 2HP/turn. Draw 1 at turn start. Destroyed: 8 dmg."
+					"value": "Place the Memorial Seat (HP 40). Spirits: +2/+2, healing x2, regen 2 HP/turn. Draw 1 card at turn start. Destroyed: 8 dmg."
 				}
 			]
 		},
@@ -165,7 +165,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Hallow range 3 permanently. Deaths summon 2 spirits. All spirits gain +1 DMG per kill on hallowed ground (stacks)."
+					"value": "Hallow range 3 for the rest of the fight. Deaths summon 2 spirits. All spirits gain +1 DMG per kill on hallowed ground (stacks)."
 				}
 			]
 		},
@@ -193,7 +193,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place the Covenant Seat (indestructible). Spirits: +2/+2, healing x2, regen 2HP/turn. Draw 1/turn."
+					"value": "Place the Covenant Seat (indestructible). Spirits: +2/+2, healing x2, regen 2 HP/turn. Draw 1 card/turn."
 				}
 			]
 		},
@@ -218,7 +218,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "The entire battlefield is hallowed permanently. Every death summons 2 spirits. Kills grant all spirits +1 DMG (stacks)."
+					"value": "The entire battlefield is hallowed for the rest of the fight. Every death summons 2 spirits. Kills grant all spirits +1 DMG (stacks)."
 				}
 			]
 		}

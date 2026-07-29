@@ -27,7 +27,7 @@
 		"name": "Take What's Offered",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Harvest living tiles within 2: heal 3 per tile consumed.",
+		"rules_text": "Harvest living tiles within 2: heal 3 HP per tile consumed.",
 		"tags": [
 			"growth"
 		],
@@ -68,7 +68,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest living tiles within 2: heal 4 per tile."
+					"value": "Harvest living tiles within 2: heal 4 HP per tile."
 				}
 			],
 			"top_name": "First Green+",
@@ -105,7 +105,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest within 2: heal 4 and draw 1 per tile."
+					"value": "Harvest within 2: heal 4 HP and draw 1 card per tile."
 				}
 			],
 			"bottom_name": "Forage"
@@ -141,7 +141,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest within 2: heal 6 and draw 1 per tile."
+					"value": "Harvest within 2: heal 6 HP and draw 1 card per tile."
 				}
 			],
 			"bottom_name": "Glut"
@@ -192,7 +192,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest within 3: heal 8 and draw 1 per tile."
+					"value": "Harvest within 3: heal 8 HP and draw 1 card per tile."
 				}
 			],
 			"bottom_name": "Bounty"

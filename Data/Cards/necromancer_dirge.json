@@ -8,7 +8,7 @@
 		"name": "Dirge",
 		"mana": 3,
 		"speed": "Reflex",
-		"rules_text": "All enemies within 2 tiles of any spirit or memorial take 3 damage and are pushed 1 tile.",
+		"rules_text": "All enemies within 2 of any spirit or memorial take 3 damage and are pushed 1 tile.",
 		"tags": [
 			"spirit"
 		],
@@ -28,7 +28,7 @@
 		"name": "Memorial Garden",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Hallow target tile (3 turns). Spirits within range 2 of this tile auto-rise from memorials at turn start.",
+		"rules_text": "Hallow target tile (3 turns). Spirits within 2 of this tile auto-rise from memorials at turn start.",
 		"tags": [
 			"spirit"
 		],
@@ -73,7 +73,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Hallow target tile (5 turns). Spirits within range 2 auto-rise from memorials at turn start."
+					"value": "Hallow target tile (5 turns). Spirits within 2 auto-rise from memorials at turn start."
 				}
 			]
 		},
@@ -164,7 +164,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Hallow tile permanently. Spirits auto-rise from nearby memorials. Enemies here deal 2 less. Destroyed: 8 damage."
+					"value": "Hallow tile for the rest of the fight. Spirits auto-rise from nearby memorials. Enemies here deal 2 less. Destroyed: 8 damage."
 				}
 			]
 		},
@@ -212,7 +212,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Hallow all tiles within range 2 permanently. Spirits auto-rise from nearby memorials. Enemies deal 2 less."
+					"value": "Hallow all tiles within 2 for the rest of the fight. Spirits auto-rise from nearby memorials. Enemies deal 2 less."
 				}
 			]
 		}

@@ -44,7 +44,7 @@
 		"name": "Read the Weave",
 		"mana": 1,
 		"speed": "Instant",
-		"rules_text": "Look at the top 2 cards; put 1 back on top, bottom the other. Gain 1 Weave.",
+		"rules_text": "Look at the top 2 cards. Put 1 back on top, bottom the other. Gain 1 Weave.",
 		"tags": [],
 		"targeting": {
 			"type": "self"

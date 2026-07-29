@@ -8,7 +8,7 @@
 		"name": "Precognition",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Look at the top 3 cards. Keep 1 (costs 1 less), discard the rest. Gain 1 Foresight.",
+		"rules_text": "Look at the top 3 cards. Keep 1 (it costs 1 less). The rest go to the bottom. Gain 1 Foresight.",
 		"tags": [
 			"temporal"
 		],
@@ -87,7 +87,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at top 4. Keep 2 (each costs 1 less). Gain 1 Foresight."
+					"value": "Look at the top 4 cards. Keep 2 (each costs 1 less). Gain 1 Foresight."
 				}
 			]
 		},
@@ -152,7 +152,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at top 4. Keep 2 (each costs 1 less). Gain 2 Foresight."
+					"value": "Look at the top 4 cards. Keep 2 (each costs 1 less). Gain 2 Foresight."
 				}
 			]
 		},
@@ -206,7 +206,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at top 5. Keep 2 — they cost 0 next turn. Gain 2 Foresight."
+					"value": "Look at the top 5 cards. Keep 2 \u2014 they cost 0 next turn. Gain 2 Foresight."
 				}
 			]
 		},

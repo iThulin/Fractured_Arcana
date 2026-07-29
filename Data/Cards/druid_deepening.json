@@ -121,7 +121,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 3 Wilding and draw a card."
+					"value": "Gain 3 Wilding and draw 1 card."
 				}
 			],
 			"bottom_name": "Nurture"
@@ -174,7 +174,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 4 Wilding and draw a card."
+					"value": "Gain 4 Wilding and draw 1 card."
 				}
 			],
 			"bottom_name": "Devotion"

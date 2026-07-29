@@ -8,7 +8,7 @@
 		"name": "Afterimage",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Create an Echo of your last-cast spell — it resolves again at half value.",
+		"rules_text": "Create an Echo of your last-cast spell \u2014 it resolves again at half value.",
 		"tags": [
 			"temporal"
 		],
@@ -110,7 +110,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Cast the next spell twice; gain 1 Foresight."
+					"value": "Cast the next spell twice. Gain 1 Foresight."
 				}
 			]
 		},
@@ -174,7 +174,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Cast the next spell three times; gain 1 Foresight."
+					"value": "Cast the next spell 3 times. Gain 1 Foresight."
 				}
 			]
 		},

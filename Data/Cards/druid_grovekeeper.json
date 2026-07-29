@@ -8,7 +8,7 @@
 		"name": "Grovekeeper",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Seed growth around you, heal 4, and draw a card. Gain 1 Wilding.",
+		"rules_text": "Seed growth around you, heal 4 HP, and draw 1 card. Gain 1 Wilding.",
 		"tags": [
 			"growth"
 		],
@@ -39,7 +39,7 @@
 		"name": "Replenish",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Harvest living tiles within 2: draw 1 per tile consumed.",
+		"rules_text": "Harvest living tiles within 2: draw 1 card per tile consumed.",
 		"tags": [
 			"growth"
 		],
@@ -70,7 +70,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Seed growth around you, heal 6, draw a card. Gain 1 Wilding."
+					"value": "Seed growth around you, heal 6 HP, draw 1 card. Gain 1 Wilding."
 				},
 				{
 					"half": "bottom",
@@ -80,7 +80,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest living tiles within 3: draw 1 per tile."
+					"value": "Harvest living tiles within 3: draw 1 card per tile."
 				}
 			],
 			"top_name": "Grovekeeper+",
@@ -99,7 +99,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Seed growth within 2, heal 6, draw a card. Gain 1 Wilding."
+					"value": "Seed growth within 2, heal 6 HP, draw 1 card. Gain 1 Wilding."
 				}
 			],
 			"top_name": "Warden"
@@ -117,7 +117,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest within 3: heal 2 and draw 1 per tile."
+					"value": "Harvest within 3: heal 2 HP and draw 1 card per tile."
 				}
 			],
 			"bottom_name": "Renew"
@@ -153,7 +153,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Seed Thicket within 2, heal 10, draw 2. Gain 1 Wilding."
+					"value": "Seed Thicket within 2, heal 10 HP, draw 2 cards. Gain 1 Wilding."
 				}
 			],
 			"top_name": "Lifebloom"
@@ -181,7 +181,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest within 4: heal 4 and draw 1 per tile."
+					"value": "Harvest within 4: heal 4 HP and draw 1 card per tile."
 				}
 			],
 			"bottom_name": "Windfall"
@@ -217,7 +217,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Seed Thicket within 3, heal 16, draw 3. Gain 2 Wilding."
+					"value": "Seed Thicket within 3, heal 16 HP, draw 3 cards. Gain 2 Wilding."
 				}
 			],
 			"top_name": "The Heartgrove"
@@ -245,7 +245,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Harvest within 5: heal 5 and draw 2 per tile."
+					"value": "Harvest within 5: heal 5 HP and draw 2 cards per tile."
 				}
 			],
 			"bottom_name": "Cornucopia"

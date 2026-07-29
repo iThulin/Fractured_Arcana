@@ -132,7 +132,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue target tile as Memorial Ground (5 turns). Summon cost -2. Spirits here regen 2HP/turn."
+					"value": "Imbue target tile as Memorial Ground (5 turns). Summon cost -2. Spirits here regen 2 HP/turn."
 				}
 			]
 		},
@@ -199,7 +199,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue target tile and adjacent tiles as Memorial Ground (5 turns). Summon cost -2. Spirits regen 2HP/turn."
+					"value": "Imbue target tile and adjacent tiles as Memorial Ground (5 turns). Summon cost -2. Spirits regen 2 HP/turn."
 				}
 			]
 		},
@@ -249,7 +249,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "All spirits +3 damage. Advance 3, attack. Kills: memorial + summon Spirit (8HP 4DMG). Remaining spirits advance 2 more."
+					"value": "All spirits +3 damage. Advance 3, attack. Kills: memorial + summon Spirit (HP 8 / DMG 4). Remaining spirits advance 2 more."
 				}
 			]
 		},
@@ -280,7 +280,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "The entire battlefield becomes Memorial Ground for the rest of combat. Summon cost -2 everywhere. Spirits regen 2HP/turn."
+					"value": "The entire battlefield becomes Memorial Ground for the rest of the fight. Summon cost -2 everywhere. Spirits regen 2 HP/turn."
 				}
 			]
 		}

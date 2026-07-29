@@ -8,7 +8,7 @@
 		"name": "Call the Boar",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "A Boar charges from living ground (14HP 6DMG 3SPD).",
+		"rules_text": "A Boar charges from living ground (HP 14 / DMG 6 / SPD 3).",
 		"tags": [
 			"growth"
 		],
@@ -58,7 +58,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "A Boar charges from living ground (14HP 6DMG 3SPD)."
+					"value": "A Boar charges from living ground (HP 14 / DMG 6 / SPD 3)."
 				},
 				{
 					"half": "bottom",
@@ -99,7 +99,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Two Boars charge from living ground."
+					"value": "2 Boars charge from living ground."
 				}
 			],
 			"top_name": "Sounder"
@@ -152,7 +152,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Two Boars charge at the target tile."
+					"value": "2 Boars charge at the target tile."
 				}
 			],
 			"top_name": "Wild Sounder"
@@ -213,7 +213,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Three Boars charge in. Gain 1 Wilding."
+					"value": "3 Boars charge in. Gain 1 Wilding."
 				}
 			],
 			"top_name": "The Tuskline"

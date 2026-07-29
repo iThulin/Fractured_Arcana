@@ -8,7 +8,7 @@
 		"name": "Chain Lightning",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 6 damage to target. Chains to 2 nearest enemies (2 damage each).",
+		"rules_text": "Deal 6 damage. Chains to 2 nearest enemies (2 damage each).",
 		"tags": [
 			"storm"
 		],
@@ -184,7 +184,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage to target. Chains to 3 nearest enemies (4 damage each)."
+					"value": "Deal 7 damage. Chains to 3 nearest enemies (4 damage each)."
 				}
 			]
 		},
@@ -382,7 +382,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue tile and rings at 2-3 with Storm. Gain 16 shield. Enemies on Storm tiles stunned for 1 turn."
+					"value": "Imbue tile and rings at 2-3 with Storm. Gain 16 shield. Enemies on Storm tiles Stunned for 1 turn."
 				}
 			]
 		},
@@ -495,7 +495,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue all tiles within 3 with Storm. Gain 18 shield. Stun all enemies within 3 for 1 turn."
+					"value": "Imbue all tiles within 3 with Storm. Gain 18 shield. All enemies within 3 are Stunned for 1 turn."
 				}
 			]
 		}

@@ -178,7 +178,7 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Shock Grid",
-			"description": "Shock Grid: Static Field now imbues rings at 2 and 3 — a wider storm grid.",
+			"description": "Shock Grid: Static Field now imbues rings at 2 and 3 \u2014 a wider storm grid.",
 			"changes": [
 				{
 					"half": "top",
@@ -279,7 +279,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 7 damage in line (5). Push 2. Imbue ice. Enemies on ice tiles frozen 1 turn."
+					"value": "Deal 7 damage in line (5). Push 2. Imbue ice. Enemies on ice tiles Frozen for 1 turn."
 				}
 			]
 		},
@@ -352,7 +352,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue tile and rings at 2-3 with Storm. Enemies already on Storm tiles are stunned."
+					"value": "Imbue tile and rings at 2-3 with Storm. Enemies already on Storm tiles are Stunned."
 				}
 			]
 		},
@@ -360,7 +360,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Superstorm",
-			"description": "Superstorm: Avalanche becomes a wave of ice and storm — freezes and stuns.",
+			"description": "Superstorm: Avalanche becomes a wave of ice and storm \u2014 freezes and stuns.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -406,7 +406,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 8 damage in line (6). Push 3. Imbue ice. Freeze and stun for 1 turn."
+					"value": "Deal 8 damage in a line (6). Push them 3 tiles. Imbue the line with Ice. They are Frozen and Stunned for 1 turn."
 				}
 			]
 		}

@@ -8,7 +8,7 @@
 		"name": "Spores",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Poison target and adjacent enemies for 2 turns.",
+		"rules_text": "Target and adjacent enemies are Poisoned for 2 turns.",
 		"tags": [
 			"growth"
 		],
@@ -46,7 +46,7 @@
 		"name": "Wither Touch",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Weaken target enemy for 2 turns.",
+		"rules_text": "Target enemy is Weakened for 2 turns.",
 		"tags": [
 			"growth"
 		],
@@ -81,7 +81,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Poison target and adjacent enemies for 3 turns."
+					"value": "Target and adjacent enemies are Poisoned for 3 turns."
 				},
 				{
 					"half": "bottom",
@@ -91,7 +91,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Weaken target enemy for 3 turns."
+					"value": "Target enemy is Weakened for 3 turns."
 				}
 			],
 			"top_name": "Spores+",
@@ -114,7 +114,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Poison target and all enemies within 2 for 3 turns."
+					"value": "Target and enemies within 2 are Poisoned for 3 turns."
 				}
 			],
 			"top_name": "Sporecloud"
@@ -154,7 +154,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Weaken target 3 turns; adjacent enemies weakened 2."
+					"value": "Target enemy is Weakened for 3 turns. Adjacent enemies Weakened 2."
 				}
 			],
 			"bottom_name": "Enfeeble"
@@ -200,7 +200,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Poison target and enemies within 2 for 3; seed growth. Gain 1 Wilding."
+					"value": "Target and enemies within 2 are Poisoned for 3 turns. Seed growth. Gain 1 Wilding."
 				}
 			],
 			"top_name": "Rotbloom"
@@ -240,7 +240,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Weaken target 4; enemies within 2 weakened 3."
+					"value": "Target is Weakened for 4 turns. Enemies within 2 are Weakened for 3 turns."
 				}
 			],
 			"bottom_name": "Sap the Strong"
@@ -286,7 +286,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Poison target and enemies within 3 for 4; seed Thicket. Gain 1 Wilding."
+					"value": "Target and enemies within 3 are Poisoned for 4 turns. Seed Thicket. Gain 1 Wilding."
 				}
 			],
 			"top_name": "Miasma"
@@ -326,7 +326,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Weaken target and all enemies within 3 for 4 turns."
+					"value": "Target and all enemies within 3 are Weakened for 4 turns."
 				}
 			],
 			"bottom_name": "Atrophy"

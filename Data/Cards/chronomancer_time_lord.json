@@ -8,7 +8,7 @@
 		"name": "Time Lord",
 		"mana": 4,
 		"speed": "Reflex",
-		"rules_text": "Permanent: at the start of each turn, Rewind OR Fast-Forward one event (a spell, a death, a move).",
+		"rules_text": "For the rest of the fight: at the start of each turn, Rewind or Fast-Forward one event (a spell, a death, a move).",
 		"tags": [
 			"temporal"
 		],
@@ -23,7 +23,7 @@
 		"name": "Entropy",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Imbue the board with Temporal Decay: all units lose 4 HP/turn. Your spells gain +2 per active turn. Rest of fight.",
+		"rules_text": "Imbue the board with Temporal Decay: all units lose 4 HP per turn. Your spells gain +2 per active turn. Lasts for the rest of the fight.",
 		"tags": [
 			"temporal"
 		],
@@ -47,7 +47,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Permanent: each turn, Rewind OR Fast-Forward one event. Gain 1 Foresight each time."
+					"value": "For the rest of the fight: each turn, Rewind OR Fast-Forward one event. Gain 1 Foresight each time."
 				},
 				{
 					"half": "bottom",
@@ -70,7 +70,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Each turn: Rewind (re-target) OR Fast-Forward one event. +1 Foresight each."
+					"value": "Each turn: Rewind (re-target) or Fast-Forward one event. Each grants 1 Foresight."
 				}
 			]
 		},
@@ -101,7 +101,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Each turn (yours and the enemy's): Rewind/Fast-Forward one event. +1 Foresight each."
+					"value": "Each turn, yours and the enemy's: Rewind or Fast-Forward one event. Each grants 1 Foresight."
 				}
 			]
 		},
@@ -123,7 +123,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Only enemies decay (6/turn). Spells gain +3 per active turn."
+					"value": "Only enemies decay (6 per turn). Spells gain +3 per active turn."
 				}
 			]
 		},
@@ -136,7 +136,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Each turn: control up to three events. +1 Foresight each."
+					"value": "Each turn: control up to 3 events. Each grants 1 Foresight."
 				}
 			]
 		},

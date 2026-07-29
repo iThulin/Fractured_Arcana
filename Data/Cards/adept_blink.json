@@ -204,7 +204,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Teleport to any empty tile within 7. Draw a card."
+					"value": "Teleport to any empty tile within 7. Draw 1 card."
 				}
 			],
 			"top_name": "Translocation"

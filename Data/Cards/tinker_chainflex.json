@@ -8,7 +8,7 @@
 		"name": "Chainflex",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Forge Conduit Links chaining YOUR units in the area, each to the next. Linked units split incoming damage.",
+		"rules_text": "Forge Conduit Links chaining your units in the area, each to the next. Linked units split incoming damage.",
 		"tags": [],
 		"targeting": {
 			"type": "aoe",
@@ -81,7 +81,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Forge Conduit Links chaining YOUR units in the area, each to the next. Linked units split incoming damage. Gain 2 armor."
+					"value": "Forge Conduit Links chaining your units in the area, each to the next. Linked units split incoming damage. Gain 2 armor."
 				}
 			]
 		},
@@ -128,7 +128,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Chain YOUR units to split incoming damage. Gain 2 armor; your constructs repair 3 HP."
+					"value": "Chain your units to split incoming damage. Gain 2 armor. Your constructs repair 3 HP."
 				}
 			]
 		},
@@ -160,7 +160,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move a construct you control up to 3 tiles. It may still act, and is permanently rebuilt: +2 HP, +1 damage."
+					"value": "Move a construct you control up to 3 tiles. It may still act, and is for the rest of the fight rebuilt: +2 HP, +1 damage."
 				}
 			]
 		},
@@ -194,7 +194,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Chain YOUR units to split incoming damage. Gain 3 armor and 4 shield."
+					"value": "Chain your units to split incoming damage. Gain 3 armor and 4 shield."
 				}
 			]
 		},
@@ -226,7 +226,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move a construct you control up to 3 tiles. It may still act, and is permanently rebuilt: +3 HP, +2 damage."
+					"value": "Move a construct you control up to 3 tiles. It may still act, and is for the rest of the fight rebuilt: +3 HP, +2 damage."
 				}
 			]
 		}

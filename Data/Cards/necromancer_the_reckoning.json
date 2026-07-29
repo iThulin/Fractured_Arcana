@@ -27,7 +27,7 @@
 		"name": "Revenant Champion",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Consume 2 memorials within range 3. Summon a Revenant Champion (24HP 8DMG 1SPD).",
+		"rules_text": "Consume 2 memorials within 3. Summon a Revenant Champion (HP 24 / DMG 8 / SPD 1).",
 		"tags": [
 			"spirit"
 		],
@@ -87,7 +87,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Consume 2 memorials within range 3. Summon a Revenant Champion (28HP 10DMG 1SPD)."
+					"value": "Consume 2 memorials within 3. Summon a Revenant Champion (HP 28 / DMG 10 / SPD 1)."
 				}
 			]
 		},
@@ -141,7 +141,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Consume 2 memorials within range 3. Summon a Revenant Champion scaled to combined memorial strength (+4HP/+2DMG per point)."
+					"value": "Consume 2 memorials within 3. Summon a Revenant Champion scaled to combined memorial strength (+4 HP/+2DMG per point)."
 				}
 			]
 		},
@@ -182,7 +182,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Consume 2 memorials. Scaled Revenant Champion. Once per combat: survives a killing blow at 1HP."
+					"value": "Consume 2 memorials. Scaled Revenant Champion. Once per combat: survives a killing blow at 1 HP."
 				}
 			]
 		},
@@ -237,7 +237,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Consume all memorials within range 3. Per 2 memorials consumed: summon a Revenant Champion (24HP 8DMG)."
+					"value": "Consume all memorials within 3. Per 2 memorials consumed: summon a Revenant Champion (HP 24 / DMG 8)."
 				}
 			]
 		}

@@ -97,7 +97,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Pull an enemy 3 tiles toward you. Collision deals 5. Glyph landings trigger."
+					"value": "Pull an enemy 3 tiles toward you. Collisions deal 5 damage. Glyph landings trigger."
 				}
 			]
 		},
@@ -115,7 +115,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less and deal +2. Draw 1."
+					"value": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less and deal +2. Draw 1 card."
 				}
 			]
 		},
@@ -153,7 +153,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Pull all enemies within 2 of the target 3 tiles toward you. Collisions deal 5; glyph landings trigger."
+					"value": "Pull all enemies within 2 of the target 3 tiles toward you. Collisions deal 5 damage. Glyph landings trigger."
 				}
 			]
 		},
@@ -171,7 +171,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 4. While on it: spells cost 1 less, deal +2, and gain 1 Weave/turn. Draw 1."
+					"value": "Prepare a glyph within 4. While on it: spells cost 1 less, deal +2, and gain 1 Weave/turn. Draw 1 card."
 				}
 			]
 		},
@@ -219,7 +219,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Pull all enemies within 2 toward you (6 collision) and Name each for 1 turn."
+					"value": "Pull all enemies within 2 toward you (collisions deal 6 damage). Name each for 1 turn."
 				}
 			]
 		},
@@ -254,7 +254,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare a permanent glyph within 4. While on it: spells cost 2 less, deal +3, gain 1 Weave/turn. Draw 2."
+					"value": "Prepare a permanent glyph within 4. While on it: spells cost 2 less, deal +3, gain 1 Weave/turn. Draw 2 cards."
 				}
 			]
 		}

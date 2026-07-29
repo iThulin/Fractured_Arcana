@@ -28,7 +28,7 @@
 		"name": "Snare",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Root enemies on living ground within 1 of you for 1 turn.",
+		"rules_text": "Enemies on living ground within 1 of you are Rooted for 1 turn.",
 		"tags": [
 			"growth"
 		],
@@ -65,7 +65,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root enemies on living ground within 2 for 1 turn."
+					"value": "Enemies on living ground within 2 are Rooted for 1 turn."
 				}
 			],
 			"top_name": "Creeping Thorn+",
@@ -102,7 +102,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root enemies on living ground within 2 for 2 turns."
+					"value": "Enemies on living ground within 2 are Rooted for 2 turns."
 				}
 			],
 			"bottom_name": "Hold Fast"
@@ -138,7 +138,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root enemies on living ground within 3 for 2 turns."
+					"value": "Enemies on living ground within 3 are Rooted for 2 turns."
 				}
 			],
 			"bottom_name": "Thornnet"
@@ -184,7 +184,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Root enemies on living ground within 3 for 3 turns."
+					"value": "Enemies on living ground within 3 are Rooted for 3 turns."
 				}
 			],
 			"bottom_name": "The Grip"

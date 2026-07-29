@@ -23,7 +23,7 @@
 		"name": "Phase Anchor",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Create 2 Phase tiles within 2. Teleport between them as a free action once/turn for 3 turns.",
+		"rules_text": "Create 2 Phase tiles within 2. Teleport between them as a free action once per turn for 3 turns.",
 		"tags": [
 			"temporal"
 		],
@@ -133,7 +133,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Redirect the top enemy spell to a target you choose, then reverse the rest. +1 Foresight."
+					"value": "Redirect the top enemy spell to a target you choose, then reverse the rest. Gain 1 Foresight."
 				}
 			]
 		},
@@ -164,7 +164,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Redirect the top enemy spell; reverse the rest; your spells on the stack resolve twice. +1 Foresight."
+					"value": "Redirect the top enemy spell. Reverse the rest. Your spells on the stack resolve twice. Gain 1 Foresight."
 				}
 			]
 		},

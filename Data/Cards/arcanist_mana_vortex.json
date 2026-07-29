@@ -8,7 +8,7 @@
 		"name": "Mana Vortex",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Create a Mana Vortex on a tile within 4. Enemies on it pay +1 mana for spells; allies on it deal +2. Lasts 2 turns.",
+		"rules_text": "Create a Mana Vortex on a tile within 4. Enemies on it pay +1 mana for spells. Allies on it deal +2. Lasts 2 turns.",
 		"tags": [
 			"arcane"
 		],
@@ -29,7 +29,7 @@
 		"name": "Chain Catalyst",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 4 damage. If it kills, or you have 4+ charge, chain 2 to the nearest enemy.",
+		"rules_text": "Deal 4 damage. If it kills, or you have 4+ Charge, chain 2 to the nearest enemy.",
 		"tags": [
 			"arcane"
 		],
@@ -85,7 +85,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Mana Vortex within 4. Enemies pay +1 mana; allies deal +2. Lasts 3 turns."
+					"value": "Create a Mana Vortex within 4. Enemies pay +1 mana. Allies deal +2. Lasts 3 turns."
 				},
 				{
 					"half": "bottom",
@@ -95,7 +95,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 4 damage. If you have 4+ charge, chain 4 to the nearest enemy."
+					"value": "Deal 4 damage. If you have 4+ Charge, chain 4 to the nearest enemy."
 				}
 			]
 		},
@@ -113,7 +113,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Mana Vortex (2-tile radius) within 4. Enemies pay +1 mana; allies deal +2. Lasts 3 turns."
+					"value": "Create a Mana Vortex (2-tile radius) within 4. Enemies pay +1 mana. Allies deal +2. Lasts 3 turns."
 				}
 			]
 		},
@@ -131,7 +131,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 4 damage. If you have 3+ charge, chain 4 to the nearest enemy."
+					"value": "Deal 4 damage. If you have 3+ Charge, chain 4 to the nearest enemy."
 				}
 			]
 		},
@@ -154,7 +154,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Mana Vortex (2-radius). Enemies pay +2 mana; allies deal +2. Gain 1 charge per spell cast on it. Lasts 3 turns."
+					"value": "Create a Mana Vortex (2-radius). Enemies pay +2 mana. Allies deal +2. Gain 1 Charge per spell cast on it. Lasts 3 turns."
 				}
 			]
 		},
@@ -172,7 +172,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 4 damage. If you have 3+ charge, chain 4 to the 2 nearest enemies."
+					"value": "Deal 4 damage. If you have 3+ Charge, chain 4 to the 2 nearest enemies."
 				}
 			]
 		},
@@ -199,7 +199,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a permanent Mana Vortex (2-radius). Enemies pay +2 mana and take 3/turn; allies deal +3. Gain 1 charge per spell cast on it."
+					"value": "Create a permanent Mana Vortex (2-radius). Enemies pay +2 mana and take 3 per turn. Allies deal +3. Gain 1 Charge per spell cast on it."
 				}
 			]
 		},

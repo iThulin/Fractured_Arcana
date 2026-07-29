@@ -8,7 +8,7 @@
 		"name": "Arc Bolt",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 5 damage. The bolt arcs through Conduit Links: each linked partner of the target takes 2.",
+		"rules_text": "Deal 5 damage. The bolt arcs through Conduit Links: each linked partner of the target takes 2 damage.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",

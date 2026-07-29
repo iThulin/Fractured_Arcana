@@ -8,7 +8,7 @@
 		"name": "Binding Rune",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Prepare a glyph on a tile within 3. An enemy here at the start of its turn is rooted and takes 3 damage. Lasts 2 turns.",
+		"rules_text": "Prepare a glyph on a tile within 3. An enemy here at the start of its turn is Rooted and takes 3 damage. Lasts 2 turns.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -60,7 +60,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 3. An enemy here at the start of its turn is rooted and takes 3 damage. Lasts 3 turns."
+					"value": "Prepare a glyph within 3. An enemy here at the start of its turn is Rooted and takes 3 damage. Lasts 3 turns."
 				},
 				{
 					"half": "bottom",
@@ -93,7 +93,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 3. An enemy here at the start of its turn is rooted (2 turns) and takes 5 damage. Lasts 3 turns."
+					"value": "Prepare a glyph within 3. An enemy here at the start of its turn is Rooted (2 turns) and takes 5 damage. Lasts 3 turns."
 				}
 			]
 		},
@@ -111,7 +111,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Link 3 prepared glyphs. When one triggers, the others trigger too; gain 1 Weave per link."
+					"value": "Link 3 prepared glyphs. When one triggers, the others trigger too. Gain 1 Weave per link."
 				}
 			]
 		},
@@ -129,7 +129,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a reusable glyph within 3. Each turn an enemy here is rooted (2t) and takes 5; silenced if Weave is 3+. Lasts 3 turns."
+					"value": "Prepare a reusable glyph within 3. Each turn an enemy here is Rooted (2t) and takes 5. Silenced if Weave is 3+. Lasts 3 turns."
 				}
 			]
 		},
@@ -202,7 +202,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Link ALL your prepared glyphs permanently. Triggering one triggers all (+1 per other). Gain 1 Weave per link."
+					"value": "Link all your prepared glyphs for the rest of the fight. Triggering one triggers all (+1 per other). Gain 1 Weave per link."
 				}
 			]
 		}

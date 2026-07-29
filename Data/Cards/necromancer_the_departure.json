@@ -8,7 +8,7 @@
 		"name": "The Departure",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Consume target memorial or dismiss target spirit within range 5. Deal 5 damage to adjacent enemies. Leave a Strong memorial.",
+		"rules_text": "Consume target memorial or dismiss target spirit within 5. Deal 5 damage to adjacent enemies. Leave a Strong memorial.",
 		"tags": [
 			"spirit"
 		],
@@ -48,7 +48,7 @@
 		"name": "Grief Surge",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Spend all Grief. Deal 3 damage to all enemies per charge spent.",
+		"rules_text": "Spend all Grief. Deal 3 damage to all enemies per Grief spent.",
 		"tags": [
 			"necrotic"
 		],
@@ -76,7 +76,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Consume memorial or dismiss spirit within range 5. Deal 7 damage to adjacent enemies. Leave a Strong memorial."
+					"value": "Consume memorial or dismiss spirit within 5. Deal 7 damage to adjacent enemies. Leave a Strong memorial."
 				},
 				{
 					"half": "bottom",
@@ -86,7 +86,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Spend all Grief. Deal 4 damage to all enemies per charge spent."
+					"value": "Spend all Grief. Deal 4 damage to all enemies per Grief spent."
 				}
 			]
 		},
@@ -137,7 +137,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Consume memorial or dismiss spirit within range 5. Deal 7 damage and push 2 to adjacent enemies. Leave a Strong memorial."
+					"value": "Consume memorial or dismiss spirit within 5. Deal 7 damage and push 2 to adjacent enemies. Leave a Strong memorial."
 				}
 			]
 		},
@@ -165,7 +165,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Spend Grief (choose amount, min 1). Deal 5 damage to all enemies per charge spent."
+					"value": "Spend Grief (choose amount, min 1). Deal 5 damage to all enemies per Grief spent."
 				}
 			]
 		},
@@ -220,7 +220,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Consume memorial or dismiss spirit. Deal 7 damage + push 2 in radius 2. Leave Strong memorial — auto-rises a spirit next turn."
+					"value": "Consume memorial or dismiss spirit. Deal 7 damage + push 2 in radius 2. Leave Strong memorial \u2014 auto-rises a spirit next turn."
 				}
 			]
 		},
@@ -252,7 +252,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Spend Grief (choose, min 1). Deal 5 damage/charge to all enemies. Gain 1 armor per charge spent."
+					"value": "Spend Grief (choose, min 1). Deal 5 damage per Grief to all enemies. Gain 1 armor per Grief spent."
 				}
 			]
 		},
@@ -323,7 +323,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Spend Grief (choose, min 1). Deal 5 damage/charge. Gain 1 armor/charge. Trigger the Flood — all spirits refresh."
+					"value": "Spend Grief (choose, min 1). Deal 5 damage per Grief. Gain 1 armor per Grief. Trigger the Flood \u2014 all spirits refresh."
 				}
 			]
 		}

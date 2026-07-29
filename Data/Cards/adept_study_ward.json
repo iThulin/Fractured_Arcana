@@ -96,7 +96,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 5 shield. Draw a card."
+					"value": "Gain 5 shield. Draw 1 card."
 				}
 			],
 			"top_name": "Quiet Study"
@@ -127,7 +127,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Grant an ally within 2 tiles 6 shield."
+					"value": "Grant an ally within 2 6 shield."
 				}
 			],
 			"bottom_name": "Shared Barrier"
@@ -157,7 +157,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Grant an ally within 2 tiles 6 shield and 2 armor."
+					"value": "Grant an ally within 2 6 shield and 2 armor."
 				}
 			],
 			"bottom_name": "Warding Circle"
@@ -186,7 +186,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Grant an ally within 2 tiles 8 shield and cleanse their negative statuses."
+					"value": "Grant an ally within 2 8 shield and cleanse their negative statuses."
 				}
 			],
 			"bottom_name": "Sanctum"

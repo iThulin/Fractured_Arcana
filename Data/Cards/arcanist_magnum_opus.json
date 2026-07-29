@@ -25,7 +25,7 @@
 		"name": "Arcane Singularity",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Create a Singularity Crystal on a tile (20 HP). All spells cast by anyone within 3 also resolve on the Singularity's tile. You gain 1 charge per spell that hits it.",
+		"rules_text": "Create a Singularity Crystal on a tile (HP 20). All spells cast by anyone within 3 also resolve on the Singularity's tile. You gain 1 Charge per spell that hits it.",
 		"tags": [
 			"arcane"
 		],
@@ -67,7 +67,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Singularity Crystal (28 HP). Spells within 3 also resolve on its tile. Gain 1 charge per spell that hits it."
+					"value": "Create a Singularity Crystal (HP 28). Spells within 3 also resolve on its tile. Gain 1 Charge per spell that hits it."
 				}
 			]
 		},
@@ -103,7 +103,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Singularity Crystal (28 HP). Spells within 5 also resolve on its tile. Gain 1 charge per spell that hits it."
+					"value": "Create a Singularity Crystal (HP 28). Spells within 5 also resolve on its tile. Gain 1 Charge per spell that hits it."
 				}
 			]
 		},
@@ -121,7 +121,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Choose 2 cards. They become Perfected: cost 0, +5 to all values, not discarded, and draw 1 when played."
+					"value": "Choose 2 cards. They become Perfected: cost 0, +5 to all values, not discarded, and draw 1 card when played."
 				}
 			]
 		},
@@ -139,7 +139,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Singularity Crystal (28 HP). Spells within 5 also resolve on it. Gain 2 charge per spell that hits it."
+					"value": "Create a Singularity Crystal (HP 28). Spells within 5 also resolve on it. Gain 2 Charge per spell that hits it."
 				}
 			]
 		},
@@ -163,7 +163,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Choose 3 cards. They become Perfected: cost 0, +7 to all values, Reflex speed, draw 1 when played, never discarded."
+					"value": "Choose 3 cards. They become Perfected: cost 0, +7 to all values, Reflex speed, draw 1 card when played, never discarded."
 				}
 			]
 		},
@@ -188,7 +188,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Singularity Crystal (40 HP). Spells within 5 also resolve on it. Gain 2 charge per hit; it deals 4 to all enemies within 5 each turn."
+					"value": "Create a Singularity Crystal (HP 40). Spells within 5 also resolve on it. Gain 2 Charge per hit. It deals 4 to all enemies within 5 each turn."
 				}
 			]
 		}

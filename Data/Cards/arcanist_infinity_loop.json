@@ -8,7 +8,7 @@
 		"name": "Infinity Loop",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Gain 5 charge. For the rest of this turn, charge costs are halved (round up).",
+		"rules_text": "Gain 5 Charge. For the rest of this turn, Charge costs are halved (round up).",
 		"tags": [
 			"arcane"
 		],
@@ -64,7 +64,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 6 charge. For the rest of this turn, charge costs are halved (round up)."
+					"value": "Gain 6 Charge. For the rest of this turn, Charge costs are halved (round up)."
 				},
 				{
 					"half": "bottom",
@@ -92,7 +92,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 6 charge. For the rest of this turn, charge costs are 0."
+					"value": "Gain 6 Charge. For the rest of this turn, Charge costs are 0."
 				}
 			]
 		},
@@ -146,7 +146,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 6 charge. This turn: charge costs are 0 and all your spells gain Reflex speed."
+					"value": "Gain 6 Charge. This turn: Charge costs are 0 and all your spells gain Reflex speed."
 				}
 			]
 		},
@@ -204,7 +204,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 6 charge. This turn: charge costs 0, all spells Reflex speed. Recast your last spell for free."
+					"value": "Gain 6 Charge. This turn: Charge costs 0, all spells Reflex speed. Recast your last spell for free."
 				}
 			]
 		},

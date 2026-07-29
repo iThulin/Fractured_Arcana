@@ -8,7 +8,7 @@
 		"name": "Deploy Turret",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deploy a Turret on an empty tile within 2 (10 HP, 5 DMG, range 3). It auto-attacks the nearest enemy at the end of your turn.",
+		"rules_text": "Deploy a Turret on an empty tile within 2 (HP 10 / DMG 5 / RNG 3). It auto-attacks the nearest enemy at the end of your turn.",
 		"tags": [
 			"construct"
 		],
@@ -28,7 +28,7 @@
 		"name": "Recalibrate",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Draw 1 card. If you control 2 or more constructs, draw 2 instead.",
+		"rules_text": "Draw 1 card. If you control 2 or more constructs, draw 2 cards instead.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -140,7 +140,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deploy THREE Turrets on empty tiles within 2. They auto-attack the nearest enemy at the end of your turn."
+					"value": "Deploy 3 Turrets on empty tiles within 2. They auto-attack the nearest enemy at the end of your turn."
 				}
 			]
 		},

@@ -8,7 +8,7 @@
 		"name": "Frost Lance",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 7 damage. If target is on Ice terrain, freeze for 1 turn.",
+		"rules_text": "Deal 7 damage. If the target stands on Ice, it is Frozen for 1 turn.",
 		"tags": [
 			"ice"
 		],
@@ -210,7 +210,7 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Permafrost",
-			"description": "Permafrost: Frozen enemies shatter on kill — imbue adjacent tiles with Ice.",
+			"description": "Permafrost: Frozen enemies shatter on kill \u2014 imbue adjacent tiles with Ice.",
 			"changes": [
 				{
 					"half": "top",
@@ -262,7 +262,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 10 damage. Imbue tile with Ice. If on Ice, freeze 2 turns. On kill, imbue adjacent tiles with Ice."
+					"value": "Deal 10 damage. Imbue tile with Ice. If on Ice, freeze for 2 turns. On kill, imbue adjacent tiles with Ice."
 				}
 			]
 		},

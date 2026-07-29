@@ -8,7 +8,7 @@
 		"name": "Terraform",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Reshape 3-tile radius to match your highest element. Push enemies to edge, deal 6 damage. Imbue all tiles.",
+		"rules_text": "Reshape a 3-tile radius to match your highest element. Push enemies to the edge, dealing 6 damage. Imbue all tiles.",
 		"tags": [
 			"fire",
 			"ice",
@@ -31,7 +31,7 @@
 		"name": "Elemental Colossus",
 		"mana": 4,
 		"speed": "Reflex",
-		"rules_text": "Summon the Colossus (30HP 5ARM 1SPD) on target tile. Gain 4 armor.",
+		"rules_text": "Summon the Colossus (HP 30 / ARM 5 / SPD 1) on target tile. Gain 4 armor.",
 		"tags": [
 			"earth"
 		],
@@ -86,7 +86,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon the Colossus (30HP 5ARM 1SPD). Gain 6 armor."
+					"value": "Summon the Colossus (HP 30 / ARM 5 / SPD 1). Gain 6 armor."
 				}
 			]
 		},
@@ -112,7 +112,7 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Titan",
-			"description": "Titan: The Colossus is empowered — arrives with extra HP and armor.",
+			"description": "Titan: The Colossus is empowered \u2014 arrives with extra HP and armor.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -141,7 +141,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon the Empowered Colossus (45HP 8ARM 1SPD). Gain 6 armor."
+					"value": "Summon the Empowered Colossus (HP 45 / ARM 8 / SPD 1). Gain 6 armor."
 				}
 			]
 		},
@@ -177,7 +177,7 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Iron Colossus",
-			"description": "Iron Colossus: The Colossus becomes iron-clad — taunts adjacent enemies.",
+			"description": "Iron Colossus: The Colossus becomes iron-clad \u2014 taunts adjacent enemies.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -216,7 +216,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon Iron Colossus (50HP 12ARM, taunts adjacent enemies). Gain 8 armor and 6 shield."
+					"value": "Summon Iron Colossus (50 HP 12ARM, taunts adjacent enemies). Gain 8 armor and 6 shield."
 				}
 			]
 		},
@@ -252,7 +252,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Living Fortress",
-			"description": "Living Fortress: The Colossus is a living fortress — massive, mobile, and devastating.",
+			"description": "Living Fortress: The Colossus is a living fortress \u2014 massive, mobile, and devastating.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -296,7 +296,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon Living Fortress Colossus (60HP 15ARM, gains armor from stone tiles). Gain 10 armor and 8 shield. Imbue tiles within 2 with Stone."
+					"value": "Summon Living Fortress Colossus (60 HP 15ARM, gains armor from stone tiles). Gain 10 armor and 8 shield. Imbue tiles within 2 with Stone."
 				}
 			]
 		}

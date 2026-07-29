@@ -8,7 +8,7 @@
 		"name": "Stutter Step",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Move 3 tiles. If 2nd+ action this turn, draw a card.",
+		"rules_text": "Move 3 tiles. If 2nd+ action this turn, draw 1 card.",
 		"tags": [
 			"temporal"
 		],
@@ -43,7 +43,7 @@
 		"name": "Borrowed Seconds",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Slow target enemy for 1 turn. Gain 1 Foresight.",
+		"rules_text": "Target enemy is Slowed for 1 turn. Gain 1 Foresight.",
 		"tags": [
 			"temporal"
 		],
@@ -94,7 +94,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Slow target enemy for 2 turns. Gain 1 Foresight."
+					"value": "Target enemy is Slowed for 2 turns. Gain 1 Foresight."
 				}
 			]
 		},
@@ -149,7 +149,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Slow target enemy (2) and postpone its next action 1 turn. +1 Foresight."
+					"value": "Target enemy is Slowed for 2 turns and its next action is postponed 1 turn. Gain 1 Foresight."
 				}
 			]
 		},
@@ -198,7 +198,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Teleport within 4. If 2nd+ action, draw a card costing 1 less."
+					"value": "Teleport within 4. If 2nd+ action, draw 1 card costing 1 less."
 				}
 			]
 		},
@@ -216,7 +216,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Slow target enemy (2) and postpone its next action 1 turn. +2 Foresight."
+					"value": "Target enemy is Slowed for 2 turns and its next action is postponed 1 turn. Gain 2 Foresight."
 				}
 			]
 		},

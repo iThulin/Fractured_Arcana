@@ -170,7 +170,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Stun the target for 1 turn. Its spells cost 2 more for 2 turns."
+					"value": "Deal 7 damage. The target is Stunned for 1 turn. Its spells cost 2 more for 2 turns."
 				}
 			]
 		},

@@ -8,7 +8,7 @@
 		"name": "Requisition",
 		"mana": 1,
 		"speed": "Sorcery",
-		"rules_text": "Look at the top 5 cards of your deck. Keep a construct card; the rest go to the bottom.",
+		"rules_text": "Look at the top 5 cards of your deck. Keep a construct card. The rest go to the bottom.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -142,7 +142,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at the top 8 cards of your deck. Keep up to 2 construct cards; the rest go to the bottom."
+					"value": "Look at the top 8 cards of your deck. Keep up to 2 construct cards. The rest go to the bottom."
 				}
 			]
 		},

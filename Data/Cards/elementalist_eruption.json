@@ -8,7 +8,7 @@
 		"name": "Eruption",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 6 damage to target. Imbue target's tile with Fire.",
+		"rules_text": "Deal 6 damage. Imbue target's tile with Fire.",
 		"tags": [
 			"fire"
 		],
@@ -82,7 +82,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 6 damage to target. Imbue target's tile with Fire."
+					"value": "Deal 6 damage. Imbue target's tile with Fire."
 				},
 				{
 					"half": "bottom",
@@ -258,7 +258,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Imbue target tile and ring with Fire. Enemies on fire tiles within 2 are Burned (2)."
+					"value": "Deal 7 damage. Imbue target tile and ring with Fire. Enemies on fire tiles within 2 are Burned for 2 turns."
 				}
 			]
 		},
@@ -319,7 +319,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move 4 tiles. Push enemies within 2 (radius 2). Slow adjacent enemies on landing."
+					"value": "Move 4 tiles. Push enemies within 2 (radius 2). Adjacent enemies are Slowed for 1 turn on landing."
 				}
 			]
 		},
@@ -355,7 +355,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 8 damage. Apply Burn (2). Imbue all tiles within 2 of target with Fire."
+					"value": "Deal 8 damage. The target is Burned for 2 turns. Imbue all tiles within 2 of it with Fire."
 				}
 			]
 		},
@@ -416,7 +416,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move 5 tiles. Push nearby enemies 3, deal 4. Stun adjacent enemies on landing."
+					"value": "Move 5 tiles. Push nearby enemies 3, deal 4 damage. Adjacent enemies are Stunned for 1 turn on landing."
 				}
 			]
 		}

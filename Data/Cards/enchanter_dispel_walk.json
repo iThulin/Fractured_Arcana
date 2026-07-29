@@ -8,7 +8,7 @@
 		"name": "Dispel Walk",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Move 2. Remove 1 buff from each enemy you pass adjacent to.",
+		"rules_text": "Move 2 tiles. Remove 1 buff from each enemy you pass adjacent to.",
 		"tags": [
 			"enchant"
 		],
@@ -200,7 +200,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Move 3. Steal ALL buffs from enemies you pass adjacent to. Gain 1 Weave."
+					"value": "Move 3. Steal all buffs from enemies you pass adjacent to. Gain 1 Weave."
 				}
 			]
 		},
@@ -236,7 +236,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 4 damage per prepared glyph to ALL enemies (minimum 4)."
+					"value": "Deal 4 damage per prepared glyph to all enemies (minimum 4)."
 				}
 			]
 		}

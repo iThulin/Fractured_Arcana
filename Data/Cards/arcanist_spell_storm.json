@@ -64,7 +64,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "This turn: each spell you cast also casts the top half of the next card for free, and banks 1 charge."
+					"value": "This turn: each spell you cast also casts the top half of the next card for free, and banks 1 Charge."
 				}
 			]
 		},
@@ -100,7 +100,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "This turn: each spell you cast also casts a half of the next card for free, and banks 1 charge."
+					"value": "This turn: each spell you cast also casts a half of the next card for free, and banks 1 Charge."
 				}
 			]
 		},
@@ -136,7 +136,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "This turn: each spell casts a half of the next card free (which may trigger once more). Bank 1 charge per trigger."
+					"value": "This turn: each spell casts a half of the next card free (which may trigger once more). Bank 1 Charge per trigger."
 				}
 			]
 		},
@@ -183,7 +183,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "This turn: each spell you cast also casts both halves of the next card free (which may chain once). Bank 1 charge per trigger."
+					"value": "This turn: each spell you cast also casts both halves of the next card free (which may chain once). Bank 1 Charge per trigger."
 				}
 			]
 		}

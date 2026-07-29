@@ -96,7 +96,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push an enemy 3 tiles. If it collides, deal 5. If it lands on a glyph, trigger it."
+					"value": "Push an enemy 3 tiles. If it collides, deal 5 damage. If it lands on a glyph, trigger it."
 				}
 			]
 		},
@@ -152,7 +152,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push all enemies within 2 of the target 3 tiles. Collisions deal 5; glyph landings trigger."
+					"value": "Push all enemies within 2 of the target 3 tiles. Collisions deal 5 damage. Glyph landings trigger."
 				}
 			]
 		},
@@ -218,7 +218,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push all enemies within 2 onto your glyphs (6 collision) and Name each for 1 turn."
+					"value": "Push all enemies within 2 onto your glyphs (collisions deal 6 damage). Name each for 1 turn."
 				}
 			]
 		},

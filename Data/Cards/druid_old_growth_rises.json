@@ -8,7 +8,7 @@
 		"name": "Old Growth Rises",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Advance living tiles within 2 of the target, then root enemies on living ground there for 1 turn.",
+		"rules_text": "Advance living tiles within 2 of the target. Enemies on living ground there are Rooted for 1 turn.",
 		"tags": [
 			"growth"
 		],

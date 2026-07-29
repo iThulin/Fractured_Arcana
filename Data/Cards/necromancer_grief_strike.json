@@ -8,7 +8,7 @@
 		"name": "Grief Strike",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 4 damage. If target is adjacent to a memorial, deal 6 instead.",
+		"rules_text": "Deal 4 damage. If the target is adjacent to a memorial, deal 6 damage instead.",
 		"tags": [
 			"spirit"
 		],
@@ -38,7 +38,7 @@
 		"name": "Hollow Step",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Move 2 tiles. If you pass through or end on a memorial tile, draw a card.",
+		"rules_text": "Move 2 tiles. If you pass through or end on a memorial tile, draw 1 card.",
 		"tags": [
 			"necrotic"
 		],
@@ -85,7 +85,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Move 3 tiles. If you pass through or end on a memorial tile, draw a card."
+					"value": "Move 3 tiles. If you pass through or end on a memorial tile, draw 1 card."
 				}
 			]
 		},
@@ -132,7 +132,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 damage. Adjacent to memorial: deal 8 and heal 3."
+					"value": "Deal 4 damage. Adjacent to memorial: deal 8 and heal 3 HP."
 				}
 			]
 		},
@@ -166,7 +166,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Leave a memorial on your current tile. Move 3 tiles. If you pass through or end on a memorial, draw a card."
+					"value": "Leave a memorial on your current tile. Move 3 tiles. If you pass through or end on a memorial, draw 1 card."
 				}
 			]
 		},
@@ -255,7 +255,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Each memorial within range 4 deals 4 damage to the nearest enemy."
+					"value": "Each memorial within 4 deals 4 damage to the nearest enemy."
 				}
 			]
 		},

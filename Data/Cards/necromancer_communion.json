@@ -154,7 +154,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 8 damage. Heal 4. Adjacent to memorial: heal 12 instead."
+					"value": "Deal 8 damage. Heal 4 HP. Adjacent to memorial: heal 12 HP instead."
 				}
 			]
 		},
@@ -188,7 +188,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 2 Grief. Draw 1 card. Gain 1 armor per Grief charge."
+					"value": "Gain 2 Grief. Draw 1 card. Gain 1 armor per Grief."
 				}
 			]
 		},
@@ -357,7 +357,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Set Grief to 4. Draw 2 cards. Trigger the Flood — all spirits refresh, Grief resets to 0."
+					"value": "Set Grief to 4. Draw 2 cards. Trigger the Flood \u2014 all spirits refresh, Grief resets to 0."
 				}
 			]
 		}

@@ -85,7 +85,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create 4 illusory copies (4 HP). Damaging a copy reflects it at the attacker. Destroyed copies trigger their glyph. Lasts 3 turns."
+					"value": "Create 4 illusory copies (HP 4). Damaging a copy reflects it at the attacker. Destroyed copies trigger their glyph. Lasts 3 turns."
 				}
 			]
 		},
@@ -103,7 +103,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Link all prepared glyphs permanently. Triggering one triggers all, each +2 cumulative damage."
+					"value": "Link all prepared glyphs for the rest of the fight. Triggering one triggers all, each +2 cumulative damage."
 				}
 			]
 		},
@@ -126,7 +126,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create 6 illusory copies (4 HP) that attack for 3. Damaging one reflects it. Destroyed copies trigger their glyph. Lasts 3 turns."
+					"value": "Create 6 illusory copies (HP 4) that attack for 3. Damaging one reflects it. Destroyed copies trigger their glyph. Lasts 3 turns."
 				}
 			]
 		},
@@ -144,7 +144,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Link all glyphs permanently. Triggering one triggers all (+2 cumulative); gain 1 Weave per glyph."
+					"value": "Link all glyphs for the rest of the fight. Triggering one triggers all (+2 cumulative). Gain 1 Weave per glyph."
 				}
 			]
 		},
@@ -170,7 +170,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create 8 permanent illusory copies (6 HP) that attack for 4 and reflect damage. Destroyed copies trigger their glyph."
+					"value": "Create 8 permanent illusory copies (HP 6) that attack for 4 and reflect damage. Destroyed copies trigger their glyph."
 				}
 			]
 		},
@@ -203,7 +203,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Link all glyphs permanently, then trigger them all (each +2 cumulative). Gain 1 Weave per glyph."
+					"value": "Link all glyphs for the rest of the fight, then trigger them all (each +2 cumulative). Gain 1 Weave per glyph."
 				}
 			]
 		}

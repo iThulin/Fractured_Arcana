@@ -8,7 +8,7 @@
 		"name": "Remembrance",
 		"mana": 1,
 		"speed": "Sorcery",
-		"rules_text": "Choose a card in your discard; exile it to leave a memorial on your tile.",
+		"rules_text": "Choose a card in your discard. Exile it to leave a memorial on your tile.",
 		"tags": [],
 		"targeting": {
 			"type": "self"

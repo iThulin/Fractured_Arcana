@@ -8,7 +8,7 @@
 		"name": "Conduit Bolt",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 4 damage. If you control a construct, deal 6 instead.",
+		"rules_text": "Deal 4 damage. If you control a construct, deal 6 damage instead.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",

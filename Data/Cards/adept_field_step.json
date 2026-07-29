@@ -202,7 +202,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Teleport within 2, gain 2 shield, draw a card."
+					"value": "Teleport within 2, gain 2 shield, draw 1 card."
 				}
 			],
 			"bottom_name": "Untouchable"

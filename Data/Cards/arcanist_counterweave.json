@@ -8,7 +8,7 @@
 		"name": "Counterweave",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 3 shield. Gain 1 charge.",
+		"rules_text": "Gain 3 shield. Gain 1 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -33,7 +33,7 @@
 		"name": "Stored Spark",
 		"mana": 0,
 		"speed": "Sorcery",
-		"rules_text": "Gain 2 charge.",
+		"rules_text": "Gain 2 Charge.",
 		"tags": [
 			"arcane"
 		],

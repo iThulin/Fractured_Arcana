@@ -8,7 +8,7 @@
 		"name": "Wolves Come",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Summon a Wolf beside living ground (12HP 5DMG 2SPD).",
+		"rules_text": "Summon a Wolf beside living ground (HP 12 / DMG 5 / SPD 2).",
 		"tags": [
 			"growth"
 		],
@@ -28,7 +28,7 @@
 		"name": "Eyes in the Trees",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Summon Crows at the target tile (6HP 2DMG 4SPD).",
+		"rules_text": "Summon Crows at the target tile (HP 6 / DMG 2 / SPD 4).",
 		"tags": [
 			"growth"
 		],
@@ -55,7 +55,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon a Wolf beside living ground (12HP 5DMG 2SPD)."
+					"value": "Summon a Wolf beside living ground (HP 12 / DMG 5 / SPD 2)."
 				},
 				{
 					"half": "bottom",
@@ -99,7 +99,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon two Wolves beside living ground."
+					"value": "Summon 2 Wolves beside living ground."
 				}
 			],
 			"top_name": "The Pack"
@@ -147,7 +147,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon two Wolves at the target tile."
+					"value": "Summon 2 Wolves at the target tile."
 				}
 			],
 			"top_name": "War Pack"
@@ -224,7 +224,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon three Wolves. Gain 1 Wilding."
+					"value": "Summon 3 Wolves. Gain 1 Wilding."
 				}
 			],
 			"top_name": "The Hunt"

@@ -8,7 +8,7 @@
 		"name": "Arcane Missile",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 3 damage to target. Gain 1 charge.",
+		"rules_text": "Deal 3 damage. Gain 1 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -36,7 +36,7 @@
 		"name": "Focus",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 2 charge. Draw 1 card.",
+		"rules_text": "Gain 2 Charge. Draw 1 card.",
 		"tags": [
 			"arcane"
 		],
@@ -73,7 +73,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage to target. Gain 1 charge."
+					"value": "Deal 5 damage. Gain 1 Charge."
 				},
 				{
 					"half": "bottom",
@@ -83,7 +83,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 3 charge. Draw 1 card."
+					"value": "Gain 3 Charge. Draw 1 card."
 				}
 			]
 		},
@@ -126,7 +126,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage to target and a second enemy within 2. Gain 1 charge."
+					"value": "Deal 5 damage to target and a second enemy within 2. Gain 1 Charge."
 				}
 			]
 		},
@@ -144,7 +144,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 3 charge. Draw 2 cards."
+					"value": "Gain 3 Charge. Draw 2 cards."
 				}
 			]
 		},
@@ -162,7 +162,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage to target and a second enemy within 2. Gain 2 charge."
+					"value": "Deal 5 damage to target and a second enemy within 2. Gain 2 Charge."
 				}
 			]
 		},
@@ -193,7 +193,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 3 charge. Look at top 3, draw 2."
+					"value": "Gain 3 Charge. Look at the top 3 cards. Draw 2 of them."
 				}
 			]
 		},
@@ -237,7 +237,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 6 damage to target and the 2 nearest enemies within 3. Gain 2 charge."
+					"value": "Deal 6 damage to target and the 2 nearest enemies within 3. Gain 2 Charge."
 				}
 			]
 		},
@@ -267,7 +267,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 4 charge. Draw 2 cards."
+					"value": "Gain 4 Charge. Draw 2 cards."
 				}
 			]
 		}

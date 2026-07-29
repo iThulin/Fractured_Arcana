@@ -120,7 +120,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Trigger all your glyphs (not consumed). Each deals +2 per other; gain 1 Weave per glyph."
+					"value": "Trigger all your glyphs (not consumed). Each deals +2 per other. Gain 1 Weave per glyph."
 				}
 			]
 		},
@@ -162,7 +162,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Trigger all your glyphs twice (not consumed). Each deals +3 per other glyph; gain 1 Weave per glyph."
+					"value": "Trigger all your glyphs twice (not consumed). Each deals +3 per other glyph. Gain 1 Weave per glyph."
 				}
 			]
 		},

@@ -26,7 +26,7 @@
 		"name": "Charge Siphon",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 4 damage. Gain 1 charge per buff on the target (min 1).",
+		"rules_text": "Deal 4 damage. Gain 1 Charge per buff on the target (min 1).",
 		"tags": [
 			"arcane"
 		],
@@ -76,7 +76,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Gain 1 charge per buff on the target (min 1)."
+					"value": "Deal 6 damage. Gain 1 Charge per buff on the target (min 1)."
 				}
 			]
 		},
@@ -112,7 +112,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Gain 1 charge per buff on the target (min 2)."
+					"value": "Deal 6 damage. Gain 1 Charge per buff on the target (min 2)."
 				}
 			]
 		},
@@ -163,7 +163,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Gain 1 charge per buff (min 2). Remove a buff from the target."
+					"value": "Deal 6 damage. Gain 1 Charge per buff (min 2). Remove a buff from the target."
 				}
 			]
 		},
@@ -215,7 +215,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 8 damage. Gain 1 charge per buff (min 3). Steal 1 mana."
+					"value": "Deal 8 damage. Gain 1 Charge per buff (min 3). Steal 1 mana."
 				}
 			]
 		}

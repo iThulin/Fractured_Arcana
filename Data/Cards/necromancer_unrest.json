@@ -8,7 +8,7 @@
 		"name": "Unrest",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 4 damage. Apply Haunted (3 damage/turn) for 2 turns. Haunted spreads to 1 adjacent enemy for 1 turn.",
+		"rules_text": "Deal 4 damage. The target is Haunted (3 damage per turn) for 2 turns. Haunted spreads to 1 adjacent enemy for 1 turn.",
 		"tags": [
 			"necrotic"
 		],
@@ -50,7 +50,7 @@
 		"name": "Congregation",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Memorials within range 3 move 1 tile toward your wizard. Two memorials that overlap summon a Revenant (12HP 5DMG 1SPD).",
+		"rules_text": "Memorials within 3 move 1 tile toward your wizard. Two memorials that overlap summon a Revenant (HP 12 / DMG 5 / SPD 1).",
 		"tags": [
 			"spirit"
 		],
@@ -90,7 +90,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage. Apply Haunted (3 turns). Spreads to 1 adjacent enemy (1 turn)."
+					"value": "Deal 5 damage. The target is Haunted for 3 turns. Spreads to 1 adjacent enemy (1 turn)."
 				},
 				{
 					"half": "bottom",
@@ -100,7 +100,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Memorials within range 5 move 1 tile toward your wizard. Overlapping memorials summon a Revenant (12HP 5DMG)."
+					"value": "Memorials within 5 move 1 tile toward your wizard. Overlapping memorials summon a Revenant (HP 12 / DMG 5)."
 				}
 			]
 		},
@@ -144,7 +144,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage. Apply Haunted (3 turns). Spreads to all adjacent enemies (2 turns)."
+					"value": "Deal 5 damage. The target is Haunted for 3 turns. Spreads to all adjacent enemies (2 turns)."
 				}
 			]
 		},
@@ -162,7 +162,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Memorials within range 5 converge. Merged memorials summon a Revenant scaled to combined memorial strength."
+					"value": "Memorials within 5 converge. Merged memorials summon a Revenant scaled to combined memorial strength."
 				}
 			]
 		},
@@ -206,7 +206,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage. Apply Haunted (3 turns, spreads 2 turns). Haunted enemies leave a memorial on death."
+					"value": "Deal 5 damage. The target is Haunted for 3 turns (spreadss 2 turns). Haunted enemies leave a memorial on death."
 				}
 			]
 		},
@@ -224,7 +224,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Memorials within range 5 converge. Merged Revenants advance 2 tiles toward nearest enemy on arrival."
+					"value": "Memorials within 5 converge. Merged Revenants advance 2 tiles toward nearest enemy on arrival."
 				}
 			]
 		},
@@ -280,7 +280,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "All memorials on the board converge. Each pair summons a Revenant. Lone memorials summon Spirits (8HP 4DMG)."
+					"value": "All memorials on the board converge. Each pair summons a Revenant. Lone memorials summon Spirits (HP 8 / DMG 4)."
 				}
 			]
 		}

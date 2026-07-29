@@ -25,7 +25,7 @@
 		"name": "Clockwork Familiar",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deploy a Familiar on an empty tile beside you (12 HP, 3 DMG, 2 SPD). Once per turn it echoes a spell you cast, while it lives.",
+		"rules_text": "Deploy a Familiar on an empty tile beside you (HP 12 / DMG 3 / SPD 2). Once per turn it echoes a spell you cast, while it lives.",
 		"tags": [
 			"construct"
 		],

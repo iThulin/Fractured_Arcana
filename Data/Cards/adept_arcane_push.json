@@ -8,7 +8,7 @@
 		"name": "Force Push",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Push target enemy 2 tiles in a direction you choose; collisions deal 2.",
+		"rules_text": "Push target enemy 2 tiles in a direction you choose. Collisions deal 2 damage.",
 		"tags": [],
 		"targeting": {
 			"type": "unit_then_direction",
@@ -57,7 +57,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push target enemy 3 tiles; collisions deal 2."
+					"value": "Push target enemy 3 tiles. Collisions deal 2 damage."
 				},
 				{
 					"half": "bottom",
@@ -94,7 +94,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push target enemy 3 tiles; collisions deal 4."
+					"value": "Push target enemy 3 tiles. Collisions deal 4 damage."
 				}
 			],
 			"top_name": "Slam"
@@ -125,7 +125,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Push all adjacent enemies 2 tiles (collisions deal 2) and deal 2 damage."
+					"value": "Push all adjacent enemies 2 tiles (collisions deal 2 damage) and deal 2 damage."
 				}
 			],
 			"bottom_name": "Shockwave"
@@ -156,7 +156,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Range 5. Push target 3 tiles; collisions deal 5."
+					"value": "Range 5. Push target 3 tiles. Collisions deal 5 damage."
 				}
 			],
 			"top_name": "Kinetic Lance"
@@ -188,7 +188,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push target 4 tiles (collisions deal 5). It is Slowed for 1 turn."
+					"value": "Push target 4 tiles (collisions deal 5 damage). It is Slowed for 1 turn."
 				}
 			],
 			"top_name": "Irresistible Force"

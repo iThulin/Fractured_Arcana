@@ -80,7 +80,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Next enemy turn: all enemy actions redirect to a random other enemy. +1 Foresight."
+					"value": "Next enemy turn: all enemy actions redirect to a random other enemy. Gain 1 Foresight."
 				}
 			]
 		},
@@ -133,7 +133,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Next three spells re-resolve end of your next 3 turns; you may Fast-Forward any of them for 1 Foresight. +1 Foresight."
+					"value": "Next three spells re-resolve end of your next 3 turns. You may Fast-Forward any of them for 1 Foresight. Gain 1 Foresight."
 				}
 			]
 		},
@@ -146,7 +146,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Next enemy turn: redirect every enemy action to targets you choose; each gains +3 power. Spend 2 Foresight."
+					"value": "Next enemy turn: redirect every enemy action to targets you choose. Each gains +3 power. Spend 2 Foresight."
 				}
 			]
 		},
@@ -181,7 +181,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "For the next two enemy turns: redirect every enemy action to targets you choose; each gains +3 power. Spend 2 Foresight."
+					"value": "For the next two enemy turns: redirect every enemy action to targets you choose. Each gains +3 power. Spend 2 Foresight."
 				}
 			]
 		}

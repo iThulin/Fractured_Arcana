@@ -35,7 +35,7 @@
 		"name": "Still Watch",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 1 Wilding and draw a card.",
+		"rules_text": "Gain 1 Wilding and draw 1 card.",
 		"tags": [
 			"growth"
 		],
@@ -80,7 +80,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 2 Wilding and draw a card."
+					"value": "Gain 2 Wilding and draw 1 card."
 				}
 			],
 			"top_name": "Bed Down+",

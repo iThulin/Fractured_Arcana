@@ -8,7 +8,7 @@
 		"name": "Shock Net",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Root target enemy for 1 turn. If it stands beside one of your constructs, it also takes 4 damage.",
+		"rules_text": "Target enemy is Rooted for 1 turn. If it stands beside one of your constructs, it also takes 4 damage.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -176,7 +176,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Root target enemy for 2 turns and deal 6 damage."
+					"value": "Target enemy is Rooted for 2 turns and deal 6 damage."
 				}
 			]
 		},

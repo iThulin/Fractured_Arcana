@@ -8,7 +8,7 @@
 		"name": "Disintegrate",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Spend 3 charge. Deal 14 damage. If this is lethal, exile the target (it cannot be resurrected).",
+		"rules_text": "Spend 3 Charge. Deal 14 damage. If this is lethal, exile the target (it cannot be resurrected).",
 		"tags": [
 			"arcane"
 		],
@@ -29,7 +29,7 @@
 		"name": "Arcane Nexus",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Create a Nexus on a tile (10 HP). While it exists, gain 1 charge at the start of each turn and your spells within 2 of it cost 1 less.",
+		"rules_text": "Create a Nexus on a tile (HP 10). While it exists, gain 1 Charge at the start of each turn and your spells within 2 of it cost 1 less.",
 		"tags": [
 			"arcane"
 		],
@@ -62,7 +62,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend 3 charge. Deal 18 damage. If lethal, exile the target."
+					"value": "Spend 3 Charge. Deal 18 damage. If lethal, exile the target."
 				},
 				{
 					"half": "bottom",
@@ -72,7 +72,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Nexus on a tile (14 HP). Gain 1 charge each turn; spells within 2 of it cost 1 less."
+					"value": "Create a Nexus on a tile (HP 14). Gain 1 Charge each turn. Spells within 2 of it cost 1 less."
 				}
 			]
 		},
@@ -90,7 +90,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend 2 charge. Deal 18 damage. If lethal, exile the target."
+					"value": "Spend 2 Charge. Deal 18 damage. If lethal, exile the target."
 				}
 			]
 		},
@@ -108,7 +108,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Nexus (14 HP). Gain 2 charge each turn; spells within 2 of it cost 1 less."
+					"value": "Create a Nexus (HP 14). Gain 2 Charge each turn. Spells within 2 of it cost 1 less."
 				}
 			]
 		},
@@ -126,7 +126,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend 2 charge. Deal 18 damage. If lethal, exile the target and refund the charge."
+					"value": "Spend 2 Charge. Deal 18 damage. If lethal, exile the target and refund the Charge."
 				}
 			]
 		},
@@ -149,7 +149,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Nexus (14 HP). Gain 2 charge each turn; spells within 3 cost 2 less."
+					"value": "Create a Nexus (HP 14). Gain 2 Charge each turn. Spells within 3 cost 2 less."
 				}
 			]
 		},
@@ -190,7 +190,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend 2 charge. Deal 22 damage; exile on lethal and refund charge. Deal 10 to adjacent enemies."
+					"value": "Spend 2 Charge. Deal 22 damage. Exile on lethal and refund Charge. Deal 10 to adjacent enemies."
 				}
 			]
 		},
@@ -216,7 +216,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Nexus (20 HP). Gain 2 charge/turn; spells within 3 cost 2 less; enemies within 3 take 3/turn."
+					"value": "Create a Nexus (HP 20). Gain 2 Charge/turn. Spells within 3 cost 2 less. Enemies within 3 take 3 per turn."
 				}
 			]
 		}

@@ -8,7 +8,7 @@
 		"name": "Grimoire Dive",
 		"mana": 2,
 		"speed": "Sorcery",
-		"rules_text": "Reveal the top 4 cards. Keep 1; gain 1 charge for each card put on the bottom.",
+		"rules_text": "Reveal the top 4 cards. Keep 1. Gain 1 Charge for each card put on the bottom.",
 		"tags": [
 			"arcane"
 		],

@@ -8,7 +8,7 @@
 		"name": "Mana Conduit",
 		"mana": 0,
 		"speed": "Studied",
-		"rules_text": "Gain 2 mana this turn. Gain 1 charge.",
+		"rules_text": "Gain 2 mana this turn. Gain 1 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -65,7 +65,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 3 mana this turn. Gain 1 charge."
+					"value": "Gain 3 mana this turn. Gain 1 Charge."
 				},
 				{
 					"half": "bottom",
@@ -93,7 +93,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 3 mana this turn. Gain 2 charge."
+					"value": "Gain 3 mana this turn. Gain 2 Charge."
 				}
 			]
 		},
@@ -141,7 +141,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 4 mana this turn. Gain 2 charge."
+					"value": "Gain 4 mana this turn. Gain 2 Charge."
 				}
 			]
 		},
@@ -193,7 +193,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 4 mana this turn. Gain 2 charge. Draw 1 card."
+					"value": "Gain 4 mana this turn. Gain 2 Charge. Draw 1 card."
 				}
 			]
 		},

@@ -8,7 +8,7 @@
 		"name": "Marginalia",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Look at the top 2 cards of your deck. Draw 1, put the other on the bottom. Gain 1 charge.",
+		"rules_text": "Look at the top 2 cards of your deck. Draw 1 card, put the other on the bottom. Gain 1 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -34,7 +34,7 @@
 		"name": "Arcane Lash",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 4 damage. Spend 1 charge to deal 4 more.",
+		"rules_text": "Deal 4 damage. Spend 1 Charge to deal 4 more.",
 		"tags": [
 			"arcane"
 		],
@@ -83,7 +83,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at the top 3 cards of your deck. Draw 1, the rest to the bottom. Gain 1 charge."
+					"value": "Look at the top 3 cards of your deck. Draw 1 card, the rest to the bottom. Gain 1 Charge."
 				},
 				{
 					"half": "bottom",
@@ -93,7 +93,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Spend 1 charge to deal 4 more."
+					"value": "Deal 6 damage. Spend 1 Charge to deal 4 more."
 				}
 			]
 		},
@@ -111,7 +111,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at the top 3 cards. Draw 2, the rest to the bottom. Gain 1 charge."
+					"value": "Look at the top 3 cards. Draw 2 cards, the rest to the bottom. Gain 1 Charge."
 				}
 			]
 		},
@@ -129,7 +129,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Spend up to 2 charge to deal 4 more each."
+					"value": "Deal 6 damage. Spend up to 2 Charge to deal 4 more each."
 				}
 			]
 		},
@@ -147,7 +147,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at the top 3 cards. Draw 2, the rest to the bottom. Gain 2 charge."
+					"value": "Look at the top 3 cards. Draw 2 cards, the rest to the bottom. Gain 2 Charge."
 				}
 			]
 		},
@@ -165,7 +165,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Spend up to 2 charge to deal 6 more each."
+					"value": "Deal 6 damage. Spend up to 2 Charge to deal 6 more each."
 				}
 			]
 		},
@@ -200,7 +200,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at top 4, draw 2. Gain 2 charge. Your next spell costs 1 less."
+					"value": "Look at the top 4 cards. Draw 2 of them. Gain 2 Charge. Your next spell costs 1 less."
 				}
 			]
 		},
@@ -218,7 +218,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Spend up to 3 charge to deal 6 more each."
+					"value": "Deal 6 damage. Spend up to 3 Charge to deal 6 more each."
 				}
 			]
 		}

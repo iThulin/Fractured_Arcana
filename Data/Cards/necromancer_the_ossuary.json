@@ -8,7 +8,7 @@
 		"name": "The Ossuary",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Place an Ossuary on target tile (15HP, immobile). Spirits within range 2 heal 2HP at the start of each turn.",
+		"rules_text": "Place an Ossuary on target tile (HP 15, immobile). Spirits within 2 heal 2 HP at the start of each turn.",
 		"tags": [
 			"spirit"
 		],
@@ -41,7 +41,7 @@
 		"name": "Seance",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Target a memorial within range 3. Draw 2 cards and gain 1 Grief.",
+		"rules_text": "Target a memorial within 3. Draw 2 cards and gain 1 Grief.",
 		"tags": [
 			"spirit"
 		],
@@ -87,7 +87,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place an Ossuary (20HP). Spirits within range 2 heal 3HP per turn."
+					"value": "Place an Ossuary (HP 20). Spirits within 2 heal 3 HP per turn."
 				},
 				{
 					"half": "bottom",
@@ -97,7 +97,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Target a memorial within range 3. Draw 3 cards and gain 1 Grief."
+					"value": "Target a memorial within 3. Draw 3 cards and gain 1 Grief."
 				}
 			]
 		},
@@ -132,7 +132,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place Shrine (20HP). Spirits within range 2 heal 3HP/turn. Spirits that fall near the shrine leave memorials."
+					"value": "Place Shrine (HP 20). Spirits within 2 heal 3 HP/turn. Spirits that fall near the shrine leave memorials."
 				}
 			]
 		},
@@ -169,7 +169,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Target memorial within range 3. Draw 3, gain 1 Grief. Consume memorial, gain 2 mana."
+					"value": "Target memorial within 3. Draw 3 cards, gain 1 Grief. Consume memorial, gain 2 mana."
 				}
 			]
 		},
@@ -205,7 +205,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place Memorial Garden (20HP). Spirits regen 3HP/turn. Deaths near it leave memorials. Adjacent memorials auto-rise spirits each turn."
+					"value": "Place Memorial Garden (HP 20). Spirits regen 3 HP/turn. Deaths near it leave memorials. Adjacent memorials auto-rise spirits each turn."
 				}
 			]
 		},
@@ -233,7 +233,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Commune with all memorials within range 3. Per memorial: draw 1 card, gain 1 Grief."
+					"value": "Commune with all memorials within 3. Per memorial: draw 1 card, gain 1 Grief."
 				}
 			]
 		},
@@ -271,7 +271,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place the Soul Well (indestructible). Spirits within range 4 regen 3HP/turn. Auto-rise range 2. Gain 1 Grief per turn."
+					"value": "Place the Soul Well (indestructible). Spirits within 4 regen 3 HP/turn. Auto-rise range 2. Gain 1 Grief per turn."
 				}
 			]
 		},
@@ -313,7 +313,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Commune with every memorial on the board. Per memorial: draw 1 card, gain 1 Grief, summon a Spirit (8HP 4DMG). Memorials remain."
+					"value": "Commune with every memorial on the board. Per memorial: draw 1 card, gain 1 Grief, summon a Spirit (HP 8 / DMG 4). Memorials remain."
 				}
 			]
 		}

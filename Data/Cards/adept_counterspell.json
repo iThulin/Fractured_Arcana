@@ -101,7 +101,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "If you negated an action this turn: gain 2 mana and draw a card."
+					"value": "If you negated an action this turn: gain 2 mana and draw 1 card."
 				}
 			],
 			"top_name": "Counterspell+",
@@ -175,7 +175,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "If you negated an action this turn: gain 2 mana, draw a card, gain 2 shield."
+					"value": "If you negated an action this turn: gain 2 mana, draw 1 card, gain 2 shield."
 				}
 			],
 			"bottom_name": "Greater Drain"

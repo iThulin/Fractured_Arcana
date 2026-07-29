@@ -8,7 +8,7 @@
 		"name": "Bulwark",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Create a Shield Wall on target empty tile within 2 (12HP). Allies adjacent gain +2 armor.",
+		"rules_text": "Create a Shield Wall on target empty tile within 2 (HP 12). Adjacent allies gain +2 armor.",
 		"tags": [],
 		"requires": [
 			"empty_tile"
@@ -43,7 +43,7 @@
 		"name": "Siphon",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 5 damage. Heal 5.",
+		"rules_text": "Deal 5 damage. Heal 5 HP.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -133,7 +133,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Heal 6."
+					"value": "Deal 6 damage. Heal 6 HP."
 				}
 			],
 			"top_name": "Bulwark+",
@@ -191,7 +191,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 7 damage. Heal 7."
+					"value": "Deal 7 damage. Heal 7 HP."
 				}
 			],
 			"bottom_name": "Greater Siphon"
@@ -232,7 +232,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 7 damage, heal 7, and Weaken the target 1 turn."
+					"value": "Deal 7 damage and heal 7 HP. The target is Weakened for 1 turn."
 				}
 			],
 			"bottom_name": "Draining Siphon"
@@ -268,7 +268,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 9 damage. Heal 9."
+					"value": "Deal 9 damage. Heal 9 HP."
 				}
 			],
 			"bottom_name": "The Long Drink"

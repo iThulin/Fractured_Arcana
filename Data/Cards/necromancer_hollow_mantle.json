@@ -8,7 +8,7 @@
 		"name": "Hollow Mantle",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Gain 11 armor. For 3 turns: spells cost 1 less and you cannot be reduced below 1HP.",
+		"rules_text": "Gain 11 armor. For 3 turns: spells cost 1 less and you cannot be reduced below 1 HP.",
 		"tags": [
 			"necrotic"
 		],
@@ -66,7 +66,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 14 armor. For 4 turns: spells cost 1 less, cannot be reduced below 1HP."
+					"value": "Gain 14 armor. For 4 turns: spells cost 1 less, cannot be reduced below 1 HP."
 				},
 				{
 					"half": "bottom",
@@ -94,7 +94,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 14 armor. For 4 turns: spells cost 1 less, cannot go below 1HP, gain 2 Grief/turn."
+					"value": "Gain 14 armor. For 4 turns: spells cost 1 less, cannot go below 1 HP, gain 2 Grief/turn."
 				}
 			]
 		},
@@ -130,7 +130,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 14 armor. For 4 turns: cost -1, cannot go below 1HP, +2 Grief/turn. Draw 1 when a spirit falls."
+					"value": "Gain 14 armor. For 4 turns: cost -1, cannot go below 1 HP, +2 Grief/turn. Draw 1 card when a spirit falls."
 				}
 			]
 		},
@@ -148,7 +148,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "For 5 turns: deaths create memorials + spirits. Adjacent spirit damage 2/turn. Memorial spells cost 2 less."
+					"value": "For 5 turns: deaths create memorials + spirits. Adjacent spirit damage 2 per turn. Memorial spells cost 2 less."
 				}
 			]
 		},
@@ -184,7 +184,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 14 armor. Untargetable 2 turns. Spirits heal 3HP each time you cast a spell."
+					"value": "Gain 14 armor. Untargetable for 2 turns. Spirits heal 3 HP each time you cast a spell."
 				}
 			]
 		},
@@ -202,7 +202,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "For the rest of combat: all deaths create memorials and immediately summon a spirit. Memorial spells cost 2 less."
+					"value": "For the rest of the fight: all deaths create memorials and immediately summon a spirit. Memorial spells cost 2 less."
 				}
 			]
 		}

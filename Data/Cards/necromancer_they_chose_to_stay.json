@@ -8,7 +8,7 @@
 		"name": "They Chose to Stay",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Any spirit that falls this turn rises again at end of turn (8HP).",
+		"rules_text": "Any spirit that falls this turn rises again at end of turn (HP 8).",
 		"tags": [
 			"spirit"
 		],
@@ -63,7 +63,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Any spirit that falls this turn rises again at end of turn (12HP)."
+					"value": "Any spirit that falls this turn rises again at end of turn (HP 12)."
 				},
 				{
 					"half": "bottom",
@@ -78,7 +78,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon a Spirit from every memorial (4HP + 1 per other spirit you control, 6 DMG)."
+					"value": "Summon a Spirit from every memorial (4 HP + 1 per other spirit you control, 6 DMG)."
 				}
 			]
 		},
@@ -114,7 +114,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon a Spirit from every memorial (4HP + 1/spirit, 6 DMG). Each advances 1 tile on arrival."
+					"value": "Summon a Spirit from every memorial (4 HP + 1/spirit, 6 DMG). Each advances 1 tile on arrival."
 				}
 			]
 		},
@@ -169,7 +169,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Summon a Spirit from every memorial (4HP + 1/spirit, 6 DMG + 2/memorial strength). Each advances 1 tile."
+					"value": "Summon a Spirit from every memorial (4 HP + 1/spirit, 6 DMG + 2/memorial strength). Each advances 1 tile."
 				}
 			]
 		},

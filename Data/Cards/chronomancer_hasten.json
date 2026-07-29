@@ -88,7 +88,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Postpone target enemy's next action 1 turn; the enemy is Slowed."
+					"value": "Postpone target enemy's next action 1 turn. The enemy is Slowed."
 				}
 			]
 		},
@@ -122,7 +122,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Your next spell costs 1 less and resolves immediately. +1 Foresight."
+					"value": "Your next spell costs 1 less and resolves immediately. Gain 1 Foresight."
 				}
 			]
 		},
@@ -153,7 +153,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Postpone target enemy's next action 2 turns; it gains Temporal Drag (2)."
+					"value": "Postpone target enemy's next action 2 turns. It gains Temporal Drag for 2 turns."
 				}
 			]
 		},
@@ -192,7 +192,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Until end of turn, you may cast any spell from hand at Reflex speed; the first costs 0 and resolves immediately."
+					"value": "Until end of turn, you may cast any spell from hand at Reflex speed. The first costs 0 and resolves immediately."
 				}
 			]
 		},

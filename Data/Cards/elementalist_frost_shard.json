@@ -8,7 +8,7 @@
 		"name": "Frost Shard",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Deal 4 damage. Slow target for 1 turn.",
+		"rules_text": "Deal 4 damage. Target enemy is Slowed for 1 turn.",
 		"tags": [
 			"ice"
 		],
@@ -77,7 +77,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage. Slow target for 1 turn."
+					"value": "Deal 5 damage. Target enemy is Slowed for 1 turn."
 				},
 				{
 					"half": "bottom",
@@ -235,7 +235,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Imbue tile with Ice. Freeze 1 turn. On kill, imbue adjacent tiles with Ice."
+					"value": "Deal 6 damage. Imbue tile with Ice. They are Frozen for 1 turn. On kill, imbue adjacent tiles with Ice."
 				}
 			]
 		},
@@ -287,7 +287,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Push target 3 tiles. On Ice: deal 8 damage and freeze. Otherwise deal 4."
+					"value": "Push target 3 tiles. On Ice: deal 8 damage and freeze. Otherwise deal 4 damage."
 				}
 			]
 		},
@@ -375,7 +375,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Push target 4 tiles. Deal 6 damage. Freeze 1 turn. Imbue landing tile with Storm."
+					"value": "Push target 4 tiles. Deal 6 damage. They are Frozen for 1 turn. Imbue landing tile with Storm."
 				}
 			]
 		}

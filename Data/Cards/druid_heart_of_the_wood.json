@@ -43,7 +43,7 @@
 		"name": "The Pack Answers",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Two Wolves emerge beside living ground (12HP 5DMG 2SPD each).",
+		"rules_text": "2 Wolves emerge beside living ground (HP 12 / DMG 5 / SPD 2 each).",
 		"tags": [
 			"growth"
 		],
@@ -92,7 +92,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Two Wolves emerge beside living ground."
+					"value": "2 Wolves emerge beside living ground."
 				}
 			],
 			"top_name": "Heart of the Wood+",
@@ -133,7 +133,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Seed Thicket within 2; a Bear, Wolf and Boar emerge. Gain 1 Wilding."
+					"value": "Seed Thicket within 2. A Bear, Wolf and Boar emerge. Gain 1 Wilding."
 				}
 			],
 			"top_name": "Wildheart"
@@ -167,7 +167,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Three Wolves emerge beside living ground."
+					"value": "3 Wolves emerge beside living ground."
 				}
 			],
 			"bottom_name": "Three Wolves"
@@ -211,7 +211,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Seed Thicket and advance within 2; a Bear, Wolf and Boar emerge. Gain 1 Wilding."
+					"value": "Seed Thicket and advance within 2. A Bear, Wolf and Boar emerge. Gain 1 Wilding."
 				}
 			],
 			"top_name": "The Living Forest"
@@ -249,7 +249,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Three Wolves and a Bear emerge beside living ground."
+					"value": "3 Wolves and a Bear emerge beside living ground."
 				}
 			],
 			"bottom_name": "The Whole Pack"
@@ -297,7 +297,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Seed Thicket and advance within 3; two Bears, a Wolf and a Boar emerge. Gain 2 Wilding."
+					"value": "Seed Thicket and advance within 3. 2 Bears, a Wolf and a Boar emerge. Gain 2 Wilding."
 				}
 			],
 			"top_name": "Heart of the Wild"
@@ -339,7 +339,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Three Wolves, a Bear and a Boar emerge beside living ground."
+					"value": "3 Wolves, a Bear and a Boar emerge beside living ground."
 				}
 			],
 			"bottom_name": "The Great Hunt"

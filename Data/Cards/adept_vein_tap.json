@@ -22,7 +22,7 @@
 		"name": "Vein Pulse",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 2 damage to all enemies within 3 tiles.",
+		"rules_text": "Deal 2 damage to all enemies within 3.",
 		"tags": [],
 		"targeting": {
 			"type": "aoe",
@@ -73,7 +73,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 3 damage to all enemies within 3 tiles."
+					"value": "Deal 3 damage to all enemies within 3."
 				}
 			],
 			"top_name": "Vein Tap+",
@@ -126,7 +126,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 3 damage to all enemies within 3 tiles and Slow them 1 turn."
+					"value": "Deal 3 damage to all enemies within 3. They are Slowed for 1 turn."
 				}
 			],
 			"bottom_name": "Hard Pulse"
@@ -157,7 +157,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 4 damage to all enemies within 3 tiles and Slow them 1 turn."
+					"value": "Deal 4 damage to all enemies within 3. They are Slowed for 1 turn."
 				}
 			],
 			"bottom_name": "Deep Pulse"
@@ -188,7 +188,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 5 damage to all enemies within 3 tiles and Slow them 1 turn."
+					"value": "Deal 5 damage to all enemies within 3. They are Slowed for 1 turn."
 				}
 			],
 			"bottom_name": "The Opened Vein"

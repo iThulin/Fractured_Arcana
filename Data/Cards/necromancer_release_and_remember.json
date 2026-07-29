@@ -8,7 +8,7 @@
 		"name": "Release and Remember",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Consume target memorial within range 4. Gain 2 mana and draw 1 card.",
+		"rules_text": "Consume target memorial within 4. Gain 2 mana and draw 1 card.",
 		"tags": [
 			"spirit"
 		],
@@ -68,7 +68,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Consume target memorial within range 4. Gain 3 mana and draw 1 card."
+					"value": "Consume target memorial within 4. Gain 3 mana and draw 1 card."
 				},
 				{
 					"half": "bottom",
@@ -115,7 +115,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Consume target memorial within range 4. Gain 3 mana, draw 1 card, gain 1 Grief."
+					"value": "Consume target memorial within 4. Gain 3 mana, draw 1 card, gain 1 Grief."
 				}
 			]
 		},
@@ -181,7 +181,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Consume all memorials within range 2. Per memorial: gain 2 mana, draw 1 card, gain 1 Grief."
+					"value": "Consume all memorials within 2. Per memorial: gain 2 mana, draw 1 card, gain 1 Grief."
 				}
 			]
 		},
@@ -215,7 +215,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 2 armor per memorial + 2 armor per Grief charge + 1 shield per memorial."
+					"value": "Gain 2 armor per memorial + 2 armor per Grief + 1 shield per memorial."
 				}
 			]
 		},
@@ -255,7 +255,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Consume all memorials on the board. Per memorial: gain 2 mana, draw 1 card, summon a Spirit (8HP 4DMG)."
+					"value": "Consume all memorials on the board. Per memorial: gain 2 mana, draw 1 card, summon a Spirit (HP 8 / DMG 4)."
 				}
 			]
 		},
@@ -263,7 +263,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Untouchable",
-			"description": "Untouchable: Adds Shrouded this turn — max 5 damage per hit.",
+			"description": "Untouchable: Adds Shrouded this turn \u2014 max 5 damage per hit.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -294,7 +294,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 2 armor per memorial + 2 per Grief charge + 1 shield per memorial. Shrouded this turn (max 5 damage per hit)."
+					"value": "Gain 2 armor per memorial + 2 per Grief + 1 shield per memorial. Shrouded this turn (max 5 damage per hit)."
 				}
 			]
 		}
