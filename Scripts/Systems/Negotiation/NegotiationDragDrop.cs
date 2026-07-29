@@ -47,9 +47,22 @@ public partial class NegotiationTokenChip : PanelContainer
         CustomMinimumSize = new Vector2(SizePx + 2, SizePx + 2);
         AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
         if (Interactive)
+        {
             MouseDefaultCursorShape = CursorShape.PointingHand;
+            // Receive clicks here (PanelContainer inherits Container's PASS
+            // default, which would let them bubble past the chip).
+            MouseFilter = MouseFilterEnum.Stop;
+        }
 
-        var holder = new Control { CustomMinimumSize = new Vector2(SizePx, SizePx) };
+        var holder = new Control
+        {
+            CustomMinimumSize = new Vector2(SizePx, SizePx),
+            // A bare Control defaults to MOUSE_FILTER_STOP: without this
+            // override the holder sits on top of the chip, swallows every
+            // press, and _GuiInput/_GetDragData below never fire — which is
+            // exactly the "can't play actions in spoken-lines mode" bug.
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
         AddChild(holder);
 
         string artName = string.IsNullOrEmpty(ArtOverride)
