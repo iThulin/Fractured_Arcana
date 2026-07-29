@@ -43,8 +43,9 @@ public sealed class SequenceEffect : EffectBase
     public override EffectResult ResolveWithResult(PredicateContext ctx)
     {
         EffectResult last = new();
-        foreach (var step in Steps)
+        for (int i = 0; i < Steps.Length; i++)
         {
+            var step = Steps[i];
             if (step is EffectBase eb)
             {
                 last = eb.ResolveWithResult(ctx);
@@ -55,6 +56,28 @@ public sealed class SequenceEffect : EffectBase
                 // Fallback for any IEffect that doesn't use EffectBase
                 step.Resolve(ctx.Game, ctx.Caster, ctx.Targets, ctx.Snapshot);
                 last = new EffectResult();
+            }
+
+            // Post-cast player choice (2026-07-28): that step asked the player
+            // something and returned without finishing. Everything AFTER it must
+            // happen after the answer, so fold the remaining steps into the
+            // request's continuation and stop here.
+            //
+            // Without this, `[scry, draw]` would draw before the player had chosen
+            // what to keep — and five of the nine authored scry sequences have steps
+            // after the scry. The alternative was a rule that a choice must be the
+            // last step of its sequence, enforced in the loader; that is a constraint
+            // on the CONTENT to work around a limitation of the CODE, and it would be
+            // violated by the first person who forgot.
+            var pending = ctx.Game?.PendingChoice;
+            if (pending != null && i < Steps.Length - 1)
+            {
+                var rest = new IEffect[Steps.Length - i - 1];
+                Array.Copy(Steps, i + 1, rest, 0, rest.Length);
+                var tail = new SequenceEffect(rest);
+                var capturedCtx = ctx;
+                pending.Then(_ => tail.ResolveWithResult(capturedCtx));
+                return last;
             }
         }
         return last;

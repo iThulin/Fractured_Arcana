@@ -122,6 +122,39 @@ public sealed class GameState
     public List<Unit> UnitsInPlay = new();
     public Func<string, TileData, int, Unit> OnSummonRequested;
     public Action<Unit> OnDrawCards;
+
+    /// <summary>Post-cast player choice (2026-07-28). An effect that cannot finish
+    /// without asking the player something leaves its request HERE and returns;
+    /// Resolver.ResolveTop publishes it to <see cref="OnCardChoiceRequested"/> once the
+    /// resolution has unwound, and SequenceEffect chains its remaining steps onto it
+    /// first so ordering survives. Exactly one request is in flight at a time — a second
+    /// effect finding this slot occupied means two choices in one resolution, which the
+    /// seam queues rather than dropping.</summary>
+    public CardChoiceRequest PendingChoice;
+
+    /// <summary>The UI end of the choice seam — the third of its kind, alongside
+    /// OnSummonRequested and OnDrawCards. Null in headless contexts, which is why every
+    /// request carries a usable default: an unanswered question must not wedge a fight.</summary>
+    public Action<CardChoiceRequest> OnCardChoiceRequested;
+
+    /// <summary>THE publish path for a choice request. Resolver.ResolveTop calls this
+    /// for whatever an effect left in <see cref="PendingChoice"/>; an effect chaining a
+    /// SECOND request behind a first calls it directly from the continuation, because
+    /// by then the resolver has long since cleared the slot and stopped looking.
+    /// One function, so the "nobody is listening" fallback cannot exist in two versions
+    /// that disagree.</summary>
+    public void DispatchCardChoice(CardChoiceRequest req)
+    {
+        if (req == null)
+            return;
+        if (OnCardChoiceRequested != null)
+        {
+            OnCardChoiceRequested(req);
+            return;
+        }
+        Log($"[{req.Source}] no choice UI is listening — taking the default.");
+        req.Complete(req.DefaultPick());
+    }
     public Unit ActiveCasterUnit;
 
     public Entity PlayerA = new() { Name = "A" };

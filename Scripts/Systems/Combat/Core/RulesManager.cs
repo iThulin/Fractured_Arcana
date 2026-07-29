@@ -148,6 +148,20 @@ public sealed class Resolver
             Unit.AmbientDamageSource = prevDamageSource;
         }
 
+        // Post-cast player choice (2026-07-28): an effect asked the player something.
+        // Published HERE — after the effect loop, after the caster/damage-source pins
+        // are restored — so the continuation runs against a clean resolution context
+        // rather than inheriting pins from the item that requested it. If nothing is
+        // listening (headless, AI cast, a test), the request takes its own default and
+        // the game moves on; a question nobody can answer must never wedge a fight.
+        var choice = s.PendingChoice;
+        if (choice != null)
+        {
+            s.PendingChoice = null;              // clear BEFORE dispatch — the
+                                                 // continuation may request another
+            s.DispatchCardChoice(choice);
+        }
+
         // Set AFTER the effect loop (2026-07-10): "last resolved" must mean the
         // PREVIOUS spell while an item is resolving. Assigning before the loop
         // made rewind_last / echo / replicate effects re-resolve their own item

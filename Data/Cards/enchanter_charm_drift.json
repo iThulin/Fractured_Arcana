@@ -13,14 +13,14 @@
 			"enchant"
 		],
 		"targeting": {
-			"type": "unit",
+			"type": "unit_then_direction",
 			"range": 6,
-			"los": false,
 			"enemies_only": true
 		},
 		"effect": {
-			"type": "push_to_glyph",
-			"tiles": 2
+			"type": "push_aimed",
+			"tiles": 2,
+			"collision_damage": 0
 		}
 	},
 	"bottom": {

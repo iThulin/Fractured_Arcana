@@ -29,6 +29,92 @@ using System.Collections.Generic;
 //   4. Optionally filter to units on those tiles, with team filter
 // Helpers in HexDirection and TargetingHelpers handle steps 1, 2, and 4.
 
+// ── Two-step (interactive) selectors ────────────────────────────────────
+//
+// Post-cast player choice, part 1 (2026-07-28). Cards whose text says "in a
+// direction you choose" or "move it up to N tiles" need TWO picks, not one.
+//
+// The ruling that shapes these: both picks happen at CAST time, not at
+// resolution. The destination is knowable before the card reaches the stack, and
+// this engine's stack is MTG-derived — targets are chosen when the spell is cast
+// and are public information from that moment. Three things fall out of that,
+// all of them wanted:
+//   · a Reaction can respond to WHERE the push is going, not just that it happened
+//   · the R22 drag preview can model the outcome, which it structurally cannot do
+//     for a choice made after resolution has begun
+//   · nothing in IEffect, Resolver or the stack changes — this is an input-layer
+//     feature wearing a targeter's clothes
+//
+// Choices whose INFORMATION does not exist until resolution — scry's "look at the
+// top 3" — are a genuinely different problem and do NOT belong here.
+//
+// TargetSet convention for both: Items[0] is the victim Unit, Items[1] is the
+// chosen TileData. Effects read them positionally; CombatManager guarantees the
+// order and validates both picks before the cast is attempted.
+
+/// <summary>Base for targeters the DRAG PATH drives interactively. Select() is
+/// deliberately a hard failure: these can only be filled by CombatManager's
+/// two-step input flow, and an AI or scripted cast reaching here means a card was
+/// authored with an interactive targeter and then handed to a non-interactive
+/// caster. Failing loudly beats silently targeting nothing.</summary>
+public abstract class SelectTwoStepTarget : ITargetSelector
+{
+    public bool enemyOnly;
+    public bool friendlyOnly;
+    public bool constructsOnly;
+    public int range;
+
+    protected SelectTwoStepTarget(bool enemyOnly, int range,
+                                  bool friendlyOnly = false, bool constructsOnly = false)
+    {
+        this.enemyOnly = enemyOnly;
+        this.friendlyOnly = friendlyOnly;
+        this.constructsOnly = constructsOnly;
+        this.range = range;
+    }
+
+    /// <summary>Player-facing prompt for the second pick, shown in the action log.</summary>
+    public abstract string StepTwoPrompt { get; }
+
+    public bool Select(GameState s, Entity caster, out TargetSet targets)
+    {
+        targets = null;
+        GD.PrintErr($"[Targeting] {GetType().Name} is interactive — it cannot be resolved " +
+                    "by a non-interactive cast (AI, scripted, or Rules.TryCast). " +
+                    "Cards using it must be cast by the player.");
+        return false;
+    }
+}
+
+/// <summary>Pick a unit, then a DESTINATION TILE within <see cref="destRange"/> of
+/// that unit. "Move a construct you control up to 3 tiles."</summary>
+public sealed class SelectUnitThenTileTarget : SelectTwoStepTarget
+{
+    public int destRange;
+
+    public SelectUnitThenTileTarget(bool enemyOnly = true, int range = 4, int destRange = 2,
+                                    bool friendlyOnly = false, bool constructsOnly = false)
+        : base(enemyOnly, range, friendlyOnly, constructsOnly)
+    {
+        this.destRange = destRange;
+    }
+
+    public override string StepTwoPrompt => "Click a destination tile.";
+}
+
+/// <summary>Pick a unit, then an ADJACENT tile of that unit naming the direction to
+/// shove it. "Push an enemy 2 tiles in a direction you choose." The adjacent tile
+/// is the AIM, not the destination — the effect walks <c>tiles</c> steps along that
+/// axis and stops on the first blocker, exactly as the derived-direction push does.</summary>
+public sealed class SelectUnitThenDirectionTarget : SelectTwoStepTarget
+{
+    public SelectUnitThenDirectionTarget(bool enemyOnly = true, int range = 4,
+                                        bool friendlyOnly = false, bool constructsOnly = false)
+        : base(enemyOnly, range, friendlyOnly, constructsOnly) { }
+
+    public override string StepTwoPrompt => "Click a tile beside it to aim the shove.";
+}
+
 // ── Single-target selectors ─────────────────────────────────────────────
 
 /// <summary>Picks the single nearest unit to the caster within <see cref="range"/>, optionally filtered to enemies or friendlies. LOS flag is plumbed through but not yet enforced.</summary>

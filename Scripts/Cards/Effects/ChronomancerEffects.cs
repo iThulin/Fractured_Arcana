@@ -41,9 +41,20 @@ public sealed class GainForesightEffect : EffectBase
 }
 
 /// <summary>
-/// Draws <see cref="Keep"/> cards to hand. Full card-selection UI is future
-/// work — currently draws the top Keep cards without player choice.
-/// Also grants +1 Foresight. Discount is stored for future UI implementation.
+/// Reveals the top <see cref="Look"/> cards of the caster's draw pile and asks the
+/// player to keep <see cref="Keep"/> of them. Kept cards go to hand; the rest go to
+/// the BOTTOM of the draw pile in the order they were revealed.
+///
+/// (2026-07-28) This used to draw the top <see cref="Keep"/> cards and log
+/// "pending UI" — i.e. the card's whole point, the choice, did not exist. It now
+/// publishes a <see cref="CardChoiceRequest"/> and finishes in a continuation; see
+/// CardChoice.cs for why that is a continuation rather than an await.
+///
+/// <see cref="Discount"/> is still NOT implemented, and says so in the log rather
+/// than silently doing nothing: a per-card cost reduction needs a per-card modifier
+/// field, which does not exist yet. GameState.NextSpellCostReduction is single-use
+/// and global, so it cannot express "this specific card costs 1 less".
+///
 /// JSON: { "type": "scry", "look": n, "keep": n, "discount": n }
 /// </summary>
 public sealed class ScryEffect : EffectBase
@@ -52,11 +63,18 @@ public sealed class ScryEffect : EffectBase
 	public int Keep;
 	public int Discount;
 
-	public ScryEffect(int look, int keep, int discount)
+	/// <summary>True = picked cards go to HAND ("draw 1, bottom the rest" — the
+	/// look/keep/draw cards). False = they go back on TOP of the draw pile ("scry N
+	/// and reorder" — the count cards). Unpicked cards always go to the bottom, so the
+	/// two modes differ only in where the winners land.</summary>
+	public bool ToHand;
+
+	public ScryEffect(int look, int keep, int discount, bool toHand = true)
 	{
 		Look = look;
 		Keep = keep;
 		Discount = discount;
+		ToHand = toHand;
 	}
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
@@ -65,12 +83,87 @@ public sealed class ScryEffect : EffectBase
 		if (casterUnit == null)
 		{ s.Log("[Scry] No active caster — no-op."); return; }
 
-		if (casterUnit.DeckData != null)
+		var deck = casterUnit.DeckData;
+		if (deck == null)
+		{ s.Log($"[Scry] {casterUnit.Name} has no deck — no-op."); return; }
+
+		// R22: the drag preview replays real effects. A preview that popped a modal
+		// would be unusable, and one that MOVED CARDS would corrupt the deck on hover.
+		if (CombatSim.Active)
+			return;
+
+		// Reveal off the top, reshuffling once if the pile runs dry — same courtesy
+		// Draw() extends, so scrying near the end of a deck is not a dead card.
+		if (deck.DrawPile.Count < Look && deck.DiscardPile.Count > 0)
+			deck.Reshuffle();
+
+		int look = Math.Min(Look, deck.DrawPile.Count);
+		if (look <= 0)
+		{ s.Log($"[Scry] {casterUnit.Name}'s deck is empty — nothing to look at."); return; }
+
+		var revealed = deck.DrawPile.GetRange(0, look);
+		deck.DrawPile.RemoveRange(0, look);      // held OUT of the deck until answered
+
+		int keep = Math.Clamp(Keep, 0, look);
+
+		if (Discount > 0)
+			s.Log($"[Scry] discount {Discount} is not implemented — kept cards cost full price.");
+
+		var req = new CardChoiceRequest
 		{
-			casterUnit.DeckData.Draw(Keep);
-			s.OnDrawCards?.Invoke(casterUnit);
-			s.Log($"[Scry] Drew {Keep} card(s). (Look={Look}, Discount={Discount} pending UI)");
-		}
+			Title = "Scry",
+			Prompt = ToHand
+				? $"Keep {keep} of {look}. The rest go to the bottom of your deck."
+				: $"Put {keep} of {look} back on top. The rest go to the bottom.",
+			Owner = casterUnit,
+			Candidates = revealed,
+			PickCount = keep,
+			Source = "Scry",
+			OnChosen = chosen =>
+			{
+				// Unpicked first, to the BOTTOM. Then the picked ones — to hand, or
+				// back on TOP in the order the player chose them. Both lists come from
+				// `revealed`, so a card can be neither lost nor duplicated whatever
+				// the UI hands back.
+				foreach (var c in revealed)
+					if (c != null && (chosen == null || !chosen.Contains(c)))
+						deck.DrawPile.Add(c);
+
+				if (chosen != null)
+				{
+					if (ToHand)
+					{
+						foreach (var c in chosen)
+							if (c != null) deck.Hand.Add(c);
+					}
+					else
+					{
+						for (int i = chosen.Count - 1; i >= 0; i--)
+							if (chosen[i] != null) deck.DrawPile.Insert(0, chosen[i]);
+					}
+				}
+
+				s.OnDrawCards?.Invoke(casterUnit);
+				string names = chosen == null || chosen.Count == 0
+					? "nothing"
+					: string.Join(", ", chosen.ConvertAll(c => c?.CardName ?? "a card"));
+				s.Log($"[Scry] {casterUnit.Name} {(ToHand ? "keeps" : "puts back on top")} {names} " +
+					  $"({look - (chosen?.Count ?? 0)} to the bottom).");
+			},
+		};
+
+		// Two effects could each want a choice in one resolution. The slot holds one,
+		// so queue behind whatever is already there — dropping a request would
+		// silently eat the cards this one just held out of the deck.
+		//
+		// The chained request DISPATCHES rather than re-filling the slot: by the time
+		// that continuation runs, Resolver.ResolveTop has already cleared PendingChoice
+		// and stopped looking at it, so a second assignment would sit there unread
+		// until some unrelated later resolution happened to publish it.
+		if (s.PendingChoice != null)
+			s.PendingChoice.Then(_ => s.DispatchCardChoice(req));
+		else
+			s.PendingChoice = req;
 	}
 }
 

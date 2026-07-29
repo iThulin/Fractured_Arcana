@@ -725,6 +725,127 @@ public sealed class TeleportEffect : EffectBase
 	}
 }
 
+// ── Aimed displacement (2026-07-28) ─────────────────────────────────────
+//
+// PushEffect/PullEffect DERIVE their direction from the caster's position, which is
+// why no card could ever say "in a direction you choose". These two read the
+// direction (or the destination) the player picked, from the second slot of a
+// two-step TargetSet — see SelectTwoStepTarget.
+//
+// TargetSet convention: Items[0] = victim Unit, Items[1] = chosen TileData.
+// CombatManager guarantees the order and validates both picks before casting, so
+// these do NOT re-validate reachability; they only re-check that the world still
+// looks the way it did, because a Reaction may have moved things in between.
+
+/// <summary>Shoves a unit <see cref="Tiles"/> steps along the axis from the unit to
+/// a player-chosen ADJACENT tile. The chosen tile is the AIM, not the landing spot:
+/// the shove walks that axis and stops on the first tile it cannot enter, exactly as
+/// the derived-direction push does, so a wall still stops it and
+/// <see cref="CollisionDamage"/> still applies.
+/// JSON: { "type": "push_aimed", "tiles": n, "collision_damage": n }
+/// with targeting { "type": "unit_then_direction", ... }</summary>
+public sealed class PushAimedEffect : EffectBase
+{
+	public int Tiles;
+	public int CollisionDamage;
+
+	public PushAimedEffect(int tiles, int collisionDamage = 0)
+	{
+		Tiles = tiles;
+		CollisionDamage = collisionDamage;
+	}
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (!TwoStep.Read(s, targets, "PushAimed", out var victim, out var aim))
+			return;
+
+		var from = victim.CurrentTile.Axial;
+		var dir = aim.Axial - from;
+		if (dir == Vector2I.Zero)
+		{ s.Log("[PushAimed] the aim tile is the unit's own tile — no direction."); return; }
+
+		int pushed = 0;
+		bool collided = false;
+		for (int i = 0; i < Tiles; i++)
+		{
+			var next = s.Grid.GetTile(victim.CurrentTile.Axial + dir);
+			if (next == null || !next.CanEnter(victim))
+			{ collided = true; break; }
+			victim.PlaceOnTile(next);
+			pushed++;
+		}
+
+		s.Log($"[PushAimed] {victim.Name} shoved {pushed} tile(s)" +
+			  (collided ? " — blocked." : "."));
+
+		if (collided && CollisionDamage > 0)
+			victim.ApplyDamage(CollisionDamage);
+	}
+}
+
+/// <summary>Relocates a unit to a player-chosen tile. "Move a construct you control
+/// up to 3 tiles." Uses PlaceOnTile, NOT TryMoveTo: this is being moved, not walking
+/// — it spends no AP, ignores move range (the targeter already bounded it), and by
+/// design does NOT fire Unit.OnMoved, so an enemy binding_geas cannot tax a
+/// displacement the player's own card performed.
+/// JSON: { "type": "move_to_tile" } with targeting { "type": "unit_then_tile", ... }</summary>
+public sealed class MoveToTileEffect : EffectBase
+{
+	public bool EndsTurn;
+
+	public MoveToTileEffect(bool endsTurn = false) { EndsTurn = endsTurn; }
+
+	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+	{
+		if (!TwoStep.Read(s, targets, "MoveToTile", out var victim, out var dest))
+			return;
+
+		if (dest.Occupant != null && dest.Occupant != victim)
+		{ s.Log($"[MoveToTile] {dest.Axial} was taken before this resolved — no move."); return; }
+		if (!dest.CanEnter(victim))
+		{ s.Log($"[MoveToTile] {victim.Name} can no longer enter {dest.Axial} — no move."); return; }
+
+		victim.PlaceOnTile(dest);
+		s.Log($"[MoveToTile] {victim.Name} relocated to ({dest.Axial.X}, {dest.Axial.Y}).");
+
+		if (EndsTurn)
+		{
+			victim.CurrentActionPoints = 0;
+			victim.Stats.HasActed = true;
+		}
+	}
+}
+
+/// <summary>Shared reader for the two-step TargetSet convention. One place, so the
+/// [victim, tile] ordering cannot drift between effects — and every failure says
+/// which half was missing rather than returning silently, because "the card did
+/// nothing" and "the targeting is wired wrong" must not look identical from outside
+/// (U3c lesson 3).</summary>
+internal static class TwoStep
+{
+	public static bool Read(GameState s, TargetSet targets, string tag,
+							out Unit victim, out TileData tile)
+	{
+		victim = null; tile = null;
+		if (s?.Grid == null)
+		{ s?.Log($"[{tag}] no grid."); return false; }
+		if (targets?.Items == null || targets.Items.Count < 2)
+		{ s.Log($"[{tag}] needs a [unit, tile] TargetSet — got {targets?.Items?.Count ?? 0} item(s). " +
+				"Is the card authored with a unit_then_* targeter?"); return false; }
+
+		victim = targets.Items[0] as Unit;
+		tile = targets.Items[1] as TileData;
+		if (victim == null || !GodotObject.IsInstanceValid(victim) || !victim.Stats.IsAlive)
+		{ s.Log($"[{tag}] the chosen unit is gone."); victim = null; return false; }
+		if (victim.CurrentTile == null)
+		{ s.Log($"[{tag}] {victim.Name} is not on the board."); victim = null; return false; }
+		if (tile == null)
+		{ s.Log($"[{tag}] the chosen tile did not survive to resolution."); return false; }
+		return true;
+	}
+}
+
 // ── Push Effect ─────────────────────────────────────────────────────────
 
 /// <summary>Pushes each target N tiles directly away from the caster. When a push is blocked by an obstacle, optionally deals <see cref="CollisionDamage"/> to the obstructed unit. See README §5.4 — the JSON key is `tiles` not `amount`, a common typo source.</summary>

@@ -97,6 +97,20 @@ public partial class CombatManager : Node3D
     private bool _isCardBeingDragged = false;
     private CardHalf _draggedHalf = null;
 
+    // ── Two-step targeting (2026-07-28): "push it in a direction you choose" ──
+    // The drop picks the victim; a second click picks the tile. Rather than split
+    // the cast in half, the drop is REPLAYED once the tile is known: OnCardDroppedOnTile
+    // is re-entered with the original arguments and _twoStepChoice set, so the whole
+    // 200-line validate/preview/cast/telemetry tail runs exactly once, on the complete
+    // TargetSet, down the same path every other card takes. Nothing about casting is
+    // duplicated, which is the only reason this is safe to add to that method.
+    private CardUi _twoStepCard;
+    private bool _twoStepIsTop;
+    private HexTile _twoStepTile;        // the tile the card was dropped on (the victim's)
+    private Unit _twoStepVictim;
+    private SelectTwoStepTarget _twoStepTargeter;
+    private TileData _twoStepChoice;     // set by the second click, consumed by the replay
+
     // ── Movement zone renderer ──────────────────────────────────────────────
     private MovementZoneRenderer _zoneRenderer;
 
@@ -445,6 +459,10 @@ public partial class CombatManager : Node3D
         if (playerUnits.Count > 0 && playerUnits[0].DeckData != null)
             deckManager.SetActiveDeck(playerUnits[0].DeckData);
 
+        // Post-cast player choice (2026-07-28) — the third seam of this shape,
+        // alongside OnSummonRequested and OnDrawCards. See CardChoice.cs.
+        State.OnCardChoiceRequested = OnCardChoiceRequested;
+
         State.OnDrawCards = (unit) =>
         {
             if (deckManager != null && deckManager.GetActiveDeck() == unit.DeckData)
@@ -725,6 +743,10 @@ public partial class CombatManager : Node3D
 
         if (e is InputEventMouseButton mb)
         {
+            // Right-click cancels a pending second pick before anything else reads it.
+            if (mb.ButtonIndex == MouseButton.Right && mb.Pressed && TwoStepPending)
+            { CancelTwoStep(); return; }
+
             if (mb.ButtonIndex == MouseButton.Left)
             {
                 if (mb.Pressed)
@@ -734,6 +756,10 @@ public partial class CombatManager : Node3D
                 return;
             }
         }
+
+        if (e is InputEventKey esc && esc.Pressed && !esc.Echo
+            && esc.Keycode == Key.Escape && TwoStepPending)
+        { CancelTwoStep(); return; }
 
         // (2026-07-28, PT-U3e-4) These two lines deadlocked the enemy phase.
         //
@@ -797,6 +823,11 @@ public partial class CombatManager : Node3D
     private void TryHandleMainPhaseClick()
     {
         //GD.Print($"TryHandleMainPhaseClick phase={currentPhase}");
+
+        // Two-step targeting owns this click if one is pending — and consumes it, so
+        // aiming a shove at a tile with a unit on it does not also reselect that unit.
+        if (TryHandleTwoStepClick())
+            return;
 
         if (currentPhase != CombatPhase.PlayerTurn)
         {
@@ -2072,6 +2103,121 @@ public partial class CombatManager : Node3D
     /// <summary>Moves the selection off a corpse to the next living companion, or clears
     /// it if the party is gone. Deferred from HandleUnitDeath — see the call site for why
     /// it must not run synchronously.</summary>
+    // ── Two-step targeting: the second pick ─────────────────────────────────
+
+    /// <summary>True while a card is waiting for its second click. The card has NOT
+    /// been cast and NOTHING has been paid — cancelling costs the player nothing.</summary>
+    private bool TwoStepPending => _twoStepTargeter != null;
+
+    /// <summary>Arms the second pick: remembers the drop, highlights every legal
+    /// destination, and prompts. Deliberately highlights the LEGAL set rather than
+    /// letting the player click anywhere and fail — a second click that can silently
+    /// do nothing is the same class of defect as a trigger that queues and evaporates.</summary>
+    private void BeginTwoStep(CardUi cardUi, bool isTop, HexTile tile, Unit victim,
+                              SelectTwoStepTarget ts, CardHalf half)
+    {
+        _twoStepCard = cardUi;
+        _twoStepIsTop = isTop;
+        _twoStepTile = tile;
+        _twoStepVictim = victim;
+        _twoStepTargeter = ts;
+        _twoStepChoice = null;
+
+        ClearTargetHighlight();
+        foreach (var coord in TwoStepLegalTiles(victim, ts))
+        {
+            _targetHighlightTiles.Add(coord);
+            grid.GetTileView(coord)?.SetTargetHighlight(true);
+        }
+
+        string prompt = $"{half.Name} → {victim.Name}. {ts.StepTwoPrompt} (Esc or right-click to cancel.)";
+        GD.Print($"[TwoStep] {prompt}");
+        combatUI?.AppendActionLog(prompt);
+    }
+
+    /// <summary>The legal second-pick tiles. Direction targeters take the victim's
+    /// six neighbours (the AIM, not the landing spot); tile targeters take everything
+    /// enterable within destRange of the victim.</summary>
+    private IEnumerable<Vector2I> TwoStepLegalTiles(Unit victim, SelectTwoStepTarget ts)
+    {
+        if (victim?.CurrentTile == null || grid == null)
+            yield break;
+
+        if (ts is SelectUnitThenDirectionTarget)
+        {
+            foreach (var n in grid.GetNeighbors(victim.CurrentTile.Axial))
+                if (grid.GetTile(n) != null)
+                    yield return n;
+            yield break;
+        }
+
+        if (ts is SelectUnitThenTileTarget tt)
+        {
+            foreach (var td in grid.Tiles.Values)
+            {
+                if (td == null || td.Occupant != null || !td.CanEnter(victim))
+                    continue;
+                if (grid.Distance(victim.CurrentTile.Axial, td.Axial) > tt.destRange)
+                    continue;
+                yield return td.Axial;
+            }
+        }
+    }
+
+    /// <summary>Consumes the second click. Returns true when it handled the input, so
+    /// the normal click path does not ALSO run — otherwise the click that aims the
+    /// shove would reselect a unit underneath it.</summary>
+    private bool TryHandleTwoStepClick()
+    {
+        if (!TwoStepPending)
+            return false;
+
+        var view = GetTileViewUnderMouse();
+        var td = view != null ? grid.GetTile(view.Axial) : null;
+        if (td == null)
+        {
+            CancelTwoStep("clicked off the board");
+            return true;
+        }
+        if (!_targetHighlightTiles.Contains(td.Axial))
+        {
+            CancelTwoStep($"({td.Axial.X}, {td.Axial.Y}) is not a legal choice");
+            return true;
+        }
+
+        // Replay the original drop with the choice in hand. Everything from here —
+        // requirements, preview self-check, cost, stack, telemetry — is the untouched
+        // single-step path.
+        _twoStepChoice = td;
+        var card = _twoStepCard; bool isTop = _twoStepIsTop; var tile = _twoStepTile;
+        ClearTargetHighlight();
+        OnCardDroppedOnTile(card, isTop, tile);
+        ClearTwoStep();               // idempotent — the switch already cleared it on success
+        return true;
+    }
+
+    /// <summary>Abandons a pending second pick. Nothing has been paid, so this is a
+    /// pure UI unwind; the card is still in hand.</summary>
+    private void CancelTwoStep(string reason = null)
+    {
+        if (!TwoStepPending)
+            return;
+        ClearTwoStep();
+        ClearTargetHighlight();
+        string msg = reason == null ? "Cast cancelled." : $"Cast cancelled — {reason}.";
+        GD.Print($"[TwoStep] {msg}");
+        combatUI?.AppendActionLog(msg);
+    }
+
+    private void ClearTwoStep()
+    {
+        _twoStepCard = null;
+        _twoStepTile = null;
+        _twoStepVictim = null;
+        _twoStepTargeter = null;
+        _twoStepChoice = null;
+    }
+
     private void SelectNextLivingAfterDeath()
     {
         if (selectedUnit != null && IsInstanceValid(selectedUnit) && selectedUnit.Stats.IsAlive)
@@ -4753,6 +4899,41 @@ public partial class CombatManager : Node3D
         var targets = new TargetSet();
         switch (resolvedHalf.Targeting)
         {
+            // Two-step: victim from the drop, tile from a second click. On the first
+            // pass this validates the victim and returns without casting; the second
+            // click replays the drop with _twoStepChoice set and falls through to the
+            // normal cast tail.
+            case SelectTwoStepTarget ts:
+            {
+                var victim = State.UnitsInPlay
+                    .FirstOrDefault(u => u?.CurrentTile?.Axial == tile.Axial && u.Stats.IsAlive);
+                if (victim == null)
+                { CancelTwoStep(); CastFail($"{resolvedHalf.Name}: no unit on tile {tile.Axial}."); return; }
+                if (selectedUnit?.CurrentTile != null)
+                {
+                    int vdist = grid.Distance(selectedUnit.CurrentTile.Axial, victim.CurrentTile.Axial);
+                    if (vdist > ts.range)
+                    { CancelTwoStep(); CastFail($"{resolvedHalf.Name}: {victim.Name} is out of range ({vdist} > {ts.range})."); return; }
+                }
+                if (ts.enemyOnly && victim.TeamId == selectedUnit?.TeamId)
+                { CancelTwoStep(); CastFail($"{resolvedHalf.Name}: must target an enemy."); return; }
+                if (ts.friendlyOnly && victim.TeamId != selectedUnit?.TeamId)
+                { CancelTwoStep(); CastFail($"{resolvedHalf.Name}: must target one of your own."); return; }
+                if (ts.constructsOnly && !victim.IsConstruct)
+                { CancelTwoStep(); CastFail($"{resolvedHalf.Name}: {victim.Name} is not a construct."); return; }
+
+                if (_twoStepChoice == null)
+                {
+                    BeginTwoStep(cardUi, isTop, tile, victim, ts, resolvedHalf);
+                    return;                      // not a failure — the cast is PAUSED
+                }
+
+                targets.Items.Add(victim);
+                targets.Items.Add(_twoStepChoice);
+                ClearTwoStep();
+                break;
+            }
+
             case SelectUnitTarget ut:
                 var unit = State.UnitsInPlay
                     .FirstOrDefault(u => u?.CurrentTile?.Axial == tile.Axial && u.Stats.IsAlive);

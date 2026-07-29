@@ -357,6 +357,22 @@ public static partial class CardScriptRegistry
         });
 
         // Pull: { "type": "pull", "tiles": n }
+        // Aimed displacement (2026-07-28) — pair with a unit_then_* targeter.
+        // { "type": "push_aimed", "tiles": n, "collision_damage": n }
+        RegisterEffect("push_aimed", n =>
+        {
+            int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 2;
+            int cd = n.TryGetProperty("collision_damage", out var c) ? c.GetInt32() : 0;
+            return new PushAimedEffect(tiles, cd).WithTag("Displace");
+        });
+
+        // { "type": "move_to_tile", "ends_turn": bool }
+        RegisterEffect("move_to_tile", n =>
+        {
+            bool endsTurn = n.TryGetProperty("ends_turn", out var e) && e.GetBoolean();
+            return new MoveToTileEffect(endsTurn).WithTag("Displace");
+        });
+
         RegisterEffect("pull", n =>
         {
             int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 2;
@@ -643,6 +659,33 @@ public static partial class CardScriptRegistry
         {
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 3;
             return new SelectEmptyTileTarget(range);
+        });
+
+        // ── Two-step interactive targeters (2026-07-28) ──────────────────
+        // Both picks happen at CAST time; CombatManager drives the second click.
+        // TargetSet is [victim, chosenTile]. See SelectTwoStepTarget.
+
+        // { "type": "unit_then_tile", "range": n, "dest_range": n,
+        //   "enemies_only": bool, "friendlies_only": bool, "constructs_only": bool }
+        RegisterTargeter("unit_then_tile", n =>
+        {
+            bool enemyOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
+            bool friendlyOnly = n.TryGetProperty("friendlies_only", out var fo) && fo.GetBoolean();
+            bool constructsOnly = n.TryGetProperty("constructs_only", out var co) && co.GetBoolean();
+            int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 4;
+            int destRange = n.TryGetProperty("dest_range", out var d) ? d.GetInt32() : 2;
+            return new SelectUnitThenTileTarget(enemyOnly, range, destRange, friendlyOnly, constructsOnly);
+        });
+
+        // { "type": "unit_then_direction", "range": n,
+        //   "enemies_only": bool, "friendlies_only": bool, "constructs_only": bool }
+        RegisterTargeter("unit_then_direction", n =>
+        {
+            bool enemyOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
+            bool friendlyOnly = n.TryGetProperty("friendlies_only", out var fo) && fo.GetBoolean();
+            bool constructsOnly = n.TryGetProperty("constructs_only", out var co) && co.GetBoolean();
+            int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 4;
+            return new SelectUnitThenDirectionTarget(enemyOnly, range, friendlyOnly, constructsOnly);
         });
     }
 }

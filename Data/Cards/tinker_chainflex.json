@@ -26,12 +26,15 @@
 		"rules_text": "Move a construct you control up to 3 tiles. It cannot act this turn.",
 		"tags": [],
 		"targeting": {
-			"type": "tile",
-			"range": 4
+			"type": "unit_then_tile",
+			"range": 4,
+			"dest_range": 3,
+			"friendlies_only": true,
+			"constructs_only": true
 		},
 		"effect": {
-			"type": "move",
-			"tiles": 3
+			"type": "move_to_tile",
+			"ends_turn": true
 		}
 	}
 }

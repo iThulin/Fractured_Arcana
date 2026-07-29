@@ -33,10 +33,25 @@ public static partial class CardScriptRegistry
         // { "type": "scry", "look": n, "keep": m, "discount": n }
         RegisterEffect("scry", n =>
         {
-            int look = n.TryGetProperty("look", out var l) ? l.GetInt32() : 3;
-            int keep = n.TryGetProperty("keep", out var k) ? k.GetInt32() : 1;
+            // Three param vocabularies exist in the authored cards and, until
+            // 2026-07-28, this factory understood exactly one of them:
+            //   look/keep/discount  — Chronomancer. Read correctly.
+            //   look/draw           — Arcanist. `draw` was NEVER READ, so
+            //                         {"look":4,"draw":2} silently became keep=1.
+            //   count               — Worldshaper. NEITHER key was read, so
+            //                         {"count":2} silently became look=3, keep=1.
+            // All three are honoured now. `draw` is a straight alias for `keep`.
+            // `count` is the REORDER form: look at N, put 1 back on TOP, bottom the
+            // rest — nothing goes to hand.
+            bool hasCount = n.TryGetProperty("count", out var cnt);
+            int look = n.TryGetProperty("look", out var l) ? l.GetInt32()
+                     : hasCount ? cnt.GetInt32() : 3;
+            int keep = n.TryGetProperty("keep", out var k) ? k.GetInt32()
+                     : n.TryGetProperty("draw", out var dr) ? dr.GetInt32()
+                     : 1;
             int discount = n.TryGetProperty("discount", out var d) ? d.GetInt32() : 0;
-            return new ScryEffect(look, keep, discount).WithTag("CardDraw");
+            bool toHand = n.TryGetProperty("to_hand", out var th) ? th.GetBoolean() : !hasCount;
+            return new ScryEffect(look, keep, discount, toHand).WithTag("CardDraw");
         });
 
         // Delay damage from the next enemy attack by N turns, then take it all at once
