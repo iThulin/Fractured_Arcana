@@ -38,6 +38,11 @@ public partial class ToastManager : Control
     {
         if (string.IsNullOrEmpty(text)) return;
         if (_stack == null) return;
+        // Detached-node guard (2026-07-29): a caller can Push after a scene
+        // change has removed this node from the tree (patrol-ambush dossier
+        // announce raced CommitCombat's ChangeSceneToFile). GetTree() below
+        // would NRE; a toast nobody can see is safe to drop instead.
+        if (!IsInsideTree()) return;
 
         // Soft cap — remove the oldest immediately (QueueFree alone is deferred).
         while (_stack.GetChildCount() >= MaxToasts)

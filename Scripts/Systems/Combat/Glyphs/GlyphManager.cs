@@ -251,6 +251,11 @@ public sealed class GlyphManager
     /// <summary>Re-arm all consumed friendly glyphs (Rearm). Optionally grant +empower damage until they next fire.</summary>
     public int Rearm(int team, int empower = 0)
     {
+        // Null-grid guard, matching every other board-wide method here. This
+        // was the ONE unguarded _grid use — with the grid never assigned it
+        // threw mid-enemy-turn and softlocked combat (2026-07-29 playtest).
+        if (_grid?.Tiles == null)
+            return 0;
         int n = 0;
         foreach (var tile in _grid.Tiles.Values)
         {

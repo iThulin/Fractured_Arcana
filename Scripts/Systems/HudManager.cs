@@ -47,6 +47,7 @@ public partial class HudManager : Node
     private Button _returnButton; // gated by ShouldShowReturnToCampus (menu screens only)
 
     private int _lastGold = int.MinValue;
+    private int _lastPendingGold = int.MinValue;
     private int _lastLunation = int.MinValue;
 
     public override void _Ready()
@@ -173,16 +174,41 @@ public partial class HudManager : Node
             lun = cycle.Calendar.CurrentLunation;
         }
 
-        if (force || gold != _lastGold)
+        // Expedition-carried gold (2026-07-29 playtest request): the run's
+        // earnings are only BANKED on extraction — a failed run forfeits
+        // them. Show what's riding on the current expedition next to the
+        // treasury total so the stake is visible while it's at risk.
+        int pendingGold = GetExpeditionPendingGold();
+
+        if (force || gold != _lastGold || pendingGold != _lastPendingGold)
         {
-            _goldLabel.Text = $"Gold  {gold}";
+            _goldLabel.Text = pendingGold > 0
+                ? $"Gold  {gold}  (+{pendingGold} unbanked)"
+                : $"Gold  {gold}";
             _lastGold = gold;
+            _lastPendingGold = pendingGold;
         }
         if (force || lun != _lastLunation)
         {
             _lunationLabel.Text = $"Lunation  {lun}";
             _lastLunation = lun;
         }
+    }
+
+    /// <summary>Gold earned by the active expedition but NOT yet banked —
+    /// forfeited if the run fails. Read from the live ExpeditionManager while
+    /// on the overworld (it is the expedition scene's root script), or from
+    /// the EncounterRouter's saved resource state while a combat/negotiation
+    /// round-trip is in flight. 0 when no expedition is running, so the plain
+    /// treasury readout returns the moment the run ends.</summary>
+    private int GetExpeditionPendingGold()
+    {
+        if (!PlayerSession.IsOnExpedition)
+            return 0;
+        if (GetTree().CurrentScene is ExpeditionManager exp)
+            return exp.GoldEarned;
+        var router = EncounterRouter.Instance;
+        return router != null ? router.SavedGoldEarned : 0;
     }
 
     /// <summary>Show the bar only when a save is live and we're not in combat or

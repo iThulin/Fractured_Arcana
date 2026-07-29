@@ -109,14 +109,18 @@ public static class CardDatabase
     }
 
     /// <summary>
-    /// Find a blueprint by card name (case-insensitive).
-    /// Used for companion contributions and other content references.
+    /// Find a blueprint by blueprint id (e.g. "enchanter_snare_glyph") or by
+    /// display card name (case-insensitive). Companion contributedCardIds are
+    /// JSON ids, not display names — matching only on CardName made every
+    /// companion contribution report "missing card" (2026-07-29 playtest).
     /// </summary>
     public static CardBlueprint GetByName(string cardName)
     {
         if (string.IsNullOrEmpty(cardName)) return null;
         foreach (var bp in Blueprints)
         {
+            if (string.Equals(bp.Id, cardName, StringComparison.OrdinalIgnoreCase))
+                return bp;
             if (string.Equals(bp.Prebuilt?.CardName, cardName,
                 StringComparison.OrdinalIgnoreCase))
                 return bp;

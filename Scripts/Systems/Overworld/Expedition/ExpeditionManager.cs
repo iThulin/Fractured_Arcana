@@ -296,6 +296,19 @@ public partial class ExpeditionManager : Node2D
             _identifiedEncounters.Clear();
             _pinnedNegotiations.Clear();
 
+            // Run journal: opens run_<id>.log/.csv under user://run_logs/.
+            // ONLY on a fresh deploy — combat/negotiation returns take the
+            // other branch and keep appending to the same run's files.
+            RunEventLog.Begin(StagingTemplateRegion(),
+                PlayerSession.SelectedSchool.ToString(),
+                GoldEarned, SplinterEarned, CurrentHP, MaxHP, StepsRemaining);
+            if (bonuses.BonusGold != 0 || bonuses.BonusHP != 0 || bonuses.BonusSteps != 0)
+                LogRun("campus_bonus",
+                    $"buildings: +{bonuses.BonusGold}g +{bonuses.BonusHP}maxHP +{bonuses.BonusSteps}steps");
+            if (PlayerSession.DebugMode && (PlayerSession.StartWithGold || PlayerSession.StartWithSplinters))
+                LogRun("debug_grant",
+                    $"{(PlayerSession.StartWithGold ? "+5000g " : "")}{(PlayerSession.StartWithSplinters ? "+5000sp" : "")}".Trim());
+
             _party.Initialize(_grid, _fog, _window.PartyStartLocal);
             // Reveal-on-deploy: the staging tile and its vision write to World.
             WriteVisibleToWorld();
@@ -539,6 +552,8 @@ public partial class ExpeditionManager : Node2D
         }
 
         SaveManager.MarkDirty();
+        RunEventLog.Event("staging_point", $"{name} secured", 0, 0, 0, 0,
+                          GoldEarned, SplinterEarned, CurrentHP, StepsRemaining, $"{col},{row}");
         ShowInfo($"New staging point secured: {name}. Future expeditions can launch from here.");
         foreach (var qt in QuestNotifier.NotifyNew(questBefore, SaveManager.ActiveSave))
             _toasts?.Push(qt.Text, qt.Kind);
@@ -849,12 +864,19 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (!(PlayerSession.DebugMode && PlayerSession.UnlimitedSteps))
         {
             if (StepsRemaining > 0)
+            {
+                int stepsCharged = Mathf.Min(StepsRemaining, stepCost);
                 StepsRemaining = Mathf.Max(0, StepsRemaining - stepCost);
+                LogRun("step", hex != null ? hex.Terrain.ToString() : "?",
+                       stepsDelta: -stepsCharged, at: newCoord);
+            }
             else
             {
                 // Range exhausted: each further step costs HP. Forced extraction
                 // when HP would run out is handled below.
                 CurrentHP -= ExhaustionDamagePerStep;
+                LogRun("exhaustion", "step beyond range",
+                       hpDelta: -ExhaustionDamagePerStep, at: newCoord);
                 if (CurrentHP <= 0)
                 { CurrentHP = 0; FailExpedition("Stranded beyond your range."); return; }
             }
@@ -885,6 +907,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             if (hpDrain > 0)
             {
                 CurrentHP -= hpDrain;
+                LogRun("terrain_drain", hex != null ? hex.Terrain.ToString() : "?",
+                       hpDelta: -hpDrain, at: newCoord);
                 ShowInfo($"Hazardous terrain! Lost {hpDrain} HP.");
                 if (CurrentHP <= 0)
                 { CurrentHP = 0; FailExpedition("Lost to the wilds."); return; }
@@ -915,6 +939,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 int ward = Mathf.Min(EquipmentLoadout.PartyCorruptionWard(), tier * 2);
                 corruptionDrain = Mathf.Max(1, corruptionDrain - ward);
                 CurrentHP -= corruptionDrain;
+                LogRun("corruption_drain", $"tier {tier}",
+                       hpDelta: -corruptionDrain, at: newCoord);
                 ShowInfo($"The corruption sears you! Lost {corruptionDrain} HP.");
                 if (CurrentHP <= 0)
                 { CurrentHP = 0; FailExpedition("Consumed by corruption."); return; }
@@ -947,6 +973,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 {
                     int leashDrain = band * LeashDrainPerBand;
                     CurrentHP -= leashDrain;
+                    LogRun("leash_drain", $"band {band}",
+                           hpDelta: -leashDrain, at: newCoord);
                     ShowInfo($"Beyond your supply line ({(band > 1 ? $"band {band}" : "the fringe")}). Lost {leashDrain} HP.");
                     if (CurrentHP <= 0)
                     { CurrentHP = 0; FailExpedition("Lost beyond the supply line."); return; }
@@ -1186,6 +1214,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 bool campward = OverworldSpellEffects.ConsumeCampward();
                 if (campward)
                     heal += MaxHP / 8;
+                int restHpBefore = CurrentHP;
                 CurrentHP = Mathf.Min(CurrentHP + heal, MaxHP);
                 _spells?.AddEssence(3 + (campward ? 2 : 0), campward ? "Rest + Campward" : "Rest");
                 hex.POIConsumed = true;
@@ -1194,6 +1223,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 int restSpl = SplinterDropTable.RestSite();
                 SplinterEarned += restSpl;
                 GoldEarned += 15;
+                LogRun("rest_site", campward ? "rest (Campward)" : "rest",
+                       goldDelta: +15, splinterDelta: +restSpl,
+                       hpDelta: CurrentHP - restHpBefore, at: coord);
                 ShowInfo($"Rest site{(campward ? " (Campward)" : "")}. Recovered {heal} HP. " +
                          $"+{restSpl} Arcane Splinters.");
                 UpdateUI();
@@ -1218,6 +1250,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             case OverworldHex.POIType.Outpost:
                 // Full-heal checkpoint + grants a staging point (world-scale reward).
+                int outHpBefore = CurrentHP;
                 CurrentHP = MaxHP;
                 _spells?.RestoreEssenceFull(); // S2: Outpost = full Essence (§5)
                 hex.POIConsumed = true;
@@ -1227,6 +1260,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 int outSpl = SplinterDropTable.RestSite();
                 SplinterEarned += outSpl;
                 GoldEarned += 25;
+                LogRun("outpost", "secured (full heal, staging point)",
+                       goldDelta: +25, splinterDelta: +outSpl,
+                       hpDelta: CurrentHP - outHpBefore, at: coord);
                 SaveManager.SaveIfDirty(); // checkpoint
                 ShowInfo($"Outpost secured. Fully rested. +{outSpl} Arcane Splinters.");
                 UpdateUI();
@@ -1318,6 +1354,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // S3 (Retrace): a scene swap makes "the last step" ambiguous — forget it.
         _hasLastMove = false;
+
+        LogRun("combat_start",
+               $"{encounterDef.Id} (tier {encounterDef.Tier}, {encounterDef.Enemies.Count} foes)" +
+               (string.IsNullOrEmpty(guardianKey) ? "" : $" [guardian:{guardianKey}]"),
+               at: hexCoord);
 
         // Save only the RESOURCE state — the world (and thus the map) is resident.
         router.SavedStepsRemaining = StepsRemaining;
@@ -1439,14 +1480,18 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 ? EncounterPoolLoader.PickFromArchmage(arch, regionId, patrolTier, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
                 : null)
             ?? EncounterPoolLoader.Pick(regionId, patrolTier, terrainType, _scaledDifficultyMult);
+        // Dossier: being intercepted by an archmage's patrol is crossing paths
+        // with their forces ("wilds" is filtered inside the service). Fired
+        // BEFORE CommitCombat (2026-07-29): CommitCombat changes scene, which
+        // tears the ToastManager out of the tree — announcing after it threw
+        // an NRE in ToastManager.Push (GetTree() on a detached node). The
+        // dossier record persists either way; only the toast needed the tree.
+        AnnounceDossierMet(archmageId);
         CommitCombat(coord, encounterDef, terrainType);
         // Mark AFTER CommitCombat (which resets the flag): this combat is a
         // patrol ambush, and whose soldiers they are (C4 deed emission).
         EncounterRouter.Instance.SavedCombatWasPatrolAmbush = true;
         EncounterRouter.Instance.SavedCombatPatrolArchmageId = archmageId;
-        // Dossier: being intercepted by an archmage's patrol is crossing paths
-        // with their forces ("wilds" is filtered inside the service).
-        AnnounceDossierMet(archmageId);
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -1532,6 +1577,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             GoldEarned += router.GoldReward;
             SplinterEarned += router.SplinterReward;
             EncountersWon++;
+            LogRun("combat_end",
+                   $"victory{(router.SavedCombatWasPatrolAmbush ? " (patrol ambush)" : "")}" +
+                   $" — encounter #{EncountersWon}",
+                   goldDelta: +router.GoldReward, splinterDelta: +router.SplinterReward,
+                   at: resultHex);
 
             // Warfront objective: storming the besieging STRONGHOLD breaks the siege.
             // Only a win on the stronghold tile counts (if one was sited); if none
@@ -1627,6 +1677,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 TerritoryTierAt(resultHex),
                 bossContext: router.CurrentTier == EncounterTier.Boss,
                 "defeated in combat");
+            LogRun("combat_end",
+                   $"DEFEAT{(string.IsNullOrEmpty(_casualtyNote) ? "" : " — " + _casualtyNote)}",
+                   at: resultHex);
 
             if (_grid.Hexes.TryGetValue(resultHex, out var hex))
             { hex.POIConsumed = true; hex.RefreshVisuals(); }
@@ -1825,6 +1878,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         SaveManager.MarkDirty();
+        LogRun("shard_collected", $"{z.Name} ({z.FragmentKey}) — vault becomes staging point");
         _toasts?.Push($"Shard recovered: {z.Name}.", QuestToastKind.Complete);
         ShowInfo($"You take the shard from {z.Name}. Its power is yours — and the vault " +
                  "is now a staging point.");
@@ -1881,6 +1935,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             int gold = 15 + (int)(GD.Randf() * 20);
             GoldEarned += gold;
+            LogRun("gold_find", "unmarked cache (narrative pool empty)",
+                   goldDelta: +gold, at: coord);
             ShowInfo($"You find something of value here. (+{gold} gold)");
             UpdateUI();
             return;
@@ -1895,6 +1951,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             gateSave?.Cycle?.SelectedSchool,
             GoldEarned,
             gateSave?.Cycle?.Campaign);
+        LogRun("narrative_start", encounter.Id, at: coord);
         var loreTerrain = hex.Terrain; // S4: the drop pool is terrain-flavored
         _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(encounter, choice, loreTerrain);
     }
@@ -1917,6 +1974,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 save.Ledger.MetaNarrativeFlags.Add($"{key}_trial_passed");
                 SaveManager.MarkDirty();
             }
+            LogRun("guardian_bypassed", $"{key} — trial granted unopposed");
             ShowInfo("The guardian does not stir. You pass unopposed.");
             UpdateUI();
             return;
@@ -2046,7 +2104,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (!string.IsNullOrEmpty(choice.ResolutionKind) &&
             !string.IsNullOrEmpty(encounter.ArchmageId) &&
             HandleResolutionChoice(encounter.ArchmageId, choice.ResolutionKind))
+        {
+            LogRun("archmage_resolution", $"{encounter.ArchmageId}: {choice.ResolutionKind}");
             return;
+        }
 
         if (!string.IsNullOrEmpty(choice.LaunchGuardian))
         {
@@ -2055,6 +2116,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         var questBefore = QuestNotifier.Snapshot(SaveManager.ActiveSave);
+        int nGoldBefore = GoldEarned, nHpBefore = CurrentHP, nStepsBefore = StepsRemaining;
 
         if (choice.GoldDelta != 0)
             GoldEarned = Mathf.Max(0, GoldEarned + choice.GoldDelta);
@@ -2178,6 +2240,16 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             : $"Encounter resolved. +{spl} Arcane Splinters.";
         if (t2.Count > 0)
             msg += " You " + string.Join(", ", t2) + ".";
+
+        LogRun("narrative_choice",
+               encounter.Id
+               + (learnedId != "" ? $"; learned {learnedId}" : "")
+               + (t2.Count > 0 ? "; " + string.Join("; ", t2) : ""),
+               goldDelta: GoldEarned - nGoldBefore,
+               splinterDelta: spl,
+               hpDelta: CurrentHP - nHpBefore,
+               stepsDelta: StepsRemaining - nStepsBefore);
+
         ShowInfo(msg);
 
         foreach (var qt in QuestNotifier.NotifyNew(questBefore, SaveManager.ActiveSave))
@@ -2228,6 +2300,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
         _hasLastMove = false; // S3 (Retrace): scene swap forgets the last step
         SaveManager.SaveIfDirty();
+        LogRun("negotiation_start",
+               $"{encounter.Id} ({encounter.Archetype}) [patrol parley]", at: coord);
         ShowInfo($"Negotiation: {encounter.Title}");
         GetTree().ChangeSceneToFile("res://Scenes/Negotiation/NegotiationScene.tscn");
     }
@@ -2282,6 +2356,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
         _hasLastMove = false; // S3 (Retrace): scene swap forgets the last step
         SaveManager.SaveIfDirty();
+        LogRun("negotiation_start", $"{encounter.Id} ({encounter.Archetype})", at: coord);
         ShowInfo($"Negotiation: {encounter.Title}");
         GetTree().ChangeSceneToFile("res://Scenes/Negotiation/NegotiationScene.tscn");
     }
@@ -2290,7 +2365,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         if (NegotiationContext.DealAccepted)
         {
+            int negGoldBefore = GoldEarned;
             GoldEarned = Mathf.Max(0, GoldEarned + NegotiationContext.GoldDelta);
+            LogRun("negotiation_end",
+                   $"deal signed: {NegotiationContext.EncounterId}" +
+                   $" (rep {(NegotiationContext.ReputationDelta >= 0 ? "+" : "")}{NegotiationContext.ReputationDelta})",
+                   goldDelta: GoldEarned - negGoldBefore, at: hexCoord);
             var cycle = SaveManager.ActiveSave?.Cycle;
             string kingdom = NegotiationContext.OriginKingdomId;
             bool kingdomAligned = cycle != null &&
@@ -2378,6 +2458,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
         else
         {
+            LogRun("negotiation_end",
+                   $"no deal: {NegotiationContext.EncounterId}", at: hexCoord);
             foreach (var qt in QuestEvents.Raise(QuestEvents.NegotiationWalkaway,
                      NegotiationContext.OriginKingdomId))
                 _toasts?.Push(qt.Text, qt.Kind);
@@ -2441,6 +2523,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         BankResources(extracted: true);
         string casualties = string.IsNullOrEmpty(_casualtyNote) ? "" : $" {_casualtyNote}";
+        RunEventLog.End("emergency_extract",
+            $"straggled home, +1 lunation.{casualties}",
+            GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
+            goldBanked: true);
         ShowInfo($"Emergency extraction. The party straggles home — a lunation will pass. " +
                  $"Gold: {GoldEarned}, Splinters: {SplinterEarned}.{casualties}");
         _casualtyNote = null;
@@ -2473,6 +2559,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         string extractCasualties = CompanionInjurySystem.ApplyExtractionCheck(SaveManager.ActiveSave);
 
         BankResources(extracted: true);
+        RunEventLog.End("extracted",
+            $"voluntary extraction at supply anchor.{(string.IsNullOrEmpty(extractCasualties) ? "" : " " + extractCasualties)}",
+            GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
+            goldBanked: true);
         ShowInfo($"Extracted. Gold: {GoldEarned}, Splinters: {SplinterEarned}, Encounters: {EncountersWon}." +
                  $"{(string.IsNullOrEmpty(extractCasualties) ? "" : " " + extractCasualties)}");
         ShowReturnButton();
@@ -2512,6 +2602,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // The casualty note makes the human cost part of the banner — WHO was
         // hurt and for how long, not just that the run died (K2 UX).
         string casualties = string.IsNullOrEmpty(_casualtyNote) ? "" : $" {_casualtyNote}";
+        RunEventLog.End("failed", $"{reason}{casualties}",
+            GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
+            goldBanked: false);
         ShowInfo($"Expedition failed: {reason} Discoveries retained; unbanked spoils lost.{casualties}");
         _casualtyNote = null;
         ShowReturnButton();
@@ -2810,6 +2903,22 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         _infoLabel.Text = message;
         GD.Print($"[Expedition] {message}");
+    }
+
+    /// <summary>RunEventLog bridge: stamps the event with the current resource
+    /// totals and the party's WORLD coordinate (stable across windows). All
+    /// expedition-side run logging funnels through here.</summary>
+    private void LogRun(string type, string detail,
+                        int goldDelta = 0, int splinterDelta = 0,
+                        int hpDelta = 0, int stepsDelta = 0, Vector2I? at = null)
+    {
+        string coord = "";
+        Vector2I? local = at ?? (_party != null ? _party.CurrentCoord : (Vector2I?)null);
+        if (local.HasValue && _window != null &&
+            _window.TryLocalToWorld(local.Value, out int wc, out int wr))
+            coord = $"{wc},{wr}";
+        RunEventLog.Event(type, detail, goldDelta, splinterDelta, hpDelta, stepsDelta,
+                          GoldEarned, SplinterEarned, CurrentHP, StepsRemaining, coord);
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -3247,6 +3356,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         CurrentHP -= Tier3CastExposureHP;
         if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
             CurrentHP = Mathf.Max(1, CurrentHP);
+        LogRun("cast_exposure", "cast from tier-3 corrupted ground",
+               hpDelta: -Tier3CastExposureHP);
         if (CurrentHP <= 0)
         {
             CurrentHP = 0;

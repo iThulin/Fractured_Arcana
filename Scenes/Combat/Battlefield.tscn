@@ -36,7 +36,7 @@
 [ext_resource type="ArrayMesh" uid="uid://67powmk7dj6h" path="res://Assets/Terrain/Painterly_Rocks/Rock_9.tres" id="23_3oinc"]
 [ext_resource type="Material" uid="uid://brf6b5tpj6geu" path="res://Assets/Materials/PainterlyMaterials/Painterly_rocks.tres" id="24_k1fpm"]
 [ext_resource type="ArrayMesh" uid="uid://dqdysdb5wknh8" path="res://Assets/Props/Rocks/Boulder_Craggy.obj" id="28_6jeje"]
-[ext_resource type="Material" uid="uid://b337co08f5x1w" path="res://Assets/Materials/PainterlyMaterials/Painterly_rocks_mountain.tres" id="29_6jt2h"]
+[ext_resource type="Material" path="res://Assets/Materials/PainterlyMaterials/Painterly_rocks_mountain.tres" id="29_6jt2h"]
 [ext_resource type="Script" uid="uid://dh1cdr75p3xg1" path="res://Scripts/Systems/Combat/Terrain/CanopyOcclusionManager.cs" id="29_6m6xa"]
 [ext_resource type="Shader" uid="uid://dvlcmpjwn3pgx" path="res://Assets/Shaders/painterly_water.gdshader" id="29_onrkg"]
 [ext_resource type="ArrayMesh" uid="uid://bvxjcyb0fb58h" path="res://Assets/Props/Rocks/Boulder_Low.obj" id="29_tv4sg"]

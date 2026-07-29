@@ -858,7 +858,18 @@ public sealed class PerfectCardEffect : EffectBase
 }
 
 /// <summary>Active modifier that applies a bonus to the next N spells the owner casts.
-/// Fires via OnSpellCast (sets BonusDamage) and OnSpellResolved (clears it, draws, counts down).</summary>
+/// Fires via OnSpellCast (sets BonusDamage) and OnSpellResolved (clears it, draws, counts down).
+///
+/// SYMMETRY GUARD (2026-07-29): OnSpellCast runs BEFORE the stack drain in
+/// CombatManager and OnSpellResolved runs AFTER it — but this modifier is
+/// ADDED during the drain (when the queueing spell resolves). So it used to
+/// miss its own cast's OnSpellCast yet get caught by its own cast's
+/// OnSpellResolved: it subtracted a bonus that was never added, expired on
+/// the spot, and permanently drove BonusSpellDamage negative — one playtest
+/// fight decayed from 5 damage to −11 across four rounds, and the buff had
+/// never actually applied to anything. _armedThisCast makes the remove-side
+/// fire only when the add-side actually ran, which both stops the drain and
+/// lets the modifier survive to buff the genuinely-next spell.</summary>
 public sealed class QueuedSpellModifier : PersistentEffect
 {
     public int BonusDamage;
@@ -867,6 +878,11 @@ public sealed class QueuedSpellModifier : PersistentEffect
     public string GrantStatus;
     public int GrantStatusDuration;
     public Unit OwnerUnit;
+
+    /// <summary>True only between an OnSpellCast that applied this bonus and
+    /// the matching OnSpellResolved. Guards against the self-consume bug
+    /// described in the class summary.</summary>
+    private bool _armedThisCast;
 
     public QueuedSpellModifier(int bonusDmg, int extraDraw, int appliesTo,
         string grantStatus, int statusDur, Entity owner, Unit ownerUnit)
@@ -891,13 +907,18 @@ public sealed class QueuedSpellModifier : PersistentEffect
             casterUnit.BonusSpellDamage += BonusDamage;
         if (!string.IsNullOrEmpty(GrantStatus))
             casterUnit.ApplyStatus(GrantStatus, GrantStatusDuration);
+        _armedThisCast = true;
         s.Log($"[QueuedModifier] Applied +{BonusDamage} dmg to this spell.");
     }
 
     public override void OnSpellResolved(GameState s, Unit casterUnit, TargetSet targets)
     {
-        if (casterUnit != OwnerUnit || AppliesTo <= 0)
+        // Only unwind what OnSpellCast actually applied. Without this guard
+        // the modifier fires on the very cast that created it (see class
+        // summary) and bleeds BonusSpellDamage below zero.
+        if (!_armedThisCast || casterUnit != OwnerUnit || AppliesTo <= 0)
             return;
+        _armedThisCast = false;
         // Remove the bonus so it does not carry to the next spell
         if (BonusDamage > 0)
             casterUnit.BonusSpellDamage -= BonusDamage;

@@ -3720,6 +3720,15 @@ public partial class CombatManager : Node3D
 
         State.Grid = grid;
 
+        // GlyphManager was constructed in the GameState ctor BEFORE Grid was
+        // assigned, so it held a null grid — every board-wide glyph operation
+        // (start-of-turn triggers, TriggerAll, Link, NearestFriendly, timed
+        // expiry) silently no-opped, and Rearm (the one unguarded method)
+        // threw an NRE that killed the enemy-turn async chain (2026-07-29
+        // playtest softlock). Hand it the real grid the same place Memorials
+        // gets rebuilt with it.
+        State.Glyphs?.SetGrid(grid);
+
         // ── Druid living-terrain engine ───────────────────────────────────
         State.Growth = new GrowthManager(
             grid: grid,
