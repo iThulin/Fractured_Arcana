@@ -68,6 +68,13 @@ public static class NegotiationTuning
     public const int HostilePullSteps = 2;     // their pulls in the Hostile zone
     public const int HardenedBonusSteps = 1;   // extra pull after Intimidate-into-Guarded
 
+    /// <summary>[SIM 2026-07-30] Fairness floor: at table-open, NpcPatience is
+    /// raised to at least Resolve+Guile+this. Below that margin the clock ends
+    /// the table before skill can beat their pool — Monte Carlo put an
+    /// informed bot at −13g vs a Commander at design-doc patience 4. Archetype
+    /// personality survives relatively (Commanders still close fastest).</summary>
+    public const int PatienceFloorOverPool = 3;
+
     // ── The squeeze (Module B) ────────────────────────────────────────────
     // Moves: end-of-table drama; hold-firm EV. Blink rates are SHOWN to the
     // player, so these read directly as UI numbers.

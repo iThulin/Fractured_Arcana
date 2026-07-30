@@ -35,6 +35,31 @@ using System.Linq;
 //     board and can be pulled/defanged, instead of silently
 //     summing into the payout.
 
+/// <summary>Reading tier of a log entry — the manager styles and filters by
+/// this. Dialogue: lines spoken at the table, theirs and yours — the primary
+/// reading layer. Scene: stage direction and narration. Detail: the sim
+/// readout (clause slides, tension math, turn stamps), hidden unless the
+/// player turns on table details.</summary>
+public enum NegotiationLogKind { Dialogue, Scene, Detail }
+
+/// <summary>What the NPC will do on their next turn — the priority ladder's
+/// verdict at the current board. Computed by
+/// <see cref="NegotiationState.PredictNpcAction"/> and consumed by BOTH
+/// NpcTurn and the UI (intent line, clause-card threat markers), so the
+/// tell can never lie.</summary>
+public enum NpcMoveKind { Poise, Pull, Rework, Threat, Gift, Hold }
+
+/// <summary>One clause slide within the current exchange — who moved it,
+/// from which notch to which. The manager draws these as move markers and
+/// ghost trails on the clause cards.</summary>
+public class NegotiationTermMove
+{
+    public string TermId = "";
+    public int From;
+    public int To;
+    public bool ByPlayer;
+}
+
 /// <summary>State machine for one in-progress negotiation. Holds the live
 /// tension meter, the term board, both token pools (yours and the NPC's),
 /// the stance, and resolution state. UI-agnostic — <see cref="NegotiationManager"/>
@@ -51,9 +76,9 @@ public class NegotiationState
 
     public TensionZone Zone => Tension switch
     {
-        <= NegotiationTuning.CordialMax  => TensionZone.Cordial,
+        <= NegotiationTuning.CordialMax => TensionZone.Cordial,
         <= NegotiationTuning.StrainedMax => TensionZone.Strained,
-        _                                => TensionZone.Hostile
+        _ => TensionZone.Hostile
     };
 
     // ── Player token pool ────────────────────────────────────────────────
@@ -106,15 +131,23 @@ public class NegotiationState
     // ── Log ──────────────────────────────────────────────────────────────
     public List<string> Log { get; private set; } = new();
 
+    // ── Last exchange (move markers) ─────────────────────────────────────
+    /// <summary>Every clause slide since the player last acted — the UI's
+    /// move markers. Cleared at the top of each player action, so it always
+    /// answers "what just changed, and who changed it?"</summary>
+    public List<NegotiationTermMove> LastExchange { get; } = new();
+
     // ── Events ───────────────────────────────────────────────────────────
     public event Action<int, int> OnTensionChanged;   // oldTension, newTension
-    public event Action<string> OnLogEntry;
+    public event Action<string, NegotiationLogKind> OnLogEntry;
     public event Action OnResolved;
     public event Action OnStanceChanged;              // portrait hook (Phase 4 art)
 
     // ── Internal flags ────────────────────────────────────────────────────
     private bool _npcHardened = false;   // Intimidate-into-Guarded: next NPC pull +1
     private bool _giftGiven = false;     // one goodwill gift per table
+    private bool _resolveEmptyAnnounced; // "their Greed is spent" fired once
+    private bool _guileEmptyAnnounced;   // "out of fine print" fired once
 
     // ── Init ─────────────────────────────────────────────────────────────
 
@@ -130,11 +163,11 @@ public class NegotiationState
         // Set starting tension from faction reputation
         Tension = data.StartingTension + factionReputation switch
         {
-            >= 2  => -2,   // Allied
-            >= 1  => -1,   // Friendly
+            >= 2 => -2,   // Allied
+            >= 1 => -1,   // Friendly
             <= -2 => 4,    // Hostile  ← must come before <= -1
             <= -1 => 2,    // Unfriendly
-            _     => 0     // Neutral
+            _ => 0     // Neutral
         };
         Tension = Mathf.Clamp(Tension, TensionMin, TensionMax);
 
@@ -148,14 +181,25 @@ public class NegotiationState
         if (patronTokenCount > 0)
         {
             TokenPool[patronToken] += patronTokenCount;
-            AddLog($"A patron at court backs you: +{patronTokenCount} {patronToken}.");
+            AddLog($"A patron at court backs you: +{patronTokenCount} {patronToken}.",
+                   NegotiationLogKind.Detail);
         }
 
         // v2: NPC pool — authored per encounter, else archetype default.
         var (resolve, guile, poise) = ArchetypeBehavior.DefaultNpcPool(data.Archetype);
         NpcPool[NpcResource.Resolve] = data.NpcResolve >= 0 ? data.NpcResolve : resolve;
-        NpcPool[NpcResource.Guile]   = data.NpcGuile   >= 0 ? data.NpcGuile   : guile;
-        NpcPool[NpcResource.Poise]   = data.NpcPoise   >= 0 ? data.NpcPoise   : poise;
+        NpcPool[NpcResource.Guile] = data.NpcGuile >= 0 ? data.NpcGuile : guile;
+        NpcPool[NpcResource.Poise] = data.NpcPoise >= 0 ? data.NpcPoise : poise;
+
+        // Fairness invariant [SIM 2026-07-30]: the clock must leave room to
+        // out-play their pool. With patience < Resolve+Guile+margin the table
+        // is unwinnable-positive regardless of skill (Monte Carlo: Commander
+        // at design-doc patience 4 lost ~13g even for an informed bot).
+        NpcPatience = Mathf.Max(NpcPatience,
+            NpcPool[NpcResource.Resolve] + NpcPool[NpcResource.Guile]
+            + NegotiationTuning.PatienceFloorOverPool);
+        _resolveEmptyAnnounced = NpcPool[NpcResource.Resolve] == 0;
+        _guileEmptyAnnounced = NpcPool[NpcResource.Guile] == 0;
 
         // v2: term board init — positions and weights.
         foreach (var term in Terms)
@@ -173,7 +217,7 @@ public class NegotiationState
         _nextStance = ArchetypeBehavior.RollStance(Zone, GD.Randi());
 
         AddLog($"Negotiation begins. {data.NpcName} presents their terms.");
-        AddLog(data.OpeningText);
+        AddLog(data.OpeningText, NegotiationLogKind.Dialogue);
         AddLog(NegotiationBarks.StanceTell(Data.Archetype, Stance));
     }
 
@@ -274,10 +318,13 @@ public class NegotiationState
         {
             foreach (var buildingSave in save.Buildings)
             {
-                if (buildingSave.Tier <= 0) continue;
+                if (buildingSave.Tier <= 0)
+                    continue;
                 var tierData = BuildingDatabase.GetCurrentTierData(buildingSave.Id, save);
-                if (tierData == null) continue;
-                if (tierData.BonusNegotiationTokens <= 0) continue;
+                if (tierData == null)
+                    continue;
+                if (tierData.BonusNegotiationTokens <= 0)
+                    continue;
 
                 if (System.Enum.TryParse<LeverageToken>(
                     tierData.BonusTokenType, out var tokenType))
@@ -295,7 +342,8 @@ public class NegotiationState
         AddLog($"Your leverage pool: " +
                string.Join(", ", TokenPool
                    .Where(kvp => kvp.Value > 0)
-                   .Select(kvp => $"{kvp.Value}x {kvp.Key}")));
+                   .Select(kvp => $"{kvp.Value}x {kvp.Key}")),
+               NegotiationLogKind.Detail);
     }
 
     // ── Player actions (v2) ──────────────────────────────────────────────
@@ -305,12 +353,17 @@ public class NegotiationState
     /// the player, modified by the NPC's stance. Returns false if illegal.</summary>
     public bool PlayPress(LeverageToken token, DealTerm target)
     {
-        if (IsResolved || target == null) return false;
+        if (IsResolved || target == null)
+            return false;
         if (token is LeverageToken.Insight or LeverageToken.Patience
-                  or LeverageToken.Offering) return false;
-        if (TokenPool[token] <= 0) { AddLog($"You have no {token} tokens remaining."); return false; }
-        if (!PullableTerms().Contains(target)) { AddLog("That clause can't be moved right now."); return false; }
+                  or LeverageToken.Offering)
+            return false;
+        if (TokenPool[token] <= 0)
+        { AddLog($"You have no {token} tokens remaining."); return false; }
+        if (!PullableTerms().Contains(target))
+        { AddLog("That clause can't be moved right now."); return false; }
 
+        BeginExchange();
         CaptureRewindPoint();
         TokenPool[token]--;
         PlayedCounts[token] = PlayedCounts.GetValueOrDefault(token) + 1;
@@ -321,7 +374,7 @@ public class NegotiationState
             && token == LeverageToken.Intimidate)
         {
             AddLog(ArchetypeBehavior.GetTokenEffect(Data.Archetype, token));
-            AddLog(Data.DialogueWalkaway);
+            AddLog($"{Data.NpcName}: \"{Data.DialogueWalkaway}\"", NegotiationLogKind.Dialogue);
             Resolve(false, false);
             return true;
         }
@@ -339,13 +392,18 @@ public class NegotiationState
             {
                 case NpcStance.Wavering:
                     pull = NegotiationTuning.IntimidateWaveringPull;
-                    delta = baseDelta + NegotiationTuning.IntimidateWaveringTension; break;
+                    delta = baseDelta + NegotiationTuning.IntimidateWaveringTension;
+                    break;
                 case NpcStance.Guarded:
-                    pull = 1; delta = baseDelta + NegotiationTuning.IntimidateGuardedTension;
+                    pull = 1;
+                    delta = baseDelta + NegotiationTuning.IntimidateGuardedTension;
                     _npcHardened = true;
                     AddLog("They harden under the threat — expect them to pull back twice as hard.");
                     break;
-                default: pull = 1; delta = baseDelta; break;
+                default:
+                    pull = 1;
+                    delta = baseDelta;
+                    break;
             }
         }
         else
@@ -353,20 +411,32 @@ public class NegotiationState
             switch (Stance)
             {
                 case NpcStance.Irritated:
-                    pull = 0; delta = NegotiationTuning.IrritatedBackfireTension; backfired = true; break;
+                    pull = 0;
+                    delta = NegotiationTuning.IrritatedBackfireTension;
+                    backfired = true;
+                    break;
                 case NpcStance.Wavering:
-                    pull = 1; delta = baseDelta + NegotiationTuning.WaveringEase; break;
+                    pull = 1;
+                    delta = baseDelta + NegotiationTuning.WaveringEase;
+                    break;
                 case NpcStance.Guarded:
-                    pull = 1; delta = baseDelta + NegotiationTuning.GuardedResent; break;
+                    pull = 1;
+                    delta = baseDelta + NegotiationTuning.GuardedResent;
+                    break;
                 case NpcStance.Expansive:
-                    pull = 1; delta = baseDelta + NegotiationTuning.ExpansiveEase; break;
+                    pull = 1;
+                    delta = baseDelta + NegotiationTuning.ExpansiveEase;
+                    break;
                 default:
-                    pull = 1; delta = baseDelta; break;
+                    pull = 1;
+                    delta = baseDelta;
+                    break;
             }
         }
 
         AddLog(NegotiationBarks.PressResolution(Stance, backfired));
-        if (pull > 0) PullTerm(target, pull, byPlayer: true);
+        if (pull > 0)
+            PullTerm(target, pull, byPlayer: true);
         ApplyTensionDelta(delta);
         FinishPlayerAction();
         return true;
@@ -377,11 +447,14 @@ public class NegotiationState
     /// double the pull; Guarded ones pocket the gift coldly.</summary>
     public bool PlayOffering(DealTerm target)
     {
-        if (IsResolved || target == null) return false;
+        if (IsResolved || target == null)
+            return false;
         if (TokenPool[LeverageToken.Offering] <= 0)
-            { AddLog("You have no Offering tokens remaining."); return false; }
-        if (!PullableTerms().Contains(target)) { AddLog("That clause can't be moved right now."); return false; }
+        { AddLog("You have no Offering tokens remaining."); return false; }
+        if (!PullableTerms().Contains(target))
+        { AddLog("That clause can't be moved right now."); return false; }
 
+        BeginExchange();
         CaptureRewindPoint();
         TokenPool[LeverageToken.Offering]--;
         PlayedCounts[LeverageToken.Offering] = PlayedCounts.GetValueOrDefault(LeverageToken.Offering) + 1;
@@ -394,17 +467,26 @@ public class NegotiationState
         else
         {
             NpcPool[NpcResource.Resolve]++;   // the exchange economy, literally
+            _resolveEmptyAnnounced = false;   // a refilled pool can run dry again
         }
 
         int baseDelta = ArchetypeBehavior.GetTensionDelta(Data.Archetype, LeverageToken.Offering);
-        int pull; int delta;
+        int pull;
+        int delta;
         switch (Stance)
         {
             case NpcStance.Eager:
                 pull = NegotiationTuning.OfferEagerPull;
-                delta = baseDelta + NegotiationTuning.OfferEagerEase; break;
-            case NpcStance.Guarded: pull = 1; delta = 0;             break;
-            default:                pull = 1; delta = baseDelta;     break;
+                delta = baseDelta + NegotiationTuning.OfferEagerEase;
+                break;
+            case NpcStance.Guarded:
+                pull = 1;
+                delta = 0;
+                break;
+            default:
+                pull = 1;
+                delta = baseDelta;
+                break;
         }
 
         AddLog(NegotiationBarks.OfferResolution(Stance, ResolveName));
@@ -419,10 +501,12 @@ public class NegotiationState
     /// bad news is now the START of fixing it, not a payout penalty.</summary>
     public bool PlayInsightFlip()
     {
-        if (IsResolved) return false;
+        if (IsResolved)
+            return false;
         if (TokenPool[LeverageToken.Insight] <= 0)
-            { AddLog("You have no Insight tokens remaining."); return false; }
+        { AddLog("You have no Insight tokens remaining."); return false; }
 
+        BeginExchange();
         CaptureRewindPoint();
         TokenPool[LeverageToken.Insight]--;
         PlayedCounts[LeverageToken.Insight] = PlayedCounts.GetValueOrDefault(LeverageToken.Insight) + 1;
@@ -447,10 +531,12 @@ public class NegotiationState
     /// so you can time the play that needs it.</summary>
     public bool PlayInsightRead()
     {
-        if (IsResolved) return false;
+        if (IsResolved)
+            return false;
         if (TokenPool[LeverageToken.Insight] <= 0)
-            { AddLog("You have no Insight tokens remaining."); return false; }
+        { AddLog("You have no Insight tokens remaining."); return false; }
 
+        BeginExchange();
         CaptureRewindPoint();
         TokenPool[LeverageToken.Insight]--;
         PlayedCounts[LeverageToken.Insight] = PlayedCounts.GetValueOrDefault(LeverageToken.Insight) + 1;
@@ -465,10 +551,12 @@ public class NegotiationState
     /// A timing tool: you're fishing for the moment you need.</summary>
     public bool PlayPatience()
     {
-        if (IsResolved) return false;
+        if (IsResolved)
+            return false;
         if (TokenPool[LeverageToken.Patience] <= 0)
-            { AddLog("You have no Patience tokens remaining."); return false; }
+        { AddLog("You have no Patience tokens remaining."); return false; }
 
+        BeginExchange();
         CaptureRewindPoint();
         TokenPool[LeverageToken.Patience]--;
         PlayedCounts[LeverageToken.Patience] = PlayedCounts.GetValueOrDefault(LeverageToken.Patience) + 1;
@@ -482,7 +570,9 @@ public class NegotiationState
     /// this is what Patience looks like when you haven't paid for it.</summary>
     public bool Pass()
     {
-        if (IsResolved) return false;
+        if (IsResolved)
+            return false;
+        BeginExchange();
         CaptureRewindPoint();
         AddLog("You say nothing, and let them stew.");
         FinishPlayerAction();
@@ -503,7 +593,8 @@ public class NegotiationState
     /// the null case the deal is ALREADY resolved when this returns.</summary>
     public SqueezeOffer BeginShake()
     {
-        if (IsResolved) return null;
+        if (IsResolved)
+            return null;
 
         var target = Terms
             .Where(t => !t.IsHidden && t.Position > -2)
@@ -520,19 +611,20 @@ public class NegotiationState
         {
             TensionZone.Cordial => NegotiationTuning.SqueezeOddsCordial,
             TensionZone.Hostile => NegotiationTuning.SqueezeOddsHostile,
-            _                   => NegotiationTuning.SqueezeOddsStrained,
+            _ => NegotiationTuning.SqueezeOddsStrained,
         };
         odds += Stance switch
         {
-            NpcStance.Wavering  => NegotiationTuning.SqueezeOddsWavering,
+            NpcStance.Wavering => NegotiationTuning.SqueezeOddsWavering,
             NpcStance.Irritated => NegotiationTuning.SqueezeOddsIrritated,
-            NpcStance.Guarded   => NegotiationTuning.SqueezeOddsGuarded,
-            _                   => 0,
+            NpcStance.Guarded => NegotiationTuning.SqueezeOddsGuarded,
+            _ => 0,
         };
         odds = Mathf.Clamp(odds, NegotiationTuning.SqueezeOddsMin, NegotiationTuning.SqueezeOddsMax);
         SqueezeWasOffered = true;
 
-        AddLog(NegotiationBarks.SqueezeOpen(Data.Archetype, ShortName(target)));
+        AddLog(NegotiationBarks.SqueezeOpen(Data.Archetype, ShortName(target)),
+               NegotiationLogKind.Dialogue);
         return new SqueezeOffer { Target = target, OddsPercent = odds };
     }
 
@@ -540,7 +632,9 @@ public class NegotiationState
     /// and the deal signs.</summary>
     public void ResolveSqueezeConcede(SqueezeOffer offer)
     {
-        if (IsResolved || offer == null) return;
+        if (IsResolved || offer == null)
+            return;
+        BeginExchange();   // the concede slide is the closing move's marker
         PullTerm(offer.Target, 1, byPlayer: false);
         AddLog("You let them have their amendment. The ink dries.");
         AcceptDeal();
@@ -551,17 +645,18 @@ public class NegotiationState
     /// negotiation continues; the next handshake signs without a squeeze.</summary>
     public bool ResolveSqueezeHoldFirm(SqueezeOffer offer)
     {
-        if (IsResolved || offer == null) return false;
+        if (IsResolved || offer == null)
+            return false;
         SqueezeSpent = true;
         SqueezeWasHeld = true;
         if (GD.Randf() * 100f < offer.OddsPercent)
         {
             SqueezeDidBlink = true;
-            AddLog(NegotiationBarks.SqueezeBlink);
+            AddLog(NegotiationBarks.SqueezeBlink, NegotiationLogKind.Dialogue);
             AcceptDeal();
             return true;
         }
-        AddLog(NegotiationBarks.SqueezeBristle);
+        AddLog(NegotiationBarks.SqueezeBristle, NegotiationLogKind.Dialogue);
         ApplyTensionDelta(NegotiationTuning.SqueezeBristleTension);
         if (!IsResolved)
             AddLog("The handshake failed — the negotiation continues.");
@@ -571,7 +666,8 @@ public class NegotiationState
     /// <summary>Withdraw the hand — back to the table, no cost.</summary>
     public void ResolveSqueezeWithdraw()
     {
-        if (IsResolved) return;
+        if (IsResolved)
+            return;
         AddLog("You withdraw your hand. Not yet.");
     }
 
@@ -580,8 +676,10 @@ public class NegotiationState
     /// </summary>
     public void AcceptDeal()
     {
-        if (IsResolved) return;
-        AddLog($"You accept the terms. {Data.NpcName}: \"{Data.DialogueAccept}\"");
+        if (IsResolved)
+            return;
+        AddLog($"You accept the terms. {Data.NpcName}: \"{Data.DialogueAccept}\"",
+               NegotiationLogKind.Dialogue);
         Resolve(true, false);
     }
 
@@ -590,7 +688,8 @@ public class NegotiationState
     /// </summary>
     public void WalkAway()
     {
-        if (IsResolved) return;
+        if (IsResolved)
+            return;
         AddLog("You step away from the table. The negotiation ends without a deal.");
         Resolve(false, true);
     }
@@ -613,12 +712,19 @@ public class NegotiationState
 
     private void CaptureRewindPoint()
     {
-        if (School != CardSchool.Chronomancer) return;   // nobody else can use it
+        if (School != CardSchool.Chronomancer)
+            return;   // nobody else can use it
         _rewindPoint = new TableSnapshot
         {
-            Tension = Tension, NpcPatience = NpcPatience, TurnNumber = TurnNumber,
-            Stance = Stance, NextStance = _nextStance, NextKnown = NextStanceKnown,
-            Hardened = _npcHardened, GiftGiven = _giftGiven, SqueezeSpent = SqueezeSpent,
+            Tension = Tension,
+            NpcPatience = NpcPatience,
+            TurnNumber = TurnNumber,
+            Stance = Stance,
+            NextStance = _nextStance,
+            NextKnown = NextStanceKnown,
+            Hardened = _npcHardened,
+            GiftGiven = _giftGiven,
+            SqueezeSpent = SqueezeSpent,
             Pool = new Dictionary<LeverageToken, int>(TokenPool),
             NpcPoolCopy = new Dictionary<NpcResource, int>(NpcPool),
             TermPos = Terms.Select(t => t.Position).ToArray(),
@@ -633,9 +739,15 @@ public class NegotiationState
         var s = _rewindPoint;
         _rewindPoint = null;
         int oldTension = Tension;
-        Tension = s.Tension; NpcPatience = s.NpcPatience; TurnNumber = s.TurnNumber;
-        Stance = s.Stance; _nextStance = s.NextStance; NextStanceKnown = s.NextKnown;
-        _npcHardened = s.Hardened; _giftGiven = s.GiftGiven; SqueezeSpent = s.SqueezeSpent;
+        Tension = s.Tension;
+        NpcPatience = s.NpcPatience;
+        TurnNumber = s.TurnNumber;
+        Stance = s.Stance;
+        _nextStance = s.NextStance;
+        NextStanceKnown = s.NextKnown;
+        _npcHardened = s.Hardened;
+        _giftGiven = s.GiftGiven;
+        SqueezeSpent = s.SqueezeSpent;
         TokenPool = new Dictionary<LeverageToken, int>(s.Pool);
         NpcPool = new Dictionary<NpcResource, int>(s.NpcPoolCopy);
         for (int i = 0; i < Terms.Count && i < s.TermPos.Length; i++)
@@ -645,44 +757,46 @@ public class NegotiationState
             Terms[i].Locked = s.TermLocked[i];
             Terms[i].IsAccepted = s.TermAccepted[i];
         }
-        if (oldTension != Tension) OnTensionChanged?.Invoke(oldTension, Tension);
+        if (oldTension != Tension)
+            OnTensionChanged?.Invoke(oldTension, Tension);
         OnStanceChanged?.Invoke();
     }
 
     public static string SchoolMoveName(CardSchool s) => s switch
     {
-        CardSchool.Adept        => "Improvise",
+        CardSchool.Adept => "Improvise",
         CardSchool.Elementalist => "Show of Power",
-        CardSchool.Druid        => "Quiet Grove",
-        CardSchool.Necromancer  => "Commune",
-        CardSchool.Tinker       => "Fabricate",
-        CardSchool.Enchanter    => "Beguiling Weave",
-        CardSchool.Arcanist     => "Omniscient Read",
+        CardSchool.Druid => "Quiet Grove",
+        CardSchool.Necromancer => "Commune",
+        CardSchool.Tinker => "Fabricate",
+        CardSchool.Enchanter => "Beguiling Weave",
+        CardSchool.Arcanist => "Omniscient Read",
         CardSchool.Chronomancer => "Rewind",
-        _                       => "Signature Move",
+        _ => "Signature Move",
     };
 
     public string SchoolMoveDescription() => School switch
     {
-        CardSchool.Adept        => "Gain one leverage token of your choice.",
+        CardSchool.Adept => "Gain one leverage token of your choice.",
         CardSchool.Elementalist => $"Pull a clause two steps and burn 1 of their {ResolveName}; tension +1. Uses your turn.",
-        CardSchool.Druid        => "The room calms: tension −2 and their mood shifts.",
-        CardSchool.Necromancer  => "The dead have watched them: learn their next mood and flip a face-down clause.",
-        CardSchool.Tinker       => "+1 Offering, and your next Offering doesn't feed their pool.",
-        CardSchool.Enchanter    => "Set their current mood to one of your choosing.",
-        CardSchool.Arcanist     => "Know their next mood for the rest of this negotiation.",
+        CardSchool.Druid => "The room calms: tension −2 and their mood shifts.",
+        CardSchool.Necromancer => "The dead have watched them: learn their next mood and flip a face-down clause.",
+        CardSchool.Tinker => "+1 Offering, and your next Offering doesn't feed their pool.",
+        CardSchool.Enchanter => "Set their current mood to one of your choosing.",
+        CardSchool.Arcanist => "Know their next mood for the rest of this negotiation.",
         CardSchool.Chronomancer => "Unwind the last exchange as if it never happened.",
-        _                       => "",
+        _ => "",
     };
 
     public bool CanUseSchoolMove()
     {
-        if (IsResolved || SchoolMoveUsed) return false;
+        if (IsResolved || SchoolMoveUsed)
+            return false;
         return School switch
         {
             CardSchool.Chronomancer => _rewindPoint != null,
             CardSchool.Elementalist => PullableTerms().Count > 0,
-            _                       => true,
+            _ => true,
         };
     }
 
@@ -696,30 +810,37 @@ public class NegotiationState
                               NpcStance forcedStance = NpcStance.Wavering,
                               LeverageToken chosenToken = LeverageToken.Charm)
     {
-        if (!CanUseSchoolMove()) return false;
+        if (!CanUseSchoolMove())
+            return false;
+        if (School == CardSchool.Elementalist
+            && (target == null || !PullableTerms().Contains(target)))
+            return false;
+        BeginExchange();   // a school move starts a fresh set of move markers
         switch (School)
         {
             case CardSchool.Chronomancer:
                 SchoolMoveUsed = true;
                 AddLog(NegotiationBarks.SchoolMoveLine(School));
                 RestoreRewindPoint();
-                AddLog($"[Turn {TurnNumber} | Tension: {Tension}/10 | Patience: {NpcPatience}] — the moment repeats.");
+                AddLog("The moment repeats — the table is as you left it.");
+                AddLog($"[Turn {TurnNumber} | Tension: {Tension}/10 | Patience: {NpcPatience}]",
+                       NegotiationLogKind.Detail);
                 return true;
 
             case CardSchool.Necromancer:
-            {
-                SchoolMoveUsed = true;
-                AddLog(NegotiationBarks.SchoolMoveLine(School));
-                NextStanceKnown = true;
-                AddLog($"  · The dead whisper: next they'll be {_nextStance}.");
-                var hidden = Terms.FirstOrDefault(t => t.IsHidden && !t.IsAccepted);
-                if (hidden != null)
                 {
-                    hidden.IsHidden = false;
-                    AddLog($"  · And they remember the small print: \"{hidden.Description}\"");
+                    SchoolMoveUsed = true;
+                    AddLog(NegotiationBarks.SchoolMoveLine(School));
+                    NextStanceKnown = true;
+                    AddLog($"  · The dead whisper: next they'll be {_nextStance}.");
+                    var hidden = Terms.FirstOrDefault(t => t.IsHidden && !t.IsAccepted);
+                    if (hidden != null)
+                    {
+                        hidden.IsHidden = false;
+                        AddLog($"  · And they remember the small print: \"{hidden.Description}\"");
+                    }
+                    return true;
                 }
-                return true;
-            }
 
             case CardSchool.Enchanter:
                 SchoolMoveUsed = true;
@@ -741,7 +862,8 @@ public class NegotiationState
                 SchoolMoveUsed = true;
                 AddLog(NegotiationBarks.SchoolMoveLine(School));
                 ApplyTensionDelta(-NegotiationTuning.QuietGroveEase);
-                if (!IsResolved) AdvanceStance();
+                if (!IsResolved)
+                    AdvanceStance();
                 return true;
 
             case CardSchool.Tinker:
@@ -755,11 +877,10 @@ public class NegotiationState
                 SchoolMoveUsed = true;
                 TokenPool[chosenToken]++;
                 AddLog(NegotiationBarks.SchoolMoveLine(School));
-                AddLog($"  · +1 {chosenToken}.");
+                AddLog($"  · +1 {chosenToken}.", NegotiationLogKind.Detail);
                 return true;
 
             case CardSchool.Elementalist:
-                if (target == null || !PullableTerms().Contains(target)) return false;
                 SchoolMoveUsed = true;
                 AddLog(NegotiationBarks.SchoolMoveLine(School));
                 PullTerm(target, NegotiationTuning.ShowOfPowerPull, byPlayer: true);
@@ -769,7 +890,8 @@ public class NegotiationState
                     AddLog($"  · Their {ResolveName} wavers before the display. (−1)");
                 }
                 ApplyTensionDelta(NegotiationTuning.ShowOfPowerTension);
-                if (!IsResolved) FinishPlayerAction();
+                if (!IsResolved)
+                    FinishPlayerAction();
                 return true;
 
             default:
@@ -786,7 +908,8 @@ public class NegotiationState
     /// BonusNegotiationTokens the building already grants.</summary>
     public void ApplyCourierDossier(int tier)
     {
-        if (tier <= 0 || IsResolved) return;
+        if (tier <= 0 || IsResolved)
+            return;
         AddLog("A courier dossier reached you ahead of this meeting.");
         NextStanceKnown = true;
         AddLog($"  · Their disposition is profiled: next they'll be {_nextStance}.");
@@ -802,35 +925,72 @@ public class NegotiationState
         if (tier >= 3)
         {
             TokenPool[LeverageToken.Insight]++;
-            AddLog("  · Spy-network briefing: +1 Insight.");
+            AddLog("  · Spy-network briefing: +1 Insight.", NegotiationLogKind.Detail);
         }
     }
 
-    /// <summary>Embassy tier-2 hook: what the NPC will do on their next turn.
-    /// MUST mirror the priority order in <see cref="NpcTurn"/> — keep the two
-    /// in sync when the AI changes. Pure read; mutates nothing.</summary>
-    public string PredictNpcMove()
+    /// <summary>The priority ladder's verdict at the CURRENT board: what the
+    /// NPC will do on their turn, and to which clause. Single source of
+    /// truth — <see cref="NpcTurn"/> executes this verdict, and the UI
+    /// (intent line, clause-card threat markers) displays it, so the tell
+    /// can never lie. Pure read; mutates nothing. Note it reads the board as
+    /// it stands NOW — the player's own next move can change the verdict
+    /// (advancing a clause past 0 wakes their Resolve).</summary>
+    public (NpcMoveKind Kind, DealTerm Target) PredictNpcAction()
     {
-        if (IsResolved) return "";
-        if (Tension >= 9 && NpcPool[NpcResource.Poise] > 0)
-            return "they're about to step back from the brink (Poise).";
-        var target = Terms
+        if (IsResolved)
+            return (NpcMoveKind.Hold, null);
+
+        // 1. Poise: a collapse serves no one they care about.
+        if (Tension >= NegotiationTuning.PoiseTriggerTension
+            && NpcPool[NpcResource.Poise] > 0)
+            return (NpcMoveKind.Poise, null);
+
+        // 2. Resolve: drag the clause you've won furthest back toward them.
+        var pullTarget = Terms
             .Where(t => !t.IsHidden && t.Position >= 0 && t.Position > -2)
             .OrderByDescending(t => t.Position * t.Weight)
             .FirstOrDefault();
-        if (target != null && NpcPool[NpcResource.Resolve] > 0)
-            return $"they're eyeing the {ShortName(target)} — expect a pull ({ResolveName}).";
+        if (pullTarget != null && NpcPool[NpcResource.Resolve] > 0)
+            return (NpcMoveKind.Pull, pullTarget);
+
+        // 3. Guile: rework the FINE PRINT — the lightest movable clause.
+        //    (Was min position×weight, which sniped the player's biggest-
+        //    ticket clause first: punishing, and invisible to boot. The bark
+        //    has always said "small print" — now it behaves like it.)
         if (NpcPool[NpcResource.Guile] > 0)
         {
-            var g = Terms.Where(t => !t.IsHidden && t.Position > -2)
-                         .OrderBy(t => t.Position * t.Weight).FirstOrDefault();
-            return g != null
-                ? $"fine print is coming for the {ShortName(g)} (Guile)."
-                : "a threat is coming (Guile).";
+            var guileTarget = Terms
+                .Where(t => !t.IsHidden && t.Position > -2)
+                .OrderBy(t => t.Weight).ThenBy(t => t.Position)
+                .FirstOrDefault();
+            return guileTarget != null
+                ? (NpcMoveKind.Rework, guileTarget)
+                : (NpcMoveKind.Threat, null);
         }
+
+        // 4. Cordial goodwill: once per table, warmth pays forward.
         if (Zone == TensionZone.Cordial && !_giftGiven)
-            return "they're feeling generous.";
-        return "they'll hold and watch you.";
+            return (NpcMoveKind.Gift, null);
+
+        // 5. Hold.
+        return (NpcMoveKind.Hold, null);
+    }
+
+    /// <summary>Embassy tier-2 hook: the precise briefing line, straight off
+    /// <see cref="PredictNpcAction"/>.</summary>
+    public string PredictNpcMove()
+    {
+        var (kind, target) = PredictNpcAction();
+        return kind switch
+        {
+            NpcMoveKind.Poise => "they're about to step back from the brink (Poise).",
+            NpcMoveKind.Pull => $"they're eyeing the {ShortName(target)} — expect a pull ({ResolveName}).",
+            NpcMoveKind.Rework => $"fine print is coming for the {ShortName(target)} (Guile).",
+            NpcMoveKind.Threat => "a threat is coming (Guile).",
+            NpcMoveKind.Gift => "they're feeling generous.",
+            _ => "they'll hold and watch you.",
+        };
     }
 
     // ── Turn cycle internals ─────────────────────────────────────────────
@@ -839,22 +999,25 @@ public class NegotiationState
     /// action: turn count, the NPC's move, the patience tick, stance advance.</summary>
     private void FinishPlayerAction()
     {
-        if (IsResolved) return;
+        if (IsResolved)
+            return;
 
         TurnNumber++;
         NpcTurn();
-        if (IsResolved) return;
+        if (IsResolved)
+            return;
 
         NpcPatience--;
         if (NpcPatience <= 0)
         {
-            AddLog(Data.DialogueWalkaway);
+            AddLog($"{Data.NpcName}: \"{Data.DialogueWalkaway}\"", NegotiationLogKind.Dialogue);
             Resolve(false, false);
             return;
         }
 
         AdvanceStance();
-        AddLog($"[Turn {TurnNumber} | Tension: {Tension}/10 | Patience: {NpcPatience}]");
+        AddLog($"[Turn {TurnNumber} | Tension: {Tension}/10 | Patience: {NpcPatience}]",
+               NegotiationLogKind.Detail);
     }
 
     private void AdvanceStance()
@@ -866,70 +1029,78 @@ public class NegotiationState
         OnStanceChanged?.Invoke();
     }
 
-    /// <summary>v2: the NPC's move. Priorities: step back from the brink
-    /// (Poise) → pull your best clause back (Resolve) → demand/threaten
-    /// (Guile) → gift in Cordial → hold.</summary>
+    /// <summary>v2: the NPC's move — executes <see cref="PredictNpcAction"/>'s
+    /// verdict, so what the UI foretold is exactly what happens.</summary>
     private void NpcTurn()
     {
-        // 1. Poise: a collapse serves no one they care about.
-        if (Tension >= NegotiationTuning.PoiseTriggerTension && NpcPool[NpcResource.Poise] > 0)
+        var (kind, target) = PredictNpcAction();
+        switch (kind)
         {
-            NpcPool[NpcResource.Poise]--;
-            AddLog(NegotiationBarks.NpcPoiseBark(Data.Archetype));
-            ApplyTensionDelta(-1);
-            return;
-        }
+            case NpcMoveKind.Poise:
+                NpcPool[NpcResource.Poise]--;
+                AddLog(NegotiationBarks.NpcPoiseBark(Data.Archetype), NegotiationLogKind.Dialogue);
+                ApplyTensionDelta(-1);
+                return;
 
-        // 2. Resolve: drag the clause you've won furthest back toward them.
-        var target = Terms
-            .Where(t => !t.IsHidden && t.Position >= 0 && t.Position > -2)
-            .OrderByDescending(t => t.Position * t.Weight)
-            .FirstOrDefault();
-        if (target != null && NpcPool[NpcResource.Resolve] > 0)
-        {
-            NpcPool[NpcResource.Resolve]--;
-            int steps = (Zone == TensionZone.Hostile ? NegotiationTuning.HostilePullSteps : 1)
-                      + (_npcHardened ? NegotiationTuning.HardenedBonusSteps : 0);
-            _npcHardened = false;
-            PullTerm(target, steps, byPlayer: false);
-            AddLog(NegotiationBarks.NpcPullBark(Data.Archetype, ShortName(target),
-                                                hard: steps > 1));
-            return;
-        }
+            case NpcMoveKind.Pull:
+                {
+                    NpcPool[NpcResource.Resolve]--;
+                    int steps = (Zone == TensionZone.Hostile ? NegotiationTuning.HostilePullSteps : 1)
+                              + (_npcHardened ? NegotiationTuning.HardenedBonusSteps : 0);
+                    _npcHardened = false;
+                    PullTerm(target, steps, byPlayer: false);
+                    AddLog(NegotiationBarks.NpcPullBark(Data.Archetype, ShortName(target),
+                                                        hard: steps > 1),
+                           NegotiationLogKind.Dialogue);
+                    AnnouncePoolEmpty();
+                    return;
+                }
 
-        // 3. Guile: rework a clause you haven't defended — or bare the threat.
-        if (NpcPool[NpcResource.Guile] > 0)
-        {
-            NpcPool[NpcResource.Guile]--;
-            var guileTarget = Terms
-                .Where(t => !t.IsHidden && t.Position > -2)
-                .OrderBy(t => t.Position * t.Weight)
-                .FirstOrDefault();
-            if (guileTarget != null)
-            {
-                PullTerm(guileTarget, 1, byPlayer: false);
-                AddLog(NegotiationBarks.NpcGuileBark(Data.Archetype, ShortName(guileTarget)));
-            }
-            else
-            {
-                AddLog(NegotiationBarks.NpcThreatBark(Data.Archetype));
+            case NpcMoveKind.Rework:
+                NpcPool[NpcResource.Guile]--;
+                PullTerm(target, 1, byPlayer: false);
+                AddLog(NegotiationBarks.NpcGuileBark(Data.Archetype, ShortName(target)),
+                       NegotiationLogKind.Dialogue);
+                AnnouncePoolEmpty();
+                return;
+
+            case NpcMoveKind.Threat:
+                NpcPool[NpcResource.Guile]--;
+                AddLog(NegotiationBarks.NpcThreatBark(Data.Archetype), NegotiationLogKind.Dialogue);
                 ApplyTensionDelta(+1);
-            }
-            return;
-        }
+                AnnouncePoolEmpty();
+                return;
 
-        // 4. Cordial goodwill: once per table, warmth pays forward.
-        if (Zone == TensionZone.Cordial && !_giftGiven)
+            case NpcMoveKind.Gift:
+                {
+                    _giftGiven = true;
+                    var gift = ArchetypeBehavior.GiftTokenFor(Data.Archetype);
+                    TokenPool[gift]++;
+                    AddLog(NegotiationBarks.NpcGiftBark(Data.Archetype, gift), NegotiationLogKind.Dialogue);
+                    return;
+                }
+
+            default:
+                AddLog(NegotiationBarks.NpcHoldBark(Data.Archetype), NegotiationLogKind.Dialogue);
+                return;
+        }
+    }
+
+    /// <summary>The "push now" tells: say it out loud when a pool runs dry —
+    /// the moment the player's pulls start sticking is the moment the
+    /// minigame becomes winnable, and it should never pass silently.</summary>
+    private void AnnouncePoolEmpty()
+    {
+        if (NpcPool[NpcResource.Resolve] == 0 && !_resolveEmptyAnnounced)
         {
-            _giftGiven = true;
-            var gift = ArchetypeBehavior.GiftTokenFor(Data.Archetype);
-            TokenPool[gift]++;
-            AddLog(NegotiationBarks.NpcGiftBark(Data.Archetype, gift));
-            return;
+            _resolveEmptyAnnounced = true;
+            AddLog($"Their {ResolveName} is spent — what you pull now, stays pulled.");
         }
-
-        // 5. Hold.
-        AddLog(NegotiationBarks.NpcHoldBark(Data.Archetype));
+        if (NpcPool[NpcResource.Guile] == 0 && !_guileEmptyAnnounced)
+        {
+            _guileEmptyAnnounced = true;
+            AddLog("They're out of fine print — the clauses on the table are the whole story.");
+        }
     }
 
     private void PullTerm(DealTerm term, int steps, bool byPlayer)
@@ -937,14 +1108,25 @@ public class NegotiationState
         int old = term.Position;
         term.Position = Mathf.Clamp(term.Position + (byPlayer ? steps : -steps), -2, 2);
         if (term.Position != old)
-            AddLog($"  · {ShortName(term)}: {PositionLabel(old)} → {PositionLabel(term.Position)}");
+        {
+            LastExchange.Add(new NegotiationTermMove
+            {
+                TermId = term.Id,
+                From = old,
+                To = term.Position,
+                ByPlayer = byPlayer,
+            });
+            AddLog($"  · {ShortName(term)}: {PositionLabel(old)} → {PositionLabel(term.Position)}",
+                   NegotiationLogKind.Detail);
+        }
     }
 
     /// <summary>Short handle for a term in barks ("Saffron Contract" from a
     /// long description): the first few words of the description, or the Id.</summary>
     public static string ShortName(DealTerm t)
     {
-        if (string.IsNullOrEmpty(t.Description)) return t.Id;
+        if (string.IsNullOrEmpty(t.Description))
+            return t.Id;
         var words = t.Description.Split(' ');
         int n = Mathf.Min(4, words.Length);
         string s = string.Join(" ", words.Take(n)).TrimEnd('.', ',', ';', ':', '—');
@@ -955,31 +1137,32 @@ public class NegotiationState
     {
         -2 => "strongly theirs",
         -1 => "leaning theirs",
-        0  => "balanced",
-        1  => "leaning yours",
-        _  => "strongly yours",
+        0 => "balanced",
+        1 => "leaning yours",
+        _ => "strongly yours",
     };
 
     // ── Tension / locks / resolution ─────────────────────────────────────
 
     private void ApplyTensionDelta(int delta)
     {
-        if (delta == 0) { UpdateLocks(); return; }
+        if (delta == 0)
+        { UpdateLocks(); return; }
         int oldTension = Tension;
         Tension = Mathf.Clamp(Tension + delta, TensionMin, TensionMax);
         OnTensionChanged?.Invoke(oldTension, Tension);
 
         if (delta < 0)
-            AddLog($"Tension eases. ({oldTension} → {Tension})");
+            AddLog($"Tension eases. ({oldTension} → {Tension})", NegotiationLogKind.Detail);
         else
-            AddLog($"Tension rises. ({oldTension} → {Tension})");
+            AddLog($"Tension rises. ({oldTension} → {Tension})", NegotiationLogKind.Detail);
 
         UpdateLocks();
 
         // Check for collapse at max tension
         if (Tension >= TensionMax)
         {
-            AddLog($"{Data.NpcName}: \"{Data.DialogueWalkaway}\"");
+            AddLog($"{Data.NpcName}: \"{Data.DialogueWalkaway}\"", NegotiationLogKind.Dialogue);
             Resolve(false, false);
         }
     }
@@ -988,8 +1171,10 @@ public class NegotiationState
     /// their biggest concession until the room cools.</summary>
     private void UpdateLocks()
     {
-        foreach (var t in Terms) t.Locked = false;
-        if (Zone != TensionZone.Hostile) return;
+        foreach (var t in Terms)
+            t.Locked = false;
+        if (Zone != TensionZone.Hostile)
+            return;
         var guard = Terms
             .Where(t => !t.IsHidden && t.Position > 0)
             .OrderByDescending(t => t.Position * t.Weight)
@@ -1009,12 +1194,18 @@ public class NegotiationState
         OnResolved?.Invoke();
     }
 
-    private void AddLog(string message)
+    private void AddLog(string message, NegotiationLogKind kind = NegotiationLogKind.Scene)
     {
-        if (string.IsNullOrEmpty(message)) return;
+        if (string.IsNullOrEmpty(message))
+            return;
         Log.Add(message);
-        OnLogEntry?.Invoke(message);
+        OnLogEntry?.Invoke(message, kind);
     }
+
+    /// <summary>Forget the previous exchange's move markers — called at the
+    /// top of every player action, so <see cref="LastExchange"/> always
+    /// describes what changed since the player last acted.</summary>
+    private void BeginExchange() => LastExchange.Clear();
 
     // ── Outcomes ─────────────────────────────────────────────────────────
 
@@ -1023,37 +1214,65 @@ public class NegotiationState
     /// unfavorable ones cost less). Hidden clauses you never flipped bind at
     /// their resting position — the price of not reading the small print.
     /// The zone multiplier survives from v1.</summary>
-    public int GetGoldOutcome()
+    public int GetGoldOutcome() => DealAccepted ? ProjectGold() : 0;
+
+    /// <summary>What the deal pays at CURRENT positions and zone, as if it
+    /// signed right now. Drives the live "a handshake signs for" preview,
+    /// the squeeze modal's arithmetic, and the final receipt — one source
+    /// of truth for all three.</summary>
+    public int ProjectGold()
     {
-        if (!DealAccepted) return 0;
         float total = 0f;
         foreach (var term in Terms)
             total += term.GoldDelta * term.PlayerFraction();
-
-        total *= Zone switch
-        {
-            TensionZone.Cordial => NegotiationTuning.CordialGoldMult,
-            TensionZone.Hostile => NegotiationTuning.HostileGoldMult,
-            _                   => 1f
-        };
+        total *= ZoneGoldMult(Zone);
         return Mathf.RoundToInt(total);
     }
 
-    public int GetReputationOutcome()
+    public int GetReputationOutcome() => DealAccepted ? ProjectReputation() : 0;
+
+    /// <summary>Reputation at current positions and zone, as if signed now.</summary>
+    public int ProjectReputation()
     {
-        if (!DealAccepted) return 0;
         float rep = 0f;
         foreach (var term in Terms)
             rep += term.ReputationDelta * term.PlayerFraction();
-        int total = Mathf.RoundToInt(rep);
-        // Bonus rep in Cordial, penalty in Hostile
-        total += Zone switch
-        {
-            TensionZone.Cordial => NegotiationTuning.CordialRepBonus,
-            TensionZone.Hostile => NegotiationTuning.HostileRepPenalty,
-            _ => 0
-        };
-        return total;
+        return Mathf.RoundToInt(rep) + ZoneRepBonus(Zone);
+    }
+
+    /// <summary>The zone's gold multiplier (receipt shows it as its own line).</summary>
+    public static float ZoneGoldMult(TensionZone z) => z switch
+    {
+        TensionZone.Cordial => NegotiationTuning.CordialGoldMult,
+        TensionZone.Hostile => NegotiationTuning.HostileGoldMult,
+        _ => 1f
+    };
+
+    /// <summary>The zone's flat reputation adjustment (bonus in Cordial,
+    /// penalty in Hostile).</summary>
+    public static int ZoneRepBonus(TensionZone z) => z switch
+    {
+        TensionZone.Cordial => NegotiationTuning.CordialRepBonus,
+        TensionZone.Hostile => NegotiationTuning.HostileRepPenalty,
+        _ => 0
+    };
+
+    /// <summary>One clause's signed contribution to the pre-zone totals at
+    /// its current position — the receipt's line item.</summary>
+    public static (int Gold, int Rep) TermPayout(DealTerm t) => (
+        Mathf.RoundToInt(t.GoldDelta * t.PlayerFraction()),
+        Mathf.RoundToInt(t.ReputationDelta * t.PlayerFraction()));
+
+    /// <summary>Totals if <paramref name="target"/> slid one notch their way
+    /// and the deal signed now — the squeeze modal's "concede" column. Pure:
+    /// nudges the position, projects, restores.</summary>
+    public (int Gold, int Rep, int Stars) ProjectIfConceded(DealTerm target)
+    {
+        int keep = target.Position;
+        target.Position = Mathf.Clamp(keep - 1, -2, 2);
+        var projected = (ProjectGold(), ProjectReputation(), ProjectStars());
+        target.Position = keep;
+        return projected;
     }
 
     /// <summary>S4 (overworld_spell_system §11): the spell this deal teaches,
@@ -1082,27 +1301,32 @@ public class NegotiationState
     }
 
     /// <summary>Deal Quality (§7b): position-weighted score + zone bonus.</summary>
-    public int GetDealScore()
+    public int GetDealScore() => DealAccepted ? ProjectDealScore() : 0;
+
+    /// <summary>Deal Quality score at current positions and zone, as if
+    /// signed now.</summary>
+    public int ProjectDealScore()
     {
-        if (!DealAccepted) return 0;
         int score = Terms.Sum(t => t.Position * t.Weight);
         score += Zone switch
         {
             TensionZone.Cordial => NegotiationTuning.ScoreCordialBonus,
             TensionZone.Hostile => NegotiationTuning.ScoreHostilePenalty,
-            _                   => 0
+            _ => 0
         };
         return score;
     }
 
     /// <summary>Deal Quality stars, 1–5, for the result panel and the Hall
     /// of Records ledger.</summary>
-    public int GetStars()
-    {
-        int s = GetDealScore();
-        return s >= NegotiationTuning.StarT5 ? 5
-             : s >= NegotiationTuning.StarT4 ? 4
-             : s >= NegotiationTuning.StarT3 ? 3
-             : s >= NegotiationTuning.StarT2 ? 2 : 1;
-    }
+    public int GetStars() => StarsFor(GetDealScore());
+
+    /// <summary>Stars the deal would earn if signed now.</summary>
+    public int ProjectStars() => StarsFor(ProjectDealScore());
+
+    private static int StarsFor(int s) =>
+        s >= NegotiationTuning.StarT5 ? 5
+      : s >= NegotiationTuning.StarT4 ? 4
+      : s >= NegotiationTuning.StarT3 ? 3
+      : s >= NegotiationTuning.StarT2 ? 2 : 1;
 }
