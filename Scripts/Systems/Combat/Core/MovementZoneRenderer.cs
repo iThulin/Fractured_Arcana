@@ -24,6 +24,13 @@ public partial class MovementZoneRenderer : Node3D
     [Export] public Color PlayerColor = new Color(0.20f, 0.70f, 1.00f, 1.0f); // blue
     [Export] public Color EnemyColor = new Color(0.90f, 0.25f, 0.25f, 0.75f); // red
 
+    /// <summary>(2026-07-29 playtest ruling) The full-hex color fill read as
+    /// visual noise over the battlefield — zones now show boundary WALLS only
+    /// by default. The fill pass (tops + skirts, threat-tier heat colors) is
+    /// kept behind this flag for the planned indicator rework; flip it in the
+    /// Inspector to compare.</summary>
+    [Export] public bool DrawZoneFill = false;
+
     // ── Tiered threat walls (2026-07-13) ──────────────────────────────────
     [Export] public float WallHeight = 0.6f;        // tallest tier ≈ half a unit's height
     [Export] public float WallBaseAlphaMin = 0.35f; // movement-only wall base alpha
@@ -232,28 +239,31 @@ public partial class MovementZoneRenderer : Node3D
         if (_reachableSet.Count == 0)
             return;
 
-        // ── Pass 1: tile fill ─────────────────────────────────────────────
-        _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles, _fillMaterial);
-        if (_isPlayerZone)
+        // ── Pass 1: tile fill (OFF by default — see DrawZoneFill) ─────────
+        if (DrawZoneFill)
         {
-            var fillColor = new Color(PlayerColor.R, PlayerColor.G, PlayerColor.B, 0.18f);
-            foreach (var coord in _reachableSet)
-                DrawFilledHex(coord, fillColor);
+            _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles, _fillMaterial);
+            if (_isPlayerZone)
+            {
+                var fillColor = new Color(PlayerColor.R, PlayerColor.G, PlayerColor.B, 0.18f);
+                foreach (var coord in _reachableSet)
+                    DrawFilledHex(coord, fillColor);
+            }
+            else if (_threatLevels != null && _threatLevels.Count > 0)
+            {
+                // Tiered blood-red fill by attacks-landable.
+                foreach (var coord in _reachableSet)
+                    DrawFilledHex(coord, ThreatFillColor(
+                        _threatLevels.TryGetValue(coord, out var lv) ? lv : 0));
+            }
+            else
+            {
+                var fillColor = new Color(EnemyColor.R, EnemyColor.G, EnemyColor.B, 0.15f);
+                foreach (var coord in _reachableSet)
+                    DrawFilledHex(coord, fillColor);
+            }
+            _immediateMesh.SurfaceEnd();
         }
-        else if (_threatLevels != null && _threatLevels.Count > 0)
-        {
-            // Tiered blood-red fill by attacks-landable.
-            foreach (var coord in _reachableSet)
-                DrawFilledHex(coord, ThreatFillColor(
-                    _threatLevels.TryGetValue(coord, out var lv) ? lv : 0));
-        }
-        else
-        {
-            var fillColor = new Color(EnemyColor.R, EnemyColor.G, EnemyColor.B, 0.15f);
-            foreach (var coord in _reachableSet)
-                DrawFilledHex(coord, fillColor);
-        }
-        _immediateMesh.SurfaceEnd();
 
         // ── Pass 2: border outline ────────────────────────────────────────
         // Tier-boundary walls: a wall rises at every step-up (and the outer edge),

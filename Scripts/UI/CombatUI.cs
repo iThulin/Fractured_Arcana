@@ -54,6 +54,9 @@ public partial class CombatUI : CanvasLayer
 	[Signal] public delegate void PriorityPassPressedEventHandler();
 	/// <summary>§7c: explicit Respond affordance — pulls the responder's hand up.</summary>
 	[Signal] public delegate void PriorityRespondPressedEventHandler();
+	/// <summary>(2026-07-29) Stance switcher: the player clicked a stance button
+	/// for the selected martial unit. CombatManager routes to TrySwitchStance.</summary>
+	[Signal] public delegate void StanceSwitchRequestedEventHandler(string stanceId);
 
 	// ── Layout constants (design-space px — V1 resolution ruling) ────────
 	private const int LeftPanelWidth = 280;
@@ -79,6 +82,7 @@ public partial class CombatUI : CanvasLayer
 	private Label _mpText;
 	private Label _statLine;
 	private Label _stanceLine;
+	private HBoxContainer _stanceRow;   // 2026-07-29: clickable stance switcher
 	private HBoxContainer _statusIconRow;
 	private VBoxContainer _logBox;
 	private Label[] _logLines;
@@ -281,6 +285,13 @@ public partial class CombatUI : CanvasLayer
 		_stanceLine.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 		_stanceLine.Visible = false;
 		vbox.AddChild(_stanceLine);
+
+		// Stance switcher (2026-07-29): one button per trained stance for the
+		// selected martial unit — the control TrySwitchStance never had.
+		_stanceRow = new HBoxContainer { Name = "StanceRow", Visible = false };
+		_stanceRow.AddThemeConstantOverride("separation", 6);
+		_stanceRow.Alignment = BoxContainer.AlignmentMode.Center;
+		vbox.AddChild(_stanceRow);
 
 		// ── Status icons ─────────────────────────────────────────────
 		_statusIconRow = new HBoxContainer { Name = "StatusIcons" };
@@ -877,6 +888,8 @@ public partial class CombatUI : CanvasLayer
 				_statLine.Text = "";
 			if (_stanceLine != null)
 				_stanceLine.Visible = false;
+			if (_stanceRow != null)
+				_stanceRow.Visible = false;
 			ClearStatusIcons();
 			RefreshInspectBlock(null, false);   // V2: hide enemy blocks
 			return;
@@ -944,8 +957,55 @@ public partial class CombatUI : CanvasLayer
 			}
 		}
 
+		RefreshStanceRow(unit, isEnemy);
+
 		RefreshStatusIcons(unit.Stats.StatusEffects);
 		RefreshInspectBlock(unit, isEnemy);
+	}
+
+	/// <summary>Rebuilds the stance-switch buttons for the selected unit.
+	/// (2026-07-29) The stance system was fully implemented end to end —
+	/// registry, per-unit trained lists, TrySwitchStance with its 1-AP
+	/// once-per-turn cost, passive/attack hooks — but no control ever CALLED
+	/// TrySwitchStance, so martials were locked into their first stance for
+	/// life. This row is that control: one button per trained stance; the
+	/// active one is highlighted and disabled; the rest emit
+	/// StanceSwitchRequested, which CombatManager routes to TrySwitchStance.
+	/// Hidden for enemies, non-martials, and single-stance units.</summary>
+	private void RefreshStanceRow(Unit unit, bool isEnemy)
+	{
+		if (_stanceRow == null)
+			return;
+		foreach (Node child in _stanceRow.GetChildren())
+			child.QueueFree();
+
+		bool show = !isEnemy && unit != null && unit.IsMartial &&
+		            unit.AvailableStances != null && unit.AvailableStances.Count > 1;
+		_stanceRow.Visible = show;
+		if (!show)
+			return;
+
+		foreach (var stance in unit.AvailableStances)
+		{
+			bool isActive = stance == unit.ActiveStance;
+			var btn = new Button
+			{
+				Text = stance.DisplayName,
+				Disabled = isActive || unit.HasSwitchedStanceThisTurn ||
+				           unit.CurrentActionPoints < MartialAPCosts.SwitchStance,
+				TooltipText = stance.Description + "\n" +
+				              (isActive
+				                  ? "Active stance."
+				                  : unit.HasSwitchedStanceThisTurn
+				                      ? "Already switched this turn."
+				                      : $"Switch: {MartialAPCosts.SwitchStance} AP, once per turn."),
+			};
+			btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
+			UITheme.ApplyButtonStyle(btn, isPrimary: isActive);
+			string sid = stance.Id;   // capture by value for the closure
+			btn.Pressed += () => EmitSignal(SignalName.StanceSwitchRequested, sid);
+			_stanceRow.AddChild(btn);
+		}
 	}
 
 	/// <summary>V2 (§7b): three enemy-only blocks — plain-language behavior line

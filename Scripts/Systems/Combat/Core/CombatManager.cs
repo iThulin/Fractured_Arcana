@@ -242,6 +242,7 @@ public partial class CombatManager : Node3D
         {
             combatUI.ConfirmDeploymentPressed += OnConfirmDeploymentPressed;
             combatUI.EndTurnPressed += OnEndTurnPressed;
+            combatUI.StanceSwitchRequested += OnStanceSwitchRequested;   // 2026-07-29 stance switcher
             combatUI.PriorityPassPressed += OnPriorityPassPressed;   // U3 trigger window
             combatUI.PriorityRespondPressed += OnPriorityRespondPressed;   // §7c Respond affordance
             combatUI.EnemyRowHovered += OnEnemyRowHovered;           // V2 roster hover → threat overlay
@@ -473,11 +474,15 @@ public partial class CombatManager : Node3D
             }
             else
             {
-                // Additional wizards (future multi-wizard party) still get a random deck
-                // until per-unit persistent decks are designed.
-                unit.DeckData.Initialize(PlayerSession.DeckSize);
+                // Companion arcane units field their school's CURATED starter
+                // deck (2026-07-29 playtest): the old random draw dealt
+                // legendaries in expedition 2 and made companion turns
+                // unreliable. Their ContributedCardIds stay in the WIZARD's
+                // deck (BuildCompanionCardList) — not duplicated here.
+                var starter = StarterDeckLoader.BuildStarterCards(unit.School);
+                unit.DeckData.Initialize(starter);
                 GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
-                         $"({unit.School}) [secondary unit, random]");
+                         $"({unit.School}) [companion starter deck]");
             }
         }
 
@@ -1610,6 +1615,23 @@ public partial class CombatManager : Node3D
         ShowMoveTilesWithCost(selectedUnit);
     }
 
+    /// <summary>(2026-07-29) UI hook for the stance-switcher row in CombatUI —
+    /// the first caller TrySwitchStance has ever had (the whole stance system
+    /// was implemented but unreachable: no control invoked it). Resolves the
+    /// id against the SELECTED unit's trained list; legality (AP cost,
+    /// once-per-turn, ownership) is enforced inside TrySwitchStance, which
+    /// also refreshes the unit panel on success.</summary>
+    private void OnStanceSwitchRequested(string stanceId)
+    {
+        if (selectedUnit == null || !selectedUnit.IsMartial ||
+            currentPhase != CombatPhase.PlayerTurn)
+            return;
+        var stance = selectedUnit.AvailableStances.Find(s => s.Id == stanceId);
+        if (stance == null)
+            return;
+        TrySwitchStance(selectedUnit, stance);
+    }
+
     public bool TrySwitchStance(Unit unit, StanceDefinition newStance)
     {
         if (unit == null || !unit.IsMartial)
@@ -1950,6 +1972,12 @@ public partial class CombatManager : Node3D
             // Apply martial stance passives
             if (unit.IsMartial && unit.ActiveStance != null)
                 ApplyMartialStancePassives(unit);
+
+            // (2026-07-29) Once-per-TURN stance switching: this flag was set
+            // in TrySwitchStance but never cleared, so a martial could only
+            // ever switch once per COMBAT. Reset with the other turn-start
+            // state, beside the stance passive re-apply.
+            unit.HasSwitchedStanceThisTurn = false;
 
             unit.Attunement?.Decay();
             State.SpellsCastThisTurn = 0;
@@ -3183,8 +3211,19 @@ public partial class CombatManager : Node3D
                 {
                     if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive)
                         continue;
-                    if (string.IsNullOrEmpty(u.CompanionId) || u.CompanionId == "wizard")
+                    if (string.IsNullOrEmpty(u.CompanionId))
                         continue;
+                    if (u.CompanionId == "wizard")
+                    {
+                        // K2.5 symmetry (2026-07-29 playtest): the wizard's
+                        // fight HP carries between battles exactly like the
+                        // companions' — it was resetting to full each fight.
+                        PlayerSession.WizardExpeditionHP = u.Stats.Health;
+                        PlayerSession.WizardExpeditionMaxHP = u.Stats.MaxHealth;
+                        GD.Print($"[ExpeditionHP] {u.DisplayName} leaves the fight at " +
+                                 $"{u.Stats.Health}/{u.Stats.MaxHealth} — carried to the next one.");
+                        continue;
+                    }
                     var comp = SaveManager.ActiveSave.Companions?.Find(c => c.Id == u.CompanionId);
                     if (comp == null)
                         continue;
@@ -3540,6 +3579,18 @@ public partial class CombatManager : Node3D
             wizard.DisplayName = wizardName;
             wizard.IsMartial = false;
             wizard.CompanionId = "wizard";
+
+            // K2.5 symmetry (2026-07-29): field at carried expedition HP,
+            // exactly like the companion spawn below does.
+            if (PlayerSession.IsOnExpedition && PlayerSession.WizardExpeditionHP >= 0)
+            {
+                wizard.Stats.Health = Mathf.Clamp(PlayerSession.WizardExpeditionHP,
+                                                  1, wizard.Stats.MaxHealth);
+                wizard.RefreshHealthBar();
+                GD.Print($"[ExpeditionHP] {wizardName} fields at " +
+                         $"{wizard.Stats.Health}/{wizard.Stats.MaxHealth} (carried from earlier fights).");
+            }
+
             wizard.MoveRange = 2;   // baseline reach (2026-07-27)
             wizard.MaxActionPoints = wizard.Stats.BaseSpeed;      // ← add this
             wizard.CurrentActionPoints = wizard.MaxActionPoints;  // ← add this
@@ -3637,19 +3688,26 @@ public partial class CombatManager : Node3D
                 unit.Stats.MaxHealth += tgTier >= 3 ? 4 : 0;
                 unit.Stats.Health = unit.Stats.MaxHealth;
 
-                // ── Load trained stances up to slot count ─────────────────
-                int stanceSlots = save?.MartialStanceSlots ?? 0;
+                // ── Stances: INNATE (2026-07-29 ruling) ───────────────────
+                // A martial always fields EVERY stance on its list — the
+                // authored pair from its JSON (which deserializes into
+                // TrainedStanceIds via the "availableStanceIds" alias, despite
+                // the comment on that field) plus anything later learned at
+                // the campus Training tab. The old MartialStanceSlots cap
+                // (= Training Grounds tier) zeroed the whole list when no
+                // building existed — every martial fielded Stances:0 and the
+                // stance switcher had nothing to show. The Training Grounds
+                // keeps its stat bonuses and the Training tab's learn cap
+                // still reads MartialStanceSlots; only FIELDING is ungated.
                 unit.AvailableStances.Clear();
-
-                for (int s = 0; s < Math.Min(stanceSlots,
-                                             companion.TrainedStanceIds.Count); s++)
+                foreach (var stanceId in companion.TrainedStanceIds)
                 {
-                    var stance = StanceRegistry.Get(companion.TrainedStanceIds[s]);
-                    if (stance != null)
+                    var stance = StanceRegistry.Get(stanceId);
+                    if (stance != null && !unit.AvailableStances.Contains(stance))
                         unit.AvailableStances.Add(stance);
                 }
 
-                // Default to first trained stance
+                // Default to first stance (the lead authored stance)
                 if (unit.AvailableStances.Count > 0)
                     unit.ActiveStance = unit.AvailableStances[0];
 
@@ -3889,6 +3947,20 @@ public partial class CombatManager : Node3D
         if (grid == null)
             return;
 
+        // (2026-07-29 playtest) Spawn-zone sizing: EnemySpawnCount /
+        // PlayerSpawnCount were fixed inspector exports (3/3), so a Siege
+        // composition's 4th enemy silently failed to spawn ("Not enough
+        // enemy zone tiles"). Size both zones from the REAL headcounts —
+        // the encounter definition rode in on EncounterContextCarrier and
+        // the party roster is known — before the spawn plan is built.
+        if (EncounterContextCarrier.HasEncounter &&
+            EncounterContextCarrier.Current?.Enemies != null &&
+            EncounterContextCarrier.Current.Enemies.Count > grid.EnemySpawnCount)
+            grid.EnemySpawnCount = EncounterContextCarrier.Current.Enemies.Count;
+        int partyHeadcount = 1 + (CompanionRoster.GetActiveParty()?.Count ?? 0);
+        if (partyHeadcount > grid.PlayerSpawnCount)
+            grid.PlayerSpawnCount = partyHeadcount;
+
         string terrain = EncounterContextCarrier.SourceTerrain;
         if (!string.IsNullOrEmpty(terrain))
         {
@@ -4112,6 +4184,37 @@ public partial class CombatManager : Node3D
         var availableTiles = enemyZoneTiles
             .Where(td => !claimed.Contains(td.Axial))
             .ToList();
+
+        // (2026-07-29 playtest) Zone-shortfall fallback: widen outward ring by
+        // ring instead of silently dropping spawns. With ConfigureAndGenerateMap
+        // now sizing zones from real headcounts this should rarely fire — it
+        // covers cramped maps where the BFS zone physically ran out of ground.
+        if (availableTiles.Count < sorted.Count)
+        {
+            var seen = new HashSet<Vector2I>(availableTiles.Select(t => t.Axial));
+            var frontier = new Queue<Vector2I>();
+            foreach (var t in availableTiles) frontier.Enqueue(t.Axial);
+            foreach (var c in claimed) { seen.Add(c); frontier.Enqueue(c); }
+            while (availableTiles.Count < sorted.Count && frontier.Count > 0)
+            {
+                var cur = frontier.Dequeue();
+                foreach (var n in grid.GetNeighbors(cur))
+                {
+                    if (!seen.Add(n))
+                        continue;
+                    frontier.Enqueue(n);
+                    var td = grid.GetTile(n);
+                    if (td != null && td.IsWalkable && !td.IsBlocked && !td.IsOccupied &&
+                        availableTiles.Count < sorted.Count)
+                        availableTiles.Add(td);
+                }
+            }
+            if (availableTiles.Count < sorted.Count)
+                GD.PrintErr($"[Spawn] Zone widening still short: " +
+                            $"{availableTiles.Count}/{sorted.Count} tiles found.");
+            else
+                GD.Print($"[Spawn] Enemy zone widened to fit {sorted.Count} spawn(s).");
+        }
 
         for (int i = 0; i < sorted.Count; i++)
         {

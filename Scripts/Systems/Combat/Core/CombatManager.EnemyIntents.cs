@@ -548,6 +548,12 @@ public partial class CombatManager
             }
         }
 
+        // (2026-07-29 ward rework) A defender BOUND to a living ward does not
+        // hunt — it closes on the WARD (Guard intent below; ExecuteGuardIntent
+        // walks it in, and MayMove plants it on arrival). Only an unbound or
+        // BEREAVED defender (ward slain) takes the advance-and-strike path.
+        var boundWard = enemy.HasBehaviorTag("bulwark") ? GetBulwarkWard(enemy) : null;
+
         // (2026-07-27) Nothing adjacent → ADVANCE AND STRIKE. This key used to
         // return Guard here unconditionally, which meant a hold_until_near unit
         // never closed a single tile in its life: it attacked only what was already
@@ -560,7 +566,7 @@ public partial class CombatManager
         // defender never abandons the foe beside it to chase a nearer one. It holds
         // the ground it is standing on; it just no longer waits forever to be given
         // some.
-        if (MayMove(enemy, out _))
+        if (boundWard == null && MayMove(enemy, out _))
         {
             var mark = FindNearestPlayerUnit(enemy);
             if (mark?.CurrentTile != null)
@@ -1356,6 +1362,55 @@ public partial class CombatManager
 
     // ── U2: movement gates + tag-aware stepping ─────────────────────────────
 
+    /// <summary>Ward bindings for bulwark defenders (2026-07-29 ruling). Keyed
+    /// by defender; value is its designated ward, or null once the ward has
+    /// been slain (bereaved — the binding is deliberately NOT re-assigned).</summary>
+    private readonly Dictionary<Unit, Unit> _bulwarkWards = new();
+
+    /// <summary>Bulwark ward designation (2026-07-29 playtest ruling): each
+    /// bulwark binds to ONE specific ally — the nearest non-bulwark ally at
+    /// first plan (fallback: nearest ally of any kind). While the ward lives,
+    /// the defender closes on it and plants beside it; once the ward is slain
+    /// the binding stays broken and the defender commits to melee for the rest
+    /// of the fight (PlanDefender's advance-and-strike path). Replaces the old
+    /// "plant beside ANY wounded adjacent ally" rule, under which a defender
+    /// could turtle the whole fight without ever engaging. Returns null when
+    /// no ward is (or can be) bound — i.e. the defender should engage.</summary>
+    private Unit GetBulwarkWard(Unit enemy)
+    {
+        if (_bulwarkWards.TryGetValue(enemy, out var bound))
+        {
+            if (bound != null && IsInstanceValid(bound) && bound.Stats.IsAlive)
+                return bound;
+            _bulwarkWards[enemy] = null;   // bereaved: engage from now on
+            return null;
+        }
+
+        Unit best = null;
+        int bestD = int.MaxValue;
+        bool bestNonBulwark = false;
+        if (enemy.CurrentTile != null)
+        {
+            foreach (var u in enemyUnits)
+            {
+                if (u == null || u == enemy || !IsInstanceValid(u) ||
+                    !u.Stats.IsAlive || u.CurrentTile == null || u.TeamId != enemy.TeamId)
+                    continue;
+                bool nonBulwark = !u.HasBehaviorTag("bulwark");
+                int d = grid.Distance(enemy.CurrentTile, u.CurrentTile);
+                // Prefer a non-bulwark ward outright (guard the archer, not the
+                // other wall); distance breaks ties within a class.
+                if (best == null || (nonBulwark && !bestNonBulwark) ||
+                    (nonBulwark == bestNonBulwark && d < bestD))
+                { best = u; bestD = d; bestNonBulwark = nonBulwark; }
+            }
+        }
+        _bulwarkWards[enemy] = best;   // may be null: solo defender → engage
+        if (best != null)
+            GD.Print($"[Bulwark] {enemy.Name} takes {best.Name} as its ward.");
+        return best;
+    }
+
     /// <summary>Movement gate for immobile/bulwark. False = the unit stays put
     /// this activation; <paramref name="reason"/> carries the log line (null for
     /// immobile — a turret not moving is not news).</summary>
@@ -1366,19 +1421,17 @@ public partial class CombatManager
         if (enemy.HasBehaviorTag("immobile"))
             return false;
 
-        // bulwark: plants while an adjacent ally is below half HP.
+        // bulwark (2026-07-29 ward rework): plants only while standing beside
+        // ITS designated ward (see GetBulwarkWard). Ward dead or unbound →
+        // free to move — the defender engages instead of turtling forever.
         if (enemy.HasBehaviorTag("bulwark") && enemy.CurrentTile != null)
         {
-            foreach (var neighbor in grid.GetNeighbors(enemy.CurrentTile.Axial))
+            var ward = GetBulwarkWard(enemy);
+            if (ward?.CurrentTile != null &&
+                grid.Distance(enemy.CurrentTile, ward.CurrentTile) == 1)
             {
-                var occ = grid.GetTile(neighbor)?.Occupant;
-                if (occ == null || occ == enemy || occ.TeamId != enemy.TeamId)
-                    continue;
-                if (occ.Stats.IsAlive && occ.Stats.Health * 2 < occ.Stats.MaxHealth)
-                {
-                    reason = $"{enemy.Name} plants itself in front of {occ.Name}.";
-                    return false;
-                }
+                reason = $"{enemy.Name} plants itself in front of {ward.Name}.";
+                return false;
             }
         }
 
@@ -1802,6 +1855,22 @@ public partial class CombatManager
             return;
         }
 
+        // (2026-07-29 ward rework) A bound defender repositions toward ITS
+        // ward, not the generic nearest-allies cluster. Arrival is handled by
+        // MayMove next activation (adjacent to ward → plant).
+        var guardWard = enemy.HasBehaviorTag("bulwark") ? GetBulwarkWard(enemy) : null;
+        if (guardWard?.CurrentTile != null)
+        {
+            var stepToWard = grid.GetFirstStepToward(enemy, guardWard.CurrentTile.Axial);
+            if (stepToWard != null && enemy.TryMoveTo(grid, stepToWard))
+            {
+                combatUI?.AppendActionLog($"{enemy.Name} moves to shield {guardWard.Name}.");
+                await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+            }
+            ApplyGuardArmor(enemy, intent.Value);
+            return;
+        }
+
         // Reposition toward the most allies (old defender logic, opportunistic
         // attack removed — Guard does exactly what it telegraphed, nothing else).
         Unit nearestAlly = null;
@@ -1943,6 +2012,17 @@ public partial class CombatManager
                 : $"{attackerName} {verb} at empty ground!";
             GD.Print(whiff);
             combatUI?.AppendActionLog(whiff);
+        }
+        else if (victim == attacker)
+        {
+            // (2026-07-29 playtest) A displaced attacker can end up STANDING ON
+            // its own locked target tile (Compel pulled a Brute onto the glyph
+            // it had aimed at — it then "struck its own ally Brute_1" for 13
+            // and killed itself). A unit swinging at its own feet whiffs; the
+            // push-into-harm payoff below stays for OTHER allies on the tile.
+            string self = $"{attackerName} {verb} at the ground beneath it!";
+            GD.Print(self);
+            combatUI?.AppendActionLog(self);
         }
         else if (attacker != null && IsInstanceValid(attacker) && victim.TeamId == attacker.TeamId)
         {

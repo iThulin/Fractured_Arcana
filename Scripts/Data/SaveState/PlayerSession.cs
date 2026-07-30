@@ -121,6 +121,24 @@ public static class PlayerSession
         ForceNextEncounterType = -1;
     }
 
+    // ── Wizard expedition HP carry (K2.5 symmetry, 2026-07-29) ───────────
+
+    /// <summary>The wizard's in-combat HP carried between fights of the same
+    /// expedition, mirroring <c>Companion.ExpeditionHP</c> — the playtest
+    /// asymmetry was that companions carried battle damage while the wizard
+    /// reset to full every fight. −1 = not carrying (next fight fields at
+    /// full). Written on combat victory, applied at wizard spawn, reset on a
+    /// fresh deploy, quarter-healed by rest sites, cleared (full) by outposts.
+    /// Deliberately NOT reset in ClearRunState — that runs on every
+    /// ExpeditionManager._Ready including combat returns, which would defeat
+    /// the carry.</summary>
+    public static int WizardExpeditionHP = -1;
+
+    /// <summary>MaxHealth recorded alongside <see cref="WizardExpeditionHP"/> so
+    /// overworld rest sites can heal a fraction without reaching into combat
+    /// data.</summary>
+    public static int WizardExpeditionMaxHP = 20;
+
     // ── Expedition deploy handoff (strategic view → expedition scene) ────
 
     /// <summary>Offset column of the staging point the next expedition launches from.</summary>

@@ -288,6 +288,7 @@ public partial class ExpeditionManager : Node2D
             // K2.5: fresh expedition — everyone starts whole. (Combat returns
             // take the other branch and must NOT reset carried HP.)
             CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
+            PlayerSession.WizardExpeditionHP = -1; // K2.5 symmetry — wizard too
 
             // S4 (Identify) + S5 (True Names): pinned encounters are
             // expedition-scoped. Static so they survive combat round-trips
@@ -1220,6 +1221,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 hex.POIConsumed = true;
                 hex.RefreshVisuals();
                 ConsumeWorldPoi(coord);
+                // K2.5 carry (2026-07-29): a rest also mends the party's
+                // carried COMBAT HP — a quarter of max each, mirroring the
+                // pool heal above. Stabilized (0) companions stay down.
+                CompanionInjurySystem.HealExpeditionHP(SaveManager.ActiveSave, 0.25f);
+                if (PlayerSession.WizardExpeditionHP >= 0)
+                    PlayerSession.WizardExpeditionHP = Mathf.Min(
+                        PlayerSession.WizardExpeditionMaxHP,
+                        PlayerSession.WizardExpeditionHP +
+                        Mathf.Max(1, PlayerSession.WizardExpeditionMaxHP / 4));
                 int restSpl = SplinterDropTable.RestSite();
                 SplinterEarned += restSpl;
                 GoldEarned += 15;
@@ -1257,6 +1267,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 hex.RefreshVisuals();
                 ConsumeWorldPoi(coord);
                 GrantStagingPointAt(coord);
+                // K2.5 carry (2026-07-29): an outpost is a full rest for the
+                // fights too — carriers mend to full; the wizard fields fresh.
+                // Stabilized (0) companions stay down (HealExpeditionHP skips 0).
+                CompanionInjurySystem.HealExpeditionHP(SaveManager.ActiveSave, 1.0f);
+                PlayerSession.WizardExpeditionHP = -1;
                 int outSpl = SplinterDropTable.RestSite();
                 SplinterEarned += outSpl;
                 GoldEarned += 25;

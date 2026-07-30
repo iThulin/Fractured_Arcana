@@ -163,6 +163,24 @@ public static class CompanionInjurySystem
         return summary.ToString().Trim();
     }
 
+    /// <summary>Overworld rest (2026-07-29): mend carried combat HP for every
+    /// companion currently carrying, by <paramref name="fraction"/> of BaseHP
+    /// (minimum 1), clamped to BaseHP. Skips stabilized-at-0 companions —
+    /// being downed keeps you out of the fights for the rest of the run; a
+    /// campfire does not undo that. Pass 1.0 for a full mend (outposts).</summary>
+    public static void HealExpeditionHP(GuildSaveData save, float fraction)
+    {
+        if (save?.Companions == null)
+            return;
+        foreach (var c in save.Companions)
+        {
+            if (c == null || c.ExpeditionHP <= 0)
+                continue;
+            int heal = Mathf.Max(1, (int)(c.BaseHP * fraction));
+            c.ExpeditionHP = Mathf.Min(c.BaseHP, c.ExpeditionHP + heal);
+        }
+    }
+
     /// <summary>K2.5: clear per-expedition HP — fresh launch, or after the
     /// expedition-end accounting (FailExpedition's wipe rolls already cover
     /// the injuries on that path).</summary>
