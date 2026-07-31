@@ -289,6 +289,9 @@ public partial class NegotiationManager : Control
         root.AddChild(_titleLabel);
 
         // ── TOP STRIP: centered pair — NPC card column | conversation ────
+        // The page's ONLY flexible region: every other section sizes to its
+        // content, and the conversation log (the one scrollable thing on
+        // screen) absorbs whatever height is left.
         var topStrip = new HBoxContainer
         {
             SizeFlagsVertical = SizeFlags.Expand | SizeFlags.Fill,
@@ -378,16 +381,8 @@ public partial class NegotiationManager : Control
         _npcPoolRow.AddThemeConstantOverride("separation", 10);
         npcCol.AddChild(_npcPoolRow);
 
-        // Embassy tier-2 hook: agents brief you on the NPC's next move.
-        _intentLabel = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            Visible = false,
-        };
-        _intentLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
-        _intentLabel.AddThemeColorOverride("font_color", UITheme.ZoneStrainedLabel);
-        npcCol.AddChild(_intentLabel);
+        // (The NPC-intent line lives in the conversation header row below —
+        // an always-on line here pushed the action row off short screens.)
 
         // The conversation column — width capped so the NPC card sits near
         // the middle of the screen instead of shunted to a corner. Header row
@@ -402,10 +397,19 @@ public partial class NegotiationManager : Control
         topStrip.AddChild(logCol);
 
         var logHeaderRow = new HBoxContainer();
-        var logHeader = MakeTinyLabel("THE CONVERSATION", UITheme.NegotiationNpcColor);
-        logHeader.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        logHeader.VerticalAlignment = VerticalAlignment.Bottom;
-        logHeaderRow.AddChild(logHeader);
+        // The intent tell doubles as the conversation header — zero extra
+        // rows on screen (soft read for everyone; Embassy tier 2 upgrades
+        // it to the precise briefing via RefreshIntent).
+        _intentLabel = new Label
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            Visible = false,
+        };
+        _intentLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationTinyFontSize);
+        _intentLabel.AddThemeColorOverride("font_color", UITheme.ZoneStrainedLabel);
+        logHeaderRow.AddChild(_intentLabel);
 
         _detailsToggle = new CheckButton
         {
@@ -467,11 +471,15 @@ public partial class NegotiationManager : Control
         termsHeader.AddThemeColorOverride("font_color", Colors.White);
         root.AddChild(termsHeader);
 
+        // Sizes to its content: with vertical scroll Disabled, a
+        // ScrollContainer's minimum height tracks its tallest child, so the
+        // strip is always exactly as tall as the cards — never a vertical
+        // scrollbar, never a clipped position label. (Horizontal stays Auto
+        // purely as a fallback for very wide authored tables.)
         _termsScroll = new ScrollContainer
         {
             HorizontalScrollMode = ScrollContainer.ScrollMode.Auto,
             VerticalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            CustomMinimumSize = new Vector2(0, 186),
         };
         root.AddChild(_termsScroll);
         var termsCenter = new CenterContainer
@@ -501,10 +509,14 @@ public partial class NegotiationManager : Control
         actionsHeaderRow.AddChild(_spokenToggle);
         root.AddChild(actionsHeaderRow);
 
+        // Sizes to its content, same trick as the clause strip: both scroll
+        // directions Disabled → minimum tracks the compact spoken rows, so
+        // every token is always on screen and the only scrollbar on the page
+        // lives in the conversation log.
         var actionsScroll = new ScrollContainer
         {
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            CustomMinimumSize = new Vector2(0, 196),
+            VerticalScrollMode = ScrollContainer.ScrollMode.Disabled,
         };
         root.AddChild(actionsScroll);
         _actionsContainer = new VBoxContainer
@@ -519,23 +531,24 @@ public partial class NegotiationManager : Control
         _schoolMoveContainer.AddThemeConstantOverride("separation", 4);
         root.AddChild(_schoolMoveContainer);
 
-        // Live closing preview — the one line that answers "what do I get
-        // if I shake hands right now?" Updated every refresh.
+        var actionRow = new HBoxContainer();
+        actionRow.AddThemeConstantOverride("separation", 12);
+        actionRow.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        root.AddChild(actionRow);
+
+        // Live closing preview — the one line that answers "what do I get if
+        // I shake hands right now?" Lives INSIDE the action row, beside the
+        // handshake it describes (a standalone row pushed the buttons off
+        // short screens). Updated every refresh.
         _dealPreviewLabel = new Label
         {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
             TooltipText = "What the deal pays at the current clause positions " +
                           "and zone — the squeeze, if any, comes on top.",
         };
         _dealPreviewLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
         _dealPreviewLabel.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
-        root.AddChild(_dealPreviewLabel);
-
-        var actionRow = new HBoxContainer();
-        actionRow.AddThemeConstantOverride("separation", 12);
-        actionRow.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-        root.AddChild(actionRow);
+        actionRow.AddChild(_dealPreviewLabel);
 
         _passButton = new Button
         {
@@ -1285,9 +1298,13 @@ public partial class NegotiationManager : Control
         var arch = _state.Data.Archetype;
         var selectedTerm = SelectedTerm();
 
+        // Compact cells: 44px chips (same as the NPC rack) with the token
+        // name folded into the effect line — a full token pool must fit the
+        // moves box with no scrollbar, or closing buttons drift off-screen
+        // and rows hide below the fold.
         var grid = new GridContainer { Columns = 2 };
-        grid.AddThemeConstantOverride("h_separation", 28);
-        grid.AddThemeConstantOverride("v_separation", 10);
+        grid.AddThemeConstantOverride("h_separation", 24);
+        grid.AddThemeConstantOverride("v_separation", 6);
         _actionsContainer.AddChild(grid);
 
         bool anyRow = false;
@@ -1307,7 +1324,19 @@ public partial class NegotiationManager : Control
             var cell = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
             cell.AddThemeConstantOverride("separation", 10);
 
-            cell.AddChild(MakeTokenChip(token));
+            var chip = new NegotiationTokenChip
+            {
+                Token = token,
+                Count = _state.TokenPool[token],
+                SizePx = 44,
+                SizeFlagsVertical = SizeFlags.ShrinkCenter,
+                TooltipText = $"{token} ×{_state.TokenPool[token]} — click to spend it.",
+                CanDrag = () => _state != null && !_state.IsResolved
+                                && _state.TokenPool[token] > 0,
+            };
+            var tok = token;
+            chip.Clicked += () => OnTokenClicked(tok);
+            cell.AddChild(chip);
 
             var textBox = new VBoxContainer
             {
@@ -1353,6 +1382,10 @@ public partial class NegotiationManager : Control
                 lineLbl.Text = NegotiationBarks.SpokenLine(LeverageToken.Patience, stance, arch);
                 fxLbl.Text = NegotiationBarks.PatiencePreview;
             }
+
+            // Token identity lives on the effect line now — the caption that
+            // sat under each chip cost ~16px of height per row.
+            fxLbl.Text = $"{token.ToString().ToUpperInvariant()} · {fxLbl.Text}";
 
             cell.AddChild(textBox);
             grid.AddChild(cell);
@@ -1790,13 +1823,13 @@ public partial class NegotiationManager : Control
         if (_state.IsResolved)
             return;
 
-        string text = $"A handshake now signs for:   {Signed(_state.ProjectGold())} gold" +
+        string text = $"Signs now for:  {Signed(_state.ProjectGold())}g" +
                       $" · {Signed(_state.ProjectReputation())} rep" +
                       $" · {StarLine(_state.ProjectStars())}";
         if (_state.HasSpellTermOnTable())
             text += _state.Zone == TensionZone.Cordial
-                ? "   · tuition holds while Cordial"
-                : "   · tuition needs a Cordial close";
+                ? " · tuition ✓"
+                : " · tuition if Cordial";
         _dealPreviewLabel.Text = text;
     }
 
@@ -1865,31 +1898,6 @@ public partial class NegotiationManager : Control
         GetTree().ChangeSceneToFile(
             EncounterRouter.Instance?.OverworldScenePath
             ?? "res://Scenes/Overworld/ExpeditionScene.tscn");
-    }
-
-    /// <summary>A draggable token chip + its name caption. Count shows as a
-    /// plain ×N tag on the chip itself.</summary>
-    private Control MakeTokenChip(LeverageToken token)
-    {
-        var chipCol = new VBoxContainer { SizeFlagsVertical = SizeFlags.ShrinkCenter };
-        chipCol.AddThemeConstantOverride("separation", 0);
-
-        var chip = new NegotiationTokenChip
-        {
-            Token = token,
-            Count = _state.TokenPool[token],
-            TooltipText = $"{token} ×{_state.TokenPool[token]} — click to spend it.",
-            CanDrag = () => _state != null && !_state.IsResolved
-                            && _state.TokenPool[token] > 0,
-        };
-        chip.Clicked += () => OnTokenClicked(token);
-        chipCol.AddChild(chip);
-
-        var name = MakeTinyLabel(token.ToString().ToUpperInvariant(), UITheme.NegotiationNpcColor);
-        name.HorizontalAlignment = HorizontalAlignment.Center;
-        name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        chipCol.AddChild(name);
-        return chipCol;
     }
 
     private Label MakeTinyLabel(string text, Color color)
