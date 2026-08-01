@@ -908,7 +908,56 @@ public static class JsonCardLoader
         if (root.TryGetProperty("bottom", out var bot))
             card.BottomHalf = BuildHalf(bot, card, root);
 
+        // Stamp each half with where it came from. BuildHalf itself cannot do this —
+        // it is not told which half it is building — and the pair (id, half) is the
+        // only stable identity a half has: display names are localisable and get
+        // reworded during balance passes.
+        if (card.TopHalf != null)
+        {
+            card.TopHalf.SourceCardId = card.BlueprintId;
+            card.TopHalf.SourceHalf = "top";
+            StampGlyphSource(card.TopHalf);
+        }
+        if (card.BottomHalf != null)
+        {
+            card.BottomHalf.SourceCardId = card.BlueprintId;
+            card.BottomHalf.SourceHalf = "bottom";
+            StampGlyphSource(card.BottomHalf);
+        }
+
         return card;
+    }
+
+    /// <summary>
+    /// Stamps every <see cref="PrepareGlyphEffect"/> in a half's effect tree with that
+    /// half's identity, at LOAD time, so a placed glyph knows which spell made it and the
+    /// tile can draw that spell's cipher sigil.
+    ///
+    /// This deliberately does NOT route through GameState. Casting is a two-phase
+    /// operation: <c>Rules.TryCastWithTargets</c> pushes a StackItem and returns, and its
+    /// <c>finally</c> clears the cast-context pins immediately — long before the stack
+    /// resolves and the effect actually executes. Anything an effect reads off GameState
+    /// inside <c>Resolve</c> has therefore already been cleared. An effect instance belongs
+    /// to exactly one half of one blueprint, so its origin is a load-time constant and
+    /// needs no runtime plumbing at all.
+    /// </summary>
+    private static void StampGlyphSource(CardHalf half)
+    {
+        if (half?.Effects == null) return;
+        foreach (var e in half.Effects)
+            StampGlyphSource(e, half.SourceCardId, half.SourceHalf, 0);
+    }
+
+    private static void StampGlyphSource(IEffect e, string cardId, string halfName, int depth)
+    {
+        if (e == null || depth > 8) return;   // depth guard: card data is authored, not trusted
+        if (e is PrepareGlyphEffect p)
+        {
+            p.SourceCardId = cardId;
+            p.SourceHalf = halfName;
+        }
+        foreach (var child in e.Children)
+            StampGlyphSource(child, cardId, halfName, depth + 1);
     }
 
     // ── BuildHalf ───────────────────────────────────────────────────

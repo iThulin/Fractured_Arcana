@@ -12,3 +12,11 @@
 
 # Compile-check output (tools/build-check.cmd)
 build.log
+
+# Python bytecode from tools/glyph_cipher (the glyph cipher reference impl)
+__pycache__/
+*.pyc
+
+# Scratch used by the remote-file bridge, which cannot delete. Safe to remove
+# by hand at any time; ignored so it never lands in a commit.
+_to_delete/

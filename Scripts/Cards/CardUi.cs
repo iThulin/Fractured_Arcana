@@ -92,6 +92,10 @@ public partial class CardUi : Control
     // ── Full-card view (hover state) ─────────────────────────────────
     private Control _fullCardView;
     private Panel _artPanel;
+
+    // Cipher sigil drawn over the art panel. Created lazily on first full-card
+    // hover; reused thereafter. See docs/glyph_cipher_spec_v2.md.
+    private GlyphCipherView _cipherView;
     private Label _schoolBadge;
     private HBoxContainer _elementTagContainer;
     private Panel _fullDivider;
@@ -478,6 +482,44 @@ public partial class CardUi : Control
             artStyle.BorderWidthRight = UITheme.BorderWidth;
             artStyle.BorderWidthBottom = 0;
             _artPanel.AddThemeStyleboxOverride("panel", artStyle);
+
+            // Enchanter sigil. Every half of every Enchanter card has one and they
+            // are generated, not authored — so this is the card art for the whole
+            // school. Other schools fall through and keep the plain tinted panel.
+            if (school == CardSchool.Enchanter)
+            {
+                if (_cipherView == null)
+                {
+                    _cipherView = new GlyphCipherView
+                    {
+                        Name = "CipherGlyph",
+                        Lod = CipherLod.Card,
+                        DarkBackground = true,
+                        MouseFilter = MouseFilterEnum.Ignore,
+                    };
+                    // Parent BEFORE presetting: SetAnchorsAndOffsetsPreset derives its
+                    // offsets from the current parent's rect, so calling it while the
+                    // node is still orphaned produces a rect larger than the panel and
+                    // the sigil spills over the card border. The margin keeps the rim
+                    // off the border; index 0 keeps the badge and element tags on top.
+                    _artPanel.AddChild(_cipherView);
+                    _artPanel.MoveChild(_cipherView, 0);
+                    _cipherView.SetAnchorsAndOffsetsPreset(
+                        LayoutPreset.FullRect, LayoutPresetMode.Minsize, 8);
+                }
+
+                // The ALLY hub punches its centre out, so the punch has to match
+                // the art panel behind it.
+                _cipherView.PaperColor = artStyle.BgColor;
+
+                string cipherCardId = CardInstance?.BlueprintId;
+                _cipherView.Visible = !string.IsNullOrEmpty(cipherCardId)
+                    && _cipherView.SetSpell(cipherCardId, isTop ? "top" : "bottom", half);
+            }
+            else if (_cipherView != null)
+            {
+                _cipherView.Visible = false;
+            }
         }
 
         // School badge

@@ -266,8 +266,17 @@ public sealed class PrepareGlyphEffect : EffectBase
 	public int AllyArmor, AllyShield, AllyDamage, AllyMana;
 	public int OwnerDraw, OwnerMana, OwnerWeave, OwnerHeal;
 
+	/// <summary>Identity of the half that owns this effect, stamped once at load time by
+	/// JsonCardLoader.StampGlyphSource and copied onto every glyph this effect places.
+	/// Load-time and not read from GameState during Resolve: casting pushes to the stack
+	/// and the cast-context pins are cleared before the stack resolves, so a Resolve-time
+	/// read always came back empty. Constant for the life of the object.</summary>
+	public string SourceCardId = "", SourceHalf = "";
+
 	private void Configure(GlyphData g)
 	{
+		g.SourceCardId = SourceCardId;
+		g.SourceHalf = SourceHalf;
 		g.Trigger = Trigger;
 		g.Damage = Damage;
 		g.Status = Status;

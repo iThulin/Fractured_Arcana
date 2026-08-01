@@ -49,6 +49,21 @@ public sealed class GlyphData
     /// <summary>The unit that placed this glyph. Used for on-trigger payoffs (draw/mana/Weave/heal) and the Weave feed. May be null for legacy glyphs.</summary>
     public Unit Owner;
 
+    /// <summary>
+    /// Blueprint id of the card that placed this glyph, and which half of it. Copied by
+    /// <c>PrepareGlyphEffect.Configure</c> from fields stamped onto the effect at LOAD
+    /// time by <c>JsonCardLoader.StampGlyphSource</c> — deliberately not read from
+    /// GameState during resolution, because casting pushes to the stack and the
+    /// cast-context pins are cleared before the stack resolves. Empty for legacy glyphs
+    /// and for anything created outside a cast (Runic Cascade's spread copies inherit
+    /// nothing) — <c>HexTile.ShowGlyph</c> falls back to the plain marker when they are
+    /// empty, so this is additive and never load-bearing.
+    /// </summary>
+    public string SourceCardId = "";
+
+    /// <summary>Half of <see cref="SourceCardId"/> that placed this glyph: <c>"top"</c> or <c>"bottom"</c>.</summary>
+    public string SourceHalf = "";
+
     /// <summary>Legacy closure trigger. When set, <see cref="Fire"/> invokes it and skips the declarative payload, so PlaceGlyphEffect-created glyphs behave exactly as before.</summary>
     public Action<Unit, GameState> OnTrigger;
 

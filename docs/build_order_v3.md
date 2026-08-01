@@ -1,3 +1,5 @@
+> **⚠ SUPERSEDED BY `docs/build_order_v4.md` (2026-07-31).** This document was audited 2026-07-06 and last touched 2026-07-12 — 61 commits stale. Its sequencing principles survive in v4 §2; its phase contents and status table do not. Historical reference only.
+
 # Fractured Arcana — Build Order v3
 
 *Sequencing roadmap · 2026-07-06 · SUPERSEDES the sequencing in guild_expansion_action_plan (the "Guild of Wizards" six-phase plan). That document's guiding principles survive; its phase contents do not — it predates the single-world refactor, Court & Council, the unit registry, the overworld spell system, and the 2026-07-03 ballot rulings.*

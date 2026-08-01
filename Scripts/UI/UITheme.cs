@@ -153,6 +153,37 @@ public static class UITheme
     public static readonly Color TileRangeInterior = new Color(0.70f, 0.48f, 1.00f, 0.70f);
     public static readonly Color TileRangeBorder = new Color(0.55f, 0.38f, 0.90f, 0.25f);
     public static readonly Color TileGlyph = new Color(0.65f, 0.25f, 1.00f, 1f);
+
+    // ════════════════════════════════════════════════════════════
+    // GLYPH CIPHER (docs/glyph_cipher_spec_v2.md §7)
+    // Two layers that must stay separable for a protanopic player.
+    // Hue is the SECONDARY channel: the function layer is drawn at
+    // 1.88x the identity layer's stroke weight (~3x at tile scale),
+    // and it is a hub-and-spokes where the identity layer is
+    // arms-and-ticks — so shape carries the split even if colour
+    // fails entirely. Measured contrast ink/function: 4.57:1 normal,
+    // 3.79:1 protanopic.
+    // ════════════════════════════════════════════════════════════
+    /// <summary>Identity layer (the encoded Name) on card stock.</summary>
+    public static readonly Color CipherInk = new Color(0.102f, 0.086f, 0.078f, 1f);      // #1A1614
+
+    /// <summary>Identity layer over the dark combat board.</summary>
+    public static readonly Color CipherInkLight = new Color(0.929f, 0.894f, 0.827f, 1f); // #EDE4D3
+
+    /// <summary>Function layer (hub + spokes). The Enchanter border rose.</summary>
+    public static readonly Color CipherFunction = new Color(0.769f, 0.357f, 0.620f, 1f); // #C45B9E
+
+    /// <summary>Default punch colour for the ALLY hub, which is a filled disc with its
+    /// centre removed. Callers drawing over a different background should set
+    /// GlyphCipherView.PaperColor to match it.</summary>
+    public static readonly Color CipherPaper = new Color(0.910f, 0.875f, 0.808f, 1f);    // #E8DFCE
+
+    /// <summary>Backing disc behind the hex-tile decal. Alpha here is the full-strength
+    /// value; the LOD profile scales it. Without a backing the sigil is composited
+    /// straight onto whatever terrain the tile happens to be — grass, sand, stone, water —
+    /// and no single ink alpha is legible across all of them. A controlled backdrop makes
+    /// the composite deterministic, and reads as a rune scorched into the ground.</summary>
+    public static readonly Color CipherTileBacking = new Color(0.055f, 0.043f, 0.051f, 1f);
     // ════════════════════════════════════════════════════════════
     // V1 DESIGN SPACE (combat_ui_v2 §4 ruling, R20/R21)
     // canvas_items stretch, 1920×1080 base, 1280×720 minimum window.

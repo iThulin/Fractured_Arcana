@@ -34,6 +34,17 @@ public partial class GameBootstrap : Node
                 GetTree().Quit(ok ? 0 : 1);
                 return;
             }
+
+            // `godot --headless -- --verify-cipher`
+            // Glyph cipher goldens + invariants. Runs after the card database is
+            // loaded so it can check the live Enchanter corpus, not just the
+            // baked-in goldens.
+            if (arg == "--verify-cipher")
+            {
+                bool ok = GlyphCipherSelfTest.RunAndReport();
+                GetTree().Quit(ok ? 0 : 1);
+                return;
+            }
         }
     }
 
@@ -44,6 +55,21 @@ public partial class GameBootstrap : Node
             && e is InputEventKey k && k.Pressed && !k.Echo && k.Keycode == Key.F9)
         {
             CardVerifier.RunAndReport();
+        }
+
+        // F10: the glyph cipher's equivalent pass.
+        if (OS.IsDebugBuild()
+            && e is InputEventKey k2 && k2.Pressed && !k2.Echo && k2.Keycode == Key.F10)
+        {
+            GlyphCipherSelfTest.RunAndReport();
+        }
+
+        // F11: the glyph gallery — every Enchanter half drawn through the shipping
+        // renderer, for comparison against docs/glyph_cipher_sheet.png.
+        if (OS.IsDebugBuild()
+            && e is InputEventKey k3 && k3.Pressed && !k3.Echo && k3.Keycode == Key.F11)
+        {
+            GlyphCipherGallery.Toggle(GetTree().Root);
         }
     }
 }

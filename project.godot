@@ -24,6 +24,7 @@ GameBootstrap="*res://Scripts/Systems/GameBootstrap.cs"
 SettingsManager="*res://Scripts/Systems/SettingsManager.cs"
 PauseManager="*res://Scripts/Systems/PauseManager.cs"
 HudManager="*res://Scripts/Systems/HudManager.cs"
+GlyphCipherTexture="*res://Scripts/Systems/Combat/Glyphs/GlyphCipherTexture.cs"
 TooltipManager="*uid://d1cfw28qpve6q"
 
 [display]

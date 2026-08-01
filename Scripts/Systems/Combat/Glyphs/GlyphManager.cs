@@ -68,7 +68,7 @@ public sealed class GlyphManager
         tile.Glyph = g;
 
         if (!g.Invisible)
-            tile.TileView?.ShowGlyph();
+            tile.TileView?.ShowGlyph(g);
         OnGlyphPlaced?.Invoke(tile);
 
         if (owner?.Attunement is WeaveAttunement w)

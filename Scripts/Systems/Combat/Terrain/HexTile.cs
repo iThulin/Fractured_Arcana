@@ -67,6 +67,8 @@ public partial class HexTile : Node3D
     private ShaderMaterial _shaderMaterial;
     private Label3D coordLabel;
     private Label3D _glyphLabel;
+    private MeshInstance3D _glyphDecal;
+    private ShaderMaterial _glyphDecalMaterial;
     private Label3D _memorialLabel;
     private Color baseColor;
 
@@ -396,9 +398,109 @@ public partial class HexTile : Node3D
         imbuementOverlay?.SetElement(element);
     }
 
-    /// <summary>Lazily creates a billboarded glyph label above the tile and makes it visible. Uses <c>CallDeferred("add_child", ...)</c> to comply with the Godot 4.6 cross-platform safety rule (see README §8).</summary>
-    public void ShowGlyph()
+    /// <summary>Edge length in pixels of the baked glyph-cipher decal. 256 rather than 128:
+    /// the sigil now lies flat on the ground where the camera can get close to it, and the
+    /// shader blurs its alpha for the halo, which magnifies any softness in the source.</summary>
+    private const int GlyphDecalPixels = 256;
+
+    /// <summary>Width of the ground decal in world units. The baked sigil occupies the
+    /// inner 80% of this (see the shader's sigil_scale); the rest is the enclosing ring.</summary>
+    private const float GlyphDecalSize = 1.50f;
+
+    /// <summary>Clearance above the tile's measured top surface. Enough to stay out of the
+    /// terrain's z-fighting range and above the grass roots, low enough that the sigil still
+    /// reads as lying ON the ground rather than hovering over it.</summary>
+    private const float GlyphDecalHeight = 0.055f;
+
+    /// <summary>Seconds for the inscription when a glyph is first prepared. Six arms are
+    /// struck in sequence, so this is ~0.16s per stave — quick, but slow enough to read as
+    /// deliberate drawing rather than a fade-in.</summary>
+    private const float GlyphInscribeSeconds = 0.95f;
+
+    private const string GlyphDecalShaderPath = "res://Assets/Shaders/glyph_sigil.gdshader";
+
+    /// <summary>
+    /// Shows the tile's glyph marker. Pass the <see cref="GlyphData"/> when it is known and
+    /// the tile draws that spell's generated cipher sigil; call it bare and it falls back to
+    /// the plain ✦ label.
+    ///
+    /// The fallback is not a stub — it is the correct behaviour for every glyph the cipher
+    /// cannot name. Legacy PlaceGlyphEffect glyphs, Runic Cascade's self-spread copies and
+    /// anything placed outside the cast pipeline carry no source card, and a tile with no
+    /// marker at all would be a gameplay bug. Uses <c>CallDeferred("add_child", ...)</c> to
+    /// comply with the Godot 4.6 cross-platform safety rule (see README §8).
+    /// </summary>
+    public void ShowGlyph(GlyphData glyph = null)
     {
+        // Put the fallback marker up FIRST, unconditionally. The cipher decal is baked
+        // asynchronously and can fail — no texture service, an unknown blueprint, a
+        // driver that returns an empty viewport — and a tile with no marker at all is a
+        // gameplay bug, not a cosmetic one. The ✦ stays until a real sigil is in hand
+        // to replace it.
+        ShowFallbackMarker();
+
+        if (glyph == null
+            || string.IsNullOrEmpty(glyph.SourceCardId)
+            || GlyphCipherTexture.Instance == null)
+            return;
+
+        EnsureGlyphDecal();
+        if (_glyphDecal == null)
+            return;                               // shader missing — keep the ✦
+
+        // The bake takes two frames cold and is cached, so a repeat placement of the
+        // same spell resolves immediately. The nodes may be freed before the callback
+        // lands if the tile is torn down mid-bake, hence the validity checks.
+        var decal = _glyphDecal;
+        var mat = _glyphDecalMaterial;
+        var label = _glyphLabel;
+        GlyphCipherTexture.Instance.RequestForBlueprint(
+            glyph.SourceCardId, glyph.SourceHalf, GlyphDecalPixels, CipherLod.Tile, true,
+            tex =>
+            {
+                if (tex == null || !IsInstanceValid(decal) || mat == null)
+                    return;                       // bake failed — keep the ✦
+                mat.SetShaderParameter("sigil_tex", tex);
+                decal.Visible = true;
+                if (IsInstanceValid(label))
+                    label.Visible = false;
+
+                // Inscribe it. The shader strikes one arm per beat, clockwise from the
+                // top — the cipher's own reading order — drawing each stave outward from
+                // the hub, closing the ring behind it, and sealing the hub last.
+                //
+                // LINEAR on purpose: an eased tween front-loads the motion, which makes
+                // the first arms flash past and the last ones crawl. A sequence of equal
+                // strokes has to advance at an equal rate to read as a sequence.
+                mat.SetShaderParameter("progress", 0f);
+                CreateTween()
+                    .TweenProperty(mat, "shader_parameter/progress", 1.0f, GlyphInscribeSeconds)
+                    .SetTrans(Tween.TransitionType.Linear);
+            });
+    }
+
+    /// <summary>
+    /// The local-space Y of this tile's actual top surface, measured from the HexMesh's
+    /// AABB rather than assumed. Same technique <see cref="ImbuementOverlay"/> uses, and
+    /// for the same reason: it survives Hex_mesh scale changes, blocker variants and
+    /// SetHeight adjustments instead of silently sinking into or floating above them.
+    /// </summary>
+    private float MeasuredTileTopY()
+    {
+        var hexMesh = GetNodeOrNull<MeshInstance3D>("HexMesh");
+        if (hexMesh?.Mesh == null)
+            return 0f;
+
+        var aabb = hexMesh.Mesh.GetAabb();
+        var t = hexMesh.Transform;
+        return (aabb.Position.Y + aabb.Size.Y) * t.Basis.Y.Length() + t.Origin.Y;
+    }
+
+    private void ShowFallbackMarker()
+    {
+        if (_glyphDecal != null)
+            _glyphDecal.Visible = false;
+
         if (_glyphLabel == null)
         {
             _glyphLabel = new Label3D();
@@ -416,11 +518,53 @@ public partial class HexTile : Node3D
         }
     }
 
-    /// <summary>Hides the glyph indicator without destroying it. Cheap to re-show via <see cref="ShowGlyph"/>.</summary>
+    private void EnsureGlyphDecal()
+    {
+        if (_glyphDecal != null)
+            return;
+
+        var shader = GD.Load<Shader>(GlyphDecalShaderPath);
+        if (shader == null)
+        {
+            GD.PushWarning($"HexTile {Axial}: {GlyphDecalShaderPath} not found — glyph falls back to the marker.");
+            return;
+        }
+
+        _glyphDecalMaterial = new ShaderMaterial { Shader = shader };
+        _glyphDecalMaterial.SetShaderParameter("glow_color", UITheme.CipherFunction);
+        _glyphDecalMaterial.SetShaderParameter("ring_color", UITheme.CipherFunction);
+        _glyphDecalMaterial.SetShaderParameter("backing_color", UITheme.CipherTileBacking);
+        _glyphDecalMaterial.SetShaderParameter("progress", 0f);
+
+        // Per-tile phase, so a field of prepared glyphs breathes out of step instead of
+        // throbbing in unison. Derived from the axial coords, so it is stable across
+        // saves rather than reshuffling every load.
+        int h = (Axial.X * 73856093) ^ (Axial.Y * 19349663);
+        _glyphDecalMaterial.SetShaderParameter("phase", Mathf.Abs(h % 1000) / 1000f * Mathf.Tau);
+
+        _glyphDecal = new MeshInstance3D
+        {
+            Name = "GlyphSigil",
+            Mesh = new QuadMesh { Size = new Vector2(GlyphDecalSize, GlyphDecalSize) },
+            // A QuadMesh faces +Z. Tipping it -90 degrees about X lays it face-up on the
+            // ground plane, which is the whole point: this is a rune sketched on the
+            // earth, not a billboard turning to watch the camera.
+            RotationDegrees = new Vector3(-90f, 0f, 0f),
+            Position = new Vector3(0f, MeasuredTileTopY() + GlyphDecalHeight, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            MaterialOverride = _glyphDecalMaterial,
+            Visible = false,
+        };
+        CallDeferred("add_child", _glyphDecal);
+    }
+
+    /// <summary>Hides the glyph marker without destroying it. Cheap to re-show via <see cref="ShowGlyph"/>.</summary>
     public void ClearGlyph()
     {
         if (_glyphLabel != null)
             _glyphLabel.Visible = false;
+        if (_glyphDecal != null)
+            _glyphDecal.Visible = false;
     }
 
     /// <summary>Current elemental imbuement displayed by the overlay child, or <see cref="TileElementType.None"/> if no overlay is present.</summary>

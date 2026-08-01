@@ -112,6 +112,17 @@ public sealed class CardHalf : Ability
     /// <summary>Back-pointer to the Card this half belongs to. Used for zone-transition bookkeeping.</summary>
     public Card OwnerCard;
 
+    /// <summary>
+    /// The JSON blueprint id this half was compiled from (e.g. "enchanter_snare_glyph"),
+    /// stamped by <c>JsonCardLoader.BuildCard</c>. Distinct from <see cref="Name"/>, which
+    /// is a display string and is localisable. Anything that must survive a rename or a
+    /// translation keys off this — the glyph cipher seeds from it.
+    /// </summary>
+    public string SourceCardId = "";
+
+    /// <summary>Which half of the card this is: <c>"top"</c> or <c>"bottom"</c>. Stamped alongside <see cref="SourceCardId"/>.</summary>
+    public string SourceHalf = "";
+
     /// <summary>When true, resolving this half sends the owning Card to the graveyard. False for cards that bounce back to hand or stick around as persistent effects.</summary>
     public bool ConsumesCardOnResolve = true;
 
