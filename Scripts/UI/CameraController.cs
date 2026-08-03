@@ -115,6 +115,34 @@ public partial class CameraController : Node3D
 
     private const float MouseToKeyboardRotationRatio = 200f;
 
+    // ── Input gate ───────────────────────────────────────────────────────────
+    private bool _acceptInput = true;
+
+    /// <summary>Gate for all input this controller reacts to. Default true — existing
+    /// combat usage never touches this and is completely unchanged. Set false when
+    /// this rig's viewport isn't the "active" one (e.g. mouse hovering a sibling UI
+    /// panel in a SubViewport-embedded context like the campus screen). Necessary
+    /// because HandlePan/HandleRotation/HandleZoom read Input.IsActionPressed as raw
+    /// polls every frame in _Process, and _Input reads mouse motion/buttons directly
+    /// — neither goes through Godot's normal event-consumption pipeline, so nothing
+    /// about a Control's screen position can scope them on its own.</summary>
+    public bool AcceptInput
+    {
+        get => _acceptInput;
+        set
+        {
+            _acceptInput = value;
+            if (!value)
+            {
+                // Defensive: don't let a right-drag or a pending motion delta get
+                // stuck mid-gesture across an activation boundary (e.g. the mouse-up
+                // that would have cleared _dragging happens while gated off).
+                _dragging = false;
+                _mouseDelta = Vector2.Zero;
+            }
+        }
+    }
+
     // ── Init ─────────────────────────────────────────────────────────────────
     public override void _Ready()
     {
@@ -210,6 +238,9 @@ public partial class CameraController : Node3D
     // ── Input ────────────────────────────────────────────────────────────────
     public override void _Input(InputEvent @event)
     {
+        if (!AcceptInput)
+            return;
+
         if (@event is InputEventMouseButton mb)
         {
             if (mb.ButtonIndex == MouseButton.Right)
@@ -240,6 +271,8 @@ public partial class CameraController : Node3D
     // ── Process ──────────────────────────────────────────────────────────────
     public override void _Process(double delta)
     {
+        if (!AcceptInput)
+            return;
         if (!EnsureCameraNodes())
             return;
 

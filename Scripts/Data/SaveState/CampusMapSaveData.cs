@@ -3,88 +3,98 @@ using System.Collections.Generic;
 // ============================================================
 // CampusMapSaveData.cs
 //
-// Purpose:        Tier 3 save model for the campus ground layout —
-//                 the hex map the guild is built on. Pure data,
-//                 Godot-free, following the plain-data convention
-//                 of GuildSaveData / EternalLedger. Lives on
-//                 EternalLedger.CampusMap (the campus, like the
-//                 guild, exists outside the timelines).
+// Purpose:        Persistent, authored layout of the guild campus
+//                 hex map — cosmetic ground + buildable-slot data.
+//                 Lives on EternalLedger (tier 3), alongside
+//                 Ledger.Buildings, so it survives cycle resets:
+//                 the campus is a place, not a run. Building
+//                 POSITION lives on BuildingSaveData.Q/R directly
+//                 (single source of truth, no join table); this
+//                 class only describes the ground itself.
 // Layer:          Data
-// Collaborators:  EternalLedger.cs (owner),
-//                 SaveManager.cs (lazy migration backfills via
-//                 GenerateDefault when a v100 ledger predates the
-//                 campus map),
-//                 CampusHexGrid.cs (renders this + Buildings),
-//                 BuildingSaveData (Q/R/IsPlaced anchor here)
-// See:            campus_siege_and_defense_v1_1.docx §5 —
-//                 Implementation Hooks (footprints/rotation land
-//                 on this schema additively in a later phase)
+// Collaborators:  EternalLedger.cs (owner), CampusHexGrid.cs
+//                 (reads this + Ledger.Buildings to populate
+//                 CampusHex children), GuildSaveData.cs (Buildings)
+// See:            guild_campus_v2.docx §1-5, §8 (Campus Grounds),
+//                 single_world_refactor_v2.docx §2 (the data/view
+//                 split this mirrors — this class is the "world
+//                 data" layer, CampusHexGrid is the "view")
 // ============================================================
 
 /// <summary>
-/// One ground hex of the campus map. Axial coordinates, flat-top,
-/// matching the overworld/combat hex conventions.
+/// One campus ground tile: axial coord, cosmetic dressing, and whether
+/// a building may ever be sited here. Does NOT reference a building —
+/// see <see cref="BuildingSaveData"/>.Q/R for placement.
 /// </summary>
 public class CampusTileSaveData
 {
     public int Q = 0;
     public int R = 0;
 
-    /// <summary>Ground type: "grass" for now. Later: path, water, rock,
-    /// scar, rubble — see the siege doc's destruction notes.</summary>
-    public string Terrain = "grass";
+    /// <summary>Cosmetic ground dressing (e.g. "Lawn", "Path", "Plaza", "Pond").
+    /// Purely visual in v1 — CampusHex reads this for tint, nothing else keys off it.</summary>
+    public string Ground = "Lawn";
 
-    /// <summary>False for tiles that can never hold a building
-    /// (water, monuments, reserved ground).</summary>
-    public bool Buildable = true;
+    /// <summary>False for tiles that can never hold a building — paths, the ley line
+    /// plaza, decorative water. True (default) covers most of the campus.</summary>
+    public bool IsBuildable = true;
 }
 
 /// <summary>
-/// The ground layout of the campus scene: which hexes exist, their
-/// terrain, and whether they accept buildings. Building PLACEMENT is
-/// not stored here — it lives on each <see cref="BuildingSaveData"/>
-/// (Q/R/IsPlaced) so the building list stays the single source of
-/// truth for what the guild owns. Serialized inside the ledger by
-/// <see cref="SaveManager"/> (System.Text.Json, IncludeFields).
+/// The whole campus ground layout. One instance, held on EternalLedger.
+/// Building placement is tracked separately on each BuildingSaveData.
 /// </summary>
 public class CampusMapSaveData
 {
-    /// <summary>Disc radius used by <see cref="GenerateDefault"/>.
-    /// Kept in the save so a future "campus expansion" can grow it.</summary>
-    public int Radius = 5;
+    public int GridWidth = 11;
+    public int GridHeight = 11;
+
+    /// <summary>"Dock" or "Skydock" — resolved once at guild creation from the campus's
+    /// starting-location terrain (near water → Dock, else Skydock) and never
+    /// recomputed. Empty until that lookup is wired in (see campus_siege_and_defense_v1
+    /// §3, §5) — GenerateDefault leaves it blank rather than guessing.</summary>
+    public string EntryDockType = "";
+
+    /// <summary>Seed for one-time cosmetic ground generation on a brand-new guild
+    /// (see CampusHexGrid.GenerateDefaultLayout). Irrelevant once Tiles is populated —
+    /// nothing re-derives from this after first creation.</summary>
+    public int Seed = 0;
 
     public List<CampusTileSaveData> Tiles = new();
 
     /// <summary>
-    /// The authored default layout: a radius-5 hex disc centred on
-    /// (0,0), all grass, all buildable. CampusScreen's Camera2D zoom
-    /// is tuned against this size. Called at NewGame and by the lazy
-    /// migration in SaveManager.Load for ledgers that predate the map.
+    /// Builds a fresh campus: a hex disc of radius <paramref name="radius"/>, all
+    /// Lawn/buildable except a small authored plaza at the centre (Grand Hall's
+    /// eventual home — kept buildable, just dressed differently). Called once
+    /// when a new guild is created; never called again, so hand-edited layouts
+    /// (moved paths, ponds, etc.) are never clobbered on a later load.
     /// </summary>
-    public static CampusMapSaveData GenerateDefault()
+    public static CampusMapSaveData GenerateDefault(int radius = 5, int seed = 0)
     {
-        var map = new CampusMapSaveData { Radius = 5 };
-
-        for (int q = -map.Radius; q <= map.Radius; q++)
+        var map = new CampusMapSaveData
         {
-            int r1 = System.Math.Max(-map.Radius, -q - map.Radius);
-            int r2 = System.Math.Min(map.Radius, -q + map.Radius);
-            for (int r = r1; r <= r2; r++)
+            GridWidth = radius * 2 + 1,
+            GridHeight = radius * 2 + 1,
+            Seed = seed
+        };
+
+        for (int q = -radius; q <= radius; q++)
+        {
+            int rMin = System.Math.Max(-radius, -q - radius);
+            int rMax = System.Math.Min(radius, -q + radius);
+            for (int r = rMin; r <= rMax; r++)
             {
+                bool isCentre = q == 0 && r == 0;
                 map.Tiles.Add(new CampusTileSaveData
                 {
                     Q = q,
                     R = r,
-                    Terrain = "grass",
-                    Buildable = true,
+                    Ground = isCentre ? "Plaza" : "Lawn",
+                    IsBuildable = true
                 });
             }
         }
 
         return map;
     }
-
-    /// <summary>Find a tile by axial coordinate, or null.</summary>
-    public CampusTileSaveData GetTile(int q, int r)
-        => Tiles.Find(t => t.Q == q && t.R == r);
 }

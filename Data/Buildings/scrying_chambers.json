@@ -1,0 +1,33 @@
+{
+    "id": "scrying_chambers",
+    "name": "Scrying Chambers",
+    "description": "A place to ponder where things are.",
+    "category": "Magic",
+    "schoolAffinity": "",
+    "footprint": [
+        { "q": 0, "r": 0 },
+        { "q": 1, "r": 0 },
+        { "q": 0, "r": 1 }
+    ],
+    "maxTier": 3,
+    "tiers": [
+        {
+            "tier": 1,
+            "description": "Placeholder — mechanical effects not yet designed.",
+            "goldCost": 150,
+            "requiredBuildings": []
+        },
+        {
+            "tier": 2,
+            "description": "Placeholder — mechanical effects not yet designed.",
+            "goldCost": 275,
+            "requiredBuildings": []
+        },
+        {
+            "tier": 3,
+            "description": "Placeholder — mechanical effects not yet designed.",
+            "goldCost": 450,
+            "requiredBuildings": []
+        }
+    ]
+}

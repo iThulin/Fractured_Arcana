@@ -41,7 +41,7 @@ public static class BuildingEffectApplier
 
         foreach (var buildingSave in save.Buildings)
         {
-            if (buildingSave.Tier <= 0) continue;
+            if (!buildingSave.IsFunctional) continue; // owned but unsited grants nothing
 
             // Aggregate ALL built tiers, not just current —
             // a Tier 2 building should carry Tier 1 flags too.
@@ -104,7 +104,7 @@ public static class BuildingEffectApplier
 
         foreach (var buildingSave in save.Buildings)
         {
-            if (buildingSave.Tier <= 0) continue;
+            if (!buildingSave.IsFunctional) continue; // owned but unsited grants nothing
 
             // Accumulate all tiers up to current (effects stack)
             var template = BuildingDatabase.GetTemplate(buildingSave.Id);

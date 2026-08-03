@@ -95,6 +95,13 @@ public class CycleState
     // ── Timeline economy ─────────────────────────────────────────────────
     public int Gold = 0;
 
+    /// <summary>Building construction/upgrade cost's second resource, alongside Gold —
+    /// standard ratio is 3 Materials : 1 Gold (BuildingTier.EffectiveMaterialsCost).
+    /// Same tier as Gold by design (dies with the timeline) — no gathering system
+    /// exists yet, so NewGameScreen currently grants a flat starting stock as a
+    /// placeholder.</summary>
+    public int BuildMaterials = 0;
+
     /// <summary>
     /// Card upgrade currency. In-cycle power, so it dies with the timeline.
     /// </summary>

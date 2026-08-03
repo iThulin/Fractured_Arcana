@@ -116,8 +116,6 @@ public class EternalLedger
     public string GuildName = "New Guild";
     public string CreatedAt = "";
     public string LastPlayedAt = "";
-    public CampusMapSaveData CampusMap = new();
-    //the ground layout of the campus scene
 
     // ── Anchored essence (the economy) ───────────────────────────────────
     /// <summary>Current spendable balance.</summary>
@@ -146,6 +144,18 @@ public class EternalLedger
     /// integrity, work orders) — additively, on this same object.
     /// </summary>
     public List<BuildingSaveData> Buildings = new();
+
+    /// <summary>
+    /// The campus hex map's ground layout (cosmetic dressing + buildable
+    /// slots) — see CampusMapSaveData.cs. Building PLACEMENT lives on each
+    /// BuildingSaveData (Q/R/IsPlaced), not here; this is ground only.
+    /// First slice of the "spatial model" called out above. Districts,
+    /// scars, integrity, and work orders are still open — when they land,
+    /// they belong either as new fields on CampusTileSaveData (per-tile:
+    /// scar, integrity) or as new top-level fields here (districts,
+    /// work-order queue), added the same additive way Buildings was.
+    /// </summary>
+    public CampusMapSaveData CampusMap = new();
 
     // ── The beacon (Phase 4 reader) ──────────────────────────────────────
     /// <summary>Kassian's perception of total anchored essence.</summary>
