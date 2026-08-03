@@ -45,10 +45,12 @@ public partial class CampusScreen : Control
     private VBoxContainer _buildingContainer;
 
     // Campus tab (hex map)
-    private CampusHexGrid _campusHexGrid;
+    private CampusGridManager _campusGrid;
+    private CampusInputController _campusInput;
+    private CameraController _campusCameraController;
     private SubViewport _campusViewport;
     private Label _campusSelectionLabel;
-    private string _campusPlacingBuildingId = null; // non-null while the player is siting a built-but-unplaced building
+    private string _campusPlacingBuildingId = null; // non-null while a drag placement is in progress
 
     // Armory tab
     private VBoxContainer _armoryContainer;
@@ -75,8 +77,7 @@ public partial class CampusScreen : Control
     public override void _Ready()
     {
         PlayerDeckSave.UseDebugDeck = false; // campus is the real-deck home; debug routing off
-        if (SaveManager.ActiveSave == null)
-            SaveManager.AutoLoadLast(); // boot/dev: fall back to last save
+        if (SaveManager.ActiveSave == null) SaveManager.AutoLoadLast(); // boot/dev: fall back to last save
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
         CallDeferred(nameof(BuildUI));
     }
@@ -543,7 +544,7 @@ public partial class CampusScreen : Control
         splitRow.AddThemeConstantOverride("separation", 20);
         layout.AddChild(splitRow);
 
-        // ── Left: the hex map ────────────────────────────────────────────
+        // ── Left: the hex map (3D — same HexTile/TileData tech combat uses) ──
         var mapCol = MakeVBox(6);
         mapCol.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         splitRow.AddChild(mapCol);
@@ -568,21 +569,63 @@ public partial class CampusScreen : Control
         };
         viewportContainer.AddChild(_campusViewport);
 
-        var camera = new Camera2D
+        // Exact values from Battlefield.tscn's DirectionalLight3D — not a guess anymore.
+        var sunBasis = new Basis(
+            new Vector3(0.7071065f, 0.49999976f, -0.49999994f),
+            new Vector3(0f, 0.7071065f, 0.7071067f),
+            new Vector3(0.7071065f, -0.49999976f, 0.49999994f)
+        );
+        var sun = new DirectionalLight3D
         {
-            Position = Vector2.Zero,
-            Zoom = new Vector2(0.75f, 0.75f), // rough fit for the default radius-5 disc; tune once on screen
-            Enabled = true,
+            Transform = new Transform3D(sunBasis, new Vector3(0, 10, 0)),
+            LightColor = new Color(1f, 0.95f, 0.88f, 1f),
+            LightEnergy = 0.34f,
+            LightIndirectEnergy = 0.5f,
+            ShadowEnabled = true,
         };
-        _campusViewport.AddChild(camera);
+        _campusViewport.AddChild(sun);
 
-        _campusHexGrid = new CampusHexGrid();
-        _campusHexGrid.TileClicked += OnCampusTileClicked;
-        _campusHexGrid.BuildingClicked += OnCampusBuildingClicked;
-        _campusViewport.AddChild(_campusHexGrid);
+        // Same environment resource combat uses, for real visual consistency rather
+        // than an unlit/default look.
+        var combatEnv = GD.Load<Godot.Environment>("res://Assets/Environments/Combat_Environment.tres");
+        if (combatEnv != null)
+            _campusViewport.AddChild(new WorldEnvironment { Environment = combatEnv });
+
+        // Reused as-is from combat: pan/zoom/orbit rig. Its left-click handling
+        // (_cardDropHandler?.TryDropCardOnTile()) no-ops safely here since no
+        // CardDropHandler exists in this scene — CampusInputController owns all
+        // actual click/drag behavior via _UnhandledInput, layered on top.
+        _campusCameraController = new CameraController();
+        var pivot = new Node3D { Name = "CameraPivot" };
+        var camera3D = new Camera3D { Name = "Camera3D" };
+        pivot.AddChild(camera3D);
+        _campusCameraController.AddChild(pivot);
+        _campusViewport.AddChild(_campusCameraController);
+
+        _campusGrid = new CampusGridManager
+        {
+            // Confirmed from Battlefield.tscn: this is the exact scene HexGridManager
+            // uses for HexTileScene3D, so campus tiles render identically to combat.
+            HexTileScene3D = GD.Load<PackedScene>("res://Scenes/Combat/HexTile.tscn"),
+            // Inherited from HexGridManager — its defaults (1f, true) don't suit the
+            // campus. HexRadius must match combat's real value or tiles misalign;
+            // UseBlendedTerrainMesh MUST be false or ApplyVisualToTile takes the
+            // blended-mesh branch, which needs a private field this class never sets.
+            HexRadius = 1.025f,
+            UseBlendedTerrainMesh = false,
+        };
+        _campusViewport.AddChild(_campusGrid);
+
+        _campusInput = new CampusInputController();
+        _campusViewport.AddChild(_campusInput);
+        _campusInput.Configure(_campusGrid, camera3D); // code-built scene — direct wiring, not NodePath
+        _campusInput.BuildingSelected += OnCampusBuildingSelected;
+        _campusInput.TileClicked += OnCampusTileClicked;
+        _campusInput.PlacementConfirmed += OnCampusPlacementConfirmed;
+        _campusInput.PlacementCancelled += OnCampusPlacementCancelled;
 
         var cancelPlaceBtn = MakeButton("Cancel Placement", 160, 32, UITheme.CampusBuildSmallFontSize, isPrimary: false);
-        cancelPlaceBtn.Pressed += CancelBuildingPlacement;
+        cancelPlaceBtn.Pressed += () => _campusInput?.CancelDrag();
         mapCol.AddChild(cancelPlaceBtn);
 
         // ── Right: the existing build/upgrade list ───────────────────────
@@ -1668,7 +1711,7 @@ public partial class CampusScreen : Control
         _forceEncounterDropdown.ItemSelected += (idx) =>
             PlayerSession.ForceNextEncounterType =
                 _forceEncounterDropdown.GetItemId((int)idx);
-        grid.AddChild(_forceEncounterDropdown);
+            grid.AddChild(_forceEncounterDropdown);
 
         // ── C4 verification dumps (CouncilDebug.cs) ──────────────────────
         var dumpEchoesBtn = new Button
@@ -1726,7 +1769,7 @@ public partial class CampusScreen : Control
         assertDeckBtn.Pressed += () => CombatDebugLauncher.AssertDeckSplit();
         grid.AddChild(assertDeckBtn);
 
-        return panel;
+        return panel;       
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -2011,7 +2054,7 @@ public partial class CampusScreen : Control
 
     private void RefreshBuildingList()
     {
-        LoadCampusHexGrid();
+        LoadCampusGrid();
 
         if (_buildingContainer == null)
             return;
@@ -2080,12 +2123,15 @@ public partial class CampusScreen : Control
             if (nextTier <= template.MaxTier)
             {
                 var tierData = template.Tiers.Find(t => t.Tier == nextTier);
-                int cost = tierData?.GoldCost ?? 0;
+                int goldCost = tierData?.GoldCost ?? 0;
+                int materialsCost = tierData?.EffectiveMaterialsCost ?? 0;
                 var btn = new Button
                 {
-                    Text = buildingSave.Tier == 0 ? $"Build\n{cost}g" : $"Upgrade\n{cost}g",
-                    CustomMinimumSize = new Vector2(90, 44),
-                    Disabled = save.Gold < cost,
+                    Text = buildingSave.Tier == 0
+                        ? $"Build\n{goldCost}g / {materialsCost}m"
+                        : $"Upgrade\n{goldCost}g / {materialsCost}m",
+                    CustomMinimumSize = new Vector2(110, 44),
+                    Disabled = save.Gold < goldCost || save.BuildMaterials < materialsCost,
                 };
                 btn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
                 string capturedId = buildingSave.Id;
@@ -2143,7 +2189,7 @@ public partial class CampusScreen : Control
                 string capturedId = buildingSave.Id;
                 var placeBtn = new Button { Text = "Place on Map", CustomMinimumSize = new Vector2(110, 32) };
                 placeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
-                placeBtn.Pressed += () => BeginPlacingBuilding(capturedId);
+                placeBtn.Pressed += () => BeginBuildingDrag(capturedId);
                 placeRow.AddChild(placeBtn);
             }
 
@@ -2153,71 +2199,78 @@ public partial class CampusScreen : Control
 
     // ── Campus hex map wiring ─────────────────────────────────────────────
 
-    /// <summary>(Re)loads the campus hex grid from the active save. Safe to call
-    /// repeatedly — CampusHexGrid.LoadFromSave clears and rebuilds its tiles.</summary>
-    private void LoadCampusHexGrid()
+    /// <summary>(Re)loads the campus grid from the active save and reframes the camera
+    /// on it. Safe to call repeatedly — CampusGridManager.LoadFromSave clears and
+    /// rebuilds its tiles.</summary>
+    private void LoadCampusGrid()
     {
-        if (_campusHexGrid == null)
+        if (_campusGrid == null)
             return;
         var save = SaveManager.ActiveSave;
         if (save == null)
             return;
 
-        _campusHexGrid.LoadFromSave(save.Ledger.CampusMap, save.Ledger.Buildings);
-        _campusHexGrid.SetBuildMode(_campusPlacingBuildingId != null);
+        _campusGrid.LoadFromSave(save.Ledger.CampusMap, save.Ledger.Buildings);
+        _campusCameraController?.FrameGrid(_campusGrid.CampusGridBoundsMin, _campusGrid.CampusGridBoundsMax);
     }
 
-    private void BeginPlacingBuilding(string buildingId)
+    /// <summary>Wired to the "Place on Map" button. Starts a drag via
+    /// CampusInputController — the player then moves the mouse over the 3D viewport
+    /// (live valid/invalid preview) and clicks to drop, rather than holding the mouse
+    /// button down continuously from the button press.</summary>
+    private void BeginBuildingDrag(string buildingId)
     {
         _campusPlacingBuildingId = buildingId;
-        _campusHexGrid?.SetBuildMode(true);
+        _campusInput?.BeginDrag(buildingId);
         var template = BuildingDatabase.GetTemplate(buildingId);
-        _campusSelectionLabel.Text = $"Click an empty tile to place {template?.Name ?? buildingId}.";
+        _campusSelectionLabel.Text = $"Move the mouse over the map and click to place {template?.Name ?? buildingId}. " +
+                                      "R to rotate, right-click or Escape to cancel.";
     }
 
-    private void CancelBuildingPlacement()
+    private void OnCampusBuildingSelected(string buildingId, Vector2I anchor)
     {
-        _campusPlacingBuildingId = null;
-        _campusHexGrid?.SetBuildMode(false);
-        _campusSelectionLabel.Text = "Click a building to select it.";
-    }
-
-    private void OnCampusTileClicked(Vector2I axial)
-    {
-        var save = SaveManager.ActiveSave;
-        if (save == null || _campusHexGrid == null)
-            return;
-
-        if (_campusPlacingBuildingId != null)
-        {
-            bool placed = _campusHexGrid.TryPlaceBuilding(_campusPlacingBuildingId, axial, save.Ledger.Buildings);
-            if (placed)
-            {
-                SaveManager.Save();
-                CancelBuildingPlacement();
-                RefreshBuildingList();
-            }
-            else
-            {
-                _campusSelectionLabel.Text = "That tile can't hold a building. Try another.";
-            }
-            return;
-        }
-
-        var hex = _campusHexGrid.GetHex(axial);
-        if (hex != null && string.IsNullOrEmpty(hex.BuildingId))
-            _campusSelectionLabel.Text = "Empty tile.";
-    }
-
-    private void OnCampusBuildingClicked(string buildingId, Vector2I axial)
-    {
-        if (_campusPlacingBuildingId != null)
-            return; // ignore selection clicks while mid-placement
-
+        // Seam for the eventual building info sub-menu / HUD bus — not built yet,
+        // this just surfaces selection for now.
         var template = BuildingDatabase.GetTemplate(buildingId);
         _campusSelectionLabel.Text = template != null
             ? $"Selected: {template.Name}"
             : $"Selected: {buildingId}";
+    }
+
+    private void OnCampusTileClicked(Vector2I axial)
+    {
+        // Empty-tile click while not dragging — treat as deselect.
+        _campusSelectionLabel.Text = "Click a building to select it.";
+    }
+
+    private void OnCampusPlacementConfirmed(string buildingId, Vector2I anchor, int rotation)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null || _campusGrid == null)
+            return;
+
+        bool placed = _campusGrid.PlaceBuilding(buildingId, anchor, rotation, save.Ledger.Buildings);
+        _campusPlacingBuildingId = null;
+
+        if (placed)
+        {
+            SaveManager.Save();
+            _campusSelectionLabel.Text = "Click a building to select it.";
+            RefreshBuildingList(); // reloads the grid too, via LoadCampusGrid at the top
+        }
+        else
+        {
+            // The live preview already showed red for this exact spot, so reaching
+            // an invalid commit here means something changed between preview and
+            // release (e.g. two rapid inputs) rather than a normal user mistake.
+            _campusSelectionLabel.Text = "Couldn't place there. Try again.";
+        }
+    }
+
+    private void OnCampusPlacementCancelled(string buildingId)
+    {
+        _campusPlacingBuildingId = null;
+        _campusSelectionLabel.Text = "Click a building to select it.";
     }
 
     private void RefreshGoldLabel()
@@ -2227,7 +2280,7 @@ public partial class CampusScreen : Control
         var save = SaveManager.ActiveSave;
         if (save == null)
         { _goldLabel.Text = ""; return; }
-        _goldLabel.Text = $"Gold: {save.Gold}    ✦ {save.ArcaneSplinters} Splinters";
+        _goldLabel.Text = $"Gold: {save.Gold}    Materials: {save.BuildMaterials}    ✦ {save.ArcaneSplinters} Splinters";
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -2279,7 +2332,7 @@ public partial class CampusScreen : Control
         if (nextTier > template.MaxTier)
             return false;
         var tierData = template.Tiers.Find(t => t.Tier == nextTier);
-        if (tierData == null || save.Gold < tierData.GoldCost)
+        if (tierData == null || save.Gold < tierData.GoldCost || save.BuildMaterials < tierData.EffectiveMaterialsCost)
             return false;
 
         foreach (var reqId in tierData.RequiredBuildings)
@@ -2293,11 +2346,14 @@ public partial class CampusScreen : Control
         }
 
         save.Gold -= tierData.GoldCost;
+        save.BuildMaterials -= tierData.EffectiveMaterialsCost;
+        if (buildingSave.Tier == 0)
+            buildingSave.CurrentIntegrity = buildingSave.MaxIntegrity; // fresh build (or rebuild after destruction) starts at full HP
         buildingSave.Tier = nextTier;
 
         SaveManager.Save();
         RefreshGoldLabel();
-        GD.Print($"Built {buildingSave.Name} tier {nextTier}. Gold: {save.Gold}");
+        GD.Print($"Built {buildingSave.Name} tier {nextTier}. Gold: {save.Gold}, Materials: {save.BuildMaterials}");
         return true;
     }
 

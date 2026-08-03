@@ -105,14 +105,31 @@ public static class BuildingDatabase
 
             if (!exists)
             {
-                save.Buildings.Add(new BuildingSaveData
+                var entry = new BuildingSaveData
                 {
                     Id = template.Id,
                     Name = template.Name,
                     Tier = 0,
                     Category = template.Category,
                     SchoolAffinity = template.SchoolAffinity,
-                });
+                    MaxIntegrity = 20,       // flat baseline for now — see BuildingSaveData
+                    CurrentIntegrity = 20,   // and campus_siege_and_defense_v1 §4
+                };
+
+                if (template.StartsBuiltAtCampusCenter)
+                {
+                    // Pre-built, not purchased — the guild starts with this one already
+                    // standing at the campus center. Only fires the first time this
+                    // building's entry is missing; a player who later moves or loses it
+                    // is never overridden back.
+                    entry.Tier = 1;
+                    entry.Q = 0;
+                    entry.R = 0;
+                    entry.Rotation = 0;
+                    entry.IsPlaced = true;
+                }
+
+                save.Buildings.Add(entry);
             }
         }
     }

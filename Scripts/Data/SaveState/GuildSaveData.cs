@@ -84,6 +84,14 @@ public class GuildSaveData
     public int Gold
     { get => Cycle.Gold; set => Cycle.Gold = value; }
 
+    /// <summary>Building construction/upgrade cost's second resource, alongside Gold —
+    /// standard ratio is 3 Materials : 1 Gold (BuildingTier.EffectiveMaterialsCost).
+    /// Same tier as Gold (CycleState, resets each cycle) for consistency. NOTE: this
+    /// shim needs a matching `public int BuildMaterials = 0;` field added to
+    /// CycleState itself — not yet done, CycleState.cs wasn't available to edit.</summary>
+    public int BuildMaterials
+    { get => Cycle.BuildMaterials; set => Cycle.BuildMaterials = value; }
+
     [JsonIgnore]
     public int ArcaneSplinters
     { get => Cycle.ArcaneSplinters; set => Cycle.ArcaneSplinters = value; }
@@ -358,4 +366,57 @@ public class BuildingSaveData
     public int Tier = 0;                // 0 = not built, 1-3 = built tiers
     public string Category = "";
     public string SchoolAffinity = "";
+
+    // ── Campus map placement ─────────────────────────────────────────────
+    // Single source of truth for where this building sits on the campus
+    // hex map (CampusMapSaveData.cs). A building can be Tier > 0 (owned,
+    // e.g. auto-unlocked when a companion of that school joins per
+    // guild_campus_v2.docx §5) without yet being sited — IsPlaced gates
+    // that. Old saves default to Q=0, R=0, IsPlaced=false; CampusHexGrid
+    // treats an owned-but-unplaced building as needing player siting,
+    // never as auto-placed at the origin.
+    public int Q = 0;
+    public int R = 0;
+    public bool IsPlaced = false;
+
+    /// <summary>True only when this building both exists (Tier > 0 — paid for /
+    /// unlocked) AND is sited on the campus map (IsPlaced). Owning a building without
+    /// siting it grants nothing — this is the single flag anything gating building
+    /// EFFECTS (BuildingEffectApplier, etc.) should check, rather than Tier alone.
+    /// Tier > 0 && !IsPlaced means "owned, not yet functional."</summary>
+    public bool IsFunctional => Tier > 0 && IsPlaced;
+
+    /// <summary>0-5, one of the six hex rotation steps applied to the building
+    /// template's Footprint before anchoring at Q/R. Not yet exposed in the placement
+    /// UI (BeginPlacingBuilding always places at rotation 0) — the field exists so the
+    /// footprint math and save schema are ready before that UI lands.</summary>
+    public int Rotation = 0;
+
+    // ── Integrity (combat damage state) ──────────────────────────────────
+    // Flat baseline for now — 20 HP regardless of tier or building type.
+    // Per-tier/per-building scaling is an open question (campus_siege_and_
+    // defense_v1 §4), not decided yet; don't assume it here.
+    public int MaxIntegrity = 20;
+    public int CurrentIntegrity = 20;
+
+    /// <summary>Applies combat damage. Clamps at 0 and, on reaching 0, destroys the
+    /// building: Tier resets to 0, IsPlaced to false (campus_siege_and_defense_v1 §4b —
+    /// "destroyed" and "not built" are the same state on the building record; the
+    /// difference lives on the tile, which the caller must separately mark Rubble via
+    /// CampusMapSaveData/CampusHexGrid — this method only knows about the building).
+    /// Returns true the turn it's destroyed (false on every other call, including
+    /// once already destroyed), so the caller knows to react exactly once.</summary>
+    public bool ApplyDamage(int amount)
+    {
+        if (CurrentIntegrity <= 0 || amount <= 0)
+            return false;
+
+        CurrentIntegrity = System.Math.Max(0, CurrentIntegrity - amount);
+        if (CurrentIntegrity > 0)
+            return false;
+
+        Tier = 0;
+        IsPlaced = false;
+        return true;
+    }
 }

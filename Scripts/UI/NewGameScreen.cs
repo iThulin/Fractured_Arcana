@@ -676,6 +676,12 @@ public partial class NewGameScreen : Control
         if (save == null)
         { ShowError("Failed to create save."); return; }
 
+        // Temporary: BuildMaterials has no gathering system yet (the terrain-drip
+        // collection from run_structure_v2 §12b isn't built), so every new guild
+        // starts with a flat stock. Remove this once materials are actually earnable
+        // in play — it's a placeholder, not an intended starting balance.
+        save.BuildMaterials = 10000;
+
         // Store wizard name on save
 
         save.WizardName = wizardName;
