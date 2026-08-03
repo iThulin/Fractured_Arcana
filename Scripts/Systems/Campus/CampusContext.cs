@@ -78,12 +78,44 @@ public sealed class CampusContext
     /// value of CampusContext is that its field list is the honest dependency list.</summary>
     public Node Host { get; }
 
+    /// <summary>Repaint only the gold/materials readout. Narrower than
+    /// <see cref="RequestRefreshAll"/> on purpose: the Scriptorium's scribe button changes
+    /// gold and its own list and nothing else, and a full refresh there would rebuild eight
+    /// panels and drop the player's scroll position mid-purchase.</summary>
+    public Action RefreshGold { get; }
+
+    /// <summary>Leave campus for the strategic map — generates the cycle's world first if
+    /// it does not exist. The generation half (world, kingdoms, campaign, council, sim
+    /// resets, echo seeding, roster rotation) is cycle LIFECYCLE and stays on the shell;
+    /// a panel gets the verb, not the machinery.</summary>
+    public Action EnterStrategicMap { get; }
+
+    /// <summary>End the current timeline and start the next one on the given school:
+    /// archive a LoopRecord, replace CycleState, reseed the starter deck, generate the new
+    /// world, then open it. The single most consequential call available to a panel, which
+    /// is exactly why it is one named verb rather than a panel reaching into SaveManager.
+    ///
+    /// Takes the school only — the caller frees its own picker UI.</summary>
+    public Action<string> BeginNextCycle { get; }
+
+    /// <summary>Seed everything a freshly loaded save is expected to already contain —
+    /// companion roster, building list, starter armory. Idempotent. The Guild panel calls it
+    /// after switching slots; the shell calls it on boot. Kept as one verb because splitting
+    /// it is exactly how the empty-armory-on-new-guild bug happened.</summary>
+    public Action EnsureSaveSeeded { get; }
+
     public CampusContext(Node host, ToastManager toasts,
-                         Action<NarrativeEncounterData> showNarrative, Action requestRefreshAll)
+                         Action<NarrativeEncounterData> showNarrative, Action requestRefreshAll,
+                         Action refreshGold, Action enterStrategicMap, Action<string> beginNextCycle,
+                         Action ensureSaveSeeded)
     {
+        EnsureSaveSeeded = ensureSaveSeeded;
         Host = host;
         Toasts = toasts;
         ShowNarrative = showNarrative;
         RequestRefreshAll = requestRefreshAll;
+        RefreshGold = refreshGold;
+        EnterStrategicMap = enterStrategicMap;
+        BeginNextCycle = beginNextCycle;
     }
 }
