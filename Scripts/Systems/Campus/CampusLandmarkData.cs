@@ -19,7 +19,9 @@ using System.Collections.Generic;
 //                 build/place/upgrade flow. They are the campus's
 //                 story layer; buildings are the mechanical layer.
 // Layer:          Data
-// Collaborators:  CampusHexGrid.cs (rendering + click events),
+// Collaborators:  CampusGridManager.cs (3D stamping — LoadLandmarks
+//                 tints the tile and sets the HexLabel marker),
+//                 CampusInputController.cs (LandmarkClicked signal),
 //                 CampusScreen.cs (hosts NarrativeEncounterPanel),
 //                 NarrativeEncounterData.cs (encounter schema),
 //                 GuildSaveData.cs (flag reads for state)

@@ -42,13 +42,44 @@ public class Building
     /// campus_siege_and_defense_v1.docx §4-5.</summary>
     public List<HexOffset> Footprint = new() { new HexOffset { Q = 0, R = 0 } };
 
-    /// <summary>When true, BuildingDatabase.EnsureBuildings seeds this building already
-    /// built (Tier 1) and sited at the campus center (Q=0, R=0, Rotation=0, IsPlaced =
-    /// true) instead of the normal Tier-0/unplaced backfill — for buildings the guild
-    /// starts with rather than constructs, e.g. the Teleport Sigil. Only applies the
-    /// first time a save is missing this building's entry; never re-applied afterward,
-    /// so the player is free to move or lose it like any other placed building.</summary>
-    public bool StartsBuiltAtCampusCenter = false;
+    // ── Starting placement ───────────────────────────────────────────────
+    /// <summary>Authored campus anchor for a building the guild STARTS with rather than
+    /// constructs. Null (the default, and what you get when the JSON omits the key) means
+    /// the normal Tier-0/unplaced backfill. When set, BuildingDatabase.EnsureBuildings
+    /// seeds the entry already built (Tier 1) and sited here at Rotation 0.
+    ///
+    /// Replaces the old <c>StartsBuiltAtCampusCenter</c> bool, which hardcoded (0,0) and
+    /// therefore could only ever describe ONE building — every additional starting
+    /// building would have stacked on the same hex.
+    ///
+    /// For a NON-foundational building this is applied once, on first creation only, so a
+    /// player who later moves or loses it is never overridden back. Foundational buildings
+    /// are re-asserted on every load — see <see cref="IsFoundational"/>.</summary>
+    public HexOffset StartsBuiltAt = null;
+
+    /// <summary>True for the small set of buildings that host a system the player cannot
+    /// play the game without (roster, loadout, deck, deployment, guild identity). These are
+    /// free, start built, and are REPAIRED on every load rather than seeded once: tier is
+    /// floored at 1, an unplaced entry is re-sited at <see cref="StartsBuiltAt"/>, and zero
+    /// integrity is restored. Without that, a foundational building lost to a siege or left
+    /// at tier 0 by an older save would strand its system permanently unreachable once the
+    /// campus map replaces the tab bar.
+    ///
+    /// Buildings live on EternalLedger.Buildings, which SaveManager.BeginNewCycle does not
+    /// touch, so a foundational building seeded once already survives cycle resets; the
+    /// repair pass is what makes that guarantee hold under damage and schema drift.
+    ///
+    /// Requires <see cref="StartsBuiltAt"/> to be set — a foundational building with no
+    /// anchor has nowhere to be repaired to, and EnsureBuildings logs an error for it.</summary>
+    public bool IsFoundational = false;
+
+    /// <summary>Which campus system clicking this building opens — "guild", "expedition",
+    /// "companions", "armory", "deck", or empty for buildings that open only their own
+    /// upgrade panel. Consumed by the campus click dispatcher, which is NOT yet wired
+    /// (the tab bar is still the navigation surface); authored here so the routing table
+    /// is pure data when it lands. Same convention as BuildingSaveData.Rotation — the
+    /// field exists ahead of the UI that reads it.</summary>
+    public string HostsSystem = "";
 
     // ── Tiers ───────────────────────────────────────────────────────────
     public int MaxTier = 3;

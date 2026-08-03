@@ -53,6 +53,17 @@ public partial class CampusGridManager : HexGridManager
     /// validation check occupancy without parsing TileData.ObstacleKind strings.</summary>
     private readonly Dictionary<Vector2I, string> _buildingAtHex = new();
 
+    /// <summary>Parallel to Tiles — empty string = no landmark. Mirrors
+    /// <see cref="_buildingAtHex"/> so a click can resolve a hex back to its landmark
+    /// id, and for the same reason it is kept off TileData: landmarks are a campus
+    /// story concept with no meaning in combat.</summary>
+    private readonly Dictionary<Vector2I, string> _landmarkAtHex = new();
+
+    /// <summary>Parallel to <see cref="_landmarkAtHex"/> — the flag-derived phase,
+    /// cached at stamp time so a redraw never has to re-run the hasFlag predicate
+    /// per tile.</summary>
+    private readonly Dictionary<Vector2I, CampusLandmarkData.LandmarkState> _landmarkStateAtHex = new();
+
     private List<Vector2I> _previewHexes = new();
 
     /// <summary>Deliberately does NOT call base._Ready() — that schedules the base
@@ -139,6 +150,91 @@ public partial class CampusGridManager : HexGridManager
         }
     }
 
+    // ── Landmarks ─────────────────────────────────────────────────────
+
+    /// <summary>Landmark id stamped on this hex, or empty. Mirrors
+    /// <see cref="GetBuildingIdAt"/>; CampusInputController uses both to decide which
+    /// click signal to emit.</summary>
+    public string GetLandmarkIdAt(Vector2I coord) => _landmarkAtHex.GetValueOrDefault(coord, "");
+
+    /// <summary>The flag-derived phase of the landmark on this hex. Only meaningful
+    /// when <see cref="GetLandmarkIdAt"/> returns a non-empty id.</summary>
+    public CampusLandmarkData.LandmarkState GetLandmarkStateAt(Vector2I coord) =>
+        _landmarkStateAtHex.GetValueOrDefault(coord, CampusLandmarkData.LandmarkState.Ruined);
+
+    /// <summary>
+    /// Stamp landmarks from <see cref="CampusLandmarkRegistry"/> onto the grid: state
+    /// tint on the tile plus a billboarded two-letter marker. Ported from the retired
+    /// 2D CampusHexGrid.LoadLandmarks (858054d), preserving all three of its rules —
+    /// clear before restamping, buildings win, and a missing hex is an error rather
+    /// than a crash.
+    ///
+    /// MUST be called after <see cref="LoadFromSave"/>: it reads _buildingAtHex, which
+    /// LoadFromSave populates. Safe to call repeatedly — each stamped tile has its
+    /// terrain visual reapplied before the tint, so tints never compound.
+    ///
+    /// <paramref name="hasFlag"/> reads player flag state to derive each landmark's
+    /// current phase (ruined / active / restored).
+    /// </summary>
+    public void LoadLandmarks(System.Func<string, bool> hasFlag)
+    {
+        // ── Clear: restore the terrain visual on every previously stamped hex, so a
+        //    refresh after a narrative beat is clean rather than additive.
+        foreach (var coord in _landmarkAtHex.Keys)
+        {
+            if (!Tiles.TryGetValue(coord, out var stale))
+                continue;
+            ApplyVisualToTile(stale);          // inherited — resets albedo to terrain
+            stale.TileView?.ClearPoiLabel();
+        }
+        _landmarkAtHex.Clear();
+        _landmarkStateAtHex.Clear();
+
+        foreach (var lm in CampusLandmarkRegistry.All)
+        {
+            var coord = new Vector2I(lm.Q, lm.R);
+
+            if (!Tiles.TryGetValue(coord, out var tile))
+            {
+                // Canary: authored landmark coordinates and CampusMapSaveData.GenerateDefault's
+                // radius-5 disc currently agree (docs/campus_landmarks_3d_v1.md §0). If the
+                // generator's radius or shape ever changes, this is what tells you.
+                GD.PrintErr($"CampusGridManager: landmark '{lm.Id}' at ({lm.Q},{lm.R}) " +
+                            "has no matching hex tile.");
+                continue;
+            }
+
+            // Landmarks don't override buildings — if a building sits here, the
+            // building wins visually (the building IS the restoration).
+            if (!string.IsNullOrEmpty(_buildingAtHex.GetValueOrDefault(coord, "")))
+                continue;
+
+            var state = lm.State(hasFlag);
+            _landmarkAtHex[coord] = lm.Id;
+            _landmarkStateAtHex[coord] = state;
+
+            // Reapply terrain first so the lerp below always starts from the terrain
+            // colour, never from a previous landmark tint.
+            ApplyVisualToTile(tile);
+
+            Color tint = state switch
+            {
+                CampusLandmarkData.LandmarkState.Active => UITheme.LandmarkTintActive,
+                CampusLandmarkData.LandmarkState.Restored => UITheme.LandmarkTintRestored,
+                _ => UITheme.LandmarkTintRuined,
+            };
+
+            if (tile.TileView != null)
+            {
+                // Lerp rather than replace — same technique ApplyVisualToTile uses for
+                // the spawn-side tints, so a landmark still reads as its ground type.
+                tile.TileView.SetBaseColor(
+                    tile.TileView.BaseColor.Lerp(tint, UITheme.LandmarkTintStrength));
+                tile.TileView.SetPoiLabel(lm.HexLabel, tint);
+            }
+        }
+    }
+
     private void ClearTiles()
     {
         foreach (var tile in Tiles.Values)
@@ -146,6 +242,8 @@ public partial class CampusGridManager : HexGridManager
         Tiles.Clear();
         _buildableMask.Clear();
         _buildingAtHex.Clear();
+        _landmarkAtHex.Clear();
+        _landmarkStateAtHex.Clear();
     }
 
     /// <summary>Maps CampusTileSaveData.Ground to a combat TileTerrainType. Colour now

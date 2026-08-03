@@ -1,0 +1,23 @@
+{
+    "id": "grand_hall",
+    "name": "The Grand Hall",
+    "description": "The heart of the campus, and the one room the Stillness never reached all the way into. The guild's name is cut over the door; the roll of every cycle you have spent is kept inside.",
+    "category": "Core",
+    "schoolAffinity": "",
+    "isFoundational": true,
+    "hostsSystem": "guild",
+    "startsBuiltAt": { "q": 0, "r": 0 },
+    "footprint": [
+        { "q": 0, "r": 0 }
+    ],
+    "maxTier": 1,
+    "tiers": [
+        {
+            "tier": 1,
+            "description": "The hall stands. Guild identity, school of study, and the record of your cycles.",
+            "goldCost": 0,
+            "materialsCost": 0,
+            "requiredBuildings": []
+        }
+    ]
+}

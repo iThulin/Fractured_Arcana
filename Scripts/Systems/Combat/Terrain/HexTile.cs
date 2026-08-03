@@ -70,6 +70,12 @@ public partial class HexTile : Node3D
     private MeshInstance3D _glyphDecal;
     private ShaderMaterial _glyphDecalMaterial;
     private Label3D _memorialLabel;
+
+    /// <summary>Generic point-of-interest marker (see <see cref="SetPoiLabel"/>).
+    /// Independent of <see cref="_memorialLabel"/> — a tile may carry both, so this
+    /// is a separate node rather than a shared one with swapped text.</summary>
+    private Label3D _poiLabel;
+
     private Color baseColor;
 
     /// <summary>The current tint (transparent black = none). Tracked here so the state machine never needs to read material state back, regardless of which material type is active.</summary>
@@ -374,6 +380,13 @@ public partial class HexTile : Node3D
             mi.SetInstanceShaderParameter("vista_horizon", Mathf.Clamp(horizonBlend, 0f, 1f));
         }
     }
+
+    /// <summary>The tile's current resting albedo, as last set by <see cref="SetBaseColor"/>
+    /// (or read off the material at init). Read-only accessor for existing state — lets a
+    /// caller tint RELATIVE to whatever the terrain pass already decided, instead of
+    /// duplicating the terrain→colour mapping on its own side. Meaningless in
+    /// generated-mesh mode, where colour lives in the mesh rather than the albedo.</summary>
+    public Color BaseColor => baseColor;
 
     /// <summary>Sets the tile's resting albedo (legacy flat-colour path). In generated-mesh mode this is a no-op — terrain colour lives in the mesh's vertex data and textures.</summary>
     public void SetBaseColor(Color color)
@@ -883,6 +896,65 @@ public partial class HexTile : Node3D
     {
         if (_memorialLabel != null)
             _memorialLabel.Visible = false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Point-of-interest label (generic)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Shows a billboarded text marker above this tile. Campus landmarks are the
+    /// only caller today (CampusGridManager.LoadLandmarks); nothing combat-side
+    /// uses it yet.
+    ///
+    /// Takes a plain string and Color rather than any campus type ON PURPOSE: this
+    /// is a shared combat node, and the campus keeps its own concepts on its own
+    /// side of the boundary — the same rule CampusGridManager follows by holding
+    /// _buildableMask / _buildingAtHex as parallel dictionaries instead of adding
+    /// campus fields to TileData. The caller maps its state to a colour first.
+    ///
+    /// Independent of the memorial indicator; a tile can display both at once.
+    /// Passing null or empty text clears the label.
+    /// </summary>
+    public void SetPoiLabel(string text, Color tint)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            ClearPoiLabel();
+            return;
+        }
+
+        if (_poiLabel == null)
+        {
+            _poiLabel = new Label3D
+            {
+                Name = "PoiLabel",
+                Text = text,
+                FontSize = UITheme.Label3DPoi,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                // Sits above the memorial indicator (0.85) so the two never overlap
+                // on a tile that carries both.
+                Position = new Vector3(0f, 1.15f, 0f),
+                Modulate = tint,
+            };
+            // Deferred for the same reason the memorial label is: SetPoiLabel can be
+            // called during grid construction, before this node is inside the tree.
+            CallDeferred("add_child", _poiLabel);
+        }
+        else
+        {
+            _poiLabel.Visible = true;
+            _poiLabel.Text = text;
+            _poiLabel.Modulate = tint;
+        }
+    }
+
+    /// <summary>Hides the point-of-interest label. Safe on a tile that never had one.</summary>
+    public void ClearPoiLabel()
+    {
+        if (_poiLabel != null)
+            _poiLabel.Visible = false;
     }
 
 }

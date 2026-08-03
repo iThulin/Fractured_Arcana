@@ -1,0 +1,23 @@
+{
+    "id": "dormitory",
+    "name": "The Dormitory",
+    "description": "Student quarters, most of them still made up for people who did not come back from the morning of the Sundering. The ones who did have taken the rooms nearest the stairs.",
+    "category": "Core",
+    "schoolAffinity": "",
+    "isFoundational": true,
+    "hostsSystem": "companions",
+    "startsBuiltAt": { "q": -2, "r": 1 },
+    "footprint": [
+        { "q": 0, "r": 0 }
+    ],
+    "maxTier": 1,
+    "tiers": [
+        {
+            "tier": 1,
+            "description": "Beds enough. Review your companions and set the active party.",
+            "goldCost": 0,
+            "materialsCost": 0,
+            "requiredBuildings": []
+        }
+    ]
+}

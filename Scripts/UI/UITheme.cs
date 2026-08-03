@@ -248,6 +248,20 @@ public static class UITheme
     public const float SpawnTintStrength = 0.30f;
 
     // ════════════════════════════════════════════════════════════
+    // CAMPUS LANDMARK STATE TINTS
+    // ════════════════════════════════════════════════════════════
+    // Applied by CampusGridManager.LoadLandmarks as a lerp over the tile's terrain
+    // colour — the same technique as the spawn tints above, not a replacement.
+    // Active is deliberately the loudest of the three: it is the only state with a
+    // player action available (an unplayed narrative beat). Ruined reads as dormant
+    // stone, Restored as settled and finished.
+    // See docs/campus_landmarks_3d_v1.md §4.
+    public static readonly Color LandmarkTintRuined = new Color(0.42f, 0.38f, 0.36f, 1f);
+    public static readonly Color LandmarkTintActive = new Color(1.00f, 0.82f, 0.25f, 1f);
+    public static readonly Color LandmarkTintRestored = new Color(0.45f, 0.80f, 0.55f, 1f);
+    public const float LandmarkTintStrength = 0.45f;
+
+    // ════════════════════════════════════════════════════════════
     // ELEMENT COLORS
     // ════════════════════════════════════════════════════════════
     public static readonly Color ElementFire = new Color(0.88f, 0.32f, 0.05f, 1f);
@@ -618,6 +632,12 @@ public static class UITheme
     public const int Label3DSmall = 24;
     public const int Label3DHealth = 28;
     public const int Label3DGlyph = 64;
+
+    /// <summary>Billboarded point-of-interest label on a hex (HexTile.SetPoiLabel).
+    /// Sized for a two-character marker like the campus landmarks' "BL" / "RF" —
+    /// larger than Label3DSmall so it reads at campus camera distance, smaller than
+    /// the memorial glyph so the two never compete when a tile carries both.</summary>
+    public const int Label3DPoi = 32;
 
     public const int OverworldUIFontSize = 18;
     public const int OverworldCostLabelFontSize = 14;

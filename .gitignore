@@ -6,9 +6,11 @@
 *.temp
 *.user
 *.csproj.user
-*.old
+*.old*
 *.lscache
 .DS_Store
+*.tscn -merge
+*.tres -merge
 
 # Compile-check output (tools/build-check.cmd)
 build.log

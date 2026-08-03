@@ -1,6 +1,8 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using static CampusUi;   // AddSectionHeader / MakeVBox / MakeMargins / MakeButton /
+                         // MakeStubLabel / ApplyTabStyle — see CampusUi.cs
 
 // ============================================================
 // CampusScreen.cs
@@ -65,6 +67,12 @@ public partial class CampusScreen : Control
     private VBoxContainer _audienceContainer;
     private NarrativeEncounterPanel _campusNarrativePanel;
     private ToastManager _campusToasts;
+
+    /// <summary>The one seam handed to extracted campus panels. Built in <see cref="BuildUI"/>
+    /// before the tab bodies run. Nothing consumes it yet — the tab bodies are still
+    /// methods on this class; each one that moves out takes this as its build argument.
+    /// See docs/campus_tab_extraction_v1.md.</summary>
+    private CampusContext _ctx;
 
     // Armory tab
     private VBoxContainer _armoryContainer;
@@ -206,21 +214,29 @@ public partial class CampusScreen : Control
             _tabPanels[i] = panel;
         }
 
+        // Step 9: campus-hosted narrative panel + quest toasts (the campus half of the
+        // vignette host and the audience UI).
+        //
+        // CONSTRUCTED here, before the tab bodies, so CampusContext can hand panels a
+        // valid NarrativeHost/Toasts at build time — but ADDED to the tree further down,
+        // after the tab panels, because Godot draws later siblings on top and both of
+        // these must layer over the tabs. Do not collapse the two halves back together.
+        _campusNarrativePanel = new NarrativeEncounterPanel { Visible = false };
+        _campusToasts = new ToastManager { Name = "CampusQuestToasts" };
+        _ctx = new CampusContext(this, _campusToasts, ShowCampusNarrative, RefreshAll);
+
         BuildGuildTab((ScrollContainer)_tabPanels[0]);
         BuildCompanionsTab((ScrollContainer)_tabPanels[1]);
         BuildCampusTab((ScrollContainer)_tabPanels[2]);
         BuildExpeditionTab((ScrollContainer)_tabPanels[3]);
         BuildArmoryTab((ScrollContainer)_tabPanels[4]);
         BuildTrainingTab((ScrollContainer)_tabPanels[5]);
-        BuildRecordsTab((ScrollContainer)_tabPanels[6]);
-        BuildQuestsTab((ScrollContainer)_tabPanels[7]);
+        _recordsPanel.Build((ScrollContainer)_tabPanels[6], _ctx);
+        _questsPanel.Build((ScrollContainer)_tabPanels[7], _ctx);
         BuildCouncilTab((ScrollContainer)_tabPanels[8]);
 
-        // Step 9: campus-hosted narrative panel + quest toasts, layered over
-        // the tabs (the campus half of the vignette host and the audience UI).
-        _campusNarrativePanel = new NarrativeEncounterPanel { Visible = false };
+        // Layered last — see the construction note above.
         AddChild(_campusNarrativePanel);
-        _campusToasts = new ToastManager { Name = "CampusQuestToasts" };
         AddChild(_campusToasts);
 
         GD.Print($"CampusScreen: ActiveSave={SaveManager.ActiveSave?.GuildName ?? "NULL"}, " +
@@ -267,10 +283,10 @@ public partial class CampusScreen : Control
                 RefreshTrainingTab();
                 break;
             case 6:
-                RefreshRecordsTab();
+                _recordsPanel.Refresh();
                 break;
             case 7:
-                RefreshQuestsTab();
+                _questsPanel.Refresh();
                 break;
             case 8:
                 RefreshCouncilTab();
@@ -684,10 +700,17 @@ public partial class CampusScreen : Control
         _campusViewport.AddChild(_campusGrid);
 
         _campusInput = new CampusInputController();
-        _campusViewport.AddChild(_campusInput);
+        // Configure BEFORE AddChild. AddChild runs _Ready synchronously, and _Ready's
+        // NodePath fallback logs two errors ("no CampusGridManager" / "no Camera3D") when
+        // it finds _grid/_camera still null — which they are, if Configure comes second.
+        // The controller worked anyway (the next line filled them in), so this was pure
+        // console noise, but it buries real errors on a screen that prints ~90 lines.
+        // Configure touches no tree state, so calling it pre-parent is safe.
         _campusInput.Configure(_campusGrid, camera3D); // code-built scene — direct wiring, not NodePath
+        _campusViewport.AddChild(_campusInput);
         _campusInput.BuildingSelected += OnCampusBuildingSelected;
         _campusInput.TileClicked += OnCampusTileClicked;
+        _campusInput.LandmarkClicked += OnCampusLandmarkClicked;
         _campusInput.PlacementConfirmed += OnCampusPlacementConfirmed;
         _campusInput.PlacementCancelled += OnCampusPlacementCancelled;
 
@@ -2442,6 +2465,13 @@ public partial class CampusScreen : Control
             return;
 
         _campusGrid.LoadFromSave(save.Ledger.CampusMap, save.Ledger.Buildings);
+
+        // Must follow LoadFromSave — LoadLandmarks reads the building occupancy that
+        // LoadFromSave populates, and skips any hex a building already sits on.
+        // Every RefreshAll → BuildUI path lands here, so this is also what restamps
+        // landmark states after a narrative beat advances ruined → active → restored.
+        _campusGrid.LoadLandmarks(save.HasFlag);
+
         _campusCameraController?.FrameGrid(_campusGrid.CampusGridBoundsMin, _campusGrid.CampusGridBoundsMax);
     }
 
@@ -2663,266 +2693,29 @@ public partial class CampusScreen : Control
         GD.Print($"[Armory] Seeded {save.Armory.OwnedItems.Count} starter items.");
     }
 
-    private void ApplyTabStyle(Button btn, bool isActive)
-    {
-        // Flat style — no rounded corners, continuous bar appearance
-        var normal = new StyleBoxFlat
-        {
-            BgColor = isActive ? UITheme.ButtonPrimary : UITheme.BgDeep,
-            BorderColor = isActive ? UITheme.Violet : UITheme.NeutralDim,
-            BorderWidthBottom = isActive ? 2 : 0,
-            BorderWidthTop = 0,
-            BorderWidthLeft = 0,
-            BorderWidthRight = 0,
-            // No corner radius — square tabs
-        };
-        var hover = new StyleBoxFlat
-        {
-            BgColor = isActive ? UITheme.ButtonPrimaryHover : UITheme.BgBase,
-            BorderColor = UITheme.Violet,
-            BorderWidthBottom = 2,
-            BorderWidthTop = 0,
-            BorderWidthLeft = 0,
-            BorderWidthRight = 0,
-        };
-
-        btn.AddThemeStyleboxOverride("normal", normal);
-        btn.AddThemeStyleboxOverride("hover", hover);
-        btn.AddThemeStyleboxOverride("pressed", normal);
-        btn.AddThemeStyleboxOverride("focus", normal);
-        btn.AddThemeColorOverride("font_color",
-            isActive ? UITheme.TextPrimary : UITheme.TextSecondary);
-    }
+    // ApplyTabStyle moved to CampusUi 2026-08-03, unchanged. It styles the tab-bar
+    // SELECTOR rather than any panel's content — which is exactly the piece the campus
+    // map will not need when it becomes the second selector.
 
     // ═══════════════════════════════════════════════════════════════════════
     // Records Tab — the Hall of Records (negotiation doc §7b)
     // ═══════════════════════════════════════════════════════════════════════
 
-    private VBoxContainer _recordsContainer;
-    private Label _recordsSummaryLabel;
-    private VBoxContainer _loreContainer;
-    private VBoxContainer _questContainer;
-    private Label _questSummaryLabel;
+    // Extracted 2026-08-03 — bodies now live in CampusRecordsPanel / CampusQuestsPanel.
+    // The five container fields these tabs used moved with them.
+    private readonly CampusRecordsPanel _recordsPanel = new();
+    private readonly CampusQuestsPanel _questsPanel = new();
 
-    private void BuildRecordsTab(ScrollContainer scroll)
-    {
-        var margins = MakeMargins(32, 20);
-        scroll.AddChild(margins);
-        var layout = MakeVBox(12);
-        margins.AddChild(layout);
-
-        AddSectionHeader(layout, "Hall of Records — Deal Ledger");
-
-        _recordsSummaryLabel = new Label
-        {
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        _recordsSummaryLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-        _recordsSummaryLabel.AddThemeColorOverride("font_color", UITheme.NegotiationNpcColor);
-        layout.AddChild(_recordsSummaryLabel);
-
-        layout.AddChild(new HSeparator());
-
-        _recordsContainer = MakeVBox(8);
-        layout.AddChild(_recordsContainer);
-    }
-
-    private void RefreshRecordsTab()
-    {
-        if (_recordsContainer == null) return;
-        foreach (var child in _recordsContainer.GetChildren())
-            child.QueueFree();
-
-        var records = SaveManager.ActiveSave?.Ledger?.DealRecords;
-        if (records == null || records.Count == 0)
-        {
-            _recordsSummaryLabel.Text =
-                "Every negotiation — signed or spurned — is remembered here, across all timelines.";
-            _recordsContainer.AddChild(MakeStubLabel("No deals recorded yet."));
-            return;
-        }
-
-        // Aggregate line.
-        int signedCount = 0, fiveStar = 0, starSum = 0;
-        foreach (var r in records)
-        {
-            if (r.Outcome != "Signed") continue;
-            signedCount++;
-            starSum += r.Stars;
-            if (r.Stars >= 5) fiveStar++;
-        }
-        string avg = signedCount > 0
-            ? $"  ·  avg {(float)starSum / signedCount:0.0}★"
-            : "";
-        _recordsSummaryLabel.Text =
-            $"{records.Count} tables recorded  ·  {signedCount} deals signed{avg}  ·  " +
-            $"{fiveStar} five-star deal{(fiveStar == 1 ? "" : "s")} anchored";
-
-        // Rows, newest first, capped for UI sanity.
-        const int MaxRows = 50;
-        int shown = 0;
-        for (int i = records.Count - 1; i >= 0 && shown < MaxRows; i--, shown++)
-        {
-            var r = records[i];
-            var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 12);
-
-            var starLbl = new Label
-            {
-                Text = r.Outcome == "Signed"
-                    ? new string('★', r.Stars) + new string('☆', 5 - r.Stars)
-                    : "—",
-                CustomMinimumSize = new Vector2(96, 0),
-                VerticalAlignment = VerticalAlignment.Top,
-            };
-            starLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            starLbl.AddThemeColorOverride("font_color",
-                r.Outcome == "Signed" ? UITheme.NegotiationTitleColor : UITheme.NegotiationHiddenTerm);
-            row.AddChild(starLbl);
-
-            var col = MakeVBox(2);
-            col.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-
-            var nameLbl = new Label
-            {
-                Text = $"{r.NpcName} — {r.Title}",
-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            };
-            nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            col.AddChild(nameLbl);
-
-            string outcomeText = r.Outcome switch
-            {
-                "Signed"     => $"Deal signed in the {r.Zone} zone",
-                "WalkedAway" => "You walked away",
-                "Collapsed"  => "The table collapsed",
-                _            => "They left the table",
-            };
-            string spoils = r.Outcome == "Signed"
-                ? $"  ·  {(r.Gold >= 0 ? "+" : "")}{r.Gold} gold, {(r.Reputation >= 0 ? "+" : "")}{r.Reputation} rep"
-                  + (string.IsNullOrEmpty(r.SpellGranted) ? "" : "  ·  spell taught")
-                : "";
-            var detailLbl = new Label
-            {
-                Text = $"Cycle {r.CycleNumber}  ·  {r.Archetype}  ·  {outcomeText}{spoils}  ·  {r.Turns} turns",
-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            };
-            detailLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
-            detailLbl.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
-            col.AddChild(detailLbl);
-
-            row.AddChild(col);
-            _recordsContainer.AddChild(row);
-        }
-
-        if (records.Count > MaxRows)
-            _recordsContainer.AddChild(MakeStubLabel(
-                $"…and {records.Count - MaxRows} older entries."));
-    }
-
-    /// <summary>Populate the Hall of Records lore list from the permanent
-    /// EternalLedger.UnlockedLoreEntries — the visible payoff for encounter
-    /// LoreId rewards (Tranche 2). Independent of the deal-ledger early-return.</summary>
-    private void RefreshLoreSection()
-    {
-        if (_loreContainer == null) return;
-        foreach (var child in _loreContainer.GetChildren())
-            child.QueueFree();
-
-        var lore = SaveManager.ActiveSave?.UnlockedLoreEntries;
-        if (lore == null || lore.Count == 0)
-        {
-            _loreContainer.AddChild(MakeStubLabel("No lore uncovered yet — the world reveals it to those who explore."));
-            return;
-        }
-
-        foreach (var id in lore)
-        {
-            var lbl = new Label
-            {
-                Text = "• " + PrettifyLoreId(id),
-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            };
-            lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            _loreContainer.AddChild(lbl);
-        }
-    }
-
-    private static string PrettifyLoreId(string id)
-    {
-        if (string.IsNullOrEmpty(id)) return "";
-        var parts = id.Replace('_', ' ').Split(' ');
-        for (int i = 0; i < parts.Length; i++)
-            if (parts[i].Length > 0)
-                parts[i] = char.ToUpper(parts[i][0]) + parts[i].Substring(1);
-        return string.Join(" ", parts);
-    }
+    // RefreshLoreSection / PrettifyLoreId removed 2026-08-03 — they were a second
+    // renderer for the same codex QuestLogView.BuildLoreInto already draws, flagged as
+    // a parked follow-up in session log 2026-07-18. The Quests tab now calls
+    // BuildLoreInto directly, so the campus tab and the global QuestLogScreen overlay
+    // render the lore codex through one code path and cannot drift.
 
     // ═══════════════════════════════════════════════════════════════════════
     // Quests Tab — story log + lore codex (drives the fragment/Convergence spine
     // and the expansion arcs; status computed live by QuestTracker).
     // ═══════════════════════════════════════════════════════════════════════
-
-    private void BuildQuestsTab(ScrollContainer scroll)
-    {
-        var margins = MakeMargins(32, 20);
-        scroll.AddChild(margins);
-        var layout = MakeVBox(12);
-        margins.AddChild(layout);
-
-        AddSectionHeader(layout, "Quests");
-
-        _questSummaryLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        _questSummaryLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-        _questSummaryLabel.AddThemeColorOverride("font_color", UITheme.NegotiationNpcColor);
-        layout.AddChild(_questSummaryLabel);
-
-        layout.AddChild(new HSeparator());
-
-        _questContainer = MakeVBox(10);
-        layout.AddChild(_questContainer);
-
-        // Lore codex — consolidated here from the Records tab.
-        layout.AddChild(new HSeparator());
-        AddSectionHeader(layout, "Hall of Lore");
-        _loreContainer = MakeVBox(6);
-        layout.AddChild(_loreContainer);
-    }
-
-    private void RefreshQuestsTab()
-    {
-        if (_questContainer == null) return;
-
-        var save = SaveManager.ActiveSave;
-        if (save != null) QuestTracker.SyncCompletions(save);
-        RefreshLoreSection();
-
-        _questSummaryLabel.Text = QuestLogView.BuildInto(_questContainer, save,
-            OnBeginCompanionMission);
-    }
-
-    /// <summary>Step 9 follow-up: launch a campus-located companion arc stage
-    /// from its quest-log mission card, on the campus narrative host.</summary>
-    private void OnBeginCompanionMission(CompanionArcStatus m)
-    {
-        var save = SaveManager.ActiveSave;
-        if (save == null || m == null || _campusNarrativePanel == null) return;
-
-        string encId = CompanionArcTracker.GetStageEncounterId(
-            m.CompanionId, save, isExpedition: false);
-        if (string.IsNullOrEmpty(encId)) return;
-
-        var enc = NarrativeEncounterLoader.FindMissionById(encId);
-        if (enc == null)
-        {
-            GD.PrintErr($"[CompanionArc] Mission encounter '{encId}' not found in companion_missions.json.");
-            return;
-        }
-
-        _campusNarrativePanel.ShowEncounter(enc, save.HasFlag,
-            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign);
-        _campusNarrativePanel.OnCompleted = choice => OnCampusNarrativeCompleted(enc, choice);
-    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // Council Tab (Step 9) — the archmage sentiment overview, the resolution
@@ -3018,14 +2811,29 @@ public partial class CampusScreen : Control
         var enc = ResolutionEncounterBuilder.BuildAudience(campaign, archmageId);
         if (enc == null || _campusNarrativePanel == null) return;
 
-        _campusNarrativePanel.ShowEncounter(enc, save.HasFlag,
-            save.Cycle?.SelectedSchool, save.Gold, campaign);
-        _campusNarrativePanel.OnCompleted = choice => OnCampusNarrativeCompleted(enc, choice);
+        ShowCampusNarrative(enc);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
     // Campus vignette host + campus → combat round trip (Steps 2 + 9)
     // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>Backs <see cref="CampusContext.ShowNarrative"/>: open an encounter on the
+    /// campus overlay AND wire its completion to <see cref="OnCampusNarrativeCompleted"/>,
+    /// the Snapshot-Mutate-Diff-Toast pass that persists flags, gold and meta-progression.
+    ///
+    /// The two halves were previously copy-pasted at three call sites. Showing without
+    /// wiring fails silently — the encounter renders, the player chooses, nothing is saved —
+    /// so they are one method now, and panels are handed the verb rather than the panel.</summary>
+    private void ShowCampusNarrative(NarrativeEncounterData enc)
+    {
+        var save = SaveManager.ActiveSave;
+        if (enc == null || save == null || _campusNarrativePanel == null) return;
+
+        _campusNarrativePanel.ShowEncounter(enc, save.HasFlag,
+            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign);
+        _campusNarrativePanel.OnCompleted = choice => OnCampusNarrativeCompleted(enc, choice);
+    }
 
     /// <summary>Landmark clicked on the campus hex grid → show its current
     /// beat's narrative encounter on the campus host.</summary>
@@ -3043,9 +2851,7 @@ public partial class CampusScreen : Control
         }
 
         _campusSelectionLabel.Text = lm.DisplayName;
-        _campusNarrativePanel.ShowEncounter(enc, save.HasFlag,
-            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign);
-        _campusNarrativePanel.OnCompleted = choice => OnCampusNarrativeCompleted(enc, choice);
+        ShowCampusNarrative(enc);
     }
 
     /// <summary>Campus-side choice resolution: the Snapshot-Mutate-Diff-Toast
@@ -3125,7 +2931,8 @@ public partial class CampusScreen : Control
             _campusToasts?.Push(qt.Text, qt.Kind);
 
         // Landmark states may have advanced (ruined → active → restored) —
-        // RefreshAll → LoadCampusHexGrid restamps them from current flags.
+        // RefreshAll → BuildUI → LoadCampusGrid → LoadLandmarks restamps them from
+        // current flags.
         RefreshAll();
     }
 
@@ -3331,61 +3138,8 @@ public partial class CampusScreen : Control
         // Landmark restamping happens in the RefreshAll that follows (BuildUI).
     }
 
-    private void AddSectionHeader(VBoxContainer parent, string text)
-    {
-        var label = new Label
-        {
-            Text = text,
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        label.AddThemeFontSizeOverride("font_size", UITheme.CampusSectionFontSize);
-        label.AddThemeColorOverride("font_color", UITheme.CampusSectionColor);
-        parent.AddChild(label);
-    }
-
-    private VBoxContainer MakeVBox(int separation)
-    {
-        var v = new VBoxContainer();
-        v.AddThemeConstantOverride("separation", separation);
-        return v;
-    }
-
-    private MarginContainer MakeMargins(int horizontal, int vertical)
-    {
-        var m = new MarginContainer();
-        m.AddThemeConstantOverride("margin_left", horizontal);
-        m.AddThemeConstantOverride("margin_right", horizontal);
-        m.AddThemeConstantOverride("margin_top", vertical);
-        m.AddThemeConstantOverride("margin_bottom", vertical);
-        m.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        m.SizeFlagsVertical = SizeFlags.ShrinkBegin;
-        return m;
-    }
-
-    private Button MakeButton(string text, float minWidth, float minHeight, int fontSize,
-        bool isPrimary = true)
-    {
-        var btn = new Button
-        {
-            Text = text,
-            CustomMinimumSize = new Vector2(minWidth, minHeight),
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-        };
-        btn.AddThemeFontSizeOverride("font_size", fontSize);
-        UITheme.ApplyButtonStyle(btn, isPrimary);
-        return btn;
-    }
-
-    private Label MakeStubLabel(string text)
-    {
-        var label = new Label
-        {
-            Text = text,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        label.AddThemeFontSizeOverride("font_size", UITheme.CampusStubFontSize);
-        label.Modulate = UITheme.CampusStubText;
-        return label;
-    }
+    // AddSectionHeader / MakeVBox / MakeMargins / MakeButton / MakeStubLabel moved to
+    // CampusUi 2026-08-03, unchanged. Reached through the file-scoped `using static
+    // CampusUi;` at the top, so every call site here is byte-identical. Panels extracted
+    // out of this class get the same helpers the same way — do NOT re-add private copies.
 }

@@ -1,0 +1,23 @@
+{
+    "id": "gatehouse_yard",
+    "name": "The Gatehouse Yard",
+    "description": "The mustering ground inside the broken wards, where an expedition is assembled and sent out. The gatehouse itself still replays its half-second of shattering, further down the path.",
+    "category": "Core",
+    "schoolAffinity": "",
+    "isFoundational": true,
+    "hostsSystem": "expedition",
+    "startsBuiltAt": { "q": 0, "r": 2 },
+    "footprint": [
+        { "q": 0, "r": 0 }
+    ],
+    "maxTier": 1,
+    "tiers": [
+        {
+            "tier": 1,
+            "description": "The yard is clear. Choose a destination and deploy.",
+            "goldCost": 0,
+            "materialsCost": 0,
+            "requiredBuildings": []
+        }
+    ]
+}

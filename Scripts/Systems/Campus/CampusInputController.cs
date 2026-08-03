@@ -67,6 +67,7 @@ public partial class CampusInputController : Node3D
 
     [Signal] public delegate void BuildingSelectedEventHandler(string buildingId, Vector2I anchor);
     [Signal] public delegate void TileClickedEventHandler(Vector2I axial); // empty-tile click — e.g. deselect
+    [Signal] public delegate void LandmarkClickedEventHandler(string landmarkId, Vector2I axial);
     [Signal] public delegate void PlacementConfirmedEventHandler(string buildingId, Vector2I anchor, int rotation);
     [Signal] public delegate void PlacementCancelledEventHandler(string buildingId);
 
@@ -181,11 +182,26 @@ public partial class CampusInputController : Node3D
         if (!TryRaycastHex(out Vector2I coord))
             return;
 
+        // Dispatch order is building → landmark → bare tile. LoadLandmarks already
+        // refuses to stamp a landmark onto an occupied hex (the building IS the
+        // restoration), so a hex should never hold both — this ordering is a
+        // guarantee rather than a tie-breaker, and keeps the invariant local even
+        // if that stamping rule is ever relaxed.
         string buildingId = _grid.GetBuildingIdAt(coord);
         if (!string.IsNullOrEmpty(buildingId))
+        {
             EmitSignal(SignalName.BuildingSelected, buildingId, coord);
-        else
-            EmitSignal(SignalName.TileClicked, coord);
+            return;
+        }
+
+        string landmarkId = _grid.GetLandmarkIdAt(coord);
+        if (!string.IsNullOrEmpty(landmarkId))
+        {
+            EmitSignal(SignalName.LandmarkClicked, landmarkId, coord);
+            return;
+        }
+
+        EmitSignal(SignalName.TileClicked, coord);
     }
 
     private void UpdateDragPreview()

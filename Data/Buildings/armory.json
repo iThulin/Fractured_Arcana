@@ -1,0 +1,23 @@
+{
+    "id": "armory",
+    "name": "The Armory",
+    "description": "A long room of racks and pegs, kept by nobody in particular since the quartermaster stopped mid-inventory. Her count is still chalked on the wall, one item short.",
+    "category": "Core",
+    "schoolAffinity": "",
+    "isFoundational": true,
+    "hostsSystem": "armory",
+    "startsBuiltAt": { "q": 2, "r": 0 },
+    "footprint": [
+        { "q": 0, "r": 0 }
+    ],
+    "maxTier": 1,
+    "tiers": [
+        {
+            "tier": 1,
+            "description": "The racks are open. Equip weapons, armor, and trinkets.",
+            "goldCost": 0,
+            "materialsCost": 0,
+            "requiredBuildings": []
+        }
+    ]
+}

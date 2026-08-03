@@ -1,0 +1,23 @@
+{
+    "id": "sanctum",
+    "name": "The Sanctum",
+    "description": "A bare working room with a lectern and good light — where a wizard decides what they will be carrying tomorrow. Transcription, refinement and unmaking happen elsewhere, and cost more.",
+    "category": "Core",
+    "schoolAffinity": "",
+    "isFoundational": true,
+    "hostsSystem": "deck",
+    "startsBuiltAt": { "q": -1, "r": -1 },
+    "footprint": [
+        { "q": 0, "r": 0 }
+    ],
+    "maxTier": 1,
+    "tiers": [
+        {
+            "tier": 1,
+            "description": "The lectern is yours. Build and edit your active deck.",
+            "goldCost": 0,
+            "materialsCost": 0,
+            "requiredBuildings": []
+        }
+    ]
+}
