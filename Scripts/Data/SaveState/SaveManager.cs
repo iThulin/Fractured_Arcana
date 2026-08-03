@@ -41,7 +41,7 @@ public static class SaveManager
     /// anything older is a legacy save and is rejected, not migrated.
     /// Referenced by CycleState and EternalLedger field initializers.
     /// </summary>
-    public const int CURRENT_VERSION = 100;
+    public const int CURRENT_VERSION = 101;
 
     /// <summary>Canonical save serialization options — the single path every
     /// persisted structure travels. Public so round-trip assertions
@@ -209,13 +209,15 @@ public static class SaveManager
 
     private static bool VerifyLedgerJson(string json)
     {
-        try { return JsonSerializer.Deserialize<EternalLedger>(json, JsonOptions) != null; }
+        try
+        { return JsonSerializer.Deserialize<EternalLedger>(json, JsonOptions) != null; }
         catch { return false; }
     }
 
     private static bool VerifyCycleJson(string json)
     {
-        try { return JsonSerializer.Deserialize<CycleState>(json, JsonOptions) != null; }
+        try
+        { return JsonSerializer.Deserialize<CycleState>(json, JsonOptions) != null; }
         catch { return false; }
     }
 
@@ -245,7 +247,8 @@ public static class SaveManager
     /// save is already loaded — a slot the player explicitly picked always wins.</summary>
     public static bool AutoLoadLast()
     {
-        if (ActiveSave != null) return true;
+        if (ActiveSave != null)
+            return true;
 
         int best = -1;
         ulong bestTime = 0;
@@ -254,9 +257,12 @@ public static class SaveManager
             ulong t = 0;
             string ledger = GetLedgerPath(i);
             string cycle = GetCyclePath(i);
-            if (FileAccess.FileExists(ledger)) t = System.Math.Max(t, FileAccess.GetModifiedTime(ledger));
-            if (FileAccess.FileExists(cycle)) t = System.Math.Max(t, FileAccess.GetModifiedTime(cycle));
-            if (t > 0 && (best < 0 || t > bestTime)) { best = i; bestTime = t; }
+            if (FileAccess.FileExists(ledger))
+                t = System.Math.Max(t, FileAccess.GetModifiedTime(ledger));
+            if (FileAccess.FileExists(cycle))
+                t = System.Math.Max(t, FileAccess.GetModifiedTime(cycle));
+            if (t > 0 && (best < 0 || t > bestTime))
+            { best = i; bestTime = t; }
         }
 
         if (best < 0)
@@ -507,7 +513,8 @@ public static class SaveManager
             int objDone = 0, objTotal = q.Objectives?.Count ?? 0;
             if (q.Objectives != null)
                 foreach (var o in q.Objectives)
-                    if (QuestTracker.ObjectiveDone(o, ActiveSave)) objDone++;
+                    if (QuestTracker.ObjectiveDone(o, ActiveSave))
+                        objDone++;
 
             ActiveSave.Ledger.UnfinishedBusiness.Add(new UnfinishedQuestRecord
             {
