@@ -4,6 +4,7 @@
   "description": "A repository of magical knowledge. Unlocks the card library browser and grants Insight tokens for negotiations.",
   "category": "Magic",
   "schoolAffinity": "",
+  "hostsSystem": "card_library",
   "maxTier": 3,
   "tiers": [
     {

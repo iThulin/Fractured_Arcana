@@ -916,7 +916,11 @@ public partial class HexTile : Node3D
     /// Independent of the memorial indicator; a tile can display both at once.
     /// Passing null or empty text clears the label.
     /// </summary>
-    public void SetPoiLabel(string text, Color tint)
+    /// <param name="fontSize">0 (default) uses <see cref="UITheme.Label3DPoi"/>, sized for a
+    /// two-character marker. Everything on the campus map — buildings and landmarks alike —
+    /// passes <see cref="UITheme.Label3DPlaceName"/> instead, because it labels with a full
+    /// name rather than initials.</param>
+    public void SetPoiLabel(string text, Color tint, int fontSize = 0)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -924,18 +928,26 @@ public partial class HexTile : Node3D
             return;
         }
 
+        int size = fontSize > 0 ? fontSize : UITheme.Label3DPoi;
+
         if (_poiLabel == null)
         {
             _poiLabel = new Label3D
             {
                 Name = "PoiLabel",
                 Text = text,
-                FontSize = UITheme.Label3DPoi,
+                FontSize = size,
+                // A billboarded world-space label cannot know what is behind it — grass,
+                // a violet building tile, or the skybox. An outline is the only thing that
+                // makes it legible against all three, so it is not optional styling.
+                OutlineSize = UITheme.Label3DOutlineSize,
+                OutlineModulate = UITheme.Label3DOutline,
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 NoDepthTest = true,
                 // Sits above the memorial indicator (0.85) so the two never overlap
-                // on a tile that carries both.
-                Position = new Vector3(0f, 1.15f, 0f),
+                // on a tile that carries both. Raised from 1.15 for the campus map: at a
+                // shallow camera pitch a low label is read as sitting on the tile BEHIND it.
+                Position = new Vector3(0f, UITheme.Label3DPoiHeight, 0f),
                 Modulate = tint,
             };
             // Deferred for the same reason the memorial label is: SetPoiLabel can be
@@ -947,6 +959,9 @@ public partial class HexTile : Node3D
             _poiLabel.Visible = true;
             _poiLabel.Text = text;
             _poiLabel.Modulate = tint;
+            _poiLabel.FontSize = size;   // a reused tile may have carried a different size
+            _poiLabel.OutlineSize = UITheme.Label3DOutlineSize;
+            _poiLabel.OutlineModulate = UITheme.Label3DOutline;
         }
     }
 

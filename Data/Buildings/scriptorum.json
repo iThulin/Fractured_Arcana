@@ -4,6 +4,7 @@
     "description": "A chamber of arcane scholarship where wizards transcribe, study, and refine their spellwork. Upgrading the Scriptorum unlocks deeper levels of card mastery.",
     "category": "Magic",
     "schoolAffinity": "",
+    "hostsSystem": "card_upgrade",
     "maxTier": 3,
     "tiers": [
         {

@@ -146,7 +146,7 @@ public partial class CampusGridManager : HexGridManager
                 continue;
             }
 
-            StampBuilding(b.Id, footprintHexes);
+            StampBuilding(b.Id, anchor, footprintHexes);
         }
     }
 
@@ -164,8 +164,9 @@ public partial class CampusGridManager : HexGridManager
 
     /// <summary>
     /// Stamp landmarks from <see cref="CampusLandmarkRegistry"/> onto the grid: state
-    /// tint on the tile plus a billboarded two-letter marker. Ported from the retired
-    /// 2D CampusHexGrid.LoadLandmarks (858054d), preserving all three of its rules —
+    /// tint on the tile plus a billboarded name label. Ported from the retired
+    /// 2D CampusHexGrid.LoadLandmarks (858054d) — that name is history, not a live
+    /// collaborator — preserving all three of its rules —
     /// clear before restamping, buildings win, and a missing hex is an error rather
     /// than a crash.
     ///
@@ -213,6 +214,16 @@ public partial class CampusGridManager : HexGridManager
             _landmarkAtHex[coord] = lm.Id;
             _landmarkStateAtHex[coord] = state;
 
+            // A landmark hex is NOT buildable. Without this the player could site a
+            // building on the Belfry, the buildings-win rule above would then skip that
+            // landmark on the next load, and its whole restoration arc would vanish from
+            // the save — no exception, no log line, no way to notice.
+            //
+            // Safe to write the mask here because LoadFromSave rebuilds it from the save
+            // immediately before every LoadLandmarks call (CampusScreen.LoadCampusGrid is
+            // the only call site), so this is never applied twice or left stale.
+            _buildableMask[coord] = false;
+
             // Reapply terrain first so the lerp below always starts from the terrain
             // colour, never from a previous landmark tint.
             ApplyVisualToTile(tile);
@@ -230,7 +241,11 @@ public partial class CampusGridManager : HexGridManager
                 // the spawn-side tints, so a landmark still reads as its ground type.
                 tile.TileView.SetBaseColor(
                     tile.TileView.BaseColor.Lerp(tint, UITheme.LandmarkTintStrength));
-                tile.TileView.SetPoiLabel(lm.HexLabel, tint);
+                // DisplayName, not HexLabel: "The Belfry" reads; "BL" needs a legend the
+                // player does not have. HexLabel is left authored on all six landmarks —
+                // it is the right text for a future compact/zoomed-out view, and it costs
+                // nothing to keep.
+                tile.TileView.SetPoiLabel(lm.DisplayName, tint, UITheme.Label3DPlaceName);
             }
         }
     }
@@ -291,7 +306,7 @@ public partial class CampusGridManager : HexGridManager
     /// to route it through the inherited visual method.</summary>
     private static readonly Color BuildingTint = new Color(0.55f, 0.4f, 0.6f);
 
-    private void StampBuilding(string buildingId, List<Vector2I> footprintHexes)
+    private void StampBuilding(string buildingId, Vector2I anchor, List<Vector2I> footprintHexes)
     {
         foreach (var coord in footprintHexes)
         {
@@ -304,6 +319,24 @@ public partial class CampusGridManager : HexGridManager
 
             _buildingAtHex[coord] = buildingId;
             tile.TileView?.SetBaseColor(BuildingTint);
+        }
+
+        // ── Name label ────────────────────────────────────────────────────
+        // On the ANCHOR hex only. Labelling every footprint hex would print "Teleport
+        // Sigil" seven times across its 7-hex footprint.
+        //
+        // Stands in for building meshes, which do not exist yet: until then every campus
+        // structure is an identically-tinted hex, and the map cannot be navigated without
+        // this. Colour carries the second half of the message — cyan means the building is
+        // a door to a system, grey means it only grants passive bonuses.
+        var template = BuildingDatabase.GetTemplate(buildingId);
+        if (template != null && Tiles.TryGetValue(anchor, out var anchorTile))
+        {
+            bool isDoor = !string.IsNullOrEmpty(template.HostsSystem);
+            anchorTile.TileView?.SetPoiLabel(
+                template.EffectiveMapLabel,
+                isDoor ? UITheme.BuildingLabelDoor : UITheme.BuildingLabelPlain,
+                UITheme.Label3DPlaceName);
         }
     }
 
@@ -348,7 +381,7 @@ public partial class CampusGridManager : HexGridManager
         target.Rotation = rotation;
         target.IsPlaced = true;
 
-        StampBuilding(buildingId, GetFootprintHexes(template, anchor, rotation));
+        StampBuilding(buildingId, anchor, GetFootprintHexes(template, anchor, rotation));
         return true;
     }
 

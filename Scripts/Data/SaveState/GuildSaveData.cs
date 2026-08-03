@@ -388,9 +388,10 @@ public class BuildingSaveData
     // hex map (CampusMapSaveData.cs). A building can be Tier > 0 (owned,
     // e.g. auto-unlocked when a companion of that school joins per
     // guild_campus_v2.docx §5) without yet being sited — IsPlaced gates
-    // that. Old saves default to Q=0, R=0, IsPlaced=false; CampusHexGrid
-    // treats an owned-but-unplaced building as needing player siting,
-    // never as auto-placed at the origin.
+    // that. Old saves default to Q=0, R=0, IsPlaced=false; CampusGridManager
+    // .LoadFromSave skips any building that is !IsPlaced or Tier <= 0, so an
+    // owned-but-unplaced building needs player siting and is never auto-placed
+    // at the origin.
     public int Q = 0;
     public int R = 0;
     public bool IsPlaced = false;
@@ -419,7 +420,7 @@ public class BuildingSaveData
     /// building: Tier resets to 0, IsPlaced to false (campus_siege_and_defense_v1 §4b —
     /// "destroyed" and "not built" are the same state on the building record; the
     /// difference lives on the tile, which the caller must separately mark Rubble via
-    /// CampusMapSaveData/CampusHexGrid — this method only knows about the building).
+    /// CampusMapSaveData/CampusGridManager — this method only knows about the building).
     /// Returns true the turn it's destroyed (false on every other call, including
     /// once already destroyed), so the caller knows to react exactly once.</summary>
     public bool ApplyDamage(int amount)

@@ -261,6 +261,21 @@ public static class UITheme
     public static readonly Color LandmarkTintRestored = new Color(0.45f, 0.80f, 0.55f, 1f);
     public const float LandmarkTintStrength = 0.45f;
 
+    // ── Campus building name labels ──────────────────────────────────────
+    // A three-colour vocabulary on the campus map, readable before any building meshes
+    // exist: GOLD (LandmarkTint* above) = quest site with a restoration arc;
+    // CYAN = a building that is a door to a system; GREY = an ordinary building.
+    // Deliberately not the same hue family as the landmark tints — the player should be
+    // able to tell "this has a story" from "this opens a menu" at a glance.
+
+    /// <summary>Name label for a building whose JSON authors a <c>hostsSystem</c> — clicking
+    /// it opens that system. The call to action.</summary>
+    public static readonly Color BuildingLabelDoor = new Color(0.72f, 0.92f, 1.00f, 1f);
+
+    /// <summary>Name label for a building that grants passive bonuses but opens nothing.
+    /// Muted, because there is nothing to do there.</summary>
+    public static readonly Color BuildingLabelPlain = new Color(0.74f, 0.71f, 0.67f, 1f);
+
     // ════════════════════════════════════════════════════════════
     // ELEMENT COLORS
     // ════════════════════════════════════════════════════════════
@@ -634,10 +649,39 @@ public static class UITheme
     public const int Label3DGlyph = 64;
 
     /// <summary>Billboarded point-of-interest label on a hex (HexTile.SetPoiLabel).
+    /// The DEFAULT for SetPoiLabel, but nothing on the campus passes it any more — both
+    /// landmarks and buildings now label with full names at
+    /// <see cref="Label3DPlaceName"/>. Kept as the fallback for a future short-marker
+    /// caller; delete it if none appears.
     /// Sized for a two-character marker like the campus landmarks' "BL" / "RF" —
     /// larger than Label3DSmall so it reads at campus camera distance, smaller than
     /// the memorial glyph so the two never compete when a tile carries both.</summary>
     public const int Label3DPoi = 32;
+
+    /// <summary>POI label size for named places on the campus map — buildings AND
+    /// landmarks. Both draw a full name ("Gatehouse Yard", "The Uncatalogued Wing") rather
+    /// than a marker, so both use this rather than <see cref="Label3DPoi"/>, which is sized
+    /// for two characters and would send a long name across three hexes.
+    ///
+    /// One size for both on purpose: a place on the map should read with the same weight
+    /// whether it is a building or a landmark. What separates them is COLOUR — gold for a
+    /// landmark with a restoration arc, cyan for a building that is a door, grey for one
+    /// that is not.</summary>
+    public const int Label3DPlaceName = 22;
+
+    /// <summary>Outline thickness for hex POI labels. Sized to survive the worst case —
+    /// pale text on the light-green campus lawn — rather than tuned for the best one.</summary>
+    public const int Label3DOutlineSize = 10;
+
+    /// <summary>Near-black outline behind every hex POI label. Almost fully opaque: a
+    /// translucent outline stops working over a dark tile, which is exactly where a light
+    /// label needs it least and a dim one needs it most.</summary>
+    public static readonly Color Label3DOutline = new Color(0.02f, 0.02f, 0.04f, 0.95f);
+
+    /// <summary>Height above the tile for POI labels. Above the memorial indicator (0.85),
+    /// and high enough that at a shallow camera pitch the label does not appear to belong to
+    /// the tile behind it.</summary>
+    public const float Label3DPoiHeight = 1.55f;
 
     public const int OverworldUIFontSize = 18;
     public const int OverworldCostLabelFontSize = 14;

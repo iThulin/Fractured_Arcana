@@ -3,6 +3,7 @@
 	"name": "Training Grounds",
 	"category": "Core",
 	"schoolAffinity": "",
+	"hostsSystem": "training",
 	"description": "A yard where martial companions hone their skills between runs.",
 	"tiers": [
 		{

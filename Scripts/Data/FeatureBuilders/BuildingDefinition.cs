@@ -17,7 +17,8 @@ using System.Collections.Generic;
 
 /// <summary>One relative hex offset (q, r) in a building's authored footprint, before
 /// rotation/anchor are applied. Godot-free, matching this file's plain-data convention —
-/// CampusHexGrid does the axial math (rotation, anchoring) at the boundary.</summary>
+/// CampusGridManager.GetFootprintHexes does the axial math (rotation, anchoring) at the
+/// boundary.</summary>
 public class HexOffset
 {
     public int Q = 0;
@@ -73,13 +74,30 @@ public class Building
     /// anchor has nowhere to be repaired to, and EnsureBuildings logs an error for it.</summary>
     public bool IsFoundational = false;
 
-    /// <summary>Which campus system clicking this building opens — "guild", "expedition",
-    /// "companions", "armory", "deck", or empty for buildings that open only their own
-    /// upgrade panel. Consumed by the campus click dispatcher, which is NOT yet wired
-    /// (the tab bar is still the navigation surface); authored here so the routing table
-    /// is pure data when it lands. Same convention as BuildingSaveData.Rotation — the
-    /// field exists ahead of the UI that reads it.</summary>
+    /// <summary>Which campus system clicking this building opens — "guild", "companions",
+    /// "expedition", "armory", "deck", or empty for a building that opens nothing.
+    ///
+    /// Resolved by <see cref="CampusLocationRegistry.ForSystemKey"/>, so adding a door to the
+    /// campus map is a JSON edit rather than a code change. An unknown key makes the building
+    /// inert rather than throwing. Also drives the map name label's colour: a building with a
+    /// key is drawn in <c>UITheme.BuildingLabelDoor</c>, one without in
+    /// <c>UITheme.BuildingLabelPlain</c>.</summary>
     public string HostsSystem = "";
+
+    /// <summary>Optional short name drawn on the campus map. Leave unset and
+    /// <see cref="EffectiveMapLabel"/> derives one from <see cref="Name"/>; set it only when
+    /// the derived name is too long to sit on a hex.</summary>
+    public string MapLabel = "";
+
+    /// <summary>The text actually drawn on the map: <see cref="MapLabel"/> when authored,
+    /// otherwise <see cref="Name"/> with a leading "The " stripped, so "The Gatehouse Yard"
+    /// reads as "Gatehouse Yard" without needing a label authored for every building.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string EffectiveMapLabel =>
+        !string.IsNullOrEmpty(MapLabel) ? MapLabel
+        : (Name != null && Name.StartsWith("The ", System.StringComparison.OrdinalIgnoreCase)
+            ? Name.Substring(4)
+            : Name ?? "");
 
     // ── Tiers ───────────────────────────────────────────────────────────
     public int MaxTier = 3;

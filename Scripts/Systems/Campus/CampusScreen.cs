@@ -39,6 +39,29 @@ public partial class CampusScreen : Control
     private VBoxContainer _buildingContainer;
 
     // Campus tab (hex map)
+    /// <summary>Starting camera pitch for the campus map. -60° keeps near and far hexes
+    /// close enough in apparent size that every building label reads at once; combat's -35°
+    /// left the far half of the disc illegible.</summary>
+    private const float CampusStartPitch = -60f;
+
+    /// <summary>Y offset where tab content begins — below the title bar (60) and the tab
+    /// bar (44). The map layer, the dim backdrop and every tab panel all start here, so they
+    /// stack exactly and none of them covers the bars.</summary>
+    private const int TabContentTop = 104;
+
+    /// <summary>Width of the right-docked building list on the Campus tab. Everything left of
+    /// it stays interactive map — see the panel-construction note in BuildUI.</summary>
+    private const int CampusListWidth = 560;
+
+    /// <summary>Full-screen host for the 3D campus. Added before the panels, so it renders
+    /// behind them: the campus is the SCREEN now, not a picture inside the Campus tab.</summary>
+    private Control _mapLayer;
+
+    /// <summary>Dims the map while a panel is open. Visible for every panel except Campus,
+    /// which IS the map view. Also swallows clicks, so nothing reaches the grid through an
+    /// open panel.</summary>
+    private ColorRect _dimBackdrop;
+
     private CampusGridManager _campusGrid;
     private CampusInputController _campusInput;
     private CameraController _campusCameraController;
@@ -101,7 +124,19 @@ public partial class CampusScreen : Control
         AddChild(bg);
 
         // Title bar
-        var titleBar = new Panel();
+      
+        // The campus map, full-screen, behind everything added after this point.
+        BuildCampusMap();
+
+        // Dimmer between the map and the panels. Added here so it sits above the map and
+        // below the bars and panels; MouseFilter.Stop is load-bearing — without it, clicks
+        // meant for an open panel would fall through to the hex grid behind it.
+        _dimBackdrop = new ColorRect { Color = new Color(0f, 0f, 0f, 0.62f), Visible = false };
+        _dimBackdrop.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        _dimBackdrop.OffsetTop = TabContentTop;
+        _dimBackdrop.MouseFilter = MouseFilterEnum.Stop;
+        AddChild(_dimBackdrop);
+  var titleBar = new Panel();
         titleBar.SetAnchorsPreset(LayoutPreset.TopWide);
         titleBar.OffsetBottom = 60;
         var titleStyle = new StyleBoxFlat
@@ -163,6 +198,13 @@ public partial class CampusScreen : Control
         AddChild(tabBar);
 
         string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council" };
+        // CampusPanelId's values ARE these indices — the map routes by enum, the bar routes
+        // by index, and nothing else ties them together. Reordering one without the other
+        // would silently send every building on the campus to the wrong room.
+        if (tabNames.Length != Enum.GetValues(typeof(CampusPanelId)).Length)
+            GD.PrintErr($"CampusScreen: {tabNames.Length} tabs but " +
+                        $"{Enum.GetValues(typeof(CampusPanelId)).Length} CampusPanelId values — " +
+                        "the campus map's routing table is out of sync with the tab bar.");
         _tabButtons = new Button[tabNames.Length];
         for (int i = 0; i < tabNames.Length; i++)
         {
@@ -187,13 +229,38 @@ public partial class CampusScreen : Control
         {
             var panel = new ScrollContainer();
             panel.SetAnchorsPreset(LayoutPreset.FullRect);
-            panel.OffsetTop = 104;
+            panel.OffsetTop = TabContentTop;
+
+            if (i == (int)CampusPanelId.Campus)
+            {
+                // RIGHT-DOCKED, and this is not cosmetic.
+                //
+                // A full-rect panel still HIT-TESTS even when its background is fully
+                // transparent. Making the Campus panel see-through therefore did not make it
+                // click-through: it sat over the whole map swallowing every mouse event
+                // before the SubViewportContainer could see one, so MouseEntered never fired
+                // and camera pan/zoom/orbit and grid clicks were all dead — on a map that
+                // looked perfectly fine. Transparency is a paint property; input is a
+                // separate axis.
+                //
+                // Docking it to a strip is the fix that also matches the design: the list
+                // floats beside the campus rather than on top of it, and the rest of the
+                // screen is LIVE map, not merely visible map.
+                panel.AnchorLeft = 1f;
+                panel.OffsetLeft = -CampusListWidth;
+            }
             panel.Visible = false;
             panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             panel.SizeFlagsVertical = SizeFlags.ExpandFill;
 
-            // Slate background so WorldBase doesn't bleed through
-            var panelBg = new StyleBoxFlat { BgColor = UITheme.BgBase };
+            // Opaque slate for every panel except Campus, which is the map view: its
+            // content floats over the live map instead of covering it. Everything else
+            // covers a DIMMED map (see _dimBackdrop) rather than a transparent one, because
+            // a busy 3D scene showing through a data panel is unreadable.
+            var panelBg = new StyleBoxFlat
+            {
+                BgColor = i == (int)CampusPanelId.Campus ? new Color(0f, 0f, 0f, 0f) : UITheme.BgBase,
+            };
             panel.AddThemeStyleboxOverride("panel", panelBg);
 
             AddChild(panel);
@@ -248,9 +315,27 @@ public partial class CampusScreen : Control
         SelectTab(0);
     }
 
+    /// <summary>THE way a campus system is opened. The tab bar and the 3D campus map are both
+    /// selectors that call this — neither is baked into any panel, which is what makes the bar
+    /// deletable later rather than something the map has to replace.</summary>
+    public void Show(CampusPanelId id) => SelectTab((int)id);
+
     private void SelectTab(int index)
     {
         _activeTab = index;
+
+        // Campus IS the map view; every other panel covers a dimmed map.
+        bool mapMode = index == (int)CampusPanelId.Campus;
+        if (_dimBackdrop != null)
+            _dimBackdrop.Visible = !mapMode;
+        // Belt-and-braces alongside the viewport's own hover gating: with the map now
+        // full-screen it sits under every panel, and camera keys must not keep steering it
+        // while the player is reading the Armory.
+        if (!mapMode)
+        {
+            if (_campusCameraController != null) _campusCameraController.AcceptInput = false;
+            if (_campusInput != null) _campusInput.AcceptInput = false;
+        }
         for (int i = 0; i < _tabPanels.Length; i++)
         {
             _tabPanels[i].Visible = (i == index);
@@ -286,34 +371,45 @@ public partial class CampusScreen : Control
     // Guild Tab
     // ═══════════════════════════════════════════════════════════════════════
 
-    private void BuildCampusTab(ScrollContainer scroll)
+    /// <summary>Builds the 3D campus map into the SHELL rather than into a tab — the
+    /// promotion this whole redesign was for. Same grid, camera and input controller as
+    /// before; what changed is the parent and the size.
+    ///
+    /// <para>Called from BuildUI immediately after the background and before the bars and
+    /// panels, because Godot draws later siblings on top: everything added afterwards
+    /// automatically layers over the map.</para>
+    ///
+    /// <para>The map HUD (selection line, resource banner, cancel-placement) floats top-left
+    /// over the viewport instead of stacking above it in a column, since the viewport now
+    /// fills the screen.</para></summary>
+    private void BuildCampusMap()
     {
-        var margins = MakeMargins(32, 20);
-        scroll.AddChild(margins);
-        var layout = MakeVBox(10);
-        margins.AddChild(layout);
+        _mapLayer = new Control { Name = "CampusMapLayer" };
+        _mapLayer.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        _mapLayer.OffsetTop = TabContentTop;
+        // Ignore, not Stop: the SubViewportContainer beneath needs the hover events that
+        // gate camera and grid input, and a Control that swallowed them would freeze the map.
+        _mapLayer.MouseFilter = MouseFilterEnum.Ignore;
+        AddChild(_mapLayer);
 
-        AddSectionHeader(layout, "Campus Buildings");
+        // Stretch resizes the SubViewport to the container, so the 3D render follows the
+        // window instead of the old fixed 560x560 square.
+        var viewportContainer = new SubViewportContainer { Stretch = true };
+        viewportContainer.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        _mapLayer.AddChild(viewportContainer);
 
-        var note = new Label
-        {
-            Text = "Construct and upgrade buildings to gain permanent bonuses across all runs. " +
-                   "Built buildings must be sited on the map before their bonuses feel like a place.",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        note.Modulate = UITheme.CampusSubtleText;
-        layout.AddChild(note);
-        layout.AddChild(new HSeparator());
-
-        var splitRow = new HBoxContainer();
-        splitRow.AddThemeConstantOverride("separation", 20);
-        layout.AddChild(splitRow);
-
-        // ── Left: the hex map (3D — same HexTile/TileData tech combat uses) ──
+        // HUD column, floating over the map rather than stacked above it.
         var mapCol = MakeVBox(6);
-        mapCol.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-        splitRow.AddChild(mapCol);
+        // Anchors only, then Position — NOT SetAnchorsAndOffsetsPreset. That preset zeroes
+        // every offset, so a later OffsetLeft/OffsetTop yields a NEGATIVE size and the HUD
+        // collapses to whatever its content minimum happens to be.
+        mapCol.SetAnchorsPreset(LayoutPreset.TopLeft);
+        mapCol.Position = new Vector2(24, 16);
+        // Same trap as the Campus panel: a container defaults to MouseFilter.Stop and would
+        // punch a dead rectangle into the top-left corner of the map. The Cancel Placement
+        // button inside it keeps Stop, because it does need clicks.
+        mapCol.MouseFilter = MouseFilterEnum.Ignore;
+        _mapLayer.AddChild(mapCol);
 
         _campusSelectionLabel = new Label { Text = "Click a building to select it." };
         _campusSelectionLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -336,6 +432,7 @@ public partial class CampusScreen : Control
             ContentMarginBottom = 6,
         };
         bannerPanel.AddThemeStyleboxOverride("panel", bannerStyle);
+        bannerPanel.MouseFilter = MouseFilterEnum.Ignore;   // readout only — never eats a click
         _campusResourceBanner = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -345,16 +442,13 @@ public partial class CampusScreen : Control
         bannerPanel.AddChild(_campusResourceBanner);
         mapCol.AddChild(bannerPanel);
 
-        var viewportContainer = new SubViewportContainer
-        {
-            Stretch = true,
-            CustomMinimumSize = new Vector2(560, 560),
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-        };
-        mapCol.AddChild(viewportContainer);
-
         _campusViewport = new SubViewport
         {
+            // project.godot sets anti_aliasing/quality/msaa_3d=2 (4x), but that applies to
+            // the ROOT viewport only — a SubViewport created in code defaults to MSAA
+            // disabled and does not inherit it. That was the jagged hex edges and the
+            // stair-stepped horizon; combat looked better partly for this one reason.
+            Msaa3D = Viewport.Msaa.Msaa4X,
             Size = new Vector2I(560, 560),
             TransparentBg = true,
         };
@@ -444,11 +538,35 @@ public partial class CampusScreen : Control
         var cancelPlaceBtn = MakeButton("Cancel Placement", 160, 32, UITheme.CampusBuildSmallFontSize, isPrimary: false);
         cancelPlaceBtn.Pressed += () => _campusInput?.CancelDrag();
         mapCol.AddChild(cancelPlaceBtn);
+    }
 
-        // ── Right: the existing build/upgrade list, now collapsible ─────
+    /// <summary>The Campus tab, reduced to the build/upgrade list now that the map it used to
+    /// sit beside is the whole screen. Its panel background is transparent (see BuildUI), so
+    /// this list reads as floating over the campus rather than replacing it — the one tab
+    /// where the map stays visible and undimmed.</summary>
+    private void BuildCampusTab(ScrollContainer scroll)
+    {
+        var margins = MakeMargins(32, 20);
+        scroll.AddChild(margins);
+        var layout = MakeVBox(10);
+        margins.AddChild(layout);
+
+        AddSectionHeader(layout, "Campus Buildings");
+
+        var note = new Label
+        {
+            Text = "Construct and upgrade buildings to gain permanent bonuses across all runs. " +
+                   "Built buildings must be sited on the map before their bonuses feel like a place.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        note.Modulate = UITheme.CampusSubtleText;
+        layout.AddChild(note);
+        layout.AddChild(new HSeparator());
+
         var listCol = MakeVBox(6);
         listCol.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        splitRow.AddChild(listCol);
+        layout.AddChild(listCol);
 
         _buildingListCollapseBtn = new Button
         {
@@ -748,7 +866,11 @@ public partial class CampusScreen : Control
         // landmark states after a narrative beat advances ruined → active → restored.
         _campusGrid.LoadLandmarks(save.HasFlag);
 
-        _campusCameraController?.FrameGrid(_campusGrid.CampusGridBoundsMin, _campusGrid.CampusGridBoundsMax);
+        // Steeper than combat's default -35°: the campus is a management map read by its
+        // labels, not a tactical board read by its silhouettes. Still orbitable — this sets
+        // the STARTING angle, it does not clamp what the player can do afterwards.
+        _campusCameraController?.FrameGrid(_campusGrid.CampusGridBoundsMin, _campusGrid.CampusGridBoundsMax,
+                                           pitch: CampusStartPitch);
     }
 
     /// <summary>Wired to the "Place on Map" button. Starts a drag via
@@ -766,12 +888,29 @@ public partial class CampusScreen : Control
 
     private void OnCampusBuildingSelected(string buildingId, Vector2I anchor)
     {
-        // Seam for the eventual building info sub-menu / HUD bus — not built yet,
-        // this just surfaces selection for now.
         var template = BuildingDatabase.GetTemplate(buildingId);
         _campusSelectionLabel.Text = template != null
             ? $"Selected: {template.Name}"
             : $"Selected: {buildingId}";
+
+        // Diegetic navigation, step one: a building that hosts a system IS the door to it.
+        // Routing lives in CampusLocationRegistry, keyed off the building JSON's hostsSystem,
+        // so adding a door is a data edit. Buildings without a key stay inert and keep the
+        // select-and-label behaviour above — that is the majority of them.
+        var dest = CampusLocationRegistry.ForBuilding(buildingId);
+        if (!dest.IsValid)
+            return;
+
+        if (dest.Panel.HasValue)
+        {
+            Show(dest.Panel.Value);
+            GD.Print($"[Campus] '{buildingId}' → {dest.Panel.Value} panel.");
+        }
+        else
+        {
+            GD.Print($"[Campus] '{buildingId}' → {dest.ScenePath}");
+            GetTree().ChangeSceneToFile(dest.ScenePath);
+        }
     }
 
     private void OnCampusTileClicked(Vector2I axial)

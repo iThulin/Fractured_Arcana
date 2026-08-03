@@ -12,13 +12,13 @@ using System.Collections.Generic;
 //                 (single source of truth, no join table); this
 //                 class only describes the ground itself.
 // Layer:          Data
-// Collaborators:  EternalLedger.cs (owner), CampusHexGrid.cs
+// Collaborators:  EternalLedger.cs (owner), CampusGridManager.cs
 //                 (reads this + Ledger.Buildings to populate
-//                 CampusHex children), GuildSaveData.cs (Buildings)
+//                 HexTile children), GuildSaveData.cs (Buildings)
 // See:            guild_campus_v2.docx §1-5, §8 (Campus Grounds),
 //                 single_world_refactor_v2.docx §2 (the data/view
 //                 split this mirrors — this class is the "world
-//                 data" layer, CampusHexGrid is the "view")
+//                 data" layer, CampusGridManager is the "view")
 // ============================================================
 
 /// <summary>
@@ -55,9 +55,14 @@ public class CampusMapSaveData
     /// §3, §5) — GenerateDefault leaves it blank rather than guessing.</summary>
     public string EntryDockType = "";
 
-    /// <summary>Seed for one-time cosmetic ground generation on a brand-new guild
-    /// (see CampusHexGrid.GenerateDefaultLayout). Irrelevant once Tiles is populated —
-    /// nothing re-derives from this after first creation.</summary>
+    /// <summary>Seed for one-time cosmetic ground generation on a brand-new guild.
+    /// RESERVED, not yet used: GenerateDefault stores it but lays every tile as Lawn with a
+    /// Plaza at the centre, with no seeded variation. Irrelevant once Tiles is populated —
+    /// nothing re-derives from this after first creation.
+    ///
+    /// (Previously cited CampusHexGrid.GenerateDefaultLayout, which was doubly wrong: that
+    /// class was retired on 2026-08-03, and the method never existed on the side that
+    /// replaced it.)</summary>
     public int Seed = 0;
 
     public List<CampusTileSaveData> Tiles = new();

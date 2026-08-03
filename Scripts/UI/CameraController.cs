@@ -164,7 +164,12 @@ public partial class CameraController : Node3D
     /// midpoint including Y, and the start zoom respects the terrain-aware
     /// safety floor so the camera can never spawn inside the mesh.
     /// </summary>
-    public void FrameGrid(Vector3 min, Vector3 max)
+    /// <param name="pitch">Starting camera pitch. Defaults to the combat board's -35°, a
+    /// low diorama angle that reads well for a 2-zone arena. The CAMPUS passes a steeper
+    /// value: on a radius-5 disc, -35° foreshortens the far half so hard that its hex labels
+    /// are unreadable, and there is no tactical reason for a management map to sit low.</param>
+    /// <param name="yaw">Starting camera yaw. Defaults to -45°.</param>
+    public void FrameGrid(Vector3 min, Vector3 max, float pitch = -35f, float yaw = -45f)
     {
         if (!EnsureCameraNodes())
             return;
@@ -186,8 +191,8 @@ public partial class CameraController : Node3D
         _pivot.Position = Vector3.Zero;
         _camera.RotationDegrees = Vector3.Zero;
 
-        _yaw = -45f;
-        _pitch = -35f;
+        _yaw = yaw;
+        _pitch = Mathf.Clamp(pitch, MinPitch, MaxPitch);
         _pivot.RotationDegrees = new Vector3(_pitch, _yaw, 0f);
 
         // Per-map zoom ceiling: proportional to the arena, capped by MaxZoom.
