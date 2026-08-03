@@ -40,6 +40,24 @@ public partial class CampusInputController : Node3D
     private CampusGridManager _grid;
     private Camera3D _camera;
 
+    private bool _acceptInput = true;
+
+    /// <summary>Same gate as CameraController.AcceptInput, same reason: the drag-
+    /// preview raycast reads GetViewport().GetMousePosition() every motion event,
+    /// which has the same SubViewport-local-position ambiguity when the cursor isn't
+    /// actually over this viewport. Default true. Deactivating mid-drag cancels the
+    /// drag outright rather than leaving it frozen and invisible until reactivated.</summary>
+    public bool AcceptInput
+    {
+        get => _acceptInput;
+        set
+        {
+            _acceptInput = value;
+            if (!value && _draggingBuildingId != null)
+                CancelDrag();
+        }
+    }
+
     // ── Drag state ────────────────────────────────────────────────────
     private string _draggingBuildingId = null;
     private Building _draggingTemplate = null;
@@ -108,6 +126,8 @@ public partial class CampusInputController : Node3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (!AcceptInput)
+            return;
         if (_grid == null || _camera == null)
             return;
 

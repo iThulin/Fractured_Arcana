@@ -50,7 +50,13 @@ public partial class CampusScreen : Control
     private CameraController _campusCameraController;
     private SubViewport _campusViewport;
     private Label _campusSelectionLabel;
+    private Label _campusResourceBanner;
     private string _campusPlacingBuildingId = null; // non-null while a drag placement is in progress
+
+    // Campus tab — building list collapse
+    private VBoxContainer _buildingListSection;
+    private Button _buildingListCollapseBtn;
+    private bool _buildingListCollapsed = false;
 
     // Armory tab
     private VBoxContainer _armoryContainer;
@@ -554,6 +560,31 @@ public partial class CampusScreen : Control
         _campusSelectionLabel.Modulate = UITheme.CampusSubtleText;
         mapCol.AddChild(_campusSelectionLabel);
 
+        // Gold/Materials banner — local to the viewport so it's visible while focused
+        // on placement, rather than only in the screen's top title bar.
+        var bannerPanel = new PanelContainer();
+        var bannerStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.12f, 0.11f, 0.09f, 0.85f),
+            CornerRadiusTopLeft = UITheme.CornerRadius,
+            CornerRadiusTopRight = UITheme.CornerRadius,
+            CornerRadiusBottomLeft = UITheme.CornerRadius,
+            CornerRadiusBottomRight = UITheme.CornerRadius,
+            ContentMarginLeft = 12,
+            ContentMarginRight = 12,
+            ContentMarginTop = 6,
+            ContentMarginBottom = 6,
+        };
+        bannerPanel.AddThemeStyleboxOverride("panel", bannerStyle);
+        _campusResourceBanner = new Label
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        _campusResourceBanner.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildFontSize);
+        _campusResourceBanner.AddThemeColorOverride("font_color", new Color(1f, 0.9f, 0.6f));
+        bannerPanel.AddChild(_campusResourceBanner);
+        mapCol.AddChild(bannerPanel);
+
         var viewportContainer = new SubViewportContainer
         {
             Stretch = true,
@@ -624,17 +655,55 @@ public partial class CampusScreen : Control
         _campusInput.PlacementConfirmed += OnCampusPlacementConfirmed;
         _campusInput.PlacementCancelled += OnCampusPlacementCancelled;
 
+        // Both CameraController and CampusInputController poll/read raw input that
+        // Godot's normal event-consumption pipeline can't scope by screen position on
+        // its own (see AcceptInput's doc comment on each) — so this viewport's own
+        // hover state, tracked via the Control wrapping it, is what gates them. This
+        // is what stops mouse motion / WASD from bleeding into the building list.
+        viewportContainer.MouseEntered += () =>
+        {
+            _campusCameraController.AcceptInput = true;
+            _campusInput.AcceptInput = true;
+        };
+        viewportContainer.MouseExited += () =>
+        {
+            _campusCameraController.AcceptInput = false;
+            _campusInput.AcceptInput = false;
+        };
+        // Starts inactive — nothing has entered the viewport yet at build time.
+        _campusCameraController.AcceptInput = false;
+        _campusInput.AcceptInput = false;
+
         var cancelPlaceBtn = MakeButton("Cancel Placement", 160, 32, UITheme.CampusBuildSmallFontSize, isPrimary: false);
         cancelPlaceBtn.Pressed += () => _campusInput?.CancelDrag();
         mapCol.AddChild(cancelPlaceBtn);
 
-        // ── Right: the existing build/upgrade list ───────────────────────
-        var listCol = MakeVBox(10);
+        // ── Right: the existing build/upgrade list, now collapsible ─────
+        var listCol = MakeVBox(6);
         listCol.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         splitRow.AddChild(listCol);
 
+        _buildingListCollapseBtn = new Button
+        {
+            Text = "▼  Buildings",
+            Alignment = HorizontalAlignment.Left,
+        };
+        _buildingListCollapseBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildFontSize);
+        _buildingListCollapseBtn.Pressed += ToggleBuildingListCollapsed;
+        listCol.AddChild(_buildingListCollapseBtn);
+
+        _buildingListSection = MakeVBox(10);
+        listCol.AddChild(_buildingListSection);
+
         _buildingContainer = MakeVBox(10);
-        listCol.AddChild(_buildingContainer);
+        _buildingListSection.AddChild(_buildingContainer);
+    }
+
+    private void ToggleBuildingListCollapsed()
+    {
+        _buildingListCollapsed = !_buildingListCollapsed;
+        _buildingListSection.Visible = !_buildingListCollapsed;
+        _buildingListCollapseBtn.Text = _buildingListCollapsed ? "▶  Buildings" : "▼  Buildings";
     }
 
     private void BuildArmoryTab(ScrollContainer scroll)
@@ -2279,8 +2348,15 @@ public partial class CampusScreen : Control
             return;
         var save = SaveManager.ActiveSave;
         if (save == null)
-        { _goldLabel.Text = ""; return; }
+        {
+            _goldLabel.Text = "";
+            if (_campusResourceBanner != null)
+                _campusResourceBanner.Text = "";
+            return;
+        }
         _goldLabel.Text = $"Gold: {save.Gold}    Materials: {save.BuildMaterials}    ✦ {save.ArcaneSplinters} Splinters";
+        if (_campusResourceBanner != null)
+            _campusResourceBanner.Text = $"Gold: {save.Gold}     Materials: {save.BuildMaterials}";
     }
 
     // ═══════════════════════════════════════════════════════════════════════
