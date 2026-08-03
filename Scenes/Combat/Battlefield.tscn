@@ -35,16 +35,20 @@
 [ext_resource type="ArrayMesh" uid="uid://brh2bfy3k2uo2" path="res://Assets/Terrain/Painterly_Rocks/Rock_8.tres" id="22_a00u1"]
 [ext_resource type="ArrayMesh" uid="uid://67powmk7dj6h" path="res://Assets/Terrain/Painterly_Rocks/Rock_9.tres" id="23_3oinc"]
 [ext_resource type="Material" uid="uid://brf6b5tpj6geu" path="res://Assets/Materials/PainterlyMaterials/Painterly_rocks.tres" id="24_k1fpm"]
-[ext_resource type="ArrayMesh" uid="uid://dqdysdb5wknh8" path="res://Assets/Props/Rocks/Boulder_Craggy.obj" id="28_6jeje"]
+[ext_resource type="ArrayMesh" uid="uid://cjkva03nwisa7" path="res://Assets/Terrain/Painterly_Rocks/Medium_Rock_1.tres" id="28_5nbsq"]
 [ext_resource type="Material" path="res://Assets/Materials/PainterlyMaterials/Painterly_rocks_mountain.tres" id="29_6jt2h"]
 [ext_resource type="Script" uid="uid://dh1cdr75p3xg1" path="res://Scripts/Systems/Combat/Terrain/CanopyOcclusionManager.cs" id="29_6m6xa"]
 [ext_resource type="Shader" uid="uid://dvlcmpjwn3pgx" path="res://Assets/Shaders/painterly_water.gdshader" id="29_onrkg"]
-[ext_resource type="ArrayMesh" uid="uid://bvxjcyb0fb58h" path="res://Assets/Props/Rocks/Boulder_Low.obj" id="29_tv4sg"]
-[ext_resource type="ArrayMesh" uid="uid://dlhuvt2o8ug7t" path="res://Assets/Props/Rocks/Boulder_Round.obj" id="30_fyiu3"]
+[ext_resource type="ArrayMesh" uid="uid://cki6t0olnwljc" path="res://Assets/Terrain/Painterly_Rocks/Medium_Rock_2.tres" id="29_ou6bo"]
 [ext_resource type="Script" uid="uid://dt2tyjio5prr8" path="res://Scripts/Systems/Combat/Core/MovementZoneRenderer.cs" id="30_q7oa6"]
-[ext_resource type="ArrayMesh" uid="uid://c5xoh2eg6xl8g" path="res://Assets/Props/Rocks/Boulder_Slab.obj" id="31_j7l1l"]
-[ext_resource type="ArrayMesh" uid="uid://c58w18jbied6i" path="res://Assets/Props/Rocks/Boulder_Spire.obj" id="32_5nbsq"]
-[ext_resource type="ArrayMesh" uid="uid://b8luglm0ab621" path="res://Assets/Props/Rocks/Boulder_Wedge.obj" id="33_ou6bo"]
+[ext_resource type="ArrayMesh" uid="uid://cb6i3maenb53x" path="res://Assets/Terrain/Painterly_Rocks/Medium_Rock_3.tres" id="30_suxgo"]
+[ext_resource type="ArrayMesh" uid="uid://bpsqq4y7s5k4w" path="res://Assets/Terrain/Painterly_Rocks/Medium_Rock_4.tres" id="31_qnffl"]
+[ext_resource type="ArrayMesh" uid="uid://cf0h5jr4ndirx" path="res://Assets/Terrain/Painterly_Rocks/Medium_Rock_5.tres" id="32_vq4v1"]
+[ext_resource type="ArrayMesh" uid="uid://db5gjhp53nfyg" path="res://Assets/Terrain/Painterly_Rocks/Medium_Rock_6.tres" id="33_bo5fi"]
+[ext_resource type="ArrayMesh" uid="uid://bxt1x72a3tkxw" path="res://Assets/Terrain/Painterly_Rocks/Medium_Rock_7.tres" id="34_reeql"]
+[ext_resource type="ArrayMesh" uid="uid://dnnxtrvc1aqx6" path="res://Assets/Terrain/Painterly_Rocks/Medium_Rock_8.tres" id="35_sliv3"]
+[ext_resource type="ArrayMesh" uid="uid://dni0i7lqtuph4" path="res://Assets/Terrain/Painterly_Rocks/Medium_Rock_9.tres" id="36_g6tlk"]
+[ext_resource type="ArrayMesh" uid="uid://eed3adm40asn" path="res://Assets/Terrain/Painterly_Rocks/Medium_Rock_10.tres" id="37_ah504"]
 
 [sub_resource type="Resource" id="Resource_6jt2h"]
 script = ExtResource("16_6m6xa")
@@ -162,7 +166,7 @@ PainterlyGrassMesh = ExtResource("14_16blo")
 GrassDebugLog = true
 GrassBladesPerTile = 300
 RockMeshes = Array[Mesh]([ExtResource("15_6m6xa"), ExtResource("16_q7oa6"), ExtResource("17_onrkg"), ExtResource("18_6jt2h"), ExtResource("19_hodjo"), ExtResource("20_ar26w"), ExtResource("21_xj70s"), ExtResource("22_a00u1"), ExtResource("23_3oinc")])
-MountainRockMeshes = Array[Mesh]([ExtResource("28_6jeje"), ExtResource("29_tv4sg"), ExtResource("30_fyiu3"), ExtResource("31_j7l1l"), ExtResource("32_5nbsq"), ExtResource("33_ou6bo")])
+MountainRockMeshes = Array[Mesh]([ExtResource("28_5nbsq"), ExtResource("29_ou6bo"), ExtResource("30_suxgo"), ExtResource("31_qnffl"), ExtResource("32_vq4v1"), ExtResource("33_bo5fi"), ExtResource("34_reeql"), ExtResource("35_sliv3"), ExtResource("36_g6tlk"), ExtResource("37_ah504")])
 RockMaterial = ExtResource("24_k1fpm")
 MountainRockMaterial = ExtResource("29_6jt2h")
 RocksPerTile = 3

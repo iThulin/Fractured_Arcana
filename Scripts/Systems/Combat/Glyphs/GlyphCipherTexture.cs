@@ -82,14 +82,24 @@ public partial class GlyphCipherTexture : Node
     }
 
     /// <summary>Awaitable bake. Prefer <see cref="RequestAsync"/> from node code.</summary>
-    public async Task<ImageTexture> BakeAsync(string key, string cardId, string half,
-                                              CardHalf data, int px, CipherLod lod, bool dark)
+    public Task<ImageTexture> BakeAsync(string key, string cardId, string half,
+                                        CardHalf data, int px, CipherLod lod, bool dark)
+        => BakeGlyphAsync(key, GlyphCipherTags.BuildFor(cardId, half, data), px, lod, dark);
+
+    /// <summary>
+    /// Bakes an ALREADY-BUILT glyph. Split out of <see cref="BakeAsync"/> so the element
+    /// runes (which are authored, not generated from a card) go through the exact same
+    /// SubViewport path — including the two-frame await, which is subtle enough that a
+    /// second copy of it would eventually drift and produce blank textures on some
+    /// drivers only.
+    /// </summary>
+    public async Task<ImageTexture> BakeGlyphAsync(string key, CipherGlyph glyph,
+                                                   int px, CipherLod lod, bool dark)
     {
         ImageTexture result = null;
         SubViewport vp = null;
         try
         {
-            var glyph = GlyphCipherTags.BuildFor(cardId, half, data);
             if (glyph == null) { Resolve(key, null); return null; }
 
             vp = new SubViewport
@@ -171,6 +181,36 @@ public partial class GlyphCipherTexture : Node
         var data = half == "bottom" ? bp?.Prebuilt?.BottomHalf : bp?.Prebuilt?.TopHalf;
         if (data == null) { onReady?.Invoke(null); return; }
         RequestAsync(blueprintId, half, data, px, lod, dark, onReady);
+    }
+
+    /// <summary>
+    /// Requests a baked texture for an AUTHORED glyph (the elemental imbuement runes),
+    /// rather than one generated from a card. <paramref name="runeId"/> only has to be
+    /// stable and unique — it is the cache key, not a card id, and is namespaced so it
+    /// can never collide with a blueprint id.
+    ///
+    /// Bake at <see cref="CipherLod.Tile"/>. It thickens the identity layer 1.7x and its
+    /// backing alpha is 0 (glyph_sigil.gdshader draws that separately), which is exactly
+    /// what a rune viewed from board distance needs — a 0.017 unit stroke bakes to ~2.2px
+    /// in a 256px Card composite and the mip chain averages it toward transparent as the
+    /// camera pulls back. That failure has already been paid for once on the tile decal.
+    /// Do NOT use Inspection: it draws pips for every UNSET verb, which for a rune with
+    /// <c>Verbs = None</c> means all six.
+    /// </summary>
+    public void RequestRuneAsync(string runeId, CipherGlyph glyph, int px,
+                                 CipherLod lod, bool dark, Action<ImageTexture> onReady)
+    {
+        if (onReady == null) return;
+        if (glyph == null || string.IsNullOrEmpty(runeId)) { onReady(null); return; }
+
+        px = Mathf.Clamp(px, 32, 1024);
+        string key = KeyOf("rune:" + runeId, "-", px, lod, dark);
+
+        if (_cache.TryGetValue(key, out var hit)) { onReady(hit); return; }
+        if (_pending.TryGetValue(key, out var waiters)) { waiters.Add(onReady); return; }
+
+        _pending[key] = new List<Action<ImageTexture>> { onReady };
+        _ = BakeGlyphAsync(key, glyph, px, lod, dark);
     }
 
     /// <summary>Drops every cached texture. Call on a resolution change or when leaving combat for a long session.</summary>

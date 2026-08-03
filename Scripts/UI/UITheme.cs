@@ -255,14 +255,33 @@ public static class UITheme
     public static readonly Color ElementStorm = new Color(0.72f, 0.65f, 0.08f, 1f);
     public static readonly Color ElementEarth = new Color(0.52f, 0.38f, 0.15f, 1f);
 
-    public static readonly Color ElementTintFire = new Color(1.00f, 0.42f, 0.08f, 1f);
-    public static readonly Color ElementTintFrost = new Color(0.60f, 0.88f, 1.00f, 1f);
-    public static readonly Color ElementTintLightning = new Color(0.92f, 0.85f, 1.00f, 1f);
-    public static readonly Color ElementTintEarth = new Color(0.72f, 0.52f, 0.22f, 1f);
-    public static readonly Color ElementTintWater = new Color(0.28f, 0.58f, 0.95f, 1f);
-    public static readonly Color ElementTintAir = new Color(0.82f, 0.95f, 0.85f, 1f);
-    public static readonly Color ElementTintArcane = new Color(0.80f, 0.38f, 1.00f, 1f);
-    public static readonly Color ElementTintShadow = new Color(0.45f, 0.18f, 0.52f, 1f);
+    // Imbuement overlay tints. Referenced ONLY by ImbuementOverlay.cs -- these
+    // are board colours, not UI colours, and nothing in the card layer reads
+    // them. Muted for the painterly pass: the originals pinned channels at
+    // 1.00 and 0.08, which is exactly the saturation the style guide rules
+    // out, and additive blending then pushed them to white over lit grass.
+    //
+    // Hue separation is deliberately PRESERVED even though saturation dropped,
+    // because which element a tile carries is gameplay state
+    // (redesign doc SS2). Lightning moved off pale violet to straw gold to
+    // pull it away from Frost and Air, which all read as "pale" once muted.
+    //
+    // See docs/imbuement_painterly_redesign_v1.md SS3.4.
+    public static readonly Color ElementTintFire = new Color(0.86f, 0.44f, 0.22f, 1f);
+    public static readonly Color ElementTintFrost = new Color(0.66f, 0.84f, 0.90f, 1f);
+    // Storm is AMETHYST now, because its form is an amethyst cluster. Straw gold
+    // was chosen when it was bare filaments and the only job was separating it
+    // from Frost and Air; the geometry now carries that separation on its own.
+    public static readonly Color ElementTintLightning = new Color(0.60f, 0.42f, 0.86f, 1f);
+    public static readonly Color ElementTintEarth = new Color(0.64f, 0.50f, 0.30f, 1f);
+    public static readonly Color ElementTintWater = new Color(0.36f, 0.56f, 0.74f, 1f);
+    public static readonly Color ElementTintAir = new Color(0.78f, 0.86f, 0.80f, 1f);
+    // Nudged toward magenta ONLY to stay clear of Storm's new amethyst. Two violet
+    // elements on one board is a legibility problem, not a palette preference —
+    // which element a tile carries is targetable state. Shape separates them too
+    // (floating shards vs. ground clusters), but hue should not be doing nothing.
+    public static readonly Color ElementTintArcane = new Color(0.80f, 0.44f, 0.70f, 1f);
+    public static readonly Color ElementTintShadow = new Color(0.34f, 0.26f, 0.38f, 1f);
 
     // ════════════════════════════════════════════════════════════
     // COMBAT UI

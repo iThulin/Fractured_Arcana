@@ -396,6 +396,13 @@ public partial class HexTile : Node3D
             EnsureImbuementOverlay();
 
         imbuementOverlay?.SetElement(element);
+
+        // Record it board-wide so the TERRAIN can respond — snow settling on the
+        // grass, fire burning it away. Separate from the overlay on purpose: the
+        // overlay is what stands ON this tile, the field is what this tile does to
+        // the world around it, and grass is chunked 3x3 tiles per MultiMesh so it
+        // can only be reached through a world-space lookup.
+        ImbuementField.SetTile(GetInstanceId(), GlobalPosition, element);
     }
 
     /// <summary>Edge length in pixels of the baked glyph-cipher decal. 256 rather than 128:

@@ -226,6 +226,70 @@ uniform float toon_softness : hint_range(0.0, 1.0) = 0.12;
 /** Wraps light around the blade so shadowed sides aren't pure black. Higher = flatter, softer light. */
 uniform float toon_wrap : hint_range(0.0, 1.0) = 0.25;
 
+// ---- Imbuement response (snow settles, fire scorches) --------------------
+//
+// OFF BY DEFAULT AND THAT IS LOAD-BEARING. This is the most widely used shader
+// in the game; a regression here is a regression everywhere. With
+// use_imbuement_field false every line below is skipped and this file behaves
+// exactly as it did. ImbuementField.Attach() is the only thing that turns it on.
+group_uniforms imbuement;
+
+/** Master switch. ImbuementField.Attach sets this; never enable it by hand without also assigning the texture. */
+uniform bool use_imbuement_field = false;
+
+/**
+ * Board-wide RGBA lookup from ImbuementField.cs. R=snow G=scorch B=wet A=wither.
+ *
+ * hint_default_transparent, NOT hint_default_black: Godot's default black is
+ * (0,0,0,1), and alpha here is WITHER — an unassigned texture would desaturate
+ * every blade on the map. Confirmed to parse in this project (painterly_water
+ * uses it).
+ */
+uniform sampler2D imbuement_field : hint_default_transparent, repeat_disable, filter_linear;
+
+/** World XZ centre of the field. Must match ImbuementField.Origin. */
+uniform vec2  field_origin = vec2(0.0, 0.0);
+
+/** World units spanned by the field. Must match ImbuementField.Extent. */
+uniform float field_extent = 96.0;
+
+/** Colour snow-laden blades tend toward. Tip-weighted — snow settles on top, not on stems. */
+uniform vec3  snow_color : source_color = vec3(0.88, 0.92, 0.96);
+
+/** How far toward snow_color a fully frosted blade goes. */
+uniform float snow_strength : hint_range(0.0, 1.0) = 0.85;
+
+/** How much of the blade is buried. Frost shortens grass; it does not remove it. */
+uniform float snow_shorten : hint_range(0.0, 1.0) = 0.30;
+
+/** How rigid frost makes the grass. 1.0 = FROZEN GRASS DOES NOT SWAY, which is the whole point of the element. */
+uniform float snow_stiffen : hint_range(0.0, 1.0) = 1.0;
+
+/**
+ * Colour blades on BARE ground tend toward. The G channel is shared: Fire drives
+ * it to 1.0 and reads as char, Earth stops at ~0.55 and lands roughly halfway,
+ * which reads as churned mud. Retune this and you restyle both — Earth's share is
+ * set by ImbuementField.StrengthOf, which is where to tune that element.
+ */
+uniform vec3  scorch_color : source_color = vec3(0.16, 0.13, 0.11);
+
+/** How far toward scorch_color a fully burnt blade goes. */
+uniform float scorch_strength : hint_range(0.0, 1.0) = 0.92;
+
+/** How much of the blade bare ground removes. At 1.0 the blade collapses to nothing — the grass is GONE, not merely dark. Fire reaches full strength; Earth (sharing this channel) only ever drives it partway, so its tiles thin rather than clear. */
+uniform float scorch_consume : hint_range(0.0, 1.0) = 0.95;
+
+/** Colour wet blades tend toward. Darker and a touch bluer, as wet vegetation is. */
+uniform vec3  wet_color : source_color = vec3(0.42, 0.55, 0.44);
+
+/** How far toward wet_color a fully soaked blade goes. */
+uniform float wet_strength : hint_range(0.0, 1.0) = 0.55;
+
+/** How far withered grass desaturates toward its own luminance. */
+uniform float wither_strength : hint_range(0.0, 1.0) = 0.80;
+
+group_uniforms;
+
 // ---- Distance fade (kills far-field blade crawl; reads as soft depth) ----
 group_uniforms distance_fade;
 
@@ -330,6 +394,10 @@ float dither_bayer(vec2 fc)
     return (m[i] + 0.5) / 16.0;
 }
 
+// R=snow G=scorch B=wet A=wither at this blade's world position. Zero
+// everywhere unless use_imbuement_field is on.
+varying vec4 v_imbue;
+
 void vertex()
 {
     // Height normalisation, priority order: per-instance custom-data height
@@ -348,6 +416,31 @@ void vertex()
 
     vec3 world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
     v_world_xz = world_pos.xz;
+
+    // Board-wide imbuement lookup. Sampled from WORLD position, which is the
+    // whole reason this works: grass is chunked 3x3 tiles per MultiMesh, so
+    // nothing per-instance and nothing on the material can say anything about
+    // a single tile. World position can.
+    v_imbue = vec4(0.0);
+    if (use_imbuement_field)
+    {
+        vec2 fuv = (world_pos.xz - field_origin) / max(field_extent, 0.0001) + 0.5;
+        // Outside the field is NOT "whatever the edge texel says" and is NOT a
+        // wrapped copy of the far side of the board — both would paint phantom
+        // snow on terrain nobody imbued. repeat_disable handles the wrap; this
+        // handles the clamp.
+        if (fuv.x >= 0.0 && fuv.x <= 1.0 && fuv.y >= 0.0 && fuv.y <= 1.0)
+            v_imbue = texture(imbuement_field, fuv);
+
+        // Fire CONSUMES the blade. Scaling the vertex rather than discarding in
+        // the fragment shader means burnt grass costs nothing to draw and the
+        // silhouette actually changes — a black blade is still a blade.
+        // v_stiffness is left alone deliberately: it is the position ALONG the
+        // blade and drives the colour gradient, which should not slide up as
+        // the blade shortens.
+        float shrink = 1.0 - clamp(v_imbue.g * scorch_consume + v_imbue.r * snow_shorten, 0.0, 1.0);
+        VERTEX.y *= shrink;
+    }
     v_jitter = hash21(floor(world_pos.xz * 7.0)) * 2.0 - 1.0;
 
     // Camera distance (view space) for fade + depth tint.
@@ -380,7 +473,10 @@ void vertex()
     // and stays clean because the busy detail layer is excluded.
     v_wave_coherent = wave;
 
-    float sway = gust * wind_bend * stiffness * stiffness;
+    // FROZEN GRASS DOES NOT SWAY. This is the beat the redesign doc called the
+    // most "this game and no other" idea available, and it is one multiply.
+    float sway = gust * wind_bend * stiffness * stiffness
+               * (1.0 - clamp(v_imbue.r * snow_stiffen, 0.0, 1.0));
     VERTEX.x += ndir.x * sway;
     VERTEX.z += ndir.y * sway;
     VERTEX.y -= abs(sway) * 0.15 * stiffness;
@@ -436,6 +532,27 @@ void fragment()
         float w = wind_shimmer_two_sided ? abs(v_wave_coherent) : max(v_wave_coherent, 0.0);
         float tipw = mix(1.0, v_stiffness, wind_shimmer_tip_bias);
         col = mix(col, wind_shimmer_color, clamp(w, 0.0, 1.0) * wind_shimmer_strength * tipw);
+    }
+
+    // 3.5 Imbuement. Applied AFTER the mass tint and the shimmer on purpose:
+    //     those are the field's own weather, and a scorched blade should not be
+    //     showing you a green clumping pattern underneath.
+    if (use_imbuement_field)
+    {
+        // Snow settles on TIPS. Weighting by v_stiffness is what makes it read
+        // as accumulation rather than as a colour swap.
+        col = mix(col, snow_color, clamp(v_imbue.r, 0.0, 1.0) * snow_strength
+                                 * mix(0.25, 1.0, v_stiffness));
+
+        col = mix(col, wet_color, clamp(v_imbue.b, 0.0, 1.0) * wet_strength);
+
+        // Wither desaturates toward the blade's own luminance instead of toward
+        // a grey constant, so shadow drains a tile without recolouring it.
+        float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+        col = mix(col, vec3(lum) * 0.75, clamp(v_imbue.a, 0.0, 1.0) * wither_strength);
+
+        // Scorch last: it is the only one that wins outright.
+        col = mix(col, scorch_color, clamp(v_imbue.g, 0.0, 1.0) * scorch_strength);
     }
 
     // 3.5 Saturation / vibrance — push richness for the painterly look.

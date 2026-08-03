@@ -218,6 +218,15 @@ public abstract class EffectBase : IEffect
 			var tileData = s?.Grid?.GetTile(tv.Axial);
 			return tileData?.Occupant;
 		}
+
+		// NOTE (2026-08-01): a caster ENTITY is deliberately NOT resolved here.
+		// Self-targeted casts put one in the target set, but so do `aoe` and
+		// `global` ones (CombatManager's SelectAreaTarget / SelectGlobalTarget
+		// cases both `Items.Add(Me)`), and six halves carry a direct damage or
+		// status leaf under an aoe targeter. Mapping the token to the caster in
+		// this shared helper would turn "does nothing" into "hits the caster",
+		// which is strictly worse. The self-cast mapping is done locally by the
+		// two effects that need it — see ApplyStatusEffect and ImbueTileEffect.
 		return null;
 	}
 
@@ -1403,6 +1412,20 @@ public sealed class ImbueTileEffect : EffectBase
 				tile = s.Grid.GetTile(tv.Axial);
 			else if (obj is Unit u && u.CurrentTile != null)
 				tile = u.CurrentTile;
+			else if (obj is Entity ent)
+			{
+				// "Imbue YOUR tile" (2026-08-01). A self-targeted cast puts the
+				// caster ENTITY in the target set, not a Unit — Entity is a bare
+				// `{ string Name }` token — so this loop used to `continue` past it
+				// and the effect silently did nothing. Earth Anchor granted its armor
+				// and imbued no ground; the card looked half-working, not broken.
+				//
+				// Handled HERE rather than in the shared ResolveTargetUnit because
+				// `aoe` and `global` targeters put the same token in their sets, and
+				// six halves carry a direct damage leaf under one. Widening the shared
+				// helper would turn those from "does nothing" into "hits the caster".
+				tile = FindCasterUnit(s, ent)?.CurrentTile;
+			}
 
 			if (tile == null)
 				continue;
@@ -1572,7 +1595,11 @@ public sealed class ApplyStatusEffect : EffectBase
 		{
 			if (aimShape && obj is TileData)
 				continue;
-			var victim = ResolveTargetUnit(s, obj);
+			// A self-targeted cast hands us the caster ENTITY rather than a Unit
+			// (see the note in ResolveTargetUnit). Mapped here and not there, because
+			// aoe/global casts pass the same token to leaves that would then hit the
+			// caster. "You are Rooted" is unambiguous about who it means.
+			var victim = obj is Entity ent ? FindCasterUnit(s, ent) : ResolveTargetUnit(s, obj);
 			if (victim != null)
 			{
 				victim.ApplyStatus(StatusName, Duration);
@@ -1656,6 +1683,43 @@ public sealed class SummonEffect : EffectBase
 	public SummonEffect(string kind, int count, int hpBonus = 0, int damageBonus = 0)
 	{ UnitKind = kind; Count = count; HpBonus = hpBonus; DamageBonus = damageBonus; }
 
+	/// <summary>
+	/// Summons that CHANGE THE GROUND they arrive on. A stone pillar is a chunk of
+	/// rock erupting through the turf: the tile under it is stone afterwards, it
+	/// should read that way, and it should be consumable by anything that eats Earth
+	/// tiles.
+	///
+	/// Keyed on the summon KIND rather than written into each card, because it is a
+	/// property of the thing and not of the spell that made it. Three cards summon a
+	/// stone pillar today (Boulder Hurl, Ember Bolt, Frost Lance) and all three should
+	/// behave identically without three JSON edits to keep in sync.
+	/// </summary>
+	private static readonly Dictionary<string, TileElementType> SpawnImbues = new()
+	{
+		["stone_pillar"] = TileElementType.Earth,
+	};
+
+	/// <summary>
+	/// Applies <see cref="SpawnImbues"/> for a freshly spawned summon. Mirrors
+	/// ImbueTileEffect's write exactly — element, strength, TileView refresh — so a
+	/// tile imbued this way is indistinguishable from one imbued by a spell.
+	/// </summary>
+	private static void ImbueForSummon(GameState s, string kind, TileData tile)
+	{
+		if (s == null || tile == null || kind == null) return;
+		if (!SpawnImbues.TryGetValue(kind, out var element)) return;
+
+		// Same sim gate as ImbueTileEffect: a damage PREVIEW must not really change
+		// the board.
+		if (CombatSim.Active) return;
+
+		tile.ElementType = element;
+		tile.ElementStrength = 1.0f;
+		tile.TileView?.SetElement(element);
+
+		s.Log($"[Summon] {tile.Axial} imbued with {element} by {kind}.");
+	}
+
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		if (s.OnSummonRequested == null)
@@ -1721,6 +1785,8 @@ public sealed class SummonEffect : EffectBase
 				s.UnitsInPlay.Add(spawned);
 				s.Log($"[Summon] Spawned {UnitKind} at {spawnTile.Axial}" +
 					  (HpBonus > 0 || DamageBonus > 0 ? $" (+{HpBonus}HP/+{DamageBonus}DMG)." : "."));
+
+				ImbueForSummon(s, UnitKind, spawnTile);
 			}
 			else
 			{

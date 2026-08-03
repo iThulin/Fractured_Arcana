@@ -53,6 +53,12 @@ public partial class HexGridManager
 
         var nrmArray = TerrainTextureLibrary.GetOrBuildNormals(this, TerrainTextureSize);
         _terrainMaterialTemplate = TerrainMaterialOverride ?? new ShaderMaterial { Shader = shader };
+
+        // Wire the board-wide imbuement lookup so the GROUND responds too, not just
+        // the grass standing on it. Safe on an override material: the shader's
+        // use_imbuement_field defaults to false, so a template that never reaches
+        // this call renders byte-for-byte as before.
+        ImbuementField.Attach(_terrainMaterialTemplate, this);
         _terrainMaterialTemplate.SetShaderParameter("terrain_textures", texArray);
         if (nrmArray != null)
             _terrainMaterialTemplate.SetShaderParameter("terrain_normals", nrmArray);

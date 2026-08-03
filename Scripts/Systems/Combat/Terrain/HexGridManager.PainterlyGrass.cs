@@ -593,7 +593,15 @@ public partial class HexGridManager : Node3D
     private Material ResolvePainterlyGrassMaterial()
     {
         if (PainterlyGrassMaterial != null)
+        {
+            // Wire the board-wide imbuement lookup into the explicit material too.
+            // This is the ONE thing the "used as-is" contract above gets an
+            // exception for, and it is safe: the shader's use_imbuement_field
+            // defaults to false, so a material that never reaches this call is
+            // byte-for-byte the grass it always was.
+            ImbuementField.Attach(PainterlyGrassMaterial as ShaderMaterial, this);
             return PainterlyGrassMaterial;
+        }
 
         if (_painterlyGrassMaterialCache != null)
             return _painterlyGrassMaterialCache;
@@ -611,6 +619,7 @@ public partial class HexGridManager : Node3D
 
         var sm = new ShaderMaterial { Shader = shader };
         sm.SetShaderParameter("wind_noise", WindNoise.CreateSeamless());
+        ImbuementField.Attach(sm, this);
         _painterlyGrassMaterialCache = sm;
         return sm;
     }

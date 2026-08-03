@@ -3,26 +3,52 @@
 [ext_resource type="Script" uid="uid://dxqupxhqxkumf" path="res://Scripts/Systems/Combat/Core/ImbuementOverlay.cs" id="1_overlay_script"]
 [ext_resource type="Shader" uid="uid://cr1egkjghpt0y" path="res://Assets/Shaders/imbuement_aura.gdshader" id="2_aura_shader"]
 [ext_resource type="Shader" uid="uid://b2r2lwrb8m6w4" path="res://Assets/Shaders/imbuement_glyph.gdshader" id="3_glyph_shader"]
+[ext_resource type="Texture2D" uid="uid://bcp76ync0flw5" path="res://Assets/Materials/PainterlyMaterials/Painterly_wind_noise.tres" id="4_wind_noise"]
+
+; The wind_noise slot below is NOT optional and NOT interchangeable. It must be
+; the SAME asset painterly_grass.tres samples. The whole point of the painterly
+; pass is that the imbuement moves in phase with the field around it; a
+; different noise texture is a different phase, and the effect silently
+; degrades back into "the one thing on screen moving on its own clock".
+;
+; Every other wind uniform is left at its shader default, and those defaults are
+; deliberately copied from painterly_grass.tres — NOT from painterly_grass's own
+; shader defaults, which that material overrides. Do not pin duplicates here;
+; one source of truth is worth more than inspector convenience.
+;
+; See docs/imbuement_painterly_redesign_v1.md §3.5.
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_aura"]
 render_priority = 1
 shader = ExtResource("2_aura_shader")
 shader_parameter/element_id = 0
-shader_parameter/tint_color = Color(1, 0.45, 0.1, 1)
-shader_parameter/intensity = 1.4
+shader_parameter/tint_color = Color(0.86, 0.44, 0.22, 1)
+shader_parameter/intensity = 1.0
+shader_parameter/alpha_ceiling = 0.88
+shader_parameter/wind_noise = ExtResource("4_wind_noise")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_glyph"]
 render_priority = 2
 shader = ExtResource("3_glyph_shader")
 shader_parameter/element_id = 0
-shader_parameter/tint_color = Color(1, 0.45, 0.1, 1)
-shader_parameter/intensity = 2.0
-shader_parameter/pulse_speed = 1.5
-shader_parameter/pulse_amount = 0.25
+shader_parameter/tint_color = Color(0.86, 0.44, 0.22, 1)
+shader_parameter/intensity = 1.1
+shader_parameter/alpha_ceiling = 0.72
+shader_parameter/pulse_speed = 0.9
+shader_parameter/pulse_amount = 0.22
+shader_parameter/wind_noise = ExtResource("4_wind_noise")
 
-; Aura: hex-shaped cylinder, radial_segments=6 to match the tile.
-; Authored height = 0.9 (the script rescales this to AuraHeight at runtime).
-; Tapered (top_radius < bottom_radius) so it has a "rising" silhouette.
+; PLACEHOLDER MESH ONLY. ImbuementOverlay.ApplyElementalForm replaces this at
+; runtime with the element's procedural form from ImbuementForms.cs — flames,
+; crystals, plates, ribbons. It survives here for two reasons and no others:
+;
+;   1. _Ready reads the surface material off the MeshInstance3D via
+;      GetActiveMaterial(0), which needs SOME mesh present at load.
+;   2. It is what shows if ImbuementForms ever returns null. The overlay is
+;      hidden until SetElement runs, so this is a fallback, not a flash.
+;
+; Do not tune it. Everything about the silhouette lives in the table in
+; ImbuementForms.cs.
 [sub_resource type="CylinderMesh" id="CylinderMesh_aura"]
 top_radius = 0.55
 bottom_radius = 0.85

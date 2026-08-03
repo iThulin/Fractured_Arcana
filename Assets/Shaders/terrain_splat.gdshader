@@ -302,6 +302,62 @@ uniform float grid_fade_below_y = -1000.0;
 /** Vertical span of the underwater grid fade. */
 uniform float grid_fade_span : hint_range(0.01, 1.0) = 0.15;
 
+// ── Imbuement response (the GROUND under an imbued tile) ───────
+//
+// OFF BY DEFAULT, and that is load-bearing. This shader draws every tile on the
+// board; with use_imbuement_field false every line below is skipped and the file
+// behaves exactly as it did. ImbuementField.Attach() is the only thing that
+// turns it on, and it sets the texture and the switch together.
+//
+// This exists because clearing the grass off a tile is only half the job: what
+// it reveals is the terrain's own albedo, and a bare green pad reads worse than
+// the grass did. The ground has to agree that something happened to it.
+//
+// Same texture, same channels, same world-space lookup as painterly_grass —
+// that shared field was the entire argument for building it as a texture rather
+// than as per-instance data.
+group_uniforms imbuement;
+
+/** Master switch. ImbuementField.Attach sets this; never enable it by hand without also assigning the texture. */
+uniform bool use_imbuement_field = false;
+
+/**
+ * Board-wide RGBA lookup from ImbuementField.cs. R=snow G=bare B=wet A=wither.
+ * hint_default_transparent, NOT hint_default_black: Godot's default black is
+ * (0,0,0,1) and alpha here is WITHER, so an unassigned texture would drain every
+ * tile on the map.
+ */
+uniform sampler2D imbuement_field : hint_default_transparent, repeat_disable, filter_linear;
+
+/** World XZ centre of the field. Must match ImbuementField.Origin. */
+uniform vec2  field_origin = vec2(0.0, 0.0);
+
+/** World units spanned by the field. Must match ImbuementField.Extent. */
+uniform float field_extent = 96.0;
+
+/** Colour bare ground tends toward — turned earth. Fire drives this to full and reads as char; Earth stops partway and reads as churned soil. */
+uniform vec3  imbue_bare_color : source_color = vec3(0.26, 0.19, 0.13);
+
+/** How far toward imbue_bare_color fully bare ground goes. */
+uniform float imbue_bare_strength : hint_range(0.0, 1.0) = 0.85;
+
+/** Colour snow-covered ground tends toward. */
+uniform vec3  imbue_snow_color : source_color = vec3(0.86, 0.90, 0.95);
+
+/** How far toward imbue_snow_color fully frosted ground goes. */
+uniform float imbue_snow_strength : hint_range(0.0, 1.0) = 0.80;
+
+/** Colour wet ground tends toward. */
+uniform vec3  imbue_wet_color : source_color = vec3(0.22, 0.28, 0.26);
+
+/** How far toward imbue_wet_color fully soaked ground goes. */
+uniform float imbue_wet_strength : hint_range(0.0, 1.0) = 0.45;
+
+/** How far withered ground desaturates toward its own luminance. */
+uniform float imbue_wither_strength : hint_range(0.0, 1.0) = 0.70;
+
+group_uniforms;
+
 // ── Vista de-emphasis (non-playable perimeter tiles) ───────────
 group_uniforms vista;
 /** PER-INSTANCE flag (Forward+ instance uniform), set to 1.0 by HexTile.MarkAsVista(). Vista tiles render without grid lines and slightly muted so the playable boundary stays readable. Playable tiles never set it (default 0 = no effect). */
@@ -712,6 +768,37 @@ void fragment() {
 		float line = 1.0 - smoothstep(grid_line_width, grid_line_width + grid_line_softness, dist_to_edge);
 		float top_face = smoothstep(0.45, 0.8, abs(geom.y));
 		albedo = mix(albedo, grid_line_color, line * grid_line_strength * top_face * (1.0 - is_skirt) * (1.0 - vista_fade) * above_water);
+	}
+
+	// ── Imbuement: the ground itself ────────────────────────────
+	// TOP FACES ONLY. A tile's skirt is the side of a cliff and nothing was
+	// imbued onto it; tinting it turns a stone tile into a striped box.
+	if (use_imbuement_field)
+	{
+		// Recomputed, NOT borrowed: the grid-line block declares its own `top_face`
+		// inside its braces, so reading it here would not compile. Same expression,
+		// deliberately duplicated rather than hoisted — hoisting edits a block this
+		// change has no other business touching.
+		float imb_top = smoothstep(0.45, 0.8, abs(geom.y));
+
+		vec2 fuv = (v_world_pos.xz - field_origin) / max(field_extent, 0.0001) + 0.5;
+		// Outside the field is NOT the edge texel smeared to the horizon, and NOT
+		// a wrapped copy of the far side of the board. repeat_disable handles the
+		// wrap; this handles the clamp.
+		if (fuv.x >= 0.0 && fuv.x <= 1.0 && fuv.y >= 0.0 && fuv.y <= 1.0)
+		{
+			vec4 imb = texture(imbuement_field, fuv) * imb_top * (1.0 - is_skirt);
+
+			albedo = mix(albedo, imbue_snow_color, clamp(imb.r, 0.0, 1.0) * imbue_snow_strength);
+			albedo = mix(albedo, imbue_wet_color,  clamp(imb.b, 0.0, 1.0) * imbue_wet_strength);
+
+			float ilum = dot(albedo, vec3(0.2126, 0.7152, 0.0722));
+			albedo = mix(albedo, vec3(ilum) * 0.75, clamp(imb.a, 0.0, 1.0) * imbue_wither_strength);
+
+			// Bare last: it is the only one that wins outright, same ordering the
+			// grass shader uses so a tile and the blades standing on it agree.
+			albedo = mix(albedo, imbue_bare_color, clamp(imb.g, 0.0, 1.0) * imbue_bare_strength);
+		}
 	}
 
 	// ── Vista de-emphasis: mute non-playable perimeter tiles ─────
