@@ -138,7 +138,7 @@ public static class RunEventLog
             AppendLog($" Encounters won: {encountersWon}   HP left: {hp}   Steps left: {stepsRemaining}");
             AppendLog(goldBanked
                 ? $" BANKED: {gold} gold + {splinters} splinters → guild treasury"
-                : $" FORFEITED: {gold} gold lost (not banked — run failed). {splinters} splinters kept.");
+                : $" FORFEITED: {gold} gold + {splinters} splinters lost (not banked — run failed).");
             AppendLog("════════════════════════════════════════════════════════════");
         }
         catch (Exception e) { GD.PrintErr($"RunEventLog.End: {e.Message}"); }

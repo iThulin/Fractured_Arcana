@@ -46,6 +46,7 @@ public partial class EncounterRouter : Node
     public int DamageTaken { get; set; }
     public int SplinterReward { get; set; }
     public int SavedSplinterEarned { get; set; }
+    public int SavedMaterialEarned { get; set; }
     private EncounterTier _currentTier = EncounterTier.Battle;
 
     public int SavedStepsRemaining;

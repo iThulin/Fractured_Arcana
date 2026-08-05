@@ -6,7 +6,7 @@ using Godot;
 // Purpose:        Autoload singleton that owns the persistent
 //                 top-bar HUD — the always-present strip across the
 //                 top of gameplay screens carrying key resource
-//                 readouts (Gold, Lunation) and global nav buttons
+//                 readouts (Lunation, Gold, Splinters, Materials) and global nav buttons
 //                 (Return to Campus, Council, Menu). Mirrors PauseManager's
 //                 pattern:
 //                 a CanvasLayer hosted on the tree root, context-
@@ -17,10 +17,14 @@ using Godot;
 //                 so those cover it (and block its clicks via their
 //                 own backdrops) whenever they're open.
 //
-//                 v1 contents — Gold + Lunation readouts, Return to
-//                 Campus (menu screens only) + Council + Menu buttons —
-//                 and deliberately easy to extend (add readouts in
-//                 BuildBar's left cluster, buttons in the right).
+//                 v2 contents (2026-08-05) — left cluster is the fixed
+//                 resource strip [Lunation, Gold, Splinters, Materials];
+//                 the three currencies each carry a red "+N" delta while
+//                 an expedition holds unbanked spoils (all three are
+//                 forfeited if the run ends without extraction). Right
+//                 cluster: Return to Campus (menu screens only) +
+//                 Council + Quests + Menu. Extend readouts in BuildBar's
+//                 left cluster, buttons in the right.
 // Layer:          System (autoload)
 // Collaborators:  PauseManager.cs (Menu button -> OpenPauseMenu),
 //                 CouncilScreen.cs (Council button -> Toggle),
@@ -42,13 +46,24 @@ public partial class HudManager : Node
     private const int HudLayer = 90; // below pause (100) and council (128)
 
     private CanvasLayer _layer;
-    private Label _goldLabel;
     private Label _lunationLabel;
+    private ResourceReadout _gold;
+    private ResourceReadout _splinters;
+    private ResourceReadout _materials;
     private Button _returnButton; // gated by ShouldShowReturnToCampus (menu screens only)
 
-    private int _lastGold = int.MinValue;
-    private int _lastPendingGold = int.MinValue;
     private int _lastLunation = int.MinValue;
+
+    /// <summary>One currency readout on the bar: base "Name N" label plus a
+    /// red "+N" delta shown while an expedition carries unbanked spoils.
+    /// Change-guard values live here so _Process refreshes stay cheap.</summary>
+    private sealed class ResourceReadout
+    {
+        public Label Base;
+        public Label Delta;
+        public int LastValue = int.MinValue;
+        public int LastPending = int.MinValue;
+    }
 
     public override void _Ready()
     {
@@ -108,8 +123,11 @@ public partial class HudManager : Node
         margin.AddChild(row);
 
         // ── Left: resource readouts (extend here) ────────────────────────
-        _goldLabel = MakeReadout(row, UITheme.Gold);
-        _lunationLabel = MakeReadout(row, UITheme.TextSecondary);
+        // Fixed order [Lunation, Gold, Splinters, Materials] (2026-08-05 ask).
+        _lunationLabel = MakeLabel(row, UITheme.TextSecondary);
+        _gold = MakeResourceReadout(row, UITheme.Gold);
+        _splinters = MakeResourceReadout(row, UITheme.ArcaneBlue);
+        _materials = MakeResourceReadout(row, UITheme.TextPrimary);
 
         // Spacer pushes the buttons to the right edge.
         row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
@@ -128,13 +146,35 @@ public partial class HudManager : Node
         RefreshVisibility();
     }
 
-    private Label MakeReadout(HBoxContainer row, Color color)
+    private Label MakeLabel(HBoxContainer row, Color color)
     {
         var l = new Label { VerticalAlignment = VerticalAlignment.Center };
         l.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         l.AddThemeColorOverride("font_color", color);
         row.AddChild(l);
         return l;
+    }
+
+    /// <summary>Base label + tight red delta label. The delta shows "+N" while
+    /// an expedition carries unbanked spoils of this currency — the amount
+    /// forfeited if the run ends without extraction — and hides at 0 so the
+    /// bar reads clean outside expeditions.</summary>
+    private ResourceReadout MakeResourceReadout(HBoxContainer row, Color color)
+    {
+        var cluster = new HBoxContainer();
+        cluster.AddThemeConstantOverride("separation", 5);
+        row.AddChild(cluster);
+
+        var r = new ResourceReadout
+        {
+            Base = MakeLabel(cluster, color),
+            Delta = MakeLabel(cluster, UITheme.Danger),
+        };
+        r.Delta.Visible = false;
+        // Labels ignore the mouse by default — opt in so the tooltip works.
+        r.Delta.MouseFilter = Control.MouseFilterEnum.Stop;
+        r.Delta.TooltipText = "At risk: earned this expedition but unbanked —\nlost unless you extract.";
+        return r;
     }
 
     private Button AddNavButton(HBoxContainer row, string text, System.Action onPressed)
@@ -161,12 +201,11 @@ public partial class HudManager : Node
     /// known mutation to update immediately.</summary>
     public void RefreshReadouts(bool force)
     {
-        if (_goldLabel == null)
+        if (_gold == null)
         {
             return;
         }
         var save = SaveManager.ActiveSave;
-        int gold = save?.Gold ?? 0;
         int lun = 0;
         var cycle = save?.Cycle;
         if (cycle != null)
@@ -174,41 +213,53 @@ public partial class HudManager : Node
             lun = cycle.Calendar.CurrentLunation;
         }
 
-        // Expedition-carried gold (2026-07-29 playtest request): the run's
-        // earnings are only BANKED on extraction — a failed run forfeits
-        // them. Show what's riding on the current expedition next to the
-        // treasury total so the stake is visible while it's at risk.
-        int pendingGold = GetExpeditionPendingGold();
+        // Expedition-carried spoils (2026-07-29 playtest request, extended
+        // 2026-08-05 to all three currencies): a run's earnings are only
+        // BANKED on extraction — a failed run forfeits gold, splinters, AND
+        // materials. Show what's riding on the current expedition as a red
+        // "+N" next to each treasury total so the stake stays visible.
+        var (pGold, pSplinters, pMaterials) = GetExpeditionPending();
 
-        if (force || gold != _lastGold || pendingGold != _lastPendingGold)
-        {
-            _goldLabel.Text = pendingGold > 0
-                ? $"Gold  {gold}  (+{pendingGold} unbanked)"
-                : $"Gold  {gold}";
-            _lastGold = gold;
-            _lastPendingGold = pendingGold;
-        }
         if (force || lun != _lastLunation)
         {
             _lunationLabel.Text = $"Lunation  {lun}";
             _lastLunation = lun;
         }
+        UpdateReadout(_gold, "Gold", save?.Gold ?? 0, pGold, force);
+        UpdateReadout(_splinters, "Splinters", save?.ArcaneSplinters ?? 0, pSplinters, force);
+        UpdateReadout(_materials, "Materials", save?.BuildMaterials ?? 0, pMaterials, force);
     }
 
-    /// <summary>Gold earned by the active expedition but NOT yet banked —
-    /// forfeited if the run fails. Read from the live ExpeditionManager while
-    /// on the overworld (it is the expedition scene's root script), or from
-    /// the EncounterRouter's saved resource state while a combat/negotiation
-    /// round-trip is in flight. 0 when no expedition is running, so the plain
-    /// treasury readout returns the moment the run ends.</summary>
-    private int GetExpeditionPendingGold()
+    private static void UpdateReadout(ResourceReadout r, string name,
+                                      int value, int pending, bool force)
+    {
+        if (!force && value == r.LastValue && pending == r.LastPending)
+        {
+            return;
+        }
+        r.Base.Text = $"{name}  {value}";
+        r.Delta.Text = pending > 0 ? $"+{pending}" : "";
+        r.Delta.Visible = pending > 0;
+        r.LastValue = value;
+        r.LastPending = pending;
+    }
+
+    /// <summary>Spoils earned by the active expedition but NOT yet banked —
+    /// all forfeited if the run fails. Read from the live ExpeditionManager
+    /// while on the overworld (it is the expedition scene's root script), or
+    /// from the EncounterRouter's saved resource state while a combat/
+    /// negotiation round-trip is in flight. All-zero when no expedition is
+    /// running, so the plain treasury readouts return the moment the run ends.</summary>
+    private (int gold, int splinters, int materials) GetExpeditionPending()
     {
         if (!PlayerSession.IsOnExpedition)
-            return 0;
+            return (0, 0, 0);
         if (GetTree().CurrentScene is ExpeditionManager exp)
-            return exp.GoldEarned;
+            return (exp.GoldEarned, exp.SplinterEarned, exp.MaterialEarned);
         var router = EncounterRouter.Instance;
-        return router != null ? router.SavedGoldEarned : 0;
+        return router != null
+            ? (router.SavedGoldEarned, router.SavedSplinterEarned, router.SavedMaterialEarned)
+            : (0, 0, 0);
     }
 
     /// <summary>Show the bar only when a save is live and we're not in combat or

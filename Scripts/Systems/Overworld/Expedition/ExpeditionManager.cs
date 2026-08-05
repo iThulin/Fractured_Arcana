@@ -107,6 +107,12 @@ public partial class ExpeditionManager : Node2D
     private string _casualtyNote;
     public int GoldEarned { get; set; }
     public int SplinterEarned { get; set; }
+    /// <summary>Build Materials gathered on this run — banked only on
+    /// extraction, forfeited on failure (same stake rules as gold/splinters).
+    /// No encounter grants materials yet (the gathering system is unbuilt);
+    /// the channel exists so the top-bar pending readout and banking are
+    /// already correct the day something does.</summary>
+    public int MaterialEarned { get; set; }
     public int EncountersWon { get; set; }
     public bool ExpeditionComplete { get; private set; }
 
@@ -258,6 +264,7 @@ public partial class ExpeditionManager : Node2D
         StepsRemaining = OperatingRange;
         GoldEarned = 0;
         SplinterEarned = 0;
+        MaterialEarned = 0;
         EncountersWon = 0;
         ExpeditionComplete = false;
 
@@ -1384,6 +1391,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SavedCurrentHP = CurrentHP;
         router.SavedGoldEarned = GoldEarned;
         router.SavedSplinterEarned = SplinterEarned;
+        router.SavedMaterialEarned = MaterialEarned;
         router.SavedEncountersWon = EncountersWon;
         router.SavedPartyCoord = _party.CurrentCoord;
         router.SavedCombatHexCoord = hexCoord;
@@ -1526,6 +1534,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         CurrentHP = Mathf.Min(router.SavedCurrentHP, MaxHP);
         GoldEarned = router.SavedGoldEarned;
         SplinterEarned = router.SavedSplinterEarned;
+        MaterialEarned = router.SavedMaterialEarned;
         EncountersWon = router.SavedEncountersWon;
 
         // The window was rebuilt fresh in _Ready from World; discovery is already
@@ -2304,6 +2313,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             router.SavedCurrentHP = CurrentHP;
             router.SavedGoldEarned = GoldEarned;
             router.SavedSplinterEarned = SplinterEarned;
+            router.SavedMaterialEarned = MaterialEarned;
             router.SavedEncountersWon = EncountersWon;
             router.SavedPartyCoord = _party.CurrentCoord;
             router.SavedCombatHexCoord = coord;
@@ -2366,6 +2376,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             router.SavedCurrentHP = CurrentHP;
             router.SavedGoldEarned = GoldEarned;
             router.SavedSplinterEarned = SplinterEarned;
+            router.SavedMaterialEarned = MaterialEarned;
             router.SavedEncountersWon = EncountersWon;
             router.SavedPartyCoord = _party.CurrentCoord;
             router.SavedCombatHexCoord = coord;
@@ -2674,13 +2685,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             save.Gold += GoldEarned;
             save.ArcaneSplinters += SplinterEarned;
+            save.BuildMaterials += MaterialEarned;
             save.RunsWon++;
         }
         else
         {
-            // Failure: keep a fraction, or nothing — design knob. Keep splinters,
-            // lose loose gold, to match "discoveries retained, spoils lost."
-            save.ArcaneSplinters += SplinterEarned;
+            // Failure forfeits ALL unbanked spoils — gold, splinters, and
+            // materials (2026-08-05 ruling, made alongside the top-bar at-risk
+            // readouts: the bar shows all three as losable, so they must be).
+            // Map discoveries are the only thing retained. Previously splinters
+            // survived failure ("discoveries retained, spoils lost"); splinters
+            // are now spoils, not discoveries.
             save.RunsLost++;
         }
 

@@ -62,6 +62,19 @@ public partial class CardLibraryUi : Control
     public override void _Ready()
     {
         WireNodes();
+
+        // Clear the global top-bar HUD. The bar (HudManager, layer 90) floats
+        // over scene content without reserving layout space, so the library
+        // must offset itself below it or the filter rows clip underneath.
+        // Skipped when opened as an inline pause overlay — that host renders
+        // ABOVE the bar (pause layer 100 > HUD layer 90), so no clearance is
+        // needed and the extra gap would look wrong.
+        if (ReturnScenePath != PauseMenu.InlineSentinel)
+        {
+            var margin = GetNodeOrNull<MarginContainer>("Margin");
+            margin?.AddThemeConstantOverride("margin_top", 12 + HudManager.BarHeight);
+        }
+
         EnsureCardsLoaded();
         _pool = CardDatabase.Blueprints;
 
