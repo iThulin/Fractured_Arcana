@@ -1,4 +1,4 @@
-using Godot;
+﻿using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -117,6 +117,15 @@ public partial class CombatManager : Node3D
     private Unit _twoStepVictim;
     private SelectTwoStepTarget _twoStepTargeter;
     private TileData _twoStepChoice;     // set by the second click, consumed by the replay
+
+    /// <summary>The legal second-pick tiles — the AUTHORITATIVE set the second click is
+    /// validated against. Deliberately NOT _targetHighlightTiles, which is cosmetic
+    /// drag/hover feedback owned by the card UI and torn down on its own schedule. When
+    /// the two shared one set, CardDragEnded — which fires one frame after EVERY drag,
+    /// dropped or cancelled — cleared the aim set before the player could click it, and
+    /// every two-step card in the game was silently uncastable. Owned start to end by
+    /// BeginTwoStep / ClearTwoStepHighlight; nothing in the highlight system may touch it.</summary>
+    private readonly HashSet<Vector2I> _twoStepLegalTiles = new();
 
     // ── Choose-one mode pick (2026-07-29): "Choose one: A or B" ──────────────
     // Same replay discipline as two-step targeting: the drop pauses, a mode picker
@@ -2283,9 +2292,10 @@ public partial class CombatManager : Node3D
         _twoStepChoice = null;
 
         ClearTargetHighlight();
+        _twoStepLegalTiles.Clear();
         foreach (var coord in TwoStepLegalTiles(victim, ts))
         {
-            _targetHighlightTiles.Add(coord);
+            _twoStepLegalTiles.Add(coord);
             grid.GetTileView(coord)?.SetTargetHighlight(true);
         }
 
@@ -2338,7 +2348,7 @@ public partial class CombatManager : Node3D
             CancelTwoStep("clicked off the board");
             return true;
         }
-        if (!_targetHighlightTiles.Contains(td.Axial))
+        if (!_twoStepLegalTiles.Contains(td.Axial))
         {
             CancelTwoStep($"({td.Axial.X}, {td.Axial.Y}) is not a legal choice");
             return true;
@@ -2349,7 +2359,7 @@ public partial class CombatManager : Node3D
         // single-step path.
         _twoStepChoice = td;
         var card = _twoStepCard; bool isTop = _twoStepIsTop; var tile = _twoStepTile;
-        ClearTargetHighlight();
+        ClearTwoStepHighlight();   // choice is captured; drop the aim paint before the replay
         OnCardDroppedOnTile(card, isTop, tile);
         ClearTwoStep();               // idempotent — the switch already cleared it on success
         return true;
@@ -2368,8 +2378,19 @@ public partial class CombatManager : Node3D
         combatUI?.AppendActionLog(msg);
     }
 
+    /// <summary>Unpaints the aim set and forgets it. Split out of ClearTwoStep so the
+    /// replay can drop the highlights the moment the choice is captured while the rest of
+    /// the two-step state stays alive for OnCardDroppedOnTile to consume. Idempotent.</summary>
+    private void ClearTwoStepHighlight()
+    {
+        foreach (var coord in _twoStepLegalTiles)
+            grid?.GetTileView(coord)?.SetTargetHighlight(false);
+        _twoStepLegalTiles.Clear();
+    }
+
     private void ClearTwoStep()
     {
+        ClearTwoStepHighlight();
         _twoStepCard = null;
         _twoStepTile = null;
         _twoStepVictim = null;
@@ -5211,6 +5232,14 @@ public partial class CombatManager : Node3D
         if (_isCardBeingDragged)
             return;
 
+        // Same lock while a second pick is armed. Legality is safe either way now
+        // (_twoStepLegalTiles is separate), but the card is back in hand under the
+        // cursor, so without this the aim tiles would visibly repaint as this half's
+        // ordinary target set the moment the mouse moves — showing the player a set
+        // that is not the one their next click is judged against.
+        if (TwoStepPending)
+            return;
+
         if (isEntering)
         {
             var half = isTop ? cardUi.TopHalf : cardUi.BottomHalf;
@@ -5656,6 +5685,11 @@ public partial class CombatManager : Node3D
 
     private void OnCardDragStarted(CardUi cardUi, bool isTop)
     {
+        // Dragging a card while a second pick is armed abandons that pick — say so
+        // and unwind it, rather than silently overpainting its legal-tile set.
+        if (TwoStepPending)
+            CancelTwoStep("started another card");
+
         _isCardBeingDragged = true;
         var half = isTop ? cardUi.TopHalf : cardUi.BottomHalf;
         _draggedHalf = half;
@@ -5672,7 +5706,16 @@ public partial class CombatManager : Node3D
         _draggedHalf = null;
         ClearTargetHighlight();
         ClearDamagePreview();   // R22
-        combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
+
+        // CardDropHandler fires this one frame after EVERY drag, dropped or cancelled —
+        // TryDropCardOnTile clears IsDragging itself, so its "_wasDragging && !isDragging"
+        // detector cannot tell the two apart. A two-step card armed by that very drop is
+        // still waiting for its second click, so don't reset the hint out from under it.
+        // The aim set is no longer at risk here: it lives in _twoStepLegalTiles, which
+        // ClearTargetHighlight does not touch. This is now cosmetic, not load-bearing.
+        combatUI?.SetHintText(TwoStepPending
+            ? "Pick the second target · Esc or right-click to cancel."
+            : "Select a unit, move, cast, then end turn.");
     }
 
     // ── R22 damage preview ───────────────────────────────────────────────────
