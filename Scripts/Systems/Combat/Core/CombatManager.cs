@@ -67,6 +67,13 @@ public partial class CombatManager : Node3D
     }
     private List<PendingEnemySpawn> pendingEnemySpawns = new();
 
+    /// <summary>Marginalia (marginalia_spec_v1 R2): per-fight kill tally by enemy
+    /// FactionId. Counted at HandleUnitDeath (encounter-spawned enemies only — no
+    /// mid-fight summons), handed to EncounterRouter on VICTORY, committed to
+    /// EternalLedger.DeedCounts by ExpeditionManager.EmitCombatDeed. A lost or
+    /// abandoned fight commits nothing, matching the combat_won precedent.</summary>
+    private readonly Dictionary<string, int> _marginaliaFightTally = new();
+
     // ── Unit lists ──────────────────────────────────────────────────────────
     [Export] public int TestPlayerCount = 2;
     [Export] public int TestEnemyCount = 3;
@@ -3005,6 +3012,18 @@ public partial class CombatManager : Node3D
         if (unit.TeamId != 0)
             ApplyEnemyAuras();
 
+        // ── Marginalia kill tally (marginalia_spec_v1 R2) ─────────────────
+        // Enemy-team, faction-tagged, encounter-spawned units only. Summon-seam
+        // copies are excluded (farm guard); factionless wildlife/generics have
+        // no family in v1 and record nothing. Commit happens on victory, in
+        // ExpeditionManager — a death recorded here costs nothing on a loss.
+        if (unit.TeamId != 0 && !unit.IsPlayerControlled && !unit.IsMidFightSummon
+            && !string.IsNullOrEmpty(unit.FactionId))
+        {
+            _marginaliaFightTally.TryGetValue(unit.FactionId, out int famKills);
+            _marginaliaFightTally[unit.FactionId] = famKills + 1;
+        }
+
         HonoredDeadService.RecordDeath(unit);
         if (unit.IsConstruct)          // ← feed Schematics on any construct loss
             RegisterConstructLoss(unit);
@@ -3233,6 +3252,16 @@ public partial class CombatManager : Node3D
                 }
             }
 
+            // Marginalia: the fight is WON — hand the family kill tally to the
+            // router for the victory-gated deed commit (ExpeditionManager.
+            // EmitCombatDeed, or CampusScreen.ConsumeCampusCombatReturn for
+            // campus-launched fights). Debug fights are excluded explicitly —
+            // the router node persists across scenes, so an unconsumed debug
+            // tally would sit armed on it.
+            if (EncounterRouter.Instance != null && !PlayerSession.DebugCombat)
+                EncounterRouter.Instance.SavedCombatFamilyKills =
+                    new Dictionary<string, int>(_marginaliaFightTally);
+
             EmitSignal(SignalName.CombatCompleted, true);   // ← ADD THIS
             return true;
         }
@@ -3244,6 +3273,13 @@ public partial class CombatManager : Node3D
             GD.Print("=== DEFEAT ===");
             combatUI?.AppendActionLog("Defeat.");
             CombatTelemetry.EndFight(false, roundNumber);
+
+            // Marginalia: a lost fight teaches nothing — clear any stale tally
+            // so the next victory cannot inherit it.
+            if (EncounterRouter.Instance != null)
+                EncounterRouter.Instance.SavedCombatFamilyKills =
+                    new Dictionary<string, int>();
+
             EmitSignal(SignalName.CombatCompleted, false);  // ← ADD THIS
             return true;
         }
@@ -4064,6 +4100,7 @@ public partial class CombatManager : Node3D
     private void QueueDefaultEncounter()
     {
         pendingEnemySpawns.Clear();
+        _marginaliaFightTally.Clear();
 
         // Default mix: one Soldier, one Ranger, one Wizard.
         // Gives immediate variety and exercises all three AI behaviors.
@@ -4109,6 +4146,7 @@ public partial class CombatManager : Node3D
     private void QueueEncounterFromContext(EncounterDefinition def)
     {
         pendingEnemySpawns.Clear();
+        _marginaliaFightTally.Clear();
 
         foreach (var slot in def.Enemies)
         {
@@ -4785,6 +4823,7 @@ public partial class CombatManager : Node3D
         unit.Name = sameKind > 1 ? $"{def.ThreatLabel}_{sameKind}" : def.ThreatLabel;
         unit.DisplayName = unit.Name;
         unit.DefinitionId = def.Id;
+        unit.IsMidFightSummon = true;   // Marginalia: summon-seam kills never count
         unit.BehaviorKey = def.BehaviorKey;
         unit.BehaviorTags = new List<string>(def.BehaviorTags);
         unit.IntentCycle = new List<string>(def.IntentCycle);

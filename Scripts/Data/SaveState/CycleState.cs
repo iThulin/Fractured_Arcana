@@ -178,6 +178,24 @@ public class CycleState
     /// <summary>Minimum cards that must remain in the deck.</summary>
     public int MinDeckSize = 10;
 
+    /// <summary>
+    /// Which Regalia the player chose to bring into THIS cycle. Ownership is
+    /// permanent and lives on EternalLedger.RegaliaBlueprintIds; this is only
+    /// the loadout decision, so it is wiped with the timeline and re-made at
+    /// the start of every cycle. Bounded by RegaliaService.MaxCarry (K), which
+    /// scales with shards collected. See docs/progression_card_acquisition_v1.md §6c.
+    /// </summary>
+    public List<string> CarriedRegaliaIds = new();
+
+    /// <summary>
+    /// Cards minted from the Arcane Library this cycle. The per-cycle cap is what
+    /// stops minting from trivialising the draft and flattening the reseed: you can
+    /// rebuild your core, not your whole deck. Resets with the timeline, because the
+    /// budget is a timeline resource — the KNOWLEDGE that makes minting possible is
+    /// what persists. See docs/progression_card_acquisition_v1_2.md.
+    /// </summary>
+    public int MintsThisCycle = 0;
+
     // ── Overworld magic (S1) ─────────────────────────────────────────────
     /// <summary>Known/prepared overworld spells, Essence pool, scrolls,
     /// beacons. Spell knowledge is timeline knowledge — dies with the cycle.

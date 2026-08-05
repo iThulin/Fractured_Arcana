@@ -730,7 +730,11 @@ public partial class ExpeditionManager : Node2D
             save.Ledger.MetaNarrativeFlags.RemoveAll(f =>
                 f.EndsWith("_rumor") || f.EndsWith("_location_known") ||
                 f.EndsWith("_trial_passed") ||
-                (f.StartsWith("fragment_") && f.EndsWith("_collected")));
+                (f.StartsWith("fragment_") && f.EndsWith("_collected")) ||
+                // ProgressionSweep's "already paid" stamps must clear with the
+                // milestones they were paid for, or a re-collected fragment
+                // awards nothing while MaxCarry silently drops.
+                f.StartsWith("prog_paid_"));
             save.Ledger.CompletedQuestIds.RemoveAll(id => id.StartsWith("q_"));
         }
         save.UnlockedLoreEntries.RemoveAll(l =>
@@ -2431,7 +2435,35 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             {
                 var grimD = SaveManager.ActiveSave?.Cycle?.Grimoire;
                 if (grimD != null && SpellAcquisition.Learn(grimD, NegotiationContext.SpellGranted))
-                    taught = $"  They teach you {OverworldSpellRegistry.Get(NegotiationContext.SpellGranted)?.Name}.";
+                {
+                    var taughtDef = OverworldSpellRegistry.Get(NegotiationContext.SpellGranted);
+                    taught = $"  They teach you {taughtDef?.Name}.";
+
+                    // TUITION → SchoolMastery (design doc §4). Being *taught* by
+                    // someone of a school makes you marginally more fluent in it,
+                    // and this is the only acquisition route that pays: finding a
+                    // working in a ruin or hearing it from the dead is discovery,
+                    // not instruction, so neither of those award anything.
+                    //
+                    // Unfarmable by construction: SpellAcquisition.Learn returns
+                    // false for anything already known, and spell knowledge is now
+                    // PERMANENT (SpellKnowledgeService) — so each spell can pay
+                    // tuition exactly once, ever, across every timeline.
+                    //
+                    // "General" spells belong to no school and pay nothing; the
+                    // TryParse is what filters them, since General is not a
+                    // CardSchool member.
+                    // System.Enum fully qualified: this file's usings are only
+                    // Godot and System.Collections.Generic, and adding `using
+                    // System;` to a 4,000-line file risks new ambiguities.
+                    if (taughtDef != null &&
+                        System.Enum.TryParse<CardSchool>(taughtDef.School, true, out var taughtSchool))
+                    {
+                        SchoolMasteryService.Award(SaveManager.ActiveSave,
+                            taughtSchool.ToString(), SchoolMasteryService.PointsTuition,
+                            $"tuition: taught '{taughtDef.Id}' at a cordial table");
+                    }
+                }
             }
             // S5 (§7f/§6a): a compulsion table that CLOSES CORDIALLY buries
             // the compulsion echo before it lands — same gate as tuition
@@ -3912,6 +3944,36 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // Cross-cycle combat record (deed:combat_won) — powers proven-guild
         // companion unlocks (CompanionUnlocks) and future deed-count quests.
         SaveManager.ActiveSave?.Ledger?.RecordDeed("combat_won");
+
+        // Marginalia (marginalia_spec_v1 R2/R5): commit the won fight's family
+        // kill tally — victory-gated exactly like combat_won — and toast any
+        // movement. The unlock itself is settled by ProgressionSweep on the
+        // next save; the completion toast is the promise it keeps.
+        if (router.SavedCombatFamilyKills != null && router.SavedCombatFamilyKills.Count > 0)
+        {
+            var advanced = MarginaliaService.CommitKills(
+                SaveManager.ActiveSave, router.SavedCombatFamilyKills);
+            router.SavedCombatFamilyKills = new Dictionary<string, int>();
+
+            foreach (var adv in advanced)
+            {
+                if (adv.CompletedNow)
+                    _toasts?.Push(
+                        $"Marginalia complete: {adv.FactionName} — " +
+                        $"{(string.IsNullOrEmpty(adv.CardName) ? "entry settled" : adv.CardName + " unlocked")}.",
+                        QuestToastKind.Unlock);
+                else if (adv.Threshold > 0)
+                    _toasts?.Push(
+                        $"Marginalia: {adv.FactionName} — {adv.Kills}/{adv.Threshold} defeated.",
+                        QuestToastKind.Progress);
+            }
+        }
+
+        // The deed writes above mutate the permanent ledger directly; without
+        // this, a return with no OTHER dirtying mutation (a re-fought hex, no
+        // quest movement) reaches SaveIfDirty clean and the kills — plus the
+        // completion the toast just promised — never touch disk.
+        SaveManager.MarkDirty();
 
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle?.Council == null)

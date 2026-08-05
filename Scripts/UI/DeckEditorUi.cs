@@ -654,7 +654,12 @@ public partial class DeckEditorUi : Control
         bool atFloor = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= save.MinDeckSize;
         bool disenchantBlocked = isActive && atFloor;
 
-        if (canDisenchant && !owned.IsStarter)
+        // Regalia are as undisenchantable as starters, and for a harder reason:
+        // RegaliaService re-mints a fresh copy of every carried artifact at the
+        // start of every cycle, so a disenchantable Regalia is an unlimited
+        // splinter faucet (K × Legendary yield, forever). See
+        // docs/progression_card_acquisition_v1.md §6 and §11.
+        if (canDisenchant && !owned.IsStarter && !owned.IsRegalia)
         {
             int yield = DisenchantValues.GetYield(owned);
             var disBtn = new Button
@@ -926,6 +931,10 @@ public partial class DeckEditorUi : Control
     {
         if (save == null || owned == null) return;
         if (owned.IsStarter) return;
+        // Regalia are re-minted every cycle — disenchanting one is a repeatable
+        // splinter faucet, not a trade. The button is already hidden; this is the
+        // enforcing check.
+        if (owned.IsRegalia) return;
 
         // Double-check floor — button should already be disabled but belt-and-suspenders
         bool isActive = save.PlayerDeck.ActiveDeckInstanceIds?.Contains(owned.InstanceId) ?? false;

@@ -5,10 +5,13 @@ using System.Collections.Generic;
 // ============================================================
 // NewGameScreen.cs
 //
-// Purpose:        One-time character creation screen. Guild name
-//                 + wizard school selection. On confirm, creates
-//                 GuildSaveData, seeds the starter deck, returns
-//                 to campus.
+// Purpose:        One-time guild founding screen. The 8-school browser
+//                 is a READER WITH LOCKS, not a picker (A1 hard ruling +
+//                 2026-08-04 playtest ruling): the seven disciplines render
+//                 locked, Adept is marked as where you begin, and confirm
+//                 always founds the guild as Adept. Disciplines are declared
+//                 later in the Grand Hall (CampusGuildPanel's Disciplines
+//                 section / DeclarationService).
 // Layer:          UI
 // Collaborators:  SaveManager.cs, StarterDeckLoader.cs,
 //                 PlayerSession.cs, CardLoaderV2.cs,
@@ -22,6 +25,10 @@ public partial class NewGameScreen : Control
     public Action OnCancel;
 
     // ── School data ──────────────────────────────────────────────────────
+    // NOTE before quoting these next to DeclarationService output elsewhere:
+    // several identities contradict roster canon (e.g. "Ondria Vell" below vs
+    // the Necromancer canon of Maren Gravesong / The Conductor). Fine here as
+    // self-contained founding lore; needs a lore pass before wider reuse.
     private static readonly Dictionary<CardSchool, (string desc, string flavor, string symbol, string identity)> SchoolData = new()
     {
         { CardSchool.Adept, (
@@ -70,7 +77,10 @@ public partial class NewGameScreen : Control
     private LineEdit _guildNameInput;
     private LineEdit _wizardNameInput;
     private Label _errorLabel;
-    private CardSchool _selectedSchool = CardSchool.Elementalist;
+    private Button _confirmBtn;
+    // Preview cursor for the reader on the left — NOT a choice. Every guild
+    // starts undeclared as an Adept; see OnConfirmPressed.
+    private CardSchool _selectedSchool = CardSchool.Adept;
     private int _targetSlot = -1;
 
     // Detail panel refs
@@ -151,7 +161,11 @@ public partial class NewGameScreen : Control
 
         var sub = new Label
         {
-            Text = "Your school shapes your deck, your campus buildings, and how you move through the world. This choice is permanent.",
+            Text = "You sat the examination. You were standing for the conferral when it stopped — " +
+                   "mid-sentence, half-written, the only unfinished thing in the room. Every guild " +
+                   "begins as an Adept: the fundamentals and no discipline. The other seven are " +
+                   "locked — read them, want them, then declare one in the Grand Hall once someone " +
+                   "is left who can teach it.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         sub.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
@@ -184,7 +198,7 @@ public partial class NewGameScreen : Control
         col.AddThemeConstantOverride("separation", 5);
         parent.AddChild(col);
 
-        var hdr = new Label { Text = "WIZARD SCHOOL" };
+        var hdr = new Label { Text = "THE EIGHT SCHOOLS" };
         hdr.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
         hdr.AddThemeColorOverride("font_color", new Color(0.38f, 0.38f, 0.48f));
         col.AddChild(hdr);
@@ -236,13 +250,25 @@ public partial class NewGameScreen : Control
         nameWrapper.SizeFlagsVertical = SizeFlags.ShrinkCenter;
         row.AddChild(nameWrapper);
 
-        var nameLbl = new Label { Text = school.ToString() };
+        // The lockout affordance (2026-08-04 playtest ruling): the browser is
+        // for reading, but a locked school must LOOK locked at the list level,
+        // not only in the detail panel — the earlier reader form kept picker
+        // affordances and read as a bug when confirm founded an Adept anyway.
+        bool isStartSchool = school == CardSchool.Adept;
+        var nameLbl = new Label
+        {
+            Text = isStartSchool ? school.ToString() : $"🔒 {school}",
+        };
         nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         nameLbl.AddThemeColorOverride("font_color",
-            sel ? Colors.White : new Color(0.55f, 0.55f, 0.65f));
+            isStartSchool ? (sel ? Colors.White : new Color(0.85f, 0.78f, 0.55f))
+                          : sel ? new Color(0.75f, 0.75f, 0.82f) : new Color(0.45f, 0.45f, 0.55f));
         nameWrapper.AddChild(nameLbl);
 
-        var identityLbl = new Label { Text = identity };
+        var identityLbl = new Label
+        {
+            Text = isStartSchool ? $"{identity}  ·  you begin here" : identity,
+        };
         identityLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         identityLbl.AddThemeColorOverride("font_color",
             sel ? new Color(accent.R, accent.G, accent.B, 0.85f) : new Color(0.32f, 0.32f, 0.42f));
@@ -529,20 +555,20 @@ public partial class NewGameScreen : Control
         btnCol.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
         bar.AddChild(btnCol);
 
-        var confirmBtn = new Button
+        _confirmBtn = new Button
         {
             Text = "Found the Guild",
-            CustomMinimumSize = new Vector2(200, 44),
+            CustomMinimumSize = new Vector2(240, 44),
         };
-        confirmBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-        StylePrimaryButton(confirmBtn);
-        confirmBtn.Pressed += OnConfirmPressed;
-        btnCol.AddChild(confirmBtn);
+        _confirmBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        StylePrimaryButton(_confirmBtn);
+        _confirmBtn.Pressed += OnConfirmPressed;
+        btnCol.AddChild(_confirmBtn);
 
         var backBtn = new Button
         {
             Text = "← Back",
-            CustomMinimumSize = new Vector2(200, 32),
+            CustomMinimumSize = new Vector2(240, 32),
         };
         backBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         StyleGhostButton(backBtn);
@@ -564,6 +590,25 @@ public partial class NewGameScreen : Control
     {
         UpdateSchoolCards();
         UpdateDetailPanel();
+        UpdateConfirmButton();
+    }
+
+    /// <summary>
+    /// Founding is only possible with Adept selected (2026-08-04 playtest ruling:
+    /// a locked selection must not be confirmable — the earlier form let you pick
+    /// Necromancer, hit confirm, and silently receive an Adept, which read as a
+    /// bug). The button itself carries the reason while disabled.
+    /// </summary>
+    private void UpdateConfirmButton()
+    {
+        if (_confirmBtn == null) return;
+        bool locked = _selectedSchool != CardSchool.Adept;
+        _confirmBtn.Disabled = locked;
+        _confirmBtn.Text = locked ? $"🔒 {_selectedSchool} is locked" : "Found the Guild";
+        _confirmBtn.TooltipText = locked
+            ? "Every guild begins as an Adept. Select Adept to found — other " +
+              "disciplines are declared in play, in the Grand Hall."
+            : "";
     }
 
     private void UpdateSchoolCards()
@@ -573,8 +618,14 @@ public partial class NewGameScreen : Control
             bool sel = school == _selectedSchool;
             var accent = SchoolColors.GetBorderColor(school);
             ApplySchoolCardStyle(card, sel, accent);
+            // Mirror BuildSchoolCard's lockout palette EXACTLY — BuildUI ends
+            // with UpdateAll(), so whatever is set here is what actually paints.
+            // The first version of this method used a uniform scheme and erased
+            // the Adept-gold/locked-dim distinction before the first frame.
+            bool isStartSchool = school == CardSchool.Adept;
             nameLbl.AddThemeColorOverride("font_color",
-                sel ? Colors.White : new Color(0.55f, 0.55f, 0.65f));
+                isStartSchool ? (sel ? Colors.White : new Color(0.85f, 0.78f, 0.55f))
+                              : sel ? new Color(0.75f, 0.75f, 0.82f) : new Color(0.45f, 0.45f, 0.55f));
             symLbl.AddThemeColorOverride("font_color",
                 sel ? accent : new Color(0.30f, 0.30f, 0.40f));
         }
@@ -636,8 +687,13 @@ public partial class NewGameScreen : Control
         _detailDesc.Text = desc;
 
         int count = CountCardsForSchool(_selectedSchool);
-        _detailCardCount.Text = $"{count} cards in starting pool";
-        _detailCardCount.AddThemeColorOverride("font_color", new Color(accent.R, accent.G, accent.B, 0.6f));
+        bool isStart = _selectedSchool.ToString() == DeclarationService.StartingSchool;
+        _detailCardCount.Text = isStart
+            ? $"{count} cards  ·  YOU BEGIN HERE"
+            : $"{count} cards  ·  🔒 LOCKED — every guild begins as Adept. Declare this " +
+              $"later, in the Grand Hall, once someone here can teach it.";
+        _detailCardCount.AddThemeColorOverride("font_color",
+            isStart ? UITheme.Gold : new Color(accent.R, accent.G, accent.B, 0.6f));
 
         _detailFlavor.Text = flavor;
     }
@@ -666,13 +722,29 @@ public partial class NewGameScreen : Control
             ShowError("No save slot selected. Return to campus and try again.");
             return;
         }
+        if (_selectedSchool != CardSchool.Adept)
+        {
+            // Belt-and-braces behind the disabled button: a stale click must not
+            // found a guild while a locked school is the visible selection.
+            ShowError($"{_selectedSchool} is locked. Every guild begins as an Adept — " +
+                      "select Adept to found, and declare other disciplines in play.");
+            return;
+        }
 
-        PlayerSession.SelectedSchool = _selectedSchool;
+        // Every guild begins UNDECLARED (A1 hard ruling). _selectedSchool is a
+        // reading cursor for the locked browser, never a choice. The school is
+        // passed to NewGame EXPLICITLY — its default parameter is "Elementalist",
+        // which would violate the ruling and seed the wrong starter deck.
+        // Disciplines are declared later, in the Grand Hall (DeclarationService).
+        var startingSchool = Enum.TryParse<CardSchool>(DeclarationService.StartingSchool, out var sc)
+            ? sc : CardSchool.Adept;
+
+        PlayerSession.SelectedSchool = startingSchool;
 
         if (OnComplete != null)
-        { OnComplete.Invoke(_selectedSchool, guildName); return; }
+        { OnComplete.Invoke(startingSchool, guildName); return; }
 
-        var save = SaveManager.NewGame(_targetSlot, guildName, _selectedSchool.ToString());
+        var save = SaveManager.NewGame(_targetSlot, guildName, startingSchool.ToString());
         if (save == null)
         { ShowError("Failed to create save."); return; }
 
@@ -686,7 +758,7 @@ public partial class NewGameScreen : Control
 
         save.WizardName = wizardName;
         SaveManager.Save();
-        GD.Print($"[NewGame] Guild '{guildName}' / Wizard '{wizardName}' founded as {_selectedSchool}");
+        GD.Print($"[NewGame] Guild '{guildName}' / Wizard '{wizardName}' founded as {startingSchool} (undeclared).");
         GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
     }
 
@@ -730,9 +802,28 @@ public partial class NewGameScreen : Control
             CornerRadiusBottomLeft = 4,
             CornerRadiusBottomRight = 4,
         };
+        // The confirm button now spends real time DISABLED (locked-school
+        // selection) — without an explicit disabled stylebox it fell back to the
+        // engine-default grey with the white font override, which read as broken
+        // rather than locked.
+        var disabled = new StyleBoxFlat
+        {
+            BgColor = new Color(0.10f, 0.09f, 0.14f),
+            BorderColor = new Color(0.24f, 0.23f, 0.34f),
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4,
+        };
         btn.AddThemeStyleboxOverride("normal", normal);
         btn.AddThemeStyleboxOverride("hover", hover);
+        btn.AddThemeStyleboxOverride("disabled", disabled);
         btn.AddThemeColorOverride("font_color", Colors.White);
+        btn.AddThemeColorOverride("font_disabled_color", new Color(0.45f, 0.45f, 0.55f));
     }
 
     private static void StyleGhostButton(Button btn)

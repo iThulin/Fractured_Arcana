@@ -1,0 +1,93 @@
+{
+	"id": "necromancer_the_wake",
+	"status": "ready",
+	"name": "The Wake",
+	"school": "Necromancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Final Service",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deal 4 damage. Create a Solid memorial on the target's tile.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 4,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 4
+				},
+				{
+					"type": "create_memorial",
+					"strength": "solid"
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Standing Wake",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Gain 1 armor per memorial on the field.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "armor_per_memorial",
+			"amount_per": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The service runs longer. The regulars stand closer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "create_memorial",
+								"strength": "solid"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage. Create a Solid memorial on the target's tile."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "armor_per_memorial",
+						"amount_per": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 armor per memorial on the field."
+				}
+			],
+			"top_name": "Final Service+",
+			"bottom_name": "Standing Wake+"
+		}
+	]
+}

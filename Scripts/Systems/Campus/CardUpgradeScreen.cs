@@ -639,13 +639,24 @@ public partial class CardUpgradeScreen : Control
         // ── Shared 1/1 upgrade ───────────────────────────────────────────
         if (!baseUpgraded)
         {
+            // PERMANENT cast count (EternalLedger.CardMastery), not the per-copy
+            // one — that lived on CycleState.PlayerDeck and reset every cycle, so
+            // the player re-ground 10/20/35 casts to re-earn points they had
+            // already earned in a lost timeline. CardMasteryService.Casts takes the
+            // max of both, so no existing save goes backwards.
+            int lifetimeCasts = CardMasteryService.Casts(
+                save, _selectedOwned.BlueprintId, _selectedOwned.CastCount);
+
             bool castOk = _bypassCastRequirement ||
-                CardMasteryThresholds.CanSpendNextPoint(
-                    _selectedOwned.CastCount, pointsSpent);
+                CardMasteryThresholds.CanSpendNextPoint(lifetimeCasts, pointsSpent);
             int castsNeeded = CardMasteryThresholds.CastsUntilNextPoint(
-                _selectedOwned.CastCount, pointsSpent);
+                lifetimeCasts, pointsSpent);
             bool canAfford = splinters >= CardUpgradeCosts.SharedUpgradeCost;
 
+            // NOTE: display must use lifetimeCasts too. Showing the per-copy count
+            // here while the gate above uses the permanent one produced a visible
+            // contradiction — "✓ 0 casts" beside an ENABLED button, with the tier
+            // rows below reading "✓ 240 casts" — on the first cycle after a reseed.
             string desc = CardUpgradeApplier.GetSharedUpgradeDescription(
                 _selectedOwned.BlueprintId);
 
@@ -656,7 +667,7 @@ public partial class CardUpgradeScreen : Control
             AddDynamic(MakeCostLabel(
                 CardUpgradeCosts.SharedUpgradeCost, castOk,
                 castsNeeded, canAfford, _bypassCastRequirement,
-                _selectedOwned.CastCount));
+                lifetimeCasts));
 
             AddDynamic(MakeUpgradeButton(
                 "Refine Both Halves →",
@@ -835,15 +846,18 @@ public partial class CardUpgradeScreen : Control
 
         int cost = CardUpgradeCosts.HalfTierCost[Mathf.Min(nextTier,
             CardUpgradeCosts.HalfTierCost.Length - 1)];
+        // Permanent cast count — see the shared-upgrade gate above.
+        int lifetimeCasts = CardMasteryService.Casts(
+            save, _selectedOwned.BlueprintId, _selectedOwned.CastCount);
+
         bool castOk = _bypassCastRequirement ||
-            CardMasteryThresholds.CanSpendNextPoint(
-                _selectedOwned.CastCount, _selectedOwned.PointsSpent);
+            CardMasteryThresholds.CanSpendNextPoint(lifetimeCasts, _selectedOwned.PointsSpent);
         int castsNeeded = CardMasteryThresholds.CastsUntilNextPoint(
-            _selectedOwned.CastCount, _selectedOwned.PointsSpent);
+            lifetimeCasts, _selectedOwned.PointsSpent);
         bool canAfford = (save?.ArcaneSplinters ?? 0) >= cost;
 
         col.AddChild(MakeCostLabel(cost, castOk, castsNeeded,
-            canAfford, _bypassCastRequirement, _selectedOwned.CastCount));
+            canAfford, _bypassCastRequirement, lifetimeCasts));
 
         bool disabled = !canAfford || gated || stageLocked || !castOk || noPoints;
         string btnText = noPoints
@@ -875,6 +889,11 @@ public partial class CardUpgradeScreen : Control
         _selectedOwned.BotTier = 1;
         _selectedOwned.PointsSpent = 1;
 
+        // Stamp the permanent high-water mark. Splinters are still spent per copy,
+        // but the ceiling you have proven is knowledge and survives the reseed —
+        // it is what a minted copy reproduces.
+        CardMasteryService.RecordTiers(save, _selectedOwned);
+
         SaveManager.Save();
         GD.Print($"[CardUpgrade] Shared upgrade: '{_selectedOwned.BlueprintId}' → 1/1");
         Refresh();
@@ -899,6 +918,8 @@ public partial class CardUpgradeScreen : Control
         if (isTop) _selectedOwned.TopTier = nextTier;
         else _selectedOwned.BotTier = nextTier;
         _selectedOwned.PointsSpent++;
+
+        CardMasteryService.RecordTiers(save, _selectedOwned);
 
         SaveManager.Save();
         GD.Print($"[CardUpgrade] {(isTop ? "Top" : "Bot")} upgraded: " +

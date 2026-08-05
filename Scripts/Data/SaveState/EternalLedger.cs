@@ -27,6 +27,34 @@ using System.Collections.Generic;
 //                 rule. See claude/progression_persistence_model_v1.md.
 // ============================================================
 
+/// <summary>
+/// Per-BLUEPRINT card mastery. Permanent, and deliberately so.
+///
+/// Cast counts and upgrade tiers used to live only on <see cref="OwnedCard"/>,
+/// which hangs off CycleState.PlayerDeck and is destroyed every cycle. That meant
+/// a player re-earned the right to upgrade cards they had already mastered twice,
+/// and every tier they had ever bought evaporated with the timeline. Knowing a
+/// card well is knowledge — it belongs in the loom
+/// (progression_persistence_model_v1 §2).
+///
+/// The per-copy OwnedCard.CastCount still exists and still increments; this is the
+/// authoritative record that survives, and the one the upgrade gate reads.
+/// </summary>
+public class CardMasteryRecord
+{
+    /// <summary>Lifetime casts of this blueprint, all copies, all timelines.</summary>
+    public int Casts = 0;
+
+    /// <summary>Highest top-half tier ever reached on any copy.</summary>
+    public int BestTopTier = 0;
+
+    /// <summary>Highest bottom-half tier ever reached on any copy.</summary>
+    public int BestBotTier = 0;
+
+    /// <summary>Upgrade points spent to reach that best state — the mint reproduces it.</summary>
+    public int BestPointsSpent = 0;
+}
+
 /// <summary>Per-school mastery progress. The progression spine.</summary>
 public class SchoolMasteryTrack
 {
@@ -180,6 +208,50 @@ public class EternalLedger
     /// </summary>
     public List<string> UnlockedCardBlueprintIds = new();
 
+    // ── Regalia (the ONE reseed exception) ───────────────────────────────
+    /// <summary>
+    /// Named artifacts owned permanently — granted at milestones (fragments,
+    /// archmage confrontations, companion arc capstones), never drafted.
+    /// Legendary draft weight is 0; these are the only route to a Legendary.
+    ///
+    /// Regalia are the single sanctioned exception to the deck reseed: up to
+    /// K of them (RegaliaService.MaxCarry) ride into a fresh cycle alongside
+    /// the 10-card starter. The fiction pays for it — the fragments are
+    /// trans-temporal, so a card cut from one was never in the timeline that
+    /// resets (narrative_frame_intro_finale_v1 R5).
+    ///
+    /// AMENDS progression_persistence_model_v1.md §5 ("run deck → starter"),
+    /// which now reads "→ starter, plus up to K Regalia". User-authorized
+    /// 2026-08-04. See docs/progression_card_acquisition_v1.md §6.
+    /// Ownership lives here; the per-cycle SELECTION lives on
+    /// CycleState.CarriedRegaliaIds and is wiped with the timeline.
+    /// </summary>
+    public List<string> RegaliaBlueprintIds = new();
+
+    /// <summary>
+    /// blueprintId → lifetime casts and best tiers reached. Permanent: the upgrade
+    /// gate reads this, so mastery is never re-ground after a reseed, and minting
+    /// reproduces a card at the tier you have already paid for.
+    /// See docs/progression_card_acquisition_v1_2.md.
+    /// </summary>
+    public Dictionary<string, CardMasteryRecord> CardMastery = new();
+
+    /// <summary>
+    /// Every overworld spell the guild has ever learned, across all timelines.
+    ///
+    /// GrimoireState.KnownSpellIds is the per-cycle working list and stays
+    /// cycle-scoped (as do prepared slots, scrolls, and Essence — those are
+    /// loadout and resource, not knowledge). This is the permanent record the
+    /// working list is re-seeded from at cycle start.
+    ///
+    /// AMENDS overworld_spell_system_v1_1 §5/§13 and the CycleState comment
+    /// "spell knowledge is timeline knowledge — dies with the cycle", which put
+    /// knowledge on the wrong side of the two-layer law. Lore and card blueprints
+    /// were already permanent for exactly this reason; spells were the outlier.
+    /// User-ruled 2026-08-04.
+    /// </summary>
+    public List<string> KnownSpellIds = new();
+
     public List<string> UnlockedLoreEntries = new();
 
     /// <summary>Quest ids permanently completed (cross-cycle arcs — the fragment
@@ -230,6 +302,18 @@ public class EternalLedger
             SchoolMastery[school] = track;
         }
         return track;
+    }
+
+    /// <summary>Returns the mastery record for a blueprint, creating it if absent.</summary>
+    public CardMasteryRecord GetCardMastery(string blueprintId)
+    {
+        CardMastery ??= new Dictionary<string, CardMasteryRecord>();
+        if (!CardMastery.TryGetValue(blueprintId, out var rec))
+        {
+            rec = new CardMasteryRecord();
+            CardMastery[blueprintId] = rec;
+        }
+        return rec;
     }
 
     /// <summary>Increment a deed count and return the new total.</summary>

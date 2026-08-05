@@ -111,8 +111,13 @@ public partial class CampusScreen : Control
     public override void _Ready()
     {
         PlayerDeckSave.UseDebugDeck = false; // campus is the real-deck home; debug routing off
-        if (SaveManager.ActiveSave == null) SaveManager.AutoLoadLast(); // boot/dev: fall back to last save
+        // Cards BEFORE the save: SaveManager.Load runs ProgressionSweep, which
+        // needs a populated CardDatabase to resolve Regalia. The autoload normally
+        // primes it first, but this ordering makes that a convenience rather than
+        // a load-bearing assumption. (The sweep also refuses to run on an empty
+        // database, so this is belt-and-braces.)
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
+        if (SaveManager.ActiveSave == null) SaveManager.AutoLoadLast(); // boot/dev: fall back to last save
         CallDeferred(nameof(BuildUI));
     }
 
@@ -346,6 +351,12 @@ public partial class CampusScreen : Control
         // Refresh the newly visible tab so it always shows current data
         switch (index)
         {
+            case 0:
+                // Guild tab — was missing from this switch entirely, so the
+                // Disciplines section could go stale (or, before the RefreshAll
+                // fix, never render at all) when switching back to it.
+                _guildPanel.Refresh();
+                break;
             case 3:
                 _expeditionPanel.Refresh();
                 break;
@@ -692,7 +703,11 @@ public partial class CampusScreen : Control
         BuildingEffectApplier.CalculateRunBonuses(SaveManager.ActiveSave);
         BuildingEffectApplier.ApplyCampusEffects(SaveManager.ActiveSave);
 
-        _guildPanel.RefreshSlots();
+        // Refresh(), not RefreshSlots(): until 2026-08-04 this called RefreshSlots
+        // directly, which left Refresh() with ZERO call sites — the guild identity
+        // panel and the entire Disciplines section had never rendered once.
+        // "Always blank" in playtest was this line, not the section's layout.
+        _guildPanel.Refresh();
         _companionsPanel.Refresh();
         RefreshBuildingList();
         _trainingPanel.Refresh();
@@ -1438,11 +1453,39 @@ public partial class CampusScreen : Control
                     $"{rDef?.DisplayName ?? "The archmage"} is overthrown — their shard answers you now.",
                     QuestToastKind.Progress);
             }
+
+            // Marginalia (marginalia_spec_v1 R2): campus-launched fights —
+            // guardian trials and resolution bosses — are drawn from faction
+            // rosters and count like any expedition victory. This is the campus
+            // twin of ExpeditionManager.EmitCombatDeed's commit. The MarkDirty
+            // below persists it, and the SaveIfDirty runs ProgressionSweep, so
+            // a completion settles before the toast has faded.
+            if (router.SavedCombatFamilyKills != null && router.SavedCombatFamilyKills.Count > 0)
+            {
+                var advanced = MarginaliaService.CommitKills(save, router.SavedCombatFamilyKills);
+                foreach (var adv in advanced)
+                {
+                    if (adv.CompletedNow)
+                        _campusToasts?.Push(
+                            $"Marginalia complete: {adv.FactionName} — " +
+                            $"{(string.IsNullOrEmpty(adv.CardName) ? "entry settled" : adv.CardName + " unlocked")}.",
+                            QuestToastKind.Unlock);
+                    else if (adv.Threshold > 0)
+                        _campusToasts?.Push(
+                            $"Marginalia: {adv.FactionName} — {adv.Kills}/{adv.Threshold} defeated.",
+                            QuestToastKind.Progress);
+                }
+            }
         }
         else
         {
             _campusToasts?.Push("Driven back — the campus holds you while you recover.", QuestToastKind.Progress);
         }
+
+        // Marginalia: consumed or not, never leave a tally armed on the
+        // scene-persistent router — a stale one would be committed out of
+        // context by a later return path.
+        router.SavedCombatFamilyKills = new Dictionary<string, int>();
 
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();

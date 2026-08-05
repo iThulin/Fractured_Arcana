@@ -79,6 +79,12 @@ public partial class EncounterRouter : Node
     /// attribution fields; set by the launcher just before the scene swap.</summary>
     public string SavedResolutionArchmageId = "";
 
+    /// <summary>Marginalia (marginalia_spec_v1 R2): the won fight's kill tally by
+    /// enemy FactionId. Written by CombatManager at VICTORY only (cleared at
+    /// defeat), consumed-and-cleared by ExpeditionManager.EmitCombatDeed, which
+    /// commits it to EternalLedger.DeedCounts as marginalia_kill_&lt;family&gt;.</summary>
+    public System.Collections.Generic.Dictionary<string, int> SavedCombatFamilyKills = new();
+
     // ── Seed for deterministic map regeneration after combat ────────────
     public int SavedRunSeed;
     public bool HasSavedSeed = false;

@@ -29,12 +29,33 @@ public sealed class CampusRecordsPanel : CampusPanel
     private VBoxContainer _container;
     private Label _summaryLabel;
 
+    // ── Marginalia section (marginalia_spec_v1 R5) ───────────────────────
+    private VBoxContainer _marginaliaContainer;
+    private Label _marginaliaSummary;
+
     protected override void OnBuild(ScrollContainer scroll)
     {
         var margins = MakeMargins(32, 20);
         scroll.AddChild(margins);
         var layout = MakeVBox(12);
         margins.AddChild(layout);
+
+        // The Marginalia — enemy field notes, permanent like everything on this
+        // tab. Eight fixed rows, so it sits above the unbounded deal ledger.
+        AddSectionHeader(layout, "The Marginalia — Field Notes on the Enemy");
+
+        _marginaliaSummary = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        _marginaliaSummary.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        _marginaliaSummary.AddThemeColorOverride("font_color", UITheme.NegotiationNpcColor);
+        layout.AddChild(_marginaliaSummary);
+
+        _marginaliaContainer = MakeVBox(6);
+        layout.AddChild(_marginaliaContainer);
+
+        layout.AddChild(new HSeparator());
 
         AddSectionHeader(layout, "Hall of Records — Deal Ledger");
 
@@ -57,6 +78,8 @@ public sealed class CampusRecordsPanel : CampusPanel
         if (_container == null) return;
         foreach (var child in _container.GetChildren())
             child.QueueFree();
+
+        RefreshMarginalia();
 
         var records = Ctx?.Save?.Ledger?.DealRecords;
         if (records == null || records.Count == 0)
@@ -144,5 +167,77 @@ public sealed class CampusRecordsPanel : CampusPanel
         if (records.Count > MaxRows)
             _container.AddChild(MakeStubLabel(
                 $"…and {records.Count - MaxRows} older entries."));
+    }
+
+    /// <summary>The Marginalia rows (marginalia_spec_v1 R5): one per enemy
+    /// family — kills/threshold while open, the unlocked card once settled.
+    /// Reads DeedCounts + the sweep's paid flags via MarginaliaService.</summary>
+    private void RefreshMarginalia()
+    {
+        if (_marginaliaContainer == null) return;
+        foreach (var child in _marginaliaContainer.GetChildren())
+            child.QueueFree();
+
+        var save = Ctx?.Save;
+        if (save == null) return;
+
+        var rows = MarginaliaService.Progress(save);
+        int complete = 0;
+        foreach (var r in rows)
+            if (r.Complete) complete++;
+
+        _marginaliaSummary.Text =
+            $"What is done to you often enough, you learn. {complete} of {rows.Count} " +
+            $"entries complete — a finished entry unlocks that family's trick as a card.";
+
+        foreach (var r in rows)
+        {
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 12);
+
+            var markLbl = new Label
+            {
+                Text = r.Complete ? "✦" : "◈",
+                CustomMinimumSize = new Vector2(28, 0),
+                VerticalAlignment = VerticalAlignment.Top,
+            };
+            markLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            markLbl.AddThemeColorOverride("font_color",
+                r.Complete ? UITheme.NegotiationTitleColor : UITheme.NegotiationHiddenTerm);
+            row.AddChild(markLbl);
+
+            var col = MakeVBox(2);
+            col.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+
+            var nameLbl = new Label
+            {
+                Text = $"{r.FactionName} — {r.School}",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            col.AddChild(nameLbl);
+
+            string detail;
+            if (r.Complete)
+                detail = string.IsNullOrEmpty(r.CardName)
+                    ? "Entry complete — blueprint unlocked."
+                    : $"Entry complete — {r.CardName} unlocked.";
+            else if (r.Threshold > 0)
+                detail = $"{r.Kills}/{r.Threshold} defeated";
+            else
+                detail = $"{r.Kills} defeated";
+
+            var detailLbl = new Label
+            {
+                Text = detail,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            detailLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+            detailLbl.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
+            col.AddChild(detailLbl);
+
+            row.AddChild(col);
+            _marginaliaContainer.AddChild(row);
+        }
     }
 }

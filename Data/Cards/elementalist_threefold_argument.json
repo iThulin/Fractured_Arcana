@@ -1,0 +1,147 @@
+{
+	"id": "elementalist_threefold_argument",
+	"status": "ready",
+	"name": "Threefold Argument",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Threefold Argument",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Choose one — Fire: deal 4 damage. Storm: push target 2 tiles (collisions deal 2 damage). Earth: the target is Rooted for 1 turn.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 3,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "choose_one",
+			"options": [
+				{
+					"label": "Fire's Argument",
+					"description": "Deal 4 damage.",
+					"effect": {
+						"type": "damage",
+						"amount": 4
+					}
+				},
+				{
+					"label": "Storm's Argument",
+					"description": "Push target 2 tiles. Collisions deal 2 damage.",
+					"effect": {
+						"type": "push",
+						"tiles": 2,
+						"collision_damage": 2
+					}
+				},
+				{
+					"label": "Earth's Argument",
+					"description": "The target is Rooted for 1 turn.",
+					"effect": {
+						"type": "apply_status",
+						"status": "rooted",
+						"duration": 1
+					}
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Counterargument",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 2 shield. Until your next turn, any attacker that hits you takes 3 damage.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "shield",
+					"amount": 2
+				},
+				{
+					"type": "retaliate",
+					"damage": 3
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Every argument lands with more weight.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "choose_one",
+						"options": [
+							{
+								"label": "Fire's Argument",
+								"description": "Deal 5 damage.",
+								"effect": {
+									"type": "damage",
+									"amount": 5
+								}
+							},
+							{
+								"label": "Storm's Argument",
+								"description": "Push target 3 tiles. Collisions deal 2 damage.",
+								"effect": {
+									"type": "push",
+									"tiles": 3,
+									"collision_damage": 2
+								}
+							},
+							{
+								"label": "Earth's Argument",
+								"description": "The target is Rooted for 2 turns.",
+								"effect": {
+									"type": "apply_status",
+									"status": "rooted",
+									"duration": 2
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Choose one — Fire: deal 5 damage. Storm: push target 3 tiles (collisions deal 2 damage). Earth: the target is Rooted for 2 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 3
+							},
+							{
+								"type": "retaliate",
+								"damage": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 3 shield. Until your next turn, any attacker that hits you takes 4 damage."
+				}
+			],
+			"top_name": "Threefold Argument+",
+			"bottom_name": "Counterargument+"
+		}
+	]
+}

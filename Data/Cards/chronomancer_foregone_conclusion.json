@@ -1,0 +1,77 @@
+{
+	"id": "chronomancer_foregone_conclusion",
+	"status": "ready",
+	"name": "Foregone Conclusion",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Foregone Conclusion",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Choose a tile within 4. At the end of each of the next 2 turns: deal 3 damage to whatever stands there.",
+		"tags": [],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "delayed_damage",
+			"amount": 3,
+			"turns": 2
+		}
+	},
+	"bottom": {
+		"name": "Read Ahead",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Look at the top 3 cards of your deck. Keep 1. The rest go to the bottom.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "scry",
+			"look": 3,
+			"keep": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The conclusion arrives harder, and you read further ahead.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "delayed_damage",
+						"amount": 4,
+						"turns": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Choose a tile within 4. At the end of each of the next 2 turns: deal 4 damage to whatever stands there."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "scry",
+						"look": 4,
+						"keep": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Look at the top 4 cards of your deck. Keep 1. The rest go to the bottom."
+				}
+			],
+			"top_name": "Foregone Conclusion+",
+			"bottom_name": "Read Ahead+"
+		}
+	]
+}

@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 using static CampusUi;
 
 // ============================================================
@@ -43,6 +44,16 @@ public sealed class CampusGuildPanel : CampusPanel
     private OptionButton _forceEncounterDropdown;
     private VBoxContainer _guildIdentityContainer;
     private VBoxContainer _guildResultContainer;
+    private VBoxContainer _declarationContainer;
+
+    // Last-run result snapshot (see RefreshGuildResultPanel): RunResultData is
+    // CONSUMED on first read because StrategicView's warfront resolution keys on
+    // HasResults per run — but Refresh() fires twice on campus boot (RefreshAll +
+    // the tab-switch case), so rendering directly from RunResultData showed the
+    // banner for exactly one frame and then destroyed it. Cache what was consumed.
+    private bool _resultCached;
+    private bool _resultWon;
+    private int _resultGold, _resultSplinters, _resultEncounters, _resultHp;
 
     protected override void OnBuild(ScrollContainer scroll)
     {
@@ -58,6 +69,15 @@ public sealed class CampusGuildPanel : CampusPanel
         // ── Last run result — filled by RefreshGuildTab() ────────────────
         _guildResultContainer = MakeVBox(0);
         layout.AddChild(_guildResultContainer);
+
+        // ── Discipline — filled by RefreshDeclarations() ─────────────────
+        // The Grand Hall hosts this panel, and the building's own description
+        // already promises "school of study". It is also the room the conferral
+        // stopped in, which is why declaring happens here and nowhere else.
+        layout.AddChild(new HSeparator());
+        AddSectionHeader(layout, "Disciplines — what you can play, and why");
+        _declarationContainer = MakeVBox(8);
+        layout.AddChild(_declarationContainer);
 
         // ── Save slots ───────────────────────────────────────────────────
         layout.AddChild(new HSeparator());
@@ -128,7 +148,204 @@ public sealed class CampusGuildPanel : CampusPanel
     {
         RefreshGuildIdentityPanel();
         RefreshGuildResultPanel();
+        RefreshDeclarations();
         RefreshSlots();
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  Declare a Discipline (design doc §7)
+    // ═════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// One row per non-Adept school: declared, declarable, or locked with the
+    /// single most actionable reason why. Eligibility is recomputed on every
+    /// refresh because it depends on cycle state (companions, dispositions) that
+    /// changes underneath this panel.
+    /// </summary>
+    private void RefreshDeclarations()
+    {
+        if (_declarationContainer == null) return;
+        foreach (var child in _declarationContainer.GetChildren())
+            child.QueueFree();
+
+        var save = Ctx.Save;
+        if (save == null)
+        {
+            _declarationContainer.AddChild(MakeStubLabel("No guild loaded."));
+            return;
+        }
+
+        int declaredCount = DeclarationService.DeclaredSchools(save).Count;   // includes Adept
+
+        // One line, not a paragraph (2026-08-04 playtest: "way too much text").
+        // The checklist rows below carry the specifics.
+        var intro = new Label
+        {
+            Text = "Declared disciplines are permanent and playable at every new timeline. " +
+                   "Declaring takes a teacher, that school's mastery, and the Grand Hall.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        intro.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        intro.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+        _declarationContainer.AddChild(intro);
+
+        var tally = new Label { Text = $"{declaredCount} of 8 disciplines yours." };
+        tally.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        tally.AddThemeColorOverride("font_color", UITheme.Gold);
+        _declarationContainer.AddChild(tally);
+
+        // Adept first — always playable, never declared. Skipping it entirely
+        // read as a hole in the list during playtest.
+        _declarationContainer.AddChild(BuildAdeptRow());
+
+        foreach (CardSchool school in Enum.GetValues(typeof(CardSchool)))
+        {
+            string name = school.ToString();
+            if (name == DeclarationService.StartingSchool) continue;   // row above
+
+            _declarationContainer.AddChild(BuildDeclarationRow(save, name));
+        }
+    }
+
+    /// <summary>The one row that needs no evaluation: where every guild begins.</summary>
+    private Control BuildAdeptRow()
+    {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 12);
+        row.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+
+        var mark = new Label { Text = "✦", CustomMinimumSize = new Vector2(24, 0) };
+        mark.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        mark.AddThemeColorOverride("font_color", UITheme.Gold);
+        row.AddChild(mark);
+
+        var nameLbl = new Label { Text = "Adept", CustomMinimumSize = new Vector2(130, 0) };
+        nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        nameLbl.AddThemeColorOverride("font_color", UITheme.Gold);
+        row.AddChild(nameLbl);
+
+        var detail = new Label
+        {
+            Text = "Always yours.",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        detail.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        detail.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+        row.AddChild(detail);
+        return row;
+    }
+
+    /// <summary>
+    /// One school, ONE line (2026-08-04 playtest: the prose blockers buried the
+    /// two facts that matter — unlock status and whether a teacher exists).
+    /// Glyph + name + a fixed status line: "Teacher … · Mastery x/y · Grand Hall …"
+    /// for undeclared schools, "Declared · Mastery n" for declared ones. The
+    /// Declare button appears only when everything is met.
+    /// </summary>
+    private Control BuildDeclarationRow(GuildSaveData save, string school)
+    {
+        var status = DeclarationService.Evaluate(save, school);
+
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 12);
+        row.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+
+        // Status glyph: ✦ declared · → declarable now · 🔒 locked
+        var mark = new Label
+        {
+            Text = status.Declared ? "✦" : status.Eligible ? "→" : "🔒",
+            CustomMinimumSize = new Vector2(24, 0),
+        };
+        mark.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        mark.AddThemeColorOverride("font_color",
+            status.Declared ? UITheme.Gold
+            : status.Eligible ? UITheme.HealthGreen
+            : UITheme.CampusSubtleText);
+        row.AddChild(mark);
+
+        var nameLbl = new Label
+        {
+            Text = school,
+            CustomMinimumSize = new Vector2(130, 0),
+        };
+        nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        nameLbl.AddThemeColorOverride("font_color",
+            status.Declared ? UITheme.Gold : UITheme.TextPrimary);
+        row.AddChild(nameLbl);
+
+        var detail = new Label
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        detail.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+
+        if (status.Declared)
+        {
+            detail.Text = $"Declared  ·  Mastery {status.MasteryPoints}";
+            detail.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+            row.AddChild(detail);
+            return row;
+        }
+
+        // The fixed status line — same three items in the same order on every
+        // undeclared row, so standing is comparable at a glance.
+        bool hasHall = DeclarationService.HasGrandHall(save);
+        bool hasTeacher = status.FacultySource != null;
+        bool hasMastery = status.MasteryPoints >= status.MasteryRequired;
+        detail.Text =
+            $"Teacher {(hasTeacher ? "✓ " + status.FacultySource : "—")}   ·   " +
+            $"Mastery {status.MasteryPoints}/{status.MasteryRequired}{(hasMastery ? " ✓" : "")}   ·   " +
+            $"Grand Hall {(hasHall ? "✓" : "—")}";
+        detail.AddThemeColorOverride("font_color",
+            status.Eligible ? UITheme.HealthGreen : UITheme.CampusSubtleText);
+        row.AddChild(detail);
+
+        if (status.Eligible)
+        {
+            var btn = MakeButton($"Declare {school}", 170, 34, UITheme.CampusSmallFontSize);
+            string captured = school;
+            btn.Pressed += () => OnDeclarePressed(captured);
+            row.AddChild(btn);
+        }
+
+        return row;
+    }
+
+    private void OnDeclarePressed(string school)
+    {
+        var save = Ctx.Save;
+        if (save == null) return;
+
+        // Capture the teacher before declaring — Evaluate reports FacultySource
+        // for a declared school too, but reading it first keeps the conferral
+        // line honest if the roster shifts underneath us.
+        string faculty = DeclarationService.FindFacultySource(save, school);
+
+        if (!DeclarationService.Declare(save, school))
+        {
+            // Declare re-checks and logs its own reason. The button should not
+            // have been reachable, so just resync the panel.
+            RefreshDeclarations();
+            return;
+        }
+
+        SaveManager.Save();
+
+        // The Provost's sentence from Beat 2, finally finishing — in the voice of
+        // whoever stayed to speak it. The player spends this moment seven times.
+        var dialog = new AcceptDialog
+        {
+            Title = "The Conferral",
+            DialogText = DeclarationService.ConferralLine(school, faculty),
+        };
+        Ctx.Host.AddChild(dialog);
+        dialog.Confirmed += () => dialog.QueueFree();
+        dialog.Canceled += () => dialog.QueueFree();
+        dialog.PopupCentered();
+
+        Ctx.RequestRefreshAll?.Invoke();
     }
 
     private void RefreshGuildIdentityPanel()
@@ -233,10 +450,24 @@ public sealed class CampusGuildPanel : CampusPanel
         foreach (var child in _guildResultContainer.GetChildren())
             child.QueueFree();
 
-        if (!RunResultData.HasResults)
+        // Consume-then-cache: take the fresh result if one arrived, then always
+        // render from the cache so a second Refresh in the same session rebuilds
+        // the banner instead of erasing it.
+        if (RunResultData.HasResults)
+        {
+            _resultCached = true;
+            _resultWon = RunResultData.ReachedObjective;
+            _resultGold = RunResultData.GoldEarned;
+            _resultSplinters = RunResultData.ArcaneSplinters;
+            _resultEncounters = RunResultData.EncountersWon;
+            _resultHp = RunResultData.HPRemaining;
+            RunResultData.Clear();
+        }
+
+        if (!_resultCached)
             return;
 
-        bool won = RunResultData.ReachedObjective;
+        bool won = _resultWon;
 
         var resultPanel = new PanelContainer();
         var resultStyle = new StyleBoxFlat
@@ -288,12 +519,10 @@ public sealed class CampusGuildPanel : CampusPanel
             resultRow.AddChild(lbl);
         }
 
-        AddResult("Gold:", $"{RunResultData.GoldEarned}");
-        AddResult("Splinters:", $"{RunResultData.ArcaneSplinters}");
-        AddResult("Encounters:", $"{RunResultData.EncountersWon}");
-        AddResult("HP:", $"{RunResultData.HPRemaining}");
-
-        RunResultData.Clear();
+        AddResult("Gold:", $"{_resultGold}");
+        AddResult("Splinters:", $"{_resultSplinters}");
+        AddResult("Encounters:", $"{_resultEncounters}");
+        AddResult("HP:", $"{_resultHp}");
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -422,7 +651,83 @@ public sealed class CampusGuildPanel : CampusPanel
         assertDeckBtn.Pressed += () => CombatDebugLauncher.AssertDeckSplit();
         grid.AddChild(assertDeckBtn);
 
-        return panel;       
+        // ── Progression bypasses ─────────────────────────────────────────
+        // The faculty gate and the unlock gate are both slow by design, which
+        // makes anything downstream of them tedious to test. These three skip
+        // straight to the end state. They write to the EternalLedger and save
+        // immediately, so they are PERMANENT for that guild — use a scratch slot.
+        Button DebugGrant(string text, Action<GuildSaveData> apply)
+        {
+            var b = new Button { Text = text, CustomMinimumSize = new Vector2(140, 28) };
+            b.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            b.Pressed += () =>
+            {
+                var save = Ctx.Save;
+                if (save?.Ledger == null) { GD.PrintErr("[Debug] No save loaded."); return; }
+                apply(save);
+                SaveManager.Save();
+                Ctx.RequestRefreshAll?.Invoke();
+            };
+            grid.AddChild(b);
+            return b;
+        }
+
+        DebugGrant("Declare All Schools", save =>
+        {
+            save.Ledger.MetaNarrativeFlags ??= new List<string>();
+            int n = 0;
+            foreach (CardSchool s in Enum.GetValues(typeof(CardSchool)))
+            {
+                string flag = DeclarationService.DeclaredFlag(s.ToString());
+                if (save.Ledger.MetaNarrativeFlags.Contains(flag)) continue;
+                save.Ledger.MetaNarrativeFlags.Add(flag);
+                n++;
+            }
+            GD.Print($"[Debug] Declared {n} additional discipline(s). Every school is now " +
+                     $"selectable at the next cycle.");
+        });
+
+        DebugGrant("Unlock All Cards", save =>
+        {
+            save.Ledger.UnlockedCardBlueprintIds ??= new List<string>();
+            var known = new HashSet<string>(save.Ledger.UnlockedCardBlueprintIds,
+                                            StringComparer.OrdinalIgnoreCase);
+            int n = 0;
+            foreach (var bp in CardDatabase.Blueprints)
+            {
+                if (!known.Add(bp.Id)) continue;
+                save.Ledger.UnlockedCardBlueprintIds.Add(bp.Id);
+                n++;
+            }
+            // Legendaries are included on purpose: DraftablePool drops them from
+            // the draft regardless, so this only makes the card library honest.
+            GD.Print($"[Debug] Unlocked {n} blueprint(s) — " +
+                     $"{save.Ledger.UnlockedCardBlueprintIds.Count} known. " +
+                     $"Legendaries remain undraftable (they are Regalia).");
+        });
+
+        DebugGrant("Learn All Spells", save =>
+        {
+            OverworldSpellRegistry.EnsureLoaded();
+            save.Cycle ??= new CycleState();
+            save.Cycle.Grimoire ??= new GrimoireState();
+            save.Cycle.Grimoire.KnownSpellIds ??= new List<string>();
+
+            var known = new HashSet<string>(save.Cycle.Grimoire.KnownSpellIds, StringComparer.Ordinal);
+            int n = 0;
+            foreach (var id in OverworldSpellRegistry.All.Keys)
+            {
+                if (!known.Add(id)) continue;
+                save.Cycle.Grimoire.KnownSpellIds.Add(id);
+                n++;
+            }
+            // Cycle-scoped by design — the Grimoire dies with the timeline
+            // (overworld_spell_system_v1_1 §5), so this lasts the current cycle only.
+            GD.Print($"[Debug] Learned {n} overworld spell(s) — " +
+                     $"{save.Cycle.Grimoire.KnownSpellIds.Count} known this cycle.");
+        });
+
+        return panel;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

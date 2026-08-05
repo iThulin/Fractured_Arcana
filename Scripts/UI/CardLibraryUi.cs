@@ -279,6 +279,137 @@ public partial class CardLibraryUi : Control
     //  Detail panel
     // ═════════════════════════════════════════════════════════════════════
 
+    /// <summary>
+    /// The Library's scribing bench — the deterministic acquisition route
+    /// (progression_card_acquisition_v1 §8, "Library research"). Every other way to
+    /// get a card is a dice roll; this is the one where you name the card you want,
+    /// pay, and receive it — at whatever tier you have already mastered.
+    ///
+    /// Bounded by a per-cycle cap (Arcane Library tier) so it cannot make the draft
+    /// pointless or the reseed cosmetic. Everything it needs is already on this
+    /// screen: the Library lists every blueprint in the game, discovered or not.
+    /// </summary>
+    private void BuildMintSection(CardBlueprint bp)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null || bp == null) return;
+
+        var mastered = CardMintService.Evaluate(save, bp, atBase: false);
+        var atBase = CardMintService.Evaluate(save, bp, atBase: true);
+
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 10);
+        _detailContent.AddChild(row);
+
+        var info = new Label
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        info.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+
+        // Blocked either way — show the reason and stop. Base is the cheaper of the
+        // two, so if even that is refused there is nothing actionable to offer.
+        if (!atBase.CanMint && !mastered.CanMint)
+        {
+            info.Text = atBase.Blocker;
+            info.AddThemeColorOverride("font_color", UITheme.TextDim);
+            row.AddChild(info);
+            return;
+        }
+
+        info.Text = $"Scriptorium use: {atBase.MintsUsed}/{atBase.MintsAllowed} this timeline. " +
+                    $"A scribed copy goes to the stash — slot it in the deck editor.";
+        info.AddThemeColorOverride("font_color", UITheme.HealthGreen);
+        row.AddChild(info);
+
+        var captured = bp;
+
+        void AddMintButton(MintStatus st, bool wantBase, string label)
+        {
+            var btn = new Button
+            {
+                Text = $"{label}  {st.SplinterCost}✦",
+                CustomMinimumSize = new Vector2(190, 32),
+                Disabled = !st.CanMint,
+                TooltipText = st.CanMint ? "" : st.Blocker,
+            };
+            btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            UITheme.ApplyButtonStyle(btn, isPrimary: !wantBase);
+            btn.Pressed += () =>
+            {
+                if (CardMintService.Mint(SaveManager.ActiveSave, captured, wantBase) == null) return;
+                SaveManager.Save();
+                ShowDetailPanel(captured);   // re-evaluate: budget and splinters moved
+            };
+            row.AddChild(btn);
+        }
+
+        // Offer the mastered copy only when it is actually better than base. The
+        // tier price is charged in full (see CardMintService.TierCost), so this is a
+        // real choice — a mastered 3/3 costs far more than a plain copy, and a player
+        // who cannot afford it can still take the base one rather than being priced
+        // out of their own mastery.
+        bool hasMastery = mastered.TopTier > 0 || mastered.BotTier > 0;
+        if (hasMastery)
+            AddMintButton(mastered, false, $"Scribe {mastered.TopTier}/{mastered.BotTier}");
+
+        AddMintButton(atBase, true, hasMastery ? "Scribe plain" : "Scribe");
+
+        // Lifetime mastery, permanent and cross-timeline. Worth surfacing here even
+        // when minting is blocked — it is the number that decides what a copy would
+        // arrive at, and until now the player had no way to see it at all.
+        var best = CardMasteryService.Best(save, bp.Id);
+        if (best.Casts > 0 || best.BestTopTier > 0 || best.BestBotTier > 0)
+        {
+            var mastery = new Label
+            {
+                Text = $"Mastery: {best.Casts} lifetime casts  ·  best {best.BestTopTier}/{best.BestBotTier}",
+            };
+            mastery.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            mastery.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+            _detailContent.AddChild(mastery);
+        }
+    }
+
+    /// <summary>Marginalia lock note (marginalia_spec_v1 R5): a Marginalia reward
+    /// card shows WHY it is locked and how far the hunt has come, turning the
+    /// library into the want-list surface. One label; nothing when the blueprint
+    /// is not a Marginalia card.</summary>
+    private void BuildMarginaliaNote(CardBlueprint bp)
+    {
+        if (bp == null || !MarginaliaService.TryGetFamilyForCard(bp.Id, out var family))
+            return;
+
+        var save = SaveManager.ActiveSave;
+        if (save == null) return;
+
+        var note = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        note.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+
+        string faction = ArchmageRegistry.Get(family)?.FactionName ?? family;
+        if (MarginaliaService.IsComplete(save, family))
+        {
+            note.Text = $"Marginalia: earned against {faction} — the entry is complete.";
+            note.AddThemeColorOverride("font_color", UITheme.HealthGreen);
+        }
+        else
+        {
+            int kills = MarginaliaService.KillCount(save, family);
+            int threshold = MarginaliaService.Threshold(family);
+            int remaining = threshold > 0 ? Mathf.Max(0, threshold - kills) : -1;
+            note.Text = remaining > 0
+                ? $"Marginalia: defeat {remaining} more of {faction} to learn their trick ({kills}/{threshold})."
+                : $"Marginalia: earned by defeating {faction} in the field.";
+            note.AddThemeColorOverride("font_color", UITheme.TextDim);
+        }
+
+        _detailContent.AddChild(note);
+    }
+
     private void ShowDetailPanel(CardBlueprint bp)
     {
         if (_detailPanel == null || _detailContent == null) return;
@@ -314,6 +445,9 @@ public partial class CardLibraryUi : Control
         rarityLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         rarityLabel.AddThemeColorOverride("font_color", UITheme.GetRarityColor(bp.Rarity));
         header.AddChild(rarityLabel);
+
+        BuildMintSection(bp);
+        BuildMarginaliaNote(bp);
 
         var closeBtn = new Button { Text = "✕" };
         closeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);

@@ -1,0 +1,104 @@
+{
+	"id": "adept_invigilation",
+	"status": "ready",
+	"name": "Invigilation",
+	"school": "Adept",
+	"rarity": "Common",
+	"top": {
+		"name": "Invigilation",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deal 3 damage. The target is Weakened for 1 turn.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 4,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 3
+				},
+				{
+					"type": "apply_status",
+					"status": "weakened",
+					"duration": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Office Hours",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Draw 1 card.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "draw",
+			"count": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The proctor's eye sharpens.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "apply_status",
+								"status": "weakened",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. The target is Weakened for 1 turn."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 1
+							},
+							{
+								"type": "mana_gain",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 1 card. Gain 1 mana."
+				}
+			],
+			"top_name": "Invigilation+",
+			"bottom_name": "Office Hours+"
+		}
+	]
+}

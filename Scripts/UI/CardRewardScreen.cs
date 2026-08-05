@@ -8,14 +8,16 @@ using System.Linq;
 //
 // Purpose:        Mid-run card reward screen. Shown after every
 //                 combat win before returning to the overworld.
-//                 Presents 3 draft choices (weighted by rarity,
-//                 70% school / 30% generic). Player picks 1 or
+//                 Presents 3 draft choices (weighted by rarity;
+//                 the last slot is always Adept for non-Adept
+//                 schools; Legendaries are never offered — they
+//                 are Regalia). Player picks 1 or
 //                 skips. Chosen card is added to PlayerDeckSave
 //                 collection (stash) via PlayerDeckService.
 //                 On skip or pick, routes back to overworld via
 //                 EncounterRouter.
 // Layer:          UI
-// Collaborators:  CardDatabase.cs (GetDraftChoices + weighted),
+// Collaborators:  CardDatabase.cs (DraftablePool / WeightedDraftPool),
 //                 PlayerDeckService.cs (AddCardToCollection),
 //                 SaveManager.cs (ActiveSave + Save),
 //                 EncounterRouter.cs (ReturnToOverworld),
@@ -28,8 +30,10 @@ public partial class CardRewardScreen : Control
     [Export] public PackedScene CardUIScene;
     [Export] public string OverworldScenePath = "res://Scenes/Overworld/ExpeditionScene.tscn";
 
-    // Probability of a generic card appearing in each slot
-    private const float GenericChance = 0.30f;
+    // How many cards the draft offers. The LAST slot is always the Adept
+    // (neutral) slot for non-Adept schools — the 2026-07-10 ruling, finally
+    // enacted in the live path. See GenerateOffers.
+    private const int SlotCount = 3;
 
     private VBoxContainer _layout;
     private HBoxContainer _cardRow;
@@ -135,6 +139,21 @@ public partial class CardRewardScreen : Control
     // Card generation
     // ═════════════════════════════════════════════════════════════════════
 
+    /// <summary>
+    /// Rolls the three offers. Two rules changed here on 2026-08-04
+    /// (docs/progression_card_acquisition_v1.md §1d, §5, §6a):
+    ///
+    ///  • Pools now come from <see cref="CardDatabase.WeightedDraftPool"/>, which
+    ///    applies the unlock gate and drops Legendaries. This screen used to build
+    ///    its own pool filtered on school alone, so every card in the game was
+    ///    offerable on run one and the Ledger's unlock list was write-only.
+    ///
+    ///  • The 2026-07-10 Adept-as-neutral ruling is now actually in effect: the
+    ///    LAST slot always offers an Adept card. It had been implemented only in
+    ///    the dead CardDatabase.GetDraftChoices, while this live path rolled an
+    ///    independent 30% per slot — so ~34% of drafts offered no Adept card at
+    ///    all. The old GenericChance constant is gone with it.
+    /// </summary>
     private void GenerateOffers()
     {
         _offered.Clear();
@@ -145,20 +164,25 @@ public partial class CardRewardScreen : Control
 
         var rng = new Random();
 
-        // Build a weighted pool: 70% school, 30% generic.
-        // Each slot is independently rolled so you can get 0-3 generic cards.
-        var schoolPool = BuildWeightedPool(school);
-        var genericPool = BuildWeightedPool(CardSchool.Adept);
+        var schoolPool = CardDatabase.WeightedDraftPool(school, save);
+
+        // The Adept class itself never drafts (EncounterRouter pays a splinter
+        // stipend instead), so the neutral slot only applies to other schools.
+        var neutralPool = school != CardSchool.Adept
+            ? CardDatabase.WeightedDraftPool(CardSchool.Adept, save)
+            : new List<CardBlueprint>();
 
         var usedIds = new HashSet<string>();
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < SlotCount; i++)
         {
-            bool useGeneric = genericPool.Count > 0 && rng.NextDouble() < GenericChance;
-            var pool = useGeneric ? genericPool : schoolPool;
+            bool isNeutralSlot = (i == SlotCount - 1) && neutralPool.Count > 0;
+            var pool = isNeutralSlot ? neutralPool : schoolPool;
 
+            // Either pool can be empty on a narrow unlock set — fall through to
+            // whichever still has cards rather than showing a blank slot.
             if (pool.Count == 0)
-                pool = schoolPool.Count > 0 ? schoolPool : genericPool;
+                pool = schoolPool.Count > 0 ? schoolPool : neutralPool;
             if (pool.Count == 0)
                 break;
 
@@ -176,29 +200,10 @@ public partial class CardRewardScreen : Control
             usedIds.Add(pick.Id);
             _offered.Add(pick);
         }
-    }
 
-    /// <summary>
-    /// Builds a rarity-weighted list of blueprints for a school.
-    /// Common=4, Uncommon=3, Rare=2, Legendary=1 weight.
-    /// </summary>
-    private List<CardBlueprint> BuildWeightedPool(CardSchool school)
-    {
-        var weighted = new List<CardBlueprint>();
-        foreach (var bp in CardDatabase.Blueprints.Where(b => b.School == school))
-        {
-            int w = bp.Rarity switch
-            {
-                CardRarity.Common => 4,
-                CardRarity.Uncommon => 3,
-                CardRarity.Rare => 2,
-                CardRarity.Legendary => 1,
-                _ => 4,
-            };
-            for (int i = 0; i < w; i++)
-                weighted.Add(bp);
-        }
-        return weighted;
+        if (_offered.Count == 0)
+            GD.PrintErr($"[CardReward] No offers generated for {school} — " +
+                        $"school pool {schoolPool.Count}, neutral pool {neutralPool.Count}.");
     }
 
     // ═════════════════════════════════════════════════════════════════════

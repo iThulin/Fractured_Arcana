@@ -1,0 +1,79 @@
+{
+	"id": "tinker_bench_turret",
+	"status": "ready",
+	"name": "Bench Turret",
+	"school": "Tinker",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Bench Turret",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deploy a Turret on an empty tile within 2 (HP 12 / DMG 6 / RNG 3). It auto-attacks the nearest enemy at the end of your turn.",
+		"tags": [],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 2
+		},
+		"effect": {
+			"type": "summon",
+			"unit": "turret",
+			"count": 1,
+			"hp_bonus": 2,
+			"damage_bonus": 1
+		}
+	},
+	"bottom": {
+		"name": "Half-Finished Work",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Repair each of your constructs 4 HP.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "repair_constructs",
+			"amount": 4
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The bench work holds. The shop frame stands.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "summon",
+						"unit": "turret",
+						"count": 1,
+						"hp_bonus": 4,
+						"damage_bonus": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deploy a Turret on an empty tile within 2 (HP 14 / DMG 7 / RNG 3). It auto-attacks the nearest enemy at the end of your turn."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "repair_constructs",
+						"amount": 6
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Repair each of your constructs 6 HP."
+				}
+			],
+			"top_name": "Bench Turret+",
+			"bottom_name": "Half-Finished Work+"
+		}
+	]
+}

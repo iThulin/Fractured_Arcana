@@ -292,6 +292,13 @@ public sealed class CampusExpeditionPanel : CampusPanel
     /// freshly generated world.</summary>
     private void ShowNewCycleSchoolPicker()
     {
+        // Settle progression BEFORE the carry section snapshots what is owned.
+        // BeginNewCycle also sweeps, but that runs after this screen is built —
+        // so a Regalia earned in the cycle's final unsaved moments (last archmage
+        // answered, last shard taken) would be granted too late to be selectable
+        // for the cycle it was earned for. Idempotent, so sweeping twice is free.
+        ProgressionSweep.Run(Ctx.Save);
+
         var layer = new CanvasLayer { Name = "NewCycleUI" };
         // Parented to the shell, not to this panel's container: the picker must cover the
         // whole screen and outlive the tab it was opened from.
@@ -309,10 +316,10 @@ public sealed class CampusExpeditionPanel : CampusPanel
             AnchorBottom = 0.5f,
             GrowHorizontal = Control.GrowDirection.Both,
             GrowVertical = Control.GrowDirection.Both,
-            OffsetLeft = -280,
-            OffsetRight = 280,
-            OffsetTop = -200,
-            OffsetBottom = 200,
+            OffsetLeft = -300,
+            OffsetRight = 300,
+            OffsetTop = -280,
+            OffsetBottom = 280,
         };
         panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
         layer.AddChild(panel);
@@ -333,11 +340,17 @@ public sealed class CampusExpeditionPanel : CampusPanel
         title.HorizontalAlignment = HorizontalAlignment.Center;
         vbox.AddChild(title);
 
+        // This copy used to claim "your card knowledge, your campus, your mastery
+        // — endures." Two of those three were hollow: nothing read the unlock list
+        // and nothing ever awarded SchoolMastery. Both are now real
+        // (CardDatabase.DraftablePool, SchoolMasteryService), and the sentence
+        // names what actually carries. See docs/progression_card_acquisition_v1.md §1b.
         var body = new Label
         {
             Text = "Kassian weaves the world anew. Choose the school of this cycle. " +
-                   "Everything you have learned — your card knowledge, your campus, your " +
-                   "mastery — endures. Your deck begins again from its foundations.",
+                   "Your campus, your card knowledge, your mastery and your regalia " +
+                   "endure — they were never in the timeline. Your deck begins again " +
+                   "from its foundations.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
@@ -347,7 +360,10 @@ public sealed class CampusExpeditionPanel : CampusPanel
 
         vbox.AddChild(new HSeparator());
 
+        BuildRegaliaCarrySection(vbox);
+
         string previousSchool = Ctx.Save.Cycle.SelectedSchool;
+        bool transitioning = false;   // see the button handler below
 
         var grid = new GridContainer { Columns = 2 };
         grid.AddThemeConstantOverride("h_separation", 10);
@@ -359,13 +375,44 @@ public sealed class CampusExpeditionPanel : CampusPanel
             string schoolName = school.ToString();
             bool isPrevious = schoolName == previousSchool;
 
+            // Surface SchoolMastery on the one screen where the player is deciding
+            // what to do with it. Until this landed the track was invisible AND
+            // never awarded — the read surface is half of why the field exists.
+            int mastery = SchoolMasteryService.Points(Ctx.Save, schoolName);
+            string masterySuffix = mastery > 0 ? $"   ·  {mastery} mastery" : "";
+            if (SchoolMasteryService.IsFluent(Ctx.Save, schoolName))
+                masterySuffix += "  (fluent)";
+
+            // You may only begin a timeline in a discipline you have declared.
+            // Adept is always available — it is where every guild starts, and it
+            // is the fallback if a run of bad luck leaves you with no teachers.
+            bool declared = DeclarationService.IsDeclared(Ctx.Save, schoolName);
+
+            // Evaluate().Blocker is EMPTY for an eligible-but-undeclared school
+            // (eligibility has no blocker) — without the fallback, exactly the
+            // school closest to unlocking got a blank lock tooltip.
+            string lockTooltip = "";
+            if (!declared)
+            {
+                var declStatus = DeclarationService.Evaluate(Ctx.Save, schoolName);
+                lockTooltip = declStatus.Eligible
+                    ? "Eligible — declare it in the Guild tab's Disciplines section first."
+                    : declStatus.Blocker;
+            }
+
             var btn = new Button
             {
-                Text = isPrevious ? $"{schoolName}  (again)" : schoolName,
-                CustomMinimumSize = new Vector2(230, 44),
+                Text = declared
+                    ? (isPrevious ? $"{schoolName}  (again)" : schoolName) + masterySuffix
+                    : $"{schoolName}  🔒{masterySuffix}",
+                CustomMinimumSize = new Vector2(250, 44),
+                Disabled = !declared,
+                TooltipText = lockTooltip,
             };
             btn.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            UITheme.ApplyButtonStyle(btn, isPrimary: isPrevious);
+            UITheme.ApplyButtonStyle(btn, isPrimary: isPrevious && declared);
+            if (!declared)
+                btn.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
 
             string captured = schoolName;
             // The panel frees its own picker; the shell owns only the cycle transition.
@@ -373,10 +420,123 @@ public sealed class CampusExpeditionPanel : CampusPanel
             // transition rather than inside it is not a behaviour change.
             btn.Pressed += () =>
             {
+                // QueueFree and the downstream scene change are both deferred to
+                // end-of-frame, so every school button stays live and clickable
+                // after one fires. A second press would re-enter BeginNewCycle:
+                // a second LoopRecord, a second cycle-completion award, a second
+                // deck reseed. One frame is a narrow window, but it is reachable.
+                if (transitioning) return;
+                transitioning = true;
+
                 layer.QueueFree();
                 Ctx.BeginNextCycle?.Invoke(captured);
             };
             grid.AddChild(btn);
         }
+    }
+
+    /// <summary>
+    /// The Regalia carry picker — the permanent layer's one expression point at
+    /// cycle start (docs/progression_card_acquisition_v1.md §6c). You own N
+    /// artifacts forever; you may bring K, where K scales with shards collected.
+    ///
+    /// The selection is STAGED, not written: BeginNewCycle replaces CycleState
+    /// wholesale a moment later, so anything written to Cycle.CarriedRegaliaIds
+    /// here would be discarded. RegaliaService.SeedCarriedIntoDeck consumes the
+    /// staging once the new cycle exists.
+    /// </summary>
+    private void BuildRegaliaCarrySection(VBoxContainer vbox)
+    {
+        var owned = RegaliaService.Owned(Ctx.Save);
+        int k = RegaliaService.MaxCarry(Ctx.Save);
+
+        if (owned.Count == 0)
+        {
+            var none = new Label
+            {
+                Text = "You carry no regalia yet. They are won at milestones — " +
+                       "a shard claimed, an archmage answered, a companion's story finished.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            none.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            none.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+            vbox.AddChild(none);
+            vbox.AddChild(new HSeparator());
+            return;
+        }
+
+        var selected = new List<string>();
+        bool suppress = false;   // guards the re-entrant Toggled fired by our own revert
+
+        var header = new Label { HorizontalAlignment = HorizontalAlignment.Center };
+        header.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        header.AddThemeColorOverride("font_color", UITheme.Gold);
+        vbox.AddChild(header);
+
+        void RefreshHeader() =>
+            header.Text = $"Regalia — carrying {selected.Count} of {k} " +
+                          $"({owned.Count} owned)";
+
+        var grid = new GridContainer { Columns = 2 };
+        grid.AddThemeConstantOverride("h_separation", 10);
+        grid.AddThemeConstantOverride("v_separation", 6);
+        vbox.AddChild(grid);
+
+        foreach (var bp in owned)
+        {
+            string id = bp.Id;
+            string label = bp.Prebuilt?.CardName;
+            if (string.IsNullOrWhiteSpace(label)) label = id;
+
+            var btn = new Button
+            {
+                Text = label,
+                ToggleMode = true,
+                CustomMinimumSize = new Vector2(250, 36),
+                // Pre-select the first K by grant order so the screen shows the
+                // same default SeedCarriedIntoDeck would apply if untouched.
+                ButtonPressed = selected.Count < k,
+            };
+            btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            UITheme.ApplyButtonStyle(btn, isPrimary: false);
+
+            if (btn.ButtonPressed) selected.Add(id);
+
+            var captured = btn;
+            btn.Toggled += (bool pressed) =>
+            {
+                if (suppress) return;
+
+                if (pressed)
+                {
+                    if (selected.Count >= k)
+                    {
+                        // At the limit — refuse rather than silently evicting a
+                        // choice the player already made.
+                        suppress = true;
+                        captured.ButtonPressed = false;
+                        suppress = false;
+                        header.Text = $"Only {k} may cross with you. Release one first.";
+                        return;
+                    }
+                    if (!selected.Contains(id)) selected.Add(id);
+                }
+                else
+                {
+                    selected.Remove(id);
+                }
+
+                RefreshHeader();
+                RegaliaService.StagePendingCarry(selected);
+            };
+
+            grid.AddChild(btn);
+        }
+
+        RefreshHeader();
+        RegaliaService.StagePendingCarry(selected);
+
+        vbox.AddChild(new HSeparator());
     }
 }

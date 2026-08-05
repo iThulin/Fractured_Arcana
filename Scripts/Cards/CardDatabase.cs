@@ -164,11 +164,13 @@ public static class CardDatabase
     // can still be built. When the pool grows past target deck size, switch
     // to unique-picking by removing the duplicate-allowing code path.
 
-    /// <summary>Builds a random deck of <paramref name="count"/> cards from the given school. Duplicates allowed. Returns an empty list if no cards in the database belong to the school.</summary>
+    /// <summary>Builds a random deck of <paramref name="count"/> cards from the given school. Duplicates allowed. Excludes Legendaries — they are Regalia, granted at milestones, and must never appear in a randomly generated pile (this method backs companion AI decks and the missing-starter-file fallback, both of which used to hand out Legendaries for free). Returns an empty list if no cards in the database belong to the school.</summary>
     public static List<Card> BuildRandomDeck(CardSchool school, int count, int? seed = null)
     {
         var rng = seed.HasValue ? new Random(seed.Value) : new Random();
-        var pool = Blueprints.Where(b => b.School == school).ToList();
+        var pool = Blueprints
+            .Where(b => b.School == school && b.Rarity != CardRarity.Legendary)
+            .ToList();
 
         if (pool.Count == 0)
         {
@@ -192,11 +194,13 @@ public static class CardDatabase
         return Instantiate(pool[rng.Next(pool.Count)]);
     }
 
-    /// <summary>Builds a rarity-weighted deck (common 4x, uncommon 3x, rare 2x, legendary 1x). Useful when the pool is large enough to span the full rarity ladder.</summary>
+    /// <summary>Builds a rarity-weighted deck (common 4x, uncommon 3x, rare 2x). Legendaries are excluded — see <see cref="BuildRandomDeck"/>. Useful when the pool is large enough to span the rarity ladder.</summary>
     public static List<Card> BuildWeightedDeck(CardSchool school, int count, int? seed = null)
     {
         var rng = seed.HasValue ? new Random(seed.Value) : new Random();
-        var pool = Blueprints.Where(b => b.School == school).ToList();
+        var pool = Blueprints
+            .Where(b => b.School == school && b.Rarity != CardRarity.Legendary)
+            .ToList();
 
         if (pool.Count == 0) return new List<Card>();
 
@@ -208,7 +212,7 @@ public static class CardDatabase
                 CardRarity.Common => 4,
                 CardRarity.Uncommon => 3,
                 CardRarity.Rare => 2,
-                CardRarity.Legendary => 1,
+                CardRarity.Legendary => 0,
                 _ => 4
             };
             for (int i = 0; i < weight; i++) weighted.Add(bp);
@@ -220,40 +224,112 @@ public static class CardDatabase
         return result;
     }
 
-    /// <summary>Picks <paramref name="choices"/> cards using post-draft rarity odds (50% Common / 30% Uncommon / 15% Rare / 5% Legendary). Falls back to any rarity when the target tier is empty for the school.</summary>
-    public static List<Card> GetDraftChoices(CardSchool school, int choices = 3, int? seed = null)
+    // ── The draft gate ───────────────────────────────────────────────────
+    //
+    // REMOVED 2026-08-04: GetDraftChoices(school, choices, seed).
+    // It had ZERO call sites — the live reward path is
+    // CardRewardScreen.GenerateOffers, which built its own pool. The two had
+    // drifted: GetDraftChoices implemented the 2026-07-10 Adept-as-neutral
+    // ruling ("the LAST slot always offers an Adept card") and the live path
+    // did not, so a ruling recorded as shipped was never in effect. The
+    // guarantee now lives in the live path, and this is the single pool
+    // builder both drafting and any future acquisition surface must use.
+    // See docs/progression_card_acquisition_v1.md §1d, §5, §6a.
+
+    /// <summary>
+    /// THE canonical draft pool for a school. Every card-offering surface must
+    /// go through here — the two rules below are easy to forget and expensive
+    /// to miss, and a second hand-rolled pool is exactly how they got lost once
+    /// already.
+    ///
+    /// Applies, in order:
+    ///  1. <b>School filter.</b>
+    ///  2. <b>Legendary exclusion.</b> Legendaries are Regalia — milestone
+    ///     grants, never draftable (design doc §6a). This is where "weight 0"
+    ///     is enforced; do not re-add a Legendary weight anywhere.
+    ///  3. <b>Unlock filter.</b> Only blueprints in
+    ///     <see cref="EternalLedger.UnlockedCardBlueprintIds"/> may be offered.
+    ///     Until 2026-08-04 that list was written but never read, so every card
+    ///     in the game was offerable on run one.
+    ///
+    /// Falls back to the unfiltered (still Legendary-free) school pool and logs
+    /// an error rather than returning empty: a blank reward screen is the worst
+    /// possible failure of this change.
+    /// </summary>
+    public static List<CardBlueprint> DraftablePool(CardSchool school, GuildSaveData save)
     {
-        var rng = seed.HasValue ? new Random(seed.Value) : new Random();
-        var pool = Blueprints.Where(b => b.School == school).ToList();
-        if (pool.Count == 0) return new List<Card>();
+        var schoolPool = Blueprints
+            .Where(b => b.School == school && b.Rarity != CardRarity.Legendary)
+            .ToList();
 
-        // Adept-as-neutral-pool ruling (2026-07-10): the LAST slot of every
-        // non-Adept school's draft always offers a card from the Adept pool —
-        // the shared fundamentals every school can reach. (The Adept class
-        // itself never drafts: EncounterRouter pays a splinter stipend instead.)
-        var neutralPool = school != CardSchool.Adept
-            ? Blueprints.Where(b => b.School == CardSchool.Adept).ToList()
-            : null;
+        if (schoolPool.Count == 0)
+            return schoolPool;
 
-        var result = new List<Card>();
-        for (int i = 0; i < choices; i++)
+        var unlocked = save?.Ledger?.UnlockedCardBlueprintIds;
+        if (unlocked == null || unlocked.Count == 0)
         {
-            var slotPool = (neutralPool != null && neutralPool.Count > 0 && i == choices - 1)
-                ? neutralPool
-                : pool;
-
-            double roll = rng.NextDouble();
-            CardRarity target = roll < 0.50 ? CardRarity.Common
-                            : roll < 0.80 ? CardRarity.Uncommon
-                            : roll < 0.95 ? CardRarity.Rare
-                            : CardRarity.Legendary;
-
-            var tierPool = slotPool.Where(b => b.Rarity == target).ToList();
-            if (tierPool.Count == 0) tierPool = slotPool;
-            if (tierPool.Count == 0) continue;
-
-            result.Add(Instantiate(tierPool[rng.Next(tierPool.Count)]));
+            GD.PrintErr($"[CardDatabase] No unlocked blueprints recorded — offering the " +
+                        $"full {school} pool. StarterDeckLoader.SeedUnlockedPool should " +
+                        $"have run at guild creation.");
+            return schoolPool;
         }
-        return result;
+
+        var unlockedSet = new HashSet<string>(unlocked, StringComparer.OrdinalIgnoreCase);
+        var gated = schoolPool.Where(b => unlockedSet.Contains(b.Id)).ToList();
+
+        //  4. Owned Regalia are never draftable, at ANY rarity. Legendaries are
+        //     already gone at step 2, but companion capstones grant the
+        //     companion's own contributed card (design doc §6d), which is usually
+        //     Common or Uncommon — and SeedUnlockedPool unlocks every Common and
+        //     Uncommon in every school. Without this the player could draft
+        //     duplicates of the unique artifact their dead friend left them.
+        //     Enforced here rather than by withholding the unlock, because the
+        //     unlock list is seeded wholesale and cannot express an exception.
+        var regalia = save?.Ledger?.RegaliaBlueprintIds;
+        if (regalia != null && regalia.Count > 0)
+        {
+            var regaliaSet = new HashSet<string>(regalia, StringComparer.OrdinalIgnoreCase);
+            var withoutRegalia = gated.Where(b => !regaliaSet.Contains(b.Id)).ToList();
+            if (withoutRegalia.Count > 0)
+                gated = withoutRegalia;
+            // If excluding Regalia would empty the pool, keep the gated pool —
+            // an offered duplicate beats a blank reward screen.
+        }
+
+        if (gated.Count == 0)
+        {
+            GD.PrintErr($"[CardDatabase] Unlock filter emptied the {school} pool " +
+                        $"({schoolPool.Count} candidates, {unlocked.Count} unlocks) — " +
+                        $"falling back to the unfiltered school pool.");
+            return schoolPool;
+        }
+
+        return gated;
+    }
+
+    /// <summary>
+    /// Rarity-weighted expansion of <see cref="DraftablePool"/> (Common 4×,
+    /// Uncommon 3×, Rare 2×). Legendary carries no weight because it is never
+    /// in the pool — see <see cref="DraftablePool"/> rule 2.
+    /// </summary>
+    public static List<CardBlueprint> WeightedDraftPool(CardSchool school, GuildSaveData save)
+    {
+        var weighted = new List<CardBlueprint>();
+        foreach (var bp in DraftablePool(school, save))
+        {
+            int w = bp.Rarity switch
+            {
+                CardRarity.Common => 4,
+                CardRarity.Uncommon => 3,
+                CardRarity.Rare => 2,
+                // Belt-and-braces: DraftablePool already filtered these out. Spelled
+                // out rather than left to the catch-all so that loosening rule 2
+                // cannot silently give Legendaries the HIGHEST weight in the pool.
+                CardRarity.Legendary => 0,
+                _ => 4,
+            };
+            for (int i = 0; i < w; i++) weighted.Add(bp);
+        }
+        return weighted;
     }
 }

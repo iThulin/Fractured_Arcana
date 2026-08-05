@@ -1,0 +1,79 @@
+{
+	"id": "druid_watching_pack",
+	"status": "ready",
+	"name": "The Watching Pack",
+	"school": "Druid",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Rootwarden's Grip",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Enemies on living ground within 2 are Rooted for 1 turn.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "entangle",
+			"radius": 2,
+			"duration": 1
+		}
+	},
+	"bottom": {
+		"name": "Old Growth",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Seed Sapling growth on the target tile. Gain 1 Wilding.",
+		"tags": [],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "seed_growth",
+			"stage": 1,
+			"radius": 0,
+			"wilding": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The pack watches longer. The growth runs older.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "entangle",
+						"radius": 2,
+						"duration": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Enemies on living ground within 2 are Rooted for 2 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "seed_growth",
+						"stage": 1,
+						"radius": 1,
+						"wilding": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Seed Sapling growth on target tile and its ring. Gain 1 Wilding."
+				}
+			],
+			"top_name": "Rootwarden's Grip+",
+			"bottom_name": "Old Growth+"
+		}
+	]
+}

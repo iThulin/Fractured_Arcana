@@ -79,6 +79,14 @@ public static class SaveManager
         }
         _isDirty = false;
 
+        // Settle any outstanding permanent progression (SchoolMastery, Regalia)
+        // BEFORE the write, so grants are persisted in the same atomic save.
+        // Deliberately a reconciliation sweep rather than ~8 scattered award
+        // calls: it cannot be missed, it self-heals after a crash, and it pays
+        // retroactively on saves that predate the system. Cheap and non-throwing.
+        // See docs/progression_card_acquisition_v1.md §4, §6d.
+        ProgressionSweep.Run(ActiveSave);
+
         ActiveSave.Ledger.LastPlayedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         return SaveToSlot(ActiveSlot, ActiveSave);
     }
@@ -236,6 +244,31 @@ public static class SaveManager
 
         ActiveSave = data;
         ActiveSlot = slot;
+
+        // Draft-pool breadth on load. SeedUnlockedPool otherwise only runs from
+        // SeedStarterDeck, i.e. on new game and on a new cycle — so a save loaded
+        // and played normally would draft from whatever UnlockedCardBlueprintIds
+        // happened to accumulate, which on a pre-gate save is only the handful of
+        // cards that were previously drafted. Idempotent, so this costs nothing
+        // on a save that already has its pool.
+        StarterDeckLoader.SeedUnlockedPool(data);
+
+        // A guild that was already studying a discipline before the faculty gate
+        // existed keeps it, permanently — not just for as long as it stays in it.
+        DeclarationService.GrandfatherCurrentSchool(data);
+
+        // Knowledge that used to die with the timeline, reconciled onto the loom.
+        // Both are grandfather-first: an existing save's spells and per-copy card
+        // mastery are absorbed BEFORE anything reseeds, so nothing accumulated
+        // under the old rules is lost. Both are idempotent.
+        SpellKnowledgeService.Sync(data);
+        CardMasteryService.AbsorbOwnedCopies(data);
+
+        // Settle any permanent progression the save is owed. Retroactive by
+        // design: a guild that allied three archmagi before this system existed
+        // gets paid the moment it loads.
+        ProgressionSweep.Run(data);
+
         GD.Print($"SaveManager: Loaded slot {slot} " +
                  $"(v{data.Ledger.SaveVersion}, guild: {data.Ledger.GuildName}, " +
                  $"cycle {data.Cycle.CycleNumber})");
@@ -324,7 +357,17 @@ public static class SaveManager
         {
             GD.Print($"SaveManager: Slot {slot} has no cycle file — between cycles. " +
                      "Creating a fresh CycleState (school unselected).");
-            cycle = new CycleState { CycleNumber = ledger.LoopHistory.Count + 1 };
+            // SelectedSchool is set EXPLICITLY: CycleState's field initializer is
+            // "Elementalist", which made this 'school unselected' state silently
+            // Elementalist — and DeclarationService's grandfather clause then
+            // reported Elementalist as a declared discipline on any between-cycles
+            // load. Adept is the honest value: it is where every guild stands
+            // when no discipline is in play (A1), and it is always declared anyway.
+            cycle = new CycleState
+            {
+                CycleNumber = ledger.LoopHistory.Count + 1,
+                SelectedSchool = DeclarationService.StartingSchool,
+            };
         }
         else if (cycle.SaveVersion != CURRENT_VERSION)
         {
@@ -415,6 +458,41 @@ public static class SaveManager
         }
 
         var old = ActiveSave.Cycle;
+
+        // ── Settle progression BEFORE the timeline is unmade ─────────────
+        // ProgressionSweep reads Cycle.Campaign.Dispositions and Cycle.Companions,
+        // both of which are destroyed by the CycleState swap below. The Save() at
+        // the end of this method would sweep an already-empty cycle, so an
+        // archmage allied (or a companion arc finished) in the final lunation,
+        // with no intervening save, would never be paid. Sweep here instead.
+        ProgressionSweep.Run(ActiveSave);
+
+        // Capture this timeline's knowledge BEFORE it is unmade. Both of these read
+        // cycle state the swap below destroys: the deck's per-copy cast counts and
+        // upgrade tiers, and the Grimoire's spell list. Miss this and a player loses
+        // everything they learned in the cycle they learned it in.
+        CardMasteryService.AbsorbOwnedCopies(ActiveSave);
+        SpellKnowledgeService.Sync(ActiveSave);
+
+        // Completing a cycle is the single largest SchoolMastery award, and this
+        // is the only place a cycle ends. Awarded here rather than in the sweep
+        // because it is an event, not a reconcilable state — LoopHistory already
+        // records it and re-deriving it from there would double-pay on every save.
+        // Outcome-blind by design: a lost timeline still taught you the school.
+        //
+        // Guarded by a paid flag anyway. The picker's school buttons stay live
+        // for the rest of the frame after they fire (QueueFree and the scene
+        // change are both deferred), so a double-click can re-enter this method;
+        // and the TODO below plans to route more callers through it. Keyed to the
+        // ENDING cycle number so it also clears with the prog_paid_ debug sweep.
+        string paidCycleFlag = $"prog_paid_cycle_{old.CycleNumber}";
+        if (!ActiveSave.Ledger.MetaNarrativeFlags.Contains(paidCycleFlag))
+        {
+            SchoolMasteryService.Award(ActiveSave, old.SelectedSchool,
+                SchoolMasteryService.PointsCycleCompleted,
+                $"cycle {old.CycleNumber} completed ({outcome})");
+            ActiveSave.Ledger.MetaNarrativeFlags.Add(paidCycleFlag);
+        }
 
         // ── Archive the ended timeline into the loom ────────────────────
         var record = new LoopRecord
@@ -537,6 +615,19 @@ public static class SaveManager
             StarterDeckLoader.SeedStarterDeck(data, cardSchool);
         else
             GD.PrintErr($"SaveManager: Unknown school '{school}' — PlayerDeck not seeded.");
+
+        // Regalia ride ON TOP of the 10-card starter floor, never in place of it —
+        // so this must run after SeedStarterDeck, which bails early if the deck is
+        // already populated. The ONE sanctioned exception to the reseed
+        // (docs/progression_card_acquisition_v1.md §6; amends
+        // progression_persistence_model_v1.md §5).
+        RegaliaService.SeedCarriedIntoDeck(data);
+
+        // Re-seed the fresh Grimoire from the loom. A new timeline no longer starts
+        // knowing nothing — knowledge crossed with you; only preparation, scrolls
+        // and Essence reset. Runs here because the new CycleState (and its empty
+        // Grimoire) exists by this point.
+        SpellKnowledgeService.Sync(data);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

@@ -96,6 +96,11 @@ public static class StarterDeckLoader
     {
         if (save == null) return;
 
+        // Day-one draft breadth. Deliberately BEFORE the already-seeded early
+        // return below, so an existing save that predates the unlock gate still
+        // gets a pool on its next seed rather than drafting from nothing.
+        SeedUnlockedPool(save);
+
         // Initialize PlayerDeck if it hasn't been set yet.
         save.PlayerDeck ??= new PlayerDeckSave();
 
@@ -156,6 +161,67 @@ public static class StarterDeckLoader
         }
 
         GD.Print($"[StarterDeckLoader] Seeded {save.PlayerDeck.Cards.Count} OwnedCards into PlayerDeckSave.");
+    }
+
+    /// <summary>
+    /// Seed the permanent draft-pool breadth on
+    /// <see cref="EternalLedger.UnlockedCardBlueprintIds"/>. Idempotent — only
+    /// adds what is missing, so it is safe to call on every seed and on an
+    /// existing save.
+    ///
+    /// Day-one breadth (docs/progression_card_acquisition_v1.md §5):
+    ///  • ALL Commons and Uncommons, in EVERY school. Breadth must be seeded
+    ///    for schools the player is not currently running, or the first cycle
+    ///    after declaring a new discipline would draft from an empty pool.
+    ///  • Rares stay LOCKED — they are what the acquisition verbs (§8) pay out.
+    ///  • Legendaries are irrelevant here: they are Regalia and never enter a
+    ///    draft pool at all (CardDatabase.DraftablePool drops them).
+    ///  • Every card named by any school's starter JSON is unlocked regardless
+    ///    of rarity, so a starter deck can never contain a card the player is
+    ///    not credited with knowing.
+    /// </summary>
+    public static void SeedUnlockedPool(GuildSaveData save)
+    {
+        if (save?.Ledger == null) return;
+
+        save.Ledger.UnlockedCardBlueprintIds ??= new List<string>();
+        var known = new HashSet<string>(save.Ledger.UnlockedCardBlueprintIds,
+                                        StringComparer.OrdinalIgnoreCase);
+        int added = 0;
+
+        void Unlock(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return;
+            if (!known.Add(id)) return;
+            save.Ledger.UnlockedCardBlueprintIds.Add(id);
+            added++;
+        }
+
+        foreach (var bp in CardDatabase.Blueprints)
+        {
+            // Marginalia reward cards are EARNED breadth (marginalia_spec_v1
+            // R1-R3) — 6 of the 8 are Common/Uncommon, and seeding them here
+            // would hand out every entry's reward on day one. ProgressionSweep
+            // is their only unlock path.
+            if (MarginaliaService.IsMarginaliaCard(bp.Id))
+                continue;
+            if (bp.Rarity == CardRarity.Common || bp.Rarity == CardRarity.Uncommon)
+                Unlock(bp.Id);
+        }
+
+        // Starter entries override the rarity rule — a starter is knowledge by
+        // definition. Missing starter files are already logged by LoadEntries.
+        foreach (CardSchool s in Enum.GetValues(typeof(CardSchool)))
+        {
+            var entries = LoadEntries(s);
+            if (entries == null) continue;
+            foreach (var e in entries)
+                Unlock(e.Id);
+        }
+
+        if (added > 0)
+            GD.Print($"[StarterDeckLoader] Unlock pool seeded: +{added} blueprint(s), " +
+                     $"{save.Ledger.UnlockedCardBlueprintIds.Count} known total.");
     }
 
     /// <summary>Seed the DEBUG/scratch deck with a fresh starter deck for `school`,

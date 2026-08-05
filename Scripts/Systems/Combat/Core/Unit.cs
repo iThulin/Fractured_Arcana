@@ -96,6 +96,12 @@ public partial class Unit : Node3D
     // ── Combat definition (set by CombatManager at spawn time, U2) ──────────
     /// <summary>UnitRegistry id this enemy was spawned from ("" for player units).</summary>
     public string DefinitionId = "";
+    /// <summary>True for units spawned MID-FIGHT through the summon seam
+    /// (SpawnRegistryUnit — Deathburst risers, summon_cadence output). Read by
+    /// the Marginalia kill tally: summoned copies never count toward
+    /// marginalia_kill_&lt;family&gt; deeds, or a summoner fight could farm an
+    /// entry by stalling (marginalia_spec_v1 §3).</summary>
+    public bool IsMidFightSummon = false;
     /// <summary>AI routine key, dispatched by CombatManager.EnemyIntents.PlanIntent.</summary>
     public string BehaviorKey = "";
     /// <summary>Composable behavior modifiers (pack/bulwark/charge/scout/immobile) — units doc §4a.</summary>
@@ -967,7 +973,10 @@ public partial class Unit : Node3D
     /// <summary>
     /// Attacker-side status modifiers on outgoing ATTACK damage (not spells).
     /// Blinded: the attack misses entirely (deterministic, per house preference).
-    /// Weakened: −2 damage, floor 0. Called by PerformAttack/PerformRangedAttack
+    /// Weakened: −2 damage, floor 0. Named: half damage (Enchanter — the status
+    /// existed with appliers but ZERO consumers until 2026-08-04, so every
+    /// "Name an enemy" card was a silent no-op; see binding_chains' own text).
+    /// Called by PerformAttack/PerformRangedAttack
     /// and the spirit attack in AdvanceAllSpiritsEffect.
     /// </summary>
     public int ModifyOutgoingAttackDamage(int damage)
@@ -979,6 +988,8 @@ public partial class Unit : Node3D
         }
         if (HasStatus("weakened"))
             damage = Math.Max(0, damage - 2);
+        if (HasStatus("named"))
+            damage /= 2;   // "it deals half damage" — stacks after Weakened's flat cut
         return damage;
     }
 
@@ -1068,9 +1079,11 @@ public partial class Unit : Node3D
     /// </summary>
     public int EffectiveMovement(int baseBudget)
     {
-        // Hard stops: no movement at all this turn.
+        // Hard stops: no movement at all this turn. Named ("it deals half damage
+        // and cannot move") joined 2026-08-04 — it had appliers but no consumers,
+        // so the movement half of every Naming card was a silent no-op.
         if (HasStatus("frozen") || HasStatus("stunned") || HasStatus("bound")
-            || HasStatus("rooted"))
+            || HasStatus("rooted") || HasStatus("named"))
             return 0;
 
         // Movespeed currency: per-turn move-range grants from Dash-style self-move

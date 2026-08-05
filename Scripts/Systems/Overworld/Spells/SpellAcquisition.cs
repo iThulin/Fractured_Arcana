@@ -120,8 +120,17 @@ public static class SpellAcquisition
 
     /// <summary>Add a spell to the guild's known list. Returns true only when
     /// newly learned (false: null/unknown id or already known). Marks the
-    /// save dirty — KnownSpellIds rides CycleState, so a mid-expedition
-    /// learn persists through any save (the S4 exit criterion).</summary>
+    /// save dirty so a mid-expedition learn persists through any save (the S4
+    /// exit criterion).
+    ///
+    /// PERMANENCE (2026-08-04): the learn is also written to
+    /// EternalLedger.KnownSpellIds via SpellKnowledgeService, so it survives the
+    /// cycle. The Grimoire's list remains the per-cycle working copy — every read
+    /// site still reads it — but it is now re-seeded from the loom at cycle start
+    /// instead of starting empty. Preparation, scrolls and Essence stay
+    /// cycle-scoped; only the knowledge persists.
+    ///
+    /// Amends overworld_spell_system_v1_1 §5/§13. See SpellKnowledgeService.</summary>
     public static bool Learn(GrimoireState grimoire, string spellId)
     {
         if (grimoire == null || string.IsNullOrEmpty(spellId) ||
@@ -129,6 +138,14 @@ public static class SpellAcquisition
             grimoire.KnownSpellIds.Contains(spellId))
             return false;
         grimoire.KnownSpellIds.Add(spellId);
+
+        // Mirror into the loom. Guarded on the active save being the one that owns
+        // this Grimoire — the probe in GrimoireState.AssertRoundTrip builds a
+        // detached instance, and that must not write to the player's ledger.
+        var save = SaveManager.ActiveSave;
+        if (save?.Ledger != null && ReferenceEquals(save.Cycle?.Grimoire, grimoire))
+            SpellKnowledgeService.Learn(save, spellId);
+
         SaveManager.MarkDirty();
         GD.Print($"[Grimoire] Learned '{spellId}' " +
                  $"({grimoire.KnownSpellIds.Count} known this cycle).");

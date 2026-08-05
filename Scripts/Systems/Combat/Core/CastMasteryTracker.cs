@@ -25,7 +25,18 @@ public static class CastMasteryTracker
     public static void RecordCast(string blueprintId)
     {
         var save = SaveManager.ActiveSave;
-        if (save?.PlayerDeck?.Cards == null) return;
+        if (save == null) return;
+
+        // PERMANENT record first, and unconditionally. This must not depend on a
+        // matching OwnedCard existing: the per-copy counter below lives on
+        // CycleState.PlayerDeck and is destroyed every cycle, which is exactly the
+        // defect this line fixes. Recording here also covers casts of cards that
+        // have no owned copy at all — companion-contributed cards, for instance.
+        // See CardMasteryService for the three-way "mastery" naming warning.
+        CardMasteryService.RecordCast(save, blueprintId);
+        SaveManager.MarkDirty();
+
+        if (save.PlayerDeck?.Cards == null) return;
 
         // Find the lowest-tier copy — same logic as upgrade screen
         OwnedCard target = null;

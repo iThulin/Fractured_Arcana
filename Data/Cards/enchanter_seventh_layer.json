@@ -1,0 +1,80 @@
+{
+	"id": "enchanter_seventh_layer",
+	"status": "ready",
+	"name": "The Seventh Layer",
+	"school": "Enchanter",
+	"rarity": "Rare",
+	"top": {
+		"name": "The Seventh Layer",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Name an enemy for 3 turns: it deals half damage and cannot move.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "apply_status",
+			"status": "named",
+			"duration": 3
+		}
+	},
+	"bottom": {
+		"name": "First Layer",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "Negate target enemy's next action.",
+		"tags": [],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "negate_action"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "The binding runs a layer deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "named",
+								"duration": 3
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an enemy for 3 turns: it deals half damage and cannot move. Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				}
+			],
+			"top_name": "The Seventh Layer+",
+			"bottom_name": "First Layer+"
+		}
+	]
+}

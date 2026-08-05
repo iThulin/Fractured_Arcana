@@ -352,6 +352,15 @@ public class OwnedCard
     public bool IsStarter = false;
 
     /// <summary>
+    /// True for copies minted from a carried Regalia at cycle start. Ownership
+    /// is permanent (EternalLedger.RegaliaBlueprintIds); this copy is not — it
+    /// is re-minted each cycle by RegaliaService.SeedCarriedIntoDeck. Flagged so
+    /// the deck editor can refuse to disenchant an artifact the player can never
+    /// re-earn. See docs/progression_card_acquisition_v1.md §6.
+    /// </summary>
+    public bool IsRegalia = false;
+
+    /// <summary>
     /// Tracks the number of times a card has been cast in the campaign.
     /// Used as a resource for card mastery.
     /// </summary>
