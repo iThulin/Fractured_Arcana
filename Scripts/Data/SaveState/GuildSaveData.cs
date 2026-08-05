@@ -96,6 +96,11 @@ public class GuildSaveData
     public int ArcaneSplinters
     { get => Cycle.ArcaneSplinters; set => Cycle.ArcaneSplinters = value; }
 
+    /// <summary>Guild supply stores — see CycleState.Supplies.</summary>
+    [JsonIgnore]
+    public int Supplies
+    { get => Cycle.Supplies; set => Cycle.Supplies = value; }
+
     // ── Run stats ───────────────────────────────────────────────────────
     [JsonIgnore]
     public int TotalRuns

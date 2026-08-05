@@ -124,6 +124,10 @@ public partial class StrategicView : Node2D
                 // colours, and the frontier report reflect the post-intervention
                 // state the moment the map comes up.
                 ResolveReturnedWarfrontIntervention(cycle);
+
+                // Supply caches: idempotent seed so pre-feature saves (and fresh
+                // worlds) get their per-kingdom caches before markers render.
+                SupplyCacheSystem.EnsureSeeded(cycle);
             }
         }
 
@@ -216,6 +220,7 @@ public partial class StrategicView : Node2D
         if (!Standalone)
         {
             BuildStagingMarkers();
+            BuildSupplyMarkers();
             BuildWarfrontMarkers();
             BuildHud();
         }
@@ -1105,6 +1110,8 @@ public partial class StrategicView : Node2D
         PoiKind.Seat => UITheme.Gold,          // archmage seats: gold
         PoiKind.Settlement => UITheme.ArcaneBlue,
         PoiKind.Convergence => UITheme.POIConvergence,
+        PoiKind.SupplyCache => UITheme.Success,   // provisions read green; the
+                                                  // marker layer carries the owner color
         _ => UITheme.TextPrimary,
     };
 
@@ -1510,6 +1517,345 @@ public partial class StrategicView : Node2D
         ShowDeployConfirm(sp);
     }
 
+    // ── Supply caches: markers + control/overseer/siege dialog ──────────────
+
+    private Node2D _supplyLayer;
+    private CanvasLayer _supplyUi;
+
+    /// <summary>One marker per discovered supply cache: a square "crate" in the
+    /// CONTROLLER's color (guild green, else the holding faction's color) with a
+    /// yield tag — the at-a-glance "who is harvesting this, and how hard"
+    /// indication. Clicking opens the cache dialog. An active siege additionally
+    /// shows the standard red warfront marker on the same tile (Z above this).</summary>
+    private void BuildSupplyMarkers()
+    {
+        _supplyLayer?.QueueFree();
+        _supplyLayer = new Node2D { Name = "SupplyMarkers", ZIndex = 2 };
+        AddChild(_supplyLayer);
+
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle?.World == null)
+            return;
+
+        for (int i = 0; i < _world.Pois.Count; i++)
+        {
+            var poi = _world.Pois[i];
+            if (poi.Kind != PoiKind.SupplyCache || (!poi.Discovered && !_debugReveal))
+                continue;
+
+            string ctrl = SupplyCacheSystem.ControllerOf(poi);
+            Color ctrlColor = CacheControllerColor(cycle, ctrl);
+
+            var center = HexCoord.OffsetRenderPosition(poi.X, poi.Y, TilePx)
+                         + new Vector2(TilePx * 0.5f, TilePx * 0.5f);
+            var marker = new Node2D { Position = center };
+
+            float c = TilePx * 1.1f;
+            marker.AddChild(new Polygon2D
+            {
+                Polygon = new[]
+                {
+                    new Vector2(-c, -c), new Vector2(c, -c),
+                    new Vector2(c, c), new Vector2(-c, c),
+                },
+                Color = ctrlColor,
+            });
+            float k = TilePx * 0.55f;
+            marker.AddChild(new Polygon2D
+            {
+                Polygon = new[]
+                {
+                    new Vector2(-k, -k), new Vector2(k, -k),
+                    new Vector2(k, k), new Vector2(-k, k),
+                },
+                Color = UITheme.BgDeep,
+            });
+
+            // Harvest tag: the per-lunation draw, in the controller's color —
+            // overseer-boosted caches visibly pay more.
+            var lbl = new Label
+            {
+                Text = $"+{SupplyCacheSystem.YieldOf(poi)}",
+                Position = new Vector2(-TilePx * 0.9f, -TilePx * 3.0f),
+            };
+            lbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 3);
+            lbl.AddThemeColorOverride("font_color", ctrlColor);
+            marker.AddChild(lbl);
+
+            var area = new Area2D();
+            area.AddChild(new CollisionShape2D { Shape = new CircleShape2D { Radius = TilePx * 1.5f } });
+            int captured = i;
+            area.InputEvent += (viewport, evt, idx) =>
+            {
+                if (evt is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+                    ShowSupplyCacheDialog(captured);
+            };
+            marker.AddChild(area);
+
+            _supplyLayer.AddChild(marker);
+        }
+    }
+
+    private Color CacheControllerColor(CycleState cycle, string controllerId)
+    {
+        if (controllerId == KingdomTickSimulation.GuildFactionId)
+            return UITheme.Success;
+        if (cycle.Kingdoms != null && cycle.Kingdoms.TryGetValue(controllerId, out var k)
+            && !string.IsNullOrEmpty(k.ControllingFactionId))
+            return UITheme.FactionColor(k.ControllingFactionId);
+        return UITheme.Neutral;
+    }
+
+    /// <summary>The cache dialog: who harvests it, what it pays, who watches it —
+    /// plus the contextual action (view the siege / manage the overseer / lay
+    /// siege). Mirrors ShowWarfrontIntervene's panel idiom.</summary>
+    private void ShowSupplyCacheDialog(int poiIndex)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle?.World == null || poiIndex < 0 || poiIndex >= _world.Pois.Count)
+            return;
+        var poi = _world.Pois[poiIndex];
+        string ctrl = SupplyCacheSystem.ControllerOf(poi);
+        bool guildOwned = ctrl == KingdomTickSimulation.GuildFactionId;
+        var siege = SupplyCacheSystem.SiegeFor(cycle, poiIndex);
+
+        _supplyUi?.QueueFree();
+        _supplyUi = new CanvasLayer { Name = "SupplyCacheUI" };
+        AddChild(_supplyUi);
+
+        var backdrop = new ColorRect { Color = new Color(0.02f, 0.0f, 0.02f, 0.72f) };
+        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _supplyUi.AddChild(backdrop);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0.5f, AnchorTop = 0.5f, AnchorRight = 0.5f, AnchorBottom = 0.5f,
+            GrowHorizontal = Control.GrowDirection.Both, GrowVertical = Control.GrowDirection.Both,
+            OffsetLeft = -280, OffsetRight = 280, OffsetTop = -200, OffsetBottom = 200,
+        };
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgRaised,
+            guildOwned ? UITheme.Success : UITheme.Gold));
+        _supplyUi.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 22);
+        margin.AddThemeConstantOverride("margin_right", 22);
+        margin.AddThemeConstantOverride("margin_top", 18);
+        margin.AddThemeConstantOverride("margin_bottom", 18);
+        panel.AddChild(margin);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 10);
+        margin.AddChild(vbox);
+
+        var title = new Label
+        {
+            Text = $"Supply Cache — {SupplyCacheSystem.HostName(cycle, poi)}",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeMedium);
+        title.AddThemeColorOverride("font_color", guildOwned ? UITheme.Success : UITheme.Gold);
+        vbox.AddChild(title);
+        vbox.AddChild(new HSeparator());
+
+        AddDeployStat(vbox, "Harvested by",
+            SupplyCacheSystem.ControllerDisplay(cycle, ctrl) + (guildOwned ? " (you)" : ""));
+        AddDeployStat(vbox, "Yield", $"+{SupplyCacheSystem.YieldOf(poi)} supplies / lunation");
+        if (!guildOwned && cycle.Kingdoms.TryGetValue(ctrl, out var ck))
+            AddDeployStat(vbox, "Their stock", $"{ck.SupplyStock} / 100");
+        if (guildOwned)
+        {
+            var ov = cycle.Companions?.Find(x => x.Id == poi.OverseerCompanionId);
+            AddDeployStat(vbox, "Overseer", ov != null
+                ? $"{ov.Name}  (+{SupplyCacheSystem.OverseerYieldBonus} yield, harder to besiege)"
+                : "none — assign one to boost the draw");
+        }
+        if (siege != null)
+            AddDeployStat(vbox, "Under siege", $"{siege.AggressorName} — {siege.Advance}/100");
+
+        vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
+
+        var buttons = new HBoxContainer();
+        buttons.AddThemeConstantOverride("separation", 10);
+        buttons.Alignment = BoxContainer.AlignmentMode.Center;
+        vbox.AddChild(buttons);
+
+        void ActionButton(string text, bool primary, System.Action onPressed)
+        {
+            var btn = new Button { Text = text, CustomMinimumSize = new Vector2(150, 40) };
+            UITheme.ApplyButtonStyle(btn, isPrimary: primary);
+            btn.Pressed += () => onPressed();
+            buttons.AddChild(btn);
+        }
+
+        if (siege != null)
+        {
+            // The fight is the warfront's — hand over to the standard dialog.
+            ActionButton("Go to the siege", true, () =>
+            {
+                CloseSupplyUi();
+                ShowWarfrontIntervene(siege);
+            });
+        }
+        else if (guildOwned)
+        {
+            if (string.IsNullOrEmpty(poi.OverseerCompanionId))
+                ActionButton("Assign overseer", true, () => ShowOverseerPicker(poiIndex));
+            else
+                ActionButton("Recall overseer", false, () =>
+                {
+                    SupplyCacheSystem.RecallOverseer(SaveManager.ActiveSave, poiIndex);
+                    CloseSupplyUi();
+                    BuildSupplyMarkers();
+                });
+        }
+        else
+        {
+            ActionButton("Lay siege (1 lunation)", true, () => CommitCacheSiege(poiIndex));
+        }
+
+        var close = new Button { Text = "Close", CustomMinimumSize = new Vector2(110, 40) };
+        UITheme.ApplyButtonStyle(close, isPrimary: false);
+        close.Pressed += CloseSupplyUi;
+        buttons.AddChild(close);
+    }
+
+    private void CloseSupplyUi()
+    {
+        _supplyUi?.QueueFree();
+        _supplyUi = null;
+    }
+
+    /// <summary>Companion picker for the overseer posting — recruited, healthy,
+    /// home, and uncommitted (not in the party, not an envoy, not already an
+    /// overseer). The stake is stated on the button row: they are wounded if
+    /// the cache falls.</summary>
+    private void ShowOverseerPicker(int poiIndex)
+    {
+        var save = SaveManager.ActiveSave;
+        var cycle = save?.Cycle;
+        if (cycle == null)
+            return;
+
+        CloseSupplyUi();
+        _supplyUi = new CanvasLayer { Name = "SupplyCacheUI" };
+        AddChild(_supplyUi);
+
+        var backdrop = new ColorRect { Color = new Color(0.02f, 0.0f, 0.02f, 0.72f) };
+        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _supplyUi.AddChild(backdrop);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0.5f, AnchorTop = 0.5f, AnchorRight = 0.5f, AnchorBottom = 0.5f,
+            GrowHorizontal = Control.GrowDirection.Both, GrowVertical = Control.GrowDirection.Both,
+            OffsetLeft = -260, OffsetRight = 260, OffsetTop = -190, OffsetBottom = 190,
+        };
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Success));
+        _supplyUi.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 22);
+        margin.AddThemeConstantOverride("margin_right", 22);
+        margin.AddThemeConstantOverride("margin_top", 18);
+        margin.AddThemeConstantOverride("margin_bottom", 18);
+        panel.AddChild(margin);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 8);
+        margin.AddChild(vbox);
+
+        var title = new Label
+        {
+            Text = "Post an Overseer",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeMedium);
+        title.AddThemeColorOverride("font_color", UITheme.Success);
+        vbox.AddChild(title);
+
+        var warn = new Label
+        {
+            Text = $"+{SupplyCacheSystem.OverseerYieldBonus} supplies per lunation and a stiffer " +
+                   "defence — but if the cache falls, they are wounded in the rout. " +
+                   "Posted companions can't join the party or run envoy missions.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        warn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        warn.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        vbox.AddChild(warn);
+        vbox.AddChild(new HSeparator());
+
+        bool any = false;
+        foreach (var c in cycle.Companions)
+        {
+            if (!SupplyCacheSystem.OverseerEligible(save, c))
+                continue;
+            any = true;
+            var btn = new Button
+            {
+                Text = $"{c.Name}  ({c.School})",
+                CustomMinimumSize = new Vector2(0, 36),
+            };
+            UITheme.ApplyButtonStyle(btn, isPrimary: false);
+            string cid = c.Id;
+            btn.Pressed += () =>
+            {
+                SupplyCacheSystem.AssignOverseer(SaveManager.ActiveSave, poiIndex, cid);
+                CloseSupplyUi();
+                BuildSupplyMarkers();
+            };
+            vbox.AddChild(btn);
+        }
+        if (!any)
+        {
+            var none = new Label
+            {
+                Text = "No one is free — everyone is in the party, afield, recovering, or already posted.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            none.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+            none.AddThemeColorOverride("font_color", UITheme.TextDim);
+            vbox.AddChild(none);
+        }
+
+        vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
+        var cancel = new Button { Text = "Cancel", CustomMinimumSize = new Vector2(110, 40) };
+        UITheme.ApplyButtonStyle(cancel, isPrimary: false);
+        cancel.Pressed += CloseSupplyUi;
+        vbox.AddChild(cancel);
+    }
+
+    /// <summary>Lay siege to a cache the guild doesn't hold: open (or join) the
+    /// cache warfront with the guild as aggressor and deploy into it at once,
+    /// side Seize — one successful expedition flips the cache
+    /// (SupplyCacheSystem.ApplyCacheIntervention). Costs a lunation like every
+    /// deploy; a failed sortie collapses the siege.</summary>
+    private void CommitCacheSiege(int poiIndex)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle?.World == null || poiIndex < 0 || poiIndex >= _world.Pois.Count)
+            return;
+        var poi = _world.Pois[poiIndex];
+
+        CloseSupplyUi();
+
+        var wf = SupplyCacheSystem.OpenPlayerSiege(cycle, poiIndex);
+        cycle.PendingWarfrontId = wf.Id;
+        cycle.PendingWarfrontSide = WarfrontSide.Seize;
+        cycle.WarfrontStrongholdCleared = false;
+
+        _pendingStaging = new StagingPoint
+        {
+            X = poi.X,
+            Y = poi.Y,
+            Name = $"the supply cache in {SupplyCacheSystem.HostName(cycle, poi)}",
+            Source = "Warfront",
+            Available = true,
+        };
+        Deploy();
+    }
+
     // ── Warfronts: markers + three-sided intervention ────────────────────────
 
     /// <summary>Render a clickable crossed-front marker for each open warfront at
@@ -1539,25 +1885,35 @@ public partial class StrategicView : Node2D
             var core = new Polygon2D { Polygon = MakeRing(TilePx * 0.8f), Color = UITheme.TextPrimary };
             marker.AddChild(core);
 
-            // Advance bar as a tiny label above the marker.
+            // Advance bar as a tiny label above the marker. Cache sieges sit ON
+            // the cache tile, whose supply marker already carries a "+N" tag at
+            // -3.0 tiles — lift the siege label clear of it.
             var lbl = new Label
             {
                 Text = $"⚔ {wf.Advance}%",
-                Position = new Vector2(-TilePx * 1.6f, -TilePx * 3.2f),
+                Position = new Vector2(-TilePx * 1.6f,
+                    -TilePx * (wf.IsCacheSiege ? 4.4f : 3.2f)),
             };
             lbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 3);
             lbl.AddThemeColorOverride("font_color", UITheme.Danger);
             marker.AddChild(lbl);
 
-            var area = new Area2D();
-            area.AddChild(new CollisionShape2D { Shape = new CircleShape2D { Radius = TilePx * 1.9f } });
-            var captured = wf;
-            area.InputEvent += (viewport, evt, idx) =>
+            // Cache sieges get NO clickable area: the supply marker underneath
+            // owns the click (its dialog routes to "Go to the siege"). Two
+            // overlapping Area2Ds would both receive the click — Godot picking
+            // doesn't stop at the topmost — and stack two modal backdrops.
+            if (!wf.IsCacheSiege)
             {
-                if (evt is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
-                    ShowWarfrontIntervene(captured);
-            };
-            marker.AddChild(area);
+                var area = new Area2D();
+                area.AddChild(new CollisionShape2D { Shape = new CircleShape2D { Radius = TilePx * 1.9f } });
+                var captured = wf;
+                area.InputEvent += (viewport, evt, idx) =>
+                {
+                    if (evt is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+                        ShowWarfrontIntervene(captured);
+                };
+                marker.AddChild(area);
+            }
 
             _warfrontLayer.AddChild(marker);
         }
@@ -2056,7 +2412,13 @@ public partial class StrategicView : Node2D
     {
         CouncilTick.Tick(cycle);
         CorruptionSpread.Tick(cycle.World, cycle.Campaign, cycle.Kingdoms);
+        // Supply envy runs BEFORE the kingdom tick so cache imbalances feed the
+        // same border-pressure boil-over that opens warfronts (wars erupt over
+        // supply access); the harvest runs AFTER it so a province that just
+        // fell pays its new master. See docs/supply_cache_spec_v1.
+        SupplyCacheSystem.TickPressure(cycle);
         KingdomTickSimulation.Tick(cycle, FactionDisplay);
+        SupplyCacheSystem.Tick(cycle, FactionDisplay);
         CompanionInjurySystem.TickRecovery(SaveManager.ActiveSave);
     }
 

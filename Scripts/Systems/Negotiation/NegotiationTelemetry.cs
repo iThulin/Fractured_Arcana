@@ -26,11 +26,13 @@ public static class NegotiationTelemetry
 {
     private const string PATH = "user://negotiation_telemetry.csv";
 
+    // "supplies" appended LAST (2026-08-05) so rows written under the old
+    // header stay column-aligned in existing CSVs.
     private const string HEADER =
         "when,school,archetype,encounterId,outcome,stars,score,gold,rep,zone," +
         "turns,tensionEnd,patienceLeft,squeezeOffered,squeezeHeld,squeezeBlinked," +
         "schoolMoveUsed,charm,persuade,connections,intimidate,demonstration," +
-        "offering,insight,patience";
+        "offering,insight,patience,supplies";
 
     public static void Record(DealRecord record, NegotiationState state)
     {
@@ -76,6 +78,7 @@ public static class NegotiationTelemetry
                 sb.Append(state.PlayedCounts.GetValueOrDefault(tok));
                 if (tok != LeverageToken.Patience) sb.Append(',');
             }
+            sb.Append(',').Append(record.Supplies);
             file.StoreLine(sb.ToString());
         }
         catch (System.Exception e)

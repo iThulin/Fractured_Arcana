@@ -1178,6 +1178,7 @@ public partial class OverworldSpellManager : Node2D
             OverworldHex.POIType.Prison => "a captive",
             OverworldHex.POIType.Settlement => "trade · staging",   // S4.2
             OverworldHex.POIType.Seat => "a seat of power",         // S4.2
+            OverworldHex.POIType.SupplyCache => "provisions",       // supply_cache v1.1
             _ => "",
         };
         return category == "" ? "" : $" ({category})";

@@ -50,6 +50,7 @@ public partial class HudManager : Node
     private ResourceReadout _gold;
     private ResourceReadout _splinters;
     private ResourceReadout _materials;
+    private ResourceReadout _supplies;
     private Button _returnButton; // gated by ShouldShowReturnToCampus (menu screens only)
 
     private int _lastLunation = int.MinValue;
@@ -128,6 +129,7 @@ public partial class HudManager : Node
         _gold = MakeResourceReadout(row, UITheme.Gold);
         _splinters = MakeResourceReadout(row, UITheme.ArcaneBlue);
         _materials = MakeResourceReadout(row, UITheme.TextPrimary);
+        _supplies = MakeResourceReadout(row, UITheme.Success);
 
         // Spacer pushes the buttons to the right edge.
         row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
@@ -218,7 +220,7 @@ public partial class HudManager : Node
         // BANKED on extraction — a failed run forfeits gold, splinters, AND
         // materials. Show what's riding on the current expedition as a red
         // "+N" next to each treasury total so the stake stays visible.
-        var (pGold, pSplinters, pMaterials) = GetExpeditionPending();
+        var (pGold, pSplinters, pMaterials, pSupplies) = GetExpeditionPending();
 
         if (force || lun != _lastLunation)
         {
@@ -228,6 +230,7 @@ public partial class HudManager : Node
         UpdateReadout(_gold, "Gold", save?.Gold ?? 0, pGold, force);
         UpdateReadout(_splinters, "Splinters", save?.ArcaneSplinters ?? 0, pSplinters, force);
         UpdateReadout(_materials, "Materials", save?.BuildMaterials ?? 0, pMaterials, force);
+        UpdateReadout(_supplies, "Supplies", save?.Supplies ?? 0, pSupplies, force);
     }
 
     private static void UpdateReadout(ResourceReadout r, string name,
@@ -250,16 +253,17 @@ public partial class HudManager : Node
     /// from the EncounterRouter's saved resource state while a combat/
     /// negotiation round-trip is in flight. All-zero when no expedition is
     /// running, so the plain treasury readouts return the moment the run ends.</summary>
-    private (int gold, int splinters, int materials) GetExpeditionPending()
+    private (int gold, int splinters, int materials, int supplies) GetExpeditionPending()
     {
         if (!PlayerSession.IsOnExpedition)
-            return (0, 0, 0);
+            return (0, 0, 0, 0);
         if (GetTree().CurrentScene is ExpeditionManager exp)
-            return (exp.GoldEarned, exp.SplinterEarned, exp.MaterialEarned);
+            return (exp.GoldEarned, exp.SplinterEarned, exp.MaterialEarned, exp.SuppliesEarned);
         var router = EncounterRouter.Instance;
         return router != null
-            ? (router.SavedGoldEarned, router.SavedSplinterEarned, router.SavedMaterialEarned)
-            : (0, 0, 0);
+            ? (router.SavedGoldEarned, router.SavedSplinterEarned,
+               router.SavedMaterialEarned, router.SavedSuppliesEarned)
+            : (0, 0, 0, 0);
     }
 
     /// <summary>Show the bar only when a save is live and we're not in combat or

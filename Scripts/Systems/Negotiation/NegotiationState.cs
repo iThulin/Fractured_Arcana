@@ -226,7 +226,11 @@ public class NegotiationState
         int w = Mathf.RoundToInt(Mathf.Abs(t.GoldDelta) / 15f)
               + Mathf.Abs(t.ReputationDelta)
               + (string.IsNullOrEmpty(t.SpellId) ? 0 : 2)
-              + Mathf.CeilToInt(Mathf.Abs(t.StepsDelta) / 2f);
+              + Mathf.CeilToInt(Mathf.Abs(t.StepsDelta) / 2f)
+              // Supplies weigh heavier than gold per unit (~10:15) — provisions
+              // are war material, and the AI must not treat a supply clause as
+              // fine print (the Rework target is the LOWEST-weight term).
+              + Mathf.RoundToInt(Mathf.Abs(t.SuppliesDelta) / 10f);
         return Mathf.Max(1, w);
     }
 
@@ -1229,6 +1233,33 @@ public class NegotiationState
         return Mathf.RoundToInt(total);
     }
 
+    public int GetSuppliesOutcome() => DealAccepted ? ProjectSupplies() : 0;
+
+    /// <summary>Supplies at current positions, as if signed now. NO zone
+    /// multiplier — provisions are physical goods (see DealTerm.SuppliesDelta).</summary>
+    public int ProjectSupplies()
+    {
+        float total = 0f;
+        foreach (var term in Terms)
+            total += term.SuppliesDelta * term.PlayerFraction();
+        return Mathf.RoundToInt(total);
+    }
+
+    /// <summary>True when a signed deal carries an un-conceded supply-lines
+    /// intel clause (DealTerm.RevealsSupplyCaches). Fully conceded (fraction 0)
+    /// = they never handed the charts over. Hidden clauses count only once
+    /// revealed/accepted, like every other term.</summary>
+    public bool GetSupplyIntelOutcome()
+    {
+        if (!DealAccepted)
+            return false;
+        foreach (var term in Terms)
+            if ((!term.IsHidden || term.IsAccepted) && term.RevealsSupplyCaches &&
+                term.PlayerFraction() > 0f)
+                return true;
+        return false;
+    }
+
     public int GetReputationOutcome() => DealAccepted ? ProjectReputation() : 0;
 
     /// <summary>Reputation at current positions and zone, as if signed now.</summary>
@@ -1259,18 +1290,19 @@ public class NegotiationState
 
     /// <summary>One clause's signed contribution to the pre-zone totals at
     /// its current position — the receipt's line item.</summary>
-    public static (int Gold, int Rep) TermPayout(DealTerm t) => (
+    public static (int Gold, int Rep, int Supplies) TermPayout(DealTerm t) => (
         Mathf.RoundToInt(t.GoldDelta * t.PlayerFraction()),
-        Mathf.RoundToInt(t.ReputationDelta * t.PlayerFraction()));
+        Mathf.RoundToInt(t.ReputationDelta * t.PlayerFraction()),
+        Mathf.RoundToInt(t.SuppliesDelta * t.PlayerFraction()));
 
     /// <summary>Totals if <paramref name="target"/> slid one notch their way
     /// and the deal signed now — the squeeze modal's "concede" column. Pure:
     /// nudges the position, projects, restores.</summary>
-    public (int Gold, int Rep, int Stars) ProjectIfConceded(DealTerm target)
+    public (int Gold, int Rep, int Supplies, int Stars) ProjectIfConceded(DealTerm target)
     {
         int keep = target.Position;
         target.Position = Mathf.Clamp(keep - 1, -2, 2);
-        var projected = (ProjectGold(), ProjectReputation(), ProjectStars());
+        var projected = (ProjectGold(), ProjectReputation(), ProjectSupplies(), ProjectStars());
         target.Position = keep;
         return projected;
     }

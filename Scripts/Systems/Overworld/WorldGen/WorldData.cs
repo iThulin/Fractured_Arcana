@@ -136,6 +136,18 @@ public class WorldPoi
 
     /// <summary>True if discovering/securing this POI grants a staging point.</summary>
     public bool GrantsStaging = false;
+
+    // ── Supply caches only (Kind == PoiKind.SupplyCache) ──────────────────
+    /// <summary>Who harvests this cache: a kingdom id, or "guild" for the
+    /// player. Empty (pre-feature saves) reads as the host KingdomId — use
+    /// SupplyCacheSystem.ControllerOf, never this field directly.</summary>
+    public string SupplyControllerId = "";
+
+    /// <summary>Companion posted to oversee a GUILD-controlled cache (+yield;
+    /// injured if the cache falls). Empty = none. Availability is derived from
+    /// this field (SupplyCacheSystem.IsOverseer) — never a flag on Companion,
+    /// same single-source discipline as envoy missions.</summary>
+    public string OverseerCompanionId = "";
 }
 
 /// <summary>Settlement scale. City = several tiles, grants staging, studded with

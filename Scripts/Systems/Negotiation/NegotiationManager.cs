@@ -145,6 +145,43 @@ public partial class NegotiationManager : Control
         // Granted only if the deal closes in the Cordial zone — the term's
         // text says so up front (G5), and NegotiationState enforces it.
         _data.Terms.RemoveAll(t => t.Id == "spell_tuition");
+
+        // Supply-cost clauses the guild can't cover come off the table before
+        // the board is built. Settlement floors the treasury at 0, so without
+        // this strip a "sell 15 supplies" term pays its gold in full while
+        // delivering supplies that don't exist — free gold on an empty larder.
+        // (Conservative: pending expedition SuppliesEarned deliberately don't
+        // count — they're unbanked and may be forfeited.)
+        int suppliesOnHand = SaveManager.ActiveSave?.Supplies ?? 0;
+        int strippedSupply = _data.Terms.RemoveAll(
+            t => t.SuppliesDelta < 0 && suppliesOnHand < -t.SuppliesDelta);
+        if (strippedSupply > 0)
+            GD.Print($"[Negotiation] Stripped {strippedSupply} supply-cost term(s) — " +
+                     $"stores too low ({suppliesOnHand}).");
+
+        // Supply-lines intel (supply_cache spec v1.1): kingdom NPCs can sell
+        // the locations of their homeland's caches — diplomacy as a discovery
+        // channel. Offered only while the kingdom still has undiscovered ones.
+        _data.Terms.RemoveAll(t => t.Id == "supply_lines_intel");
+        var intelCycle = SaveManager.ActiveSave?.Cycle;
+        string intelKingdom = NegotiationContext.OriginKingdomId;
+        if (intelCycle != null && !string.IsNullOrEmpty(intelKingdom) &&
+            intelCycle.Kingdoms != null && intelCycle.Kingdoms.ContainsKey(intelKingdom) &&
+            SupplyCacheSystem.HasUndiscoveredCache(intelCycle, intelKingdom) &&
+            GD.Randf() < 0.4f)
+        {
+            _data.Terms.Add(new DealTerm
+            {
+                Id = "supply_lines_intel",
+                Description = "They mark the region's supply caches on your map — " +
+                              "every depot their people draw from.",
+                FavorPlayer = true,
+                RevealsSupplyCaches = true,
+                Weight = 2,
+            });
+            GD.Print("[Negotiation] Supply-lines intel on the table.");
+        }
+
         var grimoire = SaveManager.ActiveSave?.Cycle?.Grimoire;
         if (grimoire != null)
         {
@@ -1537,13 +1574,19 @@ public partial class NegotiationManager : Control
         string termName = NegotiationState.ShortName(_pendingSqueeze.Target);
         var asWritten = (Gold: _state.ProjectGold(),
                          Rep: _state.ProjectReputation(),
+                         Supplies: _state.ProjectSupplies(),
                          Stars: _state.ProjectStars());
         var conceded = _state.ProjectIfConceded(_pendingSqueeze.Target);
+        bool anySupplies = asWritten.Supplies != 0 || conceded.Supplies != 0;
+        string SqLine(int gold, int rep, int sup, int stars) =>
+            $"{Signed(gold)} gold · " +
+            (anySupplies ? $"{Signed(sup)} sup · " : "") +
+            $"{Signed(rep)} rep · {StarLine(stars)}";
         _squeezeLabel.Text =
             $"{_state.Data.NpcName} holds your handshake. One last demand:\n" +
             $"the \"{termName}\" slides one notch their way.\n\n" +
-            $"Concede & sign:   {Signed(conceded.Gold)} gold · {Signed(conceded.Rep)} rep · {StarLine(conceded.Stars)}\n" +
-            $"Sign as written:  {Signed(asWritten.Gold)} gold · {Signed(asWritten.Rep)} rep · {StarLine(asWritten.Stars)}\n\n" +
+            $"Concede & sign:   {SqLine(conceded.Gold, conceded.Rep, conceded.Supplies, conceded.Stars)}\n" +
+            $"Sign as written:  {SqLine(asWritten.Gold, asWritten.Rep, asWritten.Supplies, asWritten.Stars)}\n\n" +
             $"Hold firm: {_pendingSqueeze.OddsPercent}% they blink and sign as written.\n" +
             (_state.Tension >= 8
                 ? "If they bristle: +2 tension — this table would COLLAPSE."
@@ -1656,7 +1699,9 @@ public partial class NegotiationManager : Control
             _state.GetReputationOutcome(),
             _state.Data.FactionId,
             spellGranted,
-            resolvedCordial: _state.Zone == TensionZone.Cordial); // S5: compulsion-echo burial gate
+            resolvedCordial: _state.Zone == TensionZone.Cordial, // S5: compulsion-echo burial gate
+            supplies: _state.GetSuppliesOutcome(),
+            revealSupplyCaches: _state.GetSupplyIntelOutcome());
 
         RecordDeal(spellGranted);   // Hall of Records — every outcome, every timeline
 
@@ -1703,10 +1748,11 @@ public partial class NegotiationManager : Control
         _resultContent.AddChild(lbl);
     }
 
-    /// <summary>One ledger row: clause | gold | rep | note.</summary>
+    /// <summary>One ledger row: clause | gold | supplies | rep | note.</summary>
     private void AddReceiptRow(GridContainer grid,
                                string name, Color nameColor,
                                string goldText, Color goldColor,
+                               string suppliesText, Color suppliesColor,
                                string repText, Color repColor,
                                string note, Color noteColor)
     {
@@ -1714,6 +1760,8 @@ public partial class NegotiationManager : Control
         nameLbl.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         grid.AddChild(nameLbl);
         grid.AddChild(ReceiptCell(goldText, goldColor,
+            UITheme.NegotiationDetailFontSize, HorizontalAlignment.Right));
+        grid.AddChild(ReceiptCell(suppliesText, suppliesColor,
             UITheme.NegotiationDetailFontSize, HorizontalAlignment.Right));
         grid.AddChild(ReceiptCell(repText, repColor,
             UITheme.NegotiationDetailFontSize, HorizontalAlignment.Right));
@@ -1735,7 +1783,7 @@ public partial class NegotiationManager : Control
 
         var grid = new GridContainer
         {
-            Columns = 4,
+            Columns = 5,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
         grid.AddThemeConstantOverride("h_separation", 16);
@@ -1744,7 +1792,7 @@ public partial class NegotiationManager : Control
 
         foreach (var term in _state.Terms)
         {
-            var (tGold, tRep) = NegotiationState.TermPayout(term);
+            var (tGold, tRep, tSupplies) = NegotiationState.TermPayout(term);
             string name = (term.IsHidden ? "🂠 " : "· ") + NegotiationState.ShortName(term);
             Color nameColor = term.IsHidden ? UITheme.NegotiationHiddenTerm
                                             : UITheme.NegotiationBodyColor;
@@ -1761,6 +1809,12 @@ public partial class NegotiationManager : Control
                 bool granted = spellGranted == term.SpellId;
                 note = granted ? "learned ✓" : "lost — needed a Cordial close";
                 noteColor = granted ? UITheme.TermFavorPlayer : UITheme.TermAgainstPlayer;
+            }
+            else if (term.RevealsSupplyCaches)
+            {
+                bool marked = term.PlayerFraction() > 0f;
+                note = marked ? "supply lines marked ✓" : "lost — fully theirs";
+                noteColor = marked ? UITheme.TermFavorPlayer : UITheme.TermAgainstPlayer;
             }
             else if (!term.FavorPlayer && term.PlayerFraction() == 0f)
             {
@@ -1780,23 +1834,28 @@ public partial class NegotiationManager : Control
             AddReceiptRow(grid,
                 name, nameColor,
                 tGold == 0 ? "—" : $"{Signed(tGold)}g", GainLossColor(tGold),
+                tSupplies == 0 ? "—" : $"{Signed(tSupplies)} sup", GainLossColor(tSupplies),
                 tRep == 0 ? "—" : $"{Signed(tRep)} rep", GainLossColor(tRep),
                 note, noteColor);
         }
 
-        // Zone adjustments as their own line item — no hidden math.
+        // Zone adjustments as their own line item — no hidden math. (Supplies
+        // take no zone rate — provisions are physical goods.)
         float mult = NegotiationState.ZoneGoldMult(_state.Zone);
         int repAdj = NegotiationState.ZoneRepBonus(_state.Zone);
         if (mult != 1f || repAdj != 0)
             AddReceiptRow(grid,
                 $"{_state.Zone} zone rate", ZoneColor(_state.Zone),
                 mult != 1f ? $"×{mult:0.##}g" : "—", GainLossColor(mult - 1f),
+                "—", UITheme.NegotiationHiddenTerm,
                 repAdj != 0 ? $"{Signed(repAdj)} rep" : "—", GainLossColor(repAdj),
                 "", UITheme.NegotiationHiddenTerm);
 
         _resultContent.AddChild(new HSeparator());
 
         string total = $"You walk away with:  {Signed(_state.GetGoldOutcome())} gold" +
+                       (_state.GetSuppliesOutcome() != 0
+                           ? $" · {Signed(_state.GetSuppliesOutcome())} supplies" : "") +
                        $" · {Signed(_state.GetReputationOutcome())} rep";
         if (spellGranted != "")
             total += $" · {OverworldSpellRegistry.Get(spellGranted)?.Name} learned";
@@ -1823,7 +1882,9 @@ public partial class NegotiationManager : Control
         if (_state.IsResolved)
             return;
 
+        int previewSupplies = _state.ProjectSupplies();
         string text = $"Signs now for:  {Signed(_state.ProjectGold())}g" +
+                      (previewSupplies != 0 ? $" · {Signed(previewSupplies)} sup" : "") +
                       $" · {Signed(_state.ProjectReputation())} rep" +
                       $" · {StarLine(_state.ProjectStars())}";
         if (_state.HasSpellTermOnTable())
@@ -1860,6 +1921,7 @@ public partial class NegotiationManager : Control
             Score = _state.GetDealScore(),
             Gold = _state.GetGoldOutcome(),
             Reputation = _state.GetReputationOutcome(),
+            Supplies = _state.GetSuppliesOutcome(),
             Zone = _state.Zone.ToString(),
             Turns = _state.TurnNumber,
             SpellGranted = spellGranted,

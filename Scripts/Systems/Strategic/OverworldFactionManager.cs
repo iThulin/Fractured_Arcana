@@ -96,6 +96,9 @@ public partial class OverworldFactionManager : Node2D
         }
 
         int patrolCount = _archmage.BasePatrolCount;
+        // Supplies fund soldiers (docs/supply_cache_spec_v1): a kingdom flush
+        // with harvested supply fields an extra patrol in its region.
+        patrolCount += SupplyCacheSystem.PatrolBonusForRegion(regionId);
         var placedCoords = new List<Vector2I>();
 
         for (int i = 0; i < patrolCount; i++)

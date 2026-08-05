@@ -107,6 +107,19 @@ public class CycleState
     /// </summary>
     public int ArcaneSplinters = 0;
 
+    /// <summary>Guild supply stores (docs/supply_cache_spec_v1) — harvested each
+    /// lunation from guild-controlled supply caches (SupplyCacheSystem.Tick,
+    /// banked directly: strategic income is never expedition-carried), and
+    /// bargained in negotiation deals (DealTerm.SuppliesDelta; deal GAINS ride
+    /// with the expedition as SuppliesEarned and bank on extraction). Same tier
+    /// as Gold — dies with the timeline.</summary>
+    public int Supplies = 0;
+
+    /// <summary>One-shot flag for the supply-cache fog migration (v1 seeded
+    /// caches Discovered; v1.1 hides them until earned — see
+    /// SupplyCacheSystem.MigrateFog). True on fresh v1.1+ seeds.</summary>
+    public bool SupplyCacheFogApplied = false;
+
     // ── W3: emergency-extraction debt ────────────────────────────────────
     /// <summary>Lunations the party owes for straggling home from an emergency
     /// extraction (claude/expedition_window_sliding_v1 §2.3). Set by

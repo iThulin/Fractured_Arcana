@@ -125,7 +125,8 @@ public static class RunEventLog
     /// the banked-vs-forfeited outcome is on record.</summary>
     public static void End(string outcome, string detail,
                            int gold, int splinters, int encountersWon,
-                           int hp, int stepsRemaining, bool goldBanked)
+                           int hp, int stepsRemaining, bool goldBanked,
+                           int materials = 0, int supplies = 0)
     {
         if (!Enabled || _logPath == null) return;
         try
@@ -136,9 +137,12 @@ public static class RunEventLog
             AppendLog("════════════════════════════════════════════════════════════");
             AppendLog($" RUN END — {outcome.ToUpperInvariant()}   ({detail})");
             AppendLog($" Encounters won: {encountersWon}   HP left: {hp}   Steps left: {stepsRemaining}");
+            // Materials/supplies appear only when nonzero — most runs carry none.
+            string extras = (materials != 0 ? $" + {materials} materials" : "")
+                          + (supplies != 0 ? $" + {supplies} supplies" : "");
             AppendLog(goldBanked
-                ? $" BANKED: {gold} gold + {splinters} splinters → guild treasury"
-                : $" FORFEITED: {gold} gold + {splinters} splinters lost (not banked — run failed).");
+                ? $" BANKED: {gold} gold + {splinters} splinters{extras} → guild treasury"
+                : $" FORFEITED: {gold} gold + {splinters} splinters{extras} lost (not banked — run failed).");
             AppendLog("════════════════════════════════════════════════════════════");
         }
         catch (Exception e) { GD.PrintErr($"RunEventLog.End: {e.Message}"); }

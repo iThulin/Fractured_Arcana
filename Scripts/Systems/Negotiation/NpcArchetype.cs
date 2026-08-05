@@ -86,6 +86,24 @@ public class DealTerm
     public string LoreUnlock = "";
     public int StepsDelta = 0;
 
+    /// <summary>Supplies this clause moves (docs/supply_cache_spec_v1) —
+    /// positive pays the guild, negative pledges from its stores. Settled on
+    /// return like gold (ExpeditionManager.OnNegotiationReturned): gains ride
+    /// the expedition at risk; costs deduct from the treasury immediately,
+    /// floored at 0. No zone multiplier — provisions are physical goods, the
+    /// crates don't multiply because the talk went well. Authorable in JSON as
+    /// "suppliesDelta"; weighted in DeriveWeight so the NPC AI values supply
+    /// clauses (unlike the dead StepsDelta/LoreUnlock precedent).</summary>
+    public int SuppliesDelta = 0;
+
+    /// <summary>Supply-lines intel (supply_cache spec v1.1): when this term is
+    /// part of a signed deal (and not fully conceded away), every supply cache
+    /// in the negotiation's origin kingdom is revealed on the strategic map —
+    /// diplomacy as a discovery channel. Injected dynamically at table-open
+    /// ("supply_lines_intel"); settled in ExpeditionManager.OnNegotiationReturned
+    /// via NegotiationContext.RevealSupplyCaches.</summary>
+    public bool RevealsSupplyCaches = false;
+
     /// <summary>S4 (overworld_spell_system §11): an overworld spell id this
     /// term teaches. Granted ONLY when the deal closes in the Cordial zone
     /// (NegotiationState.GetSpellOutcome) — "Cordial deals" are the social

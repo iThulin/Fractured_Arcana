@@ -188,6 +188,10 @@ public static class CompanionRoster
         // derived from CouncilState.Imprisoned, same single-source discipline.
         if (CouncilQueries.IsImprisoned(companionId)) return false;
 
+        // Cache overseers are posted afield — derived from
+        // WorldPoi.OverseerCompanionId (SupplyCacheSystem), never a flag.
+        if (SupplyCacheSystem.IsOverseer(companionId)) return false;
+
         if (save.ActivePartyCompanionIds.Contains(companionId)) return false;
         if (save.ActivePartyCompanionIds.Count >= save.MaxPartySize) return false;
 

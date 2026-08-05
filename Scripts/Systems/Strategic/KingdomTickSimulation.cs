@@ -54,6 +54,17 @@ public static class KingdomTickSimulation
     private const int InstabilityFloor = 30;
     private const int BorderPressureRelief = 12;
 
+    // ── Supply dials (docs/supply_cache_spec_v1 — stock fed by SupplyCacheSystem) ──
+    /// <summary>SupplyStock at/above which a kingdom's granaries steady it.</summary>
+    private const int SupplyStabilityThreshold = 40;
+    /// <summary>Stability healed per lunation by a well-supplied kingdom.</summary>
+    private const int SupplyStabilityBonus = 3;
+    /// <summary>Stability lost per lunation by a STARVED kingdom (stock 0).</summary>
+    private const int SupplyStarvedPenalty = 3;
+    /// <summary>Stock points per ±1 warfront advance — supplies are war muscle:
+    /// a flush aggressor pushes harder, a flush defender digs in.</summary>
+    private const int SupplyMusclePerAdvance = 25;
+
     // ── Warfront dials ──────────────────────────────────────────────────────
     /// <summary>BorderPressure at which tension becomes an open warfront.</summary>
     private const int WarfrontOpenThreshold = 60;
@@ -130,6 +141,13 @@ public static class KingdomTickSimulation
                 delta += StabilityFromInfluence;
             if (myCorr == 0 && k.Stability < StabilityBaseline)
                 delta += StabilityHealPerLunation;
+            // Supplies are civic glue: full granaries steady a province, empty
+            // ones starve it — cutting a kingdom's caches is a legitimate
+            // pre-war softening move (user ruling, 2026-08-05).
+            if (k.SupplyStock >= SupplyStabilityThreshold)
+                delta += SupplyStabilityBonus;
+            else if (k.SupplyStock <= 0)
+                delta -= SupplyStarvedPenalty;
             k.Stability = Mathf.Clamp(k.Stability + delta, 0, 100);
 
             // ── 2. Border pressure from hotter-corrupted neighbours ─────────
@@ -184,8 +202,10 @@ public static class KingdomTickSimulation
 
     private static bool HasOpenWarfrontFor(CycleState cycle, string defenderKid)
     {
+        // Cache sieges (TargetPoiIndex ≥ 0) share DefenderKingdomId with the host
+        // province but are node-scoped — they must not block a real province war.
         foreach (var w in cycle.Warfronts)
-            if (!w.Closed && w.DefenderKingdomId == defenderKid)
+            if (!w.Closed && !w.IsCacheSiege && w.DefenderKingdomId == defenderKid)
                 return true;
         return false;
     }
@@ -231,6 +251,8 @@ public static class KingdomTickSimulation
         {
             if (wf.Closed)
                 continue;
+            if (wf.IsCacheSiege)
+                continue; // cache sieges advance/resolve in SupplyCacheSystem.Tick
             if (!kingdoms.TryGetValue(wf.DefenderKingdomId, out var def))
             {
                 wf.Closed = true;
@@ -248,6 +270,12 @@ public static class KingdomTickSimulation
                 adv -= WarfrontInfluenceRelief;
             if (gap <= 0)
                 adv -= WarfrontStalemateDecay;
+
+            // Supplies are war muscle (user ruling, 2026-08-05): the flush side
+            // pushes/holds harder. Fed by SupplyCacheSystem's harvest.
+            if (kingdoms.TryGetValue(wf.AggressorKingdomId, out var aggK))
+                adv += aggK.SupplyStock / SupplyMusclePerAdvance;
+            adv -= def.SupplyStock / SupplyMusclePerAdvance;
 
             wf.Advance += adv;
             ResolveWarfront(cycle, wf, def, fd);
@@ -377,6 +405,16 @@ public static class KingdomTickSimulation
             GD.Print($"[Warfront] {late}");
             return;
         }
+
+        // Cache sieges resolve on their own (node-scoped) rules — the cache's
+        // controller flips, never the province. Delegated wholesale.
+        if (wf.IsCacheSiege)
+        {
+            SupplyCacheSystem.ApplyCacheIntervention(cycle, wf, side, success, fd);
+            cycle.Warfronts.RemoveAll(w => w.Closed);
+            return;
+        }
+
         if (!cycle.Kingdoms.TryGetValue(wf.DefenderKingdomId, out var def))
             return;
 
@@ -524,6 +562,16 @@ public static class KingdomTickSimulation
                 parts[i] = char.ToUpper(parts[i][0]) + parts[i].Substring(1);
         string joined = string.Join(" ", parts);
         return joined.StartsWith("The ", StringComparison.OrdinalIgnoreCase) ? joined : "The " + joined;
+    }
+
+    /// <summary>Bordering kingdom ids for <paramref name="kid"/> — the shared
+    /// adjacency cache, exposed for SupplyCacheSystem's envy-pressure pass.</summary>
+    public static IEnumerable<string> NeighborsOf(WorldData world, string kid)
+    {
+        EnsureAdjacency(world);
+        return _adjacency.TryGetValue(kid, out var n)
+            ? (IEnumerable<string>)n
+            : System.Array.Empty<string>();
     }
 
     private static void EnsureAdjacency(WorldData world)

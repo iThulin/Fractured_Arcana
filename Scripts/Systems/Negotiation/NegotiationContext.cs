@@ -51,6 +51,17 @@ public static class NegotiationContext
     public static bool DealAccepted = false;
     public static int GoldDelta = 0;
     public static int ReputationDelta = 0;
+
+    /// <summary>Supplies moved by the deal (docs/supply_cache_spec_v1) —
+    /// positive rides home with the expedition as at-risk SuppliesEarned,
+    /// negative deducts from the treasury on return (ExpeditionManager.
+    /// OnNegotiationReturned).</summary>
+    public static int SuppliesDelta = 0;
+
+    /// <summary>True when the signed deal included supply-lines intel — on
+    /// return, every cache in OriginKingdomId is revealed
+    /// (SupplyCacheSystem.RevealCachesInKingdom).</summary>
+    public static bool RevealSupplyCaches = false;
     public static string FactionId = "";
 
     /// <summary>S4 (overworld_spell_system §11): spell id taught by a deal
@@ -64,12 +75,15 @@ public static class NegotiationContext
     public static bool ResolvedCordial = false;
 
     public static void SetResult(bool accepted, int gold, int rep, string factionId,
-                                 string spellGranted = "", bool resolvedCordial = false)
+                                 string spellGranted = "", bool resolvedCordial = false,
+                                 int supplies = 0, bool revealSupplyCaches = false)
     {
         HasResult = true;
         DealAccepted = accepted;
         GoldDelta = gold;
         ReputationDelta = rep;
+        SuppliesDelta = supplies;
+        RevealSupplyCaches = revealSupplyCaches;
         FactionId = factionId;
         SpellGranted = spellGranted;
         ResolvedCordial = resolvedCordial;
@@ -83,6 +97,8 @@ public static class NegotiationContext
         DealAccepted = false;
         GoldDelta = 0;
         ReputationDelta = 0;
+        SuppliesDelta = 0;
+        RevealSupplyCaches = false;
         FactionId = "";
         SpellGranted = "";
         ResolvedCordial = false;

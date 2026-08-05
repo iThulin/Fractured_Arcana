@@ -113,6 +113,13 @@ public partial class ExpeditionManager : Node2D
     /// the channel exists so the top-bar pending readout and banking are
     /// already correct the day something does.</summary>
     public int MaterialEarned { get; set; }
+    /// <summary>Supplies GAINED by negotiation deals on this run — banked only on
+    /// extraction, forfeited on failure (the 2026-08-05 "all spoils are losable"
+    /// ruling). Deal terms that COST supplies deduct from the treasury at once
+    /// (you pledge from stores, but gains ride home with the party) — see
+    /// OnNegotiationReturned. Strategic cache income never touches this: it
+    /// banks directly in SupplyCacheSystem.Tick.</summary>
+    public int SuppliesEarned { get; set; }
     public int EncountersWon { get; set; }
     public bool ExpeditionComplete { get; private set; }
 
@@ -265,6 +272,7 @@ public partial class ExpeditionManager : Node2D
         GoldEarned = 0;
         SplinterEarned = 0;
         MaterialEarned = 0;
+        SuppliesEarned = 0;
         EncountersWon = 0;
         ExpeditionComplete = false;
 
@@ -1293,6 +1301,35 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 ShowInfo($"Outpost secured. Fully rested. +{outSpl} Arcane Splinters.");
                 UpdateUI();
                 break;
+
+            case OverworldHex.POIType.SupplyCache:
+                // Reconnaissance, not an encounter (supply_cache spec v1.1):
+                // standing at the depot confirms it — the strategic marker and
+                // its dialog unlock — and the banner says who's harvesting it.
+                // Never consumed; the crate stays a landmark of the window.
+                if (_window.TryLocalToWorld(coord, out int scCol, out int scRow))
+                {
+                    var scPoi = _world.PoiAt(scCol, scRow);
+                    var scCycle = SaveManager.ActiveSave?.Cycle;
+                    // Kind guard: debug ForceNextEncounterType can force this
+                    // case onto a tile holding some OTHER POI — don't discover
+                    // or misreport it as a cache.
+                    if (scPoi != null && scPoi.Kind == PoiKind.SupplyCache && scCycle != null)
+                    {
+                        if (!scPoi.Discovered)
+                        {
+                            scPoi.Discovered = true;
+                            SaveManager.MarkDirty();
+                        }
+                        string scCtrl = SupplyCacheSystem.ControllerDisplay(
+                            scCycle, SupplyCacheSystem.ControllerOf(scPoi));
+                        ShowInfo($"Supply cache — harvested by {scCtrl} " +
+                                 $"(+{SupplyCacheSystem.YieldOf(scPoi)} supplies/lunation). " +
+                                 "Sieges are laid from the strategic map.");
+                        LogRun("supply_cache", $"scouted the cache; held by {scCtrl}", at: coord);
+                    }
+                }
+                break;
         }
     }
 
@@ -1392,6 +1429,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SavedGoldEarned = GoldEarned;
         router.SavedSplinterEarned = SplinterEarned;
         router.SavedMaterialEarned = MaterialEarned;
+        router.SavedSuppliesEarned = SuppliesEarned;
         router.SavedEncountersWon = EncountersWon;
         router.SavedPartyCoord = _party.CurrentCoord;
         router.SavedCombatHexCoord = hexCoord;
@@ -1535,6 +1573,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         GoldEarned = router.SavedGoldEarned;
         SplinterEarned = router.SavedSplinterEarned;
         MaterialEarned = router.SavedMaterialEarned;
+        SuppliesEarned = router.SavedSuppliesEarned;
         EncountersWon = router.SavedEncountersWon;
 
         // The window was rebuilt fresh in _Ready from World; discovery is already
@@ -2314,6 +2353,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             router.SavedGoldEarned = GoldEarned;
             router.SavedSplinterEarned = SplinterEarned;
             router.SavedMaterialEarned = MaterialEarned;
+            router.SavedSuppliesEarned = SuppliesEarned;
             router.SavedEncountersWon = EncountersWon;
             router.SavedPartyCoord = _party.CurrentCoord;
             router.SavedCombatHexCoord = coord;
@@ -2377,6 +2417,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             router.SavedGoldEarned = GoldEarned;
             router.SavedSplinterEarned = SplinterEarned;
             router.SavedMaterialEarned = MaterialEarned;
+            router.SavedSuppliesEarned = SuppliesEarned;
             router.SavedEncountersWon = EncountersWon;
             router.SavedPartyCoord = _party.CurrentCoord;
             router.SavedCombatHexCoord = coord;
@@ -2397,6 +2438,24 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             int negGoldBefore = GoldEarned;
             GoldEarned = Mathf.Max(0, GoldEarned + NegotiationContext.GoldDelta);
+
+            // Supplies bargained at the table (docs/supply_cache_spec_v1): GAINS
+            // ride home with the party (SuppliesEarned, at risk until extraction);
+            // COSTS come out of the treasury immediately — you pledged from
+            // stores, and the treasury can't go below empty.
+            if (NegotiationContext.SuppliesDelta > 0)
+            {
+                SuppliesEarned += NegotiationContext.SuppliesDelta;
+            }
+            else if (NegotiationContext.SuppliesDelta < 0)
+            {
+                var supSave = SaveManager.ActiveSave;
+                if (supSave != null)
+                {
+                    supSave.Supplies = Mathf.Max(0, supSave.Supplies + NegotiationContext.SuppliesDelta);
+                    SaveManager.MarkDirty();
+                }
+            }
             LogRun("negotiation_end",
                    $"deal signed: {NegotiationContext.EncounterId}" +
                    $" (rep {(NegotiationContext.ReputationDelta >= 0 ? "+" : "")}{NegotiationContext.ReputationDelta})",
@@ -2406,6 +2465,22 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             bool kingdomAligned = cycle != null &&
                                   !string.IsNullOrEmpty(kingdom) &&
                                   cycle.Kingdoms.ContainsKey(kingdom);
+
+            // Supply-lines intel: the signed charts reveal every cache in the
+            // origin kingdom on the strategic map (supply_cache spec v1.1).
+            if (NegotiationContext.RevealSupplyCaches && kingdomAligned)
+            {
+                int marked = SupplyCacheSystem.RevealCachesInKingdom(cycle, kingdom);
+                if (marked > 0)
+                {
+                    ShowInfo($"Their quartermaster marks {marked} supply " +
+                             $"cache{(marked == 1 ? "" : "s")} on your map.");
+                    // A charted tile inside the live window should silhouette
+                    // now, not after the next stream (same as the Spymaster
+                    // packet's refresh).
+                    RefreshWindowSilhouettes();
+                }
+            }
             if (kingdomAligned)
             {
                 // Kingdom-aligned: the deal echoes to the court (C4). Routed
@@ -2584,7 +2659,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         RunEventLog.End("emergency_extract",
             $"straggled home, +1 lunation.{casualties}",
             GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
-            goldBanked: true);
+            goldBanked: true, materials: MaterialEarned, supplies: SuppliesEarned);
         ShowInfo($"Emergency extraction. The party straggles home — a lunation will pass. " +
                  $"Gold: {GoldEarned}, Splinters: {SplinterEarned}.{casualties}");
         _casualtyNote = null;
@@ -2620,8 +2695,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         RunEventLog.End("extracted",
             $"voluntary extraction at supply anchor.{(string.IsNullOrEmpty(extractCasualties) ? "" : " " + extractCasualties)}",
             GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
-            goldBanked: true);
-        ShowInfo($"Extracted. Gold: {GoldEarned}, Splinters: {SplinterEarned}, Encounters: {EncountersWon}." +
+            goldBanked: true, materials: MaterialEarned, supplies: SuppliesEarned);
+        ShowInfo($"Extracted. Gold: {GoldEarned}, Splinters: {SplinterEarned}" +
+                 $"{(SuppliesEarned != 0 ? $", Supplies: {SuppliesEarned}" : "")}" +
+                 $"{(MaterialEarned != 0 ? $", Materials: {MaterialEarned}" : "")}" +
+                 $", Encounters: {EncountersWon}." +
                  $"{(string.IsNullOrEmpty(extractCasualties) ? "" : " " + extractCasualties)}");
         ShowReturnButton();
         EmitSignal(SignalName.ExpeditionEnded, true);
@@ -2662,7 +2740,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         string casualties = string.IsNullOrEmpty(_casualtyNote) ? "" : $" {_casualtyNote}";
         RunEventLog.End("failed", $"{reason}{casualties}",
             GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
-            goldBanked: false);
+            goldBanked: false, materials: MaterialEarned, supplies: SuppliesEarned);
         ShowInfo($"Expedition failed: {reason} Discoveries retained; unbanked spoils lost.{casualties}");
         _casualtyNote = null;
         ShowReturnButton();
@@ -2686,6 +2764,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             save.Gold += GoldEarned;
             save.ArcaneSplinters += SplinterEarned;
             save.BuildMaterials += MaterialEarned;
+            save.Supplies += SuppliesEarned;
             save.RunsWon++;
         }
         else
@@ -4083,6 +4162,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 PoiKind.Outpost => "outpost",
                 PoiKind.Settlement => "settlement",
                 PoiKind.Seat => "seat of power",
+                PoiKind.SupplyCache => "supply cache",  // spymaster = an intel channel
                 _ => "site",
             };
             charted = ChartRadius(poi.X, poi.Y, 3);

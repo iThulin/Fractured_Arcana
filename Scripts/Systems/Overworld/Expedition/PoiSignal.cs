@@ -28,7 +28,9 @@ public static class PoiSignal
     /// <summary>Tooltip label for a revealed POI: the evocative signal for a
     /// Narrative anomaly, the plain kind name for every functional POI.</summary>
     public static string Label(OverworldHex.POIType poi, OverworldHex.TerrainType terrain, Vector2I axial)
-        => poi == OverworldHex.POIType.Narrative ? Signal(terrain, axial) : poi.ToString();
+        => poi == OverworldHex.POIType.Narrative ? Signal(terrain, axial)
+         : poi == OverworldHex.POIType.SupplyCache ? "Supply Cache"
+         : poi.ToString();
 
     /// <summary>A stable, terrain-flavoured signal string for a narrative site.</summary>
     public static string Signal(OverworldHex.TerrainType terrain, Vector2I axial)

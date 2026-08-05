@@ -1,4 +1,4 @@
-using Godot;
+﻿using Godot;
 using System;
 using System.Collections.Generic;
 using static CampusUi;   // AddSectionHeader / MakeVBox / MakeMargins / MakeButton /
@@ -947,7 +947,12 @@ public partial class CampusScreen : Control
         {
             SaveManager.Save();
             _campusSelectionLabel.Text = "Click a building to select it.";
-            RefreshBuildingList(); // reloads the grid too, via LoadCampusGrid at the top
+            // RefreshAll, not RefreshBuildingList: siting is what flips IsPlaced, and
+            // BuildingEffectApplier gates every effect on IsFunctional (Tier > 0 &&
+            // IsPlaced). Refreshing only the list re-rendered the campus but left
+            // PlayerSession's feature flags computed from the pre-placement state, so
+            // a Scriptorum sited this visit read as absent until the next campus load.
+            RefreshAll(); // reloads the grid too, via RefreshBuildingList -> LoadCampusGrid
         }
         else
         {

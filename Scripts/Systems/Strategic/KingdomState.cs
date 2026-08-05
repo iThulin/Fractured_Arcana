@@ -83,6 +83,13 @@ public class KingdomState
     /// border flips on the lunation tick (Phase 2).</summary>
     public Dictionary<string, int> BorderPressure = new();
 
+    /// <summary>Harvested supplies 0–100 (docs/supply_cache_spec_v1) — the
+    /// kingdom's war chest. Fed each lunation by controlled supply caches
+    /// (SupplyCacheSystem.Tick), burned by upkeep. Read as WAR MUSCLE
+    /// (warfront advance), civic glue (stability drift), and patrol funding
+    /// (OverworldFactionManager). A starved kingdom (0) destabilizes.</summary>
+    public int SupplyStock = 0;
+
     // ── Convenience cache (truth lives in CampaignState) ─────────────────
     /// <summary>Cached archmage id resident here. Authoritative source is
     /// CampaignState.RegionArchmageMap; this is a generation-time copy for UI

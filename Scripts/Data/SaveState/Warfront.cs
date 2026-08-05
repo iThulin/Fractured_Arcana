@@ -70,6 +70,17 @@ public class Warfront
     /// is then driven to 0 the province falls to the guild rather than merely repelling.</summary>
     public bool PlayerSeizing = false;
 
+    /// <summary>≥0 = this is a CACHE SIEGE: a warfront scoped to a single supply
+    /// cache (index into WorldData.Pois) rather than a whole province. Cache
+    /// sieges share the marker/intervention/deploy pipeline but advance and
+    /// resolve in SupplyCacheSystem — at 100 the CACHE's controller flips, the
+    /// province never falls. -1 = a normal province warfront.</summary>
+    public int TargetPoiIndex = -1;
+
+    /// <summary>True when this warfront besieges a single supply cache.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsCacheSiege => TargetPoiIndex >= 0;
+
     public bool Closed = false;
 
     /// <summary>How it ended: "" (open), "fell", "repelled", "seized".</summary>

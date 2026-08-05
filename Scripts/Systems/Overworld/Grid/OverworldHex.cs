@@ -31,9 +31,12 @@ public partial class OverworldHex : Node2D
     public FogState Fog { get; set; } = FogState.Hidden;
 
     // S4.2: Settlement/Seat appended (world-scale POIs, previously invisible
-    // on the expedition map). APPEND-ONLY — debug ForceNextEncounterType
-    // casts ints to this enum, so existing values must keep their order.
-    public enum POIType { None, Combat, Rest, Objective, Narrative, Negotiation, Outpost, Prison, Settlement, Seat }
+    // on the expedition map). SupplyCache appended 2026-08-05 (supply_cache
+    // spec v1.1 — caches must READ as an important resource in the window,
+    // not an anonymous revealed hex). APPEND-ONLY — debug
+    // ForceNextEncounterType casts ints to this enum, so existing values
+    // must keep their order.
+    public enum POIType { None, Combat, Rest, Objective, Narrative, Negotiation, Outpost, Prison, Settlement, Seat, SupplyCache }
     public POIType POI { get; set; } = POIType.None;
     public bool POIConsumed { get; set; } = false;
 
@@ -191,13 +194,25 @@ public partial class OverworldHex : Node2D
         if (showPOI)
         {
             // S4.2: settlements/seats draw as a larger gold DIAMOND — a home
-            // among the encounter dots. Everything else keeps the small hex.
+            // among the encounter dots. Supply caches draw as a larger green
+            // SQUARE (a crate — same silhouette as their strategic marker, so
+            // the resource reads as important at both scales). Everything
+            // else keeps the small hex.
             bool civic = POI is POIType.Settlement or POIType.Seat;
+            bool crate = POI is POIType.SupplyCache;
             _poiMarker.Polygon = civic
                 ? new[]
                   {
                       new Vector2(0, -HEX_SIZE * 0.42f), new Vector2(HEX_SIZE * 0.32f, 0),
                       new Vector2(0, HEX_SIZE * 0.42f), new Vector2(-HEX_SIZE * 0.32f, 0),
+                  }
+                : crate
+                ? new[]
+                  {
+                      new Vector2(-HEX_SIZE * 0.32f, -HEX_SIZE * 0.32f),
+                      new Vector2(HEX_SIZE * 0.32f, -HEX_SIZE * 0.32f),
+                      new Vector2(HEX_SIZE * 0.32f, HEX_SIZE * 0.32f),
+                      new Vector2(-HEX_SIZE * 0.32f, HEX_SIZE * 0.32f),
                   }
                 : MakeHexPoints(HEX_SIZE * 0.3f);
 
@@ -212,6 +227,7 @@ public partial class OverworldHex : Node2D
                 POIType.Prison => UITheme.POICombat, // reuse combat's hostile hue until a bespoke prison color is authored
                 POIType.Settlement => UITheme.Gold,
                 POIType.Seat => UITheme.Gold,
+                POIType.SupplyCache => UITheme.Success,
                 _ => Colors.White
             };
         }

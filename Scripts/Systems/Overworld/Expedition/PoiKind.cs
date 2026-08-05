@@ -53,4 +53,13 @@ public enum PoiKind
     /// Worldgen placement + window routing is a follow-up; the value exists so
     /// a companion-recruit encounter/POI can be themed and future-placed.</summary>
     Companion,
+
+    /// <summary>A supply cache — the strategic resource node the factions war
+    /// over (docs/supply_cache_spec_v1). Controlled per-cache via
+    /// WorldPoi.SupplyControllerId; harvested every lunation by
+    /// SupplyCacheSystem; besieged through cache-scoped Warfronts. World-scale
+    /// only — inside an expedition window it maps to POIType.None (the
+    /// strategic map is its interface). Appended last for int-serialization
+    /// stability.</summary>
+    SupplyCache,
 }

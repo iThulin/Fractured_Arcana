@@ -47,6 +47,10 @@ public class DealRecord
     public int Gold = 0;
     public int Reputation = 0;
 
+    /// <summary>Supplies moved by the deal (docs/supply_cache_spec_v1);
+    /// positive paid the guild, negative pledged from its stores.</summary>
+    public int Supplies = 0;
+
     /// <summary>Tension zone at resolution: "Cordial" / "Strained" / "Hostile".</summary>
     public string Zone = "";
 

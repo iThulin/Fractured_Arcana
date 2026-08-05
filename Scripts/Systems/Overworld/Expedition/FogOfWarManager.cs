@@ -104,6 +104,9 @@ public partial class FogOfWarManager : Node2D
         {
             var hex = kvp.Value;
             if (hex.POI == OverworldHex.POIType.None || hex.POIConsumed) continue;
+            // Supply caches are earned knowledge (supply_cache spec v1.1) — a
+            // free force-reveal at window-open would leak them as lures.
+            if (hex.POI == OverworldHex.POIType.SupplyCache) continue;
             if (kvp.Key == objCoord || kvp.Key == start) continue;
             if (hex.Fog == OverworldHex.FogState.Revealed) continue;   // already in sight
             if (_grid.Distance(start, kvp.Key) < LandmarkMinDistanceFromStart) continue;

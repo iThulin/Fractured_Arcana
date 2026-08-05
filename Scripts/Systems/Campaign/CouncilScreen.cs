@@ -1045,6 +1045,12 @@ public partial class CouncilScreen : CanvasLayer
             {
                 continue;
             }
+            // Cache overseers are posted afield (SupplyCacheSystem) — same
+            // outright exclusion as envoys on mission.
+            if (SupplyCacheSystem.IsOverseer(c.Id))
+            {
+                continue;
+            }
             bool inParty = save.ActivePartyCompanionIds.Contains(c.Id);
             bool blocked = onExpedition && inParty;
             anyCompanion = anyCompanion || !blocked;
@@ -1191,7 +1197,8 @@ public partial class CouncilScreen : CanvasLayer
             return;
         }
         if (CouncilQueries.IsOnMission(_selCompanionId) ||
-            CouncilQueries.IsImprisoned(_selCompanionId))
+            CouncilQueries.IsImprisoned(_selCompanionId) ||
+            SupplyCacheSystem.IsOverseer(_selCompanionId))
         {
             return;
         }

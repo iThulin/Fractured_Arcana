@@ -1,4 +1,4 @@
-using Godot;
+﻿using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,6 +56,17 @@ public partial class CardUpgradeScreen : Control
     public override void _Ready()
     {
         GD.Print("[UpgradeScreen] _Ready fired");
+
+        // Recompute building-derived feature flags instead of trusting whatever
+        // PlayerSession state the previous scene left behind (same defensive
+        // recompute DeckEditorUi does). This screen is reachable directly from the
+        // campus map, and the flags are only otherwise refreshed by
+        // CampusScreen.RefreshAll -- so a Scriptorum built and sited during this
+        // campus visit read as maxUpgradeStage = 0 here and disabled every button.
+        PlayerSession.ClearRunState();
+        BuildingEffectApplier.CalculateRunBonuses(SaveManager.ActiveSave);
+        BuildingEffectApplier.ApplyCampusEffects(SaveManager.ActiveSave);
+
         _buildPending = true;
     }
 

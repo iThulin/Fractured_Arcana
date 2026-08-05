@@ -241,6 +241,10 @@ public class WorldWindowBuilder
         PoiKind.Seat => OverworldHex.POIType.Outpost,
         PoiKind.Settlement => OverworldHex.POIType.Outpost,
         PoiKind.Prison => OverworldHex.POIType.Prison,
+        // v1.1: caches render in-window as a green crate landmark. Sieges and
+        // overseers still live on the strategic map; walking onto one is
+        // reconnaissance (discovery + a report), not an encounter.
+        PoiKind.SupplyCache => OverworldHex.POIType.SupplyCache,
         _ => OverworldHex.POIType.None,
     };
 }
