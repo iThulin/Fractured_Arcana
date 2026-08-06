@@ -62,6 +62,15 @@ public static class NegotiationContext
     /// return, every cache in OriginKingdomId is revealed
     /// (SupplyCacheSystem.RevealCachesInKingdom).</summary>
     public static bool RevealSupplyCaches = false;
+
+    /// <summary>Expedition range moved by the deal (DealTerm.StepsDelta).
+    /// Applied to ExpeditionManager.StepsRemaining on return, floored at 0 —
+    /// the same shape as NarrativeChoice.StepDelta. Before 2026-08-06 this
+    /// channel was authored in JSON, weighted by the NPC AI, and then
+    /// silently dropped: frontier_wilds_commander's "safe_passage" promised
+    /// +3 steps and delivered nothing.</summary>
+    public static int StepsDelta = 0;
+
     public static string FactionId = "";
 
     /// <summary>S4 (overworld_spell_system §11): spell id taught by a deal
@@ -76,13 +85,15 @@ public static class NegotiationContext
 
     public static void SetResult(bool accepted, int gold, int rep, string factionId,
                                  string spellGranted = "", bool resolvedCordial = false,
-                                 int supplies = 0, bool revealSupplyCaches = false)
+                                 int supplies = 0, bool revealSupplyCaches = false,
+                                 int steps = 0)
     {
         HasResult = true;
         DealAccepted = accepted;
         GoldDelta = gold;
         ReputationDelta = rep;
         SuppliesDelta = supplies;
+        StepsDelta = steps;
         RevealSupplyCaches = revealSupplyCaches;
         FactionId = factionId;
         SpellGranted = spellGranted;
@@ -98,6 +109,7 @@ public static class NegotiationContext
         GoldDelta = 0;
         ReputationDelta = 0;
         SuppliesDelta = 0;
+        StepsDelta = 0;
         RevealSupplyCaches = false;
         FactionId = "";
         SpellGranted = "";

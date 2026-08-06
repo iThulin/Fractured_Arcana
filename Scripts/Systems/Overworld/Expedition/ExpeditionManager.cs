@@ -2456,6 +2456,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     SaveManager.MarkDirty();
                 }
             }
+            // Steps bargained at the table (safe passage, a guide, an opened
+            // gate) pay in expedition range, applied to the live budget on
+            // return — same shape as NarrativeChoice.StepDelta, floored at 0.
+            // May exceed OperatingRange, exactly like the pre-expedition
+            // BonusSteps path; the range label shows the overrun honestly.
+            if (NegotiationContext.StepsDelta != 0)
+                StepsRemaining = Mathf.Max(0, StepsRemaining + NegotiationContext.StepsDelta);
+
             LogRun("negotiation_end",
                    $"deal signed: {NegotiationContext.EncounterId}" +
                    $" (rep {(NegotiationContext.ReputationDelta >= 0 ? "+" : "")}{NegotiationContext.ReputationDelta})",

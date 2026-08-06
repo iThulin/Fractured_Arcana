@@ -1260,6 +1260,21 @@ public class NegotiationState
         return false;
     }
 
+    public int GetStepsOutcome() => DealAccepted ? ProjectSteps() : 0;
+
+    /// <summary>Expedition range moved by the deal (DealTerm.StepsDelta) at
+    /// current positions. NO zone multiplier — a cleared road is a physical
+    /// fact, same reasoning as ProjectSupplies. Positive = safe passage /
+    /// guides / opened gates; negative = a detour or an escort you owe.
+    /// Applied on return by ExpeditionManager.OnNegotiationReturned.</summary>
+    public int ProjectSteps()
+    {
+        float total = 0f;
+        foreach (var term in Terms)
+            total += term.StepsDelta * term.PlayerFraction();
+        return Mathf.RoundToInt(total);
+    }
+
     public int GetReputationOutcome() => DealAccepted ? ProjectReputation() : 0;
 
     /// <summary>Reputation at current positions and zone, as if signed now.</summary>

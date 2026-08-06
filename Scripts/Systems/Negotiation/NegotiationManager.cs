@@ -1701,7 +1701,8 @@ public partial class NegotiationManager : Control
             spellGranted,
             resolvedCordial: _state.Zone == TensionZone.Cordial, // S5: compulsion-echo burial gate
             supplies: _state.GetSuppliesOutcome(),
-            revealSupplyCaches: _state.GetSupplyIntelOutcome());
+            revealSupplyCaches: _state.GetSupplyIntelOutcome(),
+            steps: _state.GetStepsOutcome());
 
         RecordDeal(spellGranted);   // Hall of Records — every outcome, every timeline
 
@@ -1856,6 +1857,8 @@ public partial class NegotiationManager : Control
         string total = $"You walk away with:  {Signed(_state.GetGoldOutcome())} gold" +
                        (_state.GetSuppliesOutcome() != 0
                            ? $" · {Signed(_state.GetSuppliesOutcome())} supplies" : "") +
+                       (_state.GetStepsOutcome() != 0
+                           ? $" · {Signed(_state.GetStepsOutcome())} range" : "") +
                        $" · {Signed(_state.GetReputationOutcome())} rep";
         if (spellGranted != "")
             total += $" · {OverworldSpellRegistry.Get(spellGranted)?.Name} learned";
@@ -1883,8 +1886,10 @@ public partial class NegotiationManager : Control
             return;
 
         int previewSupplies = _state.ProjectSupplies();
+        int previewSteps = _state.ProjectSteps();
         string text = $"Signs now for:  {Signed(_state.ProjectGold())}g" +
                       (previewSupplies != 0 ? $" · {Signed(previewSupplies)} sup" : "") +
+                      (previewSteps != 0 ? $" · {Signed(previewSteps)} rng" : "") +
                       $" · {Signed(_state.ProjectReputation())} rep" +
                       $" · {StarLine(_state.ProjectStars())}";
         if (_state.HasSpellTermOnTable())
