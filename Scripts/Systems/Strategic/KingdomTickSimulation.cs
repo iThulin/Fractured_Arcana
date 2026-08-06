@@ -66,8 +66,11 @@ public static class KingdomTickSimulation
     private const int SupplyMusclePerAdvance = 25;
 
     // ── Warfront dials ──────────────────────────────────────────────────────
-    /// <summary>BorderPressure at which tension becomes an open warfront.</summary>
-    private const int WarfrontOpenThreshold = 60;
+    /// <summary>BorderPressure at which tension becomes an open warfront.
+    /// Public so StrategicDebug.PrimeWarfront can push a border to the REAL
+    /// threshold rather than carrying a copy of the number that silently
+    /// drifts when this one is tuned.</summary>
+    public const int WarfrontOpenThreshold = 60;
     /// <summary>Advance a freshly-opened warfront starts at.</summary>
     private const int WarfrontOpenAdvance = 15;
     /// <summary>Baseline aggressor momentum per lunation while a front is open.</summary>
@@ -488,6 +491,36 @@ public static class KingdomTickSimulation
     /// the objective). Returns (-1,…) if no border exists. The stronghold prefers a
     /// tile 2–3 hexes into aggressor ground with no existing POI, falling back to the
     /// nearest aggressor tile.</summary>
+    /// <summary>How far the stronghold search will walk from the front looking for
+    /// connected ground. The siting window is +/-4 tiles, so this covers it with slack
+    /// for going around a bay.</summary>
+    private const int StrongholdReachSteps = 8;
+
+    /// <summary>Every tile reachable from (col,row) by walking over non-water ground,
+    /// within <paramref name="maxSteps"/> steps. A plain flood fill — the overworld has
+    /// no other movement blockers at this scale, and terrain step COST does not stop a
+    /// party, it only slows one.</summary>
+    private static HashSet<(int, int)> LandReachableFrom(WorldData world, int col, int row, int maxSteps)
+    {
+        var seen = new HashSet<(int, int)> { (col, row) };
+        var frontier = new List<(int c, int r)> { (col, row) };
+        for (int step = 0; step < maxSteps && frontier.Count > 0; step++)
+        {
+            var next = new List<(int c, int r)>();
+            foreach (var (c, r) in frontier)
+                foreach (var (nc, nr) in HexCoord.Neighbors(c, r, world.Width, world.Height))
+                {
+                    if (world.GetTile(nc, nr).IsWater)
+                        continue;
+                    if (!seen.Add((nc, nr)))
+                        continue;
+                    next.Add((nc, nr));
+                }
+            frontier = next;
+        }
+        return seen;
+    }
+
     private static (int fc, int fr, int sc, int sr) FindFrontAndStronghold(
         WorldData world, string defenderKid, string aggressorKid)
     {
@@ -506,6 +539,15 @@ public static class KingdomTickSimulation
                     continue;
 
                 // Front found. Site the stronghold among nearby aggressor tiles.
+                //
+                // Reachability (2026-08-06 playtest): the !IsWater test below is not
+                // enough. A dry tile across a strait, on a spit, or on a one-tile
+                // island passes it and is still unwalkable — a stronghold the party
+                // can SEE, is told to storm, and can never reach without a debug
+                // overworld spell. Restrict candidates to ground actually connected
+                // to the front by land.
+                var reachable = LandReachableFrom(world, x, y, StrongholdReachSteps);
+
                 int sc = -1, sr = -1, bestScore = int.MaxValue;
                 int fbC = -1, fbR = -1, fbD = int.MaxValue; // nearest aggressor fallback
                 for (int y2 = Math.Max(0, y - 4); y2 <= Math.Min(world.Height - 1, y + 4); y2++)
@@ -515,6 +557,8 @@ public static class KingdomTickSimulation
                         var at = world.GetTile(x2, y2);
                         if (at.KingdomId != aggressorKid || at.IsWater)
                             continue;
+                        if (!reachable.Contains((x2, y2)))
+                            continue;   // dry but unwalkable-to — not a real objective
                         int d = HexCoord.OffsetDistance(x, y, x2, y2);
                         if (d > 0 && d < fbD) { fbD = d; fbC = x2; fbR = y2; }
                         if (d >= 2 && d <= 3)

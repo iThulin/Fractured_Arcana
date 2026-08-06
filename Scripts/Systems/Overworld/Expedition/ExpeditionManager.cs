@@ -138,6 +138,23 @@ public partial class ExpeditionManager : Node2D
     /// on recenter; clearing it (winning combat on this tile) breaks the siege.</summary>
     private int _strongholdCol = -1, _strongholdRow = -1;
 
+    /// <summary>The two provinces the active warfront is fought over. Empty on an
+    /// ordinary expedition. Drives the contested-ground tint (PaintContestedGround)
+    /// — the answer to "which region is this war actually about", which the map
+    /// could not previously show.</summary>
+    private string _warfrontDefenderKid = "", _warfrontAggressorKid = "";
+
+    /// <summary>World coord of the warfront's focus tile (the contested border hex the
+    /// party deploys onto). With the stronghold, the two poles of the war zone.</summary>
+    private int _warfrontFrontCol = -1, _warfrontFrontRow = -1;
+
+    /// <summary>How far from the front or the stronghold the ground still reads as
+    /// contested. Tinting whole PROVINCES was the first cut and it was wrong: a kingdom
+    /// is enormous, so the whole visible map went red and the tint stopped meaning
+    /// anything. The war zone is the corridor two armies actually fight over — front and
+    /// stronghold sit 2-3 apart, so 4 covers the corridor and a hex of shoulder.</summary>
+    private const int WarZoneRadius = 4;
+
     // ── Nodes ───────────────────────────────────────────────────────────
     private OverworldHexGrid _grid;
     private FogOfWarManager _fog;
@@ -166,12 +183,20 @@ public partial class ExpeditionManager : Node2D
 
     // ── UI ──────────────────────────────────────────────────────────────
     private Label _stepLabel, _hpLabel, _infoLabel, _windowLabel;
+
+    /// <summary>Persistent objective line at the top of the expedition HUD. Before
+    /// 2026-08-06 a warfront's objective was stated ONCE, in the deploy ShowInfo, and
+    /// then scrolled away — so a player could win fights at the front all sortie and
+    /// have no way to learn that none of them were the objective, or what taking it
+    /// would actually buy. Refreshed every UpdateUI; hidden on ordinary expeditions.</summary>
+    private Label _objectiveLabel;
     private Button _extractButton, _returnButton, _ledgerButton;
     private bool _cameraFreeMode = false;
     private const float CameraPanSpeed = 400f;
 
     private const string StrategicScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
     private Label _hoverTooltip;
+    private HSeparator _objectiveSeparator;
 
     // ── Autosave throttle ───────────────────────────────────────────────
     // The cycle file holds the whole world array (~2MB+), so per-move saves
@@ -213,6 +238,13 @@ public partial class ExpeditionManager : Node2D
             var awf = cycle.Warfronts?.Find(w => w.Id == cycle.PendingWarfrontId);
             if (awf != null && awf.HasStronghold)
             { _strongholdCol = awf.StrongholdCol; _strongholdRow = awf.StrongholdRow; }
+            if (awf != null)
+            {
+                _warfrontDefenderKid = awf.DefenderKingdomId ?? "";
+                _warfrontAggressorKid = awf.AggressorKingdomId ?? "";
+                if (awf.HasFocus)
+                { _warfrontFrontCol = awf.FocusCol; _warfrontFrontRow = awf.FocusRow; }
+            }
         }
 
         BuildEquipmentLoadouts();
@@ -328,9 +360,11 @@ public partial class ExpeditionManager : Node2D
             _party.Initialize(_grid, _fog, _window.PartyStartLocal);
             // Reveal-on-deploy: the staging tile and its vision write to World.
             WriteVisibleToWorld();
-            ShowInfo(_isWarfront
-                ? "Warfront — storm the besieging stronghold (marked), then extract to secure the front."
-                : "Expedition deployed. Explore the region; extract before your range runs out.");
+            // On a warfront the objective banner states all of this permanently and
+            // with more precision (side, stakes, distance), so a second line here
+            // just said the same thing twice, two inches apart.
+            if (!_isWarfront)
+                ShowInfo("Expedition deployed. Explore the region; extract before your range runs out.");
 
             if (PlayerSession.DebugMode && PlayerSession.NoFog)
                 RevealAllFog();
@@ -375,6 +409,7 @@ public partial class ExpeditionManager : Node2D
 
         SpawnRoamer();
         StampStronghold(); // warfront objective: place + reveal the besieging stronghold
+        PaintContestedGround();   // and show WHICH ground the war is over
 
         CenterCamera();
         UpdateUI();
@@ -2845,6 +2880,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         vbox.AddThemeConstantOverride("separation", 4);
         margin.AddChild(vbox);
 
+        _objectiveLabel = MakeHudLabel();
+        _objectiveLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _objectiveLabel.Visible = false;
+        vbox.AddChild(_objectiveLabel);
+        _objectiveSeparator = new HSeparator { Visible = false };
+        vbox.AddChild(_objectiveSeparator);
+
         _stepLabel = MakeHudLabel();
         vbox.AddChild(_stepLabel);
         _hpLabel = MakeHudLabel();
@@ -2964,6 +3006,57 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _returnButton.Visible = true;
     }
 
+    /// <summary>Keeps the objective banner honest about (a) what the objective IS,
+    /// (b) whether it has been met, and (c) what meeting it buys — the three things
+    /// the warfront intervention silently decided on return
+    /// (KingdomTickSimulation.ApplyIntervention). Success there requires BOTH
+    /// ReachedObjective AND WarfrontStrongholdCleared, so an ordinary won fight at
+    /// the front advances nothing; this line is what says so.</summary>
+    /// <summary>How far the marked stronghold is from the party, as a clause to
+    /// append to the objective banner. Distance only, no compass: the gold star
+    /// answers WHICH mark, this answers HOW FAR, and a bearing derived from axial
+    /// deltas would be guessing at the layout's orientation.</summary>
+    private string StrongholdBearing()
+    {
+        if (_strongholdCol < 0 || _window == null || _grid == null || _party == null)
+            return "";
+        var local = _window.LocalOf(_strongholdCol, _strongholdRow);
+        int d = _grid.Distance(_party.CurrentCoord, local);
+        if (d <= 0)
+            return " (you are on it)";
+        return $", {d} hex{(d == 1 ? "" : "es")} out";
+    }
+
+    private void RefreshObjectiveBanner()
+    {
+        if (_objectiveLabel == null)
+            return;
+        if (!_isWarfront)
+        {
+            _objectiveLabel.Visible = false;
+            if (_objectiveSeparator != null) _objectiveSeparator.Visible = false;
+            return;
+        }
+
+        var cyc = SaveManager.ActiveSave?.Cycle;
+        bool cleared = cyc?.WarfrontStrongholdCleared ?? false;
+        string stake = (cyc?.PendingWarfrontSide ?? WarfrontSide.Defend) switch
+        {
+            WarfrontSide.Seize => "Seize — the guild's banner over the province.",
+            WarfrontSide.Aid   => "Aid — drive the invasion home.",
+            _                  => "Defend — push the invasion back.",
+        };
+
+        _objectiveLabel.Visible = true;
+        if (_objectiveSeparator != null) _objectiveSeparator.Visible = true;
+        _objectiveLabel.Text = cleared
+            ? $"⚔ WARFRONT · {stake}\nThe stronghold has fallen. EXTRACT to secure it."
+            : _strongholdCol >= 0
+                ? $"⚔ WARFRONT · {stake}\nStorm the gold-starred stronghold{StrongholdBearing()} — other fights here win you nothing."
+                : $"⚔ WARFRONT · {stake}\nWin a fight at the front, then extract.";
+        _objectiveLabel.Modulate = cleared ? Colors.White : UITheme.OverworldLowResourceWarning;
+    }
+
     private Label MakeHudLabel()
     {
         var l = new Label { AutowrapMode = TextServer.AutowrapMode.Off };
@@ -3009,6 +3102,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     private void UpdateUI()
     {
+        RefreshObjectiveBanner();
+
         _stepLabel.Text = (PlayerSession.DebugMode && PlayerSession.UnlimitedSteps)
             ? "Range: ∞ [DEBUG]"
             : $"Range: {StepsRemaining} / {OperatingRange}";
@@ -3675,6 +3770,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (added > 0)
             StampCivicPois(); // S4.2: newly streamed tiles may hold settlements
         StampStronghold();    // re-stamp the warfront objective if it (re)entered the window
+        PaintContestedGround();   // newly streamed fringe joins (or leaves) the war zone
         if (PlayerSession.DebugMode && (added > 0 || removed > 0))
             GD.Print($"[Window] Slide → ({col},{row}): +{added}/−{removed} tiles, " +
                      $"{_grid.Hexes.Count} live.");
@@ -3691,6 +3787,46 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// front and storm it. Re-called on recenter (streaming rebuilds hexes from
     /// world data, which has no stronghold). No-op once the siege is broken, so it
     /// doesn't respawn. Touches only the in-window hex — never the world table.</summary>
+    /// <summary>Tint every window tile belonging to either province of the active
+    /// warfront. Cheap by construction: it only calls RefreshVisuals on tiles whose
+    /// contested state actually CHANGED, so a window slide repaints the newly
+    /// streamed fringe rather than all ~500 live hexes. A no-op (after the first
+    /// pass) on ordinary expeditions, where both kingdom ids are empty.</summary>
+    private void PaintContestedGround()
+    {
+        if (_grid == null || _window == null || _world == null)
+            return;
+        bool anyFront = (!string.IsNullOrEmpty(_warfrontDefenderKid)
+                      || !string.IsNullOrEmpty(_warfrontAggressorKid))
+                     && (_warfrontFrontCol >= 0 || _strongholdCol >= 0);
+
+        foreach (var kv in _grid.Hexes)
+        {
+            bool contested = false;
+            if (anyFront && _window.TryLocalToWorld(kv.Key, out int col, out int row))
+            {
+                string kid = _world.GetTile(col, row).KingdomId ?? "";
+                if (kid.Length > 0
+                    && (kid == _warfrontDefenderKid || kid == _warfrontAggressorKid))
+                {
+                    // Mathf, not Math: this file's usings are Godot and
+                    // System.Collections.Generic only.
+                    int dFront = _warfrontFrontCol >= 0
+                        ? _world.HexDistance(col, row, _warfrontFrontCol, _warfrontFrontRow)
+                        : int.MaxValue;
+                    int dHold = _strongholdCol >= 0
+                        ? _world.HexDistance(col, row, _strongholdCol, _strongholdRow)
+                        : int.MaxValue;
+                    contested = Mathf.Min(dFront, dHold) <= WarZoneRadius;
+                }
+            }
+            if (kv.Value == null || kv.Value.Contested == contested)
+                continue;
+            kv.Value.Contested = contested;
+            kv.Value.RefreshVisuals();
+        }
+    }
+
     private void StampStronghold()
     {
         if (!_isWarfront || _strongholdCol < 0 || _grid == null || _window == null)
@@ -3703,7 +3839,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (!_grid.Hexes.TryGetValue(local, out var hex))
             return; // not in the loaded window yet — a later stream will catch it
 
-        hex.POI = OverworldHex.POIType.Combat;
+        hex.POI = OverworldHex.POIType.Combat;   // entry must still route to a fight
+        hex.IsObjective = true;                  // ...but it draws as the gold objective star
         hex.IsLandmark = true;
         hex.POIConsumed = false;
         hex.RefreshVisuals();

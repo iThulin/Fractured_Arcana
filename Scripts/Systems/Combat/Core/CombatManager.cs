@@ -315,6 +315,23 @@ public partial class CombatManager : Node3D
         {
             _pruneNeeded = false;
             PruneDeadUnits();
+
+            // A death QUEUES onDeath/onAllyDeath (QueueDeathTriggers) but does not
+            // drain them — and KickTriggerDrain had exactly two call sites, one of
+            // which (the martial-attack path, :1980) is gated on the target
+            // SURVIVING. So a KILLING blow left its Deathburst dormant until the
+            // next cast happened to pump the queue.
+            //   Playtest 2026-08-06: Ruslan killed The Aldric Curriculum with a
+            //   martial attack; its two Proctors did not rise until Seraphine cast
+            //   Sap two actions later — the player committed AP and position
+            //   against a board that was lying about what was on it.
+            // Kicking from the prune site covers a death from ANY source: martial,
+            // glyph, hazard, corruption tide, retaliation, or another deathburst.
+            // Cheap to call per-frame — KickTriggerDrain early-outs when the queue
+            // and stack are empty or a drain already owns them.
+            if (!_priorityWindowOpen)
+                KickTriggerDrain();
+
             if (currentPhase != CombatPhase.Victory && currentPhase != CombatPhase.Defeat)
                 CheckCombatEnd();
         }
@@ -5364,6 +5381,68 @@ public partial class CombatManager : Node3D
         return false;
     }
 
+    /// <summary>Structural pre-cast veto (playtest 2026-08-06). A single-tile glyph
+    /// placement onto a tile that ALREADY carries a glyph places nothing —
+    /// GlyphManager.Prepare returns null when <c>tile.Glyph != null</c> or the tile is
+    /// blocked — and the cast still charged full mana and discarded the card, with no
+    /// message of any kind. (Observed twice in one fight: Runic Trap onto (1,0), warded
+    /// by Ward Stone two rounds earlier; Empower Rune onto (4,-2), already runed. Both
+    /// logged "[PrepareGlyph] placed 0 glyph(s)" and cost a card.)
+    ///
+    /// Deliberately narrow, on three axes:
+    /// <list type="bullet">
+    /// <item>AREA placements are exempt — partial coverage is the point of a radius glyph.</item>
+    /// <item>AT-ORIGIN placements are exempt — they target the caster's own tile, not a chosen one.</item>
+    /// <item>It walks the effect TREE for a PrepareGlyphEffect rather than testing the
+    /// "glyph" tag, because Glyph Warp and Glyph Bolt carry that tag and specifically
+    /// WANT an already-glyphed tile.</item>
+    /// </list>
+    /// Multi-tile (<c>Count &gt; 1</c>) placements fail only when EVERY targeted tile is
+    /// already taken — landing some of them is a real cast.</summary>
+    private bool GlyphPlacementWouldLand(CardHalf half, TargetSet targets, out string failReason)
+    {
+        failReason = null;
+        if (half?.Effects == null || targets?.Items == null)
+            return true;
+        if (!HasSingleTileGlyphPlacement(half.Effects))
+            return true;
+
+        bool sawTile = false, anyLandable = false;
+        foreach (var obj in targets.Items)
+        {
+            TileData tile = obj as TileData;
+            if (tile == null && obj is HexTile hv)
+                tile = grid?.GetTile(hv.Axial);
+            if (tile == null)
+                continue;
+            sawTile = true;
+            if (!tile.IsBlocked && tile.Glyph == null)
+                anyLandable = true;
+        }
+        if (!sawTile || anyLandable)
+            return true;
+
+        failReason = "that tile already carries a glyph.";
+        return false;
+    }
+
+    /// <summary>True when this effect tree contains a glyph placement aimed at a CHOSEN
+    /// tile (not an area, not the caster's own tile). Depth-guarded like
+    /// JsonCardLoader.StampGlyphSource — card data is authored, not trusted.</summary>
+    private static bool HasSingleTileGlyphPlacement(IEnumerable<IEffect> effects, int depth = 0)
+    {
+        if (effects == null || depth > 8)
+            return false;
+        foreach (var e in effects)
+        {
+            if (e is PrepareGlyphEffect p && !p.Area && !p.AtOrigin)
+                return true;
+            if (e != null && HasSingleTileGlyphPlacement(e.Children, depth + 1))
+                return true;
+        }
+        return false;
+    }
+
     private bool TargetHasEmptyTile(TargetSet targets)
     {
         if (targets == null)
@@ -5652,6 +5731,14 @@ public partial class CombatManager : Node3D
         if (!CheckCastRequirements(resolvedHalf, targets, out var failMsg))
         {
             CastFail($"{resolvedHalf.Name}: {failMsg}");
+            return;
+        }
+
+        // Structural gate, separate from the authored Requirements above: a glyph
+        // that would place nothing must not eat the card and the mana in silence.
+        if (!GlyphPlacementWouldLand(resolvedHalf, targets, out var glyphFail))
+        {
+            CastFail($"{resolvedHalf.Name}: {glyphFail}");
             return;
         }
 

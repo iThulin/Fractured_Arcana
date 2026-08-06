@@ -633,6 +633,24 @@ public sealed class CampusGuildPanel : CampusPanel
         assertUnitsBtn.Pressed += () => UnitRegistry.AssertParityAndRoundTrip();
         grid.AddChild(assertUnitsBtn);
 
+        // ── Strategic-layer levers (Scripts/Dev/StrategicDebug.cs) ───────
+        // The strategic systems shipped 2026-07-21 and had never been run
+        // in-engine as of 08-06 because a warfront and a Conjunction could
+        // only be reached by playing a full cycle out. All three take effect
+        // on the next strategic-map load.
+        Button MakeDebugAction(string label, Action onPress)
+        {
+            var b = new Button { Text = label, CustomMinimumSize = new Vector2(140, 28) };
+            b.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            b.Pressed += onPress;
+            return b;
+        }
+
+        grid.AddChild(MakeDebugAction("Force Conjunction", StrategicDebug.ForceConjunction));
+        grid.AddChild(MakeDebugAction("Owe +1 Lunation", () => StrategicDebug.OweLunations(1)));
+        grid.AddChild(MakeDebugAction("Owe +3 Lunations", () => StrategicDebug.OweLunations(3)));
+        grid.AddChild(MakeDebugAction("Prime Warfront", StrategicDebug.PrimeWarfront));
+
         var combatDebugBtn = new Button
         {
             Text = "Combat Debug",
