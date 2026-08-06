@@ -623,11 +623,25 @@ public partial class CampusScreen : Control
         // Archive the dead cycle and create the fresh one. Option A persistence is
         // automatic: BeginNewCycle leaves the ledger untouched, resets the cycle,
         // and re-seeds a starter deck for the chosen school.
-        // TODO (SCOPE — Convergence victory-gating; progression_persistence_model_v1.md §4):
-        // Outcome is HARDCODED "ConvergenceDefeat" — there is no real victory/defeat
-        // determination yet. Wire the actual Convergence result here so a win may lead to
-        // Continue and a loss forces the reset. NOT YET SCOPED.
-        SaveManager.BeginNewCycle(school, "ConvergenceDefeat");
+        //
+        // The outcome was HARDCODED "ConvergenceDefeat" from the day this method was
+        // written, because there was no Convergence to have an outcome. As of I1
+        // (schema v102) there is: StrategicView writes CycleState.Convergence.Outcome
+        // when the finale resolves, and the three cases are genuinely distinct —
+        //   "Victory"  → the Anchorhold was opened and held,
+        //   "Defeat"   → it was opened and lost,
+        //   ""         → the Conjunction passed, or the open door was declined.
+        // Declining is NOT a defeat; it archives as "Abandoned", the same as running
+        // out of clock. EchoSeeder 5.4 ("The Song Nobody Wrote") only fires on real
+        // Victory / ConvergenceDefeat records, so this is what finally feeds it.
+        var conv = SaveManager.ActiveSave?.Cycle?.Convergence;
+        string outcome = conv?.Outcome switch
+        {
+            "Victory" => "Victory",
+            "Defeat"  => "ConvergenceDefeat",
+            _         => "Abandoned",
+        };
+        SaveManager.BeginNewCycle(school, outcome, conv?.Path ?? "");
         PlayerSession.CycleEndedByConjunction = false;
         if (Enum.TryParse<CardSchool>(school, out var cs))
             PlayerSession.SelectedSchool = cs;

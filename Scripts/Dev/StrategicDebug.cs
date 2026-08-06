@@ -178,6 +178,65 @@ public static class StrategicDebug
                  "the tick opens the warfront and plants the ⚔ marker.");
     }
 
+    /// <summary>Resolve every unresolved archmage seat so
+    /// <c>CampaignState.AllArchmagiResolved()</c> returns true and the Conjunction
+    /// becomes the Convergence (I1 gate, convergence_finale_spec_v1 §3).
+    ///
+    /// <para>Spreads the four resolved dispositions deterministically by index
+    /// rather than slamming everything to one value, because the finale reads all
+    /// four differently (spec §5): Allied grants its archmage's power for the whole
+    /// event, Coerced grants it at half strength, Overthrown grants a one-use shard
+    /// invocation and removes them from the fight, and Corrupted puts them in the
+    /// room ON THE OTHER SIDE. A lever that set everything Corrupted would make the
+    /// hardest case the only testable one; a lever that set everything Allied would
+    /// never exercise the enemy path. This gives one of each per four seats.</para>
+    ///
+    /// <para>Already-resolved seats are skipped. That guard lives HERE, not in
+    /// CampaignState.SetDisposition, whose own guard only blocks downgrades to
+    /// Neutral — passing it a resolved seat would happily overwrite real play.</para></summary>
+    public static void ResolveAllSeats()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var campaign = cycle?.Campaign;
+        if (campaign == null)
+        {
+            GD.Print("[StrategicDebug] No active campaign — load or start a game first.");
+            return;
+        }
+
+        var spread = new[]
+        {
+            ArchmageDisposition.Allied,
+            ArchmageDisposition.Coerced,
+            ArchmageDisposition.Overthrown,
+            ArchmageDisposition.Corrupted,
+        };
+
+        int changed = 0, already = 0, i = 0;
+        foreach (var kv in campaign.RegionArchmageMap)
+        {
+            string archmageId = kv.Value;
+            if (string.IsNullOrEmpty(archmageId))
+                continue;   // unoccupied region — AllArchmagiResolved skips these too
+
+            var current = campaign.GetDisposition(archmageId);
+            if (current != ArchmageDisposition.Unknown && current != ArchmageDisposition.Neutral)
+            { already++; i++; continue; }
+
+            var next = spread[i % spread.Length];
+            campaign.SetDisposition(archmageId, next);
+            GD.Print($"[StrategicDebug]   {kv.Key} / {archmageId}: {current} -> {next}");
+            changed++;
+            i++;
+        }
+
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        GD.Print($"[StrategicDebug] Seats resolved: {changed} set, {already} already resolved. " +
+                 $"AllArchmagiResolved = {campaign.AllArchmagiResolved()}. " +
+                 "Force Conjunction, then return to the strategic map — the Anchorhold opens.");
+    }
+
     private static bool HasOpenFront(CycleState cycle, string kingdomId)
     {
         var fronts = cycle.Warfronts;

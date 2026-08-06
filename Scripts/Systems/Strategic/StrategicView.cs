@@ -62,6 +62,13 @@ public partial class StrategicView : Node2D
     // ticks exactly once per deploy, so LunationsPerCycle (CalendarState) is the
     // sole expedition-count pacing knob — ~LunationsPerCycle deploys per cycle.
 
+    /// <summary>This scene. Doubles as the EncounterRouter return-override key for
+    /// the Convergence fight, the way CampusScreen uses its own path — that is what
+    /// tells ConsumeConvergenceReturn a returning combat was the finale's and not an
+    /// expedition's.</summary>
+    private const string StrategicScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
+    private const string CampusScenePath = "res://Scenes/Campus/CampusScene.tscn";
+
     private WorldData _world;
     private System.Collections.Generic.Dictionary<string, KingdomState> _kingdoms = new();
     private Node2D _labelLayer;
@@ -124,6 +131,17 @@ public partial class StrategicView : Node2D
                 // colours, and the frontier report reflect the post-intervention
                 // state the moment the map comes up.
                 ResolveReturnedWarfrontIntervention(cycle);
+
+                // A returning Convergence combat resolves the finale before
+                // anything renders, so the outcome beat lands on the map the
+                // player left rather than after a frame of normal play.
+                ConsumeConvergenceReturn(cycle);
+
+                // Mid-finale reload: once the Anchorhold is open, the Convergence
+                // is the only thing left in this timeline (spec §2). Route back to
+                // the gate rather than letting the player wander the map.
+                if (cycle.Convergence != null && cycle.Convergence.InProgress)
+                    CallDeferred(nameof(ShowConjunction));
 
                 // Supply caches: idempotent seed so pre-feature saves (and fresh
                 // worlds) get their per-kingdom caches before markers render.
@@ -2462,19 +2480,45 @@ public partial class StrategicView : Node2D
         vbox.AddThemeConstantOverride("separation", 14);
         margin.AddChild(vbox);
 
-        var title = new Label { Text = "The Grand Conjunction" };
+        // ── The gate (R-F2 hybrid; convergence_finale_spec_v1 §3) ────────
+        // Three states, and only the middle one is what shipped before v102:
+        //   in-finale  → the Anchorhold was opened and abandoned; resume it.
+        //   unresolved → today's press-your-luck choice, verbatim.
+        //   resolved   → the Conjunction IS the Convergence.
+        var gateCycle = SaveManager.ActiveSave?.Cycle;
+        var gateConv = gateCycle?.Convergence;
+        var gateCampaign = gateCycle?.Campaign;
+        bool resolved = gateCampaign?.AllArchmagiResolved() ?? false;
+        bool inFinale = gateConv?.InProgress ?? false;
+
+        // CampaignState.FinalBattleUnlocked has had a definition since the campaign
+        // layer shipped and ZERO writers. This is its first one.
+        if (resolved && gateCampaign != null && !gateCampaign.FinalBattleUnlocked)
+        {
+            gateCampaign.FinalBattleUnlocked = true;
+            SaveManager.MarkDirty();
+            SaveManager.SaveIfDirty();
+            GD.Print("[Convergence] Every seat is resolved — the Anchorhold can open.");
+        }
+
+        var title = new Label
+        {
+            Text = (resolved || inFinale) ? "The Convergence" : "The Grand Conjunction",
+        };
         title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeLarge);
         title.AddThemeColorOverride("font_color", UITheme.Gold);
         title.HorizontalAlignment = HorizontalAlignment.Center;
         vbox.AddChild(title);
 
+        string gateBody = inFinale
+            ? "You left the Anchorhold open. It is still open. Nothing else in this timeline is going to happen until you walk back through it."
+            : resolved
+                ? "The sky has finished reading itself. Every seat is answered — allied, bought, emptied, or lost. The script has one passage left, and it converges on a second that was never written. The Anchorhold can open its door exactly once. He will be through it before it closes. So will you."
+                : "The moons align and the timeline strains toward its close. You can let it unmake: return to the campus, keep everything you have learned, and begin a new world. Or refuse the reset and hold this timeline into another year. Perfect it, and all you have built endures; but the world hardens, the corruption deepens, and a defeat now unmakes it all.";
+
         var body = new Label
         {
-            Text = "The moons align and the timeline strains toward its close. You can let it unmake: " +
-                   "return to the campus, keep everything you have learned, and begin a new world. " +
-                   "Or refuse the reset and hold this timeline into another year. Perfect it, and all " +
-                   "you have built endures; but the world hardens, the corruption deepens, and a " +
-                   "defeat now unmakes it all.",
+            Text = gateBody,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
@@ -2484,50 +2528,311 @@ public partial class StrategicView : Node2D
 
         vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
 
-        // CANONICAL press-your-luck choice (progression_persistence_model_v1.md §4):
-        // hold the timeline into a harder year, or let it unmake for a fresh world.
-        // TODO (SCOPE — Convergence victory-gating; progression_persistence_model_v1.md §4/§9):
-        // The Grand Conjunction is currently a pure DEADLINE, so this choice is offered
-        // unconditionally. Once a real Convergence encounter/outcome exists, "Perfect the
-        // Timeline" (Continue) should appear ONLY on a Convergence VICTORY, and a DEFEAT must
-        // force the unmake path (fresh gen-1). Needs its own design pass: what the Convergence
-        // fight is, and the per-year condition to earn another Continue. NOT YET SCOPED.
-        int nextYear = (SaveManager.ActiveSave?.Cycle?.CampaignYear ?? 1) + 1;
+        Button GateButton(string text, bool primary, System.Action onPressed)
+        {
+            var b = new Button
+            {
+                Text = text,
+                CustomMinimumSize = new Vector2(300, primary ? 48 : 44),
+                SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+            };
+            UITheme.ApplyButtonStyle(b, isPrimary: primary);
+            b.Pressed += () => onPressed();
+            return b;
+        }
 
-        var continueBtn = new Button
-        {
-            Text = $"Perfect the Timeline  (Year {nextYear})",
-            CustomMinimumSize = new Vector2(300, 48),
-            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-        };
-        UITheme.ApplyButtonStyle(continueBtn, isPrimary: true);
-        continueBtn.Pressed += () =>
-        {
-            // Keep the world, advance the year, harden it; then reload the strategic
-            // scene, whose _Ready re-reads the preserved+escalated Cycle.World. No
-            // campus round-trip and no reset.
-            SaveManager.ContinueCampaign();
-            PlayerSession.CycleEndedByConjunction = false;
-            GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
-        };
-        vbox.AddChild(continueBtn);
-
-        var unmakeBtn = new Button
-        {
-            Text = "Let It Unmake  (Return to Campus)",
-            CustomMinimumSize = new Vector2(300, 44),
-            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-        };
-        UITheme.ApplyButtonStyle(unmakeBtn, isPrimary: false);
-        unmakeBtn.Pressed += () =>
+        void LetItUnmake()
         {
             // The permanent layer endures; the campus begins a fresh gen-1 timeline
-            // (school chosen there).
+            // (school chosen there). BeginNextCycle now reads Convergence.Outcome,
+            // so declining the open door archives as "Abandoned" — not a defeat.
             PlayerSession.CycleEndedByConjunction = true;
             SaveManager.SaveIfDirty();
-            GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
+            GetTree().ChangeSceneToFile(CampusScenePath);
+        }
+
+        if (inFinale)
+        {
+            vbox.AddChild(GateButton("Return to the Convergence", true, OpenAnchorhold));
+        }
+        else if (!resolved)
+        {
+            // CANONICAL press-your-luck choice (progression_persistence_model_v1 §4),
+            // unchanged: while seats remain unresolved the Conjunction is still a pure
+            // DEADLINE, and Continue is still earned by surviving to it.
+            int nextYear = (gateCycle?.CampaignYear ?? 1) + 1;
+            vbox.AddChild(GateButton($"Perfect the Timeline  (Year {nextYear})", true, () =>
+            {
+                // Keep the world, advance the year, harden it; then reload the
+                // strategic scene, whose _Ready re-reads the preserved+escalated
+                // Cycle.World. No campus round-trip and no reset.
+                SaveManager.ContinueCampaign();
+                PlayerSession.CycleEndedByConjunction = false;
+                GetTree().ChangeSceneToFile(StrategicScenePath);
+            }));
+            vbox.AddChild(GateButton("Let It Unmake  (Return to Campus)", false, LetItUnmake));
+        }
+        else
+        {
+            vbox.AddChild(GateButton("Open the Anchorhold", true, OpenAnchorhold));
+            vbox.AddChild(GateButton("Let It Unmake  (Return to Campus)", false, LetItUnmake));
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // The Convergence — I1: gate, placeholder encounter, outcome routing
+    // (docs/convergence_finale_spec_v1.md §3, §13 step 1)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>Enter or resume the finale.
+    ///
+    /// <para>I1 ships the PLACEHOLDER form the spec asks for: one authored Siege
+    /// fight, then victory/defeat routing. There is no director, no five phases and
+    /// no path choice yet — those are I2 onward. What matters is that at the end of
+    /// this method the campaign can be WON, which it could not be for the first
+    /// hundred thousand lines of this project.</para>
+    ///
+    /// <para>Routes through the proven campus round-trip pattern
+    /// (CampusScreen.LaunchCampusCombat): set the router's return override, hand the
+    /// encounter to the carrier, swap scenes. ConsumeConvergenceReturn picks it up
+    /// on the way back.</para></summary>
+    private void OpenAnchorhold()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+            return;
+
+        if (cycle.Convergence.Phase < 1)
+            cycle.Convergence.Phase = 1;
+        cycle.Convergence.Outcome = "";
+        SaveManager.MarkDirty();
+
+        var def = BuildAnchorholdPlaceholder();
+        if (EncounterRouter.Instance == null)
+            GetTree().Root.AddChild(new EncounterRouter { Name = "EncounterRouter" });
+        var router = EncounterRouter.Instance;
+
+        if (def == null || def.Enemies.Count == 0 || router == null)
+        {
+            // Never dead-end the player at the one door the whole campaign points
+            // at. If the roster cannot resolve, award the finale rather than
+            // stranding them on a map with nothing left to do.
+            GD.PrintErr("[Convergence] Anchorhold roster failed to resolve — " +
+                        "awarding the victory rather than stranding the player.");
+            ResolveConvergence(true);
+            return;
+        }
+
+        router.HasPendingReturn = false;
+        router.SavedCombatWasPatrolAmbush = false;
+        router.SavedCombatPatrolArchmageId = "";
+        router.SavedCombatGuardianKey = "";
+        router.SavedCombatArchmageId = "";
+        router.SavedResolutionArchmageId = "";
+        router.ReturnSceneOverride = StrategicScenePath;
+        router.SetCurrentTier(def.Tier);
+
+        SaveManager.SaveIfDirty();
+        EncounterContextCarrier.Set(def);
+        EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
+        GD.Print("[Convergence] The Anchorhold opens — the Fracture begins.");
+        GetTree().ChangeSceneToFile(router.CombatScenePath);
+    }
+
+    /// <summary>The Fracture, placeholder form. Real content (waves, the Anchor ward
+    /// unit, the mirror beat, per-path Thresholds) arrives with I2/I4 and the
+    /// ConvergenceEncounterBuilder reading Data/Encounters/convergence.json; this
+    /// builds the roster in code the way BuildCampusGuardianEncounter does, so I1
+    /// depends on no new data files.
+    ///
+    /// <para><b>R-F1: the wall is fixed.</b> CampaignEscalation.CombatDifficultyMult
+    /// is deliberately NOT applied — waiting extra years must not harden the finale,
+    /// because corruption pressure is already the price of waiting. All variance is
+    /// player-side, and lands with the prep ledger in I3.</para></summary>
+    private static EncounterDefinition BuildAnchorholdPlaceholder()
+    {
+        const float FractureMult = 2.0f;   // spec §5 base for the Fracture
+        string[] roster =
+        {
+            "astrologer_foregone",
+            "astrologer_sealkeeper", "astrologer_sealkeeper",
+            "astrologer_read_ahead", "astrologer_read_ahead",
         };
-        vbox.AddChild(unmakeBtn);
+
+        var def = new EncounterDefinition
+        {
+            Id = "fracture_hall",
+            DisplayName = "The Fracture",
+            Tier = EncounterTier.Siege,
+            TerrainType = "Plains",
+            DifficultyMult = FractureMult,
+        };
+        foreach (var a in roster)
+            if (UnitRegistry.TryResolveId(a, out var uid))
+                def.Enemies.Add(new EnemySlot(uid, FractureMult));
+        return def.Enemies.Count > 0 ? def : null;
+    }
+
+    /// <summary>Pick up a returning Convergence combat. Keyed on the router's return
+    /// override being THIS scene, exactly as CampusScreen keys on its own path — an
+    /// expedition combat returns with an empty override and is untouched here.</summary>
+    private void ConsumeConvergenceReturn(CycleState cycle)
+    {
+        var router = EncounterRouter.Instance;
+        if (router == null || !router.HasPendingReturn ||
+            router.ReturnSceneOverride != StrategicScenePath)
+            return;
+        if (cycle?.Convergence == null || !cycle.Convergence.InProgress)
+            return;
+
+        bool won = router.CombatWon;
+        router.HasPendingReturn = false;
+        router.ReturnSceneOverride = "";
+        ResolveConvergence(won);
+    }
+
+    /// <summary>Write the finale's outcome and show the beat. This is where the three
+    /// TODOs the codebase carried for weeks actually resolve: Convergence.Outcome,
+    /// CampaignState.CampaignComplete and CampaignState.CampaignOutcome all get their
+    /// first writers, and CampusScreen.BeginNextCycle reads the first of them instead
+    /// of hardcoding a defeat.</summary>
+    private void ResolveConvergence(bool won)
+    {
+        var save = SaveManager.ActiveSave;
+        var cycle = save?.Cycle;
+        if (cycle?.Convergence == null)
+            return;
+
+        var conv = cycle.Convergence;
+        conv.Outcome = won ? "Victory" : "Defeat";
+        conv.PhaseResults[conv.Phase < 1 ? 1 : conv.Phase] = won ? "won" : "lost";
+
+        if (cycle.Campaign != null)
+        {
+            cycle.Campaign.CampaignComplete = true;
+            cycle.Campaign.CampaignOutcome = won ? "Victory" : "Defeat";
+        }
+
+        if (won && save?.Ledger != null)
+        {
+            // Permanent: survives the unmake, unlike everything else here.
+            if (!save.Ledger.MetaNarrativeFlags.Contains("convergence_won"))
+                save.Ledger.MetaNarrativeFlags.Add("convergence_won");
+            string pathFlag = string.IsNullOrEmpty(conv.Path) ? "" : $"convergence_won_{conv.Path}";
+            if (pathFlag.Length > 0 && !save.Ledger.MetaNarrativeFlags.Contains(pathFlag))
+                save.Ledger.MetaNarrativeFlags.Add(pathFlag);
+        }
+
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        GD.Print($"[Convergence] Resolved: {conv.Outcome}.");
+        CallDeferred(nameof(ShowConvergenceOutcome));
+    }
+
+    /// <summary>The victory / defeat beat. Zero-arg and state-reading on purpose:
+    /// it is reached through CallDeferred, matching ShowConjunction's proven shape.
+    /// Copy per spec §11; the three per-path conferral variants arrive with I6.</summary>
+    private void ShowConvergenceOutcome()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var conv = cycle?.Convergence;
+        if (conv == null || !conv.Resolved)
+            return;
+        bool won = conv.Outcome == "Victory";
+
+        var panelLayer = new CanvasLayer { Name = "ConvergenceOutcomeUI" };
+        AddChild(panelLayer);
+
+        var backdrop = new ColorRect { Color = new Color(0.02f, 0.0f, 0.04f, 0.94f) };
+        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        panelLayer.AddChild(backdrop);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0.5f,
+            AnchorTop = 0.5f,
+            AnchorRight = 0.5f,
+            AnchorBottom = 0.5f,
+            GrowHorizontal = Control.GrowDirection.Both,
+            GrowVertical = Control.GrowDirection.Both,
+            OffsetLeft = -300,
+            OffsetRight = 300,
+            OffsetTop = -200,
+            OffsetBottom = 200,
+        };
+        panel.AddThemeStyleboxOverride("panel",
+            UITheme.MakePanelStyle(UITheme.BgBase, won ? UITheme.Gold : UITheme.Danger));
+        panelLayer.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 28);
+        margin.AddThemeConstantOverride("margin_right", 28);
+        margin.AddThemeConstantOverride("margin_top", 24);
+        margin.AddThemeConstantOverride("margin_bottom", 24);
+        panel.AddChild(margin);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 14);
+        margin.AddChild(vbox);
+
+        var title = new Label { Text = won ? "The Conferral Completes" : "The Anchor Takes You Back" };
+        title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeLarge);
+        title.AddThemeColorOverride("font_color", won ? UITheme.Gold : UITheme.Danger);
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        vbox.AddChild(title);
+
+        var body = new Label
+        {
+            Text = won
+                ? "The Long Second closes, and this time it closes on your terms. The hall lets go of the moment it has been holding since before you were a wizard. Whatever else is true of this timeline, it ended where it was always going to end — and you were the one still standing in the room."
+                : "The anchor takes you back before the blow lands. The timeline closes over the Convergence like water. He does not gloat; he schedules. Somewhere behind your eyes, the Long Second holds — and everything carried inside it holds with you.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        body.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        body.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        vbox.AddChild(body);
+
+        vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
+
+        Button OutcomeButton(string text, bool primary, System.Action onPressed)
+        {
+            var b = new Button
+            {
+                Text = text,
+                CustomMinimumSize = new Vector2(300, primary ? 48 : 44),
+                SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+            };
+            UITheme.ApplyButtonStyle(b, isPrimary: primary);
+            b.Pressed += () => onPressed();
+            return b;
+        }
+
+        void ToCampus()
+        {
+            PlayerSession.CycleEndedByConjunction = true;
+            SaveManager.SaveIfDirty();
+            GetTree().ChangeSceneToFile(CampusScenePath);
+        }
+
+        if (won)
+        {
+            // R-F2: post-resolution, Continue is offered ONLY here — on a victory.
+            int nextYear = (cycle?.CampaignYear ?? 1) + 1;
+            vbox.AddChild(OutcomeButton($"Perfect the Timeline  (Year {nextYear})", true, () =>
+            {
+                SaveManager.ContinueCampaign();
+                PlayerSession.CycleEndedByConjunction = false;
+                GetTree().ChangeSceneToFile(StrategicScenePath);
+            }));
+            vbox.AddChild(OutcomeButton("Let It Rest", false, ToCampus));
+        }
+        else
+        {
+            // No retry inside the timeline: the wall is fixed, and the answer to a
+            // defeat is another timeline with more permanent power (spec §3).
+            vbox.AddChild(OutcomeButton("Return to the Campus", true, ToCampus));
+        }
     }
 
     private string FactionDisplay(string factionId)

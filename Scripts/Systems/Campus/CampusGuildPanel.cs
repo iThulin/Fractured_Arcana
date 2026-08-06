@@ -650,6 +650,7 @@ public sealed class CampusGuildPanel : CampusPanel
         grid.AddChild(MakeDebugAction("Owe +1 Lunation", () => StrategicDebug.OweLunations(1)));
         grid.AddChild(MakeDebugAction("Owe +3 Lunations", () => StrategicDebug.OweLunations(3)));
         grid.AddChild(MakeDebugAction("Prime Warfront", StrategicDebug.PrimeWarfront));
+        grid.AddChild(MakeDebugAction("Resolve All Seats", StrategicDebug.ResolveAllSeats));
 
         var combatDebugBtn = new Button
         {

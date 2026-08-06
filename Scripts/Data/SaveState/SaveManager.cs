@@ -41,7 +41,11 @@ public static class SaveManager
     /// anything older is a legacy save and is rejected, not migrated.
     /// Referenced by CycleState and EternalLedger field initializers.
     /// </summary>
-    public const int CURRENT_VERSION = 101;
+    // v102 (2026-08-06): + CycleState.Convergence (ConvergenceState) — the finale
+    // progress block. Deliberately NO migration: dev mode starts a new game per
+    // test, so the stamp just invalidates older saves (ruling 2026-08-06). This
+    // becomes a real migration only once saves are durable.
+    public const int CURRENT_VERSION = 102;
 
     /// <summary>Canonical save serialization options — the single path every
     /// persisted structure travels. Public so round-trip assertions
@@ -541,10 +545,17 @@ public static class SaveManager
     /// and Bank both route through BeginNewCycle; Continue is the only path that
     /// preserves the timeline.
     /// </summary>
-    // TODO (SCOPE — Convergence victory-gating; progression_persistence_model_v1.md §4):
-    // Currently called from the UNCONDITIONAL Conjunction choice. When the Convergence
-    // outcome is wired, restrict Continue to victories (a defeat must route through
-    // BeginNewCycle instead). NOT YET SCOPED.
+    // Victory-gating: RESOLVED by R-F2 (docs/convergence_finale_spec_v1.md §0, §3),
+    // implemented in I1 as a HYBRID, and gated by the CALLER rather than here:
+    //   • while seats remain unresolved, the Conjunction is a pure deadline and
+    //     surviving to it still earns Continue — StrategicView's unresolved branch;
+    //   • once every seat is resolved, the Conjunction IS the Convergence, and
+    //     Continue is offered from exactly one place: the post-VICTORY beat
+    //     (StrategicView.ShowConvergenceOutcome). A defeat has no Continue button
+    //     and routes to the campus, where BeginNextCycle archives
+    //     "ConvergenceDefeat" and BeginNewCycle unmakes the timeline.
+    // This method stays outcome-agnostic on purpose: it is the "keep the timeline"
+    // mechanic, not the adjudicator of who has earned it.
     public static GuildSaveData ContinueCampaign()
     {
         if (ActiveSave == null || ActiveSlot < 0)

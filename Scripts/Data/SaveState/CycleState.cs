@@ -55,6 +55,13 @@ public class CycleState
     /// </summary>
     public CampaignState Campaign = new();
 
+    /// <summary>The finale's progress for this timeline (schema v102). Phase −1 on
+    /// every cycle that has not opened the Anchorhold, which is all of them until
+    /// every seat is resolved. Dies with the timeline like the rest of this block —
+    /// what survives a Convergence is the LoopRecord and the permanent flags.
+    /// See docs/convergence_finale_spec_v1.md §2.</summary>
+    public ConvergenceState Convergence = new();
+
     // ── Strategic world (the generated timeline) ─────────────────────────
     /// <summary>
     /// The authoritative Civ-scale world for this cycle — terrain, territories,
