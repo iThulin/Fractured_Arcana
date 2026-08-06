@@ -34,8 +34,29 @@ public sealed class Stats
     public int BaseSpeed;
     public int MovePoints;          // legacy pool — no longer read for gating; see EffectiveMovement
     public int BonusMoveRange;      // movespeed currency: per-turn move-range grant, reset in StartTurn
-    public bool HasMoved;
+    // (2026-08-05) `HasMoved` was DELETED here. It was declared, read twice — it was the
+    // Aimed stance's "requires no movement this turn" gate — and assigned true by nothing,
+    // anywhere, ever. Aimed has therefore never blocked, in any playtest, and has been
+    // strictly better than designed for its whole life. Both readers now test
+    // `Unit.TilesMovedThisTurn`, which is genuinely maintained (reset in StartTurn,
+    // accumulated in TryMoveTo). Do not reintroduce a second movement flag: one owner.
+
+    /// <summary>True once this unit has taken a real action this turn: a move, a martial
+    /// attack, a stance switch, or a successful card cast. Reset in <see cref="Unit.StartTurn"/>
+    /// for BOTH teams. Also forced true, with AP zeroed, by turn-ending effects.
+    ///
+    /// (2026-08-05) This existed and was reset correctly, but only one effect in the whole
+    /// codebase ever set it, so anything trusting the name got a flag that was almost
+    /// always false. It is now written at every action seam and is safe to read. The End
+    /// Turn confirm gate is its first real consumer.</summary>
     public bool HasActed;
+
+    /// <summary>First-card-of-turn marker, read by the FirstCardCostReduction equipment
+    /// passive in RulesManager. Reset in <see cref="Unit.StartTurn"/>.
+    ///
+    /// (2026-08-05) The reset is new. This was set on the first successful cast and never
+    /// cleared, so the discount fired once per COMBAT rather than once per turn — the exact
+    /// defect fixed for HasSwitchedStanceThisTurn on 07-29, in a different field.</summary>
     public bool HasPlayedCardThisTurn = false;
 
     public int Armor;
@@ -527,6 +548,7 @@ public partial class Unit : Node3D
 
         CurrentActionPoints = MaxActionPoints;
         Stats.HasActed = false;
+        Stats.HasPlayedCardThisTurn = false;   // (2026-08-05) was never cleared — see the field
         HasAttackedThisTurn = false;
         TilesMovedThisTurn = 0;
         Stats.MovePoints = Stats.BaseSpeed;
@@ -648,6 +670,7 @@ public partial class Unit : Node3D
 
         TrySpendAP(1);
         TilesMovedThisTurn += pathCost;   // Charge rider: distance covered this turn
+        Stats.HasActed = true;            // walking is acting — both teams, one seam
         PlaceOnTile(dest);
 
         // U3e binding_geas. AFTER PlaceOnTile, so the handler measures the geas

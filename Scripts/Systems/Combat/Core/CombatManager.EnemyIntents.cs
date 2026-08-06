@@ -1068,7 +1068,24 @@ public partial class CombatManager
         // are stale.
         ApplyEnemyAuras();
 
-        var snapshot = enemyUnits.ToList();
+        // ── Activation order is SPD-descending, and now says so ───────────────────
+        // (2026-08-05) This was ALREADY speed-ordered, but only by accident: the
+        // spawn placer sorts pendingEnemySpawns by BaseSpeed to hand out tiles
+        // nearest the player centroid first, and enemyUnits inherited that order
+        // from its Add loop. Nothing declared it, nothing preserved it — mid-fight
+        // reinforcements append at the tail regardless of speed, so a spawned-in
+        // scout activated after a siege bulwark and the implicit rule broke exactly
+        // when the player most needed it to hold.
+        //
+        // Sorting here makes the order explicit, survives reinforcements, and turns
+        // SPD into a stat the player can learn and plan against. OrderByDescending
+        // is a STABLE sort, so equal-speed units keep their spawn order — for a
+        // fight with no reinforcements this produces the identical sequence to
+        // before the change, which is what makes it safe to land mid-playtest.
+        var snapshot = enemyUnits
+            .OrderByDescending(u => u?.Stats?.BaseSpeed ?? 0)
+            .ToList();
+
         foreach (var enemy in snapshot)
         {
             if (enemy == null || !IsInstanceValid(enemy) || !enemy.Stats.IsAlive)

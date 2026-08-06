@@ -1327,6 +1327,16 @@ public partial class CombatManager : Node3D
         selectedUnit.SetDetailedBar(true);
         ClearTargetHighlight();
 
+        // Picking a unit is the player revisiting the decision the End Turn warning
+        // was about — disarm it so the next End Turn press re-evaluates from scratch.
+        // Guarded, so this only rewrites the hint in the one case where the gate wrote
+        // it; unguarded it would stomp the two-step aim prompt on every selection.
+        if (_endTurnConfirmPending)
+        {
+            _endTurnConfirmPending = false;
+            combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
+        }
+
         CombatCamera?.FocusOn(unit);
 
         ClearMoveTiles();
@@ -1383,15 +1393,85 @@ public partial class CombatManager : Node3D
         InspectEnemy(alive[index]);
     }
 
+    /// <summary>Can this unit still do something meaningful this turn?
+    ///
+    /// NOT simply "has AP". Card casts cost mana, not action points, so a wizard
+    /// sitting at 0 AP with mana and a hand is still fully able to act — auto-advancing
+    /// off one would be worse than never advancing at all, because it would yank the
+    /// board away mid-decision. Martials have no such second economy: their attacks,
+    /// moves and stance switches all bill to AP, so AP alone answers for them.</summary>
+    private static bool IsReadyToAct(Unit u)
+    {
+        if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive)
+            return false;
+        if (u.CurrentActionPoints > 0)
+            return true;
+        return !u.IsMartial
+            && u.Stats.Mana > 0
+            && (u.DeckData?.Hand?.Count ?? 0) > 0;
+    }
+
+    /// <summary>Hands the selection to the next unit that can still act, once the
+    /// current one is spent. Called from the player's action seams (a completed move,
+    /// a resolved martial attack) — the places where a unit can transition from ready
+    /// to spent by the player's own hand.
+    ///
+    /// Guarded hard against stealing focus mid-decision: it declines during a priority
+    /// window, during a pending two-step aim, outside the player turn, and — most
+    /// importantly — while the current unit is still ready. Forgetting a unit is a
+    /// selection failure, not a discipline failure; this fixes the selection.</summary>
+    private void MaybeAdvanceToReadyUnit()
+    {
+        if (currentPhase != CombatPhase.PlayerTurn)
+            return;
+        if (_priorityWindowOpen || TwoStepPending)
+            return;
+        if (IsReadyToAct(selectedUnit))
+            return;
+
+        var alive = playerUnits.Where(u => u != null && IsInstanceValid(u) && u.Stats.IsAlive).ToList();
+        if (alive.Count == 0)
+            return;
+
+        // Walk forward from the current unit so the hand-off follows the same order
+        // the player already reads in the unit bar.
+        int start = selectedUnit != null ? alive.IndexOf(selectedUnit) : -1;
+        for (int step = 1; step <= alive.Count; step++)
+        {
+            var candidate = alive[(start + step + alive.Count) % alive.Count];
+            if (candidate == selectedUnit || !IsReadyToAct(candidate))
+                continue;
+            string spentName = selectedUnit?.DisplayName ?? "(none)";
+            GD.Print($"[AutoAdvance] {spentName} is spent → {candidate.DisplayName}");
+            SelectUnit(candidate);
+            return;
+        }
+        // Nobody left who can act. Say so once rather than silently doing nothing —
+        // this is the moment the End Turn confirm gate will wave you through.
+        GD.Print("[AutoAdvance] No unit left with an action.");
+    }
+
+    /// <summary>Tab / Shift-Tab. Prefers units that can still act, so cycling walks the
+    /// work queue rather than the roster; falls back to every living unit once the
+    /// party is spent, because inspecting a finished unit is still legitimate.</summary>
     private void CycleSelectedUnit(int direction)
     {
         var alive = playerUnits.Where(u => u != null && u.Stats.IsAlive).ToList();
         if (alive.Count == 0)
             return;
 
-        int currentIndex = selectedUnit != null ? alive.IndexOf(selectedUnit) : -1;
-        int nextIndex = (currentIndex + direction + alive.Count) % alive.Count;
-        SelectUnit(alive[nextIndex]);
+        var ready = alive.Where(IsReadyToAct).ToList();
+        var ring = ready.Count > 0 ? ready : alive;
+
+        // Index against the RING, not the alive list — a spent unit is absent from
+        // `ready`, so IndexOf returns -1 and there is no meaningful "next" from it.
+        // Handle that explicitly rather than letting the modulo pick an arbitrary
+        // neighbour: entering the ring from outside starts at either end.
+        int currentIndex = selectedUnit != null ? ring.IndexOf(selectedUnit) : -1;
+        int nextIndex = currentIndex < 0
+            ? (direction >= 0 ? 0 : ring.Count - 1)
+            : (currentIndex + direction + ring.Count) % ring.Count;
+        SelectUnit(ring[nextIndex]);
     }
 
     private void ShowMoveTilesWithCost(Unit unit)
@@ -1440,6 +1520,7 @@ public partial class CombatManager : Node3D
             ShowMoveTilesWithCost(selectedUnit);
             RefreshSelectedUnitUI();
             RefreshPlayerUnitBar();
+            MaybeAdvanceToReadyUnit();   // that step may have been this unit's last AP
         }
     }
 
@@ -1613,9 +1694,15 @@ public partial class CombatManager : Node3D
             return;
         }
 
-        // Aimed: requires no movement
+        // Aimed: requires no movement.
+        // (2026-08-05) Was `attacker.Stats.HasMoved`, a field nothing in the codebase ever
+        // assigned — so this gate has never once fired and Aimed has never been payable in
+        // movement. Retargeted at TilesMovedThisTurn, which TryMoveTo accumulates and
+        // StartTurn resets. EXPECT AIMED TO GET HARDER: this is the first build where the
+        // restriction exists at all, and its damage bonus was tuned against a stance that
+        // in practice had no drawback.
         if (attacker.ActiveStance?.SpecialTag == StanceSpecialTag.AimedRequiresNoMove
-            && attacker.Stats.HasMoved)
+            && attacker.TilesMovedThisTurn > 0)
         {
             combatUI?.AppendActionLog(
                 $"{attacker.Name} — Aimed requires no movement this turn.");
@@ -1676,6 +1763,7 @@ public partial class CombatManager : Node3D
 
         unit.ActiveStance = newStance;
         unit.HasSwitchedStanceThisTurn = true;
+        unit.Stats.HasActed = true;   // it cost AP; it counts
 
         // Apply new stance passives immediately
         ApplyMartialStancePassives(unit);
@@ -1719,9 +1807,10 @@ public partial class CombatManager : Node3D
             damage *= 2;
         }
 
-        // Aimed: only apply bonus if unit hasn't moved
+        // Aimed: only apply bonus if unit hasn't moved. Same retarget as the gate above —
+        // these two must agree on what "moved" means or a shot can be legal and unbonused.
         if (stance?.SpecialTag == StanceSpecialTag.AimedRequiresNoMove
-            && attacker.Stats.HasMoved)
+            && attacker.TilesMovedThisTurn > 0)
         {
             damage -= stance.AttackDamageBonus; // remove the bonus
         }
@@ -1879,6 +1968,7 @@ public partial class CombatManager : Node3D
         // ── Mark attack tracking ──────────────────────────────────────────
         attacker.HasAttackedThisCombat = true;
         attacker.HasAttackedThisTurn = true;
+        attacker.Stats.HasActed = true;
 
         // Q2 (§7a): onAttack item procs ride the trigger stack (auto-passing).
         // Queued with the struck target captured; drained now unless a priority
@@ -1893,6 +1983,7 @@ public partial class CombatManager : Node3D
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();
         RefreshPlayerUnitBar();
+        MaybeAdvanceToReadyUnit();   // the strike may have spent this unit's last AP
 
         // Check combat end — attack may have killed the target
         _pruneNeeded = true;
@@ -1971,6 +2062,7 @@ public partial class CombatManager : Node3D
 
         currentPhase = CombatPhase.PlayerTurn;
         enemyPhaseRunning = false;
+        _endTurnConfirmPending = false;   // a new turn never inherits last turn's warning
 
         // (2026-07-28, U3e) Ritardando's "+1 enemy spell cost" expires HERE, not at
         // the head of the enemy phase where it used to be cleared before it could
@@ -2011,9 +2103,6 @@ public partial class CombatManager : Node3D
             if (unit.Attunement is ArcaneAttunement arcane)
                 arcane.OnTurnStart();
 
-            State.Memorials.Tick();
-            State.Glyphs?.Tick(State);
-
             if (unit.DeckData != null)
             {
                 var drawn = unit.DeckData.DrawToFull();
@@ -2031,6 +2120,21 @@ public partial class CombatManager : Node3D
                 }
             }
         }
+
+        // ── Board-wide upkeep: ONCE per round, not once per party member ──────────
+        // (2026-08-05) These two lines lived inside the per-unit loop above, so they
+        // fired once for every living player unit. GlyphManager.Tick decrements
+        // DurationTurns and fires StartOfTurn glyphs on any enemy standing on one —
+        // with a three-unit party every timed glyph expired at 3x rate and every
+        // StartOfTurn glyph dealt its damage three times. The bug scaled with party
+        // size, which is why it was invisible in solo testing, and it silently
+        // rebalanced the entire Enchanter/Weave school against headcount.
+        //
+        // They sit here — after the loop, before PruneDeadUnits — so a glyph kill
+        // still gets pruned on the same frame it always did. Every other global in
+        // this method was already outside the loop; these two were the exception.
+        State.Memorials.Tick();
+        State.Glyphs?.Tick(State);
 
         // Prune before ticking persistent effects so freed units don't
         // appear in UnitsInPlay when Maelstrom iterates it.
@@ -2253,6 +2357,41 @@ public partial class CombatManager : Node3D
         StartEnemyTurn();
     }
 
+    /// <summary>Set by the first End Turn press of a turn that would abandon an
+    /// untouched unit. The second press commits. Cleared at the head of every player
+    /// turn and by any unit selection, so the warning can never carry across a
+    /// decision the player has since revisited.</summary>
+    private bool _endTurnConfirmPending = false;
+
+    /// <summary>Living player units that have done nothing this turn AND could still do
+    /// something about it.
+    ///
+    /// Both halves are load-bearing:
+    ///
+    ///  * `!HasActed` is now an EXACT test rather than the AP/mana/tiles heuristic this
+    ///    method shipped with a few hours ago. That heuristic had two known gaps — a free
+    ///    (0-mana) cast read as idle, and an action_tax'd unit read as having acted — and
+    ///    both are gone now that every action seam sets the flag.
+    ///  * `IsReadyToAct` suppresses the warning for a unit that CANNOT act: frozen,
+    ///    stunned or bound at 0 AP, or a martial simply out of AP. Nagging about a unit
+    ///    the player is powerless to use is how a confirm gate teaches people to click
+    ///    through it, which is worse than not having one.
+    ///
+    /// Still a warning, never a block: Bulwark's brace rewards a unit that did not attack,
+    /// so standing still has to remain a legal, one-extra-click play.</summary>
+    private List<Unit> IdlePlayerUnits()
+    {
+        var idle = new List<Unit>();
+        foreach (var unit in playerUnits)
+        {
+            if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
+                continue;
+            if (!unit.Stats.HasActed && IsReadyToAct(unit))
+                idle.Add(unit);
+        }
+        return idle;
+    }
+
     private void OnEndTurnPressed()
     {
         if (currentPhase != CombatPhase.PlayerTurn)
@@ -2265,6 +2404,28 @@ public partial class CombatManager : Node3D
             GD.Print("[Priority] End Turn blocked — window open.");
             return;
         }
+
+        // ── Idle-unit confirm gate (2026-08-05) ───────────────────────────────────
+        // A WARNING, never a block. Bulwark's brace rewards a unit that did not
+        // attack, so "spend something or you may not end your turn" would make one of
+        // our own tags unplayable. The player keeps the right to do nothing; they just
+        // have to mean it.
+        if (!_endTurnConfirmPending)
+        {
+            var idle = IdlePlayerUnits();
+            if (idle.Count > 0)
+            {
+                _endTurnConfirmPending = true;
+                string names = string.Join(", ", idle.Select(u => u.DisplayName));
+                string verb = idle.Count == 1 ? "hasn't" : "haven't";
+                combatUI?.AppendActionLog($"⚠ {names} {verb} acted — End Turn again to confirm.");
+                combatUI?.SetHintText($"{names} {verb} acted. Press End Turn again to confirm.");
+                GD.Print($"[EndTurn] Confirm gate armed — idle: {names}");
+                return;
+            }
+        }
+
+        _endTurnConfirmPending = false;
         EndPlayerTurn();
     }
 
@@ -5561,7 +5722,12 @@ public partial class CombatManager : Node3D
                 roundNumber);
 
             if (selectedUnit != null)
+            {
                 selectedUnit.Stats.HasPlayedCardThisTurn = true;
+                // The seam that mattered most: casting costs MANA, not AP, so before this
+                // line a wizard could empty its hand and still read as having done nothing.
+                selectedUnit.Stats.HasActed = true;
+            }
 
             State.SpellsCastThisTurn++;
 
