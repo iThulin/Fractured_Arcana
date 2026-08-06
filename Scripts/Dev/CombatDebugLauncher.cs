@@ -37,6 +37,8 @@ public partial class CombatDebugLauncher : CanvasLayer
     private SpinBox _diffSpin;
     private CheckBox _skipDeployChk;
     private CheckBox _stopOnTriggersChk;
+    private CheckBox _wavesChk;
+    private CheckBox _surviveChk;
     private Label _status;
     private readonly Dictionary<string, SpinBox> _enemySpins = new();  // unit id → count (U2: registry-driven)
     private readonly List<(CheckBox chk, Companion comp)> _allyChecks = new();
@@ -210,6 +212,23 @@ public partial class CombatDebugLauncher : CanvasLayer
         _stopOnTriggersChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         form.AddChild(_stopOnTriggersChk);
 
+        // ── O-track levers (docs/combat_objectives_spec_v1.md) ──────────────
+        // Same design rule as the strategic debug harness: a lever sets the
+        // state the SHIPPED path already reads, so a forced run exercises the
+        // same code an authored encounter would. These write a real
+        // CombatObjectiveDef / ReinforcementWave onto the definition — nothing
+        // here reimplements the runtime.
+        _wavesChk = new CheckBox
+        {
+            Text = "Reinforcement waves (rounds 3 and 5, mirroring the roster)",
+        };
+        _wavesChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_wavesChk);
+
+        _surviveChk = new CheckBox { Text = "Objective: survive 6 rounds" };
+        _surviveChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_surviveChk);
+
         _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _status.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         _status.AddThemeColorOverride("font_color", UITheme.TextDim);
@@ -263,6 +282,36 @@ public partial class CombatDebugLauncher : CanvasLayer
             _status.Text = "Add at least one enemy before launching.";
             _status.AddThemeColorOverride("font_color", UITheme.Danger);
             return;
+        }
+
+        // O-track: attach the debug objective/waves AFTER the roster exists, so
+        // a wave can mirror what was actually selected rather than hardcoding
+        // unit ids that may not be in this build.
+        if (_surviveChk != null && _surviveChk.ButtonPressed)
+        {
+            def.Objective = new CombatObjectiveDef
+            {
+                Kind = CombatObjectiveDef.KindSurvive,
+                Rounds = 6,
+                Description = "Hold the ground",
+            };
+        }
+
+        if (_wavesChk != null && _wavesChk.ButtonPressed)
+        {
+            string waveUnit = def.Enemies[0].UnitId;
+            def.Waves.Add(new ReinforcementWave
+            {
+                Round = 3,
+                Announce = "The first wave arrives.",
+                Enemies = { new EnemySlot(waveUnit, diff) },
+            });
+            def.Waves.Add(new ReinforcementWave
+            {
+                Round = 5,
+                Announce = "The second wave arrives.",
+                Enemies = { new EnemySlot(waveUnit, diff), new EnemySlot(waveUnit, diff) },
+            });
         }
 
         var party = new List<Companion>();

@@ -15,5 +15,6 @@
   ],
   "colorR": 0.6,
   "colorG": 0.8,
-  "colorB": 0.92
+  "colorB": 0.92,
+  "imbueOnHit": "frost"
 }

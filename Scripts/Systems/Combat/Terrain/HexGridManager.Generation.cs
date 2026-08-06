@@ -354,6 +354,28 @@ public partial class HexGridManager
         }
     }
 
+    /// <summary>Paints an Arcane leyline — a branching vein of Arcane imbuement
+    /// walking <paramref name="length"/> tiles from <paramref name="start"/> along
+    /// <paramref name="direction"/> (tile_interaction addendum §B2). Leylines carry
+    /// no movement verb; they feed the Arcanist's element-synergy cards
+    /// (mana_per_nearby_element, has_elements_near_caster, consume_element_tile) and
+    /// give ordinary (non-elemental-biome) maps something the tile layer reads.
+    /// Skips water / blocked / reserved tiles. Generation-time: writes data only;
+    /// the visual pass stamps the overlay from ElementType.</summary>
+    private void PaintLeyline(Vector2I start, Vector2I direction, int length,
+                             float branchChance = 0.35f, float strength = 1.0f)
+    {
+        PaintLinearFeature(start, direction, length, tile =>
+        {
+            if (!tile.IsWalkable || tile.IsBlocked)
+                return;
+            if (tile.TerrainType == TileTerrainType.Water)
+                return;
+            tile.ElementType = TileElementType.Arcane;
+            tile.ElementStrength = strength;
+        }, branchChance);
+    }
+
     private void PaintHeightPatch(Vector2I center, int radius, int peakHeight)
     {
         foreach (var kvp in Tiles)

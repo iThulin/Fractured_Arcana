@@ -63,4 +63,18 @@ public class EncounterDefinition
     public string RegionId = "";
     public string TerrainType = "";   // OverworldHex.TerrainType name
     public float DifficultyMult = 1.0f;
+
+    // ── O-track (docs/combat_objectives_spec_v1.md) ──────────────────────
+    // Both default to "absent", and absent means today's behaviour exactly:
+    // a null Objective is an annihilate fight; an empty Waves list changes
+    // nothing about the end-check. Every existing construction site
+    // (ResolutionEncounterBuilder, BuildGuardianEncounter, EncounterPoolLoader,
+    // CombatDebugLauncher, StrategicView) compiles untouched, and the payload
+    // rides EncounterContextCarrier.Current into combat for free.
+
+    /// <summary>What this fight is FOR. Null = annihilate.</summary>
+    public CombatObjectiveDef Objective = null;
+
+    /// <summary>Reinforcement groups, sorted by round. Empty = none.</summary>
+    public List<ReinforcementWave> Waves = new();
 }

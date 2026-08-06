@@ -37,6 +37,13 @@ public class UnitDefinition
     public int AttackDamage = 5;
     public int PreferredDistance = 1;
 
+    /// <summary>Elemental strike rider (tile_interaction_spec). Enum-name element
+    /// string ("fire" / "frost" / "lightning" / "earth" / "arcane"); the unit's
+    /// landed attacks imbue the struck tile with it. Empty (default) = no rider.
+    /// Parsed via MapRecipe.ParseElement, so card aliases (storm/ice/stone) do NOT
+    /// work here — use the enum names.</summary>
+    public string ImbueOnHit = "";
+
     /// <summary>AI behaviour key — which planning routine drives the unit.
     /// Dispatched by CombatManager.EnemyIntents.PlanIntent (string → handler map).
     /// Current catalog: melee_advance, melee_target_highest_hp, hold_until_near,

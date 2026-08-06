@@ -2,7 +2,7 @@
   "id": "caster_arclance_savant",
   "threatLabel": "Arclance Savant",
   "role": "line",
-  "intelDescription": "Pure arcane artillery — the heaviest single blast in the field. No rider, just damage. Dodge the tile.",
+  "intelDescription": "Pure arcane artillery \u2014 the heaviest single blast in the field. No rider, just damage. Dodge the tile.",
   "maxHealth": 12,
   "baseSpeed": 1,
   "armor": 0,
@@ -13,5 +13,6 @@
   "casterSpell": "arclance",
   "colorR": 0.3,
   "colorG": 0.6,
-  "colorB": 0.9
+  "colorB": 0.9,
+  "imbueOnHit": "lightning"
 }

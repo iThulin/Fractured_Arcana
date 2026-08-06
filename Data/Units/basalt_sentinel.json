@@ -15,5 +15,6 @@
   ],
   "colorR": 0.32,
   "colorG": 0.3,
-  "colorB": 0.36
+  "colorB": 0.36,
+  "imbueOnHit": "earth"
 }

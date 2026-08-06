@@ -81,6 +81,13 @@
 			"phase": "accent",
 			"at": "center",
 			"radius": 3
+		},
+		{
+			"feature": "element_patch",
+			"phase": "accent",
+			"at": "random",
+			"element": "frost",
+			"radius": 2
 		}
 	]
 }

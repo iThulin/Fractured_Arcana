@@ -83,6 +83,16 @@
 			"at": "random",
 			"radius": 1,
 			"chance": 0.5
+		},
+		{
+			"feature": "leyline",
+			"phase": "accent",
+			"at": "random",
+			"length": [
+				6,
+				9
+			],
+			"branch": 0.35
 		}
 	]
 }

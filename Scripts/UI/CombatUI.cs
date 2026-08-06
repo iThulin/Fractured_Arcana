@@ -75,6 +75,10 @@ public partial class CombatUI : CanvasLayer
 	// ── Left panel nodes ─────────────────────────────────────────────────
 	private PanelContainer _leftPanel;
 	private Label _phaseLabel;
+	/// <summary>O-track: the mission line ("Survive - round 3 / 8"). Hidden
+	/// entirely on an ordinary kill-fight, which is every fight authored
+	/// before the objectives substrate.</summary>
+	private Label _objectiveLabel;
 	private Label _unitNameLabel;
 	private ProgressBar _hpBar;
 	private Label _hpText;
@@ -221,6 +225,8 @@ public partial class CombatUI : CanvasLayer
 			SetPhaseText(_lastPhaseText);
 		if (_lastHintText != null)
 			SetHintText(_lastHintText);
+		if (_lastObjectiveText != null)
+			SetObjectiveText(_lastObjectiveText);
 	}
 	// ════════════════════════════════════════════════════════════════════
 	// Left panel
@@ -351,6 +357,17 @@ public partial class CombatUI : CanvasLayer
 		_phaseLabel = MakeLabel("", UITheme.FontSizeNormal, UITheme.Violet);
 		_phaseLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		vbox.AddChild(_phaseLabel);
+
+		// O-track objective line. Sits ABOVE the hint deliberately: the hint is
+		// chrome ("select a unit, move, cast"), the objective is what the fight
+		// is for. Gold, because the only other gold thing on screen is the
+		// expedition objective marker and they mean the same kind of thing.
+		_objectiveLabel = MakeLabel("", UITheme.FontSizeSmall, UITheme.Gold);
+		_objectiveLabel.Name = "ObjectiveLabel";
+		_objectiveLabel.HorizontalAlignment = HorizontalAlignment.Center;
+		_objectiveLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		_objectiveLabel.Visible = false;
+		vbox.AddChild(_objectiveLabel);
 
 		// Hint line rides the banner (V1 fix: its first home above the fan sat
 		// exactly on the card tops — unreadable and mid-hand). V4's context
@@ -622,12 +639,27 @@ public partial class CombatUI : CanvasLayer
 	// re-push only comes at the round-2 phase change).
 	private string _lastPhaseText;
 	private string _lastHintText;
+	private string _lastObjectiveText;
 
 	public void SetPhaseText(string text)
 	{
 		_lastPhaseText = text;
 		if (_phaseLabel != null)
 			_phaseLabel.Text = text.ToUpper();
+	}
+
+	/// <summary>O-track: set the mission line. Empty string hides it. Carries
+	/// the same pending-replay guard as the phase and hint lines - anything
+	/// pushed before the deferred BuildUI would otherwise no-op silently,
+	/// and the objective is pushed from QueueEncounterFromContext, which
+	/// runs well before the UI exists.</summary>
+	public void SetObjectiveText(string text)
+	{
+		_lastObjectiveText = text ?? "";
+		if (_objectiveLabel == null)
+			return;
+		_objectiveLabel.Text = _lastObjectiveText;
+		_objectiveLabel.Visible = _lastObjectiveText.Length > 0;
 	}
 
 	public void SetHintText(string text)

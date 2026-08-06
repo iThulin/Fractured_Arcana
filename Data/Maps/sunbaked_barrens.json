@@ -98,6 +98,13 @@
 			"feature": "carve_lane",
 			"phase": "accent",
 			"width": 0
+		},
+		{
+			"feature": "element_patch",
+			"phase": "accent",
+			"at": "random",
+			"element": "fire",
+			"radius": 1
 		}
 	]
 }

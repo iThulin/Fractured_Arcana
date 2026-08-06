@@ -13,5 +13,6 @@
   "casterSpell": "forge",
   "colorR": 0.7,
   "colorG": 0.5,
-  "colorB": 0.25
+  "colorB": 0.25,
+  "imbueOnHit": "fire"
 }

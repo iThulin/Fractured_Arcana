@@ -96,6 +96,13 @@
 			"at": "random",
 			"radius": 1,
 			"chance": 0.6
+		},
+		{
+			"feature": "element_patch",
+			"phase": "accent",
+			"at": "random",
+			"element": "earth",
+			"radius": 1
 		}
 	]
 }

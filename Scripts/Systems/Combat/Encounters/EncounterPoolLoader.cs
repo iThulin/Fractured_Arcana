@@ -42,6 +42,51 @@ public class CompositionData
 
     [JsonPropertyName("enemies")]
     public List<EnemySlotData> Enemies { get; set; } = new();
+
+    // ── O-track: both optional, both absent on every pool authored to date ──
+    [JsonPropertyName("objective")]
+    public ObjectiveData Objective { get; set; } = null;
+
+    [JsonPropertyName("waves")]
+    public List<WaveData> Waves { get; set; } = new();
+}
+
+/// <summary>Raw JSON shape for a composition's optional objective block.</summary>
+public class ObjectiveData
+{
+    [JsonPropertyName("kind")]
+    public string Kind { get; set; } = "annihilate";
+
+    [JsonPropertyName("rounds")]
+    public int Rounds { get; set; } = 0;
+
+    [JsonPropertyName("wardUnitId")]
+    public string WardUnitId { get; set; } = "";
+
+    [JsonPropertyName("breachLimit")]
+    public int BreachLimit { get; set; } = 2;
+
+    [JsonPropertyName("zoneAnchor")]
+    public string ZoneAnchor { get; set; } = "player_spawn";
+
+    [JsonPropertyName("zoneRadius")]
+    public int ZoneRadius { get; set; } = 2;
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = "";
+}
+
+/// <summary>Raw JSON shape for one reinforcement wave.</summary>
+public class WaveData
+{
+    [JsonPropertyName("round")]
+    public int Round { get; set; } = 3;
+
+    [JsonPropertyName("enemies")]
+    public List<EnemySlotData> Enemies { get; set; } = new();
+
+    [JsonPropertyName("announce")]
+    public string Announce { get; set; } = "";
 }
 
 /// <summary>
@@ -246,7 +291,115 @@ public static class EncounterPoolLoader
                 GD.PrintErr($"EncounterPoolLoader: Unknown unit '{slot.Archetype}' in pool composition '{comp.Name}'");
         }
 
+        ApplyObjectiveAndWaves(def, comp, difficultyMult);
         return def;
+    }
+
+    /// <summary>
+    /// Translates a composition's optional <c>objective</c> / <c>waves</c> blocks
+    /// onto the definition. Validation is LOUD and happens HERE — at load, where
+    /// the author can see it — never at fight time, where a malformed objective
+    /// would silently degrade into an ordinary kill-fight and look like a design
+    /// choice. A rejected objective leaves the encounter as annihilate; a rejected
+    /// wave is dropped and the rest of the fight is unaffected.
+    /// </summary>
+    private static void ApplyObjectiveAndWaves(
+        EncounterDefinition def, CompositionData comp, float difficultyMult)
+    {
+        if (def == null || comp == null)
+            return;
+
+        if (comp.Objective != null)
+        {
+            string kind = (comp.Objective.Kind ?? "").Trim().ToLowerInvariant();
+
+            if (!CombatObjectiveDef.IsKnownKind(kind))
+            {
+                GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' declares unknown " +
+                            $"objective kind '{comp.Objective.Kind}' — objective IGNORED " +
+                            "(this fight will run as annihilate).");
+            }
+            else if (!CombatObjectiveDef.IsImplementedKind(kind))
+            {
+                GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' declares objective " +
+                            $"kind '{kind}', which this build does not implement yet — objective " +
+                            "IGNORED (this fight will run as annihilate).");
+            }
+            else if (kind != CombatObjectiveDef.KindAnnihilate)
+            {
+                bool needsRounds = kind == CombatObjectiveDef.KindSurvive
+                                || kind == CombatObjectiveDef.KindHoldZone;
+                if (needsRounds && comp.Objective.Rounds <= 0)
+                {
+                    GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' objective " +
+                                $"'{kind}' needs rounds > 0 (got {comp.Objective.Rounds}) — " +
+                                "objective IGNORED.");
+                }
+                else
+                {
+                    def.Objective = new CombatObjectiveDef
+                    {
+                        Kind = kind,
+                        Rounds = comp.Objective.Rounds,
+                        WardUnitId = comp.Objective.WardUnitId ?? "",
+                        BreachLimit = comp.Objective.BreachLimit,
+                        ZoneAnchor = comp.Objective.ZoneAnchor ?? "player_spawn",
+                        ZoneRadius = comp.Objective.ZoneRadius,
+                        Description = comp.Objective.Description ?? "",
+                    };
+                }
+            }
+        }
+
+        if (comp.Waves != null)
+        {
+            foreach (var w in comp.Waves)
+            {
+                if (w == null)
+                    continue;
+
+                if (w.Round <= 1)
+                {
+                    GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' has a wave at " +
+                                $"round {w.Round}; waves must arrive at round 2 or later " +
+                                "(round 1 is the initial roster's job) — wave DROPPED.");
+                    continue;
+                }
+
+                var wave = new ReinforcementWave
+                {
+                    Round = w.Round,
+                    Announce = w.Announce ?? "",
+                };
+
+                foreach (var slot in w.Enemies ?? new List<EnemySlotData>())
+                {
+                    if (UnitRegistry.TryResolveId(slot.Archetype, out var waveUnitId))
+                        wave.Enemies.Add(new EnemySlot(waveUnitId, difficultyMult));
+                    else
+                        GD.PrintErr($"EncounterPoolLoader: Unknown unit '{slot.Archetype}' in " +
+                                    $"wave (round {w.Round}) of composition '{comp.Name}'");
+                }
+
+                if (wave.Enemies.Count > 0)
+                    def.Waves.Add(wave);
+                else
+                    GD.PrintErr($"EncounterPoolLoader: wave at round {w.Round} of composition " +
+                                $"'{comp.Name}' resolved to zero units — wave DROPPED.");
+            }
+
+            def.Waves.Sort((a, b) => a.Round.CompareTo(b.Round));
+        }
+
+        if (def.Objective != null || def.Waves.Count > 0)
+        {
+            string kindLabel = def.Objective == null
+                ? CombatObjectiveDef.KindAnnihilate
+                : def.Objective.Kind;
+            int roundsLabel = def.Objective == null ? 0 : def.Objective.Rounds;
+            GD.Print($"[Objective] Composition '{comp.Name}': kind={kindLabel}, " +
+                     $"rounds={roundsLabel}, waves={def.Waves.Count}.");
+        }
     }
 
     /// <summary>

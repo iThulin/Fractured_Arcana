@@ -299,6 +299,7 @@ public partial class CombatManager
         enemy.AttackDamage = def.AttackDamage;
         enemy.BehaviorKey = def.BehaviorKey;
         enemy.BehaviorTags = new List<string>(def.BehaviorTags);
+        enemy.ImbueOnHit = MapRecipe.ParseElement(def.ImbueOnHit);  // "" → None
         enemy.Abilities = def.Abilities;
         enemy.IntentCycle = new List<string>(def.IntentCycle);
         enemy.CycleLoops = def.CycleLoops;
@@ -2066,6 +2067,19 @@ public partial class CombatManager
         // single call site cannot be bypassed by whichever path a given strike took.
         // Queued, not resolved: the drain that follows every strike carries it.
         QueueAbilityTriggers(attacker, "onAttack", LastStrikeVictim);
+
+        // Elemental strike rider (tile_interaction_spec): a tagged attacker leaves
+        // its element on the struck tile, so enemy play writes board terrain the way
+        // a player Elementalist does. LastStrikeVictim is non-null only on a landed
+        // hit (whiffs/self-swings leave it null), so this skips misses for free.
+        if (attacker != null && IsInstanceValid(attacker)
+            && attacker.ImbueOnHit != TileElementType.None
+            && LastStrikeVictim?.CurrentTile != null)
+        {
+            TileEntryReactions.ImbueTile(LastStrikeVictim.CurrentTile, attacker.ImbueOnHit);
+            combatUI?.AppendActionLog(
+                $"{attackerName}'s {noun} leaves {attacker.ImbueOnHit} on the ground.");
+        }
     }
 
     /// <summary>Advance toward a coordinate, spending the WHOLE AP budget one step

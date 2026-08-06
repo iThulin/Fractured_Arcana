@@ -234,6 +234,70 @@ public partial class HexGridManager
         return bestCost.TryGetValue(goal, out int finalCost) ? finalCost : -1;
     }
 
+    /// <summary>Reconstructs the cheapest walkable path from <paramref name="unit"/>'s
+    /// tile to <paramref name="dest"/> as an ordered list of axial coords — START
+    /// EXCLUDED, dest included — or null when unreachable. Same walkability rules as
+    /// <see cref="GetMoveCostTo"/>; added (tile_interaction_spec §2) so the walk
+    /// commit can step each tile through <c>Unit.PlaceOnTile</c> and fire the
+    /// tile-entry verbs on every tile crossed, not just the landing tile.</summary>
+    public List<Vector2I> GetPathTo(Unit unit, TileData dest)
+    {
+        if (unit?.CurrentTile == null || dest == null)
+            return null;
+
+        var start = unit.CurrentTile.Axial;
+        var goal = dest.Axial;
+        if (start == goal)
+            return new List<Vector2I>();
+
+        var bestCost = new Dictionary<Vector2I, int> { [start] = 0 };
+        var cameFrom = new Dictionary<Vector2I, Vector2I>();
+        var frontier = new Queue<(Vector2I coord, int cost)>();
+        frontier.Enqueue((start, 0));
+
+        while (frontier.Count > 0)
+        {
+            var (current, costSoFar) = frontier.Dequeue();
+
+            foreach (var neighbor in GetNeighbors(current))
+            {
+                if (!Tiles.TryGetValue(neighbor, out var tile))
+                    continue;
+                if (!tile.IsWalkable || tile.IsBlocked)
+                    continue;
+                if (!StepAllowed(current, neighbor))
+                    continue;
+                // Occupied tiles block the route (the start and the destination —
+                // already validated CanEnter by the caller — are the exceptions).
+                if (tile.IsOccupied && neighbor != start && neighbor != goal)
+                    continue;
+
+                int stepCost = Mathf.Max(1, tile.MoveCost);
+                int newCost = costSoFar + stepCost;
+
+                if (bestCost.TryGetValue(neighbor, out int oldCost) && oldCost <= newCost)
+                    continue;
+
+                bestCost[neighbor] = newCost;
+                cameFrom[neighbor] = current;
+                frontier.Enqueue((neighbor, newCost));
+            }
+        }
+
+        if (!cameFrom.ContainsKey(goal))
+            return null;
+
+        var path = new List<Vector2I>();
+        var node = goal;
+        while (node != start)
+        {
+            path.Add(node);
+            node = cameFrom[node];
+        }
+        path.Reverse();
+        return path;
+    }
+
     /// <summary>
     /// Returns true if there is a clear line of sight between two axial coords.
     /// Traces the hex line and checks BlocksLineOfSight on each tile crossed.

@@ -13,5 +13,6 @@
   "casterSpell": "ember",
   "colorR": 0.9,
   "colorG": 0.4,
-  "colorB": 0.15
+  "colorB": 0.15,
+  "imbueOnHit": "fire"
 }

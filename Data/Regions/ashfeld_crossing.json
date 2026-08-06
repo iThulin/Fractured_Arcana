@@ -182,6 +182,70 @@
 						"archetype": "Ranger"
 					}
 				]
+			},
+			{
+				"name": "holding_action",
+				"enemies": [
+					{
+						"archetype": "Defender"
+					},
+					{
+						"archetype": "Soldier"
+					}
+				],
+				"waves": [
+					{
+						"round": 3,
+						"enemies": [
+							{
+								"archetype": "downs_lancer"
+							},
+							{
+								"archetype": "Soldier"
+							}
+						],
+						"announce": "The rear guard hears the noise."
+					}
+				]
+			},
+			{
+				"name": "the_signal_fire",
+				"enemies": [
+					{
+						"archetype": "Ranger"
+					},
+					{
+						"archetype": "carrion_hound"
+					}
+				],
+				"objective": {
+					"kind": "survive",
+					"rounds": 6,
+					"description": "Hold the crossing"
+				},
+				"waves": [
+					{
+						"round": 3,
+						"enemies": [
+							{
+								"archetype": "Soldier"
+							}
+						],
+						"announce": "A column crests the bank."
+					},
+					{
+						"round": 5,
+						"enemies": [
+							{
+								"archetype": "manor_shieldsworn"
+							},
+							{
+								"archetype": "downs_lancer"
+							}
+						],
+						"announce": "The Shieldsworn come up the road."
+					}
+				]
 			}
 		],
 		"siege": [

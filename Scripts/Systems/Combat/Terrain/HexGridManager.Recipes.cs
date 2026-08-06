@@ -149,6 +149,10 @@ public partial class HexGridManager : Node3D
                 PaintElementPatch(CoordFromOp(op, "at", _centerCoord), MapRecipe.ParseElement(op.GetStr("element", "arcane")), Roll(op, "radius", 1, 2), op.GetFloat("strength", 1f));
                 break;
 
+            case "leyline":
+                PaintLeyline(CoordFromOp(op, "at", GetRandomCoord()), ResolveDir(op), Roll(op, "length", 6, 10), op.GetFloat("branch", 0.35f));
+                break;
+
             default:
                 GD.PushWarning($"[MapRecipe] Unknown feature '{op.Feature}'.");
                 break;

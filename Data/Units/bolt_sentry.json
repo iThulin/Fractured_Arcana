@@ -15,5 +15,6 @@
   ],
   "colorR": 0.6,
   "colorG": 0.55,
-  "colorB": 0.2
+  "colorB": 0.2,
+  "imbueOnHit": "lightning"
 }

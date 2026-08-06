@@ -67,6 +67,20 @@
 			"phase": "accent",
 			"at": "random",
 			"radius": 2
+		},
+		{
+			"feature": "element_patch",
+			"phase": "accent",
+			"at": "random",
+			"element": "earth",
+			"radius": 1
+		},
+		{
+			"feature": "element_patch",
+			"phase": "accent",
+			"at": "random",
+			"element": "lightning",
+			"radius": 1
 		}
 	]
 }

@@ -672,6 +672,12 @@ public partial class CombatManager : Node3D
         if (combatUI == null)
             return;
 
+        // O-track: the objective line lives in the same banner and has to
+        // survive the deployment handoff, so it re-pushes on every phase
+        // change rather than only at the round boundary. No-ops when the
+        // text has not changed, and when there is no objective at all.
+        RefreshObjectiveBanner();
+
         switch (currentPhase)
         {
             case CombatPhase.Deployment:
@@ -2805,6 +2811,14 @@ public partial class CombatManager : Node3D
 
         roundNumber++;
 
+        // O-track: THE round boundary. Every objective state change (rounds
+        // survived, waves arriving, later breaches) happens exactly here, in
+        // one place, so it is a fact the player can read off the phase banner.
+        // Inert when the encounter carries no objective and no waves.
+        EvaluateObjectiveRoundBoundary();
+        if (currentPhase == CombatPhase.Victory || currentPhase == CombatPhase.Defeat)
+            return;
+
         // U3c: regrowth asks "did it take THRESHOLD damage this round?", so the tally
         // resets as the round turns over — after the enemy phase has read it, before
         // the player can start adding to it again.
@@ -3400,6 +3414,15 @@ public partial class CombatManager : Node3D
         }
         _combatEndDeferLogged = false;
 
+        // O-track: objective outcomes are LATCHED at the round boundary and
+        // declared here, after the trigger deferral above — so "you survived
+        // round 8" cannot beat a Deathburst to the punch any more than
+        // "you killed the last one" can.
+        if (_objectiveDefeat)
+            return DeclareDefeat();
+        if (_objectiveVictory)
+            return DeclareVictory();
+
         bool allEnemiesDead = true;
         bool allPlayersDead = true;
 
@@ -3411,79 +3434,95 @@ public partial class CombatManager : Node3D
             if (u != null && u.Stats.IsAlive)
             { allPlayersDead = false; break; }
 
-        if (allEnemiesDead)
-        {
-            currentPhase = CombatPhase.Victory;
-            RefreshPhaseUI();
-            GD.Print("=== VICTORY ===");
-            combatUI?.AppendActionLog("Victory!");
-            CombatTelemetry.EndFight(true, roundNumber);
-
-            // K2.5 (ruled 2026-07-09): unit HP is the fights — surviving
-            // companions carry their remaining HP into the next fight of
-            // this expedition. (Downed companions were stabilized at 0 in
-            // HandleUnitDeath; the wizard's stand-in is the party pool.)
-            if (PlayerSession.IsOnExpedition && SaveManager.ActiveSave != null)
-            {
-                foreach (var u in playerUnits)
-                {
-                    if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive)
-                        continue;
-                    if (string.IsNullOrEmpty(u.CompanionId))
-                        continue;
-                    if (u.CompanionId == "wizard")
-                    {
-                        // K2.5 symmetry (2026-07-29 playtest): the wizard's
-                        // fight HP carries between battles exactly like the
-                        // companions' — it was resetting to full each fight.
-                        PlayerSession.WizardExpeditionHP = u.Stats.Health;
-                        PlayerSession.WizardExpeditionMaxHP = u.Stats.MaxHealth;
-                        GD.Print($"[ExpeditionHP] {u.DisplayName} leaves the fight at " +
-                                 $"{u.Stats.Health}/{u.Stats.MaxHealth} — carried to the next one.");
-                        continue;
-                    }
-                    var comp = SaveManager.ActiveSave.Companions?.Find(c => c.Id == u.CompanionId);
-                    if (comp == null)
-                        continue;
-                    comp.ExpeditionHP = u.Stats.Health;
-                    GD.Print($"[ExpeditionHP] {comp.Name} leaves the fight at " +
-                             $"{u.Stats.Health}/{u.Stats.MaxHealth} — carried to the next one.");
-                }
-            }
-
-            // Marginalia: the fight is WON — hand the family kill tally to the
-            // router for the victory-gated deed commit (ExpeditionManager.
-            // EmitCombatDeed, or CampusScreen.ConsumeCampusCombatReturn for
-            // campus-launched fights). Debug fights are excluded explicitly —
-            // the router node persists across scenes, so an unconsumed debug
-            // tally would sit armed on it.
-            if (EncounterRouter.Instance != null && !PlayerSession.DebugCombat)
-                EncounterRouter.Instance.SavedCombatFamilyKills =
-                    new Dictionary<string, int>(_marginaliaFightTally);
-
-            EmitSignal(SignalName.CombatCompleted, true);   // ← ADD THIS
-            return true;
-        }
+        // O-track ruling 4: an empty board is only a victory once every
+        // authored wave has actually arrived. Inert on every encounter that
+        // carries no waves, which is every encounter authored before O1.
+        if (allEnemiesDead && !ObjectiveWavesPending)
+            return DeclareVictory();
 
         if (allPlayersDead)
-        {
-            currentPhase = CombatPhase.Defeat;
-            RefreshPhaseUI();
-            GD.Print("=== DEFEAT ===");
-            combatUI?.AppendActionLog("Defeat.");
-            CombatTelemetry.EndFight(false, roundNumber);
-
-            // Marginalia: a lost fight teaches nothing — clear any stale tally
-            // so the next victory cannot inherit it.
-            if (EncounterRouter.Instance != null)
-                EncounterRouter.Instance.SavedCombatFamilyKills =
-                    new Dictionary<string, int>();
-
-            EmitSignal(SignalName.CombatCompleted, false);  // ← ADD THIS
-            return true;
-        }
+            return DeclareDefeat();
 
         return false;
+    }
+
+    /// <summary>The victory tail, lifted verbatim out of CheckCombatEnd so an
+    /// objective win runs the SAME side effects a kill-win does — expedition-HP
+    /// writeback, the Marginalia handoff, telemetry, the CombatCompleted signal.
+    /// Duplicating any of that is how a "held the line" victory quietly stops
+    /// paying out. Only ever called from CheckCombatEnd, which owns the
+    /// already-ended guard and the trigger-settle deferral.</summary>
+    private bool DeclareVictory()
+    {
+        currentPhase = CombatPhase.Victory;
+        RefreshPhaseUI();
+        GD.Print("=== VICTORY ===");
+        combatUI?.AppendActionLog("Victory!");
+        CombatTelemetry.EndFight(true, roundNumber);
+
+        // K2.5 (ruled 2026-07-09): unit HP is the fights — surviving
+        // companions carry their remaining HP into the next fight of
+        // this expedition. (Downed companions were stabilized at 0 in
+        // HandleUnitDeath; the wizard's stand-in is the party pool.)
+        if (PlayerSession.IsOnExpedition && SaveManager.ActiveSave != null)
+        {
+            foreach (var u in playerUnits)
+            {
+                if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive)
+                    continue;
+                if (string.IsNullOrEmpty(u.CompanionId))
+                    continue;
+                if (u.CompanionId == "wizard")
+                {
+                    // K2.5 symmetry (2026-07-29 playtest): the wizard's
+                    // fight HP carries between battles exactly like the
+                    // companions' — it was resetting to full each fight.
+                    PlayerSession.WizardExpeditionHP = u.Stats.Health;
+                    PlayerSession.WizardExpeditionMaxHP = u.Stats.MaxHealth;
+                    GD.Print($"[ExpeditionHP] {u.DisplayName} leaves the fight at " +
+                             $"{u.Stats.Health}/{u.Stats.MaxHealth} — carried to the next one.");
+                    continue;
+                }
+                var comp = SaveManager.ActiveSave.Companions?.Find(c => c.Id == u.CompanionId);
+                if (comp == null)
+                    continue;
+                comp.ExpeditionHP = u.Stats.Health;
+                GD.Print($"[ExpeditionHP] {comp.Name} leaves the fight at " +
+                         $"{u.Stats.Health}/{u.Stats.MaxHealth} — carried to the next one.");
+            }
+        }
+
+        // Marginalia: the fight is WON — hand the family kill tally to the
+        // router for the victory-gated deed commit (ExpeditionManager.
+        // EmitCombatDeed, or CampusScreen.ConsumeCampusCombatReturn for
+        // campus-launched fights). Debug fights are excluded explicitly —
+        // the router node persists across scenes, so an unconsumed debug
+        // tally would sit armed on it.
+        if (EncounterRouter.Instance != null && !PlayerSession.DebugCombat)
+            EncounterRouter.Instance.SavedCombatFamilyKills =
+                new Dictionary<string, int>(_marginaliaFightTally);
+
+        EmitSignal(SignalName.CombatCompleted, true);
+        return true;
+    }
+
+    /// <summary>The defeat tail. See DeclareVictory.</summary>
+    private bool DeclareDefeat()
+    {
+        currentPhase = CombatPhase.Defeat;
+        RefreshPhaseUI();
+        GD.Print("=== DEFEAT ===");
+        combatUI?.AppendActionLog("Defeat.");
+        CombatTelemetry.EndFight(false, roundNumber);
+
+        // Marginalia: a lost fight teaches nothing — clear any stale tally
+        // so the next victory cannot inherit it.
+        if (EncounterRouter.Instance != null)
+            EncounterRouter.Instance.SavedCombatFamilyKills =
+                new Dictionary<string, int>();
+
+        EmitSignal(SignalName.CombatCompleted, false);
+        return true;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -4188,10 +4227,28 @@ public partial class CombatManager : Node3D
         // enemy zone tiles"). Size both zones from the REAL headcounts —
         // the encounter definition rode in on EncounterContextCarrier and
         // the party roster is known — before the spawn plan is built.
+        //
+        // O1 amendment: reinforcement waves land in the SAME enemy zone, so the
+        // zone has to be sized for the opening roster PLUS the largest single
+        // wave. Largest-single, not the sum: the zone only ever hosts one wave's
+        // arrivals at a time, and oversizing it distorts the whole map layout.
         if (EncounterContextCarrier.HasEncounter &&
-            EncounterContextCarrier.Current?.Enemies != null &&
-            EncounterContextCarrier.Current.Enemies.Count > grid.EnemySpawnCount)
-            grid.EnemySpawnCount = EncounterContextCarrier.Current.Enemies.Count;
+            EncounterContextCarrier.Current?.Enemies != null)
+        {
+            int enemyHeadcount = EncounterContextCarrier.Current.Enemies.Count;
+            int largestWave = 0;
+            var carrierWaves = EncounterContextCarrier.Current.Waves;
+            if (carrierWaves != null)
+            {
+                foreach (var w in carrierWaves)
+                {
+                    if (w?.Enemies != null && w.Enemies.Count > largestWave)
+                        largestWave = w.Enemies.Count;
+                }
+            }
+            if (enemyHeadcount + largestWave > grid.EnemySpawnCount)
+                grid.EnemySpawnCount = enemyHeadcount + largestWave;
+        }
         int partyHeadcount = 1 + (CompanionRoster.GetActiveParty()?.Count ?? 0);
         if (partyHeadcount > grid.PlayerSpawnCount)
             grid.PlayerSpawnCount = partyHeadcount;
@@ -4298,6 +4355,11 @@ public partial class CombatManager : Node3D
     /// </summary>
     private void QueueDefaultEncounter()
     {
+        // No definition => no objective and no waves. Explicit rather than
+        // implied: a debug or fallback launch must reset the runtime, not
+        // inherit whatever the previous fight in this process armed.
+        InitObjectiveState(null);
+
         pendingEnemySpawns.Clear();
         _marginaliaFightTally.Clear();
 
@@ -4346,6 +4408,7 @@ public partial class CombatManager : Node3D
     {
         pendingEnemySpawns.Clear();
         _marginaliaFightTally.Clear();
+        InitObjectiveState(def);
 
         foreach (var slot in def.Enemies)
         {
@@ -4987,14 +5050,25 @@ public partial class CombatManager : Node3D
     /// risen units fight identically to deployed ones. Base stats only: the
     /// difficulty mult applies at encounter spawn, not to mid-fight summons
     /// (they're an ability's output, not an encounter slot — ruling logged).</summary>
-    private Unit SpawnRegistryUnit(string unitId, TileData tile, int teamId)
+    private Unit SpawnRegistryUnit(string unitId, TileData tile, int teamId,
+        float difficultyMult = 1.0f, bool isMidFightSummon = true)
     {
         var def = UnitRegistry.Get(unitId);
+
+        // O1: reinforcement waves are ENCOUNTER slots that happen to arrive
+        // late, not summon-seam output — so they take the encounter's
+        // difficulty mult (same softened curve as QueueEncounterFromContext:
+        // sqrt on HP so high mults don't make sponges, linear on damage) and
+        // they COUNT for Marginalia. Both default to the summon behaviour, so
+        // every pre-existing call site is unchanged.
+        float mult = difficultyMult <= 0f ? 1.0f : difficultyMult;
+        int spawnHp = Mathf.RoundToInt(def.MaxHealth * Mathf.Sqrt(mult));
+
         var unit = DummyUnitScene.Instantiate<Unit>();
         unit.IsPlayerControlled = (teamId == 0);
         unit.TeamId = teamId;
-        unit.StartMaxHealth = def.MaxHealth;
-        unit.StartHealth = def.MaxHealth;
+        unit.StartMaxHealth = spawnHp;
+        unit.StartHealth = spawnHp;
         unit.StartBaseSpeed = def.BaseSpeed;
         unit.StartMaxMana = 0;
         unit.StartMana = 0;
@@ -5022,7 +5096,7 @@ public partial class CombatManager : Node3D
         unit.Name = sameKind > 1 ? $"{def.ThreatLabel}_{sameKind}" : def.ThreatLabel;
         unit.DisplayName = unit.Name;
         unit.DefinitionId = def.Id;
-        unit.IsMidFightSummon = true;   // Marginalia: summon-seam kills never count
+        unit.IsMidFightSummon = isMidFightSummon;   // Marginalia: summon-seam kills never count
         unit.BehaviorKey = def.BehaviorKey;
         unit.BehaviorTags = new List<string>(def.BehaviorTags);
         unit.IntentCycle = new List<string>(def.IntentCycle);
@@ -5032,7 +5106,7 @@ public partial class CombatManager : Node3D
         unit.FactionId = def.FactionId;
         unit.CasterSpell = def.CasterSpell;
         unit.AttackRange = def.AttackRange;
-        unit.AttackDamage = def.AttackDamage;
+        unit.AttackDamage = Mathf.RoundToInt(def.AttackDamage * mult);
         unit.SetBodyColor(def.BodyColor);
         unit.RefreshNameLabel();
         unit.RecacheSelfAuras();        // U3c
@@ -5045,7 +5119,7 @@ public partial class CombatManager : Node3D
         State.UnitsInPlay.Add(unit);
 
         GD.Print($"[Summon] Registry unit {def.Id} rises at {tile.Axial} " +
-                 $"(HP:{def.MaxHealth} SPD:{def.BaseSpeed} ARM:{def.Armor}).");
+                 $"(HP:{spawnHp} SPD:{def.BaseSpeed} ARM:{def.Armor} x{mult:0.00}).");
         RefreshEnemyRoster();
         return unit;
     }

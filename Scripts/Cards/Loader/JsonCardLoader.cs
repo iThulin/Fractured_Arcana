@@ -671,7 +671,11 @@ public static partial class CardScriptRegistry
         {
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 3;
             bool enemiesOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
-            return new SelectConeTarget(range, enemiesOnly);
+            // include_tiles wired for tile-counting AoE (tile_interaction_spec §5.2 /
+            // §8.4 Cinder Cone): the selector always supported it, the loader never
+            // passed it — so a cone imbue step silently found no tiles.
+            bool includeTiles = n.TryGetProperty("include_tiles", out var it) && it.GetBoolean();
+            return new SelectConeTarget(range, enemiesOnly, includeTiles);
         });
 
         // Ring selector: { "type": "ring", "radius": n, "include_tiles": bool, "enemies_only": bool }
@@ -711,7 +715,11 @@ public static partial class CardScriptRegistry
         RegisterTargeter("adjacent_to_target", n =>
         {
             bool includeTiles = n.TryGetProperty("include_tiles", out var it) && it.GetBoolean();
-            return new SelectAdjacentToTarget(includeTiles);
+            // enemies_only wired for conduction/AoE-around-target cards
+            // (tile_interaction_spec §8.5f Conductor's Baton, §8.5h Avalanche Verdict):
+            // without it the selector hit friendly adjacent units too.
+            bool enemiesOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
+            return new SelectAdjacentToTarget(includeTiles, enemiesOnly);
         });
 
         // Element tile selector: { "type": "element_tile", "element": "fire", "range": n }

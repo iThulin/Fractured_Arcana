@@ -1,0 +1,66 @@
+{
+	"id": "arcanist_repulsor_ring",
+	"status": "wip",
+	"name": "Repulsor Ring",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Repulsor Ring",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Enemies at exactly 2 from the aim point are pushed 2 outward (collision 3).",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "retarget",
+			"targeting": {
+				"type": "ring",
+				"radius": 2,
+				"enemies_only": true
+			},
+			"do": {
+				"type": "push",
+				"tiles": 2,
+				"collision_damage": 3
+			}
+		}
+	},
+	"bottom": {
+		"name": "Inward Pulse",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 3 shield. Pull enemies within 2 toward you by 1.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "shield",
+					"amount": 3
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "aoe",
+						"radius": 2,
+						"enemies_only": true
+					},
+					"do": {
+						"type": "pull",
+						"tiles": 1
+					}
+				}
+			]
+		}
+	}
+}

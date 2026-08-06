@@ -1,0 +1,65 @@
+{
+	"id": "elementalist_backdraft",
+	"status": "wip",
+	"name": "Backdraft",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Backdraft",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 3 damage. If the target stands on a Fire tile: deal 6 instead and push it 2 (collision 3).",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 5,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "target_on_tile",
+				"tile": "fire"
+			},
+			"then": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 6
+					},
+					{
+						"type": "push",
+						"tiles": 2,
+						"collision_damage": 3
+					}
+				]
+			},
+			"else": {
+				"type": "damage",
+				"amount": 3
+			}
+		}
+	},
+	"bottom": {
+		"name": "Kindle",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Imbue target tile with Fire. It deals 3 to an enemy standing there.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "imbue_tile",
+			"element": "fire",
+			"bonus_damage": 3
+		}
+	}
+}

@@ -505,10 +505,12 @@ public sealed class SelectConeTarget : ITargetSelector
 public sealed class SelectAdjacentToTarget : ITargetSelector
 {
     public bool IncludeTiles;
+    public bool EnemiesOnly;
 
-    public SelectAdjacentToTarget(bool includeTiles = true)
+    public SelectAdjacentToTarget(bool includeTiles = true, bool enemiesOnly = false)
     {
         IncludeTiles = includeTiles;
+        EnemiesOnly = enemiesOnly;
     }
 
     public bool Select(GameState s, Entity caster, out TargetSet targets)
@@ -518,6 +520,9 @@ public sealed class SelectAdjacentToTarget : ITargetSelector
 
         if (!TargetingHelpers.TryGetAim(s, out var center)) return false;
 
+        // Only resolved when a team filter is requested; harmless otherwise.
+        var casterUnit = EnemiesOnly ? TargetingHelpers.FindCasterUnit(s, caster) : null;
+
         foreach (var neighbor in s.Grid.GetNeighbors(center))
         {
             var tile = s.Grid.GetTile(neighbor);
@@ -525,7 +530,9 @@ public sealed class SelectAdjacentToTarget : ITargetSelector
 
             if (IncludeTiles)
                 targets.Items.Add(tile);
-            else if (tile.Occupant != null && tile.Occupant.Stats.IsAlive)
+            else if (tile.Occupant != null && tile.Occupant.Stats.IsAlive
+                     && (!EnemiesOnly
+                         || TargetingHelpers.PassesTeamFilter(tile.Occupant, casterUnit, true)))
                 targets.Items.Add(tile.Occupant);
         }
 

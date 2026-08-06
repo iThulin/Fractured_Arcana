@@ -260,9 +260,15 @@ public sealed class PushDamageEffect : EffectBase
             if (Aimed && obj is TileData)
                 continue;   // the aim tile's occupant is a bystander, not a target
 
+            // Forced movement so tile-entry verbs (Fire Sears, Frost Slides,
+            // Stone Anchors, falling) fire per step (tile_interaction_spec §2.1).
+            var ctx = new MoveContext(s.Grid);
             int pushed = 0;
             for (int i = 0; i < PushTiles; i++)
             {
+                if (ctx.HaltForced || ctx.ForcedTilesRemaining <= 0)
+                    break;
+
                 var current = victim.CurrentTile.Axial;
                 TileData bestTile = null;
 
@@ -292,9 +298,11 @@ public sealed class PushDamageEffect : EffectBase
 
                 if (bestTile != null)
                 {
-                    victim.CurrentTile.ClearOccupant(victim);
-                    victim.PlaceOnTile(bestTile);
+                    ctx.ForcedTilesRemaining--;
+                    victim.PlaceOnTile(bestTile, MovementKind.Forced, ctx);
                     pushed++;
+                    if (ctx.HaltForced) // Stone Anchors caught it, or the cap hit
+                        break;
                 }
                 else
                 {
@@ -352,10 +360,15 @@ public sealed class PullDamageEffect : EffectBase
             if (victim == casterUnit)
                 continue;
 
+            // Forced movement (entry verbs fire per step); pull suppresses falling.
+            var ctx = new MoveContext(s.Grid) { SuppressFalling = true };
             int pulled = 0;
 
             for (int i = 0; i < PullTiles; i++)
             {
+                if (ctx.HaltForced || ctx.ForcedTilesRemaining <= 0)
+                    break;
+
                 var current = victim.CurrentTile.Axial;
 
                 if (s.Grid.Distance(casterPos, current) <= 1)
@@ -380,9 +393,11 @@ public sealed class PullDamageEffect : EffectBase
 
                 if (bestTile != null)
                 {
-                    victim.CurrentTile.ClearOccupant(victim);
-                    victim.PlaceOnTile(bestTile);
+                    ctx.ForcedTilesRemaining--;
+                    victim.PlaceOnTile(bestTile, MovementKind.Forced, ctx);
                     pulled++;
+                    if (ctx.HaltForced) // Stone Anchors caught it, or the cap hit
+                        break;
                 }
                 else
                 {

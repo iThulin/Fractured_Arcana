@@ -1,0 +1,78 @@
+{
+	"id": "elementalist_cinder_cone",
+	"status": "wip",
+	"name": "Cinder Cone",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Cinder Cone",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deal 3 damage to enemies in a cone 3. Imbue the cone's tiles with Fire.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "cone",
+						"range": 3,
+						"enemies_only": true
+					},
+					"do": {
+						"type": "damage",
+						"amount": 3
+					}
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "cone",
+						"range": 3,
+						"enemies_only": false,
+						"include_tiles": true
+					},
+					"do": {
+						"type": "imbue_tile",
+						"element": "fire",
+						"bonus_damage": 0
+					}
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Ash Step",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 2 armor. Gain 2 movement this turn.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "armor",
+					"amount": 2
+				},
+				{
+					"type": "temp_buff",
+					"stat": "movement",
+					"amount": 2,
+					"turns": 1
+				}
+			]
+		}
+	}
+}

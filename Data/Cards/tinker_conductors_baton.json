@@ -1,0 +1,73 @@
+{
+	"id": "tinker_conductors_baton",
+	"status": "wip",
+	"name": "Conductor's Baton",
+	"school": "Tinker",
+	"rarity": "Common",
+	"top": {
+		"name": "Conductor's Baton",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 4 damage. If the target stands on a Storm tile, deal 4 to each enemy adjacent to it.",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 5,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "target_on_tile",
+				"tile": "storm"
+			},
+			"then": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 4
+					},
+					{
+						"type": "retarget",
+						"targeting": {
+							"type": "adjacent_to_target",
+							"enemies_only": true
+						},
+						"do": {
+							"type": "damage",
+							"amount": 4
+						}
+					}
+				]
+			},
+			"else": {
+				"type": "damage",
+				"amount": 4
+			}
+		}
+	},
+	"bottom": {
+		"name": "Shock Coupling",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Push target 1 (collision 2).",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 5,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "push",
+			"tiles": 1,
+			"collision_damage": 2
+		}
+	}
+}

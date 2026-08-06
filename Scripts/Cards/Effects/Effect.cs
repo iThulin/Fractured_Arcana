@@ -800,22 +800,56 @@ public sealed class PushAimedEffect : EffectBase
 		if (dir == Vector2I.Zero)
 		{ s.Log("[PushAimed] the aim tile is the unit's own tile — no direction."); return; }
 
+		var ctx = new MoveContext(s.Grid);
 		int pushed = 0;
 		bool collided = false;
+		Unit collisionUnit = null;
 		for (int i = 0; i < Tiles; i++)
 		{
+			if (ctx.HaltForced || ctx.ForcedTilesRemaining <= 0)
+				break;
 			var next = s.Grid.GetTile(victim.CurrentTile.Axial + dir);
-			if (next == null || !next.CanEnter(victim))
-			{ collided = true; break; }
-			victim.PlaceOnTile(next);
+			bool uphill = next != null && next.Height - victim.CurrentTile.Height >= 2;
+			if (next == null || !next.CanEnter(victim) || uphill)
+			{
+				collided = true;
+				if (next != null && !uphill && next.IsOccupied
+					&& next.Occupant != null && next.Occupant.Stats.IsAlive
+					&& next.Occupant != victim)
+					collisionUnit = next.Occupant;
+				break;
+			}
+			ctx.ForcedTilesRemaining--;
+			victim.PlaceOnTile(next, MovementKind.Forced, ctx);
 			pushed++;
+			if (ctx.HaltForced) // Stone Anchors caught it, or the cap hit
+				break;
 		}
 
 		s.Log($"[PushAimed] {victim.Name} shoved {pushed} tile(s)" +
 			  (collided ? " — blocked." : "."));
 
 		if (collided && CollisionDamage > 0)
+		{
 			victim.ApplyDamage(CollisionDamage);
+			if (collisionUnit != null && collisionUnit.Stats.IsAlive)
+			{
+				// Mutual collision (spec §4.1) + chain shove depth-1 (§4.2) along the aim axis.
+				collisionUnit.ApplyDamage(CollisionDamage);
+				if (!ctx.HaltForced && ctx.ForcedTilesRemaining > 0
+					&& collisionUnit.CurrentTile != null)
+				{
+					var chainNext = s.Grid.GetTile(collisionUnit.CurrentTile.Axial + dir);
+					if (chainNext != null && chainNext.CanEnter(collisionUnit)
+						&& chainNext.Height - collisionUnit.CurrentTile.Height < 2)
+					{
+						ctx.ForcedTilesRemaining--;
+						collisionUnit.PlaceOnTile(chainNext, MovementKind.Forced, ctx);
+						s.Log($"[PushAimed] chain — {collisionUnit.Name} shoved 1 tile further.");
+					}
+				}
+			}
+		}
 		if (Damage > 0)
 			victim.ApplyDamage(Damage);
 	}
@@ -911,38 +945,73 @@ public sealed class PushEffect : EffectBase
 			if (victim == null || victim.CurrentTile == null)
 				continue;
 
+			// Per-victim resolution scope (§2.2): each unit gets its own 10-tile
+			// force budget and once-per-tile reaction guard.
+			var ctx = new MoveContext(s.Grid);
 			int pushed = 0;
 			bool collided = false;
+			Unit collisionUnit = null;
 
 			for (int i = 0; i < Tiles; i++)
 			{
+				if (ctx.HaltForced || ctx.ForcedTilesRemaining <= 0)
+					break;
+
 				var current = victim.CurrentTile.Axial;
+				int currentDist = s.Grid.Distance(casterPos, current);
+				int fromHeight = victim.CurrentTile.Height;
+
 				TileData bestTile = null;
 				int bestDist = -1;
+				Unit outwardBlocker = null;
+				int blockerDist = -1;
 
 				foreach (var neighbor in s.Grid.GetNeighbors(current))
 				{
 					var td = s.Grid.GetTile(neighbor);
-					if (td == null || !td.CanEnter(victim))
+					if (td == null)
 						continue;
 
 					int distFromCaster = s.Grid.Distance(casterPos, neighbor);
-					if (distFromCaster > bestDist)
+					if (distFromCaster <= currentDist)
+						continue; // only tiles farther from the caster
+
+					// Force-moving uphill by ≥2 is illegal (spec §4.3): a cliff, not a lane.
+					bool uphillIllegal = td.Height - fromHeight >= 2;
+
+					if (td.CanEnter(victim) && !uphillIllegal)
 					{
-						bestDist = distFromCaster;
-						bestTile = td;
+						if (distFromCaster > bestDist)
+						{
+							bestDist = distFromCaster;
+							bestTile = td;
+						}
+					}
+					else if (!uphillIllegal && td.IsOccupied
+							 && td.Occupant != null && td.Occupant.Stats.IsAlive
+							 && td.Occupant != victim)
+					{
+						// A living unit blocks the outward path — a collision candidate.
+						if (distFromCaster > blockerDist)
+						{
+							blockerDist = distFromCaster;
+							outwardBlocker = td.Occupant;
+						}
 					}
 				}
 
 				if (bestTile != null)
 				{
-					victim.CurrentTile.ClearOccupant(victim);
-					victim.PlaceOnTile(bestTile);
+					ctx.ForcedTilesRemaining--;
+					victim.PlaceOnTile(bestTile, MovementKind.Forced, ctx);
 					pushed++;
+					if (ctx.HaltForced) // Stone Anchors caught it, or the cap hit
+						break;
 				}
 				else
 				{
 					collided = true;
+					collisionUnit = outwardBlocker;
 					break;
 				}
 			}
@@ -950,12 +1019,59 @@ public sealed class PushEffect : EffectBase
 			if (collided && CollisionDamage > 0)
 			{
 				victim.ApplyDamage(CollisionDamage);
+				if (collisionUnit != null && collisionUnit.Stats.IsAlive)
+				{
+					// Mutual collision (spec §4.1): the unit slammed into takes it too.
+					collisionUnit.ApplyDamage(CollisionDamage);
+					// Chain shove depth-1 (spec §4.2): pass 1 tile of push to the occupant.
+					if (!ctx.HaltForced && ctx.ForcedTilesRemaining > 0)
+						ChainShoveOne(s, casterPos, collisionUnit, ctx);
+				}
 				s.Log($"[Push] {victim.Name} pushed {pushed} tile(s), collided for {CollisionDamage} damage!");
 			}
 			else
 			{
 				s.Log($"[Push] {victim.Name} pushed {pushed} tile(s).");
 			}
+		}
+	}
+
+	/// <summary>Chain shove (tile_interaction_spec §4.2), depth 1: shove a unit one
+	/// tile directly outward from the caster. Shares the MoveContext so the
+	/// occupant's own entry verbs / slide fire, but never triggers a further chain.</summary>
+	private static void ChainShoveOne(GameState s, Vector2I casterPos, Unit occ, MoveContext ctx)
+	{
+		if (occ?.CurrentTile == null)
+			return;
+
+		var current = occ.CurrentTile.Axial;
+		int currentDist = s.Grid.Distance(casterPos, current);
+		int fromHeight = occ.CurrentTile.Height;
+
+		TileData bestTile = null;
+		int bestDist = -1;
+		foreach (var neighbor in s.Grid.GetNeighbors(current))
+		{
+			var td = s.Grid.GetTile(neighbor);
+			if (td == null || !td.CanEnter(occ))
+				continue;
+			int distFromCaster = s.Grid.Distance(casterPos, neighbor);
+			if (distFromCaster <= currentDist)
+				continue;
+			if (td.Height - fromHeight >= 2)
+				continue; // uphill illegal
+			if (distFromCaster > bestDist)
+			{
+				bestDist = distFromCaster;
+				bestTile = td;
+			}
+		}
+
+		if (bestTile != null)
+		{
+			ctx.ForcedTilesRemaining--;
+			occ.PlaceOnTile(bestTile, MovementKind.Forced, ctx);
+			s.Log($"[Push] chain — {occ.Name} shoved 1 tile further.");
 		}
 	}
 }
@@ -995,10 +1111,17 @@ public sealed class PullEffect : EffectBase
 			if (victim == casterUnit)
 				continue;
 
+			// Pull is positioning, not a hazard: suppress falling and keep the
+			// no-collision asymmetry (spec §4). Verbs (Fire Sears, Frost Slides,
+			// Stone Anchors) still apply on the forced entry.
+			var ctx = new MoveContext(s.Grid) { SuppressFalling = true };
 			int pulled = 0;
 
 			for (int i = 0; i < Tiles; i++)
 			{
+				if (ctx.HaltForced || ctx.ForcedTilesRemaining <= 0)
+					break;
+
 				var current = victim.CurrentTile.Axial;
 
 				// Already adjacent to caster — nowhere closer to go
@@ -1024,9 +1147,11 @@ public sealed class PullEffect : EffectBase
 
 				if (bestTile != null)
 				{
-					victim.CurrentTile.ClearOccupant(victim);
-					victim.PlaceOnTile(bestTile);
+					ctx.ForcedTilesRemaining--;
+					victim.PlaceOnTile(bestTile, MovementKind.Forced, ctx);
 					pulled++;
+					if (ctx.HaltForced) // Stone Anchors caught it, or the cap hit
+						break;
 				}
 				else
 				{

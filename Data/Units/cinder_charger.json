@@ -15,5 +15,6 @@
   ],
   "colorR": 0.82,
   "colorG": 0.32,
-  "colorB": 0.12
+  "colorB": 0.12,
+  "imbueOnHit": "fire"
 }

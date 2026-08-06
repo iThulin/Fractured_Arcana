@@ -229,6 +229,12 @@ public partial class Unit : Node3D
     public int AttackRange = 1;   // 1 = melee; >1 = ranged
     public int AttackDamage = 5;   // base damage per attack
 
+    /// <summary>Elemental strike rider (tile_interaction_spec): when non-None, this
+    /// unit's landed attacks imbue the struck tile with this element, so enemy play
+    /// writes board terrain the way a player Elementalist does. Set from
+    /// UnitDefinition.ImbueOnHit at spawn. Applied in CombatManager.ResolveStrike.</summary>
+    public TileElementType ImbueOnHit = TileElementType.None;
+
     /// <summary>Case-insensitive behavior tag test.</summary>
     public bool HasBehaviorTag(string tag)
     {
@@ -507,6 +513,13 @@ public partial class Unit : Node3D
     /// at spawn (HandleUnitStruck).</summary>
     public event Action<Unit, int, Unit> OnStruck;
 
+    /// <summary>Tile-entry bus (tile_interaction_spec §2.1). Fires for EVERY tile a
+    /// unit enters — including each intermediate tile of a push / pull / slide —
+    /// carrying HOW the unit arrived (<see cref="MovementKind"/>). Static because
+    /// Unit holds no GameState reference (same rationale as
+    /// <see cref="AmbientDamageSource"/>); single-combat game.</summary>
+    public static event Action<Unit, TileData, MovementKind> OnUnitEnteredTile;
+
     public override void _Ready()
     {
         // initialize runtime stats from exported values
@@ -574,7 +587,7 @@ public partial class Unit : Node3D
     }
 
 
-    public void PlaceOnTile(TileData tile)
+    public void PlaceOnTile(TileData tile, MovementKind kind = MovementKind.Teleport, MoveContext ctx = null)
     {
         if (tile == null)
             return;
@@ -592,6 +605,29 @@ public partial class Unit : Node3D
         // Fire the callback so effects can react to movement
         if (previousTile != null && previousTile != tile)
             OnTileLeft?.Invoke(previousTile);
+
+        // ── Tile-entry reactions (tile_interaction_spec §2) ──────────────────
+        // Order: element/terrain verb → glyph → statuses (§2.2). A MoveContext
+        // gates each (unit,tile) reaction to once per resolution (kills the
+        // glyph↔push↔glyph ping-pong); a bare entry (ctx == null) always reacts,
+        // so every pre-keystone caller behaves exactly as before.
+        bool firstReaction = ctx == null || ctx.MarkReacted(this, tile);
+        if (!firstReaction)
+        {
+            OnUnitEnteredTile?.Invoke(this, tile, kind);
+            return;
+        }
+
+        // 1. Element / terrain verbs run FIRST.
+        TileEntryReactions.ApplyElementVerbs(this, tile, previousTile, kind, ctx);
+
+        // A verb (Fire Sears, Storm Conducts, falling) may have killed the unit;
+        // a corpse triggers no glyph, status, or trap.
+        if (!Stats.IsAlive || IsDeathQueued)
+        {
+            OnUnitEnteredTile?.Invoke(this, tile, kind);
+            return;
+        }
 
         // Check for glyph
         if (tile?.Glyph != null && !tile.Glyph.Consumed)
@@ -651,6 +687,12 @@ public partial class Unit : Node3D
         // Tinker: one-shot wire traps fire before link-line zaps.
         TrapSystem.OnUnitEntered(this);
         ConduitLinkSystem.OnUnitEntered(this);
+
+        // Public entry bus — every entered tile, any kind (spec §2.1).
+        OnUnitEnteredTile?.Invoke(this, tile, kind);
+
+        // 4. Frost slide continuation, after this tile has fully resolved (spec §3).
+        TileEntryReactions.TrySlide(this, tile, previousTile, kind, ctx);
     }
 
     public bool TryMoveTo(HexGridManager grid, TileData dest)
@@ -671,7 +713,33 @@ public partial class Unit : Node3D
         TrySpendAP(1);
         TilesMovedThisTurn += pathCost;   // Charge rider: distance covered this turn
         Stats.HasActed = true;            // walking is acting — both teams, one seam
-        PlaceOnTile(dest);
+
+        // Walk the path tile-by-tile so tile-entry verbs fire for EVERY tile
+        // crossed, not just the landing tile (rulings 10.2/10.3 — walking sears,
+        // walking onto ice slides). A shared MoveContext carries the §2.2 guards.
+        // If path reconstruction fails, fall back to a single placement so
+        // movement never silently breaks — worst case verbs fire only on the
+        // destination tile.
+        var walkCtx = new MoveContext(grid);
+        var path = grid.GetPathTo(this, dest);
+        if (path != null && path.Count > 0)
+        {
+            foreach (var stepCoord in path)
+            {
+                var step = grid.GetTile(stepCoord);
+                if (step == null || !step.CanEnter(this))
+                    break;
+                PlaceOnTile(step, MovementKind.Walked, walkCtx);
+                // A slide (or other forced diversion) took the unit off-route, or
+                // the walk was halted — the walk ends here.
+                if (CurrentTile != step || walkCtx.HaltForced)
+                    break;
+            }
+        }
+        else
+        {
+            PlaceOnTile(dest, MovementKind.Walked, walkCtx);
+        }
 
         // U3e binding_geas. AFTER PlaceOnTile, so the handler measures the geas
         // radius against where the unit ARRIVED, not where it set off — "damage on
