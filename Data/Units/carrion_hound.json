@@ -11,7 +11,8 @@
   "preferredDistance": 1,
   "behaviorKey": "melee_advance",
   "behaviorTags": [
-    "pack"
+    "pack",
+    "reckless"
   ],
   "colorR": 0.6,
   "colorG": 0.5,

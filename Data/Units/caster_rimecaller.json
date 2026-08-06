@@ -1,0 +1,26 @@
+{
+  "id": "caster_rimecaller",
+  "threatLabel": "Rimecaller",
+  "role": "line",
+  "factionId": "",
+  "intelDescription": "Glazes the ground to ice a round ahead. Step onto it and you slide \u2014 usually into worse.",
+  "maxHealth": 14,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 4,
+  "attackDamage": 4,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "cautious"
+  ],
+  "intentCycle": [
+    "ranged_kite",
+    "imbue"
+  ],
+  "cycleLoops": true,
+  "imbueOnHit": "frost",
+  "colorR": 0.55,
+  "colorG": 0.78,
+  "colorB": 0.95
+}

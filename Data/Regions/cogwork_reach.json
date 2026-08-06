@@ -102,6 +102,34 @@
 		],
 		"battle": [
 			{
+				"name": "forge_sentinels",
+				"enemies": [
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "basalt_spitter"
+					},
+					{
+						"archetype": "bolt_sentry"
+					}
+				]
+			},
+			{
+				"name": "arc_battery",
+				"enemies": [
+					{
+						"archetype": "caster_arclance_savant"
+					},
+					{
+						"archetype": "bolt_sentry"
+					},
+					{
+						"archetype": "cinder_charger"
+					}
+				]
+			},
+			{
 				"name": "forge_crew",
 				"enemies": [
 					{

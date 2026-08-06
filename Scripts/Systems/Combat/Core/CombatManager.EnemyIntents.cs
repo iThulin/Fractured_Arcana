@@ -108,6 +108,8 @@ public enum IntentKind
     Channel,       // turn 1 of the wizard's two-turn blast (locked tile)
     Release,       // turn 2 — the blast lands on the locked tile
     Guard,         // defender reposition + self armor
+    Imbue,         // caster writes its element onto telegraphed ground next turn
+    Shove,         // gust elite force-moves the player along a telegraphed path
     Unknown
 }
 
@@ -129,6 +131,10 @@ public class EnemyIntent
     public int BaseValue;
     /// <summary>Full details visible (value + threat tiles). Kind glyph shows regardless when ShowIntentKindByDefault.</summary>
     public bool Revealed;
+
+    /// <summary>For <see cref="IntentKind.Imbue"/>: the element written onto every
+    /// <see cref="ThreatTiles"/> tile at execution. None for every other kind.</summary>
+    public TileElementType ImbueElement = TileElementType.None;
 }
 
 public partial class CombatManager
@@ -168,6 +174,8 @@ public partial class CombatManager
         IntentKind.Channel => "✦",
         IntentKind.Release => "✸",
         IntentKind.Guard => "◆",
+        IntentKind.Imbue => "◈",
+        IntentKind.Shove => "»",
         _ => "?"
     };
 
@@ -230,6 +238,8 @@ public partial class CombatManager
             { "ranged_charge",           PlanWizard },
             { "melee_hunt_wounded",      PlanStalker },   // units doc §4 'stalker'
             { "hold_ground",             PlanHoldGround }, // U3a: cycle-only wind-up beat
+            { "imbue",                   PlanImbue },      // tile_interaction §7: telegraphed ground imbue
+            { "shove",                   PlanShove },      // tile_interaction §7: telegraphed gust push
         };
 
         // U3a: an authored IntentCycle overrides BehaviorKey for THIS activation.
@@ -333,6 +343,186 @@ public partial class CombatManager
             Value = GuardArmorValue,
             BaseValue = GuardArmorValue
         };
+    }
+
+    /// <summary>tile_interaction §7 (telegraphed imbue intent). A cycle-only beat: the
+    /// caster spends its turn writing ITS element (<see cref="Unit.ImbueOnHit"/>) onto
+    /// the ground under/around the nearest player, telegraphed a full round ahead via
+    /// the normal ThreatTiles pipeline. Imbuing GROUND is telegraph-honest — the tiles
+    /// cannot move between plan and execution the way an attack's victim can, so the
+    /// player sees exactly where the terrain will change and can vacate it (area
+    /// denial) or accept it. A unit with no element cannot imbue, so the beat falls
+    /// back to a ranged plan rather than wasting the activation.
+    ///
+    /// Area is the aim tile + its walkable, non-water neighbours (radius 1). That
+    /// footprint is the primary balance knob for the pack-tuning pass — shrink to the
+    /// centre tile for a precise curse, or promote to a per-unit radius later.</summary>
+    private EnemyIntent PlanImbue(Unit enemy)
+    {
+        var element = enemy.ImbueOnHit;
+        if (element == TileElementType.None)
+            return PlanRanger(enemy);          // nothing to write — act normally
+
+        var target = FindNearestPlayerUnit(enemy);
+        if (target?.CurrentTile == null)
+            return PlanRanger(enemy);
+
+        var center = target.CurrentTile.Axial;
+        var enemyPos = enemy.CurrentTile?.Axial ?? center;
+
+        // Footprint: the aim tile plus the imbuable neighbours NEAREST the caster,
+        // capped small (4 total) so a repeatable cast denies a chokepoint without
+        // carpeting the map — the fix for the 7-tiles-per-cast pile-up seen in
+        // playtest. This cap is the primary balance knob for hazard-layer enemies.
+        const int maxTiles = 4;
+        var area = new List<Vector2I>();
+        if (IsImbuableTile(center))
+            area.Add(center);
+        var neighbours = grid.GetNeighbors(center);
+        neighbours.Sort((a, b) => grid.Distance(enemyPos, a).CompareTo(grid.Distance(enemyPos, b)));
+        foreach (var n in neighbours)
+        {
+            if (area.Count >= maxTiles)
+                break;
+            if (IsImbuableTile(n))
+                area.Add(n);
+        }
+        if (area.Count == 0)
+            return PlanRanger(enemy);           // nowhere writable near the mark
+
+        return new EnemyIntent
+        {
+            Kind = IntentKind.Imbue,
+            TargetUnit = target,
+            TargetTile = center,
+            ThreatTiles = area,
+            ImbueElement = element,
+            Value = 0,
+            BaseValue = 0
+        };
+    }
+
+    /// <summary>A tile the imbue intent may write to: on the board, walkable, unblocked,
+    /// not open water (real map water superseded the Water element — §2 ruling 10.1).</summary>
+    private bool IsImbuableTile(Vector2I coord)
+    {
+        var t = grid.GetTile(coord);
+        return t != null && t.IsWalkable && !t.IsBlocked
+               && t.TerrainType != TileTerrainType.Water;
+    }
+
+    /// <summary>Tiles a gust elite shoves its victim, and how far. The shove itself
+    /// deals no damage — the threat is WHERE you land (fire sear, ice slide, a
+    /// collision, a fall), which the whole tile-interaction stack resolves for free
+    /// because the push runs through Forced PlaceOnTile.</summary>
+    private const int ShoveDistance = 3;
+
+    /// <summary>tile_interaction §7 (telegraphed shover elite). Force-moves the player
+    /// along a telegraphed path, weaponising the board — a gust that throws you onto
+    /// your own fire, across an ice sheet, off a ledge. Locks the victim's tile like an
+    /// attack, so the player DODGES by stepping off it before the enemy turn. Only
+    /// plans when a mark is within reach; otherwise advances to close the gap.</summary>
+    private EnemyIntent PlanShove(Unit enemy)
+    {
+        if (enemy?.CurrentTile == null)
+            return PlanSoldier(enemy);
+        var target = FindNearestPlayerUnit(enemy);
+        if (target?.CurrentTile == null)
+            return PlanSoldier(enemy);
+
+        var shoverPos = enemy.CurrentTile.Axial;
+        int reach = Math.Max(1, enemy.AttackRange);
+        if (grid.Distance(shoverPos, target.CurrentTile.Axial) > reach)
+            return PlanSoldier(enemy);          // out of gust range — close in first
+
+        var path = ResolveShovePath(target, shoverPos, ShoveDistance, apply: false, ctx: null);
+        var threat = new List<Vector2I> { target.CurrentTile.Axial };
+        threat.AddRange(path);
+
+        return new EnemyIntent
+        {
+            Kind = IntentKind.Shove,
+            TargetUnit = target,
+            TargetTile = target.CurrentTile.Axial,   // locked — leave this tile to dodge
+            ThreatTiles = threat,
+            Value = ShoveDistance,
+            BaseValue = ShoveDistance
+        };
+    }
+
+    /// <summary>Predicts (apply=false) or performs (apply=true) a shove: the victim is
+    /// forced one tile at a time to the enterable neighbour FARTHEST from the shover,
+    /// up to <paramref name="distance"/> steps — the same "away from source" rule the
+    /// PushEffect card uses. When applying, each step is a Forced PlaceOnTile through
+    /// <paramref name="ctx"/>, so element verbs / slides / collisions / falls all fire,
+    /// and a Frost slide or Stone anchor can legitimately change the real path.</summary>
+    private List<Vector2I> ResolveShovePath(Unit victim, Vector2I shoverPos, int distance, bool apply, MoveContext ctx)
+    {
+        var path = new List<Vector2I>();
+        if (victim?.CurrentTile == null)
+            return path;
+        var cur = victim.CurrentTile.Axial;
+
+        for (int i = 0; i < distance; i++)
+        {
+            TileData best = null;
+            int bestDist = grid.Distance(shoverPos, cur);
+            foreach (var nb in grid.GetNeighbors(cur))
+            {
+                var td = grid.GetTile(nb);
+                if (td == null || !td.CanEnter(victim))
+                    continue;
+                int d = grid.Distance(shoverPos, nb);
+                if (d > bestDist)
+                {
+                    bestDist = d;
+                    best = td;
+                }
+            }
+            if (best == null)
+                break;                              // wall / edge / crowd — shove stops
+
+            path.Add(best.Axial);
+            if (apply)
+            {
+                victim.PlaceOnTile(best, MovementKind.Forced, ctx);
+                if (ctx != null && ctx.HaltForced)
+                    break;                          // Stone anchor / 10-tile cap
+                cur = victim.CurrentTile.Axial;     // a slide may have carried it further
+            }
+            else
+            {
+                cur = best.Axial;
+            }
+        }
+        return path;
+    }
+
+    private async Task ExecuteShoveIntent(Unit enemy, EnemyIntent intent)
+    {
+        if (!IsValidActor(enemy) || enemy.CurrentTile == null)
+            return;
+
+        // Re-acquire the victim on the LOCKED tile — if they stepped off it, the gust
+        // catches empty ground (the telegraphed dodge).
+        Unit victim = intent.TargetTile.HasValue
+            ? grid.GetTile(intent.TargetTile.Value)?.Occupant : null;
+        if (victim == null || !GodotObject.IsInstanceValid(victim) || !victim.Stats.IsAlive
+            || victim.TeamId == enemy.TeamId)
+        {
+            string miss = $"{enemy.Name}'s gust catches only empty ground.";
+            GD.Print(miss);
+            combatUI?.AppendActionLog(miss);
+            return;
+        }
+
+        var ctx = new MoveContext(grid);
+        var path = ResolveShovePath(victim, enemy.CurrentTile.Axial, ShoveDistance, apply: true, ctx: ctx);
+        string msg = $"{enemy.Name} hurls {victim.Name} {path.Count} tile(s) back.";
+        GD.Print(msg);
+        combatUI?.AppendActionLog(msg);
+        if (path.Count > 0)
+            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
     }
 
     private EnemyIntent PlanSoldier(Unit enemy)
@@ -1304,7 +1494,44 @@ public partial class CombatManager
             case IntentKind.Guard:
                 await ExecuteGuardIntent(enemy, intent);
                 break;
+            case IntentKind.Imbue:
+                await ExecuteImbueIntent(enemy, intent);
+                break;
+            case IntentKind.Shove:
+                await ExecuteShoveIntent(enemy, intent);
+                break;
         }
+    }
+
+    /// <summary>Executes a telegraphed imbue (tile_interaction §7): writes the intent's
+    /// element onto every tile it telegraphed. Imbuing sets terrain only — a unit
+    /// already STANDING on a written tile is not seared on the spot (verbs fire on
+    /// ENTRY; standing fire is the end-of-turn hazard tick), exactly as a player's
+    /// imbue_tile behaves. Re-checks each tile at execution because the board may have
+    /// shifted since planning.</summary>
+    private async Task ExecuteImbueIntent(Unit enemy, EnemyIntent intent)
+    {
+        if (!IsValidActor(enemy))
+            return;
+
+        var element = intent.ImbueElement;
+        if (element == TileElementType.None || intent.ThreatTiles == null)
+            return;
+
+        int count = 0;
+        foreach (var coord in intent.ThreatTiles)
+        {
+            if (!IsImbuableTile(coord))
+                continue;
+            TileEntryReactions.ImbueTile(grid.GetTile(coord), element);
+            count++;
+        }
+
+        string msg = $"{enemy.Name} channels — {count} tile(s) imbued with {element}.";
+        GD.Print(msg);
+        combatUI?.AppendActionLog(msg);
+        if (count > 0)
+            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
     }
 
     // ── Melee: chase the LOCKED TILE, strike whatever stands on it ──────────
@@ -1465,7 +1692,11 @@ public partial class CombatManager
         var baseline = grid.GetFirstStepToward(enemy, goal);
         if (baseline == null)
             return null;
-        if (!enemy.HasBehaviorTag("pack") && !enemy.HasBehaviorTag("scout"))
+        // Consider same-distance alternatives when a tag OR hazard-avoidance could
+        // prefer a different tile. A reckless enemy (caution 0) with no formation tag
+        // falls straight through to the baseline step — it walks into the fire.
+        if (!enemy.HasBehaviorTag("pack") && !enemy.HasBehaviorTag("scout")
+            && enemy.HazardCaution <= 0f)
             return baseline;
 
         int baselineDist = grid.Distance(baseline.Axial, goal);
@@ -1509,6 +1740,18 @@ public partial class CombatManager
             }
             if (!exposed)
                 score += 3;
+        }
+
+        // Hazard avoidance (tile_interaction §7): penalise stepping onto / ending on
+        // an open hazard, scaled by caution. Applied here so BOTH the single-step
+        // chooser's tie-break and ScoreTowardGoal's destination scoring inherit it.
+        // Dominated by the x100 distance term in ScoreTowardGoal, so it only ever
+        // breaks a tie — a hazard never outweighs real progress toward the mark.
+        if (enemy.HazardCaution > 0f)
+        {
+            var t = grid.GetTile(coord);
+            if (t != null && t.IsHazardous)
+                score -= Mathf.RoundToInt(50 * enemy.HazardCaution);
         }
 
         return score;
@@ -2069,16 +2312,20 @@ public partial class CombatManager
         QueueAbilityTriggers(attacker, "onAttack", LastStrikeVictim);
 
         // Elemental strike rider (tile_interaction_spec): a tagged attacker leaves
-        // its element on the struck tile, so enemy play writes board terrain the way
-        // a player Elementalist does. LastStrikeVictim is non-null only on a landed
-        // hit (whiffs/self-swings leave it null), so this skips misses for free.
+        // its element on the ground it STRIKES - hit or miss. A fire spell scorches
+        // where it lands even if the target dodged (Magos), so this is NOT gated on
+        // damaging a unit: imbue the struck victim's tile if there was one, else the
+        // aimed tile (the empty ground the shot hit).
         if (attacker != null && IsInstanceValid(attacker)
-            && attacker.ImbueOnHit != TileElementType.None
-            && LastStrikeVictim?.CurrentTile != null)
+            && attacker.ImbueOnHit != TileElementType.None)
         {
-            TileEntryReactions.ImbueTile(LastStrikeVictim.CurrentTile, attacker.ImbueOnHit);
-            combatUI?.AppendActionLog(
-                $"{attackerName}'s {noun} leaves {attacker.ImbueOnHit} on the ground.");
+            var groundTile = LastStrikeVictim?.CurrentTile ?? grid.GetTile(tile);
+            if (groundTile != null)
+            {
+                TileEntryReactions.ImbueTile(groundTile, attacker.ImbueOnHit);
+                combatUI?.AppendActionLog(
+                    $"{attackerName}'s {noun} leaves {attacker.ImbueOnHit} on the ground.");
+            }
         }
     }
 

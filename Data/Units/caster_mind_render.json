@@ -13,5 +13,8 @@
   "casterSpell": "mind",
   "colorR": 0.85,
   "colorG": 0.8,
-  "colorB": 0.55
+  "colorB": 0.55,
+  "behaviorTags": [
+    "cautious"
+  ]
 }

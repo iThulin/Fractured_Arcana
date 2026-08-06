@@ -100,6 +100,34 @@
 		],
 		"battle": [
 			{
+				"name": "crag_burners",
+				"enemies": [
+					{
+						"archetype": "caster_ember_adept"
+					},
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "caster_pyre_tender"
+					}
+				]
+			},
+			{
+				"name": "stoneward_line",
+				"enemies": [
+					{
+						"archetype": "basalt_sentinel"
+					},
+					{
+						"archetype": "basalt_spitter"
+					},
+					{
+						"archetype": "bolt_sentry"
+					}
+				]
+			},
+			{
 				"name": "forge_watch",
 				"enemies": [
 					{
@@ -185,6 +213,23 @@
 			}
 		],
 		"siege": [
+			{
+				"name": "cragfall_ambush",
+				"enemies": [
+					{
+						"archetype": "caster_ember_adept"
+					},
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "gale_caller"
+					},
+					{
+						"archetype": "basalt_sentinel"
+					}
+				]
+			},
 			{
 				"name": "pass_blockade",
 				"enemies": [

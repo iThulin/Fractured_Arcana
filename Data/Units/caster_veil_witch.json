@@ -13,5 +13,8 @@
   "casterSpell": "geas",
   "colorR": 0.8,
   "colorG": 0.35,
-  "colorB": 0.6
+  "colorB": 0.6,
+  "behaviorTags": [
+    "cautious"
+  ]
 }

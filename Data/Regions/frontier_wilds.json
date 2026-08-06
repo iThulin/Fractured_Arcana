@@ -109,6 +109,20 @@
 		],
 		"battle": [
 			{
+				"name": "wildfire_cell",
+				"enemies": [
+					{
+						"archetype": "caster_ember_adept"
+					},
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "caster_pyre_tender"
+					}
+				]
+			},
+			{
 				"name": "grove_caller",
 				"enemies": [
 					{

@@ -2409,6 +2409,12 @@ public partial class CombatManager : Node3D
         {
             if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
                 continue;
+            // Constructs activate autonomously — the player cannot "un-idle" them, so
+            // warning that a construct hasn't acted nags about a condition they cannot
+            // mechanically control (exactly the click-through trap this gate's own doc
+            // above warns against).
+            if (unit.IsConstruct)
+                continue;
             if (!unit.Stats.HasActed && IsReadyToAct(unit))
                 idle.Add(unit);
         }
@@ -4554,6 +4560,7 @@ public partial class CombatManager : Node3D
             unit.DefinitionId = p.Def.Id;
             unit.BehaviorKey = p.Def.BehaviorKey;
             unit.BehaviorTags = new List<string>(p.Def.BehaviorTags);
+            unit.ImbueOnHit = MapRecipe.ParseElement(p.Def.ImbueOnHit);
             unit.IntentCycle = new List<string>(p.Def.IntentCycle);
             unit.CycleLoops = p.Def.CycleLoops;
             unit.Abilities = p.Def.Abilities;   // defs are stateless — share, don't copy
@@ -5099,6 +5106,7 @@ public partial class CombatManager : Node3D
         unit.IsMidFightSummon = isMidFightSummon;   // Marginalia: summon-seam kills never count
         unit.BehaviorKey = def.BehaviorKey;
         unit.BehaviorTags = new List<string>(def.BehaviorTags);
+        unit.ImbueOnHit = MapRecipe.ParseElement(def.ImbueOnHit);
         unit.IntentCycle = new List<string>(def.IntentCycle);
         unit.CycleLoops = def.CycleLoops;
         unit.Abilities = def.Abilities;

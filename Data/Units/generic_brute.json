@@ -1,8 +1,17 @@
 {
   "id": "generic_brute",
   "threatLabel": "Brute",
-  "maxHealth": 40, "baseSpeed": 1, "armor": 0,
-  "attackRange": 1, "attackDamage": 8, "preferredDistance": 1,
+  "maxHealth": 40,
+  "baseSpeed": 1,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 8,
+  "preferredDistance": 1,
   "behaviorKey": "melee_target_highest_hp",
-  "colorR": 0.8, "colorG": 0.2, "colorB": 0.9
+  "colorR": 0.8,
+  "colorG": 0.2,
+  "colorB": 0.9,
+  "behaviorTags": [
+    "reckless"
+  ]
 }

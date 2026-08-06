@@ -100,6 +100,20 @@
 		],
 		"battle": [
 			{
+				"name": "ashfall_coven",
+				"enemies": [
+					{
+						"archetype": "caster_ember_adept"
+					},
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "caster_pyre_tender"
+					}
+				]
+			},
+			{
 				"name": "ember_battery",
 				"enemies": [
 					{
@@ -185,6 +199,23 @@
 			}
 		],
 		"siege": [
+			{
+				"name": "obsidian_pyre",
+				"enemies": [
+					{
+						"archetype": "caster_ember_adept"
+					},
+					{
+						"archetype": "caster_forge_warden"
+					},
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "gale_caller"
+					}
+				]
+			},
 			{
 				"name": "obsidian_bastion",
 				"enemies": [

@@ -199,6 +199,23 @@
 		],
 		"siege": [
 			{
+				"name": "convergence_pyre",
+				"enemies": [
+					{
+						"archetype": "caster_ember_adept"
+					},
+					{
+						"archetype": "caster_pyre_tender"
+					},
+					{
+						"archetype": "gale_caller"
+					},
+					{
+						"archetype": "cinder_charger"
+					}
+				]
+			},
+			{
 				"name": "everywar_host",
 				"enemies": [
 					{

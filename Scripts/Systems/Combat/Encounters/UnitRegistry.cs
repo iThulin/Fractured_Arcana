@@ -187,6 +187,10 @@ public static class UnitRegistry
         {
             "melee_advance", "melee_target_highest_hp", "hold_until_near",
             "ranged_kite", "ranged_charge", "melee_hunt_wounded",
+            // tile_interaction §7: gust elite. Telegraphed, dodgeable, deals no direct
+            // damage — its threat is force-moving the player onto hazards. Legal as a
+            // BehaviorKey (shoves as its whole identity) or a cycle beat.
+            "shove",
         };
         // U3a: keys legal ONLY inside an IntentCycle. hold_ground braces and never
         // advances, so a unit whose base routine were hold_ground would stand still
@@ -194,10 +198,18 @@ public static class UnitRegistry
         var cycleOnlyKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "hold_ground",
+            // tile_interaction §7: telegraphed ground imbue. Cycle-only on purpose —
+            // an imbue-every-turn personality is degenerate hazard spam, so it must be
+            // composed into a rotation with a real advancing beat (a looping cycle of
+            // only non-advancing beats is rejected below). At runtime Imbue advances
+            // the index normally (its Kind != Channel).
+            "imbue",
         };
         var knownTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "pack", "bulwark", "charge", "scout", "immobile",
+            // tile_interaction §7 hazard-avoidance temperament (read by Unit.HazardCaution):
+            "reckless", "cautious",
         };
         // U3: ability audit — keys against the trigger-bus handler map, triggers
         // against the bounded taxonomy (units doc §5), hard cap two per unit.

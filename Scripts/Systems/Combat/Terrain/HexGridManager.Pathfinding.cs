@@ -6,6 +6,32 @@ using System.Collections.Generic;
 // Partial of HexGridManager. Split out for navigability; behaviour-neutral.
 public partial class HexGridManager
 {
+    /// <summary>Base extra move-cost of entering an open hazard tile, before the
+    /// unit's <see cref="Unit.HazardCaution"/> multiplier. Tuned so a Normal enemy
+    /// (caution 1 → +4) detours around a single fire tile whenever the detour costs
+    /// 4 or fewer extra move points, and eats it otherwise (battlefield §6.2).</summary>
+    public const int HazardStepCost = 4;
+
+    /// <summary>Open, VISIBLE hazards an enemy can see and route around: fire, lava,
+    /// scorched ground. Deliberately NOT glyphs — hidden traps are unavoidable by
+    /// design (see <see cref="Unit.HazardCaution"/>).</summary>
+    private static bool IsPathHazard(TileData tile) => tile != null && tile.IsHazardous;
+
+    /// <summary>Extra pathfinding cost <paramref name="unit"/> pays to ENTER
+    /// <paramref name="tile"/> because it is an open hazard, scaled by the unit's
+    /// avoidance. Returns 0 for players, reckless enemies, and non-hazard tiles, so
+    /// every cost loop below is a no-op for anyone who does not avoid hazards — player
+    /// movement range and highlights are byte-for-byte unchanged.</summary>
+    private int HazardPenalty(Unit unit, TileData tile)
+    {
+        if (unit == null || !IsPathHazard(tile))
+            return 0;
+        float caution = unit.HazardCaution;
+        if (caution <= 0f)
+            return 0;
+        return Mathf.RoundToInt(HazardStepCost * caution);
+    }
+
     /// <summary>True when the height gap between two tiles exceeds the cliff threshold.</summary>
     public bool IsCliff(TileData a, TileData b) =>
         a != null && b != null && Math.Abs(a.Height - b.Height) > CliffHeightThreshold;
@@ -51,7 +77,7 @@ public partial class HexGridManager
                 if (!traversable)
                     continue;
 
-                int stepCost = Mathf.Max(1, tile.MoveCost);
+                int stepCost = Mathf.Max(1, tile.MoveCost) + HazardPenalty(unit, tile);
                 int newCost = costUsed + stepCost;
                 if (newCost > budget)
                     continue;
@@ -108,7 +134,7 @@ public partial class HexGridManager
                 if (!traversable)
                     continue;
 
-                int stepCost = Mathf.Max(1, tile.MoveCost);
+                int stepCost = Mathf.Max(1, tile.MoveCost) + HazardPenalty(unit, tile);
                 int newCost = costSoFar + stepCost;
 
                 if (newCost > maxMove)
@@ -161,7 +187,7 @@ public partial class HexGridManager
                 if (!traversable)
                     continue;
 
-                int stepCost = Mathf.Max(1, tile.MoveCost);
+                int stepCost = Mathf.Max(1, tile.MoveCost) + HazardPenalty(unit, tile);
                 int newCost = costSoFar + stepCost;
                 if (newCost > budget)
                     continue;
@@ -216,7 +242,7 @@ public partial class HexGridManager
                 if (tile.IsOccupied && neighbor != start)
                     continue;
 
-                int stepCost = Mathf.Max(1, tile.MoveCost);
+                int stepCost = Mathf.Max(1, tile.MoveCost) + HazardPenalty(unit, tile);
                 int newCost = costSoFar + stepCost;
 
                 if (bestCost.TryGetValue(neighbor, out int oldCost) && oldCost <= newCost)
@@ -272,7 +298,7 @@ public partial class HexGridManager
                 if (tile.IsOccupied && neighbor != start && neighbor != goal)
                     continue;
 
-                int stepCost = Mathf.Max(1, tile.MoveCost);
+                int stepCost = Mathf.Max(1, tile.MoveCost) + HazardPenalty(unit, tile);
                 int newCost = costSoFar + stepCost;
 
                 if (bestCost.TryGetValue(neighbor, out int oldCost) && oldCost <= newCost)

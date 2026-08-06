@@ -11,7 +11,8 @@
   "preferredDistance": 1,
   "behaviorKey": "melee_advance",
   "behaviorTags": [
-    "charge"
+    "charge",
+    "reckless"
   ],
   "colorR": 0.45,
   "colorG": 0.3,

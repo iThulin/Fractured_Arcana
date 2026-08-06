@@ -55,6 +55,17 @@
 	"encounterPools": {
 		"skirmish": [
 			{
+				"name": "scorched_scouts",
+				"enemies": [
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "caster_pyre_tender"
+					}
+				]
+			},
+			{
 				"name": "dust_scavengers",
 				"enemies": [
 					{
@@ -89,6 +100,20 @@
 			}
 		],
 		"battle": [
+			{
+				"name": "kiln_raiders",
+				"enemies": [
+					{
+						"archetype": "caster_ember_adept"
+					},
+					{
+						"archetype": "cinder_charger"
+					},
+					{
+						"archetype": "caster_pyre_tender"
+					}
+				]
+			},
 			{
 				"name": "forge_caravan",
 				"enemies": [

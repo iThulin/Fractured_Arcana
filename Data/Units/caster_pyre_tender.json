@@ -1,0 +1,26 @@
+{
+  "id": "caster_pyre_tender",
+  "threatLabel": "Pyre Tender",
+  "role": "line",
+  "factionId": "",
+  "intelDescription": "It does not close and it does not blast. It tends the ground \u2014 laying fire where you stand and waiting for you to be forced back onto it.",
+  "maxHealth": 14,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 4,
+  "attackDamage": 4,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "cautious"
+  ],
+  "intentCycle": [
+    "ranged_kite",
+    "imbue"
+  ],
+  "cycleLoops": true,
+  "imbueOnHit": "fire",
+  "colorR": 0.85,
+  "colorG": 0.35,
+  "colorB": 0.12
+}

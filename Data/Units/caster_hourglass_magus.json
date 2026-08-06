@@ -2,7 +2,7 @@
   "id": "caster_hourglass_magus",
   "threatLabel": "Hourglass Magus",
   "role": "line",
-  "intelDescription": "Bends time around its blast — whoever it hits is dragged to half speed for two turns. Break its aim early.",
+  "intelDescription": "Bends time around its blast \u2014 whoever it hits is dragged to half speed for two turns. Break its aim early.",
   "maxHealth": 12,
   "baseSpeed": 1,
   "armor": 0,
@@ -13,5 +13,8 @@
   "casterSpell": "chrono",
   "colorR": 0.55,
   "colorG": 0.6,
-  "colorB": 0.85
+  "colorB": 0.85,
+  "behaviorTags": [
+    "cautious"
+  ]
 }

@@ -244,6 +244,33 @@ public partial class Unit : Node3D
         return false;
     }
 
+    /// <summary>Hazard-avoidance weight for enemy pathfinding (tile_interaction §7 /
+    /// battlefield §6.2). Multiplies the hazard step-cost a unit pays to path THROUGH
+    /// or END on an open hazard (fire/lava/scorched — <see cref="TileData.IsHazardous"/>).
+    /// 0 = ignores hazards entirely (walks straight through).
+    ///
+    /// - Player-controlled units: always 0. The player decides to eat a hazard; the
+    ///   movement-range highlight must never lie by routing them around it.
+    /// - Enemy `reckless` tag: 0 — the generically aggressive / dumb bodies that
+    ///   charge onto traps and fire. These are the Enchanter's and Elementalist's food.
+    /// - Enemy `cautious` tag: 2 — smart casters/kiters that strongly avoid.
+    /// - Default (untagged enemy): 1 — most enemies route around hazards when a
+    ///   same-distance clean step exists, but never trade PROGRESS to do it.
+    ///
+    /// NOTE: this deliberately does NOT consider glyphs. Enchanter traps (often
+    /// <see cref="GlyphData.Invisible"/>) are hidden magic no enemy can path around,
+    /// so a trap deck always finds targets regardless of avoidance.</summary>
+    public float HazardCaution
+    {
+        get
+        {
+            if (IsPlayerControlled) return 0f;
+            if (HasBehaviorTag("reckless")) return 0f;
+            if (HasBehaviorTag("cautious")) return 2f;
+            return 1f;
+        }
+    }
+
     // ── Martial companion fields ─────────────────────────────────────────────
     public bool IsMartial = false;
     public MartialClass MartialClass = MartialClass.None;

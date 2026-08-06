@@ -58,6 +58,17 @@
 	"encounterPools": {
 		"skirmish": [
 			{
+				"name": "frozen_pair",
+				"enemies": [
+					{
+						"archetype": "frost_stalker"
+					},
+					{
+						"archetype": "frost_tusk"
+					}
+				]
+			},
+			{
 				"name": "frost_outriders",
 				"enemies": [
 					{
@@ -92,6 +103,20 @@
 			}
 		],
 		"battle": [
+			{
+				"name": "rime_court",
+				"enemies": [
+					{
+						"archetype": "caster_rimecaller"
+					},
+					{
+						"archetype": "frost_tusk"
+					},
+					{
+						"archetype": "frost_stalker"
+					}
+				]
+			},
 			{
 				"name": "time_stilled_cabal",
 				"enemies": [
@@ -178,6 +203,23 @@
 			}
 		],
 		"siege": [
+			{
+				"name": "glacier_hunt",
+				"enemies": [
+					{
+						"archetype": "caster_rimecaller"
+					},
+					{
+						"archetype": "frost_tusk"
+					},
+					{
+						"archetype": "frost_stalker"
+					},
+					{
+						"archetype": "gale_caller"
+					}
+				]
+			},
 			{
 				"name": "steppe_horde",
 				"enemies": [
