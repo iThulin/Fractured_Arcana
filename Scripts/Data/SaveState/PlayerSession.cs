@@ -166,6 +166,16 @@ public static class PlayerSession
     /// <summary>Window radius for the next expedition (0 = use ExpeditionManager default).</summary>
     public static int ExpeditionWindowRadius = 0;
 
+    /// <summary>Player-facing view preference: when true, an expedition run opens
+    /// directly into the 3D expedition-window view and the in-run 2D/3D toggle
+    /// starts in 3D. NOT debug-gated — a real setting that persists for the
+    /// session. Because this is a static scratchpad it survives the scene change
+    /// into the overworld and across combat returns, so the choice made by the
+    /// HUD toggle carries to the next deploy. Read at run start in
+    /// ExpeditionManager._Ready; flipped by the HUD toggle. Default 2D.
+    /// Deliberately NOT reset in ClearRunState — a view preference, not run state.</summary>
+    public static bool ExpeditionView3D = false;
+
     /// <summary>Set true when the Grand Conjunction ends a cycle. The campus reads
     /// this on entry and begins the next cycle (with school reselection) instead of
     /// resuming the dead one. Reset to false once the new cycle is begun.</summary>

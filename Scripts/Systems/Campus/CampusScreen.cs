@@ -96,6 +96,13 @@ public partial class CampusScreen : Control
     // Expedition tab
     private readonly CampusExpeditionPanel _expeditionPanel = new();
 
+    /// <summary>Atlas tab — the 3D world-map prototype, compared side by side with the
+    /// 2D strategic scene. Lazy: builds its world on first show, not at campus boot.</summary>
+    private readonly CampusAtlasPanel _atlasPanel = new();
+
+    /// <summary>Window tab — the 3D expedition-window walk prototype. Lazy like Atlas.</summary>
+    private readonly CampusWindowPanel _windowPanel = new();
+
     /// <summary>S4: the Scriptorium's scroll-crafting rows (Expedition tab).</summary>
 
     private static readonly Dictionary<CardSchool, string> SchoolDescriptions = new()
@@ -202,7 +209,7 @@ public partial class CampusScreen : Control
         tabBar.AddThemeConstantOverride("separation", 0);
         AddChild(tabBar);
 
-        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council" };
+        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Atlas", "Window" };
         // CampusPanelId's values ARE these indices — the map routes by enum, the bar routes
         // by index, and nothing else ties them together. Reordering one without the other
         // would silently send every building on the campus to the wrong room.
@@ -294,6 +301,8 @@ public partial class CampusScreen : Control
         _recordsPanel.Build((ScrollContainer)_tabPanels[6], _ctx);
         _questsPanel.Build((ScrollContainer)_tabPanels[7], _ctx);
         _councilTab.Build((ScrollContainer)_tabPanels[8], _ctx);
+        _atlasPanel.Build((ScrollContainer)_tabPanels[9], _ctx);
+        _windowPanel.Build((ScrollContainer)_tabPanels[10], _ctx);
 
         // Layered last — see the construction note above.
         AddChild(_campusNarrativePanel);
@@ -374,6 +383,15 @@ public partial class CampusScreen : Control
                 break;
             case 8:
                 _councilTab.Refresh();
+                break;
+            case 9:
+                // Atlas builds/refreshes its world only when actually shown — see
+                // CampusAtlasPanel.Refresh's visibility guard.
+                _atlasPanel.Refresh();
+                break;
+            case 10:
+                // Window builds its walkable expedition view on first show.
+                _windowPanel.Refresh();
                 break;
         }
     }

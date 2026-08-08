@@ -58,6 +58,26 @@ public partial class OverworldSpellManager : Node2D
 
     private ExpeditionManager _expedition;
     private OverworldHexGrid _grid;
+
+    // ── Step 4b (convergence spec): injected queries + fog write seam ────
+    // Spell rules read DATA through these (wired by ExpeditionManager at
+    // creation); null falls back to node reads. FogWrite is load-bearing, not
+    // hygiene: the attunement senses used to write hex.Fog directly, which
+    // after Step 1 bypassed the fog MODEL — the next UpdateVision pass would
+    // stomp a sense's silhouette back to Hidden. Routing writes through the
+    // seam (model + mirror) fixes that regression.
+
+    /// <summary>World tile at a grid-local coord, or null off-world.</summary>
+    public System.Func<Vector2I, WorldTile?> TileQuery;
+
+    /// <summary>Fog at a grid-local coord (the ExpeditionFogModel).</summary>
+    public System.Func<Vector2I, OverworldHex.FogState> FogQuery;
+
+    /// <summary>Effective overlay at a grid-local coord (the WindowOverlayModel).</summary>
+    public System.Func<Vector2I, TileOverlay> OverlayQuery;
+
+    /// <summary>Write fog through FogOfWarManager.SetFog (model first, mirror second).</summary>
+    public System.Action<Vector2I, OverworldHex.FogState> FogWrite;
     private GrimoireState _grimoire;
     private string _school = "";
 
@@ -287,8 +307,81 @@ public partial class OverworldSpellManager : Node2D
     }
 
     private bool OnRuins()
-        => _grid.Hexes.TryGetValue(_expedition.PartyLocal, out var h) &&
-           h.Terrain == OverworldHex.TerrainType.Ruins;
+    {
+        if (TileQuery != null)
+        {
+            var t = TileQuery(_expedition.PartyLocal);
+            return t.HasValue && t.Value.Terrain == OverworldHex.TerrainType.Ruins;
+        }
+        return _grid.Hexes.TryGetValue(_expedition.PartyLocal, out var h) &&
+               h.Terrain == OverworldHex.TerrainType.Ruins;
+    }
+
+    // ── Step 4b: data-first tile predicates (node fallback) ──────────────
+
+    /// <summary>Terrain at a grid-local coord: world when wired, node otherwise,
+    /// Grassland if neither knows it.</summary>
+    private OverworldHex.TerrainType TerrainOf(Vector2I coord, OverworldHex node)
+    {
+        if (TileQuery != null)
+        {
+            var t = TileQuery(coord);
+            return t.HasValue ? t.Value.Terrain : OverworldHex.TerrainType.Grassland;
+        }
+        return node?.Terrain ?? OverworldHex.TerrainType.Grassland;
+    }
+
+    /// <summary>Force Path target test: adjacent impassable ground (water/mountain).</summary>
+    private bool ImpassableAt(Vector2I coord, OverworldHex node)
+    {
+        if (TileQuery != null)
+        {
+            var t = TileQuery(coord);
+            return t.HasValue &&
+                   (t.Value.IsWater || t.Value.Terrain == OverworldHex.TerrainType.Mountain);
+        }
+        return node != null &&
+               (node.IsWater || node.Terrain == OverworldHex.TerrainType.Mountain);
+    }
+
+    /// <summary>Thornwall target test: walkable land.</summary>
+    private bool LandAt(Vector2I coord, OverworldHex node)
+    {
+        if (TileQuery != null)
+        {
+            var t = TileQuery(coord);
+            return t.HasValue && t.Value.IsLand;
+        }
+        return node != null && node.IsLand;
+    }
+
+    /// <summary>Fog at a grid-local coord: model when wired, node mirror otherwise.</summary>
+    private OverworldHex.FogState FogOf(Vector2I coord, OverworldHex node)
+        => FogQuery != null ? FogQuery(coord)
+         : node != null ? node.Fog
+         : OverworldHex.FogState.Hidden;
+
+    /// <summary>Effective POI at a grid-local coord: overlay model when wired,
+    /// node mirror otherwise.</summary>
+    private TileOverlay OverlayOf(Vector2I coord, OverworldHex node)
+        => OverlayQuery != null ? OverlayQuery(coord)
+         : node != null ? new TileOverlay { Poi = node.POI, Consumed = node.POIConsumed }
+         : TileOverlay.None;
+
+    /// <summary>Write fog through the model seam when wired (so it survives the next
+    /// UpdateVision), else straight to the node mirror as isolation fallback.</summary>
+    private void SetFogAt(Vector2I coord, OverworldHex node, OverworldHex.FogState state)
+    {
+        if (FogWrite != null)
+        {
+            FogWrite(coord, state);
+        }
+        else if (node != null)
+        {
+            node.Fog = state;
+            node.RefreshVisuals();
+        }
+    }
 
     /// <summary>Null when castable; otherwise the human-readable reason the
     /// Grimoire panel shows (and disables the button with).</summary>
@@ -527,8 +620,7 @@ public partial class OverworldSpellManager : Node2D
                 case "force_path":
                     // Adjacent impassable ground (rockfall/water) — never the
                     // party's own tile.
-                    if (dist == 1 &&
-                        (kvp.Value.IsWater || kvp.Value.Terrain == OverworldHex.TerrainType.Mountain))
+                    if (dist == 1 && ImpassableAt(coord, kvp.Value))
                         into.Add(coord);
                     break;
 
@@ -548,7 +640,7 @@ public partial class OverworldSpellManager : Node2D
 
                 case "thornwall":
                     // Adjacent land the wall can take root in.
-                    if (dist == 1 && kvp.Value.IsLand)
+                    if (dist == 1 && LandAt(coord, kvp.Value))
                         into.Add(coord);
                     break;
 
@@ -570,10 +662,15 @@ public partial class OverworldSpellManager : Node2D
                     // S4 (§7b): a VISIBLE, unconsumed combat site (Prison
                     // gaols route through the same scout report). Revealed
                     // only — a silhouette shows terrain, never its POI (G2).
-                    if (kvp.Value.Fog == OverworldHex.FogState.Revealed &&
-                        !kvp.Value.POIConsumed &&
-                        (kvp.Value.POI == OverworldHex.POIType.Combat ||
-                         kvp.Value.POI == OverworldHex.POIType.Prison))
+                    // Step 4b: fog + POI from the models.
+                    var idFog = FogQuery != null ? FogQuery(coord) : kvp.Value.Fog;
+                    var idPoi = OverlayQuery != null
+                        ? OverlayQuery(coord)
+                        : new TileOverlay { Poi = kvp.Value.POI, Consumed = kvp.Value.POIConsumed };
+                    if (idFog == OverworldHex.FogState.Revealed &&
+                        !idPoi.Consumed &&
+                        (idPoi.Poi == OverworldHex.POIType.Combat ||
+                         idPoi.Poi == OverworldHex.POIType.Prison))
                         into.Add(coord);
                     break;
             }
@@ -895,8 +992,11 @@ public partial class OverworldSpellManager : Node2D
                 string taught = "";
                 if (GD.Randf() < SpellAcquisition.SpeakFallenDropChance)
                 {
-                    var terr = _grid.Hexes.TryGetValue(_expedition.PartyLocal, out var sfHex)
-                        ? sfHex.Terrain : OverworldHex.TerrainType.Ruins;
+                    // Step 4b: terrain from the world (Ruins fallback preserved).
+                    var terr = TileQuery != null && TileQuery(_expedition.PartyLocal) is { } sfTile
+                        ? sfTile.Terrain
+                        : (_grid.Hexes.TryGetValue(_expedition.PartyLocal, out var sfHex)
+                            ? sfHex.Terrain : OverworldHex.TerrainType.Ruins);
                     string learned = SpellAcquisition.RollUnknownLearnable(_grimoire, terr);
                     if (learned != "" && SpellAcquisition.Learn(_grimoire, learned))
                         taught = $"; the dead also yield the working of " +
@@ -1004,8 +1104,10 @@ public partial class OverworldSpellManager : Node2D
             {
                 // §5 sanctioned conversion: 1 step → 2 Essence, on Arcane
                 // Ground only. The inverse is forbidden (G1).
-                if (!_grid.Hexes.TryGetValue(_expedition.PartyLocal, out var hx) ||
-                    hx.Terrain != OverworldHex.TerrainType.ArcaneGround)
+                // Step 4b: party-tile terrain from the world.
+                _grid.Hexes.TryGetValue(_expedition.PartyLocal, out var ltHex);
+                if (TerrainOf(_expedition.PartyLocal, ltHex)
+                    != OverworldHex.TerrainType.ArcaneGround)
                 { _expedition.SpellInfo("Ley Tap: must stand on Arcane Ground."); return null; }
                 if (_expedition.StepsRemaining < 1)
                 { _expedition.SpellInfo("Ley Tap: no steps left to tap."); return null; }
@@ -1071,19 +1173,20 @@ public partial class OverworldSpellManager : Node2D
                 int radius = (int)att.Param("radius", 3);
                 foreach (var kvp in _grid.Hexes)
                 {
-                    if (kvp.Value.Fog != OverworldHex.FogState.Hidden)
+                    // Step 4b: fog + terrain from the models; writes via FogWrite
+                    // (model first) so UpdateVision can't stomp the silhouette.
+                    if (FogOf(kvp.Key, kvp.Value) != OverworldHex.FogState.Hidden)
                         continue;
                     if (_grid.Distance(partyLocal, kvp.Key) > radius)
                         continue;
-                    var t = kvp.Value.Terrain;
+                    var t = TerrainOf(kvp.Key, kvp.Value);
                     bool sensed = t == OverworldHex.TerrainType.Volcanic ||
                                   t == OverworldHex.TerrainType.ArcaneGround ||
                                   t == OverworldHex.TerrainType.Snow ||
                                   TerrainClass.IsWater(t);
                     if (!sensed)
                         continue;
-                    kvp.Value.Fog = OverworldHex.FogState.Silhouette;
-                    kvp.Value.RefreshVisuals();
+                    SetFogAt(kvp.Key, kvp.Value, OverworldHex.FogState.Silhouette);
                 }
                 break;
             }
@@ -1096,22 +1199,23 @@ public partial class OverworldSpellManager : Node2D
                 int restRadius = (int)att.Param("restRadius", 4);
                 foreach (var kvp in _grid.Hexes)
                 {
+                    // Step 4b: reads via the models, writes via FogWrite.
                     int d = _grid.Distance(partyLocal, kvp.Key);
-                    var t = kvp.Value.Terrain;
-                    if (kvp.Value.Fog == OverworldHex.FogState.Hidden && d <= silRadius &&
+                    var t = TerrainOf(kvp.Key, kvp.Value);
+                    var fog = FogOf(kvp.Key, kvp.Value);
+                    if (fog == OverworldHex.FogState.Hidden && d <= silRadius &&
                         (t == OverworldHex.TerrainType.Forest ||
                          t == OverworldHex.TerrainType.Swamp ||
                          t == OverworldHex.TerrainType.Marsh))
                     {
-                        kvp.Value.Fog = OverworldHex.FogState.Silhouette;
-                        kvp.Value.RefreshVisuals();
+                        SetFogAt(kvp.Key, kvp.Value, OverworldHex.FogState.Silhouette);
                     }
-                    if (d <= restRadius && kvp.Value.POI == OverworldHex.POIType.Rest &&
-                        !kvp.Value.POIConsumed &&
-                        kvp.Value.Fog != OverworldHex.FogState.Revealed)
+                    var ov = OverlayOf(kvp.Key, kvp.Value);
+                    if (d <= restRadius && ov.Poi == OverworldHex.POIType.Rest &&
+                        !ov.Consumed &&
+                        fog != OverworldHex.FogState.Revealed)
                     {
-                        kvp.Value.Fog = OverworldHex.FogState.Revealed;
-                        kvp.Value.RefreshVisuals();
+                        SetFogAt(kvp.Key, kvp.Value, OverworldHex.FogState.Revealed);
                     }
                 }
                 break;
@@ -1125,14 +1229,14 @@ public partial class OverworldSpellManager : Node2D
                 int radius = (int)att.Param("radius", 3);
                 foreach (var kvp in _grid.Hexes)
                 {
-                    if (kvp.Value.Fog != OverworldHex.FogState.Hidden)
+                    // Step 4b: reads via the models, writes via FogWrite.
+                    if (FogOf(kvp.Key, kvp.Value) != OverworldHex.FogState.Hidden)
                         continue;
                     if (_grid.Distance(partyLocal, kvp.Key) > radius)
                         continue;
-                    if (kvp.Value.Terrain != OverworldHex.TerrainType.Ruins)
+                    if (TerrainOf(kvp.Key, kvp.Value) != OverworldHex.TerrainType.Ruins)
                         continue;
-                    kvp.Value.Fog = OverworldHex.FogState.Silhouette;
-                    kvp.Value.RefreshVisuals();
+                    SetFogAt(kvp.Key, kvp.Value, OverworldHex.FogState.Silhouette);
                 }
                 break;
             }
@@ -1149,26 +1253,27 @@ public partial class OverworldSpellManager : Node2D
 
     /// <summary>Surveyor's Eye (Tinker): silhouetted hexes show their step
     /// cost and hazard flag before entry.</summary>
-    public string TooltipSilhouetteExtra(OverworldHex hex)
+    public string TooltipSilhouetteExtra(Vector2I local, OverworldHex node)
     {
         if (!HasAttunement("surveyors_eye"))
             return "";
-        bool hazardous = hex.Terrain is OverworldHex.TerrainType.Swamp
+        var terrain = TerrainOf(local, node);   // Step 4b: world read
+        bool hazardous = terrain is OverworldHex.TerrainType.Swamp
             or OverworldHex.TerrainType.Marsh
             or OverworldHex.TerrainType.Snow
             or OverworldHex.TerrainType.Volcanic;
-        return $"  ·  {OverworldMovementCost.TerrainStep(hex.Terrain)} step(s)" +
+        return $"  ·  {OverworldMovementCost.TerrainStep(terrain)} step(s)" +
                (hazardous ? "  ·  hazardous" : "");
     }
 
     /// <summary>Arcane Literacy (Arcanist): revealed POIs show their reward
     /// category — the sole sanctioned peek past G2's contents line, and only
     /// once the POI is already revealed.</summary>
-    public string TooltipPoiExtra(OverworldHex hex)
+    public string TooltipPoiExtra(Vector2I local, OverworldHex node)
     {
         if (!HasAttunement("arcane_literacy"))
             return "";
-        string category = hex.POI switch
+        string category = OverlayOf(local, node).Poi switch   // Step 4b: overlay read
         {
             OverworldHex.POIType.Combat => "cards · gold",
             OverworldHex.POIType.Rest => "respite",

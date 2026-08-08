@@ -158,11 +158,28 @@ public partial class ExpeditionManager : Node2D
     // ── Nodes ───────────────────────────────────────────────────────────
     private OverworldHexGrid _grid;
     private FogOfWarManager _fog;
+
+    /// <summary>Step 2 (convergence spec): the window's gameplay overlay — effective
+    /// POI, consumed, objective/landmark, contested — as plain data. The authority;
+    /// hex nodes mirror it through SetOverlay. Gameplay never reads hex.POI again.</summary>
+    private readonly WindowOverlayModel _overlay = new();
     private OverworldPartyToken _party;
     private OverworldFactionManager _factionManager;
     private RoamerToken _roamer;
     private bool _roamerSpent;
     private Camera2D _camera;
+
+    // ── [DEBUG] 3D expedition-window overlay (Stage-2 live wiring) ────────
+    // Toggled with M in DebugMode: renders THIS run's window in 3D from the live
+    // fog/overlay/world models, and its clicks drive the REAL _party.TryMoveTo — so
+    // walking here charges cost, reveals fog, and triggers POIs exactly like the 2D
+    // map. The viewport is parented into the HUD canvas UNDER the panels (via
+    // MoveChild to index 0), so encounter panels (scout/narrative/negotiation) draw
+    // OVER the 3D naturally — no auto-close guessing, no panel occlusion.
+    private SubViewportContainer _window3DContainer;
+    private ExpeditionWindow3D _window3D;
+    private Button _view3DButton;   // persistent HUD 2D/3D view toggle (Stage 3)
+
     private NarrativeEncounterPanel _narrativePanel;
     private ToastManager _toasts;
     private ScoutReportPanel _scoutPanel;
@@ -266,14 +283,28 @@ public partial class ExpeditionManager : Node2D
             : _window.PartyStartLocal;
         _window.Build(_grid, initialCenter);
         _windowCenterLocal = initialCenter;
+        // Step 2: seed the overlay model from the freshly built window (hexes carry
+        // the world-mapped POIs); from here on the model is the authority and the
+        // stamps below write through the SetOverlay seam.
+        SyncOverlayFromWindow();
         StampCivicPois(); // S4.2: settlements/seats get their map marker
 
         // Fog manager (child of grid, same as before)
         _fog = new FogOfWarManager { Name = "FogOfWar" };
         _grid.AddChild(_fog);
+        // Step 1: seed the fog MODEL from the freshly built window — hexes arrive
+        // carrying FogFromDiscovery, and from here on the model is the authority.
+        _fog.SyncFromWindow();
+        // Step 2: the landmark-lure scan reads the overlay model, not node POIs.
+        _fog.Overlay = _overlay;
 
         // Faction patrols — keyed to the staging tile's kingdom, if any.
         _factionManager = new OverworldFactionManager { Name = "FactionManager" };
+        // Step 4: spawn filters + every patrol token read DATA through these —
+        // the same seams the manager itself gates on. Wired BEFORE Initialize.
+        _factionManager.TileQuery = local => TryTileAt(local, out var ft) ? ft : (WorldTile?)null;
+        _factionManager.FogQuery = local => _fog.FogAt(local);
+        _factionManager.PoiQuery = local => _overlay.OverlayAt(local).Poi;
         _grid.AddChild(_factionManager);
         // Patrols key off the TEMPLATE REGION (the campaign's archmage map is
         // keyed by region names like 'dustreach', not 'kingdom_N' ids).
@@ -282,6 +313,11 @@ public partial class ExpeditionManager : Node2D
 
         // Party token
         _party = new OverworldPartyToken { Name = "PartyToken" };
+        // Step 4: movement legality + cost preview read the WORLD through the
+        // manager's seams — the same source OnPartyMoved charges from.
+        _party.TileQuery = local => TryTileAt(local, out var pt) ? pt : (WorldTile?)null;
+        _party.IsBlocked = local => !_grid.Hexes.ContainsKey(local)
+            || (TryTileAt(local, out var bt) && bt.IsWater);
         _grid.AddChild(_party);
 
         // Camera
@@ -374,6 +410,13 @@ public partial class ExpeditionManager : Node2D
         // Fresh deploys reset the Essence pool / cast counts / beacons;
         // combat and negotiation returns keep them (they ride the save).
         _spells = new OverworldSpellManager { Name = "SpellManager" };
+        // Step 4b: spell rules read the same seams the manager gates on; fog
+        // writes (attunement senses) go through the model, so a later
+        // UpdateVision can't stomp a sense's silhouette.
+        _spells.TileQuery = local => TryTileAt(local, out var st) ? st : (WorldTile?)null;
+        _spells.FogQuery = local => _fog.FogAt(local);
+        _spells.OverlayQuery = local => _overlay.OverlayAt(local);
+        _spells.FogWrite = (local, state) => _fog.SetFog(local, state);
         AddChild(_spells);
         _spells.Initialize(this, _grid, cycle.Grimoire, freshDeploy: !pendingReturn);
         _spells.ApplyAttunement(_party.CurrentCoord);
@@ -413,6 +456,15 @@ public partial class ExpeditionManager : Node2D
 
         CenterCamera();
         UpdateUI();
+
+        // Stage 3: honour the player's view preference — launch straight into the 3D
+        // expedition view when it's set. The flag persists across deploys and combat
+        // returns (static PlayerSession scratchpad), so once you switch to 3D every
+        // subsequent run comes up in 3D until you switch back. The 2D map still runs
+        // underneath; the overlay renders it and drives the real move logic.
+        UpdateView3DButton();
+        if (PlayerSession.ExpeditionView3D && _window3D == null)
+            OpenWindow3D();
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -427,15 +479,19 @@ public partial class ExpeditionManager : Node2D
     {
         bool changed = false;
 
-        foreach (var kvp in _grid.Hexes)
+        // STEP 1 (convergence spec): iterate the FOG MODEL, not the scene nodes.
+        // The persistent world's Discovery now derives from plain data — the last
+        // render-state scrape in the write-back path is gone. Same entries, same
+        // ratchet: the model mirrors the loaded window 1:1.
+        foreach (var kvp in _fog.Model.All)
         {
             var local = kvp.Key;
-            var hex = kvp.Value;
+            var fog = kvp.Value;
 
             // P3: seeing any footprint tile (charted or revealed) discovers the
             // whole shard sub-region — the vault layout then reads at distance.
-            if ((hex.Fog == OverworldHex.FogState.Silhouette ||
-                 hex.Fog == OverworldHex.FogState.Revealed) &&
+            if ((fog == OverworldHex.FogState.Silhouette ||
+                 fog == OverworldHex.FogState.Revealed) &&
                 _window.TryLocalToWorld(local, out int zc, out int zr))
             {
                 var sz = _world.ShardZoneAt(zc, zr);
@@ -450,7 +506,7 @@ public partial class ExpeditionManager : Node2D
             // Charted. As the sliding window travels, its vision fringe leaves a
             // persistent Charted corridor on the strategic map — the route
             // itself becomes a legible artifact of the expedition.
-            if (hex.Fog == OverworldHex.FogState.Silhouette)
+            if (fog == OverworldHex.FogState.Silhouette)
             {
                 if (_window.TryLocalToWorld(local, out int scol, out int srow) &&
                     _world.TryIndex(scol, srow, out int sidx) &&
@@ -462,7 +518,7 @@ public partial class ExpeditionManager : Node2D
                 continue;
             }
 
-            if (hex.Fog != OverworldHex.FogState.Revealed)
+            if (fog != OverworldHex.FogState.Revealed)
                 continue;
             if (!_window.TryLocalToWorld(local, out int col, out int row))
                 continue;
@@ -510,14 +566,83 @@ public partial class ExpeditionManager : Node2D
                 _world.Tiles[idx].Discovery = TileDiscovery.Charted;
 
             var local = _window.LocalOf(x, y);
-            if (_grid.Hexes.TryGetValue(local, out var h) &&
-                h.Fog == OverworldHex.FogState.Hidden)
-            {
-                h.Fog = OverworldHex.FogState.Silhouette;
-                h.RefreshVisuals();
-            }
+            // Step 1: through the fog seam (model + mirror). SetFog no-ops on
+            // unloaded coords, same as the old TryGetValue guard.
+            if (_fog != null && _fog.FogAt(local) == OverworldHex.FogState.Hidden)
+                _fog.SetFog(local, OverworldHex.FogState.Silhouette);
         }
         ShowInfo($"You have found {z.Name}. A shard of the Arcanum lies within its depths.");
+    }
+
+    // ── Step 3: the tile query seam ──────────────────────────────────────
+
+    /// <summary>THE tile query — window-local coord → the WORLD's tile. Step 3 of
+    /// the convergence spec: terrain/water/edge questions are answered by WorldData
+    /// (which SpellForcePath et al. already treat as the terrain authority), never
+    /// by render nodes. False off-world; callers that need "is loaded" semantics
+    /// keep an explicit _grid.Hexes.ContainsKey guard alongside.</summary>
+    private bool TryTileAt(Vector2I local, out WorldTile tile)
+    {
+        tile = default;
+        if (_window == null || _world == null)
+            return false;
+        if (!_window.TryLocalToWorld(local, out int col, out int row))
+            return false;
+        if (!_world.TryIndex(col, row, out int idx))
+            return false;
+        tile = _world.Tiles[idx];
+        return true;
+    }
+
+    /// <summary>Terrain at a window-local coord from the world; Grassland (the
+    /// neutral cost row) off-world — callers that must distinguish guard first.</summary>
+    private OverworldHex.TerrainType TerrainAt(Vector2I local)
+        => TryTileAt(local, out var t) ? t.Terrain : OverworldHex.TerrainType.Grassland;
+
+    // ── Step 2: the overlay seam ─────────────────────────────────────────
+
+    /// <summary>Write a tile's overlay: model first, node mirror + redraw second.
+    /// No-op for unloaded coords — matching every pre-Step-2 write pattern, all of
+    /// which guarded on Hexes.TryGetValue. (Persistent POI truth still goes through
+    /// ConsumeWorldPoi / WorldPoi.Discovered, unchanged.)</summary>
+    private void SetOverlay(Vector2I coord, in TileOverlay o)
+    {
+        if (_grid == null || !_grid.Hexes.TryGetValue(coord, out var hex))
+            return;
+        _overlay.Set(coord, o);
+        hex.POI = o.Poi;
+        hex.POIConsumed = o.Consumed;
+        hex.IsObjective = o.Objective;
+        hex.IsLandmark = o.Landmark;
+        hex.Contested = o.Contested;
+        hex.RefreshVisuals();
+    }
+
+    /// <summary>Mark a tile's window POI consumed (model + mirror). The companion
+    /// world-side write stays the callers' ConsumeWorldPoi, as before.</summary>
+    private void ConsumeOverlayPoi(Vector2I coord)
+    {
+        var o = _overlay.OverlayAt(coord);
+        o.Consumed = true;
+        SetOverlay(coord, o);
+    }
+
+    /// <summary>Re-mirror the overlay model to the loaded window — the Step-1
+    /// SyncFromWindow pattern. Called after window Build and every StreamTo slide,
+    /// BEFORE the stamps re-run (they then write through the seam). Node→model is
+    /// lossless because every mid-run write goes through SetOverlay.</summary>
+    private void SyncOverlayFromWindow()
+    {
+        _overlay.Clear();
+        foreach (var kvp in _grid.Hexes)
+            _overlay.Set(kvp.Key, new TileOverlay
+            {
+                Poi = kvp.Value.POI,
+                Consumed = kvp.Value.POIConsumed,
+                Objective = kvp.Value.IsObjective,
+                Landmark = kvp.Value.IsLandmark,
+                Contested = kvp.Value.Contested,
+            });
     }
 
     /// <summary>Flush a dirty save at most once per AutosaveIntervalSec. Keeps the
@@ -616,6 +741,24 @@ public partial class ExpeditionManager : Node2D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        // ── View toggle (Stage 3): a REAL, non-debug feature, so it's handled
+        //    BEFORE the debug gate. M flips this run between the 2D map and the
+        //    3D expedition view; Esc closes the 3D view if it's open. Esc only
+        //    consumes the event while the overlay is up, so in 2D the pause menu's
+        //    Esc still works untouched.
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.M } && !ExpeditionComplete)
+        {
+            OnView3DTogglePressed();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (_window3D != null && @event is InputEventKey { Pressed: true, Keycode: Key.Escape })
+        {
+            OnView3DTogglePressed();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (!PlayerSession.DebugMode || ExpeditionComplete)
             return;
 
@@ -702,12 +845,141 @@ public partial class ExpeditionManager : Node2D
         }
 
         if (!PlayerSession.DebugGrantStagingArmed)
-            return;          
+            return;
         if (@event is InputEventKey { Pressed: true, Keycode: Key.G })
         {
             DebugGrantStagingHere();
             GetViewport().SetInputAsHandled();
         }
+    }
+
+    // ── 3D expedition-window view (Stage 3) ─────────────────────────────
+    //    A full-screen 3D render of THIS run's window, built from the live
+    //    fog/overlay/world models; clicking an adjacent tile calls the REAL
+    //    _party.TryMoveTo, so a walk here charges cost, reveals fog, and fires POIs
+    //    exactly as the 2D map does — the decoupled models render AND drive the run
+    //    in 3D. The 2D map keeps running underneath (the overlay sits at HUD index 0,
+    //    under every panel), so encounters resolve normally over it. Toggled by the
+    //    persistent HUD button (or M / Esc); the choice is remembered in
+    //    PlayerSession.ExpeditionView3D so the next deploy launches into the same view.
+
+    /// <summary>The single entry point for flipping the view: toggle the overlay,
+    /// persist the choice as the session preference, and refresh the button label.
+    /// The HUD button, the M key, and Esc all route through here so all three stay
+    /// in lockstep with the actual overlay state.</summary>
+    private void OnView3DTogglePressed()
+    {
+        ToggleWindow3D();
+        PlayerSession.ExpeditionView3D = _window3D != null;
+        UpdateView3DButton();
+    }
+
+    /// <summary>Keep the persistent HUD toggle's label honest about what a press does.</summary>
+    private void UpdateView3DButton()
+    {
+        if (_view3DButton != null)
+            _view3DButton.Text = _window3D != null ? "Switch to 2D" : "Switch to 3D";
+    }
+
+    private void ToggleWindow3D()
+    {
+        if (_window3D != null) CloseWindow3D();
+        else OpenWindow3D();
+    }
+
+    private void OpenWindow3D()
+    {
+        if (_grid == null || _party == null || _window == null || _world == null
+            || GetHudCanvas() == null)
+            return;
+
+        // Parent the 3D view into the HUD canvas, then MoveChild to index 0 so it sits
+        // UNDER every existing + future HUD panel — encounter panels draw over it, no
+        // occlusion, no auto-close needed. Full-rect + MouseFilter.Stop, so it blocks
+        // the 2D map's Area2D picking underneath while open.
+        _window3DContainer = new SubViewportContainer { Stretch = true, Name = "Window3DView" };
+        _window3DContainer.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        GetHudCanvas().AddChild(_window3DContainer);
+        GetHudCanvas().MoveChild(_window3DContainer, 0);
+
+        var vp = new SubViewport { OwnWorld3D = true, Msaa3D = Viewport.Msaa.Msaa4X };
+        _window3DContainer.AddChild(vp);
+
+        _window3D = new ExpeditionWindow3D { Standalone = false, SelfDrive = false };
+        _window3D.MoveRequested += OnWindow3DMove;
+        vp.AddChild(_window3D);
+        _window3D.AcceptInput = true;
+        _window3DContainer.MouseEntered += () => { if (_window3D != null) _window3D.AcceptInput = true; };
+        _window3DContainer.MouseExited += () => { if (_window3D != null) _window3D.AcceptInput = false; };
+
+        // Refresh after each real move: PartyMoved (fog+pos), PartyArrived (POI state).
+        _party.PartyMoved += OnWindow3DPartyMoved;
+        _party.PartyArrived += OnWindow3DPartyArrived;
+
+        FeedWindow3D(frameCamera: true);
+        UpdateView3DButton();
+        ShowInfo("3D expedition view — click an adjacent tile to walk. \"Switch to 2D\", M, or Esc returns.");
+    }
+
+    private void CloseWindow3D()
+    {
+        if (_party != null)
+        {
+            _party.PartyMoved -= OnWindow3DPartyMoved;
+            _party.PartyArrived -= OnWindow3DPartyArrived;
+        }
+        _window3DContainer?.QueueFree();
+        _window3DContainer = null;
+        _window3D = null;
+        UpdateView3DButton();
+    }
+
+    private void OnWindow3DPartyMoved(Vector2I n, Vector2I o)
+    {
+        if (_window3D != null) FeedWindow3D(frameCamera: false);
+    }
+
+    private void OnWindow3DPartyArrived(Vector2I c)
+    {
+        // No auto-close: panels draw OVER the 3D (it's under them in the HUD canvas),
+        // so encounters resolve normally while the 3D view keeps tracking the run.
+        if (_window3D != null) FeedWindow3D(frameCamera: false);
+    }
+
+    /// <summary>Project the live grid-LOCAL fog/overlay models into WORLD-offset-keyed
+    /// copies (the space <see cref="ExpeditionWindow3D"/> renders in) and hand them to
+    /// the view. Cheap dictionary copies over the loaded window (~500 tiles).</summary>
+    private void FeedWindow3D(bool frameCamera)
+    {
+        if (_window3D == null || _grid == null || _window == null || _world == null)
+            return;
+
+        var fogW = new ExpeditionFogModel();
+        var ovW = new WindowOverlayModel();
+        foreach (var kvp in _grid.Hexes)
+        {
+            if (!_window.TryLocalToWorld(kvp.Key, out int wc, out int wr))
+                continue;
+            var wcoord = new Vector2I(wc, wr);
+            fogW.Set(wcoord, _fog.FogAt(kvp.Key));
+            ovW.Set(wcoord, _overlay.OverlayAt(kvp.Key));
+        }
+
+        Vector2I worldCenter = _window.TryLocalToWorld(_windowCenterLocal, out int cc, out int cr)
+            ? new Vector2I(cc, cr) : Vector2I.Zero;
+        Vector2I worldParty = _window.TryLocalToWorld(_party.CurrentCoord, out int pc, out int pr)
+            ? new Vector2I(pc, pr) : worldCenter;
+
+        _window3D.SetWindow(_world, fogW, ovW, worldCenter, worldParty, frameCamera);
+    }
+
+    /// <summary>A 3D-overlay click: translate the world coord back to grid-local and run
+    /// the REAL move. TryMoveTo enforces adjacency/water and no-ops if illegal, so a
+    /// coordinate mismatch is harmless — it simply doesn't move.</summary>
+    private void OnWindow3DMove(Vector2I worldCoord)
+    {
+        var local = _window.LocalOf(worldCoord.X, worldCoord.Y);
+        _party.TryMoveTo(local);
     }
 
     // ── [DEBUG] Narrative-chain proof rig (2026-07-18) ───────────────────
@@ -744,9 +1016,8 @@ public partial class ExpeditionManager : Node2D
         System.Func<string, bool> hasFlag = null;
         if (save != null) hasFlag = save.HasFlag;
         var dbgTerrain = OverworldHex.TerrainType.Grassland;
-        if (_party != null && _grid != null &&
-            _grid.Hexes.TryGetValue(_party.CurrentCoord, out var dbgHex))
-            dbgTerrain = dbgHex.Terrain;
+        if (_party != null && _grid != null && _grid.Hexes.ContainsKey(_party.CurrentCoord))
+            dbgTerrain = TerrainAt(_party.CurrentCoord);   // Step 3: world read
         var shownDbg = EncounterAssembler.ForDisplay(enc, dbgTerrain, StagingTemplateRegion());
         _narrativePanel.ShowEncounter(shownDbg, hasFlag, save?.Cycle?.SelectedSchool, GoldEarned,
             save?.Cycle?.Campaign);
@@ -877,9 +1148,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         int stepCost = 1, hpDrain = 0;
         bool roadTravel = false;
-        if (_grid.Hexes.TryGetValue(newCoord, out var hex))
+        // Step 3: terrain and edge masks come from the WORLD tile, not the render
+        // node. Loaded-guard kept (a move only lands on loaded ground anyway).
+        bool destKnown = false;
+        var destTerrain = OverworldHex.TerrainType.Grassland;
+        if (_grid.Hexes.ContainsKey(newCoord) && TryTileAt(newCoord, out var destTile))
         {
-            hpDrain = GetTerrainHPDrain(hex.Terrain);
+            destKnown = true;
+            destTerrain = destTile.Terrain;
+            hpDrain = GetTerrainHPDrain(destTerrain);
             // Q3 (§4b): HazardWard reduces terrain drain, floored at 1 whenever the
             // terrain drains at all — relief is bought, immunity does not exist.
             if (hpDrain > 0)
@@ -888,15 +1165,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // traveled edge, surcharged by an unbridged river ford. Read the shared
             // edge off the tile we're leaving (masks live on both sides). Q3 (§7b):
             // Pathfinder cheapens the matching terrain (floor 1 inside StepCost).
-            _grid.Hexes.TryGetValue(oldCoord, out var fromHex);
-            stepCost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, oldCoord, newCoord,
-                EquipmentLoadout.PartyPathfinder(hex.Terrain.ToString()));
+            WorldTile? fromTile = TryTileAt(oldCoord, out var ft) ? ft : (WorldTile?)null;
+            stepCost = OverworldMovementCost.StepCost(destTerrain, fromTile, oldCoord, newCoord,
+                EquipmentLoadout.PartyPathfinder(destTerrain.ToString()));
 
             // S4.2 (user ruling 2026-07-16): a step traveled ALONG A ROAD is
             // safe going — see the drain sites below. Edge roads are the real
             // network; the vestigial Road TERRAIN tile counts too (old maps).
-            roadTravel = OverworldMovementCost.EdgeHasRoad(fromHex, oldCoord, newCoord) ||
-                         hex.Terrain == OverworldHex.TerrainType.Road;
+            roadTravel = OverworldMovementCost.EdgeHasRoad(fromTile, oldCoord, newCoord) ||
+                         destTerrain == OverworldHex.TerrainType.Road;
         }
 
         // P5: inside a shard-zone footprint the party is in a contained designed
@@ -922,7 +1199,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             {
                 int stepsCharged = Mathf.Min(StepsRemaining, stepCost);
                 StepsRemaining = Mathf.Max(0, StepsRemaining - stepCost);
-                LogRun("step", hex != null ? hex.Terrain.ToString() : "?",
+                LogRun("step", destKnown ? destTerrain.ToString() : "?",
                        stepsDelta: -stepsCharged, at: newCoord);
             }
             else
@@ -953,16 +1230,16 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             // S2: an active warding spell (Ember Ward) negates the terrain's
             // bite entirely — bounded window, not immunity (G4).
-            if (hpDrain > 0 && OverworldSpellEffects.DrainSuppressed(hex.Terrain))
+            if (hpDrain > 0 && OverworldSpellEffects.DrainSuppressed(destTerrain))
             {
-                GD.Print($"[Spellcraft] Ward negates {hpDrain} terrain drain on {hex.Terrain}.");
+                GD.Print($"[Spellcraft] Ward negates {hpDrain} terrain drain on {destTerrain}.");
                 hpDrain = 0;
             }
 
             if (hpDrain > 0)
             {
                 CurrentHP -= hpDrain;
-                LogRun("terrain_drain", hex != null ? hex.Terrain.ToString() : "?",
+                LogRun("terrain_drain", destKnown ? destTerrain.ToString() : "?",
                        hpDelta: -hpDrain, at: newCoord);
                 ShowInfo($"Hazardous terrain! Lost {hpDrain} HP.");
                 if (CurrentHP <= 0)
@@ -1051,7 +1328,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         OverworldSpellEffects.TickStep();
         if (_spells != null)
         {
-            if (hex != null && hex.Terrain == OverworldHex.TerrainType.ArcaneGround)
+            if (destKnown && destTerrain == OverworldHex.TerrainType.ArcaneGround)
                 _spells.AddEssence(1, "Arcane Ground");
             _spells.ApplyAttunement(_party.CurrentCoord);
         }
@@ -1104,18 +1381,22 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
 
         // Fog gate: don't reveal terrain the player hasn't explored.
-        if (hex.Fog != OverworldHex.FogState.Revealed)
+        // Step 1: gate reads the fog MODEL, not the render node.
+        var fogHere = _fog.FogAt(axial);
+        if (fogHere != OverworldHex.FogState.Revealed)
         {
-            _hoverTooltip.Text = hex.Fog == OverworldHex.FogState.Silhouette
-                ? "Charted — unexplored" + (_spells?.TooltipSilhouetteExtra(hex) ?? "")
+            _hoverTooltip.Text = fogHere == OverworldHex.FogState.Silhouette
+                ? "Charted — unexplored" + (_spells?.TooltipSilhouetteExtra(axial, hex) ?? "")
                 : "Unexplored";
         }
         else
         {
-            string line = TerrainDisplayName(hex.Terrain);
-            if (hex.POI != OverworldHex.POIType.None && !hex.POIConsumed)
-                line += $"  ·  {PoiSignal.Label(hex.POI, hex.Terrain, axial)}{_spells?.TooltipPoiExtra(hex) ?? ""}" +
-                        NegotiationPreread(axial, hex); // S5: True Names
+            string line = TerrainDisplayName(TerrainAt(axial));   // Step 3: world read
+            // Step 2: POI gate + label read the overlay model, not the node.
+            var ovTip = _overlay.OverlayAt(axial);
+            if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
+                line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), axial)}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
+                        NegotiationPreread(axial); // S5: True Names
             // Corruption readout if the underlying world tile is corrupted.
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
@@ -1193,18 +1474,22 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         // Fog gate: don't reveal terrain the player hasn't explored.
-        if (hex.Fog != OverworldHex.FogState.Revealed)
+        // Step 1: gate reads the fog MODEL, not the render node.
+        var fogPolled = _fog.FogAt(axial);
+        if (fogPolled != OverworldHex.FogState.Revealed)
         {
-            _hoverTooltip.Text = hex.Fog == OverworldHex.FogState.Silhouette
-                ? "Charted — unexplored" + (_spells?.TooltipSilhouetteExtra(hex) ?? "")
+            _hoverTooltip.Text = fogPolled == OverworldHex.FogState.Silhouette
+                ? "Charted — unexplored" + (_spells?.TooltipSilhouetteExtra(axial, hex) ?? "")
                 : "Unexplored";
         }
         else
         {
-            string line = TerrainDisplayName(hex.Terrain);
-            if (hex.POI != OverworldHex.POIType.None && !hex.POIConsumed)
-                line += $"  ·  {PoiSignal.Label(hex.POI, hex.Terrain, axial)}{_spells?.TooltipPoiExtra(hex) ?? ""}" +
-                        NegotiationPreread(axial, hex); // S5: True Names
+            string line = TerrainDisplayName(TerrainAt(axial));   // Step 3: world read
+            // Step 2: POI gate + label read the overlay model, not the node.
+            var ovTip = _overlay.OverlayAt(axial);
+            if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
+                line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), axial)}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
+                        NegotiationPreread(axial); // S5: True Names
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
                 line += $"  ·  corrupted ({_world.Tiles[idx].Corruption})";
@@ -1219,7 +1504,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         if (ExpeditionComplete || _ambushPending)
             return;
-        if (!_grid.Hexes.TryGetValue(coord, out var hex))
+        if (!_grid.Hexes.ContainsKey(coord))
             return;
 
         // S3 (Deploy Waystation): standing on a deployed waystation consumes
@@ -1246,10 +1531,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (TryHandleShardZone(coord))
             return;
 
-        if (hex.POI == OverworldHex.POIType.None || hex.POIConsumed)
+        // Step 2: the arrival gate reads the overlay model — including the
+        // stronghold, which exists ONLY as a stamp and is now data, not scenery.
+        var ovArrived = _overlay.OverlayAt(coord);
+        if (ovArrived.Poi == OverworldHex.POIType.None || ovArrived.Consumed)
             return;
 
-        var poiType = hex.POI;
+        var poiType = ovArrived.Poi;
         if (PlayerSession.DebugMode && PlayerSession.ForceNextEncounterType >= 0)
         {
             poiType = (OverworldHex.POIType)PlayerSession.ForceNextEncounterType;
@@ -1259,7 +1547,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         switch (poiType)
         {
             case OverworldHex.POIType.Combat:
-                OpenScoutReport(coord, hex);
+                OpenScoutReport(coord);
                 break;
 
             case OverworldHex.POIType.Rest:
@@ -1272,8 +1560,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 int restHpBefore = CurrentHP;
                 CurrentHP = Mathf.Min(CurrentHP + heal, MaxHP);
                 _spells?.AddEssence(3 + (campward ? 2 : 0), campward ? "Rest + Campward" : "Rest");
-                hex.POIConsumed = true;
-                hex.RefreshVisuals();
+                ConsumeOverlayPoi(coord);
                 ConsumeWorldPoi(coord);
                 // K2.5 carry (2026-07-29): a rest also mends the party's
                 // carried COMBAT HP — a quarter of max each, mirroring the
@@ -1296,11 +1583,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 break;
 
             case OverworldHex.POIType.Narrative:
-                TriggerNarrativeEncounter(hex, coord);
+                TriggerNarrativeEncounter(coord);
                 break;
 
             case OverworldHex.POIType.Negotiation:
-                TriggerNegotiationEncounter(hex, coord);
+                TriggerNegotiationEncounter(coord);
                 break;
 
             case OverworldHex.POIType.Prison:
@@ -1309,7 +1596,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 // RestoreFromCombat via ReleaseImprisonedAt(resultHex). Routes
                 // through the ordinary scout->commit path so difficulty scaling and
                 // patrol attribution behave normally.
-                OpenScoutReport(coord, hex);
+                OpenScoutReport(coord);
                 break;
 
             case OverworldHex.POIType.Outpost:
@@ -1317,8 +1604,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 int outHpBefore = CurrentHP;
                 CurrentHP = MaxHP;
                 _spells?.RestoreEssenceFull(); // S2: Outpost = full Essence (§5)
-                hex.POIConsumed = true;
-                hex.RefreshVisuals();
+                ConsumeOverlayPoi(coord);
                 ConsumeWorldPoi(coord);
                 GrantStagingPointAt(coord);
                 // K2.5 carry (2026-07-29): an outpost is a full rest for the
@@ -1372,9 +1658,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     // Combat routing (verbatim from OverworldRunManager, world-sourced)
     // ════════════════════════════════════════════════════════════════════
 
-    private void OpenScoutReport(Vector2I coord, OverworldHex hex)
+    private void OpenScoutReport(Vector2I coord)
     {
-        string terrainType = hex.Terrain.ToString();
+        string terrainType = TerrainAt(coord).ToString();   // Step 3: world read
         string regionId = StagingTemplateRegion();
         // Warfront intervention fights the region's SIEGE pool — heavy compositions,
         // Dense maps (DensityForTier) — so relieving a siege feels like one.
@@ -1440,8 +1726,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _pendingTerrain = null;
         };
 
-        int stepCost = GetTerrainStepCost(hex.Terrain);
-        _scoutPanel.Show(encounterDef, hex.Terrain.ToString(), stepCost);
+        int stepCost = GetTerrainStepCost(TerrainAt(coord));
+        _scoutPanel.Show(encounterDef, TerrainAt(coord).ToString(), stepCost);
     }
 
     private void CommitCombat(Vector2I hexCoord, EncounterDefinition encounterDef, string terrainType, string guardianKey = "")
@@ -1503,8 +1789,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             {
                 var (dq, dr) = HexCoord.AxialDirections[k];
                 var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
-                if (_grid.Hexes.TryGetValue(new Vector2I(nc, nr), out var nHex))
-                    neighborTerrains[k] = nHex.Terrain.ToString();
+                // Step 3: vista from the WORLD tile (loaded-guard preserved).
+                var nCoord = new Vector2I(nc, nr);
+                if (_grid.Hexes.ContainsKey(nCoord) && TryTileAt(nCoord, out var nTile))
+                    neighborTerrains[k] = nTile.Terrain.ToString();
             }
         }
 
@@ -1520,7 +1808,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         if (ExpeditionComplete || _ambushPending)
             return;
-        if (!_grid.Hexes.TryGetValue(coord, out var hex))
+        if (!_grid.Hexes.ContainsKey(coord))
             return;
 
         // S3 (Parley Compulsion, Enchanter): an armed compulsion converts this
@@ -1549,14 +1837,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                      (compulsionToast != null ? $" {compulsionToast}" : ""));
             // Dossier: a compelled parley still counts as crossing paths.
             AnnounceDossierMet(archmageId);
-            TriggerPatrolNegotiation(hex, coord);
+            TriggerPatrolNegotiation(coord);
             return;
         }
 
         _ambushPending = true;
         ShowInfo("A patrol has intercepted you!");
         string regionId = StagingTemplateRegion();
-        string terrainType = hex.Terrain.ToString();
+        string terrainType = TerrainAt(coord).ToString();   // Step 3: world read
         // The patrol BELONGS to this archmage (passed by the signal) — its forces
         // are always the archmage's own, NO chance roll. Region pool only backstops
         // an archmage that has no authored skirmish group.
@@ -1705,8 +1993,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 }
             }
 
-            if (_grid.Hexes.TryGetValue(resultHex, out var hex))
-            { hex.POIConsumed = true; hex.RefreshVisuals(); }
+            ConsumeOverlayPoi(resultHex);   // Step 2: unloaded-guard built into the seam
             ConsumeWorldPoi(resultHex);
             GrantStagingPointAt(resultHex); // securing a seat/settlement via combat can grant staging
             ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters.");
@@ -1783,8 +2070,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                    $"DEFEAT{(string.IsNullOrEmpty(_casualtyNote) ? "" : " — " + _casualtyNote)}",
                    at: resultHex);
 
-            if (_grid.Hexes.TryGetValue(resultHex, out var hex))
-            { hex.POIConsumed = true; hex.RefreshVisuals(); }
+            ConsumeOverlayPoi(resultHex);   // Step 2: unloaded-guard built into the seam
             ConsumeWorldPoi(resultHex);
 
             // RULED (2026-07-09): defeat ENDS the expedition. The old path
@@ -1845,8 +2131,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             int d = _grid.Distance(start, kvp.Key);
             if (d < 6 || d > 12)
                 continue;
-            var hex = kvp.Value;
-            if (hex.IsWater || hex.Terrain == OverworldHex.TerrainType.Mountain)
+            // Step 3: spawn-site terrain from the world tile.
+            if (!TryTileAt(kvp.Key, out var rt) || rt.IsWater ||
+                rt.Terrain == OverworldHex.TerrainType.Mountain)
                 continue;
             candidates.Add(kvp.Key);
         }
@@ -1855,6 +2142,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         var spawn = candidates[(int)(GD.Randi() % (uint)candidates.Count)];
         _roamer = new RoamerToken { Name = "Roamer" };
+        // Step 4: same query wiring as the patrols.
+        _roamer.TileQuery = local => TryTileAt(local, out var rt2) ? rt2 : (WorldTile?)null;
+        _roamer.FogQuery = local => _fog.FogAt(local);
         _grid.AddChild(_roamer);
         _roamer.Initialize(_grid, spawn, (int)GD.Randi());
         GD.Print($"[Roamer] Caravan spawned at {spawn} (dist {_grid.Distance(start, spawn)} from party).");
@@ -1874,8 +2164,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         System.Func<string, bool> hasFlag = null;
         if (save != null) hasFlag = save.HasFlag;
         var terr = (_party != null && _grid != null &&
-                    _grid.Hexes.TryGetValue(_party.CurrentCoord, out var ph))
-            ? ph.Terrain : OverworldHex.TerrainType.Grassland;
+                    _grid.Hexes.ContainsKey(_party.CurrentCoord))
+            ? TerrainAt(_party.CurrentCoord) : OverworldHex.TerrainType.Grassland;
         _narrativePanel.ShowEncounter(enc, hasFlag, save?.Cycle?.SelectedSchool, GoldEarned,
             save?.Cycle?.Campaign);
         _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(enc, choice, terr);
@@ -1921,10 +2211,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         if (col == z.GateX && row == z.GateY && !z.GuardianCleared)
         {
-            if (!_grid.Hexes.TryGetValue(coord, out var ghex))
+            if (!_grid.Hexes.ContainsKey(coord))
                 return false;
             ShowInfo($"The heart of {z.Name} is guarded. Its warden stirs.");
-            LaunchGuardianCombat(z.FragmentKey, ghex.Terrain);
+            LaunchGuardianCombat(z.FragmentKey, TerrainAt(coord));
             return true;
         }
 
@@ -2023,14 +2313,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         OnPartyArrived(local);
     }
 
-    private void TriggerNarrativeEncounter(OverworldHex hex, Vector2I coord)
+    private void TriggerNarrativeEncounter(Vector2I coord)
     {
-        string terrainName = hex.Terrain.ToString();
+        string terrainName = TerrainAt(coord).ToString();   // Step 3: world read
         var completedIds = SaveManager.ActiveSave?.CompletedEvents;
         var encounter = NarrativeEncounterLoader.PickRandom(_encounterPool, terrainName, completedIds, SaveManager.ActiveSave);
 
-        hex.POIConsumed = true;
-        hex.RefreshVisuals();
+        ConsumeOverlayPoi(coord);   // Step 2
         ConsumeWorldPoi(coord);
 
         if (encounter == null)
@@ -2046,7 +2335,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var gateSave = SaveManager.ActiveSave;
         System.Func<string, bool> hasFlag = null;
         if (gateSave != null) hasFlag = gateSave.HasFlag;
-        var shownEnc = EncounterAssembler.ForDisplay(encounter, hex.Terrain, StagingTemplateRegion());
+        var shownEnc = EncounterAssembler.ForDisplay(encounter, TerrainAt(coord), StagingTemplateRegion());
         _narrativePanel.ShowEncounter(
             shownEnc,
             hasFlag,
@@ -2054,7 +2343,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             GoldEarned,
             gateSave?.Cycle?.Campaign);
         LogRun("narrative_start", encounter.Id, at: coord);
-        var loreTerrain = hex.Terrain; // S4: the drop pool is terrain-flavored
+        var loreTerrain = TerrainAt(coord); // S4: the drop pool is terrain-flavored
         _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(encounter, choice, loreTerrain);
     }
 
@@ -2188,8 +2477,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         ShowInfo("The archmage rises to meet you!");
         string terrain = "Plains";
         if (_grid != null && _party != null &&
-            _grid.Hexes.TryGetValue(_party.CurrentCoord, out var rHex))
-            terrain = rHex.Terrain.ToString();
+            _grid.Hexes.ContainsKey(_party.CurrentCoord))
+            terrain = TerrainAt(_party.CurrentCoord).ToString();   // Step 3
         CommitCombat(_party.CurrentCoord, def, terrain);
         router.SavedResolutionArchmageId = archmageId; // after CommitCombat, per the patrol pattern
     }
@@ -2364,10 +2653,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// negotiation. Same setup as a Negotiation POI, minus POI consumption —
     /// the patrol's hex owns no POI. The patrol itself disengages via the
     /// standard post-negotiation restore path.</summary>
-    private void TriggerPatrolNegotiation(OverworldHex hex, Vector2I coord)
+    private void TriggerPatrolNegotiation(Vector2I coord)
     {
         string kingdomId = StagingTemplateRegion();
-        string terrain = hex.Terrain.ToString();
+        string terrain = TerrainAt(coord).ToString();   // Step 3: world read
         var encounter = NegotiationEncounterLoader.PickForTerrain(terrain, kingdomId);
         if (encounter == null)
         { ShowInfo("The patrol shakes off the compulsion — nothing to say."); UpdateUI(); return; }
@@ -2423,15 +2712,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         GD.Print("[Spellcraft] Beguile takes effect — the table opens a band more favorable.");
     }
 
-    private void TriggerNegotiationEncounter(OverworldHex hex, Vector2I coord)
+    private void TriggerNegotiationEncounter(Vector2I coord)
     {
-        hex.POIConsumed = true;
-        hex.RefreshVisuals();
+        ConsumeOverlayPoi(coord);   // Step 2
         ConsumeWorldPoi(coord);
 
         // S5 (True Names): honor the pinned pre-read when one exists —
         // the archetype the attunement showed is the counterpart you meet.
-        var encounter = PinnedNegotiationFor(coord, hex);
+        var encounter = PinnedNegotiationFor(coord);
         if (encounter == null)
         { ShowInfo("A potential contact slips away."); UpdateUI(); return; }
 
@@ -2959,6 +3247,29 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _ledgerButton.Pressed += () => _ledgerPanel?.Toggle();
         _hudCanvas.AddChild(_ledgerButton);
 
+        // 3D view toggle (Stage 3), stacked under Ledger. A real player-facing
+        // control: flips this run between the 2D map and the 3D expedition view and
+        // remembers the choice (PlayerSession.ExpeditionView3D), so the next deploy
+        // launches into the same view. M / Esc mirror it. Label is set by
+        // UpdateView3DButton to reflect what a press will do.
+        _view3DButton = new Button
+        {
+            Text = "Switch to 3D",
+            AnchorLeft = 1f,
+            AnchorTop = 0f,
+            AnchorRight = 1f,
+            AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            OffsetLeft = -150,
+            OffsetRight = -12,
+            OffsetTop = 108 + HudManager.BarHeight,  // third row under Extract / Ledger
+            OffsetBottom = 148 + HudManager.BarHeight,
+        };
+        _view3DButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        UITheme.ApplyButtonStyle(_view3DButton, isPrimary: false);
+        _view3DButton.Pressed += OnView3DTogglePressed;
+        _hudCanvas.AddChild(_view3DButton);
+
         // Scout panel.
         _scoutPanel = new ScoutReportPanel { Name = "ScoutPanel" };
         _hudCanvas.AddChild(_scoutPanel);
@@ -3131,7 +3442,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _windowLabel.Modulate = supplyBand == 0 ? Colors.White : UITheme.OverworldLowResourceWarning;
 
         if (_grid.Hexes.TryGetValue(_party.CurrentCoord, out var cur))
-            _windowLabel.Text += $"  |  {cur.Terrain}";
+            _windowLabel.Text += $"  |  {TerrainAt(_party.CurrentCoord)}";   // Step 3
         string curKingdom = KingdomIdAt(_party.CurrentCoord);
         _windowLabel.Text += $"  |  {(string.IsNullOrEmpty(curKingdom) ? "Unclaimed" : KingdomDisplayName(curKingdom))}";
 
@@ -3477,8 +3788,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (_factionManager == null)
             return result;
         foreach (var c in _factionManager.GetPatrolPositions())
-            if (_grid.Hexes.TryGetValue(c, out var h) &&
-                h.Fog != OverworldHex.FogState.Hidden)
+            // Step 1: model read. Unloaded coords answer Hidden, which also
+            // covers the old "hex must exist" half of the check.
+            if (_fog.FogAt(c) != OverworldHex.FogState.Hidden)
                 result.Add(c);
         return result;
     }
@@ -3555,8 +3867,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// result, or null (refused — no charge, G5).</summary>
     public string SpellIdentify(Vector2I local)
     {
-        if (!_grid.Hexes.TryGetValue(local, out var hex) || hex.POIConsumed ||
-            (hex.POI != OverworldHex.POIType.Combat && hex.POI != OverworldHex.POIType.Prison))
+        // Step 2: gate on the overlay model (hex still fetched for terrain below).
+        var ovIdent = _overlay.OverlayAt(local);
+        if (!_grid.Hexes.ContainsKey(local) || ovIdent.Consumed ||
+            (ovIdent.Poi != OverworldHex.POIType.Combat && ovIdent.Poi != OverworldHex.POIType.Prison))
             return null;
         if (!_window.TryLocalToWorld(local, out int col, out int row))
             return null;
@@ -3564,7 +3878,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         string key = $"{col},{row}";
         if (!_identifiedEncounters.TryGetValue(key, out var encounterDef))
         {
-            string terrainType = hex.Terrain.ToString();
+            string terrainType = TerrainAt(local).ToString();   // Step 3: world read
             string regionId = StagingTemplateRegion();
             var arch = RollArchmageAt(local); // same draw shape as OpenScoutReport
             encounterDef =
@@ -3577,7 +3891,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _identifiedEncounters[key] = encounterDef;
         }
 
-        _scoutPanel.ShowIntel(encounterDef, hex.Terrain.ToString(),
+        _scoutPanel.ShowIntel(encounterDef, TerrainAt(local).ToString(),
             "Identified from afar — this composition is fixed; the scout report will match.");
         return $"the weave yields their number — {encounterDef.Enemies.Count} foe(s) revealed";
     }
@@ -3661,7 +3975,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     private static readonly System.Collections.Generic.Dictionary<string, string>
         _pinnedNegotiations = new();
 
-    private NegotiationEncounterData PinnedNegotiationFor(Vector2I local, OverworldHex hex)
+    private NegotiationEncounterData PinnedNegotiationFor(Vector2I local)
     {
         if (!_window.TryLocalToWorld(local, out int col, out int row))
             return null;
@@ -3673,7 +3987,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 return cached;
         }
         var data = NegotiationEncounterLoader.PickForTerrain(
-            hex.Terrain.ToString(), StagingTemplateRegion());
+            TerrainAt(local).ToString(), StagingTemplateRegion());   // Step 3
         if (data != null)
             _pinnedNegotiations[key] = data.Id;
         return data;
@@ -3682,13 +3996,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// <summary>Hover extra for Negotiation POIs under the True Names
     /// attunement: name the counterpart's archetype before engagement —
     /// pre-loading the token-affinity read the negotiation rewards.</summary>
-    private string NegotiationPreread(Vector2I local, OverworldHex hex)
+    private string NegotiationPreread(Vector2I local)
     {
         if (_spells == null || !_spells.HasAttunement("true_names"))
             return "";
-        if (hex.POI != OverworldHex.POIType.Negotiation || hex.POIConsumed)
+        var ovPre = _overlay.OverlayAt(local);   // Step 2
+        if (ovPre.Poi != OverworldHex.POIType.Negotiation || ovPre.Consumed)
             return "";
-        var data = PinnedNegotiationFor(local, hex);
+        var data = PinnedNegotiationFor(local);
         return data == null ? "" : $"  ·  a {data.Archetype} holds this table";
     }
 
@@ -3766,6 +4081,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (!_window.TryLocalToWorld(centerLocal, out int col, out int row))
             return;
         var (added, removed) = _window.StreamTo(_grid, col, row);
+        // Step 1: re-mirror the fog model to the slid window (streamed-in hexes
+        // carry FogFromDiscovery; streamed-out coords drop from the model).
+        _fog?.SyncFromWindow();
+        // Step 2: same re-mirror for the overlay — the stamps below then rewrite
+        // their marks through the SetOverlay seam.
+        SyncOverlayFromWindow();
         _windowCenterLocal = centerLocal;
         if (added > 0)
             StampCivicPois(); // S4.2: newly streamed tiles may hold settlements
@@ -3820,10 +4141,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     contested = Mathf.Min(dFront, dHold) <= WarZoneRadius;
                 }
             }
-            if (kv.Value == null || kv.Value.Contested == contested)
+            // Step 2: contested lives on the overlay model; SetOverlay mirrors +
+            // redraws, preserving the only-repaint-on-change economy.
+            var ovWar = _overlay.OverlayAt(kv.Key);
+            if (kv.Value == null || ovWar.Contested == contested)
                 continue;
-            kv.Value.Contested = contested;
-            kv.Value.RefreshVisuals();
+            ovWar.Contested = contested;
+            SetOverlay(kv.Key, ovWar);
         }
     }
 
@@ -3836,14 +4160,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return; // already stormed — don't put it back
 
         var local = _window.LocalOf(_strongholdCol, _strongholdRow);
-        if (!_grid.Hexes.TryGetValue(local, out var hex))
+        if (!_grid.Hexes.ContainsKey(local))
             return; // not in the loaded window yet — a later stream will catch it
 
-        hex.POI = OverworldHex.POIType.Combat;   // entry must still route to a fight
-        hex.IsObjective = true;                  // ...but it draws as the gold objective star
-        hex.IsLandmark = true;
-        hex.POIConsumed = false;
-        hex.RefreshVisuals();
+        // Step 2: the stronghold stamp is DATA now — before this, the warfront
+        // objective existed only as node properties inside the 2D scene.
+        var ovHold = _overlay.OverlayAt(local);
+        ovHold.Poi = OverworldHex.POIType.Combat; // entry must still route to a fight
+        ovHold.Objective = true;                  // ...but it draws as the gold objective star
+        ovHold.Landmark = true;
+        ovHold.Consumed = false;
+        SetOverlay(local, ovHold);
         _fog?.RevealHex(local);
     }
 
@@ -3856,15 +4183,18 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             if (poi.Kind != PoiKind.Settlement && poi.Kind != PoiKind.Seat)
                 continue;
             var local = _window.LocalOf(poi.X, poi.Y);
-            if (!_grid.Hexes.TryGetValue(local, out var hex))
+            if (!_grid.Hexes.ContainsKey(local))
                 continue;
             var want = poi.Kind == PoiKind.Seat
                 ? OverworldHex.POIType.Seat
                 : OverworldHex.POIType.Settlement;
-            if (hex.POI == OverworldHex.POIType.None)
+            // Step 2: stamp through the overlay seam (never overwrites an
+            // encounter POI, as before).
+            var ovCivic = _overlay.OverlayAt(local);
+            if (ovCivic.Poi == OverworldHex.POIType.None)
             {
-                hex.POI = want;
-                hex.RefreshVisuals();
+                ovCivic.Poi = want;
+                SetOverlay(local, ovCivic);
             }
         }
     }
@@ -3956,11 +4286,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     private void RevealAllFog()
     {
-        foreach (var hex in _grid.Hexes.Values)
-        {
-            hex.Fog = OverworldHex.FogState.Revealed;
-            hex.RefreshVisuals();
-        }
+        // Step 1: writes go through the fog seam (model + node mirror + redraw).
+        foreach (var coord in new List<Vector2I>(_grid.Hexes.Keys))
+            _fog.SetFog(coord, OverworldHex.FogState.Revealed);
         WriteVisibleToWorld();
     }
 
@@ -4363,20 +4691,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// already-built window.</summary>
     private void RefreshWindowSilhouettes()
     {
-        foreach (var kvp in _grid.Hexes)
+        // Step 1: reads and writes through the fog seam.
+        foreach (var coord in new List<Vector2I>(_grid.Hexes.Keys))
         {
-            var hex = kvp.Value;
-            if (hex.Fog != OverworldHex.FogState.Hidden)
+            if (_fog.FogAt(coord) != OverworldHex.FogState.Hidden)
                 continue;
-            if (!_window.TryLocalToWorld(kvp.Key, out int col, out int row))
+            if (!_window.TryLocalToWorld(coord, out int col, out int row))
                 continue;
             if (!_world.TryIndex(col, row, out int idx))
                 continue;
             if (_world.Tiles[idx].Discovery == TileDiscovery.Charted)
-            {
-                hex.Fog = OverworldHex.FogState.Silhouette;
-                hex.RefreshVisuals();
-            }
+                _fog.SetFog(coord, OverworldHex.FogState.Silhouette);
         }
     }
 

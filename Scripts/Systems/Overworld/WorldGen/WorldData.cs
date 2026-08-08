@@ -55,7 +55,10 @@ public struct WorldTile
     /// <summary>Owning territory id, or empty for wilderness.</summary>
     public string KingdomId;
 
-    /// <summary>Chronomancer corruption at this tile, 0–3. Spreads tile-to-tile.</summary>
+    /// <summary>Chronomancer corruption at this tile, 0–100 (a "fully fallen" tile
+    /// saturates at 100; CorruptionSpread clamps to that range). NOT the kingdom
+    /// corruption LEVEL 0–3 — that level maps onto this per-tile 0–100 scale
+    /// (0→0, 1→40, 2→70, 3→100). Spreads tile-to-tile.</summary>
     public byte Corruption;
 
     public TileDiscovery Discovery;

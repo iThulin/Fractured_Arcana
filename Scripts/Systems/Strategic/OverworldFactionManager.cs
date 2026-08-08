@@ -40,6 +40,34 @@ public partial class OverworldFactionManager : Node2D
     private ArchmageDefinition _archmage;
     private bool _initialized;
 
+    // ── Step 4 (convergence spec): injected queries ──────────────────────
+    // Spawn-site filters read DATA through these (wired by ExpeditionManager
+    // BEFORE Initialize), and each spawned token inherits TileQuery/FogQuery.
+    // Null (isolation) falls back to node reads, as everywhere in Step 4.
+
+    /// <summary>World tile at a grid-local coord, or null off-world.</summary>
+    public System.Func<Vector2I, WorldTile?> TileQuery;
+
+    /// <summary>Fog at a grid-local coord (the ExpeditionFogModel).</summary>
+    public System.Func<Vector2I, OverworldHex.FogState> FogQuery;
+
+    /// <summary>Effective POI at a grid-local coord (the WindowOverlayModel).</summary>
+    public System.Func<Vector2I, OverworldHex.POIType> PoiQuery;
+
+    /// <summary>Terrain filter shared by every spawn path: no water, no mountains.
+    /// Data-first with node fallback.</summary>
+    private bool SpawnTerrainOk(Vector2I coord, OverworldHex hex)
+    {
+        if (TileQuery != null)
+        {
+            var t = TileQuery(coord);
+            return t.HasValue && !t.Value.IsWater &&
+                   t.Value.Terrain != OverworldHex.TerrainType.Mountain;
+        }
+        return hex != null && !hex.IsWater &&
+               hex.Terrain != OverworldHex.TerrainType.Mountain;
+    }
+
     // ── Signal ────────────────────────────────────────────────────────────
     /// <summary>Emitted when a patrol token arrives on the same hex as the player. OverworldRunManager should wire this to trigger ambush combat.</summary>
     [Signal]
@@ -142,6 +170,8 @@ public partial class OverworldFactionManager : Node2D
     private void SpawnPatrol(int index, Vector2I startCoord, int seed)
     {
         var patrol = new PatrolToken { Name = $"Patrol_{index}" };
+        patrol.TileQuery = TileQuery;   // Step 4: tokens read data, not nodes
+        patrol.FogQuery = FogQuery;
         _grid.AddChild(patrol); // child of grid so Position uses grid-space coords
         patrol.Initialize(
             _grid,
@@ -171,13 +201,13 @@ public partial class OverworldFactionManager : Node2D
             var coord = kvp.Key;
             var hex = kvp.Value;
 
-            // Terrain filter
-            if (hex.IsWater ||
-                hex.Terrain == OverworldHex.TerrainType.Mountain)
+            // Terrain filter (Step 4: data-first, node fallback)
+            if (!SpawnTerrainOk(coord, hex))
                 continue;
 
             // Don't spawn on a POI (player would arrive and trigger two events)
-            if (hex.POI != OverworldHex.POIType.None)
+            var poiHere = PoiQuery != null ? PoiQuery(coord) : hex.POI;
+            if (poiHere != OverworldHex.POIType.None)
                 continue;
 
             // Keep clear of entry (patrol shouldn't ambush the player instantly)
@@ -400,8 +430,7 @@ public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
             int d = _grid.Distance(kvp.Key, entry);
             if (d < 5 || d > 9)
                 continue;
-            var t = kvp.Value.Terrain;
-            if (TerrainClass.IsWater(t) || t == OverworldHex.TerrainType.Mountain)
+            if (!SpawnTerrainOk(kvp.Key, kvp.Value))   // Step 4
                 continue;
             candidates.Add(kvp.Key);
         }
@@ -415,8 +444,7 @@ public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
             // loaded tile; the spawn spot is irrelevant on a return path.
             foreach (var kvp in _grid.Hexes)
             {
-                var t = kvp.Value.Terrain;
-                if (TerrainClass.IsWater(t) || t == OverworldHex.TerrainType.Mountain)
+                if (!SpawnTerrainOk(kvp.Key, kvp.Value))   // Step 4
                     continue;
                 candidates.Add(kvp.Key);
             }
@@ -433,6 +461,8 @@ public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
         var start = candidates[(int)(rng.Randi() % (uint)candidates.Count)];
 
         var patrol = new PatrolToken { Name = "WildsPatrol_0" };
+        patrol.TileQuery = TileQuery;   // Step 4
+        patrol.FogQuery = FogQuery;
         _grid.AddChild(patrol);
         patrol.Initialize(
             _grid,
