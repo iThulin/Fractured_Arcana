@@ -62,6 +62,7 @@ public class EncounterDefinition
     // Overworld context — used by CombatManager for map theme selection later
     public string RegionId = "";
     public string TerrainType = "";   // OverworldHex.TerrainType name
+    public string MapRecipe = "";     // E5: forces a specific battlefield recipe (else terrain default)
     public float DifficultyMult = 1.0f;
 
     // ── O-track (docs/combat_objectives_spec_v1.md) ──────────────────────

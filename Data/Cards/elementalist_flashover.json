@@ -1,0 +1,225 @@
+{
+	"id": "elementalist_flashover",
+	"status": "ready",
+	"name": "Flashover",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Flashover",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Push target 3 (collision 3). Each Fire tile it is forced through sears it for 2.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "unit_then_direction",
+			"range": 4,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "push_aimed",
+			"tiles": 3,
+			"collision_damage": 3
+		}
+	},
+	"bottom": {
+		"name": "Fan the Flames",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Imbue target tile with Fire. It deals 3 to an enemy standing there.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "imbue_tile",
+			"element": "fire",
+			"bonus_damage": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "A longer shove and a hotter tile.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.tiles",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target 4 (collision 3). Each Fire tile it is forced through sears it for 2."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.bonus_damage",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue target tile with Fire. It deals 4 to an enemy standing there."
+				}
+			],
+			"top_name": "Flashover+",
+			"bottom_name": "Fan the Flames+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The shove hits harder on impact.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.collision_damage",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target 4 (collision 4) and deal 3. Fire tiles it is forced through sear it for 2 each."
+				}
+			],
+			"top_name": "Backblast"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Fire spreads to neighbours.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "imbue_area",
+						"element": "fire",
+						"radius": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a small patch of tiles around the target with Fire."
+				}
+			],
+			"bottom_name": "Ember Spread"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "A blast that carries them into whatever you aimed at.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.tiles",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.collision_damage",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target 5 (collision 5) and deal 4. Fire tiles it is forced through sear it for 2 each."
+				}
+			],
+			"top_name": "Detonation Front"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "The field catches.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "imbue_area",
+						"element": "fire",
+						"radius": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a wide field of tiles around the target with Fire."
+				}
+			],
+			"bottom_name": "Wildfire"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Everything in its path burns.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "push_aimed",
+						"tiles": 5,
+						"collision_damage": 6,
+						"damage": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target 5 (collision 6) and deal 6. Fire tiles it is forced through sear it for 2 each."
+				}
+			],
+			"top_name": "Pyroclasm"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "A furnace at the heart of the field.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_area",
+								"element": "fire",
+								"radius": 2
+							},
+							{
+								"type": "imbue_tile",
+								"element": "fire",
+								"bonus_damage": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a wide field with Fire; the central tile deals 5 to an enemy standing there."
+				}
+			],
+			"bottom_name": "Conflagration"
+		}
+	]
+}

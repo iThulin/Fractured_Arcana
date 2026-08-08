@@ -1754,6 +1754,17 @@ public partial class CombatManager
                 score -= Mathf.RoundToInt(50 * enemy.HazardCaution);
         }
 
+        // High-ground preference (E-track §6.3): a ranged unit favours tiles that
+        // out-elevate its mark by >= 1 — the shooter that actually holds the terrace.
+        // Tie-break magnitude only, so it never trades real progress toward the mark.
+        if (enemy.AttackRange > 1)
+        {
+            var here = grid.GetTile(coord);
+            var mark = grid.GetTile(goal);
+            if (here != null && mark != null && here.Height >= mark.Height + 1)
+                score += 3;
+        }
+
         return score;
     }
 

@@ -1,0 +1,314 @@
+{
+	"id": "elementalist_avalanche_verdict",
+	"status": "ready",
+	"name": "Avalanche Verdict",
+	"school": "Elementalist",
+	"rarity": "Rare",
+	"top": {
+		"name": "Avalanche Verdict",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Raise target tile by 2. Enemies adjacent to it are pushed 2 away (collision 3)",
+		"tags": [
+			"earth"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "raise_terrain",
+					"height": 2
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "adjacent_to_target",
+						"enemies_only": true
+					},
+					"do": {
+						"type": "push",
+						"tiles": 2,
+						"collision_damage": 3
+					}
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Stone Read",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 4 armor. If you stand on Stone, gain 2 more.",
+		"tags": [
+			"earth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "caster_on_terrain",
+				"terrain": "stone"
+			},
+			"then": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "armor",
+						"amount": 4
+					},
+					{
+						"type": "armor",
+						"amount": 2
+					}
+				]
+			},
+			"else": {
+				"type": "armor",
+				"amount": 4
+			}
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "A harder throw and a surer footing.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].do.collision_damage",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise target tile by 2. Enemies adjacent to it are pushed 2 away (collision 4)"
+				},
+				{
+					"half": "bottom",
+					"field": "effect.then.steps[1].amount",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 armor. If you stand on Stone, gain 4 more."
+				}
+			],
+			"top_name": "Avalanche Verdict+",
+			"bottom_name": "Stone Read+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Thrown further from the crag.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].do.tiles",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise target tile by 2. Enemies adjacent to it are pushed 3 away (collision 4)"
+				}
+			],
+			"top_name": "Landslide"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "More plating from the ground up.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.else.amount",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.then.steps[0].amount",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 5 armor. If you stand on Stone, gain 4 more."
+				}
+			],
+			"bottom_name": "Bedrock Read"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "A taller pillar, a longer fall.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].height",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[1].do.tiles",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[1].do.collision_damage",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise target tile by 3. Enemies adjacent to it are pushed 3 away (collision 5)"
+				}
+			],
+			"top_name": "Cliff Edict"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "The mountain lends its weight.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "caster_on_terrain",
+							"terrain": "stone"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "armor",
+									"amount": 5
+								},
+								{
+									"type": "armor",
+									"amount": 4
+								},
+								{
+									"type": "shield",
+									"amount": 2
+								}
+							]
+						},
+						"else": {
+							"type": "armor",
+							"amount": 5
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 5 armor. If you stand on Stone, gain 4 more and 2 shield."
+				}
+			],
+			"bottom_name": "Tectonic Read"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The ground itself passes sentence.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "raise_terrain",
+								"height": 3
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "adjacent_to_target",
+									"enemies_only": true
+								},
+								"do": {
+									"type": "push",
+									"tiles": 3,
+									"collision_damage": 6
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise target tile by 3. Enemies adjacent to it are pushed 3 away (collision 6)"
+				}
+			],
+			"top_name": "Mountain's Verdict"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Rooted to the bedrock.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "caster_on_terrain",
+							"terrain": "stone"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "armor",
+									"amount": 6
+								},
+								{
+									"type": "armor",
+									"amount": 4
+								},
+								{
+									"type": "shield",
+									"amount": 3
+								}
+							]
+						},
+						"else": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "armor",
+									"amount": 6
+								},
+								{
+									"type": "shield",
+									"amount": 2
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 6 armor and 2 shield. If you stand on Stone, gain 4 more armor and 1 more shield."
+				}
+			],
+			"bottom_name": "Unmoved"
+		}
+	]
+}

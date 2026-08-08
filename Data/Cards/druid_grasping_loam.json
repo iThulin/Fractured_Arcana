@@ -1,0 +1,252 @@
+{
+	"id": "druid_grasping_loam",
+	"status": "ready",
+	"name": "Grasping Loam",
+	"school": "Druid",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Grasping Loam",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Pull enemies within 3 toward you by 1, then Root those on your growth for 1 turn.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
+					},
+					"do": {
+						"type": "pull",
+						"tiles": 1
+					}
+				},
+				{
+					"type": "entangle",
+					"radius": 3,
+					"duration": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Green Surge",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Seed growth on target tile.",
+		"tags": [
+			"growth"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "seed_growth",
+			"stage": 1,
+			"radius": 0,
+			"wilding": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "A stronger drag and a faster thicket.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].do.tiles",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Pull enemies within 3 toward you by 2, then Root those on your growth for 1 turn."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.stage",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Seed a thicket on target tile."
+				}
+			],
+			"top_name": "Grasping Loam+",
+			"bottom_name": "Green Surge+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The roots hold longer.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].duration",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Pull enemies within 3 toward you by 2, then Root those on your growth for 2 turns."
+				}
+			],
+			"top_name": "Snaring Loam"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Growth spreads outward.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Seed a thicket on target tile and the tiles around it."
+				}
+			],
+			"bottom_name": "Verdant Surge"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "A wider, hungrier reach.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].do.tiles",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[1].radius",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Pull enemies within 4 toward you by 3, then Root those on your growth for 2 turns."
+				}
+			],
+			"top_name": "Bramble Maw"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Living terrain that keeps growing.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.stage",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect.wilding",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Seed a spreading thicket on target tile and the tiles around it."
+				}
+			],
+			"bottom_name": "Wildgrowth"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Dragged in, bound, and torn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "pull",
+									"tiles": 3
+								}
+							},
+							{
+								"type": "entangle",
+								"radius": 4,
+								"duration": 2
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "damage",
+									"amount": 3
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Pull enemies within 3 toward you by 3, Root those on your growth for 2 turns, and deal 3 to each."
+				}
+			],
+			"top_name": "Strangleroot"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Ancient, immediate, and dense.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.stage",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.radius",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Seed old growth on target tile and the tiles around it."
+				}
+			],
+			"bottom_name": "Old Growth"
+		}
+	]
+}

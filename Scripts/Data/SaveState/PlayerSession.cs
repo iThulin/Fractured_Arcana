@@ -86,6 +86,22 @@ public static class PlayerSession
     /// run. Reset on return. Prevents the blank-screen exit from a debug fight.</summary>
     public static bool DebugCombat = false;
 
+    // ── Battlefield debug injectors (set by CombatDebugLauncher) ─────────
+    /// <summary>When non-empty, HexGridManager.ActiveMapEvents appends a synthetic
+    /// MapEventDef of this kind (imbue_patch / spread_element / advance_hazard_ring)
+    /// so E4 map events can be exercised on ANY launched map, not just bf_cauldron.
+    /// Cleared on return to campus.</summary>
+    public static string DebugMapEventKind = null;
+    public static string DebugMapEventElement = "fire";
+
+    /// <summary>When set, HexGridManager.EnforceHazardCap is skipped so the
+    /// guarantee-pass hazard trim can be A/B-compared against an uncapped map.</summary>
+    public static bool DebugDisableHazardCap = false;
+
+    /// <summary>CombatDebugLauncher: extra map objects to spawn near the arena centre
+    /// for isolated E3 testing (each entry is a MapObjectCatalog kind). Cleared on return.</summary>
+    public static List<string> DebugMapObjects = null;
+
     // Force a specific POI type for the next encounter (-1 = no override)
     public static int ForceNextEncounterType = -1;
 
