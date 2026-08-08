@@ -170,7 +170,9 @@ public partial class FogOfWarManager : Node2D
     /// UpdateVision never re-hides a Revealed tile, so these persist for the run.</summary>
     private void RevealSecondaryLandmarks(Vector2I objCoord)
     {
-        if (MaxSecondaryLandmarks <= 0) return;
+        // (No MaxSecondaryLandmarks<=0 guard: the const is 3, so the check is
+        // dead code — CS0162. The Pass-1 `chosen.Count >= Max` break already
+        // no-ops any non-positive value identically.)
         var start = _grid.EntryCoord;
 
         var candidates = new List<KeyValuePair<Vector2I, OverworldHex>>();

@@ -1022,19 +1022,8 @@ public partial class WorldAtlas3D : Node3D
         // (hash of col,row — stable across recolors) breaks the flat fill-tool fields;
         // this one trick is most of why the HTML mockup read painterly.
         if (t.IsLand)
-            c = Grade(c);
+            c = Hex3DPalette.Grade(c);
         return Jitter(c, col, row, t.IsWater ? 0.02f : 0.04f);
-    }
-
-    /// <summary>Saturation +12%, value +2% — the lit-scene compensation for a palette
-    /// tuned on unlit 2D quads. Pass 1b: the original −10% value cut stacked with the
-    /// dimmer ambient and shadows into a murky map; grading now saturates WITHOUT
-    /// darkening (lighting owns brightness, grading owns richness). Land only.</summary>
-    private static Color Grade(Color c)
-    {
-        c.ToHsv(out float hue, out float sat, out float val);
-        return Color.FromHsv(hue, Mathf.Clamp(sat * 1.12f, 0f, 1f),
-                             Mathf.Clamp(val * 1.02f, 0f, 1f), c.A);
     }
 
     /// <summary>Deterministic per-tile brightness wobble, ±amp around 1.0.</summary>
@@ -1054,7 +1043,7 @@ public partial class WorldAtlas3D : Node3D
     {
         switch (_lens)
         {
-            case StrategicLens.Terrain: return TerrainColorOf(t);
+            case StrategicLens.Terrain: return Hex3DPalette.TerrainColorOf(t);
             case StrategicLens.Corruption: return CorruptionLensColor(t);
             case StrategicLens.Reach: return ReachLensColor(t);
             default: return PoliticalLensColor(t);
@@ -1065,12 +1054,12 @@ public partial class WorldAtlas3D : Node3D
     {
         switch (_lens)
         {
-            case StrategicLens.Terrain: return TerrainColorOf(t);
+            case StrategicLens.Terrain: return Hex3DPalette.TerrainColorOf(t);
             case StrategicLens.Corruption: return CorruptionLensColor(t);
             case StrategicLens.Reach: return ReachLensColor(t);
             default:
                 bool ownedLand = t.IsLand && !string.IsNullOrEmpty(t.KingdomId);
-                return ownedLand ? KingdomColor(t.KingdomId) : TerrainColorOf(t);
+                return ownedLand ? KingdomColor(t.KingdomId) : Hex3DPalette.TerrainColorOf(t);
         }
     }
 
@@ -1089,7 +1078,7 @@ public partial class WorldAtlas3D : Node3D
         }
         else
         {
-            c = TerrainColorOf(t);
+            c = Hex3DPalette.TerrainColorOf(t);
         }
         if (t.Corruption > 0)
         {
@@ -1097,19 +1086,6 @@ public partial class WorldAtlas3D : Node3D
             c = c.Lerp(UITheme.StrategicCorruptionWash, k);
         }
         return c;
-    }
-
-    private static Color TerrainColorOf(in WorldTile t)
-    {
-        if (t.Terrain != TT.Water)
-            return TerrainColor(t.Terrain);
-        // Pass 1 ocean dissolve: on top of the shallow→deep ramp, pull deep water
-        // toward the void background on a FASTER ramp than OceanDepthForFullDark's
-        // wide one, so open sea fades into the dark instead of ending in a hard
-        // bright rectangle. The map floats in the void — the mockup's whole identity.
-        Color c = UITheme.OceanColor(t.OceanDepth);
-        float dissolve = Mathf.Clamp(t.OceanDepth / 14f, 0f, 1f) * 0.65f;
-        return c.Lerp(UITheme.WorldDeep, dissolve);
     }
 
     private Color CorruptionLensColor(in WorldTile t)
@@ -1149,27 +1125,6 @@ public partial class WorldAtlas3D : Node3D
         KingdomStance.Friendly   => new Color(0.28f, 0.62f, 0.60f),
         KingdomStance.Allied     => new Color(0.30f, 0.72f, 0.40f),
         _                        => new Color(0.48f, 0.50f, 0.55f),
-    };
-
-    private static Color TerrainColor(TT t) => t switch
-    {
-        TT.Grassland => UITheme.TerrainGrassland,
-        TT.Forest => UITheme.TerrainForest,
-        TT.Road => UITheme.TerrainRoad,
-        TT.Ruins => UITheme.TerrainRuins,
-        TT.Mountain => UITheme.TerrainMountain,
-        TT.Swamp => UITheme.TerrainSwamp,
-        TT.ArcaneGround => UITheme.TerrainArcaneGround,
-        TT.Volcanic => UITheme.TerrainVolcanic,
-        TT.Water => UITheme.TerrainWater,
-        TT.Hills => UITheme.TerrainHills,
-        TT.Coast => UITheme.TerrainCoast,
-        TT.Lake => UITheme.TerrainLake,
-        TT.Desert => UITheme.TerrainDesert,
-        TT.Tundra => UITheme.TerrainTundra,
-        TT.Snow => UITheme.TerrainSnow,
-        TT.Marsh => UITheme.TerrainMarsh,
-        _ => UITheme.Neutral,
     };
 
     private static float TerrainLuminance(TT t) => t switch

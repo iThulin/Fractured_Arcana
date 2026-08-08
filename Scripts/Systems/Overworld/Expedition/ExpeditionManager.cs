@@ -168,6 +168,18 @@ public partial class ExpeditionManager : Node2D
     private RoamerToken _roamer;
     private bool _roamerSpent;
     private Camera2D _camera;
+
+    // ── [DEBUG] 3D expedition-window overlay (Stage-2 live wiring) ────────
+    // Toggled with M in DebugMode: renders THIS run's window in 3D from the live
+    // fog/overlay/world models, and its clicks drive the REAL _party.TryMoveTo — so
+    // walking here charges cost, reveals fog, and triggers POIs exactly like the 2D
+    // map. The viewport is parented into the HUD canvas UNDER the panels (via
+    // MoveChild to index 0), so encounter panels (scout/narrative/negotiation) draw
+    // OVER the 3D naturally — no auto-close guessing, no panel occlusion.
+    private SubViewportContainer _window3DContainer;
+    private ExpeditionWindow3D _window3D;
+    private Button _view3DButton;   // persistent HUD 2D/3D view toggle (Stage 3)
+
     private NarrativeEncounterPanel _narrativePanel;
     private ToastManager _toasts;
     private ScoutReportPanel _scoutPanel;
@@ -444,6 +456,15 @@ public partial class ExpeditionManager : Node2D
 
         CenterCamera();
         UpdateUI();
+
+        // Stage 3: honour the player's view preference — launch straight into the 3D
+        // expedition view when it's set. The flag persists across deploys and combat
+        // returns (static PlayerSession scratchpad), so once you switch to 3D every
+        // subsequent run comes up in 3D until you switch back. The 2D map still runs
+        // underneath; the overlay renders it and drives the real move logic.
+        UpdateView3DButton();
+        if (PlayerSession.ExpeditionView3D && _window3D == null)
+            OpenWindow3D();
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -720,6 +741,24 @@ public partial class ExpeditionManager : Node2D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        // ── View toggle (Stage 3): a REAL, non-debug feature, so it's handled
+        //    BEFORE the debug gate. M flips this run between the 2D map and the
+        //    3D expedition view; Esc closes the 3D view if it's open. Esc only
+        //    consumes the event while the overlay is up, so in 2D the pause menu's
+        //    Esc still works untouched.
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.M } && !ExpeditionComplete)
+        {
+            OnView3DTogglePressed();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (_window3D != null && @event is InputEventKey { Pressed: true, Keycode: Key.Escape })
+        {
+            OnView3DTogglePressed();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (!PlayerSession.DebugMode || ExpeditionComplete)
             return;
 
@@ -806,12 +845,141 @@ public partial class ExpeditionManager : Node2D
         }
 
         if (!PlayerSession.DebugGrantStagingArmed)
-            return;          
+            return;
         if (@event is InputEventKey { Pressed: true, Keycode: Key.G })
         {
             DebugGrantStagingHere();
             GetViewport().SetInputAsHandled();
         }
+    }
+
+    // ── 3D expedition-window view (Stage 3) ─────────────────────────────
+    //    A full-screen 3D render of THIS run's window, built from the live
+    //    fog/overlay/world models; clicking an adjacent tile calls the REAL
+    //    _party.TryMoveTo, so a walk here charges cost, reveals fog, and fires POIs
+    //    exactly as the 2D map does — the decoupled models render AND drive the run
+    //    in 3D. The 2D map keeps running underneath (the overlay sits at HUD index 0,
+    //    under every panel), so encounters resolve normally over it. Toggled by the
+    //    persistent HUD button (or M / Esc); the choice is remembered in
+    //    PlayerSession.ExpeditionView3D so the next deploy launches into the same view.
+
+    /// <summary>The single entry point for flipping the view: toggle the overlay,
+    /// persist the choice as the session preference, and refresh the button label.
+    /// The HUD button, the M key, and Esc all route through here so all three stay
+    /// in lockstep with the actual overlay state.</summary>
+    private void OnView3DTogglePressed()
+    {
+        ToggleWindow3D();
+        PlayerSession.ExpeditionView3D = _window3D != null;
+        UpdateView3DButton();
+    }
+
+    /// <summary>Keep the persistent HUD toggle's label honest about what a press does.</summary>
+    private void UpdateView3DButton()
+    {
+        if (_view3DButton != null)
+            _view3DButton.Text = _window3D != null ? "Switch to 2D" : "Switch to 3D";
+    }
+
+    private void ToggleWindow3D()
+    {
+        if (_window3D != null) CloseWindow3D();
+        else OpenWindow3D();
+    }
+
+    private void OpenWindow3D()
+    {
+        if (_grid == null || _party == null || _window == null || _world == null
+            || GetHudCanvas() == null)
+            return;
+
+        // Parent the 3D view into the HUD canvas, then MoveChild to index 0 so it sits
+        // UNDER every existing + future HUD panel — encounter panels draw over it, no
+        // occlusion, no auto-close needed. Full-rect + MouseFilter.Stop, so it blocks
+        // the 2D map's Area2D picking underneath while open.
+        _window3DContainer = new SubViewportContainer { Stretch = true, Name = "Window3DView" };
+        _window3DContainer.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        GetHudCanvas().AddChild(_window3DContainer);
+        GetHudCanvas().MoveChild(_window3DContainer, 0);
+
+        var vp = new SubViewport { OwnWorld3D = true, Msaa3D = Viewport.Msaa.Msaa4X };
+        _window3DContainer.AddChild(vp);
+
+        _window3D = new ExpeditionWindow3D { Standalone = false, SelfDrive = false };
+        _window3D.MoveRequested += OnWindow3DMove;
+        vp.AddChild(_window3D);
+        _window3D.AcceptInput = true;
+        _window3DContainer.MouseEntered += () => { if (_window3D != null) _window3D.AcceptInput = true; };
+        _window3DContainer.MouseExited += () => { if (_window3D != null) _window3D.AcceptInput = false; };
+
+        // Refresh after each real move: PartyMoved (fog+pos), PartyArrived (POI state).
+        _party.PartyMoved += OnWindow3DPartyMoved;
+        _party.PartyArrived += OnWindow3DPartyArrived;
+
+        FeedWindow3D(frameCamera: true);
+        UpdateView3DButton();
+        ShowInfo("3D expedition view — click an adjacent tile to walk. \"Switch to 2D\", M, or Esc returns.");
+    }
+
+    private void CloseWindow3D()
+    {
+        if (_party != null)
+        {
+            _party.PartyMoved -= OnWindow3DPartyMoved;
+            _party.PartyArrived -= OnWindow3DPartyArrived;
+        }
+        _window3DContainer?.QueueFree();
+        _window3DContainer = null;
+        _window3D = null;
+        UpdateView3DButton();
+    }
+
+    private void OnWindow3DPartyMoved(Vector2I n, Vector2I o)
+    {
+        if (_window3D != null) FeedWindow3D(frameCamera: false);
+    }
+
+    private void OnWindow3DPartyArrived(Vector2I c)
+    {
+        // No auto-close: panels draw OVER the 3D (it's under them in the HUD canvas),
+        // so encounters resolve normally while the 3D view keeps tracking the run.
+        if (_window3D != null) FeedWindow3D(frameCamera: false);
+    }
+
+    /// <summary>Project the live grid-LOCAL fog/overlay models into WORLD-offset-keyed
+    /// copies (the space <see cref="ExpeditionWindow3D"/> renders in) and hand them to
+    /// the view. Cheap dictionary copies over the loaded window (~500 tiles).</summary>
+    private void FeedWindow3D(bool frameCamera)
+    {
+        if (_window3D == null || _grid == null || _window == null || _world == null)
+            return;
+
+        var fogW = new ExpeditionFogModel();
+        var ovW = new WindowOverlayModel();
+        foreach (var kvp in _grid.Hexes)
+        {
+            if (!_window.TryLocalToWorld(kvp.Key, out int wc, out int wr))
+                continue;
+            var wcoord = new Vector2I(wc, wr);
+            fogW.Set(wcoord, _fog.FogAt(kvp.Key));
+            ovW.Set(wcoord, _overlay.OverlayAt(kvp.Key));
+        }
+
+        Vector2I worldCenter = _window.TryLocalToWorld(_windowCenterLocal, out int cc, out int cr)
+            ? new Vector2I(cc, cr) : Vector2I.Zero;
+        Vector2I worldParty = _window.TryLocalToWorld(_party.CurrentCoord, out int pc, out int pr)
+            ? new Vector2I(pc, pr) : worldCenter;
+
+        _window3D.SetWindow(_world, fogW, ovW, worldCenter, worldParty, frameCamera);
+    }
+
+    /// <summary>A 3D-overlay click: translate the world coord back to grid-local and run
+    /// the REAL move. TryMoveTo enforces adjacency/water and no-ops if illegal, so a
+    /// coordinate mismatch is harmless — it simply doesn't move.</summary>
+    private void OnWindow3DMove(Vector2I worldCoord)
+    {
+        var local = _window.LocalOf(worldCoord.X, worldCoord.Y);
+        _party.TryMoveTo(local);
     }
 
     // ── [DEBUG] Narrative-chain proof rig (2026-07-18) ───────────────────
@@ -3078,6 +3246,29 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         UITheme.ApplyButtonStyle(_ledgerButton, isPrimary: false);
         _ledgerButton.Pressed += () => _ledgerPanel?.Toggle();
         _hudCanvas.AddChild(_ledgerButton);
+
+        // 3D view toggle (Stage 3), stacked under Ledger. A real player-facing
+        // control: flips this run between the 2D map and the 3D expedition view and
+        // remembers the choice (PlayerSession.ExpeditionView3D), so the next deploy
+        // launches into the same view. M / Esc mirror it. Label is set by
+        // UpdateView3DButton to reflect what a press will do.
+        _view3DButton = new Button
+        {
+            Text = "Switch to 3D",
+            AnchorLeft = 1f,
+            AnchorTop = 0f,
+            AnchorRight = 1f,
+            AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            OffsetLeft = -150,
+            OffsetRight = -12,
+            OffsetTop = 108 + HudManager.BarHeight,  // third row under Extract / Ledger
+            OffsetBottom = 148 + HudManager.BarHeight,
+        };
+        _view3DButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        UITheme.ApplyButtonStyle(_view3DButton, isPrimary: false);
+        _view3DButton.Pressed += OnView3DTogglePressed;
+        _hudCanvas.AddChild(_view3DButton);
 
         // Scout panel.
         _scoutPanel = new ScoutReportPanel { Name = "ScoutPanel" };
