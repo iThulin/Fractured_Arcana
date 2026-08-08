@@ -107,6 +107,54 @@ public static class OverworldMovementCost
         return Mathf.Max(1, cost);
     }
 
+    // ── Step 3 (convergence spec): WorldTile overloads ───────────────────
+    // Same math, fed by the world's tile instead of a render node. WorldTile
+    // carries the identical both-sides edge masks. The node overloads remain
+    // for OverworldPartyToken's preview until Step 4 turns tokens into views.
+
+    /// <summary>WorldTile overload of the node StepCost. Null fromTile =
+    /// off-world/fringe: terrain cost only, matching the null-node case.</summary>
+    public static int StepCost(OverworldHex.TerrainType destTerrain,
+                               WorldTile? fromTile, Vector2I from, Vector2I to,
+                               int pathfinderReduction = 0)
+    {
+        int cost = TerrainStep(destTerrain) - Mathf.Max(0, pathfinderReduction);
+        cost = OverworldSpellEffects.AdjustTerrainStep(destTerrain, cost);
+
+        int d = EdgeDirection(from, to);
+        if (d >= 0 && fromTile.HasValue)
+        {
+            int bit = 1 << d;
+            bool road = (fromTile.Value.RoadEdges & bit) != 0;
+            bool river = (fromTile.Value.RiverEdges & bit) != 0;
+            bool bridge = road && river;   // road over a river
+
+            if (road)
+                cost -= RoadDiscount;       // includes bridges (a bridge is a road)
+            if (river && !bridge)
+                cost += FordPenalty;        // unbridged ford
+        }
+
+        return Mathf.Max(1, cost);
+    }
+
+    /// <summary>WorldTile overload of the node EdgeHasRoad.</summary>
+    public static bool EdgeHasRoad(WorldTile? fromTile, Vector2I from, Vector2I to)
+    {
+        int d = EdgeDirection(from, to);
+        return d >= 0 && fromTile.HasValue && (fromTile.Value.RoadEdges & (1 << d)) != 0;
+    }
+
+    /// <summary>WorldTile overload of the node EdgeHasUnbridgedRiver.</summary>
+    public static bool EdgeHasUnbridgedRiver(WorldTile? fromTile, Vector2I from, Vector2I to)
+    {
+        int d = EdgeDirection(from, to);
+        if (d < 0 || !fromTile.HasValue)
+            return false;
+        int bit = 1 << d;
+        return (fromTile.Value.RiverEdges & bit) != 0 && (fromTile.Value.RoadEdges & bit) == 0;
+    }
+
     /// <summary>True if a road runs along the edge from `from` to `to`.</summary>
     public static bool EdgeHasRoad(OverworldHex fromHex, Vector2I from, Vector2I to)
     {

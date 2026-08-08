@@ -34,6 +34,10 @@ public partial class RoamerToken : Node2D
     private Vector2I _prevCoord;
     private RandomNumberGenerator _rng;
 
+    // ── Step 4 (convergence spec): injected queries (see PatrolToken) ────
+    public System.Func<Vector2I, WorldTile?> TileQuery;
+    public System.Func<Vector2I, OverworldHex.FogState> FogQuery;
+
     private Vector2 _visualTarget;
     private bool _isAnimating;
 
@@ -87,7 +91,9 @@ public partial class RoamerToken : Node2D
     {
         if (_grid == null || !_grid.Hexes.TryGetValue(CurrentCoord, out var hex))
         { Visible = false; return; }
-        switch (hex.Fog)
+        // Step 4: fog from the model when wired; node mirror in isolation.
+        var fog = FogQuery != null ? FogQuery(CurrentCoord) : hex.Fog;
+        switch (fog)
         {
             case OverworldHex.FogState.Revealed:
                 Visible = true; Modulate = Colors.White; break;
@@ -141,8 +147,18 @@ public partial class RoamerToken : Node2D
     }
 
     private bool IsPassable(Vector2I coord)
-        => _grid.Hexes.TryGetValue(coord, out var hex)
-           && !hex.IsWater && hex.Terrain != OverworldHex.TerrainType.Mountain;
+    {
+        if (!_grid.Hexes.ContainsKey(coord))
+            return false;   // Step 4: explicit loaded gate (simulation LOD)
+        if (TileQuery != null)
+        {
+            var t = TileQuery(coord);
+            return t.HasValue && !t.Value.IsWater &&
+                   t.Value.Terrain != OverworldHex.TerrainType.Mountain;
+        }
+        return _grid.Hexes.TryGetValue(coord, out var hex)
+               && !hex.IsWater && hex.Terrain != OverworldHex.TerrainType.Mountain;
+    }
 
     private static Vector2[] DiamondPoints(float r) => new Vector2[]
     {

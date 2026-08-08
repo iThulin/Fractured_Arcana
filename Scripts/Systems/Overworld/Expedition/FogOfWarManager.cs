@@ -7,13 +7,23 @@ using System.Collections.Generic;
 // Purpose:        Owns fog state across the overworld hex grid.
 //                 Reveals tiles within vision radius of the
 //                 party, marks the fringe as silhouettes, leaves
-//                 the rest hidden. Persists revealed state into
-//                 RegionMemorySaveData via save manager.
+//                 the rest hidden.
+//
+//                 STEP 1 (atlas/expedition convergence): fog
+//                 authority is now the ExpeditionFogModel (plain
+//                 data). Every write lands in the model FIRST and
+//                 is mirrored onto OverworldHex.Fog for display;
+//                 every read this class makes goes through the
+//                 model (with a node fallback for hexes streamed
+//                 in since the last sync). Gameplay callers use
+//                 FogAt/SetFog instead of touching hex.Fog.
 // Layer:          System
-// Collaborators:  OverworldHexGrid.cs (parent),
-//                 OverworldHex.cs (FogState target),
-//                 GuildSaveData.cs (RegionMemory persistence)
-// See:            README §6 — Fog of War
+// Collaborators:  ExpeditionFogModel.cs (the authority),
+//                 OverworldHexGrid.cs (parent; loaded-set topology),
+//                 OverworldHex.cs (display mirror),
+//                 ExpeditionManager.cs (gates + world write-back)
+// See:            README §6 — Fog of War;
+//                 docs/atlas_expedition_convergence_v1.md §Step 1
 // ============================================================
 
 /// <summary>Manages fog-of-war state for the overworld hex grid. Phase 1 implementation is a simple radius reveal — vision range + 1 row of silhouettes. Phase 2+ will add intel-based long-range reveals and per-school abilities.</summary>
@@ -23,12 +33,72 @@ public partial class FogOfWarManager : Node2D
 
     private OverworldHexGrid _grid;
 
+    /// <summary>The run's fog as plain data — the authority. The 2D hexes mirror it.</summary>
+    public ExpeditionFogModel Model { get; } = new();
+
+    /// <summary>Step 2: the window overlay model, injected by ExpeditionManager so
+    /// the landmark-lure scan reads POI data instead of node properties. Null in
+    /// isolation (falls back to node reads — same belt-and-braces as EffectiveFog).</summary>
+    public WindowOverlayModel Overlay;
+
     public override void _Ready()
     {
         _grid = GetParent<OverworldHexGrid>();
         if (_grid == null)
             GD.PrintErr("FogOfWarManager: must be a child of OverworldHexGrid");
     }
+
+    // ── The seam gameplay talks through ──────────────────────────────────
+
+    /// <summary>Fog at a grid-local coord, from the model. Hidden for unloaded
+    /// ground — the same answer the old node-lookup miss produced.</summary>
+    public OverworldHex.FogState FogAt(Vector2I coord) => Model.FogAt(coord);
+
+    /// <summary>Set fog on a LOADED hex: model first, node mirror + redraw second.
+    /// No-op for unloaded coords, matching every pre-Step-1 write pattern (all of
+    /// which guarded on Hexes.TryGetValue). Unloaded ground persists through
+    /// WorldTile.Discovery, unchanged.</summary>
+    public void SetFog(Vector2I coord, OverworldHex.FogState state)
+    {
+        if (_grid == null || !_grid.Hexes.TryGetValue(coord, out var hex))
+            return;
+        Model.Set(coord, state);
+        hex.Fog = state;
+        hex.RefreshVisuals();
+    }
+
+    /// <summary>Rebuild the model to mirror the loaded window. Called after the
+    /// window is built and after every StreamTo slide: streamed-in hexes arrive
+    /// carrying FogFromDiscovery (WorldWindowBuilder), streamed-out coords drop.
+    /// Node→model here is lossless because every mid-run write goes through
+    /// SetFog, which keeps the two in lockstep.</summary>
+    public void SyncFromWindow()
+    {
+        if (_grid == null)
+            return;
+        Model.Clear();
+        foreach (var kvp in _grid.Hexes)
+            Model.Set(kvp.Key, kvp.Value.Fog);
+    }
+
+    /// <summary>Model value, falling back to the node for a hex streamed in since
+    /// the last sync — belt-and-braces so a missed sync site degrades to the old
+    /// behaviour instead of treating known ground as Hidden.</summary>
+    private OverworldHex.FogState EffectiveFog(Vector2I coord, OverworldHex hex)
+        => Model.TryGet(coord, out var f) ? f : hex.Fog;
+
+    /// <summary>Overlay value with node fallback — Step 2's twin of EffectiveFog.</summary>
+    private TileOverlay EffectiveOverlay(Vector2I coord, OverworldHex hex)
+        => Overlay != null && Overlay.TryGet(coord, out var o)
+            ? o
+            : new TileOverlay
+            {
+                Poi = hex.POI, Consumed = hex.POIConsumed,
+                Objective = hex.IsObjective, Landmark = hex.IsLandmark,
+                Contested = hex.Contested,
+            };
+
+    // ── Vision ───────────────────────────────────────────────────────────
 
     /// <summary>
     /// Call this whenever the party moves. Reveals hexes within vision radius
@@ -45,18 +115,21 @@ public partial class FogOfWarManager : Node2D
             var hex = kvp.Value;
             int dist = _grid.Distance(partyCoord, coord);
 
+            var fog = EffectiveFog(coord, hex);
             if (dist <= revealRange)
             {
                 // Full reveal — terrain, POIs, everything visible
-                hex.Fog = OverworldHex.FogState.Revealed;
+                fog = OverworldHex.FogState.Revealed;
             }
-            else if (dist <= silhouetteRange && hex.Fog == OverworldHex.FogState.Hidden)
+            else if (dist <= silhouetteRange && fog == OverworldHex.FogState.Hidden)
             {
                 // Silhouette — can see terrain shape but not POI content
-                hex.Fog = OverworldHex.FogState.Silhouette;
+                fog = OverworldHex.FogState.Silhouette;
             }
             // Note: already-revealed hexes stay revealed (no re-fogging)
 
+            Model.Set(coord, fog);
+            hex.Fog = fog;
             hex.RefreshVisuals();
         }
     }
@@ -80,9 +153,10 @@ public partial class FogOfWarManager : Node2D
         var objCoord = _grid.ObjectiveCoord;
         if (_grid.Hexes.TryGetValue(objCoord, out var objHex))
         {
-            if (objHex.Fog == OverworldHex.FogState.Hidden)
-                objHex.Fog = OverworldHex.FogState.Silhouette;
-            objHex.RefreshVisuals();
+            if (EffectiveFog(objCoord, objHex) == OverworldHex.FogState.Hidden)
+                SetFog(objCoord, OverworldHex.FogState.Silhouette);
+            else
+                objHex.RefreshVisuals();
         }
 
         RevealSecondaryLandmarks(objCoord);
@@ -103,12 +177,14 @@ public partial class FogOfWarManager : Node2D
         foreach (var kvp in _grid.Hexes)
         {
             var hex = kvp.Value;
-            if (hex.POI == OverworldHex.POIType.None || hex.POIConsumed) continue;
+            // Step 2: candidate POIs read the overlay model, not node properties.
+            var ov = EffectiveOverlay(kvp.Key, hex);
+            if (ov.Poi == OverworldHex.POIType.None || ov.Consumed) continue;
             // Supply caches are earned knowledge (supply_cache spec v1.1) — a
             // free force-reveal at window-open would leak them as lures.
-            if (hex.POI == OverworldHex.POIType.SupplyCache) continue;
+            if (ov.Poi == OverworldHex.POIType.SupplyCache) continue;
             if (kvp.Key == objCoord || kvp.Key == start) continue;
-            if (hex.Fog == OverworldHex.FogState.Revealed) continue;   // already in sight
+            if (EffectiveFog(kvp.Key, hex) == OverworldHex.FogState.Revealed) continue;   // already in sight
             if (_grid.Distance(start, kvp.Key) < LandmarkMinDistanceFromStart) continue;
             candidates.Add(kvp);
         }
@@ -129,7 +205,7 @@ public partial class FogOfWarManager : Node2D
         foreach (var kvp in candidates)
         {
             if (chosen.Count >= MaxSecondaryLandmarks) break;
-            if (usedKinds.Add(kvp.Value.POI)) Take(kvp);
+            if (usedKinds.Add(EffectiveOverlay(kvp.Key, kvp.Value).Poi)) Take(kvp);
         }
         // Pass 2: fill remaining slots, keeping landmarks spread apart.
         foreach (var kvp in candidates)
@@ -144,9 +220,16 @@ public partial class FogOfWarManager : Node2D
 
         foreach (var kvp in chosen)
         {
-            kvp.Value.Fog = OverworldHex.FogState.Revealed;
+            // Step 2: landmark is overlay data; node mirrored alongside. Mirror
+            // before SetFog so its redraw picks the beacon styling up.
+            if (Overlay != null)
+            {
+                var chosenOv = EffectiveOverlay(kvp.Key, kvp.Value);
+                chosenOv.Landmark = true;
+                Overlay.Set(kvp.Key, chosenOv);
+            }
             kvp.Value.IsLandmark = true;
-            kvp.Value.RefreshVisuals();
+            SetFog(kvp.Key, OverworldHex.FogState.Revealed);
         }
         GD.Print($"[Fog] Revealed {chosen.Count} secondary landmark(s) as frontier lures " +
                  $"(from {candidates.Count} candidate POI(s) in the opening window).");
@@ -156,11 +239,5 @@ public partial class FogOfWarManager : Node2D
     /// Reveal a specific hex fully (used by intel systems in Phase 2+).
     /// </summary>
     public void RevealHex(Vector2I coord)
-    {
-        if (_grid.Hexes.TryGetValue(coord, out var hex))
-        {
-            hex.Fog = OverworldHex.FogState.Revealed;
-            hex.RefreshVisuals();
-        }
-    }
+        => SetFog(coord, OverworldHex.FogState.Revealed);
 }

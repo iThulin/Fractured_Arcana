@@ -31,6 +31,18 @@ public partial class OverworldPartyToken : Node2D
     private OverworldHexGrid _grid;
     private FogOfWarManager _fog;
 
+    // ── Step 4 (convergence spec): injected queries ──────────────────────
+    // Movement legality and cost previews read DATA through these, not render
+    // nodes. ExpeditionManager wires them to WorldData/window seams; when null
+    // (isolation) the old node reads apply — same fallback discipline as
+    // FogOfWarManager.EffectiveFog.
+
+    /// <summary>World tile at a grid-local coord, or null off-world.</summary>
+    public System.Func<Vector2I, WorldTile?> TileQuery;
+
+    /// <summary>True when the party cannot enter a coord (unloaded or water).</summary>
+    public System.Func<Vector2I, bool> IsBlocked;
+
     // Movement highlight
     private List<OverworldHex> _highlightedHexes = new();
     private Color _highlightTint = new Color(1f, 1f, 0.6f, 0.3f);
@@ -113,8 +125,14 @@ public partial class OverworldPartyToken : Node2D
         if (!neighbors.Contains(targetCoord))
             return false;
 
-        // Can't walk into water (impassable)
-        if (_grid.Hexes.TryGetValue(targetCoord, out var targetHex))
+        // Can't walk into water (impassable). Step 4: the rule reads data when
+        // wired; the node check remains as the isolation fallback.
+        if (IsBlocked != null)
+        {
+            if (IsBlocked(targetCoord))
+                return false;
+        }
+        else if (_grid.Hexes.TryGetValue(targetCoord, out var targetHex))
         {
             if (targetHex.IsWater)
                 return false;
@@ -151,18 +169,38 @@ public partial class OverworldPartyToken : Node2D
         {
             if (_grid.Hexes.TryGetValue(neighborCoord, out var hex))
             {
-                if (hex.IsWater)
-                    continue;
-
                 // Edge-aware preview: the number is the TRUE cost (terrain ± road/ford,
                 // − Q3 Pathfinder); the colour signals a road (green) or an unbridged
                 // river ford (red). Same Pathfinder reduction the charge path applies —
                 // the preview can't diverge from the cost paid.
-                _grid.Hexes.TryGetValue(CurrentCoord, out var fromHex);
-                int pathfinder = EquipmentLoadout.PartyPathfinder(hex.Terrain.ToString());
-                int cost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, CurrentCoord, neighborCoord, pathfinder);
-                bool edgeRoad = OverworldMovementCost.EdgeHasRoad(fromHex, CurrentCoord, neighborCoord);
-                bool edgeFord = OverworldMovementCost.EdgeHasUnbridgedRiver(fromHex, CurrentCoord, neighborCoord);
+                //
+                // Step 4: terrain/water/edges come from the WORLD (TileQuery) when
+                // wired — the same source OnPartyMoved charges from — with the node
+                // path as the isolation fallback. The hex node itself remains only
+                // as the highlight's PARENT (display).
+                int cost;
+                bool edgeRoad, edgeFord;
+                if (TileQuery != null)
+                {
+                    var destTile = TileQuery(neighborCoord);
+                    if (!destTile.HasValue || destTile.Value.IsWater)
+                        continue;
+                    var fromTile = TileQuery(CurrentCoord);
+                    int pathfinder = EquipmentLoadout.PartyPathfinder(destTile.Value.Terrain.ToString());
+                    cost = OverworldMovementCost.StepCost(destTile.Value.Terrain, fromTile, CurrentCoord, neighborCoord, pathfinder);
+                    edgeRoad = OverworldMovementCost.EdgeHasRoad(fromTile, CurrentCoord, neighborCoord);
+                    edgeFord = OverworldMovementCost.EdgeHasUnbridgedRiver(fromTile, CurrentCoord, neighborCoord);
+                }
+                else
+                {
+                    if (hex.IsWater)
+                        continue;
+                    _grid.Hexes.TryGetValue(CurrentCoord, out var fromHex);
+                    int pathfinder = EquipmentLoadout.PartyPathfinder(hex.Terrain.ToString());
+                    cost = OverworldMovementCost.StepCost(hex.Terrain, fromHex, CurrentCoord, neighborCoord, pathfinder);
+                    edgeRoad = OverworldMovementCost.EdgeHasRoad(fromHex, CurrentCoord, neighborCoord);
+                    edgeFord = OverworldMovementCost.EdgeHasUnbridgedRiver(fromHex, CurrentCoord, neighborCoord);
+                }
                 Color tint = edgeRoad ? UITheme.MoveHighlightCheap
                            : edgeFord ? UITheme.MoveHighlightExpensive
                            : cost switch

@@ -53,6 +53,17 @@ public partial class PatrolToken : Node2D
     private Vector2 _visualTarget;
     private bool _isAnimating;
 
+    // ── Step 4 (convergence spec): injected queries ──────────────────────
+    // Passability and fog-visibility read DATA through these, wired by
+    // OverworldFactionManager from ExpeditionManager's seams. Null (isolation)
+    // falls back to the old node reads.
+
+    /// <summary>World tile at a grid-local coord, or null off-world.</summary>
+    public System.Func<Vector2I, WorldTile?> TileQuery;
+
+    /// <summary>Fog at a grid-local coord (the ExpeditionFogModel).</summary>
+    public System.Func<Vector2I, OverworldHex.FogState> FogQuery;
+
     // ── Patrol logic ──────────────────────────────────────────────────────
     private OverworldHexGrid _grid;
     private Vector2I _homeCoord;
@@ -226,7 +237,9 @@ public partial class PatrolToken : Node2D
         if (_vectorLine != null)
             _vectorLine.Visible = OverworldSpellEffects.ForebodingVision && _committed;
 
-        switch (hex.Fog)
+        // Step 4: fog from the model when wired; node mirror in isolation.
+        var fog = FogQuery != null ? FogQuery(CurrentCoord) : hex.Fog;
+        switch (fog)
         {
             case OverworldHex.FogState.Revealed:
                 Visible = true;
@@ -407,14 +420,25 @@ public partial class PatrolToken : Node2D
 
     private bool IsPassable(Vector2I coord)
     {
-        if (!_grid.Hexes.TryGetValue(coord, out var hex))
+        // Step 4: the loaded gate is EXPLICIT — this is the simulation LOD
+        // (patrols freeze when their ground unloads), no longer an accident
+        // of node existence at the read site.
+        if (!_grid.Hexes.ContainsKey(coord))
             return false;
         // S3 (Thornwall, Druid): spell-denied hexes are impassable to
         // patrols only — the party walks them freely.
         if (OverworldSpellEffects.HexBlockedForPatrols(coord))
             return false;
-        return hex.IsWater == false &&
-       hex.Terrain != OverworldHex.TerrainType.Mountain;
+        // Terrain from the WORLD when wired; node fallback in isolation.
+        if (TileQuery != null)
+        {
+            var t = TileQuery(coord);
+            return t.HasValue && !t.Value.IsWater &&
+                   t.Value.Terrain != OverworldHex.TerrainType.Mountain;
+        }
+        return _grid.Hexes.TryGetValue(coord, out var hex) &&
+               hex.IsWater == false &&
+               hex.Terrain != OverworldHex.TerrainType.Mountain;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

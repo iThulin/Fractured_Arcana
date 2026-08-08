@@ -28,6 +28,9 @@ public enum CampusPanelId
     Records = 6,
     Quests = 7,
     Council = 8,
+    /// <summary>3D world-map prototype (WorldAtlas3D) — side-by-side comparison
+    /// against the 2D strategic view. Not routed from any campus building.</summary>
+    Atlas = 9,
 }
 
 /// <summary>What activating a campus location does. Two shapes, because the campus systems
