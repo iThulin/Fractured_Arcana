@@ -4432,6 +4432,18 @@ public partial class CombatManager : Node3D
     /// by EncounterRouter via EncounterContext. Replaces QueueDefaultEncounter
     /// when a real overworld encounter is in progress.
     /// </summary>
+    /// <summary>Global enemy-difficulty multiplier from the guild's founding
+    /// scenario (CycleState.EnemyDifficultyMult), stamped at world generation.
+    /// 1.0 for legacy/pre-feature cycles. Folded into each enemy slot's own mult at
+    /// the initial spawn so it flows through the existing sqrt-HP / linear-damage
+    /// curve. Reinforcement waves keep their own mult for now — scaling them would
+    /// also touch player summons, which share SpawnRegistryUnit.</summary>
+    private static float ScenarioEnemyMult()
+    {
+        float m = SaveManager.ActiveSave?.Cycle?.EnemyDifficultyMult ?? 1f;
+        return m > 0f ? m : 1f;
+    }
+
     private void QueueEncounterFromContext(EncounterDefinition def)
     {
         pendingEnemySpawns.Clear();
@@ -4441,7 +4453,7 @@ public partial class CombatManager : Node3D
         foreach (var slot in def.Enemies)
         {
             var unitDef = UnitRegistry.Get(slot.UnitId);
-            float mult = slot.DifficultyMult;
+            float mult = slot.DifficultyMult * ScenarioEnemyMult();
 
             // Option B: HP on a softened (sqrt) curve so high mults don't create
             // slog-sponges; damage closer to linear so deep/corrupted ground is
@@ -5091,6 +5103,10 @@ public partial class CombatManager : Node3D
         // they COUNT for Marginalia. Both default to the summon behaviour, so
         // every pre-existing call site is unchanged.
         float mult = difficultyMult <= 0f ? 1.0f : difficultyMult;
+        // ENEMY reinforcement waves also take the founding-scenario difficulty; player
+        // summons (teamId 0, e.g. Necromancer risen) share this method and must NOT.
+        if (teamId != 0)
+            mult *= ScenarioEnemyMult();
         int spawnHp = Mathf.RoundToInt(def.MaxHealth * Mathf.Sqrt(mult));
 
         var unit = DummyUnitScene.Instantiate<Unit>();

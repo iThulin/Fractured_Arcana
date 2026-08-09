@@ -660,25 +660,78 @@ public partial class CampusScreen : Control
     /// (Later this moves to a dedicated CycleInitializer at cycle start.)</summary>
     private void EnsureCycleWorld()
     {
-        var cycle = SaveManager.ActiveSave?.Cycle;
+        var save = SaveManager.ActiveSave;
+        var cycle = save?.Cycle;
         if (cycle == null)
             return;
         if (cycle.World != null && cycle.World.Tiles.Length > 0)
             return; // already generated this cycle
 
+        // The founding scenario is guild-level (EternalLedger) and re-applied to
+        // every cycle's world generation. The direct founding path sets it on the
+        // ledger; the OnComplete host path leaves it null but stashes the id in
+        // PlayerSession — resolve that here and persist it onto the guild so it is
+        // stable for every later cycle/load. Pre-feature saves → Standard.
+        var scenario = save.Ledger?.FoundingScenario;
+        if (scenario == null)
+        {
+            scenario = (!string.IsNullOrEmpty(PlayerSession.PendingStartScenarioId)
+                            ? StartScenarioLoader.Load(PlayerSession.PendingStartScenarioId)
+                            : null)
+                       ?? StartScenarioLoader.Default();
+            if (save.Ledger != null)
+                save.Ledger.FoundingScenario = scenario;
+        }
+
         if (cycle.WorldSeed == 0)              // 0 = "not yet rolled" sentinel
         {
-            var rng = new RandomNumberGenerator();
-            rng.Randomize();
-            cycle.WorldSeed = (int)rng.Randi();
+            int baseSeed = scenario.Seed;
+            if (baseSeed == 0)                 // scenario without a fixed seed → roll one
+            {
+                var rng = new RandomNumberGenerator();
+                rng.Randomize();
+                baseSeed = (int)rng.Randi();
+            }
+            // Cycle 1 uses the curated seed verbatim (the map the scenario was
+            // balanced on); later timelines mix in the cycle number so each differs
+            // while the founding difficulty levers stay constant.
+            cycle.WorldSeed = WorldGenerator.DeriveCycleSeed(baseSeed, cycle.CycleNumber);
         }
-        int seed = cycle.WorldSeed; // playtest 2026-07-23: real per-cycle seeds restored
-        // int seed = -2085197503; // (dev) pin for deterministic world generation
-        var g = WorldGenerator.Generate(seed, cycle.SelectedSchool);
+        int seed = cycle.WorldSeed;
+        var g = WorldGenerator.Generate(seed, cycle.SelectedSchool, scenario.ToWorldParams());
         cycle.World = g.World;
         cycle.Kingdoms = g.Kingdoms;
         cycle.Campaign = g.Campaign;
         cycle.Council = g.Council;
+        // Stamp the founding scenario's runtime difficulty onto the timeline so the
+        // combat + corruption layers can read it (consumed in milestone 2B).
+        cycle.EnemyDifficultyMult = scenario.EnemyDifficultyMult;
+        cycle.CorruptionSpreadMult = scenario.CorruptionSpreadMult;
+
+        // Phase 2: resolve the campus entry dock ONCE from the home tile's terrain
+        // (near water → Dock, else Skydock). Eternal campus property — never
+        // recomputed once set, even as later cycles re-site the home elsewhere.
+        var campusMap = save.Ledger?.CampusMap;
+        if (campusMap != null && string.IsNullOrEmpty(campusMap.EntryDockType))
+        {
+            bool nearWater = false;
+            if (g.World.InBounds(g.World.HomeX, g.World.HomeY))
+            {
+                var homeTile = g.World.GetTile(g.World.HomeX, g.World.HomeY);
+                nearWater = homeTile.IsCoast || homeTile.IsWater;
+                if (!nearWater)
+                    foreach (var (nx, ny) in HexCoord.Neighbors(
+                                 g.World.HomeX, g.World.HomeY, g.World.Width, g.World.Height))
+                    {
+                        var nt = g.World.GetTile(nx, ny);
+                        if (nt.IsWater || nt.IsLake || nt.IsOcean)
+                        { nearWater = true; break; }
+                    }
+            }
+            campusMap.EntryDockType = nearWater ? "Dock" : "Skydock";
+            GD.Print($"[Campus] Entry dock resolved to '{campusMap.EntryDockType}' " +
+                     $"from home tile ({g.World.HomeX},{g.World.HomeY}).");
+        }
         CorruptionSpread.Reset(); // new world — drop cached adjacency + pressure
         KingdomTickSimulation.Reset(); // new world — drop cached kingdom adjacency
         // Seed echo-eligible flags from permanent records (quest_hooks §5, step 6).
@@ -687,7 +740,7 @@ public partial class CampusScreen : Control
         // Roster rotation: which starters are present this rendering (2026-07-22).
         CompanionUnlocks.SeedCycleRotation(SaveManager.ActiveSave);
         SaveManager.Save();
-        GD.Print($"[Campus] Generated cycle {cycle.CycleNumber} world (seed {seed}, " +
+        GD.Print($"[Campus] Generated cycle {cycle.CycleNumber} world (scenario '{scenario.Id}', seed {seed}, " +
                  $"{g.Kingdoms.Count} territories, {g.World.Pois.Count} POIs, " +
                  $"{g.Council.Courts.Count} courts).");
     }

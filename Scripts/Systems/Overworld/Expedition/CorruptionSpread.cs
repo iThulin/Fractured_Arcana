@@ -104,11 +104,20 @@ public static class CorruptionSpread
         EnsureAdjacency(world);
         SeedPressureFromLevels(campaign);
 
+        // Founding-scenario spread-rate multiplier (CycleState.CorruptionSpreadMult),
+        // stamped at world gen. 1.0 for legacy cycles. Scales how fast pressure
+        // climbs per lunation and how fast the visible tile flood creeps; it does
+        // NOT change the falloff geometry (which kingdoms eventually fall), only
+        // the tempo.
+        float rateMult = SaveManager.ActiveSave?.Cycle?.CorruptionSpreadMult ?? 1f;
+        if (rateMult <= 0f)
+            rateMult = 1f;
+
         // ── 1. Territory pressure spreads kingdom-to-kingdom ─────────────
-        SpreadTerritoryPressure(world, campaign, kingdoms);
+        SpreadTerritoryPressure(world, campaign, kingdoms, rateMult);
 
         // ── 2. Tiles flood toward their kingdom's pressure ───────────────
-        FloodTiles(world, campaign);
+        FloodTiles(world, campaign, rateMult);
 
         GD.Print("[Corruption] Lunation spread applied.");
     }
@@ -118,7 +127,8 @@ public static class CorruptionSpread
     // ════════════════════════════════════════════════════════════════════
 
     private static void SpreadTerritoryPressure(WorldData world, CampaignState campaign,
-                                                Dictionary<string, KingdomState> kingdoms)
+                                                Dictionary<string, KingdomState> kingdoms,
+                                                float rateMult = 1f)
     {
         // The convergence kingdom is the eternal source (always max pressure).
         string convergenceKingdom = ConvergenceKingdomId(world);
@@ -155,9 +165,9 @@ public static class CorruptionSpread
             float target = Mathf.Max(0f, maxNeighbour - TerritoryHopFalloff);
             float gain = 0f;
             if (target > cur)
-                gain += TerritorySpreadPerLunation;
+                gain += TerritorySpreadPerLunation * rateMult;
             if (touchesConvergence)
-                gain += ConvergencePushPerLunation;
+                gain += ConvergencePushPerLunation * rateMult;
 
             if (gain > 0f)
             {
@@ -210,7 +220,7 @@ public static class CorruptionSpread
     // Tile layer (0–100, flood toward territory pressure)
     // ════════════════════════════════════════════════════════════════════
 
-    private static void FloodTiles(WorldData world, CampaignState campaign)
+    private static void FloodTiles(WorldData world, CampaignState campaign, float rateMult = 1f)
     {
         int w = world.Width, h = world.Height;
 
@@ -248,9 +258,9 @@ public static class CorruptionSpread
 
                 // Flood speed: base step, faster if a neighbour is already corrupted
                 // (this is what makes the red creep edge-to-edge across borders).
-                int step = TileFloodMaxStep;
+                int step = Mathf.Max(1, Mathf.RoundToInt(TileFloodMaxStep * rateMult));
                 if (HasCorruptedNeighbour(world, old, x, y))
-                    step += TileFloodNeighbourBonus;
+                    step += Mathf.RoundToInt(TileFloodNeighbourBonus * rateMult);
 
                 int next = Mathf.Min((int)target, cur + step);
                 if (next > cur)

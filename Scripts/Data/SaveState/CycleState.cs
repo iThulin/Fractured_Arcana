@@ -99,6 +99,17 @@ public class CycleState
     /// </summary>
     public string CurrentRegionId = "frontier_wilds";
 
+    // ── Difficulty (stamped from the founding scenario each cycle) ───────
+    /// <summary>Enemy stat multiplier for this timeline, copied from the guild's
+    /// founding scenario at world generation. 1.0 = baseline. Consumed at combat
+    /// spawn (CombatManager) — pre-feature/legacy cycles default to 1.0.</summary>
+    public float EnemyDifficultyMult = 1f;
+
+    /// <summary>Corruption tile/territory spread-rate multiplier for this timeline,
+    /// copied from the founding scenario. 1.0 = baseline. Consumed by
+    /// CorruptionSpread.Tick — legacy cycles default to 1.0.</summary>
+    public float CorruptionSpreadMult = 1f;
+
     // ── Timeline economy ─────────────────────────────────────────────────
     public int Gold = 0;
 

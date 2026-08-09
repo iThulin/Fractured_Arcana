@@ -98,6 +98,11 @@ public partial class NewGameScreen : Control
     // School card refs
     private readonly List<(CardSchool school, Panel card, Label name, Label symbol)> _schoolCards = new();
 
+    // Founding-scenario picker refs
+    private string _selectedScenarioId = "";
+    private readonly List<(string id, Panel card, Label name, Label tag)> _scenarioCards = new();
+    private Label _scenarioDesc;
+
     public override void _Ready()
     {
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
@@ -139,6 +144,7 @@ public partial class NewGameScreen : Control
         BuildSchoolList(body);   // left: school picker
         BuildDetailPanel(body);  // right: model frame + info
 
+        BuildScenarioPicker(root);  // founding realm + difficulty
         BuildBottomBar(root);
 
         UpdateAll();
@@ -589,6 +595,7 @@ public partial class NewGameScreen : Control
     private void UpdateAll()
     {
         UpdateSchoolCards();
+        UpdateScenarioCards();
         UpdateDetailPanel();
         UpdateConfirmButton();
     }
@@ -699,6 +706,143 @@ public partial class NewGameScreen : Control
     }
 
     // ════════════════════════════════════════════════════════════════════
+    // Founding scenario picker — realm + difficulty (spec §3.5)
+    // ════════════════════════════════════════════════════════════════════
+
+    private void BuildScenarioPicker(VBoxContainer parent)
+    {
+        if (string.IsNullOrEmpty(_selectedScenarioId))
+            _selectedScenarioId = StartScenarioLoader.Default().Id;
+
+        var section = new VBoxContainer();
+        section.AddThemeConstantOverride("separation", 8);
+        parent.AddChild(section);
+
+        var hdr = new Label { Text = "FOUNDING — CHOOSE YOUR REALM" };
+        hdr.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
+        hdr.AddThemeColorOverride("font_color", new Color(0.38f, 0.38f, 0.48f));
+        section.AddChild(hdr);
+
+        var cardRow = new HBoxContainer();
+        cardRow.AddThemeConstantOverride("separation", 10);
+        cardRow.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        section.AddChild(cardRow);
+
+        foreach (var s in StartScenarioLoader.LoadAll())
+            cardRow.AddChild(BuildScenarioCard(s));
+
+        _scenarioDesc = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _scenarioDesc.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        _scenarioDesc.AddThemeColorOverride("font_color", new Color(0.60f, 0.60f, 0.70f));
+        section.AddChild(_scenarioDesc);
+    }
+
+    private Control BuildScenarioCard(StartScenario s)
+    {
+        bool sel = s.Id == _selectedScenarioId;
+        var accent = DifficultyColor(s.DifficultyRank);
+
+        var card = new Panel { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        card.CustomMinimumSize = new Vector2(0, 58);
+        ApplyScenarioCardStyle(card, sel, accent);
+
+        var margin = new MarginContainer();
+        margin.SetAnchorsPreset(LayoutPreset.FullRect);
+        margin.AddThemeConstantOverride("margin_left", 10);
+        margin.AddThemeConstantOverride("margin_right", 10);
+        margin.AddThemeConstantOverride("margin_top", 6);
+        margin.AddThemeConstantOverride("margin_bottom", 6);
+        card.AddChild(margin);
+
+        var vb = new VBoxContainer { SizeFlagsVertical = SizeFlags.ShrinkCenter };
+        vb.AddThemeConstantOverride("separation", 2);
+        margin.AddChild(vb);
+
+        var nameLbl = new Label { Text = s.DisplayName };
+        nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        nameLbl.AddThemeColorOverride("font_color",
+            sel ? Colors.White : new Color(0.78f, 0.78f, 0.86f));
+        vb.AddChild(nameLbl);
+
+        var tagLbl = new Label { Text = $"{DifficultyGlyph(s.DifficultyRank)}  {s.DifficultyTag}" };
+        tagLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        tagLbl.AddThemeColorOverride("font_color",
+            sel ? accent : new Color(accent.R, accent.G, accent.B, 0.6f));
+        vb.AddChild(tagLbl);
+
+        _scenarioCards.Add((s.Id, card, nameLbl, tagLbl));
+
+        var btn = new Button
+        {
+            AnchorRight = 1f,
+            AnchorBottom = 1f,
+            Flat = true,
+            FocusMode = FocusModeEnum.None,
+        };
+        string captured = s.Id;
+        btn.Pressed += () => { _selectedScenarioId = captured; UpdateAll(); };
+        card.AddChild(btn);
+
+        return card;
+    }
+
+    private static void ApplyScenarioCardStyle(Panel card, bool sel, Color accent)
+    {
+        var style = new StyleBoxFlat
+        {
+            BgColor = sel
+                ? new Color(accent.R * 0.12f, accent.G * 0.12f, accent.B * 0.12f, 1f)
+                : new Color(0.07f, 0.06f, 0.10f),
+            BorderColor = sel ? accent : new Color(0.16f, 0.15f, 0.22f),
+            BorderWidthTop = sel ? 2 : 1,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4,
+        };
+        card.AddThemeStyleboxOverride("panel", style);
+    }
+
+    private void UpdateScenarioCards()
+    {
+        StartScenario selected = null;
+        foreach (var (id, card, nameLbl, tagLbl) in _scenarioCards)
+        {
+            bool sel = id == _selectedScenarioId;
+            var s = StartScenarioLoader.Load(id);
+            var accent = DifficultyColor(s?.DifficultyRank ?? 1);
+            ApplyScenarioCardStyle(card, sel, accent);
+            nameLbl.AddThemeColorOverride("font_color",
+                sel ? Colors.White : new Color(0.78f, 0.78f, 0.86f));
+            tagLbl.AddThemeColorOverride("font_color",
+                sel ? accent : new Color(accent.R, accent.G, accent.B, 0.6f));
+            if (sel)
+                selected = s;
+        }
+        if (_scenarioDesc != null && selected != null)
+            _scenarioDesc.Text = selected.Blurb;
+    }
+
+    /// <summary>Difficulty band accent: Gentle green → Standard blue → Harsh amber
+    /// → Brutal red. Keyed by DifficultyRank so authored ranks drive the colour.</summary>
+    private static Color DifficultyColor(int rank) => rank switch
+    {
+        0 => new Color(0.45f, 0.78f, 0.50f),
+        1 => new Color(0.45f, 0.62f, 0.90f),
+        2 => new Color(0.90f, 0.62f, 0.35f),
+        _ => new Color(0.86f, 0.40f, 0.42f),
+    };
+
+    private static string DifficultyGlyph(int rank)
+    {
+        int n = Mathf.Clamp(rank + 1, 1, 4);
+        return new string('◆', n) + new string('◇', 4 - n);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
     // Confirm
     // ════════════════════════════════════════════════════════════════════
 
@@ -740,6 +884,10 @@ public partial class NewGameScreen : Control
             ? sc : CardSchool.Adept;
 
         PlayerSession.SelectedSchool = startingSchool;
+        // Carry the founding scenario for hosts that take the OnComplete path (they
+        // create the save themselves); EnsureCycleWorld reads this as a fallback
+        // when the ledger's FoundingScenario is still unset.
+        PlayerSession.PendingStartScenarioId = _selectedScenarioId;
 
         if (OnComplete != null)
         { OnComplete.Invoke(startingSchool, guildName); return; }
@@ -753,6 +901,13 @@ public partial class NewGameScreen : Control
         // starts with a flat stock. Remove this once materials are actually earnable
         // in play — it's a placeholder, not an intended starting balance.
         save.BuildMaterials = 10000;
+
+        // Apply the founding scenario: guild-level difficulty (re-applied to every
+        // cycle's world generation) + the founding gold stipend. Gold floors at 0 —
+        // base starting gold is 0, so a negative delta means "no cushion", not debt.
+        var scen = StartScenarioLoader.Load(_selectedScenarioId) ?? StartScenarioLoader.Default();
+        save.Ledger.FoundingScenario = scen;
+        save.Cycle.Gold = Mathf.Max(0, save.Cycle.Gold + scen.StartingGold);
 
         // Store wizard name on save
 

@@ -28,6 +28,12 @@ public static class PlayerSession
     /// </summary>
     public static int PendingNewGameSlot = -1;
 
+    /// <summary>Founding scenario id chosen on the NewGameScreen, carried for the
+    /// OnComplete host path (which creates the save itself). EnsureCycleWorld reads
+    /// it as a fallback when the ledger's FoundingScenario is still unset. Empty
+    /// otherwise; not run state, so ClearRunState leaves it alone.</summary>
+    public static string PendingStartScenarioId = "";
+
     /// <summary>True while the player is on an active expedition run.
     /// Gates deck editing in DeckEditorUi.</summary>
     public static bool IsOnExpedition = false;

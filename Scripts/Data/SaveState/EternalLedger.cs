@@ -145,6 +145,16 @@ public class EternalLedger
     public string CreatedAt = "";
     public string LastPlayedAt = "";
 
+    // ── Founding scenario (the guild's difficulty, chosen once) ──────────
+    /// <summary>The founding scenario — a curated seed plus difficulty levers —
+    /// chosen when the guild was founded. GUILD-LEVEL: re-applied to every cycle's
+    /// world generation (spec §3.3), so difficulty is a property of the guild, not
+    /// of one timeline. Null on pre-feature saves; SaveManager backfills the
+    /// Standard default on load, and EnsureCycleWorld coalesces null → default too.
+    /// Presentation fields (name/blurb) ride along so the guild can display what it
+    /// was founded on.</summary>
+    public StartScenario FoundingScenario = null;
+
     // ── Anchored essence (the economy) ───────────────────────────────────
     /// <summary>Current spendable balance.</summary>
     public int EssenceBalance = 0;

@@ -57,6 +57,21 @@ public static class WorldGenerator
         public int PoiPerKingdom = 12;
         public int PreDiscoveredPois = 3; // POIs visible from the start, near the staging point
         public ContinentStyle? ContinentStyleOverride = null; // null = roll the continent style from the seed; set to force one (debug).
+
+        // ── Founding-scenario levers (defaults reproduce shipping behaviour) ──
+        // Fractional start-capital hint (0..1 of Width/Height); < 0 = legacy
+        // interior-third random. Both must be >= 0 to take effect.
+        public float StartHintX = -1f;
+        public float StartHintY = -1f;
+        // One knob, two coupled effects: scales where the Convergence lands (as a
+        // fraction of the max capital distance) AND the tier-ramp steepness.
+        // 1.0 = shipping; < 1 nearer + steeper; > 1 farther-clamped + gentler.
+        public float ConvergenceDistanceBias = 1f;
+        // Bootstrap staging outposts seeded near home (1..3). 2 = shipping.
+        public int StartingOutposts = 2;
+        // Seeded PlayerInfluence at the home kingdom. 25 = shipping.
+        public int StartInfluence = 25;
+
         public float CityStudFraction = 0.55f;   // fraction of a city's tiles that get a POI
         public float TownStudFraction = 0.50f;
         public int WildPoiPerKingdom = 5;         // thinned wilderness scatter (was PoiPerKingdom=12)
@@ -91,12 +106,17 @@ public static class WorldGenerator
         var capitals = PlaceCapitals(world, p, rng);   // one per kingdom
         var kingdomIds = AssignTerritories(world, capitals);
 
-        // Convergence: the capital farthest from the player's start capital.
-        // Start capital = capitals[0]; convergence = farthest capital cell.
         var start = capitals[0];
+        // Convergence: the capital whose distance from the start is closest to
+        // (bias × the max capital distance). bias 1.0 => the farthest capital
+        // (shipping behaviour, since abs-diff is minimised at the max); bias < 1
+        // => a nearer capital, shortening the ramp.
+        int maxCapDist = capitals.Skip(1).Max(c => Dist(c, start));
+        int targetConvDist = Mathf.RoundToInt(
+            Mathf.Clamp(p.ConvergenceDistanceBias, 0.1f, 4f) * maxCapDist);
         var convergence = capitals
             .Skip(1)
-            .OrderByDescending(c => Dist(c, start))
+            .OrderBy(c => Mathf.Abs(Dist(c, start) - targetConvDist))
             .First();
         world.ConvergenceX = convergence.x;
         world.ConvergenceY = convergence.y;
@@ -114,7 +134,7 @@ public static class WorldGenerator
                 maxDist = d;
         }
         foreach (var id in kingdomIds)
-            tierOf[id] = DistanceToTier(distOf[id], maxDist);
+            tierOf[id] = DistanceToTier(distOf[id], maxDist, p.ConvergenceDistanceBias);
 
         // ── 4. Assign each kingdom a REAL region, then place archmagi ────
         // Each kingdom becomes an instance of one of the authored regions
@@ -159,7 +179,7 @@ public static class WorldGenerator
                 ControllingFactionId = isConvergence ? "" : factionOf[id],
                 Tier = isConvergence ? 3 : RegionTierOf(region),
                 Stability = 50,
-                PlayerInfluence = isStart ? 25 : 0,
+                PlayerInfluence = isStart ? p.StartInfluence : 0,
                 ArchmageId = archmageId,
             };
             GD.Print($"[WorldGen] {id} -> region '{region}'" +
@@ -313,13 +333,31 @@ public static class WorldGenerator
             }
 
         var capitals = new List<(int x, int y)>();
-        // First capital: a seeded random land tile in the interior third
-        // (so the start isn't jammed in a corner).
-        var interior = land.Where(c =>
-            c.x > world.Width / 5 && c.x < 4 * world.Width / 5 &&
-            c.y > world.Height / 5 && c.y < 4 * world.Height / 5).ToList();
-        var pool = interior.Count > 0 ? interior : land;
-        capitals.Add(pool[(int)(rng.Randi() % (uint)pool.Count)]);
+        // First capital = the guild's start. A founding scenario may hint a
+        // fractional position (StartHintX/Y in 0..1); snap to the nearest land
+        // tile. Otherwise a seeded random land tile in the interior third (so the
+        // start isn't jammed in a corner) — the legacy path, byte-identical.
+        if (p.StartHintX >= 0f && p.StartHintY >= 0f && land.Count > 0)
+        {
+            int hx = Mathf.Clamp(Mathf.RoundToInt(p.StartHintX * (world.Width - 1)), 0, world.Width - 1);
+            int hy = Mathf.Clamp(Mathf.RoundToInt(p.StartHintY * (world.Height - 1)), 0, world.Height - 1);
+            (int x, int y) best = land[0];
+            int bestD = int.MaxValue;
+            foreach (var c in land)
+            {
+                int d = Dist(c, (hx, hy));
+                if (d < bestD) { bestD = d; best = c; }
+            }
+            capitals.Add(best);
+        }
+        else
+        {
+            var interior = land.Where(c =>
+                c.x > world.Width / 5 && c.x < 4 * world.Width / 5 &&
+                c.y > world.Height / 5 && c.y < 4 * world.Height / 5).ToList();
+            var pool = interior.Count > 0 ? interior : land;
+            capitals.Add(pool[(int)(rng.Randi() % (uint)pool.Count)]);
+        }
 
         while (capitals.Count < p.KingdomCount && capitals.Count < land.Count)
         {
@@ -726,6 +764,15 @@ public static class WorldGenerator
     private static void SeedStaging(WorldData world, (int x, int y) start, Params p,
                                     RandomNumberGenerator rng)
     {
+        // Phase 2: the guild's home is a real place in the world — the start capital
+        // (capitals[0]), whose seat city hosts the campus. Record the coordinate and
+        // flag the settlement so renderers + the campus can locate it.
+        world.HomeX = start.x;
+        world.HomeY = start.y;
+        var homeSettlement = world.SettlementAt(start.x, start.y);
+        if (homeSettlement != null)
+            homeSettlement.IsGuildHome = true;
+
         var t = world.GetTile(start.x, start.y);
         t.IsStagingPoint = true;
         t.Discovery = TileDiscovery.Explored; // the start is known
@@ -741,11 +788,18 @@ public static class WorldGenerator
         });
 
         string startKingdom = world.GetTile(start.x, start.y).KingdomId ?? "";
-        // Near outpost: inside the first window, home kingdom is fine — it bootstraps the loop.
-        SeedBootstrapOutpost(world, start, minD: 10, maxD: 12, rng, "Frontier Outpost", foreignTo: null);
+        // The Distant (foreign) outpost is the anti-softlock guarantee — always
+        // seeded (StartingOutposts >= 1). The near Frontier outpost is convenience,
+        // seeded at >= 2 (shipping). An extra Waystation is seeded at >= 3.
+        int outposts = Mathf.Clamp(p.StartingOutposts, 1, 3);
+        if (outposts >= 2)
+            // Near outpost: inside the first window, home kingdom is fine — it bootstraps the loop.
+            SeedBootstrapOutpost(world, start, minD: 10, maxD: 12, rng, "Frontier Outpost", foreignTo: null);
         // Distant outpost: MUST be in a different kingdom, so its window reaches foreign ground.
         // This is the anti-softlock guarantee — without it every staging point can stay home.
         SeedBootstrapOutpost(world, start, minD: 13, maxD: 18, rng, "Distant Outpost", foreignTo: startKingdom);
+        if (outposts >= 3)
+            SeedBootstrapOutpost(world, start, minD: 8, maxD: 14, rng, "Waystation Outpost", foreignTo: null);
 
         // Pre-discover the nearest few ordinary POIs too, so the first strategic
         // view has texture beyond the guaranteed outposts.
@@ -844,11 +898,31 @@ public static class WorldGenerator
     private static int Dist((int x, int y) a, (int x, int y) b)
         => HexCoord.OffsetDistance(a.x, a.y, b.x, b.y);
 
-    private static int DistanceToTier(int dist, int maxDist)
+    /// <summary>Per-cycle world seed from a founding base seed. Cycle 1 uses the
+    /// base seed VERBATIM (the curated map the scenario was validated/balanced on);
+    /// later cycles mix in the cycle number so each timeline differs while the
+    /// founding difficulty levers stay constant. Deterministic.</summary>
+    public static int DeriveCycleSeed(int baseSeed, int cycleNumber)
+    {
+        if (cycleNumber <= 1)
+            return baseSeed;
+        unchecked
+        {
+            uint h = (uint)baseSeed * 2654435761u;
+            h ^= (uint)cycleNumber + 0x9E3779B9u + (h << 6) + (h >> 2);
+            return (int)h;
+        }
+    }
+
+    private static int DistanceToTier(int dist, int maxDist, float bias = 1f)
     {
         if (maxDist <= 0)
             return 1;
         float t = (float)dist / maxDist;
+        // bias > 1 stretches the ramp (more of the map stays tier 1); bias < 1
+        // compresses it (tier 3 reached sooner). bias 1.0 leaves t unchanged.
+        if (bias > 0f)
+            t /= bias;
         if (t < 0.34f)
             return 1;
         if (t < 0.67f)

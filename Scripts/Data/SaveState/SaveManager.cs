@@ -355,6 +355,14 @@ public static class SaveManager
             ledger.CampusMap = CampusMapSaveData.GenerateDefault();
         }
 
+        // ── Lazy migration: saves founded before start-scenarios existed have no
+        // FoundingScenario. Backfill the Standard default so difficulty reads
+        // identically to shipping (all levers 1.0, no start hint). Same additive,
+        // no-version-bump pattern as the CampusMap backfill above — a version bump
+        // would REJECT the save outright (see the SaveVersion guard).
+        if (ledger.FoundingScenario == null)
+            ledger.FoundingScenario = StartScenarioLoader.Default();
+
         // ── Tier 2: the cycle (optional — between-cycles is valid) ──────
         var cycle = ReadJson<CycleState>(GetCyclePath(slot));
         if (cycle == null)
@@ -429,6 +437,11 @@ public static class SaveManager
             {
                 CycleNumber = 1,
                 SelectedSchool = school,
+                // Base founding gold. The founding scenario's StartingGold is applied
+                // as a delta on top (NewGameScreen.OnConfirmPressed), floored at 0 —
+                // so a positive base lets negative scenario deltas actually bite
+                // (e.g. Brutal −200 → 0 cushion) instead of being inert. Tune freely.
+                Gold = 200,
             },
         };
 

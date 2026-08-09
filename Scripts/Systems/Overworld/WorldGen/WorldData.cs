@@ -178,6 +178,12 @@ public class WorldSettlement
     /// staging POI there.</summary>
     public bool IsSeat = false;
 
+    /// <summary>True for the settlement that hosts the guild's campus this cycle —
+    /// the seat city grown from the start capital. The eternal campus is "located"
+    /// here; re-derived each cycle since the world reseeds. (Phase 2 — the campus is
+    /// an actual place in the world.)</summary>
+    public bool IsGuildHome = false;
+
     /// <summary>Every tile in this settlement's footprint (offset coords).</summary>
     public List<(int x, int y)> Tiles = new();
 }
@@ -261,6 +267,13 @@ public class WorldData
     /// radiates from here; it is the cycle's terminal location.</summary>
     public int ConvergenceX = -1;
     public int ConvergenceY = -1;
+
+    /// <summary>World coordinate of the guild's home this cycle — the start capital's
+    /// seat, where the campus is sited. -1 until the generator sets it. The campus is
+    /// eternal; this binding is per-cycle (the world reseeds each timeline).
+    /// (Phase 2 — campus-as-world-location.)</summary>
+    public int HomeX = -1;
+    public int HomeY = -1;
 
     /// <summary>The rolled continental topology, for save/debug.</summary>
     public string ContinentStyle = "";

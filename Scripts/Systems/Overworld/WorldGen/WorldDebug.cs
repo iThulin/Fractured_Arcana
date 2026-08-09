@@ -238,4 +238,126 @@ public static class WorldDebug
         OverworldHex.TerrainType.Marsh => '%',
         _ => '?',
     };
+
+    // ── Founding-scenario validation (Phase 1) ───────────────────────────
+    /// <summary>Generate every curated start scenario and dump its geometry so
+    /// seeds / StartHints can be curated: continent style + land fraction, the
+    /// start tile + its region, the Convergence tile + hex distance, the tier
+    /// spread, the nearest archmage seats, and staging/POI counts. Writes to
+    /// user://scenario_dump.txt (Mac: ~/Library/Application Support/Godot/
+    /// app_userdata/&lt;Project&gt;/). This is the seed-curation tool from
+    /// docs/start_scenarios_curation_v1.md.</summary>
+    public static void DumpScenarios(string school = "Elementalist",
+                                     string path = "user://scenario_dump.txt")
+    {
+        _log = new System.Text.StringBuilder();
+        var scenarios = StartScenarioLoader.LoadAll();
+        Emit($"=== START SCENARIO VALIDATION  ({scenarios.Count} scenarios, school={school}) ===");
+
+        foreach (var s in scenarios)
+        {
+            var p = ParamsFor(s);
+            var g = WorldGenerator.Generate(s.Seed, school, p);
+            DumpOneScenario(s, g);
+        }
+
+        using (var f = FileAccess.Open(path, FileAccess.ModeFlags.Write))
+        {
+            if (f != null)
+            {
+                f.StoreString(_log.ToString());
+                GD.Print($"[WorldDebug] Scenario dump written to {path} " +
+                         $"({_log.Length} chars). Globalized: {ProjectSettings.GlobalizePath(path)}");
+            }
+            else
+            {
+                GD.PrintErr($"[WorldDebug] Could not open {path} for writing.");
+            }
+        }
+        _log = null;
+    }
+
+    /// <summary>Map a StartScenario onto WorldGenerator.Params. Delegates to the
+    /// single source of the mapping, <see cref="StartScenario.ToWorldParams"/>.</summary>
+    public static WorldGenerator.Params ParamsFor(StartScenario s)
+        => s?.ToWorldParams() ?? new WorldGenerator.Params();
+
+    private static void DumpOneScenario(StartScenario s, GeneratedWorldData g)
+    {
+        var w = g.World;
+
+        // Land fraction.
+        int land = 0;
+        for (int i = 0; i < w.Tiles.Length; i++)
+            if (w.Tiles[i].IsLand)
+                land++;
+        float landFrac = w.Tiles.Length > 0 ? (float)land / w.Tiles.Length : 0f;
+
+        // Start tile = the single Source=="Start" staging point (fallback: first).
+        int sx = -1, sy = -1;
+        foreach (var sp in w.StagingPoints)
+            if (sp.Source == "Start") { sx = sp.X; sy = sp.Y; break; }
+        if (sx < 0 && w.StagingPoints.Count > 0) { sx = w.StagingPoints[0].X; sy = w.StagingPoints[0].Y; }
+
+        string startKingdom = (sx >= 0) ? (w.GetTile(sx, sy).KingdomId ?? "") : "";
+        string startRegion = "(none)";
+        int startTier = 0;
+        if (!string.IsNullOrEmpty(startKingdom) && g.Kingdoms.TryGetValue(startKingdom, out var sk))
+        { startRegion = sk.TemplateRegionId; startTier = sk.Tier; }
+
+        int convDist = (sx >= 0 && w.ConvergenceX >= 0)
+            ? HexCoord.OffsetDistance(sx, sy, w.ConvergenceX, w.ConvergenceY) : -1;
+
+        // Nearest archmage seats (+ max seat distance as a ramp-denominator proxy).
+        var seatList = new List<(int d, string region, int tier)>();
+        int maxSeatDist = 1;
+        foreach (var poi in w.Pois)
+        {
+            if (poi.Kind != PoiKind.Seat) continue;
+            int d = (sx >= 0) ? HexCoord.OffsetDistance(sx, sy, poi.X, poi.Y) : 0;
+            if (d > maxSeatDist) maxSeatDist = d;
+            string reg = poi.KingdomId;
+            int tier = 0;
+            if (!string.IsNullOrEmpty(poi.KingdomId) && g.Kingdoms.TryGetValue(poi.KingdomId, out var ks))
+            { reg = ks.TemplateRegionId; tier = ks.Tier; }
+            seatList.Add((d, reg, tier));
+        }
+        seatList.Sort((a, b) => a.d.CompareTo(b.d));
+
+        int t1 = 0, t2 = 0, t3 = 0;
+        foreach (var k in g.Kingdoms.Values)
+        {
+            if (k.Tier <= 1) t1++;
+            else if (k.Tier == 2) t2++;
+            else t3++;
+        }
+
+        int outpostPois = 0, discovered = 0;
+        foreach (var poi in w.Pois)
+        {
+            if (poi.Kind == PoiKind.Outpost) outpostPois++;
+            if (poi.Discovered) discovered++;
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"\n=== {s.Id}  ({s.DifficultyTag}, rank {s.DifficultyRank})  seed={s.Seed} ===");
+        sb.AppendLine($"  continent : {w.ContinentStyle}   land={landFrac * 100f:F0}%");
+        sb.AppendLine($"  start     : ({sx},{sy})  kingdom={startKingdom}  region={startRegion}  tier={startTier}");
+        float convFrac = maxSeatDist > 0 ? (float)convDist / maxSeatDist : 0f;
+        sb.AppendLine($"  convergence: ({w.ConvergenceX},{w.ConvergenceY})  dist={convDist}  ({convFrac:F2} of max seat dist {maxSeatDist})");
+        sb.AppendLine($"  tiers     : T1={t1} T2={t2} T3={t3}");
+        var near = new System.Text.StringBuilder();
+        int shown = 0;
+        foreach (var seat in seatList)
+        {
+            if (seat.d == 0) continue; // skip the start's own colocated seat
+            near.Append($"{seat.region}(T{seat.tier},d{seat.d}) ");
+            if (++shown >= 4) break;
+        }
+        sb.AppendLine($"  near seats: {near}");
+        sb.AppendLine($"  staging   : {w.StagingPoints.Count} start + {outpostPois} outpost POIs;  {discovered} POIs pre-discovered");
+        Emit(sb.ToString());
+
+        RunInvariants(g);
+    }
 }
