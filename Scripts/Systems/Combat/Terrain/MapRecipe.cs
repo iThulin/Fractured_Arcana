@@ -178,6 +178,30 @@ public sealed class FeatureOp
     }
 }
 
+/// <summary>Battlefield E4 — one scheduled map event parsed from a recipe's
+/// `map_events` array. `round` is its first firing (1-based); `telegraph` is how
+/// many rounds ahead it is announced (0 = silent); `repeat_every` (0 = one-shot)
+/// re-fires it on that cadence. Kind-specific params (element, at, radius, steps,
+/// per_patch, announce) live in Raw.</summary>
+public sealed class MapEventDef
+{
+    public string Kind = "";
+    public int Round = 1;
+    public int Telegraph = 1;
+    public int RepeatEvery = 0;
+    public Godot.Collections.Dictionary Raw;
+
+    public bool Has(string key) => Raw != null && Raw.ContainsKey(key);
+    public int GetInt(string key, int def) => Has(key) ? Raw[key].AsInt32() : def;
+    public float GetFloat(string key, float def) => Has(key) ? Raw[key].AsSingle() : def;
+    public string GetStr(string key, string def) => Has(key) ? Raw[key].AsString() : def;
+    public Variant GetVariant(string key) => Has(key) ? Raw[key] : default;
+
+    /// <summary>Kinds that make tiles lethal or impassable — subject to the telegraph
+    /// law (must warn at least one round ahead; the loader clamps telegraph to >= 1).</summary>
+    public static bool IsDestructiveKind(string kind) => kind == "collapse_tiles";
+}
+
 public sealed class MapRecipe
 {
     public string Id = "";
@@ -188,6 +212,7 @@ public sealed class MapRecipe
     public WaterSpec Water;
     public SandSpec Sand;
     public List<FeatureOp> Features = new();
+    public List<MapEventDef> MapEvents = new();
 
     public static MapRecipe FromDict(Godot.Collections.Dictionary d)
     {
@@ -224,6 +249,29 @@ public sealed class MapRecipe
                     Chance = Flt(fd, "chance", 1f),
                     Raw = fd
                 });
+            }
+        }
+
+        if (d.ContainsKey("map_events"))
+        {
+            foreach (var item in d["map_events"].AsGodotArray())
+            {
+                var ed = item.AsGodotDictionary();
+                var mev = new MapEventDef
+                {
+                    Kind = Str(ed, "kind", ""),
+                    Round = Int(ed, "round", 1),
+                    Telegraph = Int(ed, "telegraph", 1),
+                    RepeatEvery = Int(ed, "repeat_every", 0),
+                    Raw = ed
+                };
+                // Telegraph law: a destructive event must warn a round ahead.
+                if (MapEventDef.IsDestructiveKind(mev.Kind) && mev.Telegraph < 1)
+                {
+                    Godot.GD.PushWarning($"[MapRecipe] destructive map event '{mev.Kind}' had telegraph {mev.Telegraph}; forced to 1.");
+                    mev.Telegraph = 1;
+                }
+                r.MapEvents.Add(mev);
             }
         }
 

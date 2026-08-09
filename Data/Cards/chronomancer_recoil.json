@@ -1,0 +1,220 @@
+{
+	"id": "chronomancer_recoil",
+	"status": "ready",
+	"name": "Recoil",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Recoil",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Push target enemy 3 (collision 4).",
+		"tags": [],
+		"targeting": {
+			"type": "unit_then_direction",
+			"range": 5,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "push_aimed",
+			"tiles": 3,
+			"collision_damage": 4
+		}
+	},
+	"bottom": {
+		"name": "Undertow Step",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Move 2 ignoring difficult terrain.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "move",
+			"tiles": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "A longer counter-shove and a longer step.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.tiles",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target enemy 4 (collision 4). Best played in answer to a strike."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.tiles",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 3, ignoring difficult terrain."
+				}
+			],
+			"top_name": "Recoil+",
+			"bottom_name": "Undertow Step+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "The answer lands harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.collision_damage",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target an enemy 4 tiles (collision 5). "
+				}
+			],
+			"top_name": "Counterweight"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Carried further out of reach.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.tiles",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 4 ignoring difficult terrain."
+				}
+			],
+			"bottom_name": "Riptide Step"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Snapped back and struck.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.tiles",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.collision_damage",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target enemy 5 (collision 5) and deal 3."
+				}
+			],
+			"top_name": "Whiplash"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "A step that leaves you guarded.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move",
+								"tiles": 3
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 3 ignoring difficult terrain. Gain 3 shield."
+				}
+			],
+			"bottom_name": "Slipstream"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The strike returned with interest.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "push_aimed",
+						"tiles": 5,
+						"collision_damage": 7,
+						"damage": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target enemy 5 (collision 7) and deal 4."
+				}
+			],
+			"top_name": "Kickback"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Out of danger and back in tempo.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move",
+								"tiles": 4
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 4 ignoring difficult terrain. Gain 3 shield and draw 1."
+				}
+			],
+			"bottom_name": "Ebb and Flow"
+		}
+	]
+}

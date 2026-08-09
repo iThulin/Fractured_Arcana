@@ -1,0 +1,230 @@
+{
+	"id": "necromancer_disturbed_rest",
+	"status": "ready",
+	"name": "Disturbed Rest",
+	"school": "Necromancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Disturbed Rest",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Pull target enemy 3 toward you, then deal 2. Memorials it is dragged across Stir it for 3 each.",
+		"tags": [
+			"spirit"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "pull",
+					"tiles": 3
+				},
+				{
+					"type": "damage",
+					"amount": 2
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Shoulder to Shoulder",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Push target 2 (collision 3).",
+		"tags": [
+			"spirit"
+		],
+		"targeting": {
+			"type": "unit_then_direction",
+			"range": 3,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "push_aimed",
+			"tiles": 2,
+			"collision_damage": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "A harder pull and a harder shove.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[1].amount",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Pull target enemy 3 toward you, then deal 4. Memorials it is dragged across Stir it for 3 each."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.collision_damage",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 2 (collision 4)."
+				}
+			],
+			"top_name": "Disturbed Rest+",
+			"bottom_name": "Shoulder to Shoulder+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Dragged the length of the graveyard.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].tiles",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Pull target enemy 4 toward you, then deal 4. Memorials it is dragged across Stir it for 3 each."
+				}
+			],
+			"top_name": "Grave Pull"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "A longer, heavier push.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.tiles",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 3 (collision 4)."
+				}
+			],
+			"bottom_name": "Pallbearer's Shove"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "The dead reach for what passes over them.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.steps[0].tiles",
+					"value": 4
+				},
+				{
+					"half": "top",
+					"field": "effect.steps[1].amount",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Pull target enemy 4 toward you, then deal 6. Memorials it is dragged across Stir it for 3 each."
+				}
+			],
+			"top_name": "Restless Dead"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "A shove with weight behind it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.tiles",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect.collision_damage",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.damage",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 3 (collision 5) and deal 3."
+				}
+			],
+			"bottom_name": "Crushing Advance"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Dragged in and pinned among the dead.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pull",
+								"tiles": 4
+							},
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Pull target enemy 4 toward you, deal 4, and Root it for 1 turn. Memorials it crosses Stir it for 3 each."
+				}
+			],
+			"top_name": "Mass Grave"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "An advance nothing wants to be in front of.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "push_aimed",
+						"tiles": 3,
+						"collision_damage": 5,
+						"damage": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Push target 3 (collision 5) and deal 4."
+				}
+			],
+			"bottom_name": "Funeral March"
+		}
+	]
+}

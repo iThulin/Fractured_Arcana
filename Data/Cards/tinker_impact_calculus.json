@@ -1,0 +1,277 @@
+{
+	"id": "tinker_impact_calculus",
+	"status": "ready",
+	"name": "Impact Calculus",
+	"school": "Tinker",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Impact Calculus",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Push target 4 (collision 4). Collisions with a unit damage both.",
+		"tags": [],
+		"targeting": {
+			"type": "unit_then_direction",
+			"range": 3,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "push_aimed",
+			"tiles": 4,
+			"collision_damage": 4
+		}
+	},
+	"bottom": {
+		"name": "Kinetic Brace",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 4 armor. If you control a construct, it repairs 4 HP.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "has_construct"
+			},
+			"then": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "armor",
+						"amount": 4
+					},
+					{
+						"type": "repair_constructs",
+						"amount": 4
+					}
+				]
+			},
+			"else": {
+				"type": "armor",
+				"amount": 4
+			}
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "More force, more plating.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.tiles",
+					"value": 5
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target 5 (collision 4). Collisions with a unit damage both."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.then.steps[0].amount",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "effect.else.amount",
+					"value": 5
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 5 armor. If you control a construct, it repairs 4 HP."
+				}
+			],
+			"top_name": "Impact Calculus+",
+			"bottom_name": "Kinetic Brace+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Impacts hit harder for everyone involved.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.collision_damage",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target 5 (collision 6). Collisions with a unit damage both."
+				}
+			],
+			"top_name": "Momentum Transfer"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "The current mends the machine faster.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.then.steps[1].amount",
+					"value": 6
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 5 armor. If you control a construct, it repairs 6 HP."
+				}
+			],
+			"bottom_name": "Field Weld"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "A shove that ends where it hits.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect.tiles",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "effect.collision_damage",
+					"value": 6
+				},
+				{
+					"half": "top",
+					"field": "effect.damage",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target 6 (collision 6) and deal 3. Collisions with a unit damage both."
+				}
+			],
+			"top_name": "Terminal Velocity"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "You and the machine, both plated.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "has_construct"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "armor",
+									"amount": 6
+								},
+								{
+									"type": "repair_constructs",
+									"amount": 6
+								},
+								{
+									"type": "grant_armor",
+									"amount": 3
+								}
+							]
+						},
+						"else": {
+							"type": "armor",
+							"amount": 6
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 6 armor. If you control a construct, it repairs 6 HP and gains 3 armor."
+				}
+			],
+			"bottom_name": "Reinforced Frame"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "Whatever it hits, it breaks.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "push_aimed",
+						"tiles": 6,
+						"collision_damage": 8,
+						"damage": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Push target 6 (collision 8) and deal 4. Collisions with a unit damage both."
+				}
+			],
+			"top_name": "Kinetic Overload"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "The frame carries the whole plan.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "has_construct"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "armor",
+									"amount": 6
+								},
+								{
+									"type": "repair_constructs",
+									"amount": 8
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						},
+						"else": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "armor",
+									"amount": 6
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 6 armor and draw 1. If you control a construct, it repairs 8 HP."
+				}
+			],
+			"bottom_name": "Load-Bearing"
+		}
+	]
+}

@@ -632,6 +632,44 @@ public partial class HexGridManager
         return Mathf.RoundToInt(Mathf.Lerp(maxRadius, minRadius, TerrainRoughness));
     }
 
+    /// <summary>Guarantee pass (battlefield E2.1 #4), hazard-cap half: connectivity and
+    /// spawn playability are already guaranteed by EnsureConnectivityBetweenSpawns /
+    /// EnsureReservedTilesArePlayable; this caps INITIAL hazard tiles at
+    /// <paramref name="maxFraction"/> of walkable so a recipe (or a dense element ring)
+    /// can't hand the player a map that is mostly lava. Clears the hazards FURTHEST from
+    /// centre first, keeping the contested middle threatening. Recipe maps only.</summary>
+    private void EnforceHazardCap(float maxFraction = 0.35f)
+    {
+        if (_activeRecipe == null)
+            return;
+        if (PlayerSession.DebugDisableHazardCap)
+            return;
+        int walkable = 0, hazardCount = 0;
+        foreach (var t in Tiles.Values)
+        {
+            if (t == null || !t.IsWalkable || t.IsBlocked) continue;
+            walkable++;
+            if (t.IsHazardous) hazardCount++;
+        }
+        if (walkable == 0) return;
+        int cap = (int)(walkable * maxFraction);
+        if (hazardCount <= cap) return;
+
+        var hz = new List<TileData>();
+        foreach (var kv in Tiles)
+            if (kv.Value != null && kv.Value.IsWalkable && !kv.Value.IsBlocked && kv.Value.IsHazardous)
+                hz.Add(kv.Value);
+        hz.Sort((a, b) => Distance(_centerCoord, b.Axial).CompareTo(Distance(_centerCoord, a.Axial)));
+        int toClear = hazardCount - cap;
+        for (int i = 0; i < toClear && i < hz.Count; i++)
+        {
+            hz[i].IsHazardous = false;
+            hz[i].ElementType = TileElementType.None;
+            hz[i].ElementStrength = 0f;
+        }
+        GD.Print($"[MapRecipe] '{_activeRecipe?.Id}': hazard cap cleared {toClear} tile(s) (was {hazardCount}/{walkable} walkable).");
+    }
+
     private void CarveLane(Vector2I start, Vector2I goal, int width = 0)
     {
         Vector2I current = start;

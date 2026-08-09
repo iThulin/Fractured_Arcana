@@ -1,0 +1,270 @@
+{
+	"id": "elementalist_glare_ice",
+	"status": "ready",
+	"name": "Glare Ice",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Glare Ice",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Imbue a line of 3 tiles with Ice.",
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "retarget",
+			"targeting": {
+				"type": "line",
+				"length": 3,
+				"include_tiles": true
+			},
+			"do": {
+				"type": "imbue_tile",
+				"element": "ice"
+			}
+		}
+	},
+	"bottom": {
+		"name": "Skate",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Move 3. Tiles you leave become Ice. Gain 1 armor per tile.",
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "imbue_path",
+			"element": "ice",
+			"move": 3,
+			"armor_per_tile": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "A longer lane and a sturdier skate.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "line",
+							"length": 4,
+							"include_tiles": true
+						},
+						"do": {
+							"type": "imbue_tile",
+							"element": "ice"
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue a line of 4 tiles with Ice."
+				},
+				{
+					"half": "bottom",
+					"field": "effect.armor_per_tile",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 3. Tiles you leave become Ice. Gain 2 armor per tile."
+				}
+			],
+			"top_name": "Glare Ice+",
+			"bottom_name": "Skate+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "A full lane to shove enemies down.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "line",
+							"length": 5,
+							"include_tiles": true
+						},
+						"do": {
+							"type": "imbue_tile",
+							"element": "ice"
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue a line of 5 tiles with Ice."
+				}
+			],
+			"top_name": "Bowling Lane"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Further, and just as slick.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.move",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 4. Tiles you leave become Ice. Gain 2 armor per tile."
+				}
+			],
+			"bottom_name": "Long Skate"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "A lane that grips as it freezes.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "line",
+									"length": 5,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "imbue_tile",
+									"element": "ice"
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "line",
+									"length": 5,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "apply_status",
+									"status": "slowed",
+									"duration": 1
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue a line of 5 tiles with Ice. Enemies on the line are Slowed for 1 turn."
+				}
+			],
+			"top_name": "Black Ice"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Every step armours you.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect.move",
+					"value": 4
+				},
+				{
+					"half": "bottom",
+					"field": "effect.armor_per_tile",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 4. Tiles you leave become Ice. Gain 3 armor per tile."
+				}
+			],
+			"bottom_name": "Frostwake"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The whole field becomes a chute.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "line",
+							"length": 6,
+							"include_tiles": true
+						},
+						"do": {
+							"type": "imbue_tile",
+							"element": "ice"
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue a line of 6 tiles with Ice — a slide the length of the field."
+				}
+			],
+			"top_name": "Glacier Run"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "A blur of ice and ward.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_path",
+								"element": "ice",
+								"move": 5,
+								"armor_per_tile": 3
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move 5. Tiles you leave become Ice. Gain 3 armor per tile and 3 shield."
+				}
+			],
+			"bottom_name": "Comet Skate"
+		}
+	]
+}

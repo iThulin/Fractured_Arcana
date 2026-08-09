@@ -39,6 +39,9 @@ public partial class CombatDebugLauncher : CanvasLayer
     private CheckBox _stopOnTriggersChk;
     private CheckBox _wavesChk;
     private CheckBox _surviveChk;
+    private OptionButton _mapEventKindOpt;
+    private OptionButton _mapEventElemOpt;
+    private CheckBox _noHazardCapChk;
     private Label _status;
     private readonly Dictionary<string, SpinBox> _enemySpins = new();  // unit id → count (U2: registry-driven)
     private readonly List<(CheckBox chk, Companion comp)> _allyChecks = new();
@@ -62,6 +65,9 @@ public partial class CombatDebugLauncher : CanvasLayer
     public static void ReturnToCampus(Node ctx)
     {
         PlayerSession.DebugCombat = false;
+        PlayerSession.DebugMapEventKind = null;
+        PlayerSession.DebugDisableHazardCap = false;
+        PlayerSession.DebugMapObjects = null;
         PlayerSession.DebugMode = false;
         PlayerSession.SkipDeployment = false;
         PlayerDeckSave.UseDebugDeck = false;
@@ -149,7 +155,81 @@ public partial class CombatDebugLauncher : CanvasLayer
         // Same as the map terrain = no bias (pure field continuation).
         _vistaOpt = AddEnumDropdown(form, "Vista border:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
             (int)OverworldHex.TerrainType.Grassland);
+        // E6: force a specific battlefield archetype, or "(from terrain)" for the map dropdown's default.
+        var recipeItems = new string[BattlefieldRecipes.Length + 1];
+        recipeItems[0] = "(from terrain)";
+        for (int ri = 0; ri < BattlefieldRecipes.Length; ri++)
+            recipeItems[ri + 1] = BattlefieldRecipes[ri];
+        _forceRecipeOpt = AddStringDropdown(form, "Force battlefield:", recipeItems);
         _diffSpin = AddSpin(form, "Difficulty ×:", 0.5, 3.0, 0.25, 1.0);
+
+        form.AddChild(new HSeparator());
+        AddSectionLabel(form, "Battlefield test injectors (new mechanics):");
+
+        // E4 map events: inject a synthetic scheduled event onto whatever map is
+        // launched (bf_cauldron already ships one; this lets you watch the ring /
+        // spread / patch on any terrain). Fires round 2, then every 2 rounds.
+        _mapEventKindOpt = AddStringDropdown(form, "Map event:",
+            new[] { "(none)", "advance_hazard_ring", "spread_element", "imbue_patch", "collapse_tiles", "raise_tiles", "lower_tiles", "spawn_object", "weather_tick" });
+        _mapEventElemOpt = AddStringDropdown(form, "  event element:",
+            new[] { "fire", "frost", "lightning", "earth", "arcane" });
+
+        _noHazardCapChk = new CheckBox { Text = "Disable hazard cap (see the uncapped map)" };
+        _noHazardCapChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_noHazardCapChk);
+
+        // E3: spawn neutral map objects near the arena centre for isolated testing
+        // (independent of any map_object ops the launched recipe carries).
+        var mapObjNote = new Label
+        {
+            Text = "Spawn map objects near centre (E3 test):",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        mapObjNote.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        mapObjNote.AddThemeColorOverride("font_color", UITheme.TextDim);
+        form.AddChild(mapObjNote);
+        foreach (string kind in MapObjectKinds)
+        {
+            string moLabel = MapObjectCatalog.TryGet(kind, out var moSpec)
+                ? $"  {moSpec.Label} (HP {moSpec.Hp}):"
+                : $"  {kind}:";
+            _mapObjectSpins[kind] = AddSpin(form, moLabel, 0, 4, 1, 0);
+        }
+
+        // Expedition patterns: spawn a premade enemy composition straight from a
+        // region's encounterPools (the same tables the overworld draws from). Pick a
+        // region, pick one of its compositions, "Apply" clears the roster below and
+        // fills it with that pattern's enemies.
+        var patternNote = new Label
+        {
+            Text = "Spawn a premade expedition pattern into the roster (region -> pattern -> Apply):",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        patternNote.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        patternNote.AddThemeColorOverride("font_color", UITheme.TextDim);
+        form.AddChild(patternNote);
+
+        foreach (var r in RegionLoader.LoadAll())
+            _regions.Add(r);
+        var regionNames = new string[_regions.Count];
+        for (int i = 0; i < _regions.Count; i++)
+            regionNames[i] = _regions[i].DisplayName;
+        _patternRegionOpt = AddStringDropdown(form, "Pattern region:",
+            regionNames.Length > 0 ? regionNames : new[] { "(no regions)" });
+        _patternRegionOpt.ItemSelected += idx => RebuildPatternDropdown((int)idx);
+
+        _patternOpt = AddStringDropdown(form, "Pattern:", new[] { "(select a region)" });
+        RebuildPatternDropdown(0);
+
+        var applyPatternBtn = new Button
+        {
+            Text = "Apply pattern -> roster",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        applyPatternBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        UITheme.ApplyButtonStyle(applyPatternBtn, isPrimary: false);
+        applyPatternBtn.Pressed += ApplySelectedPattern;
+        form.AddChild(applyPatternBtn);
 
         form.AddChild(new HSeparator());
         AddSectionLabel(form, "Player deck & cards:");
@@ -182,12 +262,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         // U2: registry-driven roster — every Data/Units/*.json shows up here
         // automatically, which is exactly the harness the U2 exit criterion
         // ("a debug encounter fielding tagged units") needs.
-        foreach (string id in UnitRegistry.AllIds)
-        {
-            var def = UnitRegistry.Get(id);
-            string tags = def.BehaviorTags.Count > 0 ? $" [{string.Join(",", def.BehaviorTags)}]" : "";
-            _enemySpins[id] = AddSpin(form, $"  {def.ThreatLabel}{tags}:", 0, 8, 1, DefaultCount(id));
-        }
+        BuildEnemyRoster(form);
         form.AddChild(new HSeparator());
 
         AddSectionLabel(form, "Allies — bring companions (real cards + stats):");
@@ -340,6 +415,23 @@ public partial class CombatDebugLauncher : CanvasLayer
                 neighborTerrains[k] = vistaTerrain;
         }
 
+        // Battlefield injectors -> PlayerSession (read by HexGridManager). Cleared
+        // on ReturnToCampus so a later real fight is unaffected.
+        string mevKind = _mapEventKindOpt.GetItemText(_mapEventKindOpt.Selected);
+        PlayerSession.DebugMapEventKind = mevKind == "(none)" ? null : mevKind;
+        PlayerSession.DebugMapEventElement = _mapEventElemOpt.GetItemText(_mapEventElemOpt.Selected);
+        PlayerSession.DebugDisableHazardCap = _noHazardCapChk.ButtonPressed;
+
+        var debugObjs = new List<string>();
+        foreach (var kvp in _mapObjectSpins)
+            for (int i = 0; i < (int)kvp.Value.Value; i++)
+                debugObjs.Add(kvp.Key);
+        PlayerSession.DebugMapObjects = debugObjs.Count > 0 ? debugObjs : null;
+
+        int recipeSel = _forceRecipeOpt.Selected;
+        if (recipeSel > 0 && recipeSel <= BattlefieldRecipes.Length)
+            def.MapRecipe = BattlefieldRecipes[recipeSel - 1];
+
         EncounterContextCarrier.Set(def);
         EncounterContextCarrier.SetContext(terrain, tier, neighborTerrains);
 
@@ -352,6 +444,22 @@ public partial class CombatDebugLauncher : CanvasLayer
     }
 
     // ── UI helpers ────────────────────────────────────────────────────────
+
+    /// <summary>Dropdown of plain strings (id = index). Used for the debug map-event
+    /// kind/element pickers, which don't map to a game enum.</summary>
+    private OptionButton AddStringDropdown(VBoxContainer form, string label, string[] items)
+    {
+        var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        row.AddThemeConstantOverride("separation", 8);
+        row.AddChild(MakeLabel(label, 150));
+        var opt = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        for (int i = 0; i < items.Length; i++)
+            opt.AddItem(items[i], i);
+        opt.Selected = 0;
+        row.AddChild(opt);
+        form.AddChild(row);
+        return opt;
+    }
 
     private OptionButton AddEnumDropdown(VBoxContainer form, string label, Array values, int selectedId,
         Func<object, string> labelFn = null)

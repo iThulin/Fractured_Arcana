@@ -945,6 +945,14 @@ public sealed class PushEffect : EffectBase
 			if (victim == null || victim.CurrentTile == null)
 				continue;
 
+			// E3: neutral map objects only move when flagged pushable (pillars, crystals,
+			// ward stones are immovable and act as fixed cover).
+			if (victim.IsMapObject && !victim.Pushable)
+			{
+				s.Log($"[Push] {victim.Name} is immovable.");
+				continue;
+			}
+
 			// Per-victim resolution scope (§2.2): each unit gets its own 10-tile
 			// force budget and once-per-tile reaction guard.
 			var ctx = new MoveContext(s.Grid);
@@ -1032,6 +1040,24 @@ public sealed class PushEffect : EffectBase
 			else
 			{
 				s.Log($"[Push] {victim.Name} pushed {pushed} tile(s).");
+			}
+
+			// E3: a shoved Ember Brazier spills fire where it lands + one tile further
+			// out in the push direction (the coals fly on ahead).
+			if (pushed > 0 && victim.IsMapObject && victim.MapObjectKind == "ember_brazier"
+				&& victim.CurrentTile != null)
+			{
+				TileEntryReactions.ImbueTile(victim.CurrentTile, TileElementType.Fire);
+				var land = victim.CurrentTile.Axial;
+				int landDist = s.Grid.Distance(casterPos, land);
+				foreach (var nb in s.Grid.GetNeighbors(land))
+				{
+					if (s.Grid.Distance(casterPos, nb) <= landDist)
+						continue;
+					var bt = s.Grid.GetTile(nb);
+					if (bt != null && bt.IsWalkable && !bt.IsBlocked)
+						TileEntryReactions.ImbueTile(bt, TileElementType.Fire);
+				}
 			}
 		}
 	}

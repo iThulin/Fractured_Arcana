@@ -2820,6 +2820,13 @@ public partial class CombatManager : Node3D
         // O-track: THE round boundary. Every objective state change (rounds
         // survived, waves arriving, later breaches) happens exactly here, in
         // one place, so it is a fact the player can read off the phase banner.
+        // E4: scheduled map events resolve BEFORE objectives/waves so waves land
+        // on updated terrain and zones read against reality.
+        EvaluateMapEvents();
+
+        // E3: Ward Stone aura — armour to whoever holds ground near a ward stone.
+        ApplyWardStoneAuras();
+
         // Inert when the encounter carries no objective and no waves.
         EvaluateObjectiveRoundBoundary();
         if (currentPhase == CombatPhase.Victory || currentPhase == CombatPhase.Defeat)
@@ -3183,6 +3190,14 @@ public partial class CombatManager : Node3D
     {
         if (unit == null)
             return;
+
+        // E3: neutral field objects run their own death path (on-death effect,
+        // LoS clear, rubble) and skip the player/enemy death machinery entirely.
+        if (unit.IsMapObject)
+        {
+            HandleMapObjectDeath(unit);
+            return;
+        }
 
         string deathMsg = $"{unit.Name} has died.";
         GD.Print(deathMsg);
@@ -4262,7 +4277,10 @@ public partial class CombatManager : Node3D
         string terrain = EncounterContextCarrier.SourceTerrain;
         if (!string.IsNullOrEmpty(terrain))
         {
-            grid.MapRecipeId = TerrainRecipeMap.Resolve(terrain);
+            string forcedRecipe = EncounterContextCarrier.Current?.MapRecipe;
+            grid.MapRecipeId = !string.IsNullOrEmpty(forcedRecipe)
+                ? forcedRecipe                               // E5: composition-paired battlefield
+                : TerrainRecipeMap.Resolve(terrain);
             grid.DensityControlMode = HexGridManager.DensityMode.Preset;
             grid.DensityPreset = DensityForTier(EncounterContextCarrier.Tier);
 
@@ -4280,6 +4298,10 @@ public partial class CombatManager : Node3D
         ApplyVistaBias(grid);
 
         grid.GenerateMap();
+
+        // E3: materialise recipe map objects now — before enemies deploy, so their
+        // tiles read as occupied and spawns route around them.
+        SpawnMapObjects();
     }
 
     /// <summary>
@@ -5727,7 +5749,7 @@ public partial class CombatManager : Node3D
                         return;
                     }
                 }
-                if (!grid.HasLineOfSight(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial))
+                if (ut.los && !grid.HasLineOfSight(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial))
                 {
                     var blocker = grid.FirstLosBlocker(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial);
                     string what = blocker == null ? "terrain"

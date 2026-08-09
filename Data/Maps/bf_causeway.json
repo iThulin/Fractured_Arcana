@@ -1,0 +1,109 @@
+{
+	"id": "bf_causeway",
+	"display_name": "The Causeway",
+	"shape": {
+		"type": "blob",
+		"width": 10,
+		"height": 8,
+		"radius": 5,
+		"erosion": 0.25
+	},
+	"base_terrain": {
+		"elevation_frequency": 0.12,
+		"moisture_frequency": 0.1,
+		"detail_weight": 0.18,
+		"max_height_step": 2,
+		"min_height_step": -1,
+		"palette": [
+			{
+				"terrain": "water",
+				"max_elevation": 0.45
+			},
+			{
+				"terrain": "grass"
+			}
+		]
+	},
+	"atmosphere": {
+		"sun_color": [
+			0.96,
+			0.98,
+			1.0
+		],
+		"sun_energy": 1.3,
+		"ambient_color": [
+			0.64,
+			0.72,
+			0.8
+		],
+		"ambient_energy": 0.9,
+		"fog_color": [
+			0.76,
+			0.83,
+			0.9
+		],
+		"fog_density": 0.008
+	},
+	"features": [
+		{
+			"feature": "carve_lane",
+			"phase": "skeleton",
+			"from": "player_anchor",
+			"to": "enemy_anchor",
+			"width": 1
+		},
+		{
+			"feature": "clearing",
+			"phase": "skeleton",
+			"at": "player_anchor",
+			"radius": 2
+		},
+		{
+			"feature": "clearing",
+			"phase": "skeleton",
+			"at": "enemy_anchor",
+			"radius": 2
+		},
+		{
+			"feature": "patch",
+			"phase": "skeleton",
+			"at": "flank:3",
+			"terrain": "grass",
+			"radius": 2
+		},
+		{
+			"feature": "carve_lane",
+			"phase": "skeleton",
+			"from": "flank:3",
+			"to": "midpoint",
+			"width": 0
+		},
+		{
+			"feature": "scatter_copses",
+			"phase": "accent",
+			"count": [
+				1,
+				2
+			],
+			"radius": 1
+		},
+		{
+			"feature": "map_object",
+			"phase": "accent",
+			"at": "flank:3",
+			"kind": "ward_stone",
+			"count": 1
+		}
+	],
+	"map_events": [
+		{
+			"kind": "collapse_tiles",
+			"round": 5,
+			"at": "midpoint",
+			"radius": 1,
+			"into": "water",
+			"telegraph": 1,
+			"announce": "The old span gives way."
+		}
+	]
+}

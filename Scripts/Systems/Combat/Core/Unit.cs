@@ -473,6 +473,18 @@ public partial class Unit : Node3D
     private StandardMaterial3D _hoverMat;
     private bool _isHovered = false;
 
+    // ── Map object fields (battlefield E3 — neutral "field" objects, TeamId 2) ──
+    /// <summary>True for neutral battlefield objects (pillars, braziers, boulders…).
+    /// Kept out of playerUnits/enemyUnits so they're excluded from turn order, the
+    /// unit bar, and both win/loss scans; they live only as tile occupants + in
+    /// CombatManager.fieldObjects. Damage reaches them via tile.Occupant.</summary>
+    public bool IsMapObject = false;
+    /// <summary>Map object may be shoved (PushEffect skips non-pushable ones).</summary>
+    public bool Pushable = false;
+    /// <summary>Catalog key (cracked_pillar / resonant_crystal / ember_brazier /
+    /// boulder / ward_stone / powder_cask) — drives on-death + aura behaviour.</summary>
+    public string MapObjectKind = "";
+
     // ── Spirit fields (Necromancer summoned units) ─────────────────────────────
     public bool IsSpirit = false;
     public int SummonerTeamId = -1;

@@ -221,6 +221,12 @@ public static class UITheme
     public static readonly Color RoleBoss = new Color(0.9f, 0.3f, 0.5f);
 
     public static readonly Color TileThreat = new Color(0.85f, 0.25f, 0.20f, 0.45f);
+    // Battlefield E4 telegraph - imminent destructive map event (amber, distinct from threat red).
+    public static readonly Color TileTelegraph = new Color(0.95f, 0.55f, 0.10f, 0.55f);
+    // Battlefield E4 terrain scars - overlay tint after a tile is converted mid-fight.
+    public static readonly Color TileScarWater = new Color(0.20f, 0.45f, 0.85f, 0.60f);
+    public static readonly Color TileScarChasm = new Color(0.14f, 0.10f, 0.22f, 0.75f);
+    public static readonly Color TileScarRubble = new Color(0.45f, 0.38f, 0.30f, 0.50f);
     /// <summary>Locked-but-unrevealed intent footprint — the kind-tier reticle
     /// (you always see WHERE an enemy aims; the reveal tier adds how hard).</summary>
     public static readonly Color TileThreatDim = new Color(0.85f, 0.25f, 0.20f, 0.18f);

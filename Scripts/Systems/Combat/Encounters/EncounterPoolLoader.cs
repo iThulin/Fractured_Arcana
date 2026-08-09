@@ -43,6 +43,10 @@ public class CompositionData
     [JsonPropertyName("enemies")]
     public List<EnemySlotData> Enemies { get; set; } = new();
 
+    // E5: optional per-composition battlefield recipe. Absent = region terrain default.
+    [JsonPropertyName("map_recipe")]
+    public string MapRecipe { get; set; } = "";
+
     // ── O-track: both optional, both absent on every pool authored to date ──
     [JsonPropertyName("objective")]
     public ObjectiveData Objective { get; set; } = null;
@@ -281,6 +285,7 @@ public static class EncounterPoolLoader
             RegionId = regionId,
             TerrainType = terrainType,
             DifficultyMult = difficultyMult,
+            MapRecipe = comp.MapRecipe ?? "",
         };
 
         foreach (var slot in comp.Enemies)

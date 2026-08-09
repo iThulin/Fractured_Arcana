@@ -110,6 +110,9 @@ public partial class HexTile : Node3D
     private bool rangeHighlighted = false;
     private bool rangeBorderHighlighted = false;
     private bool threatHighlighted = false;
+    private bool telegraphHighlighted = false;
+    private string _terrainScar = "";
+    private float _pulsePhase = 0f;
     private bool threatRevealed = true;   // hot vs dim threat tint (see SetThreatHighlight)
 
     /// <summary>Colour used when a draggable card is hovered over this tile during targeting.</summary>
@@ -141,6 +144,7 @@ public partial class HexTile : Node3D
         area.MouseExited += OnMouseExited;
 
         EnsureImbuementOverlay();
+        SetProcess(false);   // only runs while a telegraph pulse is active
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -715,6 +719,38 @@ public partial class HexTile : Node3D
         RefreshVisualState();
     }
 
+    /// <summary>Battlefield E4: toggles the telegraph tint - a coming destructive map
+    /// event will hit this tile next round. Its own layer, so it survives threat/move
+    /// recomputes.</summary>
+    public void SetTelegraphHighlight(bool on)
+    {
+        telegraphHighlighted = on;
+        if (on)
+            _pulsePhase = 0f;
+        SetProcess(on);
+        RefreshVisualState();
+    }
+
+    /// <summary>Battlefield E4: persistent terrain-scar overlay after a tile is converted
+    /// mid-fight (collapse/flood/rubble). Emission tint, not a mesh re-skin (terrain colour
+    /// is baked into the generated mesh). Pass "" to clear.</summary>
+    public void SetTerrainScar(string kind)
+    {
+        _terrainScar = kind ?? "";
+        RefreshVisualState();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!telegraphHighlighted)
+        {
+            SetProcess(false);
+            return;
+        }
+        _pulsePhase += (float)delta;
+        RefreshVisualState();
+    }
+
     /// <summary>Recomputes the current highlight tint from the layered flags (deployment → move → memorial → growth). No tint active = highlight off; the terrain (vertex colours, textures, or legacy albedo) shows untouched. No-op while a target/range highlight is active — those override.</summary>
     public void RefreshVisualState()
     {
@@ -735,6 +771,11 @@ public partial class HexTile : Node3D
             tint = tint.Lerp(UITheme.TileDeployHighlight, 0.55f);
         if (moveHighlighted)
             tint = tint.Lerp(_moveHighlightColor, 0.55f);
+        if (telegraphHighlighted)
+        {
+            float pa = 0.20f + 0.30f * (0.5f + 0.5f * Mathf.Sin(_pulsePhase * 5f));
+            tint = tint.Lerp(UITheme.TileTelegraph, pa);
+        }
 
         // ── Memorial overlay ──────────────────────────────────────────
         if (_memorialState.HasValue)
@@ -761,6 +802,17 @@ public partial class HexTile : Node3D
                 _ => UITheme.GrowthOldGrowth
             };
             tint = tint.Lerp(growthColor, growthColor.A);
+        }
+
+        if (!string.IsNullOrEmpty(_terrainScar))
+        {
+            Color scar = _terrainScar switch
+            {
+                "water" => UITheme.TileScarWater,
+                "chasm" => UITheme.TileScarChasm,
+                _ => UITheme.TileScarRubble
+            };
+            tint = tint.Lerp(scar, scar.A);
         }
 
         SetTint(tint);

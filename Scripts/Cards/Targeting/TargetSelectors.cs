@@ -154,6 +154,9 @@ public sealed class SelectUnitTarget : ITargetSelector
             int dist = s.Grid.Distance(center, unit.CurrentTile.Axial);
             if (dist > range) continue;
 
+            // E1: honour the card's line-of-sight flag (was plumbed, never checked).
+            if (los && !s.Grid.HasLineOfSight(center, unit.CurrentTile.Axial)) continue;
+
             if (dist < bestDist) { bestDist = dist; best = unit; }
         }
 
@@ -405,6 +408,13 @@ public sealed class SelectLineTarget : ITargetSelector
             var tile = s.Grid.GetTile(coord);
             if (tile == null) continue;
 
+            // E1: the beam stops at a wall — it hits the blocker's tile, nothing beyond.
+            if (tile.BlocksLineOfSight)
+            {
+                if (IncludeTiles) targets.Items.Add(tile);
+                break;
+            }
+
             if (IncludeTiles) targets.Items.Add(tile);
 
             if (tile.Occupant != null && tile.Occupant.Stats.IsAlive)
@@ -453,7 +463,8 @@ public sealed class SelectConeTarget : ITargetSelector
             foreach (var coord in coneTiles)
             {
                 var tile = s.Grid.GetTile(coord);
-                if (tile != null) targets.Items.Add(tile);
+                // E1: a tile shadowed from the apex by a blocker drops out of the cone.
+                if (tile != null && s.Grid.HasLineOfSight(origin, coord)) targets.Items.Add(tile);
             }
         }
 
@@ -463,7 +474,8 @@ public sealed class SelectConeTarget : ITargetSelector
             if (unit == casterUnit) continue;
             if (!TargetingHelpers.PassesTeamFilter(unit, casterUnit, EnemiesOnly)) continue;
 
-            if (coneTiles.Contains(unit.CurrentTile.Axial))
+            if (coneTiles.Contains(unit.CurrentTile.Axial)
+                && s.Grid.HasLineOfSight(origin, unit.CurrentTile.Axial))
                 targets.Items.Add(unit);
         }
 

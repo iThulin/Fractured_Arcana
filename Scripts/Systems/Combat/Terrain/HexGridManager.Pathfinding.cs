@@ -15,7 +15,8 @@ public partial class HexGridManager
     /// <summary>Open, VISIBLE hazards an enemy can see and route around: fire, lava,
     /// scorched ground. Deliberately NOT glyphs — hidden traps are unavoidable by
     /// design (see <see cref="Unit.HazardCaution"/>).</summary>
-    private static bool IsPathHazard(TileData tile) => tile != null && tile.IsHazardous;
+    private bool IsPathHazard(TileData tile) =>
+        tile != null && (tile.IsHazardous || TelegraphedTiles.Contains(tile.Axial));
 
     /// <summary>Extra pathfinding cost <paramref name="unit"/> pays to ENTER
     /// <paramref name="tile"/> because it is an open hazard, scaled by the unit's

@@ -1,0 +1,91 @@
+{
+	"id": "bf_courtyard",
+	"display_name": "The Courtyard",
+	"shape": {
+		"type": "hexagon",
+		"radius": 5
+	},
+	"base_terrain": {
+		"elevation_frequency": 0.1,
+		"moisture_frequency": 0.08,
+		"detail_weight": 0.18,
+		"max_height_step": 2,
+		"min_height_step": -1,
+		"palette": [
+			{
+				"terrain": "grass"
+			}
+		]
+	},
+	"atmosphere": {
+		"sun_color": [
+			0.78,
+			0.82,
+			0.7
+		],
+		"sun_energy": 1.05,
+		"ambient_color": [
+			0.42,
+			0.48,
+			0.38
+		],
+		"ambient_energy": 0.85,
+		"fog_color": [
+			0.5,
+			0.55,
+			0.44
+		],
+		"fog_density": 0.009
+	},
+	"features": [
+		{
+			"feature": "ring",
+			"phase": "skeleton",
+			"at": "midpoint",
+			"radius": 2,
+			"obstacle_kind": "wall"
+		},
+		{
+			"feature": "carve_lane",
+			"phase": "skeleton",
+			"from": "player_anchor",
+			"to": "midpoint",
+			"width": 0
+		},
+		{
+			"feature": "carve_lane",
+			"phase": "skeleton",
+			"from": "enemy_anchor",
+			"to": "midpoint",
+			"width": 0
+		},
+		{
+			"feature": "clearing",
+			"phase": "skeleton",
+			"at": "midpoint",
+			"radius": 1
+		},
+		{
+			"feature": "obstacle_cluster",
+			"phase": "accent",
+			"at": "random",
+			"kind": "rock",
+			"size": 2,
+			"chance": 0.6
+		},
+		{
+			"feature": "map_object",
+			"phase": "accent",
+			"at": "flank:2",
+			"kind": "cracked_pillar",
+			"count": 1
+		},
+		{
+			"feature": "map_object",
+			"phase": "accent",
+			"at": "flank:-2",
+			"kind": "cracked_pillar",
+			"count": 1
+		}
+	]
+}

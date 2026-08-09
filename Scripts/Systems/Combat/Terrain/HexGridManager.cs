@@ -208,6 +208,10 @@ public partial class HexGridManager : Node3D
 
     public readonly Dictionary<Vector2I, TileData> Tiles = new();
 
+    /// <summary>Battlefield E4: tiles a telegraphed destructive map event will hit next
+    /// round. Enemy pathing treats them as hazard-cost; CombatManager fills/clears them.</summary>
+    public readonly HashSet<Vector2I> TelegraphedTiles = new();
+
     // Seeded RNG for all generation randomness. Initialised at the top of GenerateMap.
     private RandomNumberGenerator _rng = new();
 
@@ -448,6 +452,10 @@ public partial class HexGridManager : Node3D
 
         EnsureReservedTilesArePlayable();
         EnsureConnectivityBetweenSpawns();
+
+        // Guarantee pass (E2.1 #4): cap initial hazards AFTER connectivity so a
+        // recipe (or dense element ring) can't hand the player a mostly-lava map.
+        EnforceHazardCap();
 
         // Vista DATA must exist before the playable meshes build (edge tiles
         // blend outward into it); vista MESHES build after ApplyTileVisuals,
