@@ -74,7 +74,7 @@ public partial class StrategicView : Node2D
     private Node2D _labelLayer;
     private const float ArchmageNameZoomThreshold = 1.4f; // ruler line appears past this zoom
     private bool _debugReveal = false;   // debug full-map view (non-destructive)
-    private StrategicLens _lens = StrategicLens.Political;  // active map lens
+    private StrategicLens _lens = StrategicLens.Terrain;  // active map lens (default: Terrain)
     private MultiMeshInstance2D _tileLayer;
     private MultiMeshInstance2D _poiLayer;
     private Node2D _shardZoneLayer;
@@ -82,6 +82,17 @@ public partial class StrategicView : Node2D
     private Node2D _edgeLayer;
     private Node2D _borderLayer;
     private Camera2D _camera;
+
+    // ── 3D strategic map (renderer swap) ─────────────────────────────────
+    // The real scene renders the world via WorldAtlas3D (orthographic strategic
+    // view) instead of the 2D MultiMesh layers. ONLY the render + tile picking
+    // move to 3D; every controller flow (deploy, the lunation tick, the
+    // Convergence finale, the _Ready lifecycle mutators, all dialogs and the HUD)
+    // is unchanged. Standalone/debug keeps the 2D path. When _atlas3D is non-null
+    // the 2D layers are never built, so their recolor paths short-circuit.
+    private CanvasLayer _atlas3DLayer;
+    private WorldAtlas3D _atlas3D;
+    [Export] public bool Use3DStrategicMap = true;
 
     // Camera control
     private bool _dragging;
@@ -149,7 +160,11 @@ public partial class StrategicView : Node2D
             }
         }
 
-        BuildCamera();
+        // The 2D Camera2D is only for the 2D render path. In 3D-real mode we skip
+        // it — WorldAtlas3D owns its own camera, and _UnhandledInput/FrameCamera
+        // both early-return on a null _camera, so all 2D pan/zoom auto-disables.
+        if (Standalone || !Use3DStrategicMap)
+            BuildCamera();
         CallDeferred(nameof(BuildRender));
     }
 
@@ -229,6 +244,17 @@ public partial class StrategicView : Node2D
         if (_world == null)
             return;
 
+        // 3D-real path: render via WorldAtlas3D and route its tile picks into the
+        // existing staging/supply dialogs. The HUD (calendar clock, siege news,
+        // lens bar, hint) is a renderer-agnostic CanvasLayer and carries over as-is.
+        // Every 2D map/marker layer is skipped — the "2D system" retires here.
+        if (Use3DStrategicMap && !Standalone)
+        {
+            BuildAtlas3D();
+            BuildHud();
+            return;
+        }
+
         BuildTileLayer();
         BuildSettlementLayer();
         BuildBorderLayer();
@@ -246,6 +272,106 @@ public partial class StrategicView : Node2D
             BuildDebugControls();
         FrameCamera();
         BuildLabelLayer();   // last: needs the framed _zoom for correct counter-scale
+    }
+
+    // ── 3D strategic map host + pick routing ─────────────────────────────
+    /// <summary>Host WorldAtlas3D full-screen (in a CanvasLayer below the HUD) and
+    /// render the resident world. Its `TilePicked` drives the same deploy/supply
+    /// flows the 2D Area2D markers used to. WorldAtlas3D already draws staging
+    /// beacons, POIs, shard zones, settlements and the Convergence marker, so the
+    /// visual carries over; warfront markers are a later pass.</summary>
+    private void BuildAtlas3D()
+    {
+        _atlas3DLayer?.QueueFree();
+        _atlas3DLayer = new CanvasLayer { Name = "Atlas3DLayer", Layer = 0 };
+        AddChild(_atlas3DLayer);
+
+        var container = new SubViewportContainer { Stretch = true, Name = "Atlas3DView" };
+        container.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        _atlas3DLayer.AddChild(container);
+
+        var vp = new SubViewport { OwnWorld3D = true, Msaa3D = Viewport.Msaa.Msaa4X };
+        container.AddChild(vp);
+
+        _atlas3D = new WorldAtlas3D();
+        _atlas3D.TilePicked += OnAtlas3DTilePicked;
+        vp.AddChild(_atlas3D);            // _Ready builds the camera (no world yet)
+        // Discovery gates the strategic map exactly as the 2D view did: normal play
+        // shows only charted/explored ground (unseen = void), debug reveals all.
+        // WorldAtlas3D DEFAULTS to revealed (it's a comparison prototype), so set
+        // this explicitly — and before SetWorld, so the first render is already right.
+        _atlas3D.SetRevealAll(_debugReveal);
+        _atlas3D.SetWorld(_world, _kingdoms);   // now render the resident world
+        _atlas3D.SetLens(_lens);
+
+        // Warfronts are cycle state (not WorldData), so hand the active front tiles to
+        // the map for its red conflict beacons. Picks on them route back below.
+        var warTiles = new System.Collections.Generic.List<Vector2I>();
+        var atlasCycle = SaveManager.ActiveSave?.Cycle;
+        if (atlasCycle?.Warfronts != null)
+            foreach (var wf in atlasCycle.Warfronts)
+                if (!wf.Closed && wf.HasFocus)
+                    warTiles.Add(new Vector2I(wf.FocusCol, wf.FocusRow));
+        _atlas3D.SetWarfronts(warTiles);
+
+        _atlas3D.AcceptInput = true;      // full-screen map — always live
+    }
+
+    /// <summary>A 3D map click resolved to (col,row): route it to the same handler
+    /// the 2D marker used. Staging beacon → deploy; supply cache → cache dialog.
+    /// (Warfront routing lands in a later pass.) A click on ordinary ground is a
+    /// no-op — WorldAtlas3D still updates its own inspect readout.</summary>
+    /// <summary>How many hexes from a staging point a click may land and still deploy
+    /// there. A staging hex is only a few pixels at whole-world zoom, so demanding an
+    /// exact hit is unreasonable — snap to the nearest staging point within this radius.</summary>
+    private const int StagingClickTolerance = 3;
+
+    private void OnAtlas3DTilePicked(int col, int row)
+    {
+        if (_world == null)
+            return;
+
+        // Supply cache first, on the EXACT tile (caches are denser than staging, so no
+        // snap — an exact click opens the cache; a near click falls through to the
+        // staging snap below, which is the map's primary action).
+        for (int i = 0; i < _world.Pois.Count; i++)
+        {
+            var poi = _world.Pois[i];
+            if (poi.Kind == PoiKind.SupplyCache && poi.X == col && poi.Y == row
+                && (poi.Discovered || _debugReveal))
+            {
+                ShowSupplyCacheDialog(i);
+                return;
+            }
+        }
+
+        // Warfront (non-cache-siege) → the intervention dialog. Cache sieges sit ON a
+        // cache tile and are handled by the supply-cache branch above; other fronts
+        // route here on a near-exact hit (before the wider staging snap, so a front
+        // next to a staging point isn't swallowed by it).
+        var wcycle = SaveManager.ActiveSave?.Cycle;
+        if (wcycle?.Warfronts != null)
+            foreach (var wf in wcycle.Warfronts)
+                if (!wf.Closed && wf.HasFocus && !wf.IsCacheSiege
+                    && HexCoord.OffsetDistance(col, row, wf.FocusCol, wf.FocusRow) <= 1)
+                {
+                    ShowWarfrontIntervene(wf);
+                    return;
+                }
+
+        // Staging: snap to the nearest AVAILABLE staging point within tolerance, so a
+        // near-miss on a tiny beacon still deploys instead of doing nothing.
+        StagingPoint nearest = null;
+        int nearestD = int.MaxValue;
+        if (_world.StagingPoints != null)
+            foreach (var sp in _world.StagingPoints)
+            {
+                if (!sp.Available) continue;
+                int d = HexCoord.OffsetDistance(col, row, sp.X, sp.Y);
+                if (d < nearestD) { nearestD = d; nearest = sp; }
+            }
+        if (nearest != null && nearestD <= StagingClickTolerance)
+            OnStagingClicked(nearest);
     }
 
     /// <summary>Persistent strategic-map HUD: a free exit back to campus. Returning
@@ -1180,6 +1306,14 @@ public partial class StrategicView : Node2D
         if (_lens == lens)
             return;
         _lens = lens;
+        // 3D mode: the lens is a recolor on WorldAtlas3D; the 2D layers don't exist,
+        // so skip their recolor/border/label passes (they'd no-op or null-ref).
+        if (_atlas3D != null)
+        {
+            _atlas3D.SetLens(lens);
+            UpdateLensButtons();
+            return;
+        }
         RecolorAllTiles();
         BuildBorderLayer();
         BuildLabelLayer();
@@ -1428,6 +1562,7 @@ public partial class StrategicView : Node2D
     private Node2D _stagingLayer;
     private Node2D _warfrontLayer;
     private CanvasLayer _deployUi;
+    private const float SidebarWidth = 420f;   // deploy drawer width
     private CanvasLayer _warfrontUi;
     private CanvasLayer _hud;
     private StagingPoint _pendingStaging;
@@ -2051,45 +2186,85 @@ public partial class StrategicView : Node2D
         Deploy();
     }
 
+    /// <summary>Close the deploy drawer: slide it back off the right edge (reverse of the
+    /// pop-out), then free it, and swoop the camera back to the overview. Detaches
+    /// _deployUi up front and frees the captured layer in the callback, so a rapid new
+    /// deploy started mid-slide is never the one that gets freed.</summary>
+    private void CloseDeploy(PanelContainer panel)
+    {
+        var ui = _deployUi;
+        _deployUi = null;
+        _pendingStaging = null;
+        _atlas3D?.FlyToOverview();
+        if (ui == null || panel == null || !IsInstanceValid(panel))
+        {
+            ui?.QueueFree();
+            return;
+        }
+        var slide = CreateTween();
+        slide.TweenProperty(panel, "offset_left", 0f, 0.26f)
+            .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
+        slide.Parallel().TweenProperty(panel, "offset_right", SidebarWidth, 0.26f)
+            .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
+        slide.Chain().TweenCallback(Callable.From(() => ui.QueueFree()));
+    }
+
     private void ShowDeployConfirm(StagingPoint sp)
     {
         _deployUi?.QueueFree();
         _deployUi = new CanvasLayer { Name = "DeployUI" };
         AddChild(_deployUi);
 
-        // Dim backdrop.
-        var backdrop = new ColorRect { Color = UITheme.BgOverlay };
-        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _deployUi.AddChild(backdrop);
+        // 3D-native deploy: no dimming backdrop — the map stays visible with this
+        // staging point's deploy footprint (WorldAtlas3D's window preview) highlighted
+        // in-world. A cinematic fly-in swoops the camera down into the region; the
+        // half-drawer-width shift centers the beacon in the map area LEFT of the drawer.
+        _atlas3D?.FlyToTile(sp.X, sp.Y, 30f, SidebarWidth * 0.5f);
 
+        // A transparent full-rect guard blocks stray map clicks while the panel is up
+        // (so you can't open a second deploy over this one) without hiding the map.
+        var guard = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
+        guard.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _deployUi.AddChild(guard);
+
+        // Full-height sidebar flush to the right edge (below the global top bar) that
+        // SLIDES OUT from off-screen — a drawer opening, not a modal popping in. The
+        // width is constant through the slide, so the content never reflows. This is
+        // the "launch screen": the manifest + spell prep, read against the region the
+        // camera flew into on the left.
         var panel = new PanelContainer
         {
-            AnchorLeft = 0.5f,
-            AnchorTop = 0.5f,
-            AnchorRight = 0.5f,
-            AnchorBottom = 0.5f,
-            GrowHorizontal = Control.GrowDirection.Both,
-            GrowVertical = Control.GrowDirection.Both,
-            // S4: widened for the Grimoire preparation section (§4a slots
-            // are chosen at launch — this dialog IS the launch screen).
-            OffsetLeft = -280,
-            OffsetRight = 280,
-            OffsetTop = -215,
-            OffsetBottom = 215,
+            AnchorLeft = 1f,
+            AnchorTop = 0f,
+            AnchorRight = 1f,
+            AnchorBottom = 1f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            OffsetTop = HudManager.BarHeight,
+            OffsetBottom = 0,
+            // Start fully off-screen to the right; the tween below slides it in.
+            OffsetLeft = 0,
+            OffsetRight = SidebarWidth,
         };
         panel.AddThemeStyleboxOverride("panel",
             UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Violet));
         _deployUi.AddChild(panel);
 
+        var pop = CreateTween();
+        pop.SetParallel(true);
+        pop.TweenProperty(panel, "offset_left", -SidebarWidth, 0.34f)
+            .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        pop.TweenProperty(panel, "offset_right", 0f, 0.34f)
+            .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+
         var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 20);
-        margin.AddThemeConstantOverride("margin_right", 20);
-        margin.AddThemeConstantOverride("margin_top", 18);
-        margin.AddThemeConstantOverride("margin_bottom", 18);
+        margin.AddThemeConstantOverride("margin_left", 28);
+        margin.AddThemeConstantOverride("margin_right", 28);
+        margin.AddThemeConstantOverride("margin_top", 24);
+        margin.AddThemeConstantOverride("margin_bottom", 22);
         panel.AddChild(margin);
 
         var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 10);
+        vbox.AddThemeConstantOverride("separation", 12);
         margin.AddChild(vbox);
 
         var title = new Label { Text = $"Deploy from {sp.Name}" };
@@ -2195,7 +2370,7 @@ public partial class StrategicView : Node2D
 
         var cancelBtn = new Button { Text = "Cancel", CustomMinimumSize = new Vector2(120, 40) };
         UITheme.ApplyButtonStyle(cancelBtn, isPrimary: false);
-        cancelBtn.Pressed += () => { _deployUi?.QueueFree(); _deployUi = null; _pendingStaging = null; };
+        cancelBtn.Pressed += () => CloseDeploy(panel);
         buttons.AddChild(cancelBtn);
 
         var deployBtn = new Button { Text = "Deploy", CustomMinimumSize = new Vector2(120, 40) };

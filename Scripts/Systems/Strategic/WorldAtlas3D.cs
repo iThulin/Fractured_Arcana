@@ -97,6 +97,7 @@ public partial class WorldAtlas3D : Node3D
     private MultiMeshInstance3D _riverLayer;
     private MultiMeshInstance3D _roadLayer;
     private readonly List<Node3D> _markers = new();   // POI/settlement/staging/etc, rebuilt together
+    private List<Vector2I> _warfronts = new();         // active warfront focus tiles (CYCLE state, injected)
     private readonly List<MultiMeshInstance3D> _decoLayers = new();  // stage 1: trees/peaks
 
     // ── Expedition window preview (stage 2 seed) ────────────────────────────
@@ -119,6 +120,14 @@ public partial class WorldAtlas3D : Node3D
     // Stage 1: min dropped 12→6 — close zoom is where exploration reads, and the
     // decoration layer + adaptive post blur make it worth going there.
     private const float CamDistMin = 6f, CamDistMax = 150f;
+
+    /// <summary>ORTHOGRAPHIC is the strategic-map default: every tile the same size
+    /// regardless of distance, so the whole world reads uniformly (the flat 2D map's
+    /// legibility, kept in 3D). Perspective is the opt-in "cinematic model" diorama.</summary>
+    private bool _orthographic = true;
+    /// <summary>Ortho vertical extent per unit of _camDist. ≈ 2·tan(fov/2) for the
+    /// default 75° FOV (2·0.767), so toggling projection barely shifts the framing.</summary>
+    private const float OrthoSizeFactor = 1.5f;
 
     /// <summary>Fires with zoom01 (0 = closest) whenever the camera moves. The host
     /// panel drives the post shader off this so the miniature blur RELAXES as the
@@ -148,6 +157,16 @@ public partial class WorldAtlas3D : Node3D
             FrameWorld();
             Rebuild();
         }
+    }
+
+    /// <summary>Inject the active warfront focus tiles (cycle state — not in WorldData)
+    /// so the map draws red conflict beacons. The host routes picks on these tiles back
+    /// to its intervention dialog. Rebuilds only the marker layer.</summary>
+    public void SetWarfronts(List<Vector2I> tiles)
+    {
+        _warfronts = tiles ?? new List<Vector2I>();
+        if (_world != null && IsInsideTree())
+            RebuildMarkers();
     }
 
     public StrategicLens Lens => _lens;
@@ -253,14 +272,30 @@ public partial class WorldAtlas3D : Node3D
     }
 
     /// <summary>Frame the whole map: target its center, distance from its span.</summary>
+    private Vector3 WorldCenter()
+        => new Vector3(_world.Width * ColSpacing * 0.5f, 0f, _world.Height * RowSpacing * 0.5f);
+
+    /// <summary>The zoom distance that makes the whole world FILL the viewport (minimal
+    /// margin), accounting for the viewport aspect — a wide world on a wide screen is
+    /// width-bound, so the vertical ortho size is driven by width/aspect. Falls back to
+    /// 16:9 if the viewport isn't sized yet.</summary>
+    private float OverviewDist()
+    {
+        float w = _world.Width * ColSpacing;
+        float h = _world.Height * RowSpacing;
+        var vp = GetViewport()?.GetVisibleRect().Size ?? new Vector2(1920f, 1080f);
+        float aspect = vp.Y > 1f ? vp.X / vp.Y : 1.7778f;
+        // Vertical ortho size needed to show the whole world; small pad off the border.
+        float fitSize = Mathf.Max(h, w / Mathf.Max(0.1f, aspect)) * 1.04f;
+        return Mathf.Clamp(fitSize / OrthoSizeFactor, CamDistMin, CamDistMax);
+    }
+
     private void FrameWorld()
     {
         if (_world == null || _camera == null)
             return;
-        float w = _world.Width * ColSpacing;
-        float h = _world.Height * RowSpacing;
-        _camTarget = new Vector3(w * 0.5f, 0f, h * 0.5f);
-        _camDist = Mathf.Clamp(Mathf.Max(w, h) * 0.62f, CamDistMin, CamDistMax);
+        _camTarget = WorldCenter();
+        _camDist = OverviewDist();
         PlaceCamera();
     }
 
@@ -274,7 +309,32 @@ public partial class WorldAtlas3D : Node3D
         Vector3 offset = new Vector3(0f, Mathf.Sin(pitch), Mathf.Cos(pitch)) * _camDist;
         _camera.Position = _camTarget + offset;
         _camera.LookAt(_camTarget, Vector3.Up);
+        // Projection: orthographic (strategic map) samples every tile at one scale, so
+        // wheel-zoom drives the ortho Size (which tracks _camDist, keeping the framing
+        // continuous across a projection toggle) rather than a perspective pull-back.
+        if (_orthographic)
+        {
+            _camera.Projection = Camera3D.ProjectionType.Orthogonal;
+            _camera.Size = Mathf.Max(1f, _camDist * OrthoSizeFactor);
+        }
+        else
+        {
+            _camera.Projection = Camera3D.ProjectionType.Perspective;
+        }
         ZoomChanged?.Invoke(zoom01);
+    }
+
+    /// <summary>True when showing the orthographic strategic map (uniform tile scale,
+    /// whole-world legibility). False = the perspective "cinematic model" diorama.</summary>
+    public bool IsOrthographic => _orthographic;
+
+    /// <summary>Flip between the orthographic strategic map and the perspective diorama.
+    /// Re-places the camera immediately (and re-fires ZoomChanged so the host can retune
+    /// the post pass — the miniature tilt-shift belongs to the cinematic view, not the map).</summary>
+    public void SetProjection(bool orthographic)
+    {
+        _orthographic = orthographic;
+        if (_camera != null) PlaceCamera();
     }
 
     // ── Input: pan / zoom / pick ────────────────────────────────────────────
@@ -313,6 +373,21 @@ public partial class WorldAtlas3D : Node3D
             ClampTarget();
             PlaceCamera();
         }
+        // macOS trackpad: pinch to zoom (a Mac trackpad never sends wheel events, so
+        // wheel-only zoom is dead there) and two-finger drag to pan.
+        else if (ev is InputEventMagnifyGesture mag)
+        {
+            _camDist = Mathf.Clamp(_camDist / mag.Factor, CamDistMin, CamDistMax);
+            PlaceCamera();
+        }
+        else if (ev is InputEventPanGesture pan)
+        {
+            float k = _camDist * 0.010f;
+            float pitchSin = Mathf.Max(0.3f, (_camera.Position - _camTarget).Normalized().Y);
+            _camTarget += new Vector3(pan.Delta.X * k, 0f, pan.Delta.Y * k / pitchSin);
+            ClampTarget();
+            PlaceCamera();
+        }
     }
 
     private void ClampTarget()
@@ -320,6 +395,63 @@ public partial class WorldAtlas3D : Node3D
         if (_world == null) return;
         _camTarget.X = Mathf.Clamp(_camTarget.X, 0f, _world.Width * ColSpacing);
         _camTarget.Z = Mathf.Clamp(_camTarget.Z, 0f, _world.Height * RowSpacing);
+    }
+
+    /// <summary>Center the camera on a tile. The strategic view calls this when it opens
+    /// the deploy side-panel, so the chosen staging point sits in view beside the panel
+    /// rather than wherever it happened to be (possibly behind it).</summary>
+    public void FocusTile(int col, int row)
+    {
+        if (_camera == null || _world == null) return;
+        _camTarget = TileOrigin(col, row);
+        ClampTarget();
+        PlaceCamera();
+    }
+
+    /// <summary>Cinematic fly-in: animate the camera FROM wherever it is (usually the
+    /// whole-world overview) down INTO a region, both panning to the tile and zooming
+    /// in to frame the operating window. The zoom drop also rakes the pitch (see
+    /// PlaceCamera), so it reads as a dramatic swoop, not a jump. Used when a staging
+    /// point is chosen for deploy.</summary>
+    public void FlyToTile(int col, int row, float targetDist = 30f, float screenLeftShiftPx = 0f)
+    {
+        if (_camera == null || _world == null) return;
+        float dist = Mathf.Clamp(targetDist, CamDistMin, CamDistMax);
+        Vector3 to = TileOrigin(col, row);
+        // Shift the look-target in world +X (which is screen-right, since the camera has
+        // no yaw) so the tile lands screenLeftShiftPx to the LEFT of center — used to
+        // center the beacon in the map area NOT covered by the deploy drawer. Converts
+        // pixels→world via the ortho size at the target distance.
+        if (screenLeftShiftPx != 0f)
+        {
+            var vp = GetViewport()?.GetVisibleRect().Size ?? new Vector2(1920f, 1080f);
+            float size = dist * OrthoSizeFactor;                 // vertical world extent
+            float worldPerPx = size / (vp.Y > 1f ? vp.Y : 1080f);
+            to.X += screenLeftShiftPx * worldPerPx;
+        }
+        FlyTo(to, dist);
+    }
+
+    /// <summary>Reverse of the fly-in: swoop back out to the whole-world overview.
+    /// The strategic view calls this when a deploy is cancelled.</summary>
+    public void FlyToOverview()
+    {
+        if (_camera == null || _world == null) return;
+        FlyTo(WorldCenter(), OverviewDist());
+    }
+
+    private void FlyTo(Vector3 toTarget, float toDist)
+    {
+        Vector3 fromTarget = _camTarget;
+        float fromDist = _camDist;
+        var tw = CreateTween();
+        tw.TweenMethod(Callable.From((float u) =>
+        {
+            _camTarget = fromTarget.Lerp(toTarget, u);
+            _camDist = Mathf.Lerp(fromDist, toDist, u);
+            ClampTarget();
+            PlaceCamera();
+        }), 0.0f, 1.0f, 0.8).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.InOut);
     }
 
     /// <summary>Raycast the click onto the y=0 ground plane, then resolve the nearest
@@ -697,19 +829,33 @@ public partial class WorldAtlas3D : Node3D
             AddMarker(MakeLabel(s.Name, c, MarkerPos(s.CenterX, s.CenterY, side + 1.1f)));
         }
 
-        // Staging points — gold beacons (the launch options the strategic view deploys from).
+        // Staging points — gold beacons (the launch options the strategic view deploys
+        // from). Deliberately TALL and capped with a glowing orb: a staging point is a
+        // single hex, which is only a few pixels at whole-world orthographic zoom, so
+        // the beacon has to stand up off the map to stay visible and aimable.
         foreach (var sp in _world.StagingPoints)
         {
             AddMarker(new MeshInstance3D
             {
-                Mesh = new CylinderMesh { TopRadius = 0.16f, BottomRadius = 0.32f, Height = 1.6f, RadialSegments = 8, Rings = 0 },
+                Mesh = new CylinderMesh { TopRadius = 0.22f, BottomRadius = 0.5f, Height = 3.4f, RadialSegments = 8, Rings = 0 },
                 MaterialOverride = new StandardMaterial3D
                 {
                     AlbedoColor = UITheme.Gold,
                     Metallic = 0.85f, Roughness = 0.3f,   // pass 2: brass beacons
-                    EmissionEnabled = true, Emission = UITheme.Gold, EmissionEnergyMultiplier = 0.5f,
+                    EmissionEnabled = true, Emission = UITheme.Gold, EmissionEnergyMultiplier = 0.6f,
                 },
-                Position = MarkerPos(sp.X, sp.Y, 0.85f),
+                Position = MarkerPos(sp.X, sp.Y, 1.7f),
+            });
+            // Glowing orb cap — the actual "you can see me from across the map" element.
+            AddMarker(new MeshInstance3D
+            {
+                Mesh = new SphereMesh { Radius = 0.7f, Height = 1.4f, RadialSegments = 12, Rings = 8 },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = UITheme.Gold,
+                    EmissionEnabled = true, Emission = UITheme.Gold, EmissionEnergyMultiplier = 1.0f,
+                },
+                Position = MarkerPos(sp.X, sp.Y, 3.7f),
             });
         }
 
@@ -744,6 +890,35 @@ public partial class WorldAtlas3D : Node3D
             });
             AddMarker(MakeLabel("The Convergence", UITheme.POIConvergence,
                 MarkerPos(_world.ConvergenceX, _world.ConvergenceY, 4.6f)));
+        }
+
+        // Warfronts — red conflict beacons at active fronts. CYCLE state (not
+        // WorldData), injected via SetWarfronts, so they rebuild with the markers.
+        // Deliberately LOUD: a tall spike, a bright floating orb, and a "War" label,
+        // so an active front can't be missed on the whole-world view.
+        foreach (var wf in _warfronts)
+        {
+            AddMarker(new MeshInstance3D
+            {
+                Mesh = new CylinderMesh { TopRadius = 0.18f, BottomRadius = 0.55f, Height = 4.2f, RadialSegments = 8, Rings = 0 },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = UITheme.Danger,
+                    EmissionEnabled = true, Emission = UITheme.Danger, EmissionEnergyMultiplier = 0.9f,
+                },
+                Position = MarkerPos(wf.X, wf.Y, 2.1f),
+            });
+            AddMarker(new MeshInstance3D
+            {
+                Mesh = new SphereMesh { Radius = 0.85f, Height = 1.7f, RadialSegments = 12, Rings = 8 },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = UITheme.Danger,
+                    EmissionEnabled = true, Emission = UITheme.Danger, EmissionEnergyMultiplier = 1.3f,
+                },
+                Position = MarkerPos(wf.X, wf.Y, 4.6f),
+            });
+            AddMarker(MakeLabel("⚔ War", UITheme.Danger, MarkerPos(wf.X, wf.Y, 5.9f)));
         }
     }
 
