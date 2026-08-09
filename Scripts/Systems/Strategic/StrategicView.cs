@@ -2086,24 +2086,42 @@ public partial class StrategicView : Node2D
         _warfrontUi = new CanvasLayer { Name = "WarfrontUI" };
         AddChild(_warfrontUi);
 
-        var backdrop = new ColorRect { Color = new Color(0.02f, 0.0f, 0.02f, 0.72f) };
-        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _warfrontUi.AddChild(backdrop);
+        // Same 3D-native flow as deploy: fly the camera into the front (centered in the
+        // map area left of the drawer), no dimming backdrop, and present the choice as a
+        // right-edge drawer that slides out.
+        _atlas3D?.FlyToTile(wf.FocusCol, wf.FocusRow, 30f, SidebarWidth * 0.5f);
+
+        var guard = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
+        guard.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _warfrontUi.AddChild(guard);
 
         var panel = new PanelContainer
         {
-            AnchorLeft = 0.5f, AnchorTop = 0.5f, AnchorRight = 0.5f, AnchorBottom = 0.5f,
-            GrowHorizontal = Control.GrowDirection.Both, GrowVertical = Control.GrowDirection.Both,
-            OffsetLeft = -280, OffsetRight = 280, OffsetTop = -190, OffsetBottom = 190,
+            AnchorLeft = 1f,
+            AnchorTop = 0f,
+            AnchorRight = 1f,
+            AnchorBottom = 1f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            OffsetTop = HudManager.BarHeight,
+            OffsetBottom = 0,
+            OffsetLeft = 0,
+            OffsetRight = SidebarWidth,   // start off-screen; the tween below slides it in
         };
-        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Danger));
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Danger));
         _warfrontUi.AddChild(panel);
 
+        var pop = CreateTween();
+        pop.SetParallel(true);
+        pop.TweenProperty(panel, "offset_left", -SidebarWidth, 0.34f)
+            .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        pop.TweenProperty(panel, "offset_right", 0f, 0.34f)
+            .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+
         var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 22);
-        margin.AddThemeConstantOverride("margin_right", 22);
-        margin.AddThemeConstantOverride("margin_top", 18);
-        margin.AddThemeConstantOverride("margin_bottom", 18);
+        margin.AddThemeConstantOverride("margin_left", 28);
+        margin.AddThemeConstantOverride("margin_right", 28);
+        margin.AddThemeConstantOverride("margin_top", 24);
+        margin.AddThemeConstantOverride("margin_bottom", 22);
         panel.AddChild(margin);
 
         var vbox = new VBoxContainer();
@@ -2135,14 +2153,15 @@ public partial class StrategicView : Node2D
 
         vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
 
-        var buttons = new HBoxContainer();
-        buttons.AddThemeConstantOverride("separation", 10);
-        buttons.Alignment = BoxContainer.AlignmentMode.Center;
+        // Stacked full-width in the drawer (a centered 4-button row doesn't fit 420px).
+        var buttons = new VBoxContainer();
+        buttons.AddThemeConstantOverride("separation", 8);
         vbox.AddChild(buttons);
 
         void SideButton(string text, WarfrontSide side, Color color)
         {
-            var btn = new Button { Text = text, CustomMinimumSize = new Vector2(140, 40) };
+            var btn = new Button { Text = text, CustomMinimumSize = new Vector2(0, 44) };
+            btn.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             UITheme.ApplyButtonStyle(btn, isPrimary: side == WarfrontSide.Defend);
             btn.AddThemeColorOverride("font_color", color);
             btn.Pressed += () => CommitWarfrontIntervention(wf, side);
@@ -2153,9 +2172,17 @@ public partial class StrategicView : Node2D
         SideButton("Seize", WarfrontSide.Seize, UITheme.Gold);
         SideButton("Aid attacker", WarfrontSide.Aid, UITheme.Danger);
 
-        var cancel = new Button { Text = "Cancel", CustomMinimumSize = new Vector2(110, 40) };
+        buttons.AddChild(new HSeparator());
+
+        var cancel = new Button { Text = "Cancel", CustomMinimumSize = new Vector2(0, 40) };
+        cancel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         UITheme.ApplyButtonStyle(cancel, isPrimary: false);
-        cancel.Pressed += () => { _warfrontUi?.QueueFree(); _warfrontUi = null; };
+        cancel.Pressed += () =>
+        {
+            var ui = _warfrontUi;
+            _warfrontUi = null;
+            CloseDrawer(panel, ui);   // slide back + swoop to overview, matching deploy
+        };
         buttons.AddChild(cancel);
     }
 
@@ -2190,11 +2217,12 @@ public partial class StrategicView : Node2D
     /// pop-out), then free it, and swoop the camera back to the overview. Detaches
     /// _deployUi up front and frees the captured layer in the callback, so a rapid new
     /// deploy started mid-slide is never the one that gets freed.</summary>
-    private void CloseDeploy(PanelContainer panel)
+    /// <summary>Slide a right-edge drawer back off-screen, then free its layer, and swoop
+    /// the camera back to the overview. Shared by the deploy and warfront drawers. The
+    /// caller detaches its own field (so a rapid re-open is never the layer that's freed)
+    /// and passes the captured layer + panel here.</summary>
+    private void CloseDrawer(PanelContainer panel, CanvasLayer ui)
     {
-        var ui = _deployUi;
-        _deployUi = null;
-        _pendingStaging = null;
         _atlas3D?.FlyToOverview();
         if (ui == null || panel == null || !IsInstanceValid(panel))
         {
@@ -2207,6 +2235,14 @@ public partial class StrategicView : Node2D
         slide.Parallel().TweenProperty(panel, "offset_right", SidebarWidth, 0.26f)
             .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
         slide.Chain().TweenCallback(Callable.From(() => ui.QueueFree()));
+    }
+
+    private void CloseDeploy(PanelContainer panel)
+    {
+        var ui = _deployUi;
+        _deployUi = null;
+        _pendingStaging = null;
+        CloseDrawer(panel, ui);
     }
 
     private void ShowDeployConfirm(StagingPoint sp)
