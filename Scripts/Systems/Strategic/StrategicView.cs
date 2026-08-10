@@ -92,6 +92,8 @@ public partial class StrategicView : Node2D
     // the 2D layers are never built, so their recolor paths short-circuit.
     private CanvasLayer _atlas3DLayer;
     private WorldAtlas3D _atlas3D;
+    private Node _campusOverlay;   // Stage 3: campus hosted in-scene as an overlay (no scene swap)
+    private CanvasLayer _cityLeaveLayer;   // "to the world map" button, shown only in city view
     [Export] public bool Use3DStrategicMap = true;
 
     // Camera control
@@ -295,6 +297,12 @@ public partial class StrategicView : Node2D
 
         _atlas3D = new WorldAtlas3D();
         _atlas3D.TilePicked += OnAtlas3DTilePicked;
+        // True geometry merge (Phase 2): the campus grounds render as a model on the home
+        // tile; when zoomed in, clicking a building on it opens that building's campus panel
+        // in place, without the full-screen scene swap.
+        _atlas3D.HomeBuildingPicked += OnHomeBuildingPicked;
+        _atlas3D.HomeLandmarkPicked += OnHomeLandmarkPicked;
+        _atlas3D.CityModeChanged += OnCityModeChanged;
         vp.AddChild(_atlas3D);            // _Ready builds the camera (no world yet)
         // Discovery gates the strategic map exactly as the 2D view did: normal play
         // shows only charted/explored ground (unseen = void), debug reveals all.
@@ -315,6 +323,20 @@ public partial class StrategicView : Node2D
         _atlas3D.SetWarfronts(warTiles);
 
         _atlas3D.AcceptInput = true;      // full-screen map — always live
+
+        // Stage 2 (Phase 2): arriving from the campus, start framed on the home city
+        // at closest zoom and swoop OUT to the overview — the "ascend from your city
+        // into the world". One-shot flag, cleared on use; only the campus→world
+        // transition sets it, so expedition returns etc. are unaffected.
+        if (PlayerSession.ZoomFromHomeOnOpen)
+        {
+            PlayerSession.ZoomFromHomeOnOpen = false;
+            if (_world.InBounds(_world.HomeX, _world.HomeY))
+            {
+                _atlas3D.SnapToTileClose(_world.HomeX, _world.HomeY);
+                _atlas3D.FlyToOverview();
+            }
+        }
     }
 
     /// <summary>A 3D map click resolved to (col,row): route it to the same handler
@@ -372,6 +394,151 @@ public partial class StrategicView : Node2D
             }
         if (nearest != null && nearestD <= StagingClickTolerance)
             OnStagingClicked(nearest);
+    }
+
+    /// <summary>Stage 2 (Phase 2) — the "descend into your city" transition: swoop the
+    /// atlas camera into the home city, then change to the campus scene once the fly
+    /// completes. Returns false when there's no atlas/home to fly to, so the caller
+    /// (HudManager's Return-to-Campus) falls back to the plain scene warp.</summary>
+    public bool TryDescendToCampus()
+    {
+        if (_atlas3D == null || !_atlas3D.HasCityGrounds)
+            return false;
+        // True geometry merge: the campus is permanently in the world at true scale, so
+        // "descending" is nothing but the camera flying down — EnterCityMode does the swoop.
+        _atlas3D.EnterCityMode();
+        return true;
+    }
+
+    /// <summary>Stage 3 (Phase 2) — host the campus as an in-world overlay instead of a
+    /// scene swap. The strategic scene stays alive underneath (atlas hidden + input off);
+    /// the campus draws its own chrome, so the global HUD hides too. Leaving is wired back
+    /// through <see cref="CampusScreen.OverlayLeaveHandler"/> → <see cref="HideCampusOverlay"/>.</summary>
+    private void ShowCampusOverlay() => ShowCampusOverlay(CampusPanelId.Campus);
+
+    private void ShowCampusOverlay(CampusPanelId initial)
+    {
+        if (_campusOverlay != null) return;   // grounds are covered while it's up — can't re-enter
+        var scene = GD.Load<PackedScene>(CampusScenePath);
+        if (scene == null)
+        {
+            GetTree().ChangeSceneToFile(CampusScenePath);   // fallback: classic swap
+            return;
+        }
+
+        // Which panel the overlay lands on — the grounds MAP for a plain descend, or the
+        // clicked building's panel when entered by clicking the world-map grounds model.
+        CampusScreen.InitialPanel = initial;
+
+        var layer = new CanvasLayer { Name = "CampusOverlayLayer", Layer = 50 };
+        layer.AddChild(scene.Instantiate());
+
+        // The global HUD is hidden while the overlay is up, so the host supplies the
+        // "leave for the world" affordance itself. Added AFTER the campus so it draws on
+        // top within the layer.
+        var leaveBtn = new Button { Text = "↑  To the World Map" };
+        leaveBtn.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+        leaveBtn.OffsetLeft = -244;
+        leaveBtn.OffsetTop = 14;
+        leaveBtn.OffsetRight = -14;
+        leaveBtn.OffsetBottom = 48;
+        leaveBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(leaveBtn, isPrimary: true);
+        leaveBtn.Pressed += HideCampusOverlay;
+        layer.AddChild(leaveBtn);
+
+        AddChild(layer);
+        _campusOverlay = layer;
+
+        _atlas3D.AcceptInput = false;
+        if (_atlas3DLayer != null) _atlas3DLayer.Visible = false;
+        PlayerSession.CampusOverlayOpen = true;
+        CampusScreen.OverlayLeaveHandler = HideCampusOverlay;
+        HudManager.Instance?.RefreshVisibility();
+    }
+
+    /// <summary>Tear down the campus overlay and return to the world: reveal the atlas and
+    /// swoop back out (the "ascend"). Invoked via CampusScreen.OverlayLeaveHandler.</summary>
+    private void HideCampusOverlay()
+    {
+        if (_campusOverlay == null) return;
+        _campusOverlay.QueueFree();
+        _campusOverlay = null;
+
+        CampusScreen.OverlayLeaveHandler = null;
+        PlayerSession.CampusOverlayOpen = false;
+        if (_atlas3DLayer != null) _atlas3DLayer.Visible = true;
+        HudManager.Instance?.RefreshVisibility();
+
+        if (_atlas3D != null)
+        {
+            _atlas3D.AcceptInput = true;
+            // The overlay's only exits mean "to the world" (its leave button, or a deploy),
+            // so leaving it also leaves city view when that's where it was opened from.
+            // (A building menu that RETURNS to the city is the floating-panel increment.)
+            if (_atlas3D.CityMode) _atlas3D.LeaveCityMode();
+            else _atlas3D.FlyToOverview();
+        }
+    }
+
+    /// <summary>True geometry merge (Phase 2): a building in CITY VIEW was clicked. Route it
+    /// as the campus does — a building that hosts a panel opens that panel (via the overlay
+    /// for now); one that hosts a separate screen (deck editor, card library, upgrade)
+    /// changes scene; an inert building does nothing. A later increment floats the single
+    /// panel over the city so this stops needing the overlay at all.</summary>
+    private void OnHomeBuildingPicked(string buildingId, Vector2I coord)
+    {
+        var dest = CampusLocationRegistry.ForBuilding(buildingId);
+        if (!dest.IsValid)
+            return;
+        if (dest.Panel.HasValue)
+            ShowCampusOverlay(dest.Panel.Value);
+        else if (!string.IsNullOrEmpty(dest.ScenePath))
+            GetTree().ChangeSceneToFile(dest.ScenePath);
+    }
+
+    /// <summary>A landmark hex in city view was clicked. Landmarks aren't routed to a
+    /// destination yet (their restoration beats live inside the campus systems), and city
+    /// view already shows the grounds, so this is a no-op for now.</summary>
+    private void OnHomeLandmarkPicked(string landmarkId, Vector2I coord) { }
+
+    /// <summary>City view entered/left: reuse the overlay flag to hide the world HUD, and
+    /// show/hide the host "to the world map" button that leaves city view.</summary>
+    private void OnCityModeChanged(bool on)
+    {
+        PlayerSession.CampusOverlayOpen = on;
+        HudManager.Instance?.RefreshVisibility();
+        EnsureCityLeaveButton();
+        if (_cityLeaveLayer != null) _cityLeaveLayer.Visible = on;
+    }
+
+    private void EnsureCityLeaveButton()
+    {
+        if (_cityLeaveLayer != null) return;
+        _cityLeaveLayer = new CanvasLayer { Name = "CityLeaveLayer", Layer = 40 };
+        var btn = new Button { Text = "↑  To the World Map" };
+        btn.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+        btn.OffsetLeft = -244;
+        btn.OffsetTop = 14;
+        btn.OffsetRight = -14;
+        btn.OffsetBottom = 48;
+        btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(btn, isPrimary: true);
+        btn.Pressed += () => _atlas3D?.LeaveCityMode();
+        _cityLeaveLayer.AddChild(btn);
+        _cityLeaveLayer.Visible = false;
+        AddChild(_cityLeaveLayer);
+    }
+
+    public override void _ExitTree()
+    {
+        // Never leave a dangling overlay-leave callback pointing at a freed view, and if
+        // we're torn down while the overlay OR city view was up (e.g. a new-cycle scene
+        // swap from inside it), clear the flag so the next scene's HUD isn't wrongly hidden.
+        if (CampusScreen.OverlayLeaveHandler == HideCampusOverlay)
+            CampusScreen.OverlayLeaveHandler = null;
+        if (_campusOverlay != null || (_atlas3D?.CityMode ?? false))
+            PlayerSession.CampusOverlayOpen = false;
     }
 
     /// <summary>Persistent strategic-map HUD: a free exit back to campus. Returning

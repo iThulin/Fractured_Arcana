@@ -441,6 +441,49 @@ public sealed class CampusGuildPanel : CampusPanel
         AddStat("LOST", $"{save.RunsLost}");
         AddStat("GOLD EARNED", $"{save.TotalGoldEarned}");
         AddStat("REGION", save.CurrentRegionId.Replace("_", " ").ToUpper());
+
+        // Phase 2 — where the guild is SITED in the world: home city + region +
+        // the resolved campus dock. Full-width line (not a stat column) so the
+        // longer text doesn't crowd the stats row. Falls back to the founding
+        // realm before the cycle's world is generated.
+        var seatLbl = new Label { Text = $"SEAT  ·  {SeatDescription(save)}" };
+        seatLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        seatLbl.AddThemeColorOverride("font_color", UITheme.Violet);
+        identityVBox.AddChild(seatLbl);
+    }
+
+    /// <summary>Where the guild is sited in the world (Phase 2). Prefers the live
+    /// home city + region once the cycle's world exists; before that, the founding
+    /// realm. Appends the resolved campus entry dock.</summary>
+    private static string SeatDescription(GuildSaveData save)
+    {
+        string dock = save?.Ledger?.CampusMap?.EntryDockType;
+        string dockSuffix = string.IsNullOrEmpty(dock) ? "" : $"  ·  {dock}";
+
+        var world = save?.Cycle?.World;
+        if (world != null && world.Tiles.Length > 0 && world.InBounds(world.HomeX, world.HomeY))
+        {
+            string kid = world.GetTile(world.HomeX, world.HomeY).KingdomId;
+            string region = "";
+            if (!string.IsNullOrEmpty(kid) && save.Cycle.Kingdoms != null &&
+                save.Cycle.Kingdoms.TryGetValue(kid, out var ks))
+                region = !string.IsNullOrEmpty(ks.DisplayName) ? ks.DisplayName : ks.TemplateRegionId;
+
+            var home = world.SettlementAt(world.HomeX, world.HomeY);
+            string city = home != null && !string.IsNullOrEmpty(home.Name) ? home.Name : "";
+
+            string place =
+                !string.IsNullOrEmpty(city) && !string.IsNullOrEmpty(region) ? $"{city}, {region}"
+                : !string.IsNullOrEmpty(region) ? region
+                : !string.IsNullOrEmpty(city) ? city
+                : "the frontier";
+            return $"{place}{dockSuffix}";
+        }
+
+        string realm = save?.Ledger?.FoundingScenario?.DisplayName;
+        return string.IsNullOrEmpty(realm)
+            ? $"to be established{dockSuffix}"
+            : $"{realm} (unentered){dockSuffix}";
     }
 
     private void RefreshGuildResultPanel()

@@ -6,7 +6,7 @@
     "schoolAffinity": "",
     "isFoundational": true,
     "hostsSystem": "deck",
-    "startsBuiltAt": { "q": -1, "r": -1 },
+    "startsBuiltAt": { "q": 1, "r": 1 },
     "footprint": [
         { "q": 0, "r": 0 }
     ],

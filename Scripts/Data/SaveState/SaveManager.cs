@@ -354,6 +354,40 @@ public static class SaveManager
                      "generating a default layout.");
             ledger.CampusMap = CampusMapSaveData.GenerateDefault();
         }
+        else if (ledger.CampusMap.Districts == null || ledger.CampusMap.Districts.Count == 0)
+        {
+            // District-campus migration (Phase 2, Stage 3): a pre-district save has Tiles
+            // (a solid disc) but no Districts. Regenerate as districts and UNPLACE buildings
+            // — their old disc coords don't map to the flower layout — so the player re-sites
+            // them on the new grounds. Dev saves only.
+            GD.Print($"SaveManager: Slot {slot} campus predates districts — regenerating as " +
+                     "districts; existing buildings are unplaced.");
+            ledger.CampusMap = CampusMapSaveData.GenerateDefault();
+            if (ledger.Buildings != null)
+                foreach (var b in ledger.Buildings)
+                    if (b != null)
+                        b.IsPlaced = false;
+        }
+        else if (ledger.CampusMap.LatticeVersion < 3)
+        {
+            // Flower-lattice migration (Phase 2): districts ARE strategic map tiles; the
+            // fine lattice is the 1/3-scale unrotated cut (whole 7-flower per district,
+            // vertex cells as 3-way bonus corners; 3-district founding). Regenerate the map
+            // (preserving the resolved dock type), then unplace only the buildings stranded
+            // off the new grid.
+            GD.Print($"SaveManager: Slot {slot} campus predates the /3 district lattice — " +
+                     "regenerating; stranded buildings are unplaced.");
+            string dock = ledger.CampusMap.EntryDockType;
+            ledger.CampusMap = CampusMapSaveData.GenerateDefault();
+            ledger.CampusMap.EntryDockType = dock;
+            var validTiles = new System.Collections.Generic.HashSet<(int, int)>();
+            foreach (var t in ledger.CampusMap.Tiles)
+                validTiles.Add((t.Q, t.R));
+            if (ledger.Buildings != null)
+                foreach (var b in ledger.Buildings)
+                    if (b != null && b.IsPlaced && !validTiles.Contains((b.Q, b.R)))
+                        b.IsPlaced = false;
+        }
 
         // ── Lazy migration: saves founded before start-scenarios existed have no
         // FoundingScenario. Backfill the Standard default so difficulty reads

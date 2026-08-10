@@ -6,7 +6,7 @@
     "schoolAffinity": "",
     "isFoundational": true,
     "hostsSystem": "companions",
-    "startsBuiltAt": { "q": -2, "r": 1 },
+    "startsBuiltAt": { "q": 1, "r": 0 },
     "footprint": [
         { "q": 0, "r": 0 }
     ],

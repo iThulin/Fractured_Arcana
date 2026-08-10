@@ -389,6 +389,107 @@ public partial class CampusGridManager : HexGridManager
     /// the hex is unoccupied or unknown.</summary>
     public string GetBuildingIdAt(Vector2I coord) => _buildingAtHex.GetValueOrDefault(coord, "");
 
+    /// <summary>Resolve a WORLD-space ray to the grid hex it crosses — WITHOUT physics.
+    /// The world atlas renders this grid as a small SCALED model on the home tile, and
+    /// Godot's physics engine is unreliable against scaled collision shapes (a scaled
+    /// StaticBody either mis-registers or is ignored with a warning), so a ray→collider
+    /// query there hits only sporadically. This does the pick analytically instead:
+    /// intersect the ray with the grid's tile-centre plane, pull the hit into LOCAL space
+    /// through this node's own transform (which carries the scale + translation exactly),
+    /// then snap to the nearest tile centre in <see cref="AxialToWorld"/> space. Scale- and
+    /// translation-proof by construction. Returns false if the ray is parallel to the plane,
+    /// points away from it, or the grid is empty.</summary>
+    public bool TryPickRay(Vector3 rayOrigin, Vector3 rayDir, out Vector2I coord)
+    {
+        coord = default;
+        if (Tiles.Count == 0)
+            return false;
+        // Tile centres live at local y = 0 (AxialToWorld returns y = 0), so their world
+        // plane is this node's global origin height.
+        float planeY = GlobalPosition.Y;
+        if (Mathf.Abs(rayDir.Y) < 1e-6f)
+            return false;
+        float t = (planeY - rayOrigin.Y) / rayDir.Y;
+        if (t < 0f)
+            return false;
+        Vector3 hitLocal = ToLocal(rayOrigin + rayDir * t);
+
+        float best = float.MaxValue;
+        bool found = false;
+        foreach (var c in Tiles.Keys)
+        {
+            Vector3 wc = AxialToWorld(c);
+            float d = new Vector2(wc.X - hitLocal.X, wc.Z - hitLocal.Z).LengthSquared();
+            if (!found || d < best) { best = d; coord = c; found = true; }
+        }
+        if (!found)
+            return false;
+        // Reject hits that land OUTSIDE the buildable field (empty background or a locked
+        // surrounding-district preview tile) — a hex's interior is within its circumradius
+        // (HexRadius) of the centre, so anything past ~1.15× that missed every real tile.
+        float reach = HexRadius * 1.15f;
+        if (best > reach * reach)
+        {
+            coord = default;
+            return false;
+        }
+        return true;
+    }
+
+    // ── Surrounding-district preview (city view) ─────────────────────────
+
+    private Node3D _previewParent;
+
+    /// <summary>City view surroundings: render the adjacent LOCKED districts as dimmed
+    /// 7-hex flowers around the built campus, so the city reads as a district grid that
+    /// continues outward (room to grow) rather than a lone cluster floating in the void.
+    /// Uses the SAME HexTile pipeline and <see cref="AxialToWorld"/> as the real tiles, so
+    /// the flowers tessellate seamlessly with the campus. Visual-only: these are NOT added to
+    /// <see cref="HexGridManager.Tiles"/>, so they're neither buildable nor pickable.
+    /// <paramref name="rings"/> counts district-rings outward from the origin district.</summary>
+    public void BuildSurroundingPreview(int rings, Color lockedColor)
+    {
+        ClearSurroundingPreview();
+        if (HexTileScene3D == null) return;
+        _previewParent = new Node3D { Name = "SurroundingPreview" };
+        AddChild(_previewParent);
+
+        foreach (var (dq, dr) in DistrictsWithin(rings))
+        {
+            var (cq, cr) = CampusMapSaveData.DistrictCentre(dq, dr);
+            foreach (var (q, r) in CampusMapSaveData.FlowerTiles(cq, cr))
+            {
+                var coord = new Vector2I(q, r);
+                if (Tiles.ContainsKey(coord)) continue;   // a real (unlocked/built) tile — leave it
+
+                var node = HexTileScene3D.Instantiate<HexTile>();
+                node.Position = AxialToWorld(coord);
+                node.Axial = coord;
+                _previewParent.AddChild(node);   // _Ready runs here, material ready for the calls below
+                node.SetHeight(0);
+                node.SetBaseColor(lockedColor);
+            }
+        }
+    }
+
+    public void ClearSurroundingPreview()
+    {
+        if (_previewParent != null) { _previewParent.QueueFree(); _previewParent = null; }
+    }
+
+    /// <summary>Every district coord within <paramref name="rings"/> hex-steps of the origin
+    /// district (the districts tessellate on a hex lattice in (dq,dr) space).</summary>
+    private static System.Collections.Generic.IEnumerable<(int dq, int dr)> DistrictsWithin(int rings)
+    {
+        for (int dq = -rings; dq <= rings; dq++)
+        {
+            int lo = Mathf.Max(-rings, -dq - rings);
+            int hi = Mathf.Min(rings, -dq + rings);
+            for (int dr = lo; dr <= hi; dr++)
+                yield return (dq, dr);
+        }
+    }
+
     // ── Placement preview (drag ghost) ───────────────────────────────
 
     public void ShowPlacementPreview(Building template, Vector2I anchor, int rotation)

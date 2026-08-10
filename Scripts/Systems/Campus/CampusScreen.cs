@@ -27,6 +27,17 @@ public partial class CampusScreen : Control
 {
     private int _activeTab = 0;
 
+    /// <summary>Set by StrategicView while the campus is open as an in-world overlay
+    /// (Phase 2, Stage 3). When present, leaving the campus for the world frees the
+    /// overlay and swoops the atlas back out instead of swapping scenes. Null in the
+    /// standalone campus scene, where leaving is a normal ChangeSceneToFile.</summary>
+    public static System.Action OverlayLeaveHandler;
+
+    /// <summary>If set, the campus opens on this panel instead of the default Guild tab
+    /// — consumed once by BuildUI. StrategicView sets it to Campus so descending into
+    /// the city lands on the grounds map, not a menu (Phase 2, Stage 3).</summary>
+    public static CampusPanelId? InitialPanel;
+
     private Button[] _tabButtons;
     private Control[] _tabPanels;
 
@@ -320,7 +331,10 @@ public partial class CampusScreen : Control
         ConsumeCampusCombatReturn();
 
         RefreshAll();
-        SelectTab(0);
+        // Open on the requested panel (Stage 3: the Campus grounds map when descending
+        // from the world), else the default Guild tab. One-shot.
+        SelectTab(InitialPanel.HasValue ? (int)InitialPanel.Value : 0);
+        InitialPanel = null;
     }
 
     /// <summary>THE way a campus system is opened. The tab bar and the 3D campus map are both
@@ -613,6 +627,16 @@ public partial class CampusScreen : Control
     private void EnterStrategicMap()
     {
         EnsureCycleWorld();
+        // Stage 3 (Phase 2): if the campus is hosted as an in-world overlay, leaving for
+        // the world just frees the overlay and swoops the atlas back out — no scene swap.
+        if (OverlayLeaveHandler != null)
+        {
+            OverlayLeaveHandler.Invoke();
+            return;
+        }
+        // Standalone campus scene: the classic scene change, with the Stage 2 ascend
+        // zoom on arrival.
+        PlayerSession.ZoomFromHomeOnOpen = true;
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
     }
 

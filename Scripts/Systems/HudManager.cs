@@ -138,14 +138,23 @@ public partial class HudManager : Node
         // Return to Campus is a scene-warp shown on menu screens (see
         // ShouldShowReturnToCampus): the strategic map and the card/deck utility
         // screens, hidden in combat, expeditions, negotiations, and on campus.
-        _returnButton = AddNavButton(row, "Return to Campus",
-            () => GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn"));
+        _returnButton = AddNavButton(row, "Return to Campus", ReturnToCampus);
         AddNavButton(row, "Council", () => CouncilScreen.Toggle(GetTree().Root));
         AddNavButton(row, "Quests", () => QuestLogScreen.Toggle(GetTree().Root));
         AddNavButton(row, "Menu", () => PauseManager.Instance?.OpenPauseMenu());
 
         RefreshReadouts(force: true);
         RefreshVisibility();
+    }
+
+    /// <summary>Return to the campus. From the strategic map this DESCENDS — swooping
+    /// the atlas camera into the home city before the scene change (Phase 2, Stage 2);
+    /// from every other menu/utility screen it's the plain scene warp.</summary>
+    private void ReturnToCampus()
+    {
+        if (GetTree().CurrentScene is StrategicView sv && sv.TryDescendToCampus())
+            return;
+        GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
     }
 
     private Label MakeLabel(HBoxContainer row, Color color)
@@ -269,13 +278,16 @@ public partial class HudManager : Node
     /// <summary>Show the bar only when a save is live and we're not in combat or
     /// the main menu. Scene predicates mirror PauseManager's inference; adjust
     /// the hidden-scene list if a context should differ.</summary>
-    private void RefreshVisibility()
+    public void RefreshVisibility()
     {
         if (_layer == null)
         {
             return;
         }
-        _layer.Visible = SaveManager.ActiveSave != null && !IsHiddenScene();
+        // Hidden while the campus is an in-world overlay (Stage 3) — the campus draws
+        // its own top bar, so the global one would double up.
+        _layer.Visible = SaveManager.ActiveSave != null && !IsHiddenScene()
+                         && !PlayerSession.CampusOverlayOpen;
 
         // Return to Campus shows on menu/utility screens (deck editor, card upgrade,
         // library, the strategic map, etc.) but is hidden where it would abandon an

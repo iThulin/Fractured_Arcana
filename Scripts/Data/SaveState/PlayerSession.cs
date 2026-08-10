@@ -34,6 +34,18 @@ public static class PlayerSession
     /// otherwise; not run state, so ClearRunState leaves it alone.</summary>
     public static string PendingStartScenarioId = "";
 
+    /// <summary>One-shot: set by CampusScreen when leaving the campus for the world,
+    /// consumed by StrategicView to open the atlas framed on the home city and swoop
+    /// out to the overview (Phase 2, Stage 2 — the "ascend" transition). Not run
+    /// state; a UI hand-off flag, so ClearRunState leaves it alone.</summary>
+    public static bool ZoomFromHomeOnOpen = false;
+
+    /// <summary>True while the campus is open as an IN-WORLD OVERLAY hosted by the
+    /// strategic scene (Phase 2, Stage 3 — single-scene merge): no scene swap, the
+    /// atlas sits hidden beneath. The campus draws its own chrome, so the global HUD
+    /// hides while this is set. Not run state.</summary>
+    public static bool CampusOverlayOpen = false;
+
     /// <summary>True while the player is on an active expedition run.
     /// Gates deck editing in DeckEditorUi.</summary>
     public static bool IsOnExpedition = false;

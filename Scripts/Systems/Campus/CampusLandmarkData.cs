@@ -170,7 +170,7 @@ public static class CampusLandmarkRegistry
                 Id = "belfry",
                 DisplayName = "The Belfry",
                 HexLabel = "BL",
-                Q = 0, R = -4,  // top of campus
+                Q = 0, R = -1,  // district campus (centre district)
                 RestoredFlag = "campus_belfry_restored",
                 Beats = new List<LandmarkBeat>
                 {
@@ -255,7 +255,7 @@ public static class CampusLandmarkRegistry
                 Id = "refectory",
                 DisplayName = "The Refectory",
                 HexLabel = "RF",
-                Q = 3, R = -4,  // northeast
+                Q = 1, R = -1,  // flower lattice: home-district ring tile beside the Dormitory
                 RestoredFlag = "campus_refectory_restored",
                 Beats = new List<LandmarkBeat>
                 {
@@ -339,7 +339,7 @@ public static class CampusLandmarkRegistry
                 Id = "infirmary",
                 DisplayName = "The Infirmary",
                 HexLabel = "IF",
-                Q = -3, R = 1,  // west
+                Q = -1, R = 0,  // district campus (centre district)
                 RestoredFlag = "campus_infirmary_restored",
                 Beats = new List<LandmarkBeat>
                 {
@@ -426,7 +426,7 @@ public static class CampusLandmarkRegistry
                 Id = "observatory",
                 DisplayName = "The Observatory",
                 HexLabel = "OB",
-                Q = 3, R = 1,   // east
+                Q = 1, R = 2,   // flower lattice: ring tile of the +R founding district
                 RestoredFlag = "campus_observatory_restored",
                 Beats = new List<LandmarkBeat>
                 {
@@ -515,7 +515,7 @@ public static class CampusLandmarkRegistry
                 Id = "gatehouse",
                 DisplayName = "The Gatehouse",
                 HexLabel = "GH",
-                Q = 0, R = 4,   // bottom of campus
+                Q = 0, R = 1,   // district campus (centre district)
                 RestoredFlag = "campus_gatehouse_restored",
                 Beats = new List<LandmarkBeat>
                 {
@@ -603,7 +603,7 @@ public static class CampusLandmarkRegistry
                 Id = "library_wing",
                 DisplayName = "The Uncatalogued Wing",
                 HexLabel = "UW",
-                Q = -3, R = -1, // northwest
+                Q = -1, R = 1,  // district campus (centre district)
                 RestoredFlag = "campus_library_restored",
                 Beats = new List<LandmarkBeat>
                 {
