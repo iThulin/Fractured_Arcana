@@ -88,10 +88,12 @@ STREET = 2               # min clear hexes between stamps
 MAP_RADIUS = 8           # standard siege envelope (spec section 3)
 
 # ---------------------------------------------------------- window extraction
-def extract_window(focus, max_lots=7):
-    """BFS over lattice adjacency from the focus; admit up to max_lots lots."""
+def extract_window(focus, max_lots=None):
+    """BFS over lattice adjacency from the focus. max_lots=None = the WHOLE
+    city (v2: full layout — the arena clips the window; the remainder becomes
+    the visual backdrop, so the city continues past the map edge)."""
     admitted, frontier, seen = [focus], [focus], {focus}
-    while frontier and len(admitted) < max_lots:
+    while frontier and (max_lots is None or len(admitted) < max_lots):
         nxt = []
         for cell in frontier:
             for a, b in DIRS:
@@ -100,9 +102,9 @@ def extract_window(focus, max_lots=7):
                     seen.add(n)
                     admitted.append(n)
                     nxt.append(n)
-                    if len(admitted) >= max_lots:
+                    if max_lots is not None and len(admitted) >= max_lots:
                         break
-            if len(admitted) >= max_lots:
+            if max_lots is not None and len(admitted) >= max_lots:
                 break
         frontier = nxt
     return admitted
@@ -133,20 +135,20 @@ def layout(admitted, focus):
     return pos, parent
 
 # ------------------------------------------------------------------- compile
-def compile_gate_window():
-    admitted = extract_window(GATE_LOT)
-    pos, parent = layout(admitted, GATE_LOT)
+def compile_window(focus=GATE_LOT, opening="door"):
+    all_lots = extract_window(focus)              # the WHOLE city
+    pos, parent = layout(all_lots, focus)
 
-    # windowing rule: a lot whose placed CENTER falls outside the arena is not
-    # in this window (parents are always closer to focus, so chains stay valid)
-    admitted = [l for l in admitted if hexdist(pos[l], (0, 0)) <= MAP_RADIUS]
+    # window = lots whose centers land in the arena; the rest is BACKDROP
+    # (their in-arena stamp tiles still paint — edge-clipped buildings)
+    admitted = [l for l in all_lots if hexdist(pos[l], (0, 0)) <= MAP_RADIUS]
 
     # outward = the gate lot's MISSING lattice neighbor(s): the city perimeter
     # is where the lattice ends, not a centroid guess. (Generalizes to NPC
     # cities unchanged.)
     def missing_dirs(lot):
         return [d for d in DIRS if (lot[0] + d[0], lot[1] + d[1]) not in CAMPUS]
-    gate_missing = missing_dirs(GATE_LOT)
+    gate_missing = missing_dirs(focus)
     assert gate_missing, "gate lot is not on the city perimeter"
     d_out = gate_missing[0]
     d_in = (-d_out[0], -d_out[1])
@@ -154,43 +156,51 @@ def compile_gate_window():
     arena = set(disk((0, 0), MAP_RADIUS))
     tiles = {t: "ground" for t in arena}
 
-    # stamps (clip at arena edge — spec: buildings may continue into backdrop)
+    # stamps: EVERY positioned building paints its in-arena tiles — a lot whose
+    # center sits beyond the rim still pokes its edge into the map (clipped
+    # buildings ARE the city continuing past the edge)
     stamps = {}
-    for lot in admitted:
+    for lot in all_lots:
         r = stamp_radius(lot)
         if lot in BUILDINGS:
             body = [t for t in disk(pos[lot], r) if t in arena]
-            stamps[lot] = set(body)
-            for t in body:
-                tiles[t] = "bldg:" + BUILDINGS[lot][0]
-        else:
+            if body:
+                stamps[lot] = set(body)
+                for t in body:
+                    tiles[t] = "bldg:" + BUILDINGS[lot][0]
+        elif lot in admitted:
             for t in disk(pos[lot], 1):
                 if t in arena:
                     tiles[t] = "plaza" if CAMPUS[lot] == "Plaza" else "lawn"
 
-    # overlap assert BEFORE clipping effects hide anything
-    lots = [l for l in admitted if l in BUILDINGS]
+    # Overlap: HARD assert only when both lots are in the arena window —
+    # backdrop-side stamps placed via different parent chains may merge, and
+    # merged masses beyond the wall read as dense city blocks (correct
+    # fiction, mechanically inert; arena navigability is guarded by the
+    # connectivity asserts below, not by pitch).
+    lots = [l for l in all_lots if l in BUILDINGS]
     for i in range(len(lots)):
         for j in range(i + 1, len(lots)):
             a, b = lots[i], lots[j]
             need = stamp_radius(a) + stamp_radius(b) + 1
             got = hexdist(pos[a], pos[b])
-            assert got >= need, f"OVERLAP {a}{b}: dist {got} < {need}"
+            if a in admitted and b in admitted:
+                assert got >= need, f"OVERLAP {a}{b}: dist {got} < {need}"
 
     # wall v2 — CONTINUOUS contour (the v1 per-lot face segments read as
     # scattered rocks in-engine). Method: 2-thick candidate annuli around every
     # perimeter lot -> flood the OUTSIDE from the attacker edge -> wall = shell
     # tiles adjacent to outside. Continuity + sealing are enforced by the
     # partition assert below, not by construction hope.
-    gate_r = stamp_radius(GATE_LOT)
-    gate_outer = (pos[GATE_LOT][0] + d_out[0] * (gate_r + 1),
-                  pos[GATE_LOT][1] + d_out[1] * (gate_r + 1))
+    gate_r = stamp_radius(focus)
+    gate_outer = (pos[focus][0] + d_out[0] * (gate_r + 1),
+                  pos[focus][1] + d_out[1] * (gate_r + 1))
     # City region = union of disks (stamp + 2-tile margin). +2 guarantees
     # adjacent lots' disks overlap (pitch = rA+rB+3 < rA+rB+4), so the region
     # is one connected blob and its outer boundary is a CLOSED, 1-thick
     # contour by construction — the curtain wall, clipped by the arena edge.
     region = set()
-    for lot in admitted:
+    for lot in all_lots:                 # FULL city — no phantom interior walls
         for t in disk(pos[lot], stamp_radius(lot) + 2):
             region.add(t)
     boundary = set()
@@ -204,8 +214,8 @@ def compile_gate_window():
     import math
     def cart(t):
         return (1.5 * t[0], math.sqrt(3) * (t[1] + t[0] / 2.0))
-    gx, gy = cart(pos[GATE_LOT])
-    nx, ny = cart((pos[GATE_LOT][0] + d_out[0], pos[GATE_LOT][1] + d_out[1]))
+    gx, gy = cart(pos[focus])
+    nx, ny = cart((pos[focus][0] + d_out[0], pos[focus][1] + d_out[1]))
     nx, ny = nx - gx, ny - gy
     nlen = math.hypot(nx, ny)
     nx, ny = nx / nlen, ny / nlen
@@ -217,7 +227,12 @@ def compile_gate_window():
         # (q, r) tiebreak: symmetric boundary pairs tie exactly on floats, and
         # the C# port must pick the SAME two tiles (lockstep determinism)
         return (across, -along, t[0], t[1]) if along > 0 else (1e9, 0, t[0], t[1])
-    gap = set(sorted(boundary, key=ray_key)[:2])
+    GATE_GAP_WIDTH = 3   # ruled 2026-08-11: the door spans the full gate face
+    gap = set(sorted(boundary, key=ray_key)[:GATE_GAP_WIDTH])
+    # the door tiles must form one contiguous face, not scattered notches
+    for g in gap:
+        assert any((g[0] + d[0], g[1] + d[1]) in gap for d in DIRS), \
+            f"gate gap tile {g} is not contiguous with the rest of the door"
 
     shell = boundary - gap
 
@@ -239,8 +254,8 @@ def compile_gate_window():
     # tile must border BOTH outside and inside — a "wall" with outside on both
     # faces separates nothing and renders as free-standing blob clutter (seen
     # in-engine 2026-08-11); such shell tiles are dropped entirely.
-    interior0 = [l for l in admitted if l != GATE_LOT and not missing_dirs(l)]
-    inside_seed = pos[interior0[0]] if interior0 else pos[[l for l in admitted if l != GATE_LOT][0]]
+    interior0 = [l for l in admitted if l != focus and not missing_dirs(l)]
+    inside_seed = pos[interior0[0]] if interior0 else pos[[l for l in admitted if l != focus][0]]
     inside = set()
     if inside_seed in arena and inside_seed not in blocked_for_flood:
         stack = [inside_seed]
@@ -276,6 +291,58 @@ def compile_gate_window():
     for t in wall_set:
         tiles[t] = "wall"
 
+    # Objective zone (hold_zone "gate"): the door + the INSIDE pocket only —
+    # gap tiles plus region tiles within 2 of the gap that aren't stamps.
+    # Region membership is what excludes the outside approach: enemies must
+    # come THROUGH the door to breach, not mill about in front of it.
+    objective_zone = set(gap)
+    for t in region:
+        if t in arena and not tiles.get(t, "").startswith("bldg") and t not in wall_set:
+            if any(hexdist(t, g) <= 2 for g in gap):
+                objective_zone.add(t)
+    # outside-with-the-door-SEALED is the true attacker side; the zone (minus
+    # the door itself) must lie entirely on the city side of it
+    sealed_blocked = wall_set | bldg_tiles | gap
+    out2 = set()
+    seed2 = (gate_outer[0] + d_out[0] * 3, gate_outer[1] + d_out[1] * 3)
+    if seed2 in arena and seed2 not in sealed_blocked:
+        stack = [seed2]
+        out2.add(seed2)
+        while stack:
+            c = stack.pop()
+            for dq, dr in DIRS:
+                n = (c[0] + dq, c[1] + dr)
+                if n in arena and n not in sealed_blocked and n not in out2:
+                    out2.add(n)
+                    stack.append(n)
+    assert not (objective_zone - gap) & out2, \
+        "objective zone leaked outside the wall"
+    assert len(objective_zone) >= 4, "objective zone implausibly small"
+
+    # opening == "rubble" (wall breach): no doors — the collapsed wall chokes
+    # the opening with cover instead. Up to 2 pocket tiles that flank the
+    # breach (adjacent to exactly ONE gap tile — never the central lane),
+    # deterministic order. Connectivity asserts below remain the guard that
+    # rubble never re-seals the breach.
+    if opening == "rubble":
+        # candidates: any zone-pocket tile flanking the opening (zone already
+        # excludes walls and stamps; plaza rubble is fine — collapsed masonry)
+        flank = sorted(
+            t for t in (objective_zone - gap)
+            if sum(1 for g in gap if hexdist(t, g) == 1) == 1)
+        for t in flank[:2]:
+            tiles[t] = "rubble"
+        # collapsed-masonry debris field OUTSIDE the breach (approach side):
+        # up to 3 scattered blocked tiles within 2 of the opening — cover for
+        # the attacker, dressing for the fiction. Outside = not in region.
+        debris = sorted(
+            t for t in arena
+            if t not in region and t not in gap and t not in wall_set
+            and tiles.get(t, "") == "ground"
+            and any(hexdist(t, g) <= 2 for g in gap))
+        for t in debris[:3]:
+            tiles[t] = "rubble"
+
     # streets: lanes lot->parent + approach lane through the gap
     def carve(a, b):
         cur = a
@@ -291,15 +358,15 @@ def compile_gate_window():
         if parent[lot]:
             carve(pos[lot], pos[parent[lot]])
     player_anchor = (gate_outer[0] + d_out[0] * 3, gate_outer[1] + d_out[1] * 3)
-    interior = [l for l in admitted if l != GATE_LOT and not missing_dirs(l)]
-    enemy_lot = interior[0] if interior else [l for l in admitted if l != GATE_LOT][0]
+    interior = [l for l in admitted if l != focus and not missing_dirs(l)]
+    enemy_lot = interior[0] if interior else [l for l in admitted if l != focus][0]
     enemy_anchor = pos[enemy_lot]
     carve(player_anchor, gate_outer)
-    carve(gate_outer, pos[GATE_LOT])
+    carve(gate_outer, pos[focus])
 
     # connectivity asserts
     passable = {t for t, k in tiles.items()
-                if not k.startswith("bldg") and k != "wall"}
+                if not k.startswith("bldg") and k not in ("wall", "rubble")}
     def flood(start):
         seen, stack = {start}, [start]
         while stack:
@@ -335,7 +402,7 @@ def compile_gate_window():
 # --------------------------------------------------------------------- render
 def render(tiles):
     qs = [t[0] for t in tiles]; rs = [t[1] for t in tiles]
-    sym = {"ground": ",", "lawn": ",", "plaza": "^", "street": ".", "wall": "#"}
+    sym = {"ground": ",", "lawn": ",", "plaza": "^", "street": ".", "wall": "#", "rubble": "%"}
     rows = []
     for r in range(min(rs), max(rs) + 1):
         row = " " * (r - min(rs))
@@ -349,6 +416,19 @@ def render(tiles):
                 row += sym[k] + " "
         rows.append(row)
     return "\n".join(rows)
+
+def breach_focus():
+    """Perimeter lot for the wall-breach window: farthest (lattice) from the
+    gate among lots with missing neighbors; deterministic tiebreak."""
+    cands = [c for c in CAMPUS
+             if any((c[0] + d[0], c[1] + d[1]) not in CAMPUS for d in DIRS)
+             and c != GATE_LOT]
+    return max(sorted(cands), key=lambda c: (hexdist(c, GATE_LOT), c))
+
+
+def compile_gate_window():
+    return compile_window(GATE_LOT, "door")
+
 
 if __name__ == "__main__":
     tiles, pos, admitted, pa, ea, d_out = compile_gate_window()

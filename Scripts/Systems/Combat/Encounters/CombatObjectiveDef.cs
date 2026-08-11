@@ -41,7 +41,9 @@ public class CombatObjectiveDef
     /// <summary>hold_zone: enemy-occupied round-ends tolerated before defeat. (O4)</summary>
     public int BreachLimit = 2;
 
-    /// <summary>hold_zone siting: "player_spawn" (default) | "ward" | "center". (O4)</summary>
+    /// <summary>hold_zone siting: "player_spawn" (default) | "ward" | "center" |
+    /// "gate" (city sieges: the compiled recipe's SiegeSpec.GateGap tiles +
+    /// ZoneRadius — falls back to player_spawn on a non-siege map). (O4)</summary>
     public string ZoneAnchor = "player_spawn";
 
     public int ZoneRadius = 2;
@@ -55,9 +57,10 @@ public class CombatObjectiveDef
 
     /// <summary>True for kinds whose runtime this build actually implements.
     /// Authoring a not-yet-built kind is a loud load-time error, not a fight
-    /// that silently behaves as annihilate.</summary>
+    /// that silently behaves as annihilate. hold_zone (O4) implemented
+    /// 2026-08-11 with the city siege work; protect (O3) still pending.</summary>
     public static bool IsImplementedKind(string kind) =>
-        kind == KindAnnihilate || kind == KindSurvive;
+        kind == KindAnnihilate || kind == KindSurvive || kind == KindHoldZone;
 }
 
 /// <summary>

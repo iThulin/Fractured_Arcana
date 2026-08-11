@@ -88,6 +88,13 @@ public partial class HexGridManager
         // interior tiles. The flood is bounded by the curtain by construction.
         if (_activeRecipe?.Siege != null)
         {
+            // The gate-gap tiles are impassable to the ZONE flood even though
+            // they are walkable ground: the door spawns there after placement,
+            // and a flood that slips through the doorway puts enemies inside
+            // the courtyard at round 1 (observed 2026-08-11 — an enemy in the
+            // hold_zone at spawn, and its occupancy blocked a door panel).
+            var doorway = new HashSet<Vector2I>(_activeRecipe.Siege.GateGap);
+
             var depth = new Dictionary<Vector2I, int> { [anchor] = 0 };
             var queue = new Queue<Vector2I>();
             queue.Enqueue(anchor);
@@ -99,6 +106,8 @@ public partial class HexGridManager
                 foreach (var n in GetNeighbors(c))
                 {
                     if (depth.ContainsKey(n))
+                        continue;
+                    if (doorway.Contains(n))
                         continue;
                     if (!Tiles.TryGetValue(n, out var t))
                         continue;
@@ -353,6 +362,16 @@ public partial class HexGridManager
         var visited = new HashSet<Vector2I>();
         var queue = new Queue<Vector2I>();
 
+        // Siege doorway: the gate door spawns on these tiles AFTER placement,
+        // so the zone BFS must neither claim them nor traverse THROUGH them —
+        // this BFS is self-contained (it does NOT use GetSideCandidates), and
+        // without the guard it pours through the open gap into the courtyard
+        // (observed 2026-08-11: enemy spawned ON a gap tile, blocking a door
+        // panel and starting inside the hold_zone).
+        var doorway = _activeRecipe?.Siege?.GateGap != null
+            ? new HashSet<Vector2I>(_activeRecipe.Siege.GateGap)
+            : new HashSet<Vector2I>();
+
         queue.Enqueue(anchor);
         visited.Add(anchor);
 
@@ -362,7 +381,7 @@ public partial class HexGridManager
 
             if (Tiles.TryGetValue(current, out var tile))
             {
-                if (tile.IsWalkable && !tile.IsBlocked)
+                if (tile.IsWalkable && !tile.IsBlocked && !doorway.Contains(current))
                     zone.Tiles.Add(current);
             }
 
@@ -372,6 +391,8 @@ public partial class HexGridManager
                     continue;
 
                 visited.Add(neighbor);
+                if (doorway.Contains(neighbor))
+                    continue;   // don't traverse through the doorway either
                 queue.Enqueue(neighbor);
             }
         }

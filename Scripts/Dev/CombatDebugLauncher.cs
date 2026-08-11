@@ -156,11 +156,13 @@ public partial class CombatDebugLauncher : CanvasLayer
         _vistaOpt = AddEnumDropdown(form, "Vista border:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
             (int)OverworldHex.TerrainType.Grassland);
         // E6: force a specific battlefield archetype, or "(from terrain)" for the map dropdown's default.
-        var recipeItems = new string[BattlefieldRecipes.Length + 2];
+        var recipeItems = new string[BattlefieldRecipes.Length + 4];
         recipeItems[0] = "(from terrain)";
         for (int ri = 0; ri < BattlefieldRecipes.Length; ri++)
             recipeItems[ri + 1] = BattlefieldRecipes[ri];
-        recipeItems[BattlefieldRecipes.Length + 1] = CompiledGateLabel;   // city siege smoke test
+        recipeItems[BattlefieldRecipes.Length + 1] = CompiledGateLabel;          // city siege: gate attack
+        recipeItems[BattlefieldRecipes.Length + 2] = CompiledGateDefenseLabel;   // city siege: hold_zone defense
+        recipeItems[BattlefieldRecipes.Length + 3] = CompiledBreachLabel;        // city siege: breach attack
         _forceRecipeOpt = AddStringDropdown(form, "Force battlefield:", recipeItems);
         _diffSpin = AddSpin(form, "Difficulty ×:", 0.5, 3.0, 0.25, 1.0);
 
@@ -433,6 +435,10 @@ public partial class CombatDebugLauncher : CanvasLayer
         if (recipeSel > 0 && recipeSel <= BattlefieldRecipes.Length)
             def.MapRecipe = BattlefieldRecipes[recipeSel - 1];
         else if (recipeSel == BattlefieldRecipes.Length + 1 && !TryForceCompiledGate(def))
+            return;   // compile failed — reason already in the status label
+        else if (recipeSel == BattlefieldRecipes.Length + 2 && !TryForceCompiledGate(def, defending: true))
+            return;   // compile failed — reason already in the status label
+        else if (recipeSel == BattlefieldRecipes.Length + 3 && !TryForceCompiledGate(def, breach: true))
             return;   // compile failed — reason already in the status label
 
         EncounterContextCarrier.Set(def);

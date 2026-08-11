@@ -53,6 +53,18 @@ public partial class CombatManager
     /// <summary>Guard so the banner does not re-announce every phase change.</summary>
     private string _lastObjectiveBanner = "";
 
+    // ── hold_zone (O4) state ─────────────────────────────────────────────
+    /// <summary>Fixed once built (spec: "a fixed HashSet built once at map
+    /// gen"). Built LAZILY at the first boundary/banner that needs it, because
+    /// InitObjectiveState runs before the grid generates.</summary>
+    private HashSet<Vector2I> _objectiveZone;
+    private int _breaches;
+
+    /// <summary>Latch: the gold zone overlay has been handed to the renderer.
+    /// Attempted from RefreshObjectiveBanner (which re-fires on every phase
+    /// change) so it lands as soon as grid + renderer both exist.</summary>
+    private bool _objectiveZoneShown;
+
     private bool ObjectiveWavesPending => _pendingWaves != null && _pendingWaves.Count > 0;
 
     // ── Init ─────────────────────────────────────────────────────────────
@@ -68,6 +80,10 @@ public partial class CombatManager
         _objectiveVictory = false;
         _objectiveDefeat = false;
         _lastObjectiveBanner = "";
+        _objectiveZone = null;
+        _breaches = 0;
+        _objectiveZoneShown = false;
+        _zoneRenderer?.ClearObjectiveZone();
 
         if (def == null)
             return;
@@ -133,8 +149,38 @@ public partial class CombatManager
         if (_objective == null && !ObjectiveWavesPending)
             return;
 
-        // 1. Breach check (hold_zone) — O4. Deliberately absent, not stubbed:
-        //    the loader refuses hold_zone, so nothing can reach this path.
+        // 1. Breach check (hold_zone) — O4. One breach per round-end with >=1
+        //    living enemy on a zone tile, regardless of enemy count (legible),
+        //    per spec §2. breaches > BreachLimit → defeat.
+        if (_objective != null && _objective.Kind == CombatObjectiveDef.KindHoldZone)
+        {
+            EnsureObjectiveZone();
+            bool breachedNow = false;
+            foreach (var u in enemyUnits)
+            {
+                if (u?.CurrentTile == null || u.Stats == null || !u.Stats.IsAlive)
+                    continue;
+                if (_objectiveZone.Contains(u.CurrentTile.Axial))
+                {
+                    breachedNow = true;
+                    break;
+                }
+            }
+            if (breachedNow)
+            {
+                _breaches++;
+                GD.Print($"[Objective] BREACH — enemy holds the zone at round end " +
+                         $"({_breaches}/{_objective.BreachLimit} tolerated).");
+                combatUI?.AppendActionLog(_breaches > _objective.BreachLimit
+                    ? "── The line is broken. ──"
+                    : $"── Breach! The zone is overrun ({_breaches}/{_objective.BreachLimit}). ──");
+                if (_breaches > _objective.BreachLimit)
+                {
+                    _objectiveDefeat = true;
+                    GD.Print("[Objective] Breach limit exceeded — objective failed.");
+                }
+            }
+        }
 
         // 2. Rounds check (survive; later, protect-with-rounds).
         //    roundNumber has just been incremented, so "roundNumber > Rounds"
@@ -154,6 +200,85 @@ public partial class CombatManager
 
         if (_objectiveVictory || _objectiveDefeat)
             CheckCombatEnd();
+    }
+
+    /// <summary>Builds the hold_zone tile set on first use (the grid does not
+    /// exist yet when InitObjectiveState runs). Fixed thereafter. Seeds by
+    /// ZoneAnchor — "gate" reads the compiled siege recipe's gap tiles; empty
+    /// gate on a non-siege map, "ward" (O3 absent), and unknown anchors all
+    /// fall back to player_spawn. Growth is a walkable BFS to ZoneRadius, so
+    /// walls and building shells never count as holdable ground.</summary>
+    private void EnsureObjectiveZone()
+    {
+        if (_objectiveZone != null)
+            return;
+        _objectiveZone = new HashSet<Vector2I>();
+        if (grid == null || _objective == null)
+            return;
+
+        var seeds = new List<Vector2I>();
+        switch (_objective.ZoneAnchor)
+        {
+            case "gate":
+                // Compiler-computed zone wins outright: it is inside-only
+                // (door + courtyard pocket), where a runtime BFS from the gap
+                // would spread OUTWARD through the door too and let enemies
+                // "breach" from the approach without entering the city.
+                if (grid.SiegeObjectiveZone.Count > 0)
+                {
+                    foreach (var t in grid.SiegeObjectiveZone)
+                        _objectiveZone.Add(t);
+                    GD.Print($"[Objective] hold_zone zone from siege recipe: " +
+                             $"{_objectiveZone.Count} tile(s).");
+                    return;
+                }
+                foreach (var t in grid.SiegeGateGap)
+                    seeds.Add(t);
+                if (seeds.Count == 0)
+                    GD.PrintErr("[Objective] ZoneAnchor 'gate' on a map with no siege " +
+                                "gate gap — falling back to player_spawn.");
+                break;
+            case "center":
+                seeds.Add(grid.RecipeMidpoint);
+                break;
+        }
+        if (seeds.Count == 0)
+        {
+            var pz = grid.SpawnZones.Find(z => z.Side == HexGridManager.SpawnSide.Player);
+            if (pz != null)
+                seeds.Add(pz.Anchor);
+        }
+
+        var depth = new Dictionary<Vector2I, int>();
+        var queue = new Queue<Vector2I>();
+        foreach (var s in seeds)
+        {
+            if (depth.ContainsKey(s))
+                continue;
+            depth[s] = 0;
+            queue.Enqueue(s);
+            _objectiveZone.Add(s);
+        }
+        while (queue.Count > 0)
+        {
+            var c = queue.Dequeue();
+            if (depth[c] >= _objective.ZoneRadius)
+                continue;
+            foreach (var n in grid.GetNeighbors(c))
+            {
+                if (depth.ContainsKey(n))
+                    continue;
+                var td = grid.GetTile(n);
+                if (td == null || td.IsBlocked || !td.IsWalkable)
+                    continue;
+                depth[n] = depth[c] + 1;
+                queue.Enqueue(n);
+                _objectiveZone.Add(n);
+            }
+        }
+
+        GD.Print($"[Objective] hold_zone zone built: {_objectiveZone.Count} tile(s), " +
+                 $"anchor='{_objective.ZoneAnchor}', radius={_objective.ZoneRadius}.");
     }
 
     /// <summary>Spawns every wave whose round has arrived (<c>&lt;=</c>, not
@@ -290,6 +415,20 @@ public partial class CombatManager
     /// phase and hint lines use.</summary>
     private void RefreshObjectiveBanner()
     {
+        // Zone indicator: attempted here rather than at init because this
+        // re-fires on every phase change — first call where grid AND renderer
+        // exist wins, and the latch makes the rest no-ops.
+        if (_objective != null && _objective.Kind == CombatObjectiveDef.KindHoldZone
+            && !_objectiveZoneShown && grid != null && _zoneRenderer != null)
+        {
+            EnsureObjectiveZone();
+            if (_objectiveZone.Count > 0)
+            {
+                _zoneRenderer.ShowObjectiveZone(_objectiveZone, grid);
+                _objectiveZoneShown = true;
+            }
+        }
+
         if (combatUI == null)
             return;
         string text = ObjectiveBannerText();
@@ -323,6 +462,9 @@ public partial class CombatManager
             {
                 line = label;
             }
+
+            if (_objective.Kind == CombatObjectiveDef.KindHoldZone)
+                line += $"   ·   breaches {_breaches} / {_objective.BreachLimit}";
         }
 
         if (ObjectiveWavesPending)

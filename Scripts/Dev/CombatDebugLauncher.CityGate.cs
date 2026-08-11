@@ -19,6 +19,8 @@ using System;
 public partial class CombatDebugLauncher : CanvasLayer
 {
     private const string CompiledGateLabel = "campus_gate (compiled)";
+    private const string CompiledGateDefenseLabel = "campus_gate DEFENSE (hold the gate)";
+    private const string CompiledBreachLabel = "campus_breach (compiled)";
 
     /// <summary>Fixed debug seed → identical map every launch, so visual
     /// tuning between launches is comparing like with like.</summary>
@@ -26,8 +28,12 @@ public partial class CombatDebugLauncher : CanvasLayer
 
     /// <summary>Compile + register + force the home gate window. Returns false
     /// (with the reason in the status label) if the save can't produce one —
-    /// launch should be aborted, not fall back silently to a wrong map.</summary>
-    private bool TryForceCompiledGate(EncounterDefinition def)
+    /// launch should be aborted, not fall back silently to a wrong map.
+    /// <paramref name="defending"/>: home-defense orientation (player holds
+    /// the gate courtyard, enemies attack up the approach) + a hold_zone
+    /// objective sited on the gate gap.</summary>
+    private bool TryForceCompiledGate(EncounterDefinition def, bool defending = false,
+        bool breach = false)
     {
         var ledger = SaveManager.ActiveSave?.Ledger;
         if (ledger == null)
@@ -37,7 +43,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         }
 
         var city = new HomeCityCombatSource(ledger);
-        if (city.GateCell == null)
+        if (!breach && city.GateCell == null)
         {
             _status.Text = "compiled gate: no placed gatehouse_yard on this save.";
             return false;
@@ -46,7 +52,11 @@ public partial class CombatDebugLauncher : CanvasLayer
         CityWindowResult win;
         try
         {
-            win = CityBattlemapCompiler.CompileGateAssault(city, CompiledGateSeed);
+            win = breach
+                ? CityBattlemapCompiler.CompileWallBreach(
+                    city, CompiledGateSeed, defending: defending)
+                : CityBattlemapCompiler.CompileGateAssault(
+                    city, CompiledGateSeed, defending: defending);
         }
         catch (Exception e)
         {
@@ -66,10 +76,26 @@ public partial class CombatDebugLauncher : CanvasLayer
         MapRecipeRegistry.Register(MapRecipe.FromDict(dict));
         def.MapRecipe = win.RecipeId;
 
+        if (defending)
+        {
+            // The Campus Defense objective: hold the door. Rounds/BreachLimit
+            // are debug starting values — the real encounter defs own tuning.
+            def.Objective = new CombatObjectiveDef
+            {
+                Kind = CombatObjectiveDef.KindHoldZone,
+                Rounds = 8,
+                BreachLimit = 2,
+                ZoneAnchor = "gate",
+                ZoneRadius = 2,
+                Description = "Hold the gate",
+            };
+        }
+
         GD.Print($"[CityCompiler] forced '{win.RecipeId}': walls={win.WallTiles.Count} " +
                  $"stampTiles={win.StampTiles.Count} gap={win.GateGap.Count} " +
                  $"playerAnchor=({win.PlayerAnchor.q},{win.PlayerAnchor.r}) " +
-                 $"enemyAnchor=({win.EnemyAnchor.q},{win.EnemyAnchor.r})");
+                 $"enemyAnchor=({win.EnemyAnchor.q},{win.EnemyAnchor.r}) " +
+                 $"defending={defending}");
         return true;
     }
 }

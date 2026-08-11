@@ -473,6 +473,8 @@ public partial class CombatManager : Node3D
         {
             if (unit == null)
                 continue;
+            if (unit.IsStructure)
+                continue;   // doors do not study — no deck, no draws
             if (unit.IsMartial)
                 continue;
 
@@ -761,6 +763,8 @@ public partial class CombatManager : Node3D
             return;
         if (currentPhase != CombatPhase.PlayerTurn)
             return;
+        if (playerUnits[index] != null && playerUnits[index].IsStructure)
+            return;   // structures (gate doors) are visible but not commandable
         SelectUnit(playerUnits[index]);
     }
 
@@ -3452,8 +3456,8 @@ public partial class CombatManager : Node3D
             { allEnemiesDead = false; break; }
 
         foreach (var u in playerUnits)
-            if (u != null && u.Stats.IsAlive)
-            { allPlayersDead = false; break; }
+            if (u != null && !u.IsStructure && u.Stats.IsAlive)
+            { allPlayersDead = false; break; }   // a standing door is not a survivor
 
         // O-track ruling 4: an empty board is only a victory once every
         // authored wave has actually arrived. Inert on every encounter that
@@ -4535,6 +4539,11 @@ public partial class CombatManager : Node3D
             var frontier = new Queue<Vector2I>();
             foreach (var t in availableTiles) frontier.Enqueue(t.Axial);
             foreach (var c in claimed) { seen.Add(c); frontier.Enqueue(c); }
+            // Doorway guard: this widening runs BEFORE the gate doors spawn,
+            // so occupancy cannot protect the gap tiles here.
+            var doorway = grid.ActiveSiege?.GateGap != null
+                ? new HashSet<Vector2I>(grid.ActiveSiege.GateGap)
+                : new HashSet<Vector2I>();
             while (availableTiles.Count < sorted.Count && frontier.Count > 0)
             {
                 var cur = frontier.Dequeue();
@@ -4542,6 +4551,8 @@ public partial class CombatManager : Node3D
                 {
                     if (!seen.Add(n))
                         continue;
+                    if (doorway.Contains(n))
+                        continue;   // never widen through (or onto) the doorway
                     frontier.Enqueue(n);
                     var td = grid.GetTile(n);
                     if (td != null && td.IsWalkable && !td.IsBlocked && !td.IsOccupied &&
@@ -4629,6 +4640,10 @@ public partial class CombatManager : Node3D
             State.UnitsInPlay.Add(u);
 
         GD.Print($"Reactively spawned {enemyUnits.Count} enemy unit(s) based on player formation.");
+
+        // Siege defense: bar the door AFTER both sides are placed, so the gap
+        // tiles' occupancy checks see the real board.
+        SpawnGateDoors();
         RefreshEnemyRoster();
     }
 
@@ -4641,8 +4656,8 @@ public partial class CombatManager : Node3D
         int count = 0;
         foreach (var u in playerUnits)
         {
-            if (u?.CurrentTile == null)
-                continue;
+            if (u?.CurrentTile == null || u.IsStructure)
+                continue;   // doors don't drag the party centroid to the wall
             q += u.CurrentTile.Axial.X;
             r += u.CurrentTile.Axial.Y;
             count++;

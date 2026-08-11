@@ -202,6 +202,14 @@ public sealed class MapEventDef
     public static bool IsDestructiveKind(string kind) => kind == "collapse_tiles";
 }
 
+/// <summary>One off-map building mass for the siege backdrop.</summary>
+public sealed class SiegeBackdropStamp
+{
+    public Vector2I At;
+    public int Radius = 2;
+    public string Id = "";
+}
+
 /// <summary>City-siege recipe extras (CityBattlemapCompiler): authored spawn
 /// anchors + the gate gap. Optional — null on every hand-authored recipe, and
 /// everything downstream treats absence as "use the default derivation".</summary>
@@ -209,9 +217,27 @@ public sealed class SiegeSpec
 {
     public string Vector = "";
     public string Entry = "";
+
+    /// <summary>True when the PLAYER is the defender (home defense) — gates
+    /// door spawning and any future defender-only dressing.</summary>
+    public bool Defending;
+
     public Vector2I? PlayerAnchor;
     public Vector2I? EnemyAnchor;
     public List<Vector2I> GateGap = new();
+
+    /// <summary>hold_zone "gate" zone tiles, compiler-computed (door + inside
+    /// pocket only). The runtime prefers these over its own BFS because only
+    /// the compiler knows the city's inside from its outside.</summary>
+    public List<Vector2I> ObjectiveZone = new();
+
+    /// <summary>VISUAL-ONLY: wall tiles continuing past the arena edge into
+    /// the vista (axial coords beyond the map radius — AxialToWorld still
+    /// converts them; no TileData exists there).</summary>
+    public List<Vector2I> BackdropWall = new();
+
+    /// <summary>VISUAL-ONLY: off-map building masses (the rest of the city).</summary>
+    public List<SiegeBackdropStamp> BackdropStamps = new();
 
     private static Vector2I? Coord(Godot.Collections.Dictionary d, string key)
     {
@@ -229,6 +255,7 @@ public sealed class SiegeSpec
         {
             Vector = MapRecipe.Str(d, "vector", ""),
             Entry = MapRecipe.Str(d, "entry", ""),
+            Defending = d.ContainsKey("defending") && d["defending"].AsBool(),
             PlayerAnchor = Coord(d, "player_anchor"),
             EnemyAnchor = Coord(d, "enemy_anchor"),
         };
@@ -239,6 +266,40 @@ public sealed class SiegeSpec
                 var a = item.AsGodotArray();
                 if (a.Count >= 2)
                     s.GateGap.Add(new Vector2I(a[0].AsInt32(), a[1].AsInt32()));
+            }
+        }
+        if (d.ContainsKey("objective_zone"))
+        {
+            foreach (var item in d["objective_zone"].AsGodotArray())
+            {
+                var a = item.AsGodotArray();
+                if (a.Count >= 2)
+                    s.ObjectiveZone.Add(new Vector2I(a[0].AsInt32(), a[1].AsInt32()));
+            }
+        }
+        if (d.ContainsKey("backdrop_wall"))
+        {
+            foreach (var item in d["backdrop_wall"].AsGodotArray())
+            {
+                var a = item.AsGodotArray();
+                if (a.Count >= 2)
+                    s.BackdropWall.Add(new Vector2I(a[0].AsInt32(), a[1].AsInt32()));
+            }
+        }
+        if (d.ContainsKey("backdrop_stamps"))
+        {
+            foreach (var item in d["backdrop_stamps"].AsGodotArray())
+            {
+                var sd = item.AsGodotDictionary();
+                var at = Coord(sd, "at");
+                if (at == null)
+                    continue;
+                s.BackdropStamps.Add(new SiegeBackdropStamp
+                {
+                    At = at.Value,
+                    Radius = MapRecipe.Int(sd, "radius", 2),
+                    Id = MapRecipe.Str(sd, "id", ""),
+                });
             }
         }
         return s;

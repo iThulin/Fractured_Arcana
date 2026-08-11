@@ -68,7 +68,8 @@ public static class CityBattlemapCompiler
 
     public const int DefaultMapRadius = 8;   // spec §3 envelope
     public const int StreetWidth = 2;        // min clear hexes between stamps
-    public const int MaxLots = 7;
+    // MaxLots removed 2026-08-11: the full city is laid out; the arena radius
+    // is what caps the playable window, and the remainder becomes backdrop.
 
     // Clockwise from east — MUST match HexDirection.All / HexGridManager.HexDirs.
     private static readonly (int q, int r)[] Dirs =
@@ -111,13 +112,15 @@ public static class CityBattlemapCompiler
 
     // ── Window extraction + layout (proto: extract_window / layout) ─────────
 
+    /// <summary>BFS over lattice adjacency — the WHOLE city (v2: full layout;
+    /// the arena clips the playable window, the remainder becomes backdrop).</summary>
     private static List<(int q, int r)> ExtractWindow(ICityCombatSource city, (int q, int r) focus)
     {
         var admitted = new List<(int q, int r)> { focus };
         var seen = new HashSet<(int q, int r)> { focus };
         var frontier = new List<(int q, int r)> { focus };
 
-        while (frontier.Count > 0 && admitted.Count < MaxLots)
+        while (frontier.Count > 0)
         {
             var next = new List<(int q, int r)>();
             foreach (var cell in frontier)
@@ -129,11 +132,7 @@ public static class CityBattlemapCompiler
                         continue;
                     admitted.Add(n);
                     next.Add(n);
-                    if (admitted.Count >= MaxLots)
-                        break;
                 }
-                if (admitted.Count >= MaxLots)
-                    break;
             }
             frontier = next;
         }
@@ -181,20 +180,60 @@ public static class CityBattlemapCompiler
 
     /// <summary>Compiles the WallSiege gate-assault window. Throws if the city
     /// has no gate lot on the perimeter — availability is diegetic, and callers
-    /// should have checked <see cref="ICityCombatSource.GateCell"/> first.</summary>
+    /// should have checked <see cref="ICityCombatSource.GateCell"/> first.
+    /// <paramref name="defending"/> flips the orientation for home defense:
+    /// identical geometry, but the PLAYER holds the courtyard and the enemy
+    /// comes up the approach (the docx Campus Defense / Fracture framing).</summary>
     public static CityWindowResult CompileGateAssault(
-        ICityCombatSource city, ulong seed, int mapRadius = DefaultMapRadius)
+        ICityCombatSource city, ulong seed, int mapRadius = DefaultMapRadius,
+        bool defending = false)
     {
         if (city.GateCell == null)
             throw new InvalidOperationException("[CityCompiler] city has no gate lot.");
-        var gate = city.GateCell.Value;
+        return CompileWindow(city, seed, city.GateCell.Value, "door", defending, mapRadius);
+    }
 
-        var admitted = ExtractWindow(city, gate);
-        var (pos, parent) = Layout(city, admitted, gate);
+    /// <summary>Compiles the WallSiege wall-breach window: same machinery
+    /// focused on a DIFFERENT perimeter face, with the opening choked by
+    /// rubble cover instead of barred by doors (the siege engine did its work
+    /// before the fight). Focus = the perimeter lot farthest from the gate
+    /// (deterministic tiebreak), i.e. where the wall is least watched.</summary>
+    public static CityWindowResult CompileWallBreach(
+        ICityCombatSource city, ulong seed, int mapRadius = DefaultMapRadius,
+        bool defending = false)
+    {
+        var reference = city.GateCell ?? city.SeatCell;
+        (int q, int r)? best = null;
+        foreach (var cell in city.Cells.OrderBy(c => c.q).ThenBy(c => c.r))
+        {
+            if (MissingDirs(city, cell).Count == 0)
+                continue;   // interior — no wall here
+            if (city.GateCell != null && cell == city.GateCell.Value)
+                continue;   // the gate is the OTHER vector
+            if (best == null || HexDist(cell, reference) > HexDist(best.Value, reference))
+                best = cell;
+        }
+        if (best == null)
+            throw new InvalidOperationException("[CityCompiler] city has no breachable perimeter lot.");
+        return CompileWindow(city, seed, best.Value, "rubble", defending, mapRadius);
+    }
 
-        // windowing rule: a lot placed outside the arena is not in this window
-        admitted = admitted
-            .Where(l => pos.ContainsKey(l) && HexDist(pos[l], (0, 0)) <= mapRadius)
+    /// <summary>Shared window core. <paramref name="gate"/> is the FOCUS lot —
+    /// named for the dominant case; for a breach it is the collapsed segment.
+    /// <paramref name="opening"/>: "door" (gate face, spawns door structures
+    /// when defending) or "rubble" (breach face, cover instead of doors).</summary>
+    private static CityWindowResult CompileWindow(
+        ICityCombatSource city, ulong seed, (int q, int r) gate, string opening,
+        bool defending, int mapRadius)
+    {
+
+        var allLots = ExtractWindow(city, gate);
+        var (pos, parent) = Layout(city, allLots, gate);
+        allLots = allLots.Where(l => pos.ContainsKey(l)).ToList();
+
+        // window = lots whose centers land in the arena; the rest is BACKDROP
+        var admitted = allLots
+            .Where(l => HexDist(pos[l], (0, 0)) <= mapRadius)
             .ToList();
 
         var gateMissing = MissingDirs(city, gate);
@@ -205,8 +244,10 @@ public static class CityBattlemapCompiler
         var arena = new HashSet<(int q, int r)>(Disk((0, 0), mapRadius));
         var result = new CityWindowResult();
 
-        // stamps (clip at arena edge — buildings may continue into the backdrop)
-        foreach (var lot in admitted)
+        // stamps: EVERY positioned building paints its in-arena tiles — a lot
+        // whose center sits beyond the rim still pokes its edge into the map
+        // (clipped buildings ARE the city continuing past the edge)
+        foreach (var lot in allLots)
         {
             var b = city.BuildingAt(lot.q, lot.r);
             if (b == null)
@@ -230,18 +271,26 @@ public static class CityBattlemapCompiler
                          r: pos[gate].r + dOut.r * (gateR + 1));
 
         var region = new HashSet<(int q, int r)>();
-        foreach (var lot in admitted)
+        foreach (var lot in allLots)     // FULL city — no phantom interior walls
             foreach (var t in Disk(pos[lot], StampRadius(city, lot) + 2))
                 region.Add(t);
 
+        // boundary splits: in-arena tiles are the playable wall; out-of-arena
+        // tiles (capped) continue the wall into the vista as backdrop
+        int backdropCap = mapRadius * 2;
         var boundary = new HashSet<(int q, int r)>();
+        var backdropWall = new List<(int q, int r)>();
         foreach (var t in region)
         {
             foreach (var d in Dirs)
             {
                 var n = (q: t.q + d.q, r: t.r + d.r);
-                if (!region.Contains(n) && arena.Contains(n))
+                if (region.Contains(n))
+                    continue;
+                if (arena.Contains(n))
                     boundary.Add(n);
+                else if (HexDist(n, (0, 0)) <= backdropCap)
+                    backdropWall.Add(n);
             }
         }
 
@@ -262,44 +311,99 @@ public static class CityBattlemapCompiler
             double across = Math.Abs(-px * nyv + py * nxv);
             return along > 0 ? (across, -along) : (1e9, 0);
         }
+        // Ruled 2026-08-11: the door spans the FULL gate face (the wall contour
+        // steps diagonally at the doorway, so a 2-tile gap left a one-tile
+        // mousehole beside the panels). Contiguity is proto-asserted.
+        const int GateGapWidth = 3;
         var gap = new HashSet<(int q, int r)>(boundary
             .OrderBy(t => RayKey(t).across)
             .ThenBy(t => RayKey(t).negAlong)
             .ThenBy(t => t.q).ThenBy(t => t.r)
-            .Take(2));
+            .Take(GateGapWidth));
         result.GateGap = gap.ToList();
 
         foreach (var t in boundary)
             if (!gap.Contains(t))
                 result.WallTiles.Add(t);
 
-        // anchors: attacker beyond the gate; defender at the deepest interior lot
-        result.PlayerAnchor = (gateOuter.q + dOut.q * 3, gateOuter.r + dOut.r * 3);
+        // anchors: attacker beyond the gate; defender at the deepest interior
+        // lot. `defending` swaps which side is the player — geometry unchanged.
+        var approachAnchor = (q: gateOuter.q + dOut.q * 3, r: gateOuter.r + dOut.r * 3);
         var interior = admitted
             .Where(l => l != gate && MissingDirs(city, l).Count == 0)
             .ToList();
         var enemyLot = interior.Count > 0 ? interior[0] : admitted.First(l => l != gate);
-        result.EnemyAnchor = pos[enemyLot];
+        var interiorAnchor = pos[enemyLot];
+        // Defenders muster in the ALLEY COURTYARD between wall and gatehouse —
+        // that is gateOuter's tile (inside the region, adjacent to the door).
+        // NOT "gateInner" (the far side of the shell — a defender there is 8
+        // hexes from the door it must hold; caught 2026-08-11).
+        result.PlayerAnchor = defending ? gateOuter : approachAnchor;
+        result.EnemyAnchor = defending ? approachAnchor : interiorAnchor;
+
+        // Objective zone (hold_zone "gate"): the door + the INSIDE pocket only.
+        // Computed HERE because only the compiler knows inside from outside —
+        // gap tiles plus region tiles within 2 of the gap (walkable: not wall,
+        // not stamp). Region membership excludes the approach: enemies breach
+        // by coming THROUGH the door, not by standing in front of it.
+        // (Proto asserts the zone is disjoint from the door-sealed outside.)
+        var objectiveZone = new HashSet<(int q, int r)>(gap);
+        foreach (var t in region)
+        {
+            if (!arena.Contains(t) || result.StampTiles.ContainsKey(t) || result.WallTiles.Contains(t))
+                continue;
+            if (gap.Any(g => HexDist(t, g) <= 2))
+                objectiveZone.Add(t);
+        }
 
         // ── emit recipe JSON ────────────────────────────────────────────────
         var features = new JsonArray();
 
-        // ground: plaza clearings / lawn patches on empty lots
+        // ground dressing (2026-08-11: bare lots read as empty field, not city
+        // ground — especially in building-sparse windows like the breach):
+        // plazas pave in stone; lawns get a grass apron with a grove core.
         foreach (var lot in admitted)
         {
             if (city.BuildingAt(lot.q, lot.r) != null)
                 continue;
-            string kind = city.KindOf(lot.q, lot.r) == CityCellKind.Plaza ? "clearing" : "patch";
-            var op = new JsonObject
+            bool plaza = city.KindOf(lot.q, lot.r) == CityCellKind.Plaza;
+            if (plaza)
             {
-                ["feature"] = kind,
-                ["phase"] = "skeleton",
-                ["at"] = new JsonArray(pos[lot].q, pos[lot].r),
-                ["radius"] = EmptyLotRadius + 1,
-            };
-            if (kind == "patch")
-                op["terrain"] = "grass";
-            features.Add(op);
+                features.Add(new JsonObject
+                {
+                    ["feature"] = "clearing",
+                    ["phase"] = "skeleton",
+                    ["at"] = new JsonArray(pos[lot].q, pos[lot].r),
+                    ["radius"] = EmptyLotRadius + 1,
+                });
+                features.Add(new JsonObject
+                {
+                    ["feature"] = "patch",
+                    ["phase"] = "skeleton",
+                    ["at"] = new JsonArray(pos[lot].q, pos[lot].r),
+                    ["radius"] = EmptyLotRadius + 1,
+                    ["terrain"] = "stone",   // paved
+                });
+            }
+            else
+            {
+                features.Add(new JsonObject
+                {
+                    ["feature"] = "patch",
+                    ["phase"] = "skeleton",
+                    ["at"] = new JsonArray(pos[lot].q, pos[lot].r),
+                    ["radius"] = EmptyLotRadius + 1,
+                    ["terrain"] = "grass",
+                });
+                features.Add(new JsonObject
+                {
+                    ["feature"] = "patch",
+                    ["phase"] = "accent",
+                    ["at"] = new JsonArray(pos[lot].q, pos[lot].r),
+                    ["radius"] = 1,
+                    ["terrain"] = "forest",  // lawn grove
+                });
+            }
         }
 
         // lanes BEFORE walls (CarveLane clears obstacles on its path)
@@ -320,7 +424,8 @@ public static class CityBattlemapCompiler
         {
             ["feature"] = "carve_lane",
             ["phase"] = "skeleton",
-            ["from"] = new JsonArray(result.PlayerAnchor.q, result.PlayerAnchor.r),
+            // always the APPROACH → gate road, regardless of who attacks
+            ["from"] = new JsonArray(approachAnchor.q, approachAnchor.r),
             ["to"] = new JsonArray(pos[gate].q, pos[gate].r),
             ["width"] = 1,
         });
@@ -342,6 +447,55 @@ public static class CityBattlemapCompiler
             });
         }
 
+        // "rubble" opening (wall breach): no doors — up to 2 pocket tiles that
+        // FLANK the breach (adjacent to exactly one gap tile, never the
+        // central lane) become rock cover. Proto-asserted to never re-seal
+        // the opening. (Mirror of the proto's rubble block — keep in lockstep.)
+        if (opening == "rubble")
+        {
+            var flank = objectiveZone
+                .Where(t => !gap.Contains(t)
+                            && gap.Count(g => HexDist(t, g) == 1) == 1
+                            && !result.StampTiles.ContainsKey(t)
+                            && !result.WallTiles.Contains(t))
+                .OrderBy(t => t.q).ThenBy(t => t.r)
+                .Take(2);
+            foreach (var t in flank)
+            {
+                features.Add(new JsonObject
+                {
+                    ["feature"] = "filled_radius",
+                    ["phase"] = "skeleton",
+                    ["at"] = new JsonArray(t.q, t.r),
+                    ["radius"] = 0,
+                    ["obstacle_kind"] = "rock",
+                    ["chance"] = 1.0,
+                });
+            }
+
+            // collapsed-masonry debris field OUTSIDE the breach — cover on the
+            // approach, dressing for the fiction (proto-asserted passable)
+            var debris = arena
+                .Where(t => !region.Contains(t) && !gap.Contains(t)
+                            && !result.WallTiles.Contains(t)
+                            && !result.StampTiles.ContainsKey(t)
+                            && gap.Any(g => HexDist(t, g) <= 2))
+                .OrderBy(t => t.q).ThenBy(t => t.r)
+                .Take(3);
+            foreach (var t in debris)
+            {
+                features.Add(new JsonObject
+                {
+                    ["feature"] = "filled_radius",
+                    ["phase"] = "skeleton",
+                    ["at"] = new JsonArray(t.q, t.r),
+                    ["radius"] = 0,
+                    ["obstacle_kind"] = "rock",
+                    ["chance"] = 1.0,
+                });
+            }
+        }
+
         // building stamps LAST — the step-3 `building_stamp` paint overwrites any
         // band tile that crossed a footprint, and explicitly restores
         // IsWalkable = true (the docx §4a interiors-forward-compat rule)
@@ -361,11 +515,12 @@ public static class CityBattlemapCompiler
             });
         }
 
-        result.RecipeId = $"city_wallsiege_gate_{seed:x8}";
+        string entry = opening == "door" ? "gate" : "breach";
+        result.RecipeId = $"city_wallsiege_{entry}{(defending ? "def" : "")}_{seed:x8}";
         var recipe = new JsonObject
         {
             ["id"] = result.RecipeId,
-            ["display_name"] = "The Gate",
+            ["display_name"] = entry == "gate" ? "The Gate" : "The Breach",
             ["shape"] = new JsonObject { ["type"] = "hexagon", ["radius"] = mapRadius },
             ["base_terrain"] = new JsonObject
             {
@@ -381,11 +536,30 @@ public static class CityBattlemapCompiler
             ["siege"] = new JsonObject
             {
                 ["vector"] = "WallSiege",
-                ["entry"] = "gate",
+                ["entry"] = entry,
+                ["defending"] = defending,
                 ["player_anchor"] = new JsonArray(result.PlayerAnchor.q, result.PlayerAnchor.r),
                 ["enemy_anchor"] = new JsonArray(result.EnemyAnchor.q, result.EnemyAnchor.r),
                 ["gate_gap"] = new JsonArray(
                     result.GateGap.Select(t => (JsonNode)new JsonArray(t.q, t.r)).ToArray()),
+                ["objective_zone"] = new JsonArray(
+                    objectiveZone.Select(t => (JsonNode)new JsonArray(t.q, t.r)).ToArray()),
+                // visual-only: the city continuing past the arena edge
+                ["backdrop_wall"] = new JsonArray(
+                    backdropWall.Distinct()
+                        .Select(t => (JsonNode)new JsonArray(t.q, t.r)).ToArray()),
+                ["backdrop_stamps"] = new JsonArray(
+                    allLots
+                        .Where(l => city.BuildingAt(l.q, l.r) != null
+                                    && HexDist(pos[l], (0, 0)) > mapRadius
+                                    && HexDist(pos[l], (0, 0)) <= backdropCap)
+                        .Select(l => (JsonNode)new JsonObject
+                        {
+                            ["at"] = new JsonArray(pos[l].q, pos[l].r),
+                            ["radius"] = StampRadius(city, l),
+                            ["id"] = city.BuildingAt(l.q, l.r).BlueprintId,
+                        })
+                        .ToArray()),
             },
         };
 

@@ -127,6 +127,11 @@ public partial class HexGridManager
     {
         ClearObstacleVisuals();
 
+        // City sieges: the city continues past the rim (visual only).
+        // ClearObstacleVisuals above frees the previous batch via the
+        // generated_obstacle group, so this rebuilds alongside obstacles.
+        SpawnSiegeBackdrop();
+
         foreach (var kvp in Tiles)
         {
             TileData tile = kvp.Value;

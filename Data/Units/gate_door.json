@@ -1,0 +1,20 @@
+{
+  "id": "gate_door",
+  "threatLabel": "Gate Door",
+  "role": "summon",
+  "intelDescription": "Iron-banded oak. It does not fight back; it simply refuses. Every round it stands is a round the courtyard holds.",
+  "maxHealth": 28,
+  "baseSpeed": 0,
+  "armor": 3,
+  "attackRange": 0,
+  "attackDamage": 0,
+  "preferredDistance": 0,
+  "behaviorKey": "",
+  "behaviorTags": [
+    "immobile",
+    "structure"
+  ],
+  "colorR": 0.45,
+  "colorG": 0.32,
+  "colorB": 0.18
+}

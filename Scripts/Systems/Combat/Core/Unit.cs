@@ -380,6 +380,15 @@ public partial class Unit : Node3D
     public bool IsConstruct = false;
 
     /// <summary>
+    /// True for battlefield STRUCTURES (gate doors; later siege engines) — units
+    /// that occupy a tile and take damage but are nobody's soldier. On team 0 so
+    /// enemy targeting/attacks work unchanged, but excluded from the all-players-
+    /// dead defeat scan, unit-bar selection, and the player centroid. Never set
+    /// IsPlayerControlled on a structure.
+    /// </summary>
+    public bool IsStructure = false;
+
+    /// <summary>
     /// Turns of setup remaining before this construct can act. Decremented (and skipped) by the construct phase. 0 = ready.
     /// </summary>
     public int SetupTurnsRemaining = 0;
