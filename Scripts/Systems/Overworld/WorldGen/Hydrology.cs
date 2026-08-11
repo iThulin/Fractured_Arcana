@@ -163,7 +163,12 @@ public static class Hydrology
         int riverEdges = 0;
         for (int i = 0; i < n; i++)
         {
-            if (world.Tiles[i].IsOcean)
+            // Skip open water as a river SOURCE: oceans, and future lakes (flooded[] — lakes are
+            // classified in step 6, AFTER this, so they aren't IsWater yet). This stops a river
+            // from carving across/out of a lake (the old drain-seed spill did exactly that, putting
+            // "a river in the middle of the lake"). A river on land still stamps its edge toward a
+            // lake receiver, so it reaches the shore and stops there.
+            if (world.Tiles[i].IsOcean || flooded[i])
                 continue;
             if (acc[i] < RiverMinFlow)
                 continue;

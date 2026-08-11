@@ -907,6 +907,8 @@ public partial class ExpeditionManager : Node2D
 
         _window3D = new ExpeditionWindow3D { Standalone = false, SelfDrive = false };
         _window3D.MoveRequested += OnWindow3DMove;
+        _window3D.TileHovered += OnWindow3DHover;
+        _window3D.TileUnhovered += OnWindow3DUnhover;
         vp.AddChild(_window3D);
         _window3D.AcceptInput = true;
         _window3DContainer.MouseEntered += () => { if (_window3D != null) _window3D.AcceptInput = true; };
@@ -971,6 +973,18 @@ public partial class ExpeditionManager : Node2D
             ? new Vector2I(pc, pr) : worldCenter;
 
         _window3D.SetWindow(_world, fogW, ovW, worldCenter, worldParty, frameCamera);
+
+        // Moving entities so ambushers are visible in 3D like the 2D tokens: enemy patrols (red)
+        // and the roamer (amber). Patrol/roamer coords are grid-local → world-offset for the view.
+        var entities = new List<(Vector2I, Color)>();
+        if (_factionManager != null)
+            foreach (var pLocal in _factionManager.GetPatrolPositions())
+                if (_window.TryLocalToWorld(pLocal, out int px, out int py))
+                    entities.Add((new Vector2I(px, py), UITheme.Danger));
+        if (_roamer != null && !_roamerSpent
+            && _window.TryLocalToWorld(_roamer.CurrentCoord, out int rx, out int ry))
+            entities.Add((new Vector2I(rx, ry), UITheme.POINarrative));
+        _window3D.SetEntities(entities);
     }
 
     /// <summary>A 3D-overlay click: translate the world coord back to grid-local and run
@@ -980,6 +994,17 @@ public partial class ExpeditionManager : Node2D
     {
         var local = _window.LocalOf(worldCoord.X, worldCoord.Y);
         _party.TryMoveTo(local);
+    }
+
+    /// <summary>3D-view hover → drive the same tile tooltip the 2D grid drives (world→local, then
+    /// the existing OnHexHovered/OnHexUnhovered path).</summary>
+    private void OnWindow3DHover(Vector2I worldCoord)
+        => OnHexHovered(_window.LocalOf(worldCoord.X, worldCoord.Y));
+
+    private void OnWindow3DUnhover()
+    {
+        if (_hoveredCoord.HasValue)
+            OnHexUnhovered(_hoveredCoord.Value);
     }
 
     // ── [DEBUG] Narrative-chain proof rig (2026-07-18) ───────────────────
@@ -1397,6 +1422,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
                 line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), axial)}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
                         NegotiationPreread(axial); // S5: True Names
+            // City tile: name the settlement whose greyed footprint this tile belongs to, so the
+            // player can tell they're standing in a city (not just on its terrain).
+            if (_window.TryLocalToWorld(axial, out int ccol, out int crow))
+            {
+                var cityTip = _world.SettlementAt(ccol, crow);
+                if (cityTip != null && cityTip.Tier == SettlementTier.City)
+                    line += $"  ·  {CitySettlementName(cityTip)}";
+            }
             // Corruption readout if the underlying world tile is corrupted.
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
@@ -1651,7 +1684,58 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     }
                 }
                 break;
+
+            case OverworldHex.POIType.Seat:
+            case OverworldHex.POIType.Settlement:
+                // Phase 3: reaching a CITY centre on foot (a gold seat capital or a blue lesser city)
+                // opens its services menu — the same shell as the strategic-map city view. Gated to
+                // Tier==City inside OpenCityServices, so towns fall through. Persistent (never
+                // consumed), so you can revisit it.
+                OpenCityServices(coord);
+                break;
         }
+    }
+
+    // ── Phase 3: enemy-capital services on the expedition map ────────────────
+
+    private CityServicesHost _cityServices;
+
+    /// <summary>Walked onto an enemy capital's seat tile — open its services menu over the
+    /// expedition (reuses <see cref="CityServicesHost"/>). Skips the guild's OWN seat. The city
+    /// name comes from its kingdom, matching the strategic-map labels.</summary>
+    private void OpenCityServices(Vector2I coord)
+    {
+        if (_cityServices != null || _window == null || _world == null)
+            return;
+        if (!_window.TryLocalToWorld(coord, out int wcol, out int wrow))
+            return;
+        var s = _world.SettlementAt(wcol, wrow);
+        // Cities only (seats + lesser cities — their footprint is the grey region); never your own.
+        if (s == null || s.Tier != SettlementTier.City || s.IsGuildHome)
+            return;
+
+        if (_window3D != null) _window3D.AcceptInput = false;   // the menu owns the screen
+        _cityServices = CityServicesHost.Create(CitySettlementName(s), CloseCityServices);
+        AddChild(_cityServices);
+    }
+
+    /// <summary>Readable name for a city on the tooltip/menu. Settlement generation assigns no name,
+    /// so fall back to the owning kingdom + tier ("The Untamed Seat", "… City").</summary>
+    private string CitySettlementName(WorldSettlement s)
+    {
+        if (s == null) return "City";
+        if (!string.IsNullOrEmpty(s.Name)) return s.Name;
+        string kind = s.IsSeat ? "Seat" : "City";
+        return !string.IsNullOrEmpty(s.KingdomId) ? $"{KingdomDisplayName(s.KingdomId)} {kind}" : kind;
+    }
+
+    /// <summary>Services menu closed — drop the reference and hand input back to the expedition.
+    /// The host frees itself.</summary>
+    private void CloseCityServices()
+    {
+        if (_cityServices == null) return;
+        _cityServices = null;
+        if (_window3D != null) _window3D.AcceptInput = true;
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -1810,6 +1894,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         if (!_grid.Hexes.ContainsKey(coord))
             return;
+        // Debug: let patrols pass without forcing combat, so the map can be walked freely (e.g. to
+        // reach a distant enemy capital while testing). Player-initiated combat is unaffected.
+        if (PlayerSession.DebugNoAmbush)
+        {
+            if (PlayerSession.DebugMode)
+                GD.Print($"[Debug] Ambush suppressed at {coord} (No Enemy Ambushes).");
+            return;
+        }
 
         // S3 (Parley Compulsion, Enchanter): an armed compulsion converts this
         // interception into a negotiation instead of an ambush. Once per
@@ -4197,6 +4289,32 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 SetOverlay(local, ovCivic);
             }
         }
+
+        // A SEAT capital's centre is loaded as an Outpost POI (WorldWindowBuilder maps
+        // PoiKind.Seat -> POIType.Outpost — the old "seat is a rest/staging stop" behaviour). For
+        // Phase 3 an enemy capital is a SERVICES stop, so OVERRIDE its centre to POIType.Seat: this
+        // draws the gold seat marker AND routes arrival to the services menu instead of the outpost
+        // full-heal-and-consume. Only the seat's own centre tile is touched; lesser cities and real
+        // outposts are left alone. Runs after SyncOverlayFromWindow, so it wins over the loader map.
+        if (_world.Settlements != null)
+            foreach (var st in _world.Settlements)
+            {
+                if (st == null || !st.IsSeat || st.Tier != SettlementTier.City)
+                    continue;
+                var localC = _window.LocalOf(st.CenterX, st.CenterY);
+                if (!_grid.Hexes.ContainsKey(localC))
+                    continue;
+                var ovC = _overlay.OverlayAt(localC);
+                if (ovC.Poi == OverworldHex.POIType.None || ovC.Poi == OverworldHex.POIType.Outpost)
+                {
+                    if (PlayerSession.DebugMode)
+                        GD.Print($"[CityServices] Stamped seat '{CitySettlementName(st)}' as POIType.Seat " +
+                                 $"at local {localC} (world {st.CenterX},{st.CenterY}); was {ovC.Poi}.");
+                    ovC.Poi = OverworldHex.POIType.Seat;
+                    ovC.Consumed = false;   // undo any earlier outpost consume
+                    SetOverlay(localC, ovC);
+                }
+            }
     }
 
     /// <summary>Hex distance from a grid-local coord to the NEAREST supply

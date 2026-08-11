@@ -617,6 +617,8 @@ public sealed class CampusGuildPanel : CampusPanel
             on => PlayerSession.SkipDeployment = on));
         grid.AddChild(MakeDebugCheck("Reveal Strategic Map", PlayerSession.DebugRevealStrategicMap,
             on => PlayerSession.DebugRevealStrategicMap = on));
+        grid.AddChild(MakeDebugCheck("No Enemy Ambushes", PlayerSession.DebugNoAmbush,
+            on => PlayerSession.DebugNoAmbush = on));
         grid.AddChild(MakeDebugCheck("Grant Staging (press G in expedition)",
             PlayerSession.DebugGrantStagingArmed,
             on => PlayerSession.DebugGrantStagingArmed = on));

@@ -92,6 +92,7 @@ public partial class CampusGridManager : HexGridManager
             tileNode.Position = worldPos;
             tileNode.Axial = coord;
             AddChild(tileNode);
+            ApplyChildContour(tileNode, coord);   // contour-follow: sit on its district's terrain
 
             if (first) { min = worldPos; max = worldPos; first = false; }
             else
@@ -141,8 +142,18 @@ public partial class CampusGridManager : HexGridManager
 
             if (!fits)
             {
-                GD.PrintErr($"CampusGridManager: building '{b.Id}' footprint anchored at {anchor} " +
-                            $"(rotation {b.Rotation}) extends off the campus tile grid. Skipping.");
+                // Stranded off the current grid — a building authored for a district that isn't
+                // founded yet, or one left behind by a lattice change. UNPLACE it in the save
+                // rather than log-and-skip on every load: it becomes a built-but-unsited building
+                // the player can re-place once its district is unlocked (the same philosophy as
+                // the lattice migration's off-grid unplacement). Once unplaced it's skipped at the
+                // IsPlaced guard above next load, so this fires at most once.
+                if (b.IsPlaced)
+                {
+                    b.IsPlaced = false;
+                    GD.Print($"[CampusGrid] '{b.Id}' footprint anchored at {anchor} is off the current " +
+                             "campus grid — unplaced (re-place it once its district is unlocked).");
+                }
                 continue;
             }
 
@@ -402,65 +413,86 @@ public partial class CampusGridManager : HexGridManager
     public bool TryPickRay(Vector3 rayOrigin, Vector3 rayDir, out Vector2I coord)
     {
         coord = default;
-        if (Tiles.Count == 0)
+        if (Tiles.Count == 0 || Mathf.Abs(rayDir.Y) < 1e-6f)
             return false;
-        // Tile centres live at local y = 0 (AxialToWorld returns y = 0), so their world
-        // plane is this node's global origin height.
-        float planeY = GlobalPosition.Y;
-        if (Mathf.Abs(rayDir.Y) < 1e-6f)
-            return false;
-        float t = (planeY - rayOrigin.Y) / rayDir.Y;
-        if (t < 0f)
-            return false;
-        Vector3 hitLocal = ToLocal(rayOrigin + rayDir * t);
 
-        float best = float.MaxValue;
+        // Per-tile analytic pick, in WORLD space. With contour-follow each tile sits at its OWN
+        // height (ChildTopWorldY), so a single shared plane no longer works — intersect the ray
+        // with EACH tile's own top plane and keep the tile whose hit lands nearest its own centre.
+        // The plane is lifted by the label height because the player aims at the billboarded name
+        // label, which floats Label3DPoiHeight above the tile; intersecting the LABEL plane
+        // recovers the tile centre exactly at any camera pitch (see the 2026-08-10 pick-offset
+        // fix). Working in world space via TileView.GlobalPosition folds in the grid's 1/3 scale
+        // + translation exactly, so this is scale- and contour-proof. A hit is only accepted
+        // within a hex circumradius (world units) of the nearest centre, rejecting the gaps and
+        // the locked preview flowers (not in Tiles).
+        float labelLift = UITheme.Label3DPoiHeight * GlobalTransform.Basis.Y.Length();
+        float worldHexR = HexRadius * GlobalTransform.Basis.X.Length();
+        float reach = worldHexR * 1.15f;
+        float best = reach * reach;
         bool found = false;
-        foreach (var c in Tiles.Keys)
+        foreach (var kv in Tiles)
         {
-            Vector3 wc = AxialToWorld(c);
-            float d = new Vector2(wc.X - hitLocal.X, wc.Z - hitLocal.Z).LengthSquared();
-            if (!found || d < best) { best = d; coord = c; found = true; }
+            var view = kv.Value.TileView;
+            if (view == null) continue;
+            Vector3 c = view.GlobalPosition;             // tile top-centre in world (incl. contour Y)
+            float t = (c.Y + labelLift - rayOrigin.Y) / rayDir.Y;
+            if (t < 0f) continue;
+            Vector3 hit = rayOrigin + rayDir * t;
+            float d = new Vector2(c.X - hit.X, c.Z - hit.Z).LengthSquared();
+            if (d < best) { best = d; coord = kv.Key; found = true; }
         }
-        if (!found)
-            return false;
-        // Reject hits that land OUTSIDE the buildable field (empty background or a locked
-        // surrounding-district preview tile) — a hex's interior is within its circumradius
-        // (HexRadius) of the centre, so anything past ~1.15× that missed every real tile.
-        float reach = HexRadius * 1.15f;
-        if (best > reach * reach)
-        {
-            coord = default;
-            return false;
-        }
-        return true;
+        return found;
     }
 
-    // ── Surrounding-district preview (city view) ─────────────────────────
+    // ── Contour-follow (per-child terrain height) ────────────────────────
+
+    /// <summary>Optional height provider: maps a child coord to the WORLD-space top Y its tile
+    /// should sit at, so the campus follows the terrain contour (each district on its strategic
+    /// tile's height) instead of a flat pad. Null = flat (every child at the node's own height).
+    /// Set on the grid BEFORE <see cref="LoadFromSave"/> / <see cref="BuildDistrictPreview"/>.</summary>
+    public System.Func<Vector2I, float> ChildTopWorldY;
+
+    /// <summary>Push a freshly-placed child tile to its contour height. No-op when no provider is
+    /// set. Converts the provider's WORLD top Y into this node's local Y via the grid's own
+    /// (possibly scaled) global transform, so it stays correct at the 1/3 city scale.</summary>
+    private void ApplyChildContour(Node3D node, Vector2I coord)
+    {
+        if (ChildTopWorldY == null || node == null) return;
+        float scaleY = GlobalTransform.Basis.Y.Length();
+        if (scaleY <= 0.0001f) return;
+        var p = node.Position;
+        p.Y = (ChildTopWorldY(coord) - GlobalPosition.Y) / scaleY;
+        node.Position = p;
+    }
+
+    // ── Annexable-district preview (city view) ───────────────────────────
 
     private Node3D _previewParent;
+    private readonly Dictionary<Vector2I, HexTile> _previewTiles = new();       // child coord → preview node
+    private readonly Dictionary<Vector2I, Vector2I> _previewDistrictOf = new();  // child coord → owning district
 
-    /// <summary>City view surroundings: render the adjacent LOCKED districts as dimmed
-    /// 7-hex flowers around the built campus, so the city reads as a district grid that
-    /// continues outward (room to grow) rather than a lone cluster floating in the void.
-    /// Uses the SAME HexTile pipeline and <see cref="AxialToWorld"/> as the real tiles, so
-    /// the flowers tessellate seamlessly with the campus. Visual-only: these are NOT added to
-    /// <see cref="HexGridManager.Tiles"/>, so they're neither buildable nor pickable.
-    /// <paramref name="rings"/> counts district-rings outward from the origin district.</summary>
-    public void BuildSurroundingPreview(int rings, Color lockedColor)
+    /// <summary>Render the given LOCKED districts as dimmed 7-hex flowers around the built campus
+    /// — the "room to grow" the player can annex. Uses the SAME HexTile pipeline and
+    /// <see cref="AxialToWorld"/> as the real tiles (so they tessellate + contour seamlessly), but
+    /// they are NOT added to <see cref="HexGridManager.Tiles"/> — instead they're tracked in a
+    /// private map so <see cref="TryPickPreviewDistrict"/> can resolve a click back to its district
+    /// without making them buildable.</summary>
+    public void BuildDistrictPreview(System.Collections.Generic.IEnumerable<Vector2I> districts, Color lockedColor)
     {
         ClearSurroundingPreview();
-        if (HexTileScene3D == null) return;
-        _previewParent = new Node3D { Name = "SurroundingPreview" };
+        if (HexTileScene3D == null || districts == null) return;
+        _previewParent = new Node3D { Name = "AnnexablePreview" };
         AddChild(_previewParent);
 
-        foreach (var (dq, dr) in DistrictsWithin(rings))
+        foreach (var d in districts)
         {
-            var (cq, cr) = CampusMapSaveData.DistrictCentre(dq, dr);
+            var (cq, cr) = CampusMapSaveData.DistrictCentre(d.X, d.Y);
             foreach (var (q, r) in CampusMapSaveData.FlowerTiles(cq, cr))
             {
                 var coord = new Vector2I(q, r);
-                if (Tiles.ContainsKey(coord)) continue;   // a real (unlocked/built) tile — leave it
+                if (Tiles.ContainsKey(coord) || _previewTiles.ContainsKey(coord))
+                    continue;   // a real tile, or a cell already laid by an adjacent preview district
 
                 var node = HexTileScene3D.Instantiate<HexTile>();
                 node.Position = AxialToWorld(coord);
@@ -468,6 +500,9 @@ public partial class CampusGridManager : HexGridManager
                 _previewParent.AddChild(node);   // _Ready runs here, material ready for the calls below
                 node.SetHeight(0);
                 node.SetBaseColor(lockedColor);
+                ApplyChildContour(node, coord);   // contour-follow: nestle on its locked tile, not float
+                _previewTiles[coord] = node;
+                _previewDistrictOf[coord] = d;
             }
         }
     }
@@ -475,19 +510,43 @@ public partial class CampusGridManager : HexGridManager
     public void ClearSurroundingPreview()
     {
         if (_previewParent != null) { _previewParent.QueueFree(); _previewParent = null; }
+        _previewTiles.Clear();
+        _previewDistrictOf.Clear();
     }
 
-    /// <summary>Every district coord within <paramref name="rings"/> hex-steps of the origin
-    /// district (the districts tessellate on a hex lattice in (dq,dr) space).</summary>
-    private static System.Collections.Generic.IEnumerable<(int dq, int dr)> DistrictsWithin(int rings)
+    /// <summary>Show or hide the annexable preview without rebuilding it. A no-op when no preview
+    /// has been built (the host toggles it with "annex mode").</summary>
+    public void SetSurroundingPreviewVisible(bool visible)
     {
-        for (int dq = -rings; dq <= rings; dq++)
+        if (_previewParent != null) _previewParent.Visible = visible;
+    }
+
+    /// <summary>Resolve a WORLD-space ray to the DISTRICT of the preview flower it crosses, so a
+    /// click in annex mode buys that district. Same per-tile world-space analytic pick as
+    /// <see cref="TryPickRay"/> (contour- and scale-proof), but over the preview flowers — and
+    /// with NO label lift, since these tiles carry no name label: the player aims at the flower
+    /// itself. Returns false when the ray misses every preview flower.</summary>
+    public bool TryPickPreviewDistrict(Vector3 rayOrigin, Vector3 rayDir, out Vector2I district)
+    {
+        district = default;
+        if (_previewTiles.Count == 0 || Mathf.Abs(rayDir.Y) < 1e-6f)
+            return false;
+        float worldHexR = HexRadius * GlobalTransform.Basis.X.Length();
+        float reach = worldHexR * 1.15f;
+        float best = reach * reach;
+        bool found = false;
+        foreach (var kv in _previewTiles)
         {
-            int lo = Mathf.Max(-rings, -dq - rings);
-            int hi = Mathf.Min(rings, -dq + rings);
-            for (int dr = lo; dr <= hi; dr++)
-                yield return (dq, dr);
+            var view = kv.Value;
+            if (view == null) continue;
+            Vector3 c = view.GlobalPosition;
+            float t = (c.Y - rayOrigin.Y) / rayDir.Y;
+            if (t < 0f) continue;
+            Vector3 hit = rayOrigin + rayDir * t;
+            float d = new Vector2(c.X - hit.X, c.Z - hit.Z).LengthSquared();
+            if (d < best) { best = d; district = _previewDistrictOf[kv.Key]; found = true; }
         }
+        return found;
     }
 
     // ── Placement preview (drag ghost) ───────────────────────────────

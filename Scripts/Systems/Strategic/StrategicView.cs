@@ -93,7 +93,13 @@ public partial class StrategicView : Node2D
     private CanvasLayer _atlas3DLayer;
     private WorldAtlas3D _atlas3D;
     private Node _campusOverlay;   // Stage 3: campus hosted in-scene as an overlay (no scene swap)
+    private HomeBuildingPanelHost _floatingPanel;   // a single building's panel floated over the LIVE city view
     private CanvasLayer _cityLeaveLayer;   // "to the world map" button, shown only in city view
+    private CanvasLayer _annexLayer;       // "annex a district" toggle, shown only in city view
+    private Button _annexButton;           // the toggle itself (kept so we can reset it after a purchase)
+    private CityServicesHost _cityServices;   // Phase 3: a visited enemy capital's services menu (auto-opened)
+    private CanvasLayer _cityServicesLayer;   // "City Services" reopen button, shown only in an NPC city view
+    private const int DistrictAnnexCost = 250;   // placeholder gold cost to annex a district — tune in playtest
     [Export] public bool Use3DStrategicMap = true;
 
     // Camera control
@@ -302,6 +308,7 @@ public partial class StrategicView : Node2D
         // in place, without the full-screen scene swap.
         _atlas3D.HomeBuildingPicked += OnHomeBuildingPicked;
         _atlas3D.HomeLandmarkPicked += OnHomeLandmarkPicked;
+        _atlas3D.HomeDistrictPicked += OnHomeDistrictPicked;
         _atlas3D.CityModeChanged += OnCityModeChanged;
         vp.AddChild(_atlas3D);            // _Ready builds the camera (no world yet)
         // Discovery gates the strategic map exactly as the 2D view did: normal play
@@ -482,19 +489,54 @@ public partial class StrategicView : Node2D
     }
 
     /// <summary>True geometry merge (Phase 2): a building in CITY VIEW was clicked. Route it
-    /// as the campus does — a building that hosts a panel opens that panel (via the overlay
-    /// for now); one that hosts a separate screen (deck editor, card library, upgrade)
-    /// changes scene; an inert building does nothing. A later increment floats the single
-    /// panel over the city so this stops needing the overlay at all.</summary>
+    /// as the campus does — a building that hosts a panel opens that panel; one that hosts a
+    /// separate screen (deck editor, card library, upgrade) changes scene; an inert building
+    /// does nothing.
+    ///
+    /// <para>"Build in place" finish: a panel the strategic scene can host on its own
+    /// (<see cref="HomeBuildingPanelHost.CanFloat"/>) FLOATS over the live city — the world
+    /// stays visible behind it and closing returns to the city, not the world. The
+    /// lifecycle-heavy panels (Expedition / Quests / Council) still need the full CampusScene
+    /// overlay, so they fall back to it until that machinery is generalized (Phase 3).</para></summary>
     private void OnHomeBuildingPicked(string buildingId, Vector2I coord)
     {
         var dest = CampusLocationRegistry.ForBuilding(buildingId);
         if (!dest.IsValid)
             return;
         if (dest.Panel.HasValue)
-            ShowCampusOverlay(dest.Panel.Value);
+        {
+            if (HomeBuildingPanelHost.CanFloat(dest.Panel.Value))
+                ShowFloatingPanel(dest.Panel.Value, buildingId);
+            else
+                ShowCampusOverlay(dest.Panel.Value);   // lifecycle-heavy panel: full overlay for now
+        }
         else if (!string.IsNullOrEmpty(dest.ScenePath))
             GetTree().ChangeSceneToFile(dest.ScenePath);
+    }
+
+    /// <summary>Float a single campus panel over the LIVE city view. Unlike
+    /// <see cref="ShowCampusOverlay"/> this leaves the atlas/world VISIBLE (only its input is
+    /// gated) and closes back to the city rather than the world — the finish that lets a
+    /// building's menu open in place. One panel at a time.</summary>
+    private void ShowFloatingPanel(CampusPanelId panel, string buildingId)
+    {
+        if (_floatingPanel != null) return;
+        // The world stays drawn, but its camera must not steer behind the panel's input catcher.
+        if (_atlas3D != null) _atlas3D.AcceptInput = false;
+        string title = BuildingDatabase.GetTemplate(buildingId)?.Name ?? "";
+        _floatingPanel = HomeBuildingPanelHost.Create(this, panel, title, HideFloatingPanel);
+        AddChild(_floatingPanel);
+    }
+
+    /// <summary>Tear down the floated panel and hand control back to the CITY view (not the
+    /// world): drop our reference and re-enable atlas input. The host frees itself. Invoked as
+    /// the host's close callback.</summary>
+    private void HideFloatingPanel()
+    {
+        if (_floatingPanel == null) return;
+        _floatingPanel = null;
+        if (_atlas3D != null) _atlas3D.AcceptInput = true;
+        // Deliberately does NOT leave city view — the panel closes back into the city.
     }
 
     /// <summary>A landmark hex in city view was clicked. Landmarks aren't routed to a
@@ -503,13 +545,123 @@ public partial class StrategicView : Node2D
     private void OnHomeLandmarkPicked(string landmarkId, Vector2I coord) { }
 
     /// <summary>City view entered/left: reuse the overlay flag to hide the world HUD, and
-    /// show/hide the host "to the world map" button that leaves city view.</summary>
+    /// show/hide the host buttons (leave-to-world, annex-a-district) that only make sense in
+    /// city view. Leaving city view also resets the annex toggle.</summary>
     private void OnCityModeChanged(bool on)
     {
         PlayerSession.CampusOverlayOpen = on;
         HudManager.Instance?.RefreshVisibility();
         EnsureCityLeaveButton();
+        EnsureAnnexButton();
         if (_cityLeaveLayer != null) _cityLeaveLayer.Visible = on;
+        bool home = _atlas3D?.ActiveCityIsHome ?? true;
+        // Annexing is a home-campus affordance only — hide it when viewing an NPC city (Phase 3).
+        if (_annexLayer != null) _annexLayer.Visible = on && home;
+        if ((!on || !home) && _annexButton != null)
+            _annexButton.ButtonPressed = false;   // drop annex mode on exit or in an NPC city
+
+        // Phase 3 services (enemy capital only): show the "City Services" button in an NPC city view
+        // and auto-open the menu on entry; hide/close both when leaving the city.
+        bool npc = on && !home;
+        EnsureCityServicesButton();
+        if (_cityServicesLayer != null) _cityServicesLayer.Visible = npc;
+        if (npc) ShowCityServices();
+        else if (_cityServices != null) _cityServices.Close();
+    }
+
+    /// <summary>The "City Services" button (NPC city view only), to reopen the menu after closing it.
+    /// Sits where the annex button sits in the home city (they never co-occur).</summary>
+    private void EnsureCityServicesButton()
+    {
+        if (_cityServicesLayer != null) return;
+        _cityServicesLayer = new CanvasLayer { Name = "CityServicesLayer", Layer = 40 };
+        var btn = new Button { Text = "City Services" };
+        btn.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+        btn.OffsetLeft = -244;
+        btn.OffsetTop = 56;
+        btn.OffsetRight = -14;
+        btn.OffsetBottom = 90;
+        btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(btn, isPrimary: true);
+        btn.Pressed += ShowCityServices;
+        _cityServicesLayer.AddChild(btn);
+        _cityServicesLayer.Visible = false;
+        AddChild(_cityServicesLayer);
+    }
+
+    /// <summary>Open the visited capital's services menu (Phase 3). Gates atlas input while it's up
+    /// (the menu owns the screen); one at a time.</summary>
+    private void ShowCityServices()
+    {
+        if (_cityServices != null || (_atlas3D?.ActiveCityIsHome ?? true)) return;
+        if (_atlas3D != null) _atlas3D.AcceptInput = false;
+        _cityServices = CityServicesHost.Create(_atlas3D?.ActiveCityName ?? "", HideCityServices);
+        AddChild(_cityServices);
+    }
+
+    /// <summary>The services menu closed — drop our reference and re-enable atlas input, staying in
+    /// the CITY view (the player leaves explicitly via "To the World Map", and can reopen services
+    /// with the City Services button). The host frees itself. NOT leaving here is deliberate: leaving
+    /// dropped the player onto the world map at the capital's staging tile, which popped the deploy
+    /// window right after closing the menu.</summary>
+    private void HideCityServices()
+    {
+        if (_cityServices == null) return;
+        _cityServices = null;
+        if (_atlas3D != null) _atlas3D.AcceptInput = true;
+    }
+
+    /// <summary>The "Annex a district" toggle (city view only). While pressed, the atlas shows the
+    /// annexable preview flowers and a click buys one; unpressed hides them. Sits just under the
+    /// leave-to-world button.</summary>
+    private void EnsureAnnexButton()
+    {
+        if (_annexLayer != null) return;
+        _annexLayer = new CanvasLayer { Name = "AnnexLayer", Layer = 40 };
+        _annexButton = new Button { Text = "＋  Annex a district", ToggleMode = true };
+        _annexButton.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+        _annexButton.OffsetLeft = -244;
+        _annexButton.OffsetTop = 56;
+        _annexButton.OffsetRight = -14;
+        _annexButton.OffsetBottom = 90;
+        _annexButton.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(_annexButton, isPrimary: false);
+        _annexButton.Toggled += pressed => _atlas3D?.SetAnnexMode(pressed);
+        _annexLayer.AddChild(_annexButton);
+        _annexLayer.Visible = false;
+        AddChild(_annexLayer);
+    }
+
+    /// <summary>An annexable district was clicked in annex mode. Confirm the placeholder gold
+    /// spend, then unlock the district, persist, and rebuild the city around the new tile.</summary>
+    private void OnHomeDistrictPicked(Vector2I district)
+    {
+        var save = SaveManager.ActiveSave;
+        var map = save?.Ledger?.CampusMap;
+        if (save == null || map == null) return;
+
+        var dialog = new ConfirmationDialog
+        {
+            Title = "Annex district",
+            DialogText = save.Gold >= DistrictAnnexCost
+                ? $"Annex this district for {DistrictAnnexCost} gold?\nTreasury: {save.Gold} gold."
+                : $"Not enough gold to annex — costs {DistrictAnnexCost}, treasury has {save.Gold}.",
+        };
+        // Only allow the buy when affordable; otherwise the dialog is informational.
+        dialog.GetOkButton().Disabled = save.Gold < DistrictAnnexCost;
+        dialog.Confirmed += () =>
+        {
+            if (save.Gold < DistrictAnnexCost) return;
+            save.Gold -= DistrictAnnexCost;
+            map.UnlockDistrict(district.X, district.Y);
+            SaveManager.Save();
+            _atlas3D?.RefreshCityGrowth();          // rebuild + snap back into city (clears annex mode)
+            if (_annexButton != null) _annexButton.ButtonPressed = false;
+        };
+        dialog.Canceled += () => dialog.QueueFree();
+        dialog.Confirmed += () => dialog.QueueFree();
+        AddChild(dialog);
+        dialog.PopupCentered();
     }
 
     private void EnsureCityLeaveButton()
@@ -1517,6 +1669,19 @@ public partial class StrategicView : Node2D
         float fit = Mathf.Min(vp.X / w, vp.Y / h) * 0.9f;
         _zoom = Mathf.Clamp(fit, ZoomMin, ZoomMax);
         _camera.Zoom = new Vector2(_zoom, _zoom);
+    }
+
+    public override void _Process(double delta)
+    {
+        // The debug "reveal strategic map" checkbox lives in the Guild panel, which now floats over
+        // this LIVE view (Phase 2), so toggling it must re-apply to the running atlas — otherwise
+        // the reveal (terrain + enemy city markers/regions) only took effect on a scene reload.
+        bool reveal = PlayerSession.DebugMode && PlayerSession.DebugRevealStrategicMap;
+        if (reveal != _debugReveal)
+        {
+            _debugReveal = reveal;
+            _atlas3D?.SetRevealAll(reveal);   // full Rebuild: re-reveals tiles, settlements, grey regions
+        }
     }
 
     public override void _UnhandledInput(InputEvent e)

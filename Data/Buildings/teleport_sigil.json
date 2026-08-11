@@ -4,7 +4,6 @@
     "description": "A dormant circle of pathways beneath the campus, waiting for a key it did not choose.",
     "category": "Portal",
     "schoolAffinity": "",
-    "startsBuiltAt": { "q": -3, "r": 3 },
     "footprint": [
         { "q": 0, "r": 0 },
         { "q": 1, "r": 0 },

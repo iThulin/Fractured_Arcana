@@ -996,6 +996,12 @@ public partial class HexTile : Node3D
                 OutlineModulate = UITheme.Label3DOutline,
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 NoDepthTest = true,
+                // The campus grounds render at 1/3 scale (city view), which shrinks a default
+                // world-sized label to an unreadable few pixels. Bump PixelSize to counter the
+                // scale so building/landmark names read in city view, and use a linear+mipmap
+                // filter so they don't render pixelated when minified at map zoom.
+                PixelSize = 0.009f,
+                TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps,
                 // Sits above the memorial indicator (0.85) so the two never overlap
                 // on a tile that carries both. Raised from 1.15 for the campus map: at a
                 // shallow camera pitch a low label is read as sitting on the tile BEHIND it.

@@ -203,4 +203,9 @@ public static class PlayerSession
     /// visible, all POIs discovered) so corruption spread and the whole world can be
     /// inspected during testing. Does not write to the save — purely a view override.</summary>
     public static bool DebugRevealStrategicMap = false;
+
+    /// <summary>Debug: suppress enemy-initiated combat on expeditions (patrol ambushes / warfront
+    /// interceptions), so the map can be walked freely — e.g. to reach a distant enemy capital
+    /// while testing. Does not affect player-initiated combat (walking into a combat POI).</summary>
+    public static bool DebugNoAmbush = false;
 }

@@ -54,6 +54,7 @@ public partial class ExpeditionWindow3D : Node3D
 {
     // ── Layout (flat-top, odd-q — matches WorldAtlas3D / HexCoord) ──────────
     private const float HexR = 1.0f;
+    private const float FogSlabHeight = 0.25f;   // flat height for unexplored (Hidden) fog tiles
     private static readonly float ColSpacing = 1.5f * HexR;
     private static readonly float RowSpacing = Mathf.Sqrt(3f) * HexR;
     private static readonly Basis HexYaw = new Basis(Vector3.Up, Mathf.Pi / 6f);
@@ -94,17 +95,28 @@ public partial class ExpeditionWindow3D : Node3D
     /// (world-offset for standalone; the host feeds/reads the same space).</summary>
     public event System.Action<Vector2I> MoveRequested;
 
+    /// <summary>Fired as the mouse moves over a tile (world-offset coord), so the host can drive the
+    /// tile tooltip the 2D grid drives via HexHovered. <see cref="TileUnhovered"/> fires when the
+    /// cursor leaves all tiles.</summary>
+    public event System.Action<Vector2I> TileHovered;
+    public event System.Action TileUnhovered;
+
     // ── Scene ───────────────────────────────────────────────────────────────
     private Camera3D _camera;
     private MultiMeshInstance3D _landLayer, _waterLayer;
+    private MultiMeshInstance3D _riverLayer, _roadLayer;
     private readonly List<Node3D> _decor = new();
     private readonly List<Node3D> _markers = new();
+    private readonly List<Node3D> _entities = new();   // moving entities: enemy patrols + roamer
     private readonly List<Node3D> _moveHints = new();
     private Node3D _pawn;
 
     private Vector3 _camTarget = Vector3.Zero;
     private float _camDist = 26f;
+    private float _camYaw = 0f;   // camera orbit yaw (Q/E rotate); 0 = looking down +Z as before
     private const float CamDistMin = 8f, CamDistMax = 60f;
+    private const float CamRotateSpeed = 1.8f;   // rad/s for Q/E
+    private const float CamPanSpeed = 1.1f;      // WASD pan speed as a fraction of zoom distance per second
     // Deadzone "leash": how far (as a fraction of the current zoom distance, so it
     // stays screen-relative) the party may drift from the camera focus before the
     // camera eases to follow. Inside this radius the world holds still and the pawn
@@ -273,8 +285,41 @@ public partial class ExpeditionWindow3D : Node3D
     {
         float zoom01 = Mathf.InverseLerp(CamDistMin, CamDistMax, _camDist);
         float pitch = Mathf.DegToRad(Mathf.Lerp(38f, 60f, zoom01));
-        _camera.Position = _camTarget + new Vector3(0f, Mathf.Sin(pitch), Mathf.Cos(pitch)) * _camDist;
+        // Base orbit offset (behind + above), yawed around the focus so Q/E rotate the view.
+        float cp = Mathf.Cos(pitch), sp = Mathf.Sin(pitch);
+        float cy = Mathf.Cos(_camYaw), sy = Mathf.Sin(_camYaw);
+        Vector3 offset = new Vector3(cp * sy, sp, cp * cy) * _camDist;
+        _camera.Position = _camTarget + offset;
         _camera.LookAt(_camTarget, Vector3.Up);
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!AcceptInput || _camera == null) return;
+        float dt = (float)delta;
+        bool moved = false;
+
+        // Q/E rotate the camera around its focus.
+        if (Input.IsKeyPressed(Key.Q)) { _camYaw -= CamRotateSpeed * dt; moved = true; }
+        if (Input.IsKeyPressed(Key.E)) { _camYaw += CamRotateSpeed * dt; moved = true; }
+
+        // WASD pan the focus across the ground, relative to the current facing (yaw).
+        float cy = Mathf.Cos(_camYaw), sy = Mathf.Sin(_camYaw);
+        Vector2 fwd = new Vector2(-sy, -cy);     // into the screen, on the ground
+        Vector2 right = new Vector2(cy, -sy);
+        Vector2 pan = Vector2.Zero;
+        if (Input.IsKeyPressed(Key.W)) pan += fwd;
+        if (Input.IsKeyPressed(Key.S)) pan -= fwd;
+        if (Input.IsKeyPressed(Key.D)) pan += right;
+        if (Input.IsKeyPressed(Key.A)) pan -= right;
+        if (pan != Vector2.Zero)
+        {
+            pan = pan.Normalized() * (CamPanSpeed * _camDist * dt);
+            _camTarget += new Vector3(pan.X, 0f, pan.Y);
+            moved = true;
+        }
+
+        if (moved) PlaceCamera();
     }
 
     /// <summary>Lazy deadzone follow. If the party sits within CamLeashFactor·zoom of
@@ -317,43 +362,29 @@ public partial class ExpeditionWindow3D : Node3D
                 else { if (_dragging && !_dragMoved) PickAndMove(mb.Position); _dragging = false; }
             }
         }
-        else if (ev is InputEventMouseMotion mm && _dragging)
+        else if (ev is InputEventMouseMotion mm)
         {
-            if (mm.Relative.LengthSquared() > 1f) _dragMoved = true;
-            float k = _camDist * 0.0016f;
-            float pitchSin = Mathf.Max(0.3f, (_camera.Position - _camTarget).Normalized().Y);
-            _camTarget += new Vector3(-mm.Relative.X * k, 0f, -mm.Relative.Y * k / pitchSin);
-            PlaceCamera();
+            if (_dragging)
+            {
+                if (mm.Relative.LengthSquared() > 1f) _dragMoved = true;
+                float k = _camDist * 0.0016f;
+                float pitchSin = Mathf.Max(0.3f, (_camera.Position - _camTarget).Normalized().Y);
+                _camTarget += new Vector3(-mm.Relative.X * k, 0f, -mm.Relative.Y * k / pitchSin);
+                PlaceCamera();
+            }
+            else if (TryPickTile(mm.Position, out var hov))
+                TileHovered?.Invoke(hov);
+            else
+                TileUnhovered?.Invoke();
         }
     }
 
     private void PickAndMove(Vector2 screenPos)
     {
-        if (_camera == null) return;
-
-        // SCREEN-SPACE pick that respects tile HEIGHT: project each RENDERED tile's
-        // TOP to the screen and take the nearest to the click. A y=0 ground raycast
-        // (the old way) lands PAST a raised tile onto the hex behind it — the source
-        // of "the pawn moves to the wrong hex," worst on hills/mountains at this
-        // shallow angle. Hidden tiles aren't drawn, so they're not click targets.
-        Vector2I best = default;
-        float bestD = float.MaxValue;
-        bool found = false;
-        foreach (var c in _windowTiles)
-        {
-            if (_fog.FogAt(c) == Fog.Hidden)
-                continue;
-            Vector3 top = TileOrigin(c.X, c.Y);
-            top.Y = TileHeight(c);
-            if (_camera.IsPositionBehind(top))
-                continue;
-            float d = _camera.UnprojectPosition(top).DistanceSquaredTo(screenPos);
-            if (d < bestD) { bestD = d; best = c; found = true; }
-        }
-        if (!found) return;
-
-        // Only an adjacent, non-water tile is a legal step (party rule: water blocks;
-        // everything else walkable). Same gate the 2D token uses.
+        if (!TryPickTile(screenPos, out var best))
+            return;
+        // Only an adjacent, non-water tile is a legal step (party rule: water blocks; everything
+        // else walkable, including into adjacent fog to explore it). Same gate the 2D token uses.
         if (HexCoord.OffsetDistance(best.X, best.Y, _party.X, _party.Y) != 1) return;
         if (_world.GetTile(best.X, best.Y).IsWater) return;
         if (SelfDrive)
@@ -362,12 +393,44 @@ public partial class ExpeditionWindow3D : Node3D
             MoveRequested?.Invoke(best);   // live: the host drives the real run
     }
 
+    /// <summary>RAY pick that respects tile HEIGHT: intersect the click ray with EACH tile's own top
+    /// plane (y = its RENDERED height — flat for fog) and keep the tile the ray actually crosses (hit
+    /// within its hex), NEAREST to the camera. Picks the tile you're looking at even when tiles are
+    /// raised; the old nearest-projected-CENTRE pick was ambiguous between adjacent tiles at this
+    /// shallow angle and moved the pawn the wrong way. Used by both click-to-move and hover.</summary>
+    private bool TryPickTile(Vector2 screenPos, out Vector2I tile)
+    {
+        tile = default;
+        if (_camera == null) return false;
+        Vector3 origin = _camera.ProjectRayOrigin(screenPos);
+        Vector3 dir = _camera.ProjectRayNormal(screenPos);
+        if (Mathf.Abs(dir.Y) < 1e-5f) return false;
+
+        float bestT = float.MaxValue;
+        bool found = false;
+        float reachSq = (HexR * 0.95f) * (HexR * 0.95f);
+        foreach (var c in _windowTiles)
+        {
+            float h = _fog.FogAt(c) == Fog.Hidden ? FogSlabHeight : TileHeight(c);
+            float t = (h - origin.Y) / dir.Y;
+            if (t < 0f)
+                continue;
+            Vector3 hit = origin + dir * t;
+            Vector3 ctr = TileOrigin(c.X, c.Y);
+            if (new Vector2(ctr.X - hit.X, ctr.Z - hit.Z).LengthSquared() > reachSq)
+                continue;                              // click isn't over this tile's top
+            if (t < bestT) { bestT = t; tile = c; found = true; }   // nearest tile to camera wins
+        }
+        return found;
+    }
+
     private void MoveParty(Vector2I coord)
     {
         _party = coord;
         UpdateVision();
         // Recolor + re-decorate + re-mark for the new fog, then re-hint moves.
         RebuildTiles();
+        RebuildEdges();
         RebuildDecorations();
         RebuildMarkers();
         RebuildMoveHints();
@@ -391,6 +454,7 @@ public partial class ExpeditionWindow3D : Node3D
     private void RebuildAll(bool frameCamera)
     {
         RebuildTiles();
+        RebuildEdges();
         RebuildDecorations();
         RebuildMarkers();
         // First feed (frameCamera) snaps the pawn into place; a refresh (the live
@@ -416,18 +480,17 @@ public partial class ExpeditionWindow3D : Node3D
         foreach (var c in _windowTiles)
         {
             var fog = _fog.FogAt(c);
-            // "Lantern in the dark": Hidden tiles are NOT drawn at all — the window
-            // is a lit island of known ground floating in void that grows as you
-            // walk, rather than a fully-visible dim disc. (Also cheaper: only
-            // charted+explored tiles instantiate.) This still prevents silhouette
-            // leak — you simply see nothing where you haven't been.
-            if (fog == Fog.Hidden) continue;
             var t = _world.GetTile(c.X, c.Y);
-            float h = TileHeight(c);
+            // Unexplored (Hidden) tiles render as a FLAT dark fog slab — a fog-of-war disc around the
+            // explored island, not a black void (the old "lantern" skipped them). Their terrain
+            // HEIGHT is not revealed (flat), so the fog doesn't leak elevation. Explored/charted
+            // tiles render normally.
+            bool hidden = fog == Fog.Hidden;
+            float h = hidden ? FogSlabHeight : TileHeight(c);
             var xf = new Transform3D(HexYaw * Basis.FromScale(new Vector3(1f, h, 1f)),
                                      TileOrigin(c.X, c.Y) + new Vector3(0f, h * 0.5f, 0f));
-            var col = TileColor(t, c, fog);
-            if (t.IsWater) water.Add((xf, col));
+            var col = hidden ? UITheme.StrategicUnseen : TileColor(t, c, fog);
+            if (!hidden && t.IsWater) water.Add((xf, col));
             else land.Add((xf, col));
         }
 
@@ -474,6 +537,81 @@ public partial class ExpeditionWindow3D : Node3D
             case TT.Coast: h = Mathf.Min(h, 0.26f); break;
         }
         return h;
+    }
+
+    // ── Rivers & roads (edge masks) ──────────────────────────────────────────
+
+    /// <summary>Rivers and roads are 6-bit EDGE masks on WorldTile. For each tile draw a strip from
+    /// its CENTRE out to each active edge midpoint — the neighbour draws its own half, so the two
+    /// meet and the path runs continuously THROUGH the tiles (matching the 2D map) rather than as
+    /// dashes on the boundaries. Per-instance X scale carries each segment's length. Fogged tiles
+    /// and open water are skipped (no river drawn across a lake).</summary>
+    private void RebuildEdges()
+    {
+        _riverLayer?.QueueFree();
+        _roadLayer?.QueueFree();
+        var rivers = new List<Transform3D>();
+        var roads = new List<Transform3D>();
+
+        foreach (var c in _windowTiles)
+        {
+            if (_fog.FogAt(c) == Fog.Hidden) continue;
+            var tile = _world.GetTile(c.X, c.Y);
+            if (tile.IsWater) continue;                          // no rivers/roads over open water
+            if ((tile.RiverEdges | tile.RoadEdges) == 0) continue;
+
+            Vector3 center = TileOrigin(c.X, c.Y);
+            center.Y = TileHeight(c) + 0.05f;
+            var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
+            for (int i = 0; i < 6; i++)
+            {
+                bool riv = (tile.RiverEdges & (1 << i)) != 0;
+                bool road = (tile.RoadEdges & (1 << i)) != 0;
+                if (!riv && !road) continue;
+
+                var (dq, dr) = HexCoord.AxialDirections[i];
+                var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+                Vector3 nbr = _world.InBounds(nc, nr) ? TileOrigin(nc, nr) : center + EdgeDir(i);
+                nbr.Y = center.Y;
+                Vector3 edgeMid = (center + nbr) * 0.5f;
+
+                Vector3 seg = edgeMid - center;
+                float len = seg.Length();
+                if (len < 1e-4f) continue;
+                Vector3 dir = seg / len;
+                // Box local +X spans the segment (scaled by len); position it at the segment midpoint.
+                var basis = new Basis(Vector3.Up, Mathf.Atan2(-dir.Z, dir.X)) * Basis.FromScale(new Vector3(len, 1f, 1f));
+                var xf = new Transform3D(basis, (center + edgeMid) * 0.5f);
+                if (riv) rivers.Add(xf);
+                if (road) roads.Add(xf);
+            }
+        }
+
+        // Box X = 1 (unit; per-instance scale sets real length), Y thin, Z the strip width.
+        _riverLayer = MakeEdgeLayer("WinRivers", rivers, new Vector3(1f, 0.06f, 0.22f), UITheme.TerrainWaterShallow);
+        _roadLayer = MakeEdgeLayer("WinRoads", roads, new Vector3(1f, 0.06f, 0.16f), UITheme.TerrainRoad);
+    }
+
+    /// <summary>Approx render-space direction to a border tile's missing neighbour.</summary>
+    private static Vector3 EdgeDir(int i)
+    {
+        var (dq, dr) = HexCoord.AxialDirections[i];
+        return new Vector3(dq * ColSpacing, 0f, (dr + dq * 0.5f) * RowSpacing);
+    }
+
+    private MultiMeshInstance3D MakeEdgeLayer(string name, List<Transform3D> xfs, Vector3 size, Color color)
+    {
+        var mesh = new BoxMesh { Size = size };
+        mesh.Material = new StandardMaterial3D { AlbedoColor = color };
+        var mm = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            Mesh = mesh, InstanceCount = xfs.Count,
+        };
+        for (int i = 0; i < xfs.Count; i++) mm.SetInstanceTransform(i, xfs[i]);
+        var node = new MultiMeshInstance3D { Name = name, Multimesh = mm };
+        AddChild(node);
+        return node;
     }
 
     // ── Decorations (revealed land only) ─────────────────────────────────────
@@ -551,12 +689,14 @@ public partial class ExpeditionWindow3D : Node3D
             var ov = _overlay.OverlayAt(c);
             if (ov.Poi == OverworldHex.POIType.None || ov.Consumed) continue;
             var col = PoiColor(ov.Poi);
-            var pos = TileOrigin(c.X, c.Y); pos.Y = TileHeight(c) + 0.55f;
+            var pos = TileOrigin(c.X, c.Y); pos.Y = TileHeight(c) + 0.9f;
             _markers.Add(AddChildReturn(new MeshInstance3D
             {
-                Mesh = new SphereMesh { Radius = 0.26f, Height = 0.52f, RadialSegments = 10, Rings = 6 },
+                Mesh = new SphereMesh { Radius = 0.28f, Height = 0.56f, RadialSegments = 10, Rings = 6 },
+                // NoDepthTest so a marker is never hidden behind a taller tile at this shallow angle —
+                // the "markers don't reliably appear" fix. It reads through terrain like a map pin.
                 MaterialOverride = new StandardMaterial3D
-                { AlbedoColor = col, EmissionEnabled = true, Emission = col, EmissionEnergyMultiplier = 0.4f },
+                { AlbedoColor = col, EmissionEnabled = true, Emission = col, EmissionEnergyMultiplier = 0.4f, NoDepthTest = true },
                 Position = pos,
             }));
         }
@@ -654,6 +794,31 @@ public partial class ExpeditionWindow3D : Node3D
         => HexCoord.OffsetDistance(c.X, c.Y, _center.X, _center.Y) <= WindowRadius
            && _world.InBounds(c.X, c.Y);
 
+    /// <summary>Render moving entities (enemy patrols + the roamer) as emissive spheres above their
+    /// tiles, so ambushers are visible in the 3D view the way they are in 2D. Rebuilt each call
+    /// (a handful of nodes); skipped on Hidden tiles so enemies don't show through fog. Coords are
+    /// in the renderer's world-offset space, like everything else the host feeds.</summary>
+    public void SetEntities(System.Collections.Generic.IEnumerable<(Vector2I tile, Color color)> entities)
+    {
+        foreach (var e in _entities) e?.QueueFree();
+        _entities.Clear();
+        if (entities == null || _fog == null) return;
+        foreach (var (tile, color) in entities)
+        {
+            if (_fog.FogAt(tile) == Fog.Hidden) continue;
+            var pos = TileOrigin(tile.X, tile.Y);
+            pos.Y = TileHeight(tile) + 0.75f;
+            // A downward CONE (pin) — distinct from the POI spheres, so moving units read as units.
+            _entities.Add(AddChildReturn(new MeshInstance3D
+            {
+                Mesh = new CylinderMesh { TopRadius = 0.34f, BottomRadius = 0f, Height = 0.72f, RadialSegments = 8, Rings = 0 },
+                MaterialOverride = new StandardMaterial3D
+                { AlbedoColor = color, EmissionEnabled = true, Emission = color, EmissionEnergyMultiplier = 0.6f, NoDepthTest = true },
+                Position = pos,
+            }));
+        }
+    }
+
     private Node3D AddChildReturn(Node3D n) { AddChild(n); return n; }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -667,6 +832,11 @@ public partial class ExpeditionWindow3D : Node3D
     }
     private static float H01(uint h) => (h & 0xFFFFu) / 65535f;
 
+    /// <summary>Slate grey filling a CITY's whole footprint (matches the strategic map's
+    /// CityRegionTint), so a capital's outskirts read on the expedition — the gold Seat marker
+    /// at its centre is how you interact with the capital itself.</summary>
+    private static readonly Color CityRegionTint = new Color(0.42f, 0.43f, 0.47f);
+
     private Color TileColor(in WorldTile t, Vector2I c, Fog fog)
     {
         // Base terrain/ocean colour + land grade come from the shared Hex3DPalette
@@ -676,7 +846,18 @@ public partial class ExpeditionWindow3D : Node3D
         Color baseCol = Hex3DPalette.TerrainColorOf(t);
         if (fog == Fog.Hidden) return UITheme.StrategicUnseen;
         if (fog == Fog.Silhouette) return baseCol.Lerp(UITheme.StrategicCharted, 0.55f);
-        if (t.IsLand) baseCol = Hex3DPalette.Grade(baseCol);
+        if (t.IsLand)
+        {
+            baseCol = Hex3DPalette.Grade(baseCol);
+            // The window's close, shallow, lit framing desaturates terrain more than the strategic
+            // overview — push saturation so greens/tans read as vividly as on the 2D map.
+            baseCol.ToHsv(out float hue, out float sat, out float val);
+            baseCol = Color.FromHsv(hue, Mathf.Clamp(sat * 1.35f, 0f, 1f), Mathf.Clamp(val * 1.04f, 0f, 1f), baseCol.A);
+        }
+        // City footprint reads as a grey region (revealed tiles only — fog handled above).
+        if (t.SettlementIndex >= 0 && _world != null && t.SettlementIndex < _world.Settlements.Count
+            && _world.Settlements[t.SettlementIndex].Tier == SettlementTier.City)
+            baseCol = CityRegionTint;
         return Jitter(baseCol, c, t.IsWater ? 0.02f : 0.04f);
     }
 

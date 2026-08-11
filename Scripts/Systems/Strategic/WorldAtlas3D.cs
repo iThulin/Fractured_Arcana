@@ -117,6 +117,9 @@ public partial class WorldAtlas3D : Node3D
     private MultiMeshInstance3D _riverLayer;
     private MultiMeshInstance3D _roadLayer;
     private readonly List<Node3D> _markers = new();   // POI/settlement/staging/etc, rebuilt together
+    // Map labels that hold a constant on-screen size across zoom (their world PixelSize is retuned
+    // from _camDist each camera move — see UpdateLabelScales). Their nodes live in _markers.
+    private readonly List<(Label3D lbl, float fontSize, float screenFrac)> _scaledLabels = new();
     // ── The city (Phase 2, true geometry merge — /3 rep-tile) ───────────────
     // The campus grid is PERMANENTLY anchored in world space as the /3 subdivision of the
     // strategic tiles the city occupies: the grounds node is drawn at 1/3 scale, unrotated,
@@ -124,8 +127,32 @@ public partial class WorldAtlas3D : Node3D
     // build-slots (ring tiles touch the tile edge exactly) with the vertex cells shared
     // three ways as bonus corners, districts ≡ strategic tiles, and "zooming into the
     // campus" is purely a camera move. No scale swap, no world culling, no separate scene.
-    private CampusGridManager _homeGrounds;              // the city grounds, true scale, in-world
-    private readonly HashSet<Vector2I> _cityTiles = new(); // strategic (col,row) the city occupies
+    private CampusGridManager _homeGrounds;              // the HOME campus grounds — persistent, always present
+    private CampusGridManager _cityGrounds;             // Phase 3: a visited NPC city's grounds — transient (built on enter, freed on leave)
+    private WorldSettlement _activeCity;                // Phase 3: the NPC city currently entered; null = home campus
+    private readonly HashSet<Vector2I> _cityTiles = new(); // strategic (col,row) the ACTIVE city occupies
+
+    /// <summary>True when the active city view is the home campus (vs. a visited NPC city). The
+    /// host uses it to gate home-only affordances (annex) out of NPC cities.</summary>
+    public bool ActiveCityIsHome => _activeCity == null;
+
+    /// <summary>Display name of the visited NPC city (empty at home) — for the services menu header.</summary>
+    public string ActiveCityName => _activeCity != null ? SettlementDisplayName(_activeCity) : "";
+
+    // ── District growth (city view) ──────────────────────────────────────
+    /// <summary>Dim tint for annexable preview flowers, so they read as not-yet-yours.</summary>
+    private static readonly Color CityLockedPreview = new Color(0.34f, 0.36f, 0.44f, 1f);
+    /// <summary>Slate grey that fills a CITY's whole footprint on the strategic map, so capitals
+    /// read as regions at whole-world zoom on any lens (a lone marker was lost among the gold
+    /// staging beacons). Towns keep their lens colour.</summary>
+    private static readonly Color CityRegionTint = new Color(0.42f, 0.43f, 0.47f);
+    /// <summary>Annex mode: the "about to buy a tile" state. Only while it's on are the annexable
+    /// preview flowers shown, and only then does a city click resolve to a district to buy rather
+    /// than to a building. Toggled by the host (StrategicView's annex button).</summary>
+    private bool _annexMode;
+    /// <summary>An annexable district was clicked in annex mode (its axial delta from the home
+    /// district). The host confirms the spend and calls <see cref="RefreshCityGrowth"/>.</summary>
+    public event System.Action<Vector2I> HomeDistrictPicked;
     private Vector3 _cityCentre;                          // world centre of the city footprint
     private float _cityFitDist = 8f;                      // camera distance framing the whole city
     private MultiMeshInstance3D _cityBorders;             // per-city-tile hex outlines, city view only
@@ -235,26 +262,14 @@ public partial class WorldAtlas3D : Node3D
         if (_cityTiles.Count == 0)
             _cityTiles.Add(new Vector2I(_world.HomeX, _world.HomeY));
 
-        // The CITY PLATEAU: the tallest ground among the city tiles AND their immediate
-        // neighbours, plus a step — so the flattened city always stands PROUD of the
-        // terrain beside it and the campus is never occluded by a neighbouring prism
-        // ("show the campus tiles above the overworld tiles").
-        float maxH = 0f;
-        foreach (var ct in _cityTiles)
-        {
-            var ax = OffsetToAxial(ct.X, ct.Y);
-            maxH = Mathf.Max(maxH, TileHeight(_world.GetTile(ct.X, ct.Y)));
-            foreach (var (dq, dr) in AxialDirs)
-            {
-                var off = AxialToOffset(ax.X + dq, ax.Y + dr);
-                if (_world.InBounds(off.X, off.Y))
-                    maxH = Mathf.Max(maxH, TileHeight(_world.GetTile(off.X, off.Y)));
-            }
-        }
-        _cityPlateau = maxH + 0.35f;
+        // Contour-follow: the city is NOT flattened to a plateau — each district renders at its
+        // own strategic tile's terrain height (see TileHeightAt / ChildDistrictTopWorldY), so the
+        // campus sits INTO the landscape. _cityPlateau is repurposed as the camera-framing height:
+        // the home tile's terrain top, which the city undulates around.
+        _cityPlateau = TileHeightAt(_world.HomeX, _world.HomeY);
 
-        // Centre + framing distance for the city-view camera. Target Y sits AT the plateau
-        // so the camera frames the city surface, not the y=0 ground plane far beneath it.
+        // Centre + framing distance for the city-view camera. Target Y sits at the home-tile
+        // height so the camera frames the city surface, not the y=0 ground plane far beneath it.
         Vector3 min = new(float.MaxValue, 0, float.MaxValue), max = new(float.MinValue, 0, float.MinValue);
         foreach (var ct in _cityTiles)
         {
@@ -265,21 +280,15 @@ public partial class WorldAtlas3D : Node3D
         _cityCentre = (min + max) * 0.5f;
         _cityCentre.Y = _cityPlateau;
         float span = Mathf.Max(max.X - min.X, max.Z - min.Z) + 2f * HexR;
-        _cityFitDist = Mathf.Clamp(span * 1.3f / OrthoSizeFactor, CamDistMinCity, CamDistMax);
+        _cityFitDist = Mathf.Clamp(span * 1.0f / OrthoSizeFactor, CamDistMinCity, CamDistMax);
     }
 
-    private static readonly (int dq, int dr)[] AxialDirs =
-        { (1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1) };
-
-    /// <summary>Tile height with the CITY PLATEAU applied: every strategic tile the city
-    /// occupies renders at one level — above every neighbouring prism — so the campus (a
-    /// flat grid) sits on a clean raised surface nothing clips through.</summary>
+    /// <summary>Contour-follow height: every tile — city or not — renders at its own terrain
+    /// height, so the campus/city sits INTO the landscape rather than on a flat plateau. (The
+    /// city-plateau override was removed for contour-follow; the campus tracks per-district
+    /// height via <see cref="ChildDistrictTopWorldY"/>.)</summary>
     private float TileHeightAt(int col, int row)
-    {
-        if (_cityTiles.Count > 0 && _cityTiles.Contains(new Vector2I(col, row)))
-            return _cityPlateau;
-        return TileHeight(_world.GetTile(col, row));
-    }
+        => TileHeight(_world.GetTile(col, row));
 
     /// <summary>Stage 3 (Phase 2, true geometry merge) — render the guild's actual campus
     /// GROUNDS as a scaled model standing on the home tile, so the world map literally
@@ -315,35 +324,125 @@ public partial class WorldAtlas3D : Node3D
             UseBlendedTerrainMesh = false,
         };
         AddChild(grounds);
-        grounds.LoadFromSave(map, save.Ledger.Buildings);
-        grounds.LoadLandmarks(save.HasFlag);
 
-        float plateau = TileHeightAt(_world.HomeX, _world.HomeY);
+        // Contour-follow: set the grid's transform AND the per-child height provider BEFORE
+        // loading tiles, so both the real tiles (LoadFromSave) and the preview flowers are placed
+        // on their district's strategic tile at its terrain height. The provider's world→local
+        // height conversion reads the grid's global transform, so it must already be in place.
+        float baseY = TileHeightAt(_world.HomeX, _world.HomeY);
         Vector3 home = TileOrigin(_world.HomeX, _world.HomeY);
         grounds.Scale = Vector3.One / 3f;
-        grounds.Position = new Vector3(home.X, plateau + 0.02f, home.Z);
+        grounds.Position = new Vector3(home.X, baseY + GroundsLift, home.Z);
+        var homeCenter = new Vector2I(_world.HomeX, _world.HomeY);
+        grounds.ChildTopWorldY = child => ChildDistrictTopWorldY(child, homeCenter);
+
+        grounds.LoadFromSave(map, save.Ledger.Buildings);
+        grounds.LoadLandmarks(save.HasFlag);
         _homeGrounds = grounds;
         // Picking stays analytic (CampusGridManager.TryPickRay) — it goes through the node
         // transform, so the scale AND the rotation are handled exactly; Godot physics
         // mis-handles scaled colliders, which is why it isn't a ray→collider query.
 
-        BuildCityBorders(plateau);
+        BuildCityBorders();
+        // The annexable-district preview is built ON DEMAND when the player enters annex mode
+        // (see SetAnnexMode), not here — so the "room to grow" flowers only appear when they're
+        // actually about to buy a tile, and always reflect the current frontier.
+    }
+
+    /// <summary>Enter/leave "annex mode" — the state in which the annexable-district preview is
+    /// shown and a city click buys a district instead of opening a building. Rebuilds the preview
+    /// to the CURRENT frontier each time it's turned on (so a freshly-annexed district's new
+    /// neighbours appear). Only meaningful in city view.</summary>
+    public void SetAnnexMode(bool on)
+    {
+        _annexMode = on && _cityMode && _homeGrounds != null;
+        if (_annexMode)
+        {
+            _homeGrounds.BuildDistrictPreview(FrontierDistricts(), CityLockedPreview);
+            _homeGrounds.SetSurroundingPreviewVisible(true);
+        }
+        else
+        {
+            _homeGrounds?.SetSurroundingPreviewVisible(false);
+        }
+    }
+
+    /// <summary>The LOCKED districts adjacent to an unlocked one — the contiguous frontier the
+    /// guild can annex next. Districts tessellate on a hex lattice in (dq,dr) space, so a
+    /// district's neighbours are the six axial steps.</summary>
+    private System.Collections.Generic.IEnumerable<Vector2I> FrontierDistricts()
+    {
+        var map = SaveManager.ActiveSave?.Ledger?.CampusMap;
+        if (map?.Districts == null) yield break;
+        var unlocked = new System.Collections.Generic.HashSet<(int, int)>();
+        foreach (var d in map.Districts)
+            if (d != null && d.Unlocked) unlocked.Add((d.Q, d.R));
+
+        (int dq, int dr)[] dirs = { (1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1) };
+        var seen = new System.Collections.Generic.HashSet<(int, int)>();
+        foreach (var u in unlocked)
+            foreach (var (dq, dr) in dirs)
+            {
+                var n = (u.Item1 + dq, u.Item2 + dr);
+                if (unlocked.Contains(n) || !seen.Add(n)) continue;
+                yield return new Vector2I(n.Item1, n.Item2);
+            }
+    }
+
+    /// <summary>Rebuild the city after a district was annexed: recompute the footprint, repaint
+    /// the world tiles (the new city tile flattens/contours in), rebuild the grounds, and snap
+    /// back into city view. Leaves annex mode off (BuildHomeGrounds → LeaveCityMode clears it).</summary>
+    public void RefreshCityGrowth()
+    {
+        if (_world == null) return;
+        bool wasCity = _cityMode;
+        if (_cityMode) LeaveCityMode(flyOut: false);   // no swoop — BuildHomeGrounds would fly out; we snap back
+        ComputeCityFootprint();
+        Rebuild();
+        BuildHomeGrounds();                             // _cityMode already false, so it won't re-fly
+        if (wasCity) EnterCityMode(fly: false);         // snap back into the (now larger) city
+    }
+
+    /// <summary>Small lift of the campus ground above its strategic tile's top, so the flower
+    /// tiles rest on the surface rather than z-fighting the tile face.</summary>
+    private const float GroundsLift = 0.02f;
+
+    /// <summary>Contour-follow height provider for a city child tile: the WORLD top Y its tile
+    /// should sit at — its DISTRICT's strategic tile terrain height, plus <see cref="GroundsLift"/>.
+    /// A child's district is the nearest sublattice point (district centre child = (3dq,3dr), so
+    /// round each axial component ÷3); shared corner cells round to one owner, whose height differs
+    /// by at most a terrace step. <paramref name="center"/> is the city's centre strategic tile
+    /// (home tile for the campus, settlement centre for an NPC city), so the same provider serves
+    /// any city's grounds.</summary>
+    private float ChildDistrictTopWorldY(Vector2I child, Vector2I center)
+    {
+        int dq = Mathf.RoundToInt(child.X / 3f);
+        int dr = Mathf.RoundToInt(child.Y / 3f);
+        var centerAx = OffsetToAxial(center.X, center.Y);
+        var off = AxialToOffset(centerAx.X + dq, centerAx.Y + dr);
+        float h = _world.InBounds(off.X, off.Y)
+            ? TileHeightAt(off.X, off.Y)
+            : TileHeightAt(center.X, center.Y);
+        return h + GroundsLift;
     }
 
     /// <summary>City-view borders: a thin outline along each city strategic tile's six
     /// edges, so the districts read as discrete strategic tiles when zoomed in. Hidden on
-    /// the world map (toggled by Enter/LeaveCityMode).</summary>
-    private void BuildCityBorders(float plateau)
+    /// the world map (toggled by Enter/LeaveCityMode). Each tile's border sits at that tile's
+    /// own terrain height (contour-follow).</summary>
+    private void BuildCityBorders()
     {
+        if (_cityBorders != null) { _cityBorders.QueueFree(); _cityBorders = null; }   // safe to call repeatedly
         var xfs = new List<Transform3D>();
         float apo = HexR * Mathf.Sqrt(3f) * 0.5f;   // flat-top apothem: edge midpoints at 60k+30°
         foreach (var ct in _cityTiles)
         {
             Vector3 c = TileOrigin(ct.X, ct.Y);
+            float top = TileHeightAt(ct.X, ct.Y);
             for (int k = 0; k < 6; k++)
             {
                 float mid = Mathf.DegToRad(60f * k + 30f);
-                var pos = new Vector3(c.X + Mathf.Cos(mid) * apo, plateau + 0.06f, c.Z + Mathf.Sin(mid) * apo);
+                var pos = new Vector3(c.X + Mathf.Cos(mid) * apo, top + 0.06f, c.Z + Mathf.Sin(mid) * apo);
                 // Box +X along the edge: the edge runs perpendicular to the radial direction.
                 // Basis(Up, θ) maps +X to (cos θ, 0, -sin θ), so θ = -(mid + 90°) puts +X at
                 // planar angle mid+90° in (x, z) = (cos, sin) convention.
@@ -355,6 +454,92 @@ public partial class WorldAtlas3D : Node3D
         _cityBorders = MakeEdgeLayer("CityBorders", xfs,
             new Vector3(HexR * 1.02f, 0.05f, 0.09f), UITheme.Violet);
         _cityBorders.Visible = _cityMode;
+    }
+
+    // ── Phase 3: visited NPC cities ──────────────────────────────────────────
+
+    /// <summary>Descend into an NPC city: render its footprint as a /3 districted region (empty —
+    /// no buildings) on a transient grounds grid, frame the camera on it, and enter city view.
+    /// The home campus keeps its own persistent path, so a home settlement here just routes to
+    /// <see cref="EnterCityMode"/>. Leaving (LeaveCityMode) tears the transient grounds down and
+    /// restores the home footprint.</summary>
+    public void EnterCityView(WorldSettlement city)
+    {
+        if (city == null || _world == null || _camera == null) return;
+        if (city.IsGuildHome) { EnterCityMode(); return; }
+        _activeCity = city;
+        ComputeNpcFootprint(city);
+        BuildNpcGrounds(city);
+        BuildCityBorders();
+        EnterCityMode();
+    }
+
+    /// <summary>Footprint + camera framing for a visited NPC city: its settlement tiles, centred
+    /// on its centre tile. Mirrors ComputeCityFootprint's framing but reads the settlement rather
+    /// than the campus districts.</summary>
+    private void ComputeNpcFootprint(WorldSettlement city)
+    {
+        _cityTiles.Clear();
+        foreach (var (x, y) in city.Tiles)
+            if (_world.InBounds(x, y)) _cityTiles.Add(new Vector2I(x, y));
+        if (_cityTiles.Count == 0) _cityTiles.Add(new Vector2I(city.CenterX, city.CenterY));
+
+        _cityPlateau = TileHeightAt(city.CenterX, city.CenterY);
+        Vector3 min = new(float.MaxValue, 0, float.MaxValue), max = new(float.MinValue, 0, float.MinValue);
+        foreach (var ct in _cityTiles)
+        {
+            var p = TileOrigin(ct.X, ct.Y);
+            min.X = Mathf.Min(min.X, p.X); min.Z = Mathf.Min(min.Z, p.Z);
+            max.X = Mathf.Max(max.X, p.X); max.Z = Mathf.Max(max.Z, p.Z);
+        }
+        _cityCentre = (min + max) * 0.5f;
+        _cityCentre.Y = _cityPlateau;
+        float span = Mathf.Max(max.X - min.X, max.Z - min.Z) + 2f * HexR;
+        _cityFitDist = Mathf.Clamp(span * 1.0f / OrthoSizeFactor, CamDistMinCity, CamDistMax);
+    }
+
+    /// <summary>A transient district layout for an NPC city: each settlement tile becomes an
+    /// unlocked district (axial delta from the centre), so CampusGridManager renders its /3 flowers
+    /// exactly as the campus does — with no buildings. Reuses the Locale renderer rather than
+    /// forking one (per the Phase 3 spec).</summary>
+    private CampusMapSaveData GenerateCityLayout(WorldSettlement city)
+    {
+        var map = new CampusMapSaveData { LatticeVersion = 3 };
+        var centerAx = OffsetToAxial(city.CenterX, city.CenterY);
+        foreach (var (x, y) in city.Tiles)
+        {
+            var ax = OffsetToAxial(x, y);
+            map.Districts.Add(new CampusDistrict { Q = ax.X - centerAx.X, R = ax.Y - centerAx.Y, Unlocked = true });
+        }
+        map.RebuildTilesFromDistricts();
+        return map;
+    }
+
+    /// <summary>Build the transient grounds for a visited NPC city (freed on leave). Same renderer
+    /// + contour as the home campus, positioned on the settlement centre, with an empty
+    /// (no-building) district layout.</summary>
+    private void BuildNpcGrounds(WorldSettlement city)
+    {
+        if (_cityGrounds != null) { _cityGrounds.QueueFree(); _cityGrounds = null; }
+        var map = GenerateCityLayout(city);
+        if (map.Tiles.Count == 0) return;
+
+        var grounds = new CampusGridManager
+        {
+            Name = "NpcCityGrounds",
+            HexTileScene3D = GD.Load<PackedScene>("res://Scenes/Combat/HexTile.tscn"),
+            HexRadius = 1.0f,
+            UseBlendedTerrainMesh = false,
+        };
+        AddChild(grounds);
+        var center = new Vector2I(city.CenterX, city.CenterY);
+        float baseY = TileHeightAt(center.X, center.Y);
+        Vector3 c = TileOrigin(center.X, center.Y);
+        grounds.Scale = Vector3.One / 3f;
+        grounds.Position = new Vector3(c.X, baseY + GroundsLift, c.Z);
+        grounds.ChildTopWorldY = child => ChildDistrictTopWorldY(child, center);
+        grounds.LoadFromSave(map, new System.Collections.Generic.List<BuildingSaveData>());
+        _cityGrounds = grounds;
     }
 
     // ── City view (camera-only) ─────────────────────────────────────────────
@@ -402,12 +587,25 @@ public partial class WorldAtlas3D : Node3D
     {
         if (!_cityMode) return;
         _cityMode = false;
+        _annexMode = false;
 
+        _homeGrounds?.SetSurroundingPreviewVisible(false);
         if (_cityBorders != null) _cityBorders.Visible = false;
         foreach (var m in _cityHiddenMarkers)
             if (m != null && IsInstanceValid(m)) m.Visible = true;
         if (_camera != null) { _camera.Near = 0.05f; _camera.Far = 600f; }
         if (_sun != null) _sun.DirectionalShadowMaxDistance = 350f;
+
+        // Phase 3: a visited NPC city's grounds are transient — tear them down and restore the
+        // HOME footprint + borders, so the map and a later home entry are back on the campus.
+        if (_activeCity != null)
+        {
+            if (_cityGrounds != null) { _cityGrounds.QueueFree(); _cityGrounds = null; }
+            _activeCity = null;
+            ComputeCityFootprint();
+            BuildCityBorders();
+        }
+
         if (flyOut)
         {
             FlyToOverview();
@@ -455,8 +653,22 @@ public partial class WorldAtlas3D : Node3D
     private bool TryPickHomeGrounds(Vector2 screenPos)
     {
         if (_homeGrounds == null || _camera == null) return false;
+        // Phase 3: a visited NPC city has no building/annex interactions yet — its grounds carry no
+        // buildings, and picking must not fall through to the (off-screen) home campus grounds.
+        if (_activeCity != null) return false;
         Vector3 origin = _camera.ProjectRayOrigin(screenPos);
         Vector3 dir = _camera.ProjectRayNormal(screenPos);
+
+        // Annex mode: clicks buy districts, not buildings. Resolve the annexable preview flower
+        // under the cursor and hand it to the host; a miss consumes the click (no building pick
+        // underneath) so it doesn't fall through.
+        if (_annexMode)
+        {
+            if (_homeGrounds.TryPickPreviewDistrict(origin, dir, out Vector2I district))
+                HomeDistrictPicked?.Invoke(district);
+            return true;
+        }
+
         if (!_homeGrounds.TryPickRay(origin, dir, out Vector2I coord))
             return false;
 
@@ -639,6 +851,7 @@ public partial class WorldAtlas3D : Node3D
             _camera.Projection = Camera3D.ProjectionType.Perspective;
         }
         ZoomChanged?.Invoke(zoom01);
+        UpdateLabelScales();   // keep map labels a constant on-screen size as the zoom changes
     }
 
     /// <summary>True when showing the orthographic strategic map (uniform tile scale,
@@ -833,17 +1046,29 @@ public partial class WorldAtlas3D : Node3D
         var t = _world.GetTile(col, row);
         var discovery = _revealAll ? TileDiscovery.Explored : t.Discovery;
 
+        // Phase 3: clicking a discovered enemy SEAT capital descends into it. Checked BEFORE staging
+        // so the click isn't stolen by a staging beacon sitting on the capital — you can't deploy
+        // from an enemy capital anyway, so entering it is the only sensible action there.
+        if (!_cityMode && discovery != TileDiscovery.Unseen)
+        {
+            var s = _world.SettlementAt(col, row);
+            if (s != null && s.Tier == SettlementTier.City && s.IsSeat && !s.IsGuildHome)
+            {
+                EnterCityView(s);
+                return;
+            }
+        }
         if (t.IsStagingPoint && discovery != TileDiscovery.Unseen)
         {
             ShowWindowPreview(col, row);
             return;
         }
-        // Selecting the city on the world map zooms into it (camera-only — the campus is
-        // already there at true scale). Staging points win above so deploy stays reachable
-        // from a beacon that happens to stand on a city tile.
+        // Selecting the HOME city on the world map zooms into it (camera-only — the campus is
+        // already there at true scale). Staging wins above for the home seat so deploy stays
+        // reachable from its beacon; you enter the home campus from a non-beacon city tile.
         if (!_cityMode && _cityTiles.Contains(new Vector2I(col, row)))
         {
-            EnterCityMode();
+            EnterCityMode();   // the home campus
             return;
         }
         if (!PreviewActive)
@@ -955,7 +1180,7 @@ public partial class WorldAtlas3D : Node3D
         {
             int i = row * _world.Width + col;
             var tile = _world.Tiles[i];
-            float h = TileHeightAt(col, row);   // city tiles flatten to the home plateau
+            float h = TileHeightAt(col, row);   // contour-follow: every tile at its own terrain height
             var basis = HexYaw * Basis.FromScale(new Vector3(1f, h, 1f));
             var origin = TileOrigin(col, row) + new Vector3(0f, h * 0.5f, 0f);
             var xf = new Transform3D(basis, origin);
@@ -1136,6 +1361,7 @@ public partial class WorldAtlas3D : Node3D
         foreach (var m in _markers)
             m.QueueFree();
         _markers.Clear();
+        _scaledLabels.Clear();        // label nodes live in _markers, just freed above
         _cityHiddenMarkers.Clear();   // its nodes live in _markers, just freed above
 
         // POIs — discovered only (or reveal), same rule as StrategicView's POI layer.
@@ -1166,37 +1392,45 @@ public partial class WorldAtlas3D : Node3D
             if (!home && !SettlementVisible(s)) continue;
             bool city = s.Tier == SettlementTier.City;
             Color c = home ? UITheme.Violet : (s.IsSeat ? UITheme.Gold : UITheme.ArcaneBlue);
-            float side = home ? 1.35f : (city ? 1.15f : 0.65f);
             var mat = new StandardMaterial3D { AlbedoColor = c, Metallic = 0.9f, Roughness = 0.35f };
-            if (home)
+            // The city is now marked primarily by its grey FOOTPRINT REGION (see TileColor) + a large
+            // name label, so the centre marker is just a modest metal accent — deliberately NOT a tall
+            // pillar, which read as one of the gold staging beacons. Cities glow faintly; towns don't.
+            if (home || city)
             {
                 mat.EmissionEnabled = true;
                 mat.Emission = c;
-                mat.EmissionEnergyMultiplier = 0.5f;
+                mat.EmissionEnergyMultiplier = home ? 0.5f : 0.4f;
             }
+            // Pass 2: settlements are METAL — worked brass pieces standing on the carving. Hue still
+            // carries meaning (violet guild seat / gold enemy capital / arcane-blue lesser city).
+            float side = home ? 1.35f : (city ? 1.2f : 0.65f);
             var block = new MeshInstance3D
             {
-                // Pass 2: settlements are METAL — worked pieces standing on the
-                // carving, the way the reference model's cities are brass. Hue
-                // still carries meaning (gold seat / arcane-blue settlement /
-                // violet guild seat).
-                Mesh = new BoxMesh { Size = new Vector3(side, side, side) },
+                Mesh = new BoxMesh { Size = Vector3.One * side },
                 MaterialOverride = mat,
                 Position = MarkerPos(s.CenterX, s.CenterY, side * 0.5f + 0.05f),
             };
             AddMarker(block);
-            string label = home
-                ? $"{(SaveManager.ActiveSave?.Ledger?.GuildName ?? "Your Guild")} — your seat"
-                : s.Name;
-            var lbl = MakeLabel(label, c, MarkerPos(s.CenterX, s.CenterY, side + 1.1f));
-            AddMarker(lbl);
-            if (home)
+            // Only SEAT capitals (and the home) get a name label. Labelling every town + lesser city
+            // buried the map in overlapping, duplicated text ("The <Kingdom> Town" ×N per kingdom).
+            // Lesser settlements are still marked by their block + (cities) their grey footprint; the
+            // label stays a constant, readable on-screen size at any zoom (see UpdateLabelScales).
+            if (home || s.IsSeat)
             {
-                // Tracked so city view can hide the seat block + label — zoomed in, they'd
-                // just occlude the campus you're standing in. Back when the camera leaves.
-                _cityHiddenMarkers.Add(block);
-                _cityHiddenMarkers.Add(lbl);
-                block.Visible = lbl.Visible = !_cityMode;
+                string label = home
+                    ? $"{(SaveManager.ActiveSave?.Ledger?.GuildName ?? "Your Guild")} — your seat"
+                    : SettlementDisplayName(s);
+                var lbl = MakeLabel(label, c, MarkerPos(s.CenterX, s.CenterY, side + 1.4f), 88, 0.028f);
+                AddMarker(lbl);
+                if (home)
+                {
+                    // Tracked so city view can hide the seat block + label — zoomed in, they'd
+                    // just occlude the campus you're standing in. Back when the camera leaves.
+                    _cityHiddenMarkers.Add(block);
+                    _cityHiddenMarkers.Add(lbl);
+                    block.Visible = lbl.Visible = !_cityMode;
+                }
             }
         }
 
@@ -1514,6 +1748,19 @@ public partial class WorldAtlas3D : Node3D
             RecolorTiles();   // drop the lift back to normal colors
     }
 
+    /// <summary>A readable name for a settlement's map label. Settlement generation doesn't assign
+    /// names yet (WorldSettlement.Name is empty), so fall back to the owning kingdom + tier —
+    /// "The Untamed Seat", "… City" — enough to identify a capital until place-name generation lands.</summary>
+    private string SettlementDisplayName(WorldSettlement s)
+    {
+        if (!string.IsNullOrEmpty(s.Name)) return s.Name;
+        string kind = s.Tier == SettlementTier.City ? (s.IsSeat ? "Seat" : "City") : "Town";
+        if (_kingdoms != null && !string.IsNullOrEmpty(s.KingdomId)
+            && _kingdoms.TryGetValue(s.KingdomId, out var k) && !string.IsNullOrEmpty(k.DisplayName))
+            return $"{k.DisplayName} {kind}";
+        return kind;
+    }
+
     private bool SettlementVisible(WorldSettlement s)
     {
         if (_revealAll) return true;
@@ -1549,18 +1796,49 @@ public partial class WorldAtlas3D : Node3D
         }
     }
 
-    private Label3D MakeLabel(string text, Color color, Vector3 pos)
-        => new Label3D
+    private Label3D MakeLabel(string text, Color color, Vector3 pos, int fontSize = 42, float screenFrac = 0.02f)
+    {
+        var lbl = new Label3D
         {
             Text = text,
             Position = pos,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             NoDepthTest = true,
-            FontSize = 42,
-            PixelSize = 0.02f,
+            FontSize = fontSize,
             Modulate = color,
             OutlineSize = 10,
+            // Linear + mipmaps so labels don't render pixelated/aliased when minified at
+            // whole-world zoom (the default nearest filter shimmered).
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps,
         };
+        // Track it so its world size follows the zoom, keeping a constant ON-SCREEN size. Without
+        // this a world-sized label shimmers to a few pixels at whole-world zoom and balloons up close.
+        _scaledLabels.Add((lbl, fontSize, screenFrac));
+        ApplyLabelScale(lbl, fontSize, screenFrac);
+        return lbl;
+    }
+
+    /// <summary>Set a label's PixelSize so it occupies a constant fraction of screen HEIGHT at the
+    /// current zoom. In the orthographic map, screen fraction = worldHeight / orthoSize, with
+    /// orthoSize = _camDist·OrthoSizeFactor and worldHeight = fontSize·PixelSize — solve for
+    /// PixelSize. Clamped so it never collapses or explodes.</summary>
+    private void ApplyLabelScale(Label3D lbl, float fontSize, float screenFrac)
+    {
+        float px = _camDist * OrthoSizeFactor * screenFrac / Mathf.Max(1f, fontSize);
+        lbl.PixelSize = Mathf.Clamp(px, 0.001f, 0.5f);
+    }
+
+    /// <summary>Rescale every tracked map label to the current zoom (called from PlaceCamera as the
+    /// camera moves). Drops freed labels lazily.</summary>
+    private void UpdateLabelScales()
+    {
+        for (int i = _scaledLabels.Count - 1; i >= 0; i--)
+        {
+            var (lbl, fs, frac) = _scaledLabels[i];
+            if (lbl == null || !IsInstanceValid(lbl)) { _scaledLabels.RemoveAt(i); continue; }
+            ApplyLabelScale(lbl, fs, frac);
+        }
+    }
 
     // ════════════════════════════════════════════════════════════════════════
     // Lens colors — MARKED COPY of StrategicView's private color logic.
@@ -1584,6 +1862,11 @@ public partial class WorldAtlas3D : Node3D
         // this one trick is most of why the HTML mockup read painterly.
         if (t.IsLand)
             c = Hex3DPalette.Grade(c);
+        // Cities read as a solid slate-grey REGION over their whole footprint (any lens), so a
+        // capital is obvious at whole-world zoom. Applied after grading so it stays a flat grey.
+        if (t.SettlementIndex >= 0 && t.SettlementIndex < _world.Settlements.Count
+            && _world.Settlements[t.SettlementIndex].Tier == SettlementTier.City)
+            c = CityRegionTint;
         return Jitter(c, col, row, t.IsWater ? 0.02f : 0.04f);
     }
 

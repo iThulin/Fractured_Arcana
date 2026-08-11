@@ -1,0 +1,146 @@
+using Godot;
+using System;
+
+// ============================================================
+// CityServicesHost.cs
+//
+// Purpose:        Floats a visited enemy CAPITAL's services menu over
+//                 the live strategic/city view — the Phase 3 "services"
+//                 verb (shops / recruit / quests). A shell for now: the
+//                 sections are placeholders, wired to nothing, so the
+//                 interaction loop (enter capital → services panel →
+//                 close back to the city) exists before the individual
+//                 services are built out (P3.2+).
+// Layer:          UI (strategic view)
+// Collaborators:  StrategicView.cs (opens one when a capital is
+//                 entered, closes it on leave), WorldAtlas3D.cs
+//                 (ActiveCity), UITheme.cs
+// See:            docs/world_locales_and_founding_spec_v1.md §4.2
+//                 (city = a MODE offering services/siege/explore)
+// ============================================================
+
+/// <summary>A CanvasLayer that hosts a visited capital's "services" menu as a right-docked card
+/// over the live city view. Mirrors <see cref="HomeBuildingPanelHost"/>, but for an NPC city the
+/// content is a fixed set of service sections (Market / Recruit / Quests) rather than a hosted
+/// campus panel — the guild's campus panels are bound to the guild's own save data and do not apply
+/// to someone else's city. This is the SHELL: sections are placeholders until each service is built.</summary>
+public sealed partial class CityServicesHost : CanvasLayer
+{
+    private const int CardWidth = 520;
+
+    private string _cityName = "";
+    private Action _onClosed;
+
+    /// <summary>Build a services host for the named city. The caller adds it to the tree; the UI is
+    /// built in <see cref="_Ready"/> (deferred, per Godot 4.6 compat). <paramref name="onClosed"/>
+    /// runs when the player closes it (StrategicView returns to the city view).</summary>
+    public static CityServicesHost Create(string cityName, Action onClosed)
+        => new CityServicesHost
+        {
+            Name = "CityServicesHost",
+            Layer = 50,
+            _cityName = cityName ?? "",
+            _onClosed = onClosed,
+        };
+
+    public override void _Ready() => CallDeferred(nameof(BuildOverlay));
+
+    private void BuildOverlay()
+    {
+        // Full-rect input catcher: the city stays VISIBLE behind, but clicks off the card must not
+        // reach the hex grid / camera (same lesson as the building panel + campus dimmer).
+        var catcher = new Control { Name = "InputCatcher" };
+        catcher.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        catcher.MouseFilter = Control.MouseFilterEnum.Stop;
+        AddChild(catcher);
+
+        var card = new PanelContainer { Name = "ServicesCard" };
+        card.SetAnchorsPreset(Control.LayoutPreset.RightWide);
+        card.OffsetLeft = -CardWidth;
+        card.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = UITheme.BgBase });
+        catcher.AddChild(card);
+
+        var margins = new MarginContainer();
+        margins.AddThemeConstantOverride("margin_left", 18);
+        margins.AddThemeConstantOverride("margin_right", 18);
+        margins.AddThemeConstantOverride("margin_top", 14);
+        margins.AddThemeConstantOverride("margin_bottom", 14);
+        card.AddChild(margins);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 12);
+        margins.AddChild(vbox);
+
+        // Header: city name + close.
+        var header = new HBoxContainer { CustomMinimumSize = new Vector2(0, 44) };
+        vbox.AddChild(header);
+
+        var titleLbl = new Label
+        {
+            Text = string.IsNullOrEmpty(_cityName) ? "City" : _cityName,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        titleLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTitleFontSize);
+        titleLbl.AddThemeColorOverride("font_color", UITheme.Gold);
+        header.AddChild(titleLbl);
+
+        var closeBtn = new Button { Text = "✕  Close" };
+        closeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(closeBtn, isPrimary: false);
+        closeBtn.Pressed += Close;
+        header.AddChild(closeBtn);
+
+        var sub = new Label { Text = "A foreign capital. What business brings you here?" };
+        sub.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        sub.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        vbox.AddChild(sub);
+
+        // Service sections — placeholders for now (the shell).
+        AddService(vbox, "Market", "Buy items and cards from the city's traders.");
+        AddService(vbox, "Recruit", "Hire mercenaries and sell-swords garrisoned here.");
+        AddService(vbox, "Quests", "Take contracts posted on the capital's board.");
+    }
+
+    /// <summary>One service row: a header + a one-line description + a disabled "Coming soon" button.
+    /// A placeholder until the service is implemented (P3.2+); it establishes the menu layout.</summary>
+    private static void AddService(VBoxContainer parent, string title, string desc)
+    {
+        var panel = new PanelContainer();
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = UITheme.BgCard,
+            ContentMarginLeft = 12, ContentMarginRight = 12,
+            ContentMarginTop = 10, ContentMarginBottom = 10,
+        });
+        parent.AddChild(panel);
+
+        var row = new VBoxContainer();
+        row.AddThemeConstantOverride("separation", 4);
+        panel.AddChild(row);
+
+        var head = new Label { Text = title };
+        head.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        row.AddChild(head);
+
+        var body = new Label { Text = desc };
+        body.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        body.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        row.AddChild(body);
+
+        var btn = new Button { Text = "Coming soon", Disabled = true };
+        btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(btn, isPrimary: false);
+        row.AddChild(btn);
+    }
+
+    /// <summary>Close the services menu and hand control back to the city view via
+    /// <see cref="_onClosed"/>. Idempotent — the callback fires at most once.</summary>
+    public void Close()
+    {
+        var cb = _onClosed;
+        _onClosed = null;
+        cb?.Invoke();
+        QueueFree();
+    }
+}
