@@ -274,6 +274,14 @@ public partial class HexGridManager : Node3D
                 PendingMapObjects.Add((CoordFromOp(op, "at", _centerCoord), op.GetStr("kind", ""), op.GetInt("count", 1)));
                 break;
 
+            case "building_stamp":
+                // City siege shells (CityBattlemapCompiler). MUST run after any
+                // wall obstacle_band ops — the stamp restores IsWalkable on
+                // footprint tiles a band crossed (see HexGridManager.CityStamps).
+                PaintBuildingStamp(CoordFromOp(op, "at", _centerCoord), op.GetInt("radius", 2),
+                    op.GetStr("building_id", "unknown"), op.GetInt("height", 0));
+                break;
+
             default:
                 GD.PushWarning($"[MapRecipe] Unknown feature '{op.Feature}'.");
                 break;

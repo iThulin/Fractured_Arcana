@@ -39,6 +39,22 @@ public static class MapRecipeRegistry
     public static MapRecipe Get(string id) =>
         _recipes.TryGetValue(id, out var r) ? r : null;
 
+    /// <summary>Registers a runtime-compiled recipe (CityBattlemapCompiler
+    /// siege windows). Forces the lazy file load FIRST so a later
+    /// EnsureLoaded cannot Clear() this entry away. Same-id re-registration
+    /// overwrites — compiled ids embed their seed, so collisions are
+    /// deliberate recompiles.</summary>
+    public static void Register(MapRecipe recipe)
+    {
+        if (recipe == null || string.IsNullOrEmpty(recipe.Id))
+        {
+            GD.PushWarning("[MapRecipeRegistry] Register called with null/id-less recipe.");
+            return;
+        }
+        EnsureLoaded();
+        _recipes[recipe.Id] = recipe;
+    }
+
     private static void LoadAll(string dir)
     {
         _recipes.Clear();

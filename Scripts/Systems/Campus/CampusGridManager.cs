@@ -521,6 +521,23 @@ public partial class CampusGridManager : HexGridManager
         if (_previewParent != null) _previewParent.Visible = visible;
     }
 
+    /// <summary>Explore fog (Phase 3): dim the flower tiles of UNREVEALED districts and restore the
+    /// normal terrain colour on revealed ones. <paramref name="isRevealed"/> tests a child coord's
+    /// owning district. Cheap re-tint over the loaded tiles — call whenever the revealed set changes.</summary>
+    public void ApplyDistrictFog(System.Func<Vector2I, bool> isRevealed, Color fogColor)
+    {
+        if (isRevealed == null) return;
+        foreach (var kv in Tiles)
+        {
+            var view = kv.Value.TileView;
+            if (view == null) continue;
+            if (isRevealed(kv.Key))
+                ApplyVisualToTile(kv.Value);          // inherited — restores the real terrain colour
+            else
+                view.SetBaseColor(fogColor);
+        }
+    }
+
     /// <summary>Resolve a WORLD-space ray to the DISTRICT of the preview flower it crosses, so a
     /// click in annex mode buys that district. Same per-tile world-space analytic pick as
     /// <see cref="TryPickRay"/> (contour- and scale-proof), but over the preview flowers — and

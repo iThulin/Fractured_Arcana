@@ -146,6 +146,16 @@ public partial class HexGridManager
                     break;
             }
 
+            // City siege kinds ("wall", "building:<id>") have no authored scenes
+            // yet — spawn placeholder prisms so blocked is never invisible.
+            // (HexGridManager.CityStamps; swap for real models in the art pass.)
+            if (scene == null && tile.TileView != null &&
+                (tile.ObstacleKind == "wall" || tile.ObstacleKind.StartsWith("building:")))
+            {
+                SpawnCityObstaclePlaceholder(tile);
+                continue;
+            }
+
             if (scene == null || tile.TileView == null)
                 continue;
 

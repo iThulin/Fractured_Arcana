@@ -60,6 +60,17 @@ public partial class HexGridManager
         PlayerLayoutAnchor = NearestTileTo(new Vector3(minX + span * 0.12f, 0f, centerZ));
         EnemyLayoutAnchor = NearestTileTo(new Vector3(minX + span * 0.88f, 0f, centerZ));
         _centerCoord = NearestTileTo(new Vector3((minX + maxX) * 0.5f, 0f, centerZ));
+
+        // Siege recipes carry AUTHORED anchors (attacker at the approach,
+        // defender behind the wall) — override the X-extent derivation when
+        // present and on-map. Absent/off-map coords keep the default.
+        if (_activeRecipe?.Siege is SiegeSpec sg)
+        {
+            if (sg.PlayerAnchor is Vector2I pa && Tiles.ContainsKey(pa))
+                PlayerLayoutAnchor = pa;
+            if (sg.EnemyAnchor is Vector2I ea && Tiles.ContainsKey(ea))
+                EnemyLayoutAnchor = ea;
+        }
     }
 
     private List<Vector2I> GetSideCandidates(SpawnSide side)
@@ -67,6 +78,39 @@ public partial class HexGridManager
         var result = new List<Vector2I>();
         Vector2I anchor = side == SpawnSide.Player ? PlayerLayoutAnchor : EnemyLayoutAnchor;
         float centerX = (_layoutMinX + _layoutMaxX) * 0.5f;
+
+        // Siege anchors are authored positions, not X-extent extremes: the
+        // halves-of-the-map filter is meaningless there (both anchors can sit
+        // in the same half). Candidates come from a depth-3 WALKABLE flood
+        // instead of raw distance, for two reasons: (a) zones must not swallow
+        // wall/building tiles — EnsureReservedTilesArePlayable would bulldoze
+        // holes in the curtain; (b) raw distance leaks THROUGH the wall onto
+        // interior tiles. The flood is bounded by the curtain by construction.
+        if (_activeRecipe?.Siege != null)
+        {
+            var depth = new Dictionary<Vector2I, int> { [anchor] = 0 };
+            var queue = new Queue<Vector2I>();
+            queue.Enqueue(anchor);
+            while (queue.Count > 0)
+            {
+                var c = queue.Dequeue();
+                if (depth[c] >= 3)
+                    continue;
+                foreach (var n in GetNeighbors(c))
+                {
+                    if (depth.ContainsKey(n))
+                        continue;
+                    if (!Tiles.TryGetValue(n, out var t))
+                        continue;
+                    if (t.IsBlocked || !t.IsWalkable)
+                        continue;
+                    depth[n] = depth[c] + 1;
+                    queue.Enqueue(n);
+                }
+            }
+            result.AddRange(depth.Keys);
+            return result;
+        }
 
         foreach (var coord in Tiles.Keys)
         {

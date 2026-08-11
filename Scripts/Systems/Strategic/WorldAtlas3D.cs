@@ -130,7 +130,16 @@ public partial class WorldAtlas3D : Node3D
     private CampusGridManager _homeGrounds;              // the HOME campus grounds — persistent, always present
     private CampusGridManager _cityGrounds;             // Phase 3: a visited NPC city's grounds — transient (built on enter, freed on leave)
     private WorldSettlement _activeCity;                // Phase 3: the NPC city currently entered; null = home campus
+    private readonly HashSet<Vector2I> _revealedDistricts = new();   // Phase 3 explore: revealed districts in the active NPC city (projection of _cityExplore)
+    private CityExploreState _cityExplore;              // Phase 3 explore: the active city's persisted district content (per-city, saved this cycle)
+    private readonly List<Node3D> _cityContentMarkers = new(); // Phase 3 explore: floating content glyphs over revealed, uncleared districts (transient)
+    private static readonly Color CityFogColor = new Color(0.13f, 0.14f, 0.19f);   // unexplored city district
     private readonly HashSet<Vector2I> _cityTiles = new(); // strategic (col,row) the ACTIVE city occupies
+
+    /// <summary>A revealed district holding uncleared content was clicked in an NPC city view. The
+    /// host (StrategicView) dispatches it — Service → services menu, Event → narrative panel,
+    /// Fight/Story → stub — then marks it cleared and calls <see cref="RefreshCityContentMarkers"/>.</summary>
+    public event System.Action<CityDistrictEntry, WorldSettlement> DistrictContentTriggered;
 
     /// <summary>True when the active city view is the home campus (vs. a visited NPC city). The
     /// host uses it to gate home-only affordances (annex) out of NPC cities.</summary>
@@ -468,11 +477,44 @@ public partial class WorldAtlas3D : Node3D
         if (city == null || _world == null || _camera == null) return;
         if (city.IsGuildHome) { EnterCityMode(); return; }
         _activeCity = city;
+
+        // Explore: fetch (or generate + persist) this city's district content. Districts start
+        // fogged except the ones previously revealed (the centre seat is revealed on generation).
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        _cityExplore = CityExploreService.GetOrGenerate(cycle, city, DistrictDeltas(city));
+        _revealedDistricts.Clear();
+        _revealedDistricts.Add(Vector2I.Zero);
+        if (_cityExplore != null)
+            foreach (var e in _cityExplore.Districts)
+                if (e.Revealed) _revealedDistricts.Add(new Vector2I(e.Dq, e.Dr));
+
         ComputeNpcFootprint(city);
         BuildNpcGrounds(city);
         BuildCityBorders();
         EnterCityMode();
+        RebuildCityContentMarkers();
     }
+
+    /// <summary>The axial deltas (from the city centre) of a settlement's tiles — the district set
+    /// <see cref="GenerateCityLayout"/> renders and <see cref="CityExploreService"/> assigns content
+    /// to. Kept in sync with GenerateCityLayout's per-tile math.</summary>
+    private List<Vector2I> DistrictDeltas(WorldSettlement city)
+    {
+        var list = new List<Vector2I>();
+        if (city == null) return list;
+        var centerAx = OffsetToAxial(city.CenterX, city.CenterY);
+        foreach (var (x, y) in city.Tiles)
+        {
+            var ax = OffsetToAxial(x, y);
+            list.Add(new Vector2I(ax.X - centerAx.X, ax.Y - centerAx.Y));
+        }
+        return list;
+    }
+
+    /// <summary>The district a fine-hex child belongs to (district centre child = (3dq,3dr), so
+    /// round each axial component ÷3). Used by the explore fog to group flower tiles by district.</summary>
+    private static Vector2I DistrictOf(Vector2I child)
+        => new Vector2I(Mathf.RoundToInt(child.X / 3f), Mathf.RoundToInt(child.Y / 3f));
 
     /// <summary>Footprint + camera framing for a visited NPC city: its settlement tiles, centred
     /// on its centre tile. Mirrors ComputeCityFootprint's framing but reads the settlement rather
@@ -540,6 +582,68 @@ public partial class WorldAtlas3D : Node3D
         grounds.ChildTopWorldY = child => ChildDistrictTopWorldY(child, center);
         grounds.LoadFromSave(map, new System.Collections.Generic.List<BuildingSaveData>());
         _cityGrounds = grounds;
+        // Explore: fog everything but the revealed (centre) district; click districts to reveal.
+        grounds.ApplyDistrictFog(child => _revealedDistricts.Contains(DistrictOf(child)), CityFogColor);
+    }
+
+    /// <summary>Rebuild the floating content glyphs over the active city: one marker per revealed,
+    /// uncleared, non-Empty district, positioned above that district's centre child tile. Fogged,
+    /// cleared, and Empty districts show nothing. Called on enter, on reveal, and after a district
+    /// is cleared (via <see cref="RefreshCityContentMarkers"/>).</summary>
+    private void RebuildCityContentMarkers()
+    {
+        foreach (var m in _cityContentMarkers)
+            if (m != null && IsInstanceValid(m)) m.QueueFree();
+        _cityContentMarkers.Clear();
+        if (_cityGrounds == null || _cityExplore == null) return;
+
+        foreach (var e in _cityExplore.Districts)
+        {
+            var district = new Vector2I(e.Dq, e.Dr);
+            if (!_revealedDistricts.Contains(district)) continue;   // still fogged
+            if (e.Cleared) continue;
+            var type = (DistrictContentType)e.Content;
+            if (type == DistrictContentType.Empty) continue;
+
+            // District centre child = (3dq, 3dr); its tile view gives the world-space top.
+            var view = _cityGrounds.GetTileView(new Vector2I(e.Dq * 3, e.Dr * 3));
+            if (view == null) continue;
+
+            var mk = MakeContentMarker(type, view.GlobalPosition);
+            if (mk != null) { AddChild(mk); _cityContentMarkers.Add(mk); }
+        }
+    }
+
+    /// <summary>Public hook for the host to refresh markers after clearing a district's content.</summary>
+    public void RefreshCityContentMarkers() => RebuildCityContentMarkers();
+
+    /// <summary>A billboarded glyph marking a district's content type, floating just above the
+    /// district centre. NoDepthTest so it reads over the tiles. (Fixed pixel size for now — a first
+    /// pass; may want the zoom-tracking scale the place-name labels use.)</summary>
+    private Node3D MakeContentMarker(DistrictContentType type, Vector3 worldTop)
+    {
+        string glyph; Color color;
+        switch (type)
+        {
+            case DistrictContentType.Service: glyph = "⚒"; color = new Color(1f, 0.82f, 0.25f); break;
+            case DistrictContentType.Event:   glyph = "?"; color = new Color(0.42f, 0.72f, 1f); break;
+            case DistrictContentType.Story:   glyph = "✦"; color = new Color(0.80f, 0.60f, 1f); break;
+            case DistrictContentType.Fight:   glyph = "⚔"; color = new Color(1f, 0.40f, 0.32f); break;
+            default: return null;
+        }
+        return new Label3D
+        {
+            Text = glyph,
+            Modulate = color,
+            OutlineModulate = new Color(0f, 0f, 0f, 0.85f),
+            OutlineSize = 12,
+            FontSize = 96,
+            PixelSize = 0.004f,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            NoDepthTest = true,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps,
+            Position = worldTop + new Vector3(0f, 0.55f, 0f),
+        };
     }
 
     // ── City view (camera-only) ─────────────────────────────────────────────
@@ -600,6 +704,11 @@ public partial class WorldAtlas3D : Node3D
         // HOME footprint + borders, so the map and a later home entry are back on the campus.
         if (_activeCity != null)
         {
+            // Explore: markers are transient (rebuilt on next entry from the persisted state).
+            foreach (var m in _cityContentMarkers)
+                if (m != null && IsInstanceValid(m)) m.QueueFree();
+            _cityContentMarkers.Clear();
+            _cityExplore = null;
             if (_cityGrounds != null) { _cityGrounds.QueueFree(); _cityGrounds = null; }
             _activeCity = null;
             ComputeCityFootprint();
@@ -653,11 +762,36 @@ public partial class WorldAtlas3D : Node3D
     private bool TryPickHomeGrounds(Vector2 screenPos)
     {
         if (_homeGrounds == null || _camera == null) return false;
-        // Phase 3: a visited NPC city has no building/annex interactions yet — its grounds carry no
-        // buildings, and picking must not fall through to the (off-screen) home campus grounds.
-        if (_activeCity != null) return false;
         Vector3 origin = _camera.ProjectRayOrigin(screenPos);
         Vector3 dir = _camera.ProjectRayNormal(screenPos);
+
+        // Phase 3 explore: in a visited NPC city, a click reveals the district under it (lifts the
+        // explore fog). No buildings/annex there; consume the click so it doesn't fall through to
+        // the world pick or the off-screen home campus.
+        if (_activeCity != null)
+        {
+            if (_cityGrounds != null && _cityGrounds.TryPickRay(origin, dir, out Vector2I hit))
+            {
+                var district = DistrictOf(hit);
+                var entry = CityExploreService.FindDistrict(_cityExplore, district);
+                if (!_revealedDistricts.Contains(district))
+                {
+                    // First click on a fogged district: scout it (lift the fog, reveal the marker).
+                    _revealedDistricts.Add(district);
+                    if (entry != null) entry.Revealed = true;
+                    _cityGrounds.ApplyDistrictFog(child => _revealedDistricts.Contains(DistrictOf(child)), CityFogColor);
+                    RebuildCityContentMarkers();
+                    SaveManager.Save();   // persist the scouted district
+                }
+                else if (entry != null && !entry.Cleared
+                         && (DistrictContentType)entry.Content != DistrictContentType.Empty)
+                {
+                    // Second click on a revealed district with live content: trigger it (host dispatches).
+                    DistrictContentTriggered?.Invoke(entry, _activeCity);
+                }
+            }
+            return true;
+        }
 
         // Annex mode: clicks buy districts, not buildings. Resolve the annexable preview flower
         // under the cursor and hand it to the host; a miss consumes the click (no building pick

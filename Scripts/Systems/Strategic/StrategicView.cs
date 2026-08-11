@@ -99,6 +99,9 @@ public partial class StrategicView : Node2D
     private Button _annexButton;           // the toggle itself (kept so we can reset it after a purchase)
     private CityServicesHost _cityServices;   // Phase 3: a visited enemy capital's services menu (auto-opened)
     private CanvasLayer _cityServicesLayer;   // "City Services" reopen button, shown only in an NPC city view
+    private NarrativeEncounterPanel _cityNarrativePanel;  // Phase 3 explore: hosts a district EVENT over the city view
+    private CanvasLayer _cityExploreLayer;    // Phase 3 explore: hosts the narrative panel + toasts above the atlas
+    private ToastManager _cityExploreToasts;  // Phase 3 explore: stub messages for Fight/Story districts
     private const int DistrictAnnexCost = 250;   // placeholder gold cost to annex a district — tune in playtest
     [Export] public bool Use3DStrategicMap = true;
 
@@ -310,6 +313,7 @@ public partial class StrategicView : Node2D
         _atlas3D.HomeLandmarkPicked += OnHomeLandmarkPicked;
         _atlas3D.HomeDistrictPicked += OnHomeDistrictPicked;
         _atlas3D.CityModeChanged += OnCityModeChanged;
+        _atlas3D.DistrictContentTriggered += OnDistrictContentTriggered;
         vp.AddChild(_atlas3D);            // _Ready builds the camera (no world yet)
         // Discovery gates the strategic map exactly as the 2D view did: normal play
         // shows only charted/explored ground (unseen = void), debug reveals all.
@@ -609,6 +613,129 @@ public partial class StrategicView : Node2D
         if (_cityServices == null) return;
         _cityServices = null;
         if (_atlas3D != null) _atlas3D.AcceptInput = true;
+    }
+
+    // ── Phase 3 explore: district content dispatch ────────────────────────
+
+    /// <summary>A revealed district's content was clicked in a visited NPC city. Route by type:
+    /// Service reopens the capital's services menu; Event runs a narrative encounter over the city;
+    /// Fight and Story are stubbed (their real routing — combat + story beats — is the next
+    /// increment). Non-service content is marked cleared once resolved.</summary>
+    private void OnDistrictContentTriggered(CityDistrictEntry entry, WorldSettlement city)
+    {
+        if (entry == null) return;
+        switch ((DistrictContentType)entry.Content)
+        {
+            case DistrictContentType.Service:
+                ShowCityServices();   // reopenable — never cleared
+                break;
+            case DistrictContentType.Event:
+                TriggerCityEvent(entry, city);
+                break;
+            case DistrictContentType.Fight:
+                EnsureCityExploreToasts();
+                _cityExploreToasts?.Push("A hostile enclave stirs here. (District fights — coming soon.)",
+                                         QuestToastKind.Progress);
+                ClearDistrict(entry);
+                break;
+            case DistrictContentType.Story:
+                EnsureCityExploreToasts();
+                _cityExploreToasts?.Push("You uncover a thread of this city's story. (Story beats — coming soon.)",
+                                         QuestToastKind.Progress);
+                ClearDistrict(entry);
+                break;
+        }
+    }
+
+    /// <summary>Run a narrative EVENT for a district: pick from the city's region pool (generic
+    /// pool always included) and show it on the city-hosted panel. On completion, apply the choice's
+    /// gold/flag outcomes to the guild save (mirrors the campus, non-expedition path) and clear the
+    /// district. Empty pool → a small gold cache so the click never dead-ends.</summary>
+    private void TriggerCityEvent(CityDistrictEntry entry, WorldSettlement city)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null) { ClearDistrict(entry); return; }
+
+        var pool = NarrativeEncounterLoader.LoadForRegion(city?.KingdomId ?? "");
+        var enc = NarrativeEncounterLoader.PickRandom(pool, "", save.CompletedEvents, save);
+        if (enc == null)
+        {
+            int gold = 15 + (int)(GD.Randf() * 20f);
+            save.Gold += gold;
+            EnsureCityExploreToasts();
+            _cityExploreToasts?.Push($"A hidden cache in the district. (+{gold} gold)", QuestToastKind.Complete);
+            ClearDistrict(entry);
+            return;
+        }
+
+        EnsureCityNarrativePanel();
+        if (_atlas3D != null) _atlas3D.AcceptInput = false;   // panel owns the screen
+        _cityNarrativePanel.Visible = true;
+        _cityNarrativePanel.ShowEncounter(enc, save.HasFlag,
+            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign);
+        _cityNarrativePanel.OnCompleted = choice => OnCityEventCompleted(enc, choice, entry);
+    }
+
+    /// <summary>Apply a city event's chosen outcome to the guild save (gold, flags, meta-flags,
+    /// completed-event marker), then clear the district. HP/steps deltas don't apply outside an
+    /// expedition; item/companion rewards are deferred to a later increment.</summary>
+    private void OnCityEventCompleted(NarrativeEncounterData enc, EncounterChoice choice, CityDistrictEntry entry)
+    {
+        if (_cityNarrativePanel != null) _cityNarrativePanel.Visible = false;
+        if (_atlas3D != null) _atlas3D.AcceptInput = true;
+
+        var save = SaveManager.ActiveSave;
+        if (choice != null && save != null)
+        {
+            if (choice.GoldDelta != 0)
+                save.Gold = Mathf.Max(0, save.Gold + choice.GoldDelta);
+
+            if (enc != null && !string.IsNullOrEmpty(enc.Id)
+                && !save.CompletedEvents.Contains(enc.Id))
+                save.CompletedEvents.Add(enc.Id);
+
+            if (choice.SetFlags != null)
+                foreach (var flag in choice.SetFlags)
+                    if (!string.IsNullOrEmpty(flag)) save.SetFlag(flag);
+
+            if (choice.SetMetaFlags != null && save.Ledger != null)
+                foreach (var flag in choice.SetMetaFlags)
+                    if (!string.IsNullOrEmpty(flag) && !save.Ledger.MetaNarrativeFlags.Contains(flag))
+                        save.Ledger.MetaNarrativeFlags.Add(flag);
+        }
+        ClearDistrict(entry);
+    }
+
+    /// <summary>Mark a district's content consumed, refresh the atlas markers, and persist.</summary>
+    private void ClearDistrict(CityDistrictEntry entry)
+    {
+        if (entry != null) entry.Cleared = true;
+        _atlas3D?.RefreshCityContentMarkers();
+        SaveManager.Save();
+    }
+
+    /// <summary>Lazily build the city-explore host layer (narrative panel + toasts), above the atlas.</summary>
+    private void EnsureCityExploreLayer()
+    {
+        if (_cityExploreLayer != null) return;
+        _cityExploreLayer = new CanvasLayer { Name = "CityExploreLayer", Layer = 45 };
+        AddChild(_cityExploreLayer);
+    }
+
+    private void EnsureCityNarrativePanel()
+    {
+        if (_cityNarrativePanel != null) return;
+        EnsureCityExploreLayer();
+        _cityNarrativePanel = new NarrativeEncounterPanel { Name = "CityEventPanel", Visible = false };
+        _cityExploreLayer.AddChild(_cityNarrativePanel);
+    }
+
+    private void EnsureCityExploreToasts()
+    {
+        if (_cityExploreToasts != null) return;
+        EnsureCityExploreLayer();
+        _cityExploreToasts = new ToastManager { Name = "CityExploreToasts" };
+        _cityExploreLayer.AddChild(_cityExploreToasts);
     }
 
     /// <summary>The "Annex a district" toggle (city view only). While pressed, the atlas shows the

@@ -79,7 +79,22 @@ Driven by `StrategicView.OnCityModeChanged` (open on entering a non-home city, c
 `WorldAtlas3D.ActiveCityName` supplies the title; closing the menu leaves the city back to the world.
 This is the shell — the interaction loop exists; each service is built out next.
 
+## P3.4 — Explore (city district fog) — done
+Entering an NPC seat city, its `/3` flower districts start FOGGED (dim `CityFogColor`) except the
+centre district (the seat you arrived at); clicking a district reveals it (restores the real terrain
+colour). Reuses the existing city-view pick.
+- `CampusGridManager.ApplyDistrictFog(isRevealed, fogColor)`: dims unrevealed districts, re-applies
+  `ApplyVisualToTile` on revealed ones.
+- `WorldAtlas3D`: `_revealedDistricts` (transient — resets each visit), `CityFogColor`, `DistrictOf`
+  (child → district = round ÷3). `EnterCityView` seeds the centre district revealed; `BuildNpcGrounds`
+  applies the initial fog; `TryPickHomeGrounds` in an NPC city resolves the clicked district and
+  reveals it (replacing the old "NPC = no pick" gate).
+- Flow: enter capital → services auto-open → close services → the fogged city → click districts to
+  scout them. Transient for the shell; persisting revealed districts per-city + tying reveals to
+  rewards/services is the natural follow-up.
+
 ## Next (Phase 3 sub-phases)
+- P3.3 Siege — being handled separately (brother).
 - P3.2 fill-in: make each service real (Market = spend gold on items/cards; Recruit = mercenaries;
   Quests = capital contracts). Decide the data model per service.
 - P3.3 Siege: wire the deferred `city_streets` / `seat_walls` combat recipes.

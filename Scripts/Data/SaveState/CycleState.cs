@@ -159,6 +159,13 @@ public class CycleState
     /// rendered and deployed-into by StrategicView.</summary>
     public List<Warfront> Warfronts = new();
 
+    /// <summary>Phase 3 explore: per-city district content + reveal/clear progress
+    /// for NPC cities visited this cycle. Keyed by CityExploreState.CityId. Written
+    /// by CityExploreService / WorldAtlas3D as the player scouts a city; read on
+    /// re-entering the same city. Cycle-scoped (the world reseeds each cycle).
+    /// Additive save field — no SaveManager version bump.</summary>
+    public List<CityExploreState> CityExplore = new();
+
     /// <summary>Warfront the player is currently deployed to intervene in (empty =
     /// none). Set when an intervention deploy launches; consumed by StrategicView
     /// on return, applying the expedition outcome to the front. Serialized so the

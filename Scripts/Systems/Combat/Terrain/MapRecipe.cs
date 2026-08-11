@@ -202,6 +202,49 @@ public sealed class MapEventDef
     public static bool IsDestructiveKind(string kind) => kind == "collapse_tiles";
 }
 
+/// <summary>City-siege recipe extras (CityBattlemapCompiler): authored spawn
+/// anchors + the gate gap. Optional — null on every hand-authored recipe, and
+/// everything downstream treats absence as "use the default derivation".</summary>
+public sealed class SiegeSpec
+{
+    public string Vector = "";
+    public string Entry = "";
+    public Vector2I? PlayerAnchor;
+    public Vector2I? EnemyAnchor;
+    public List<Vector2I> GateGap = new();
+
+    private static Vector2I? Coord(Godot.Collections.Dictionary d, string key)
+    {
+        if (!d.ContainsKey(key))
+            return null;
+        var a = d[key].AsGodotArray();
+        if (a.Count < 2)
+            return null;
+        return new Vector2I(a[0].AsInt32(), a[1].AsInt32());
+    }
+
+    public static SiegeSpec FromDict(Godot.Collections.Dictionary d)
+    {
+        var s = new SiegeSpec
+        {
+            Vector = MapRecipe.Str(d, "vector", ""),
+            Entry = MapRecipe.Str(d, "entry", ""),
+            PlayerAnchor = Coord(d, "player_anchor"),
+            EnemyAnchor = Coord(d, "enemy_anchor"),
+        };
+        if (d.ContainsKey("gate_gap"))
+        {
+            foreach (var item in d["gate_gap"].AsGodotArray())
+            {
+                var a = item.AsGodotArray();
+                if (a.Count >= 2)
+                    s.GateGap.Add(new Vector2I(a[0].AsInt32(), a[1].AsInt32()));
+            }
+        }
+        return s;
+    }
+}
+
 public sealed class MapRecipe
 {
     public string Id = "";
@@ -211,6 +254,7 @@ public sealed class MapRecipe
     public AtmosphereSpec Atmosphere;
     public WaterSpec Water;
     public SandSpec Sand;
+    public SiegeSpec Siege;
     public List<FeatureOp> Features = new();
     public List<MapEventDef> MapEvents = new();
 
@@ -236,6 +280,9 @@ public sealed class MapRecipe
 
         if (d.ContainsKey("sand"))
             r.Sand = SandSpec.FromDict(d["sand"].AsGodotDictionary());
+
+        if (d.ContainsKey("siege"))
+            r.Siege = SiegeSpec.FromDict(d["siege"].AsGodotDictionary());
 
         if (d.ContainsKey("features"))
         {
