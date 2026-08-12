@@ -104,6 +104,19 @@ public static class Hex3DPalette
         };
     }
 
+    // ── Rivers & roads (art pass A9/A9b, 2026-08-12) ──
+
+    /// <summary>River waterline — the ribbon's centre colour (A9b; deepened +
+    /// saturated in A9c after "hard to see" — it must SEPARATE from olive ground,
+    /// not harmonize with it).</summary>
+    public static readonly Color RiverWater = new Color(0.25f, 0.41f, 0.58f);
+
+    /// <summary>River bank — darker edge of the ribbon; the recessed-channel cue.</summary>
+    public static readonly Color RiverBank = new Color(0.10f, 0.18f, 0.28f);
+
+    /// <summary>Road stroke — a warm worn-earth line.</summary>
+    public static readonly Color RoadStroke = new Color(0.56f, 0.47f, 0.34f);
+
     // ── Painterly discovery: the "unpainted world" (art pass A6, 2026-08-12) ──
     // Shared by BOTH 3D renderers so the discovery language can never drift between
     // the strategic map and the expedition window. (The per-view fog colors this

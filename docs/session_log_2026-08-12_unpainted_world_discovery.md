@@ -161,6 +161,137 @@ this complaint:
 Milky pale-blue sea is acknowledged and DEFERRED — that is A3 (painterly water
 plane + dissolve/background decision), not palette.
 
+## A2/A3-lite — painterly prism shader (same session; A1b approved "good enough")
+One shader replaces the StandardMaterials on ALL tile MultiMeshes in both
+renderers. Deliberate re-scope: the full welded water-plane port (A3-full) stays
+on the books; a mode on the prism shader gets most of the win with zero geometry
+risk.
+
+- **`Assets/Shaders/painterly_world_prism.gdshader`** (new) — one file, `mode`
+  uniform: 0 LAND (world-space fbm brush grain on tops; side walls darkened +
+  vertically striated — the combat S11 skirt learning), 1 WATER (world-space
+  swell on top vertices only, amplitude converted through the instance basis' Y
+  length so the world-unit height survives per-instance scaling; adjacent prisms
+  share world XZ ⇒ identical offset ⇒ welded seams by construction; drifting
+  two-tone sky-band wash over the instance colour; banded sun-glint dabs in
+  light(), noise-gated so the sun draws broken dashes, not a PBR hotspot),
+  2 CANVAS (two-direction paper fibre, matte). Custom light(): wrapped banded
+  toon (3 bands, solid-geometry variant — no abs(), front faces only), shadow
+  via ATTENUATION. FULLY OPAQUE — no ALPHA anywhere (MultiMesh sort law).
+  Procedural hash noise — no texture dependency, nothing to assign.
+- **`Scripts/Systems/Overworld/PainterlyPrism.cs`** (new) — shared material
+  factory (Hex3DPalette rule: one home, two views, no drift).
+  **`PainterlyPrism.Enabled = false` is the kill-switch** → pre-A2
+  StandardMaterial3D fallback (also automatic on shader-load failure, with a
+  PushWarning).
+- **`WorldAtlas3D.RebuildTiles`** — three mesh materials now from the factory.
+- **`ExpeditionWindow3D.MakeTileLayer`** — gained `prismMode`; three call sites.
+- `.uid` siblings for the two new files generate on project open — commit them.
+
+NOT compile-run; the shader has never been through a GLSL compiler — errors
+panel first. Live-tune via Remote inspector on the layers' materials (uniforms
+are grouped + documented); disk edits to the .gdshader hot-reload shaders but a
+running scene keeps old MATERIAL instances — restart the scene after C# edits.
+Judge: sea gains motion + structure (the milky flat read should break up),
+mountains get painted cliff-band skirts, canvas gains paper tooth. Banding
+strobe risk at whole-world zoom was the known A2 risk — if bands shimmer, raise
+`toon_softness` or drop `toon_bands` to 2.
+
+## A5 — painterly canopy props (same session; A2/A3-lite confirmed in play)
+User screenshots confirmed the prism shader in play (terrain lens reads as a
+painted world; sea has body + cloud-washed structure). Continued to A5.
+
+- **`Scripts/Systems/Overworld/PainterlyProps.cs`** (new) — shared procedural
+  prop-mesh factory (one home, both views). `BroadleafCanopy()` = three
+  overlapping flattened blobs (Ghibli forest mound, no trunk — at map zoom a
+  forest is canopy mass, and one mesh = one MultiMesh layer);
+  `ConiferCanopy()` = three stacked squashed blobs (soft pine, not a traffic
+  cone). Built once via `SurfaceTool.AppendFrom` (low-poly SphereMesh merged →
+  single ArrayMesh), statically cached, matte instance-coloured material.
+  Canopies are BASE-AT-Y=0; `PeakCone()` keeps the stage-1 cone AND its centre
+  origin (peaks still read as spires; callers' maths untouched; NOTE the cache
+  ignores params after first call — both call sites pass identical values).
+- **Both `RebuildDecorations`** — Forest split 60/40 broadleaf/conifer by hash,
+  random yaw per instance (kills the clone read), placed at ground height;
+  colours: broadleaf (0.21, 0.35, 0.15) jitter 0.12, conifer (0.13, 0.25, 0.15)
+  jitter 0.10 (window trees also gained jitter — they had none).
+- **Latent scatter-law violation fixed**: the deco layers NEVER set
+  `CustomAabb` (style guide §8 — auto AABB on world-space instance transforms
+  frustum-culls the whole layer as one unit). Both `MakeDecoLayer`s now compute
+  min/max over instance origins grown by mesh extent. This was one camera turn
+  away from popping the entire forest.
+
+NOT compile-run (static checks only). `SurfaceTool.AppendFrom(Mesh, int,
+Transform3D)` is the one engine-API risk — if it errors at build, the fallback
+is committing each sphere's arrays manually. Judge: forests as soft canopy
+masses at map zoom + walkable-scale mounds in the expedition window; Explored-
+only gating unchanged (props are still discovery's reward).
+
+## A9 — rivers & roads as drawn strokes (same session; A5 confirmed in play)
+User screenshots confirmed A5 (forests read as canopy masses at both zooms).
+Continued to A9. Audit finding that shaped it: the WINDOW already drew edges the
+right way (centre→edge-midpoint halves meeting at boundaries = continuous
+polylines); the ATLAS had the worse boundary-dash model. So:
+
+- **Atlas `RebuildEdges` REPLACED** with the window's centre-out model. Each half
+  hugs its OWN tile's top (+0.02) — lines follow terrain and step at cliffs like
+  ink over relief. Water tiles now skipped (matches window: no strokes across
+  lakes); Unseen skipped (nothing drawn on canvas); **Charted keeps strokes** —
+  inked chart lines on the underpainting, deliberate.
+- **Styling both renderers**: `Hex3DPalette.RiverInk` (0.25, 0.34, 0.44 slate) /
+  `RoadStroke` (0.56, 0.47, 0.34 worn earth) — replaces bright
+  TerrainWaterShallow / TerrainRoad.Lightened; thinner profile (Y 0.025–0.03;
+  river width 0.24–0.26, road 0.14–0.15); matte 0.95; window strokes dropped
+  from +0.05 to +0.03 above ground.
+- **City view**: strokes hidden in EnterCityMode, restored on Leave (+ set on
+  rebuild from `_cityMode`) — closes the Phase-2 "litter at city zoom" polish
+  note.
+- **Scatter law**: both `MakeEdgeLayer`s gained explicit `CustomAabb` (latent,
+  same as the deco layers).
+
+NOT compile-run (static checks only). Judge: rivers as continuous slate lines
+threading the terrain, roads as faint earth lines, neither floating nor
+fluorescent; fog frontier truncates strokes naturally (a hidden neighbour never
+draws its half). Bridges (river+road cross) just overdraw for now — a tick-mark
+feature belongs to A7/polish.
+
+## A9b — winding river ribbons (same session; user rejected the line look)
+User ruling: straight strokes don't work — rivers need flow and natural winding.
+Roads keep the straight strokes (roads ARE straight); rivers rebuilt as GEOMETRY:
+
+- **`Scripts/Systems/Overworld/RiverMesh.cs`** (new, shared) — one merged
+  ArrayMesh of flat ribbons. Per tile: 2 river edges → ONE quadratic Bézier from
+  edge-mid to edge-mid, control at the tile centre (the river bends THROUGH the
+  tile); 1 edge → tapering source spoke (born thin); 3+ → confluence spokes.
+  Deterministic meander perpendicular to the tangent; envelope 16t²(1−t)² has
+  zero value AND slope at endpoints, and endpoint tangents are collinear with
+  the neighbour's spoke line ⇒ C1 continuity across tile boundaries by
+  construction. 3-vert cross-sections (bank/waterline/bank) with vertex colours
+  darkening to `Hex3DPalette.RiverBank` at the edges (recessed-channel cue),
+  width breathing ±15% along the run. CW winding per the Godot front-face
+  gotcha — **if rivers render invisible from above, flip the tri order in
+  Quad(), that's the one untested geometry assumption.**
+- **`PainterlyPrism.RiverMaterial()`** — the water-mode shader retuned for a
+  ribbon: swell_amplitude 0 (a displaced ribbon would poke through its banks),
+  sky_mix 0.18, finer sparkle. Vertex colours ride COLOR exactly like instance
+  colours. StandardMaterial fallback path intact.
+- **Both renderers**: `_riverLayer` is now a `MeshInstance3D`; RebuildEdges
+  collects per-tile (centre, edge-mid list) for rivers, roads unchanged.
+  `RiverInk` retired from Hex3DPalette; `RiverWater`/`RiverBank` added.
+- Auto AABB is CORRECT here (real vertices, not world-space instances) — no
+  CustomAabb needed on the ribbon.
+
+NOT compile-run. Tuning knobs (RiverMesh.Path): amp 0.10–0.22, freq 0.8–1.3,
+segs 14/8; width 0.22 at the call sites.
+
+## A9c — river visibility tune (user: geometry better, lines too thin)
+Ribbons CONFIRMED rendering + winding in play (CW winding assumption held).
+Width 0.22 → 0.36 atlas / 0.30 window (map rivers are exaggerated, not to
+scale); `RiverWater` deepened + saturated to (0.25, 0.41, 0.58) and `RiverBank`
+to (0.10, 0.18, 0.28) — the water must separate from olive ground, not
+harmonize with it. If still faint at whole-world zoom the next knob is
+`sky_mix` → 0.10 on RiverMaterial (the wash lightens the base), then width.
+
 ## Open threads
 - Viewport background (`BackgroundColor = UITheme.WorldDeep`, both renderers) is
   still the dark void — a parchment world floating in darkness at cycle start.

@@ -105,7 +105,8 @@ public partial class ExpeditionWindow3D : Node3D
     private Camera3D _camera;
     private MultiMeshInstance3D _landLayer, _waterLayer;
     private MultiMeshInstance3D _canvasLayer;   // Hidden fog = unpainted canvas (art pass A6)
-    private MultiMeshInstance3D _riverLayer, _roadLayer;
+    private MeshInstance3D _riverLayer;        // A9b: one winding ribbon mesh (RiverMesh)
+    private MultiMeshInstance3D _roadLayer;
     private readonly List<Node3D> _decor = new();
     private readonly List<Node3D> _markers = new();
     private readonly List<Node3D> _entities = new();   // moving entities: enemy patrols + roamer
@@ -507,14 +508,15 @@ public partial class ExpeditionWindow3D : Node3D
             else land.Add((xf, TileColor(t, c, fog)));
         }
 
-        // A4: gouache-matte land (was satin 0.65), soft satin water (was lacquer
-        // 0.15) — interim until the A3 painterly water plane.
-        _landLayer = MakeTileLayer("WinLand", land, taper: 0.96f, roughness: 0.9f);
-        _waterLayer = MakeTileLayer("WinWater", water, taper: 1.0f, roughness: 0.55f);
-        // Paper is fully matte — no sheen on the unpainted world. No shadow casting
-        // either: canvas is the lowest geometry, and coplanar bright slabs
-        // self-shadowing under a low sun produce acne (seen on the strategic map).
-        _canvasLayer = MakeTileLayer("WinCanvas", canvas, taper: 0.96f, roughness: 1.0f);
+        _landLayer = MakeTileLayer("WinLand", land, taper: 0.96f, roughness: 0.9f,
+                                   prismMode: PainterlyPrism.Land);
+        _waterLayer = MakeTileLayer("WinWater", water, taper: 1.0f, roughness: 0.55f,
+                                    prismMode: PainterlyPrism.Water);
+        // No shadow casting on canvas: it is the lowest geometry, and coplanar
+        // bright slabs self-shadowing under a low sun produce acne (seen on the
+        // strategic map).
+        _canvasLayer = MakeTileLayer("WinCanvas", canvas, taper: 0.96f, roughness: 1.0f,
+                                     prismMode: PainterlyPrism.Canvas);
         _canvasLayer.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
     }
 
@@ -539,14 +541,16 @@ public partial class ExpeditionWindow3D : Node3D
     }
 
     private MultiMeshInstance3D MakeTileLayer(string name, List<(Transform3D xf, Color c)> items,
-                                              float taper, float roughness)
+                                              float taper, float roughness, int prismMode)
     {
         var mesh = new CylinderMesh
         {
             TopRadius = HexR * taper, BottomRadius = HexR, Height = 1f,
             RadialSegments = 6, Rings = 0, CapBottom = false,
         };
-        mesh.Material = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Roughness = roughness };
+        // A2/A3-lite: shared painterly prism shader (same factory as the atlas —
+        // the two views must not drift); roughness is the fallback material's.
+        mesh.Material = PainterlyPrism.TileMaterial(prismMode, roughness);
         var mm = new MultiMesh
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
@@ -590,7 +594,9 @@ public partial class ExpeditionWindow3D : Node3D
     {
         _riverLayer?.QueueFree();
         _roadLayer?.QueueFree();
-        var rivers = new List<Transform3D>();
+        // A9b: rivers become WINDING RIBBONS (RiverMesh — same builder as the
+        // atlas); roads stay straight strokes.
+        var riverTiles = new List<(Vector3 center, List<Vector3> mids)>();
         var roads = new List<Transform3D>();
 
         foreach (var c in _windowTiles)
@@ -601,7 +607,8 @@ public partial class ExpeditionWindow3D : Node3D
             if ((tile.RiverEdges | tile.RoadEdges) == 0) continue;
 
             Vector3 center = TileOrigin(c.X, c.Y);
-            center.Y = TileHeight(c) + 0.05f;
+            center.Y = TileHeight(c) + 0.03f;   // hug the ground — drawn water, not a floating strip
+            List<Vector3> riverMids = null;
             var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
             for (int i = 0; i < 6; i++)
             {
@@ -614,22 +621,32 @@ public partial class ExpeditionWindow3D : Node3D
                 Vector3 nbr = _world.InBounds(nc, nr) ? TileOrigin(nc, nr) : center + EdgeDir(i);
                 nbr.Y = center.Y;
                 Vector3 edgeMid = (center + nbr) * 0.5f;
-
-                Vector3 seg = edgeMid - center;
-                float len = seg.Length();
-                if (len < 1e-4f) continue;
-                Vector3 dir = seg / len;
-                // Box local +X spans the segment (scaled by len); position it at the segment midpoint.
-                var basis = new Basis(Vector3.Up, Mathf.Atan2(-dir.Z, dir.X)) * Basis.FromScale(new Vector3(len, 1f, 1f));
-                var xf = new Transform3D(basis, (center + edgeMid) * 0.5f);
-                if (riv) rivers.Add(xf);
-                if (road) roads.Add(xf);
+                if (riv)
+                    (riverMids ??= new List<Vector3>()).Add(edgeMid);
+                if (road)
+                {
+                    Vector3 seg = edgeMid - center;
+                    float len = seg.Length();
+                    if (len < 1e-4f) continue;
+                    Vector3 dir = seg / len;
+                    // Box local +X spans the segment (scaled by len); position at segment midpoint.
+                    var basis = new Basis(Vector3.Up, Mathf.Atan2(-dir.Z, dir.X)) * Basis.FromScale(new Vector3(len, 1f, 1f));
+                    roads.Add(new Transform3D(basis, (center + edgeMid) * 0.5f));
+                }
             }
+            if (riverMids != null)
+                riverTiles.Add((center, riverMids));
         }
 
-        // Box X = 1 (unit; per-instance scale sets real length), Y thin, Z the strip width.
-        _riverLayer = MakeEdgeLayer("WinRivers", rivers, new Vector3(1f, 0.06f, 0.22f), UITheme.TerrainWaterShallow);
-        _roadLayer = MakeEdgeLayer("WinRoads", roads, new Vector3(1f, 0.06f, 0.16f), UITheme.TerrainRoad);
+        _riverLayer = new MeshInstance3D
+        {
+            Name = "WinRivers",
+            // A9c: widened with the atlas (window is closer, so slightly narrower).
+            Mesh = RiverMesh.Build(riverTiles, 0.30f, Hex3DPalette.RiverWater, Hex3DPalette.RiverBank),
+            MaterialOverride = PainterlyPrism.RiverMaterial(),
+        };
+        AddChild(_riverLayer);
+        _roadLayer = MakeEdgeLayer("WinRoads", roads, new Vector3(1f, 0.03f, 0.15f), Hex3DPalette.RoadStroke);
     }
 
     /// <summary>Approx render-space direction to a border tile's missing neighbour.</summary>
@@ -642,13 +659,26 @@ public partial class ExpeditionWindow3D : Node3D
     private MultiMeshInstance3D MakeEdgeLayer(string name, List<Transform3D> xfs, Vector3 size, Color color)
     {
         var mesh = new BoxMesh { Size = size };
-        mesh.Material = new StandardMaterial3D { AlbedoColor = color };
+        // A9: matte ink stroke, no sheen.
+        mesh.Material = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.95f };
         var mm = new MultiMesh
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
             Mesh = mesh, InstanceCount = xfs.Count,
         };
         for (int i = 0; i < xfs.Count; i++) mm.SetInstanceTransform(i, xfs[i]);
+        // Scatter law: explicit CustomAabb (was latent here too).
+        if (xfs.Count > 0)
+        {
+            Vector3 min = xfs[0].Origin, max = min;
+            for (int i = 1; i < xfs.Count; i++)
+            {
+                var o = xfs[i].Origin;
+                min = new Vector3(Mathf.Min(min.X, o.X), Mathf.Min(min.Y, o.Y), Mathf.Min(min.Z, o.Z));
+                max = new Vector3(Mathf.Max(max.X, o.X), Mathf.Max(max.Y, o.Y), Mathf.Max(max.Z, o.Z));
+            }
+            mm.CustomAabb = new Aabb(min, max - min).Grow(HexR);
+        }
         var node = new MultiMeshInstance3D { Name = name, Multimesh = mm };
         AddChild(node);
         return node;
@@ -660,7 +690,8 @@ public partial class ExpeditionWindow3D : Node3D
     {
         foreach (var d in _decor) d.QueueFree();
         _decor.Clear();
-        var trees = new List<(Transform3D, Color)>();
+        var broadleaf = new List<(Transform3D, Color)>();
+        var conifers = new List<(Transform3D, Color)>();
         var peaks = new List<(Transform3D, Color)>();
         foreach (var c in _windowTiles)
         {
@@ -671,15 +702,21 @@ public partial class ExpeditionWindow3D : Node3D
             var basePos = TileOrigin(c.X, c.Y);
             if (t.Terrain == TT.Forest)
             {
+                // A5: canopy blob clusters (base-origin — placed AT ground height),
+                // 60/40 broadleaf/conifer by hash, random yaw against clone read.
                 int n = 2 + (int)(Hash(c, 1) % 2);
                 for (int i = 0; i < n; i++)
                 {
                     float a = H01(Hash(c, (uint)(7 + i))) * Mathf.Tau;
                     float rad = H01(Hash(c, (uint)(31 + i))) * 0.55f;
                     float s = 0.55f + H01(Hash(c, (uint)(53 + i))) * 0.55f;
-                    var pos = basePos + new Vector3(Mathf.Cos(a) * rad, h + 0.8f * s * 0.5f - 0.04f, Mathf.Sin(a) * rad);
-                    trees.Add((new Transform3D(Basis.FromScale(new Vector3(s, s, s)), pos),
-                              new Color(0.16f, 0.30f, 0.14f)));
+                    var pos = basePos + new Vector3(Mathf.Cos(a) * rad, h - 0.03f, Mathf.Sin(a) * rad);
+                    var yaw = new Basis(Vector3.Up, H01(Hash(c, (uint)(97 + i))) * Mathf.Tau);
+                    var xf = new Transform3D(yaw * Basis.FromScale(new Vector3(s, s, s)), pos);
+                    if (Hash(c, (uint)(71 + i)) % 10 < 6)
+                        broadleaf.Add((xf, Jitter(new Color(0.21f, 0.35f, 0.15f), c, 0.12f)));
+                    else
+                        conifers.Add((xf, Jitter(new Color(0.13f, 0.25f, 0.15f), c, 0.10f)));
                 }
             }
             else if ((t.Terrain == TT.Mountain || t.Terrain == TT.Volcanic) && Hash(c, 2) % 10 < 5)
@@ -697,14 +734,13 @@ public partial class ExpeditionWindow3D : Node3D
                           new Color(0.92f, 0.94f, 0.97f)));
             }
         }
-        _decor.Add(MakeDecoLayer("WinTrees", trees, 0.26f, 0.8f));
-        _decor.Add(MakeDecoLayer("WinPeaks", peaks, 0.34f, 0.9f));
+        _decor.Add(MakeDecoLayer("WinBroadleaf", broadleaf, PainterlyProps.BroadleafCanopy(), 1.3f));
+        _decor.Add(MakeDecoLayer("WinConifers", conifers, PainterlyProps.ConiferCanopy(), 1.4f));
+        _decor.Add(MakeDecoLayer("WinPeaks", peaks, PainterlyProps.PeakCone(0.34f, 0.9f), 1.6f));
     }
 
-    private MultiMeshInstance3D MakeDecoLayer(string name, List<(Transform3D, Color)> items, float br, float ht)
+    private MultiMeshInstance3D MakeDecoLayer(string name, List<(Transform3D, Color)> items, Mesh mesh, float meshExtent)
     {
-        var mesh = new CylinderMesh { TopRadius = 0f, BottomRadius = br, Height = ht, RadialSegments = 5, Rings = 0 };
-        mesh.Material = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Roughness = 0.85f };
         var mm = new MultiMesh
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
@@ -712,6 +748,20 @@ public partial class ExpeditionWindow3D : Node3D
         };
         for (int i = 0; i < items.Count; i++)
         { mm.SetInstanceTransform(i, items[i].Item1); mm.SetInstanceColor(i, items[i].Item2); }
+        // Style-guide scatter law: explicit CustomAabb over instance origins
+        // (auto AABB on world-space transforms frustum-culls the layer as one
+        // unit). Latent since stage 1; fixed with the A5 refactor.
+        if (items.Count > 0)
+        {
+            Vector3 min = items[0].Item1.Origin, max = min;
+            for (int i = 1; i < items.Count; i++)
+            {
+                var o = items[i].Item1.Origin;
+                min = new Vector3(Mathf.Min(min.X, o.X), Mathf.Min(min.Y, o.Y), Mathf.Min(min.Z, o.Z));
+                max = new Vector3(Mathf.Max(max.X, o.X), Mathf.Max(max.Y, o.Y), Mathf.Max(max.Z, o.Z));
+            }
+            mm.CustomAabb = new Aabb(min, max - min).Grow(meshExtent);
+        }
         var node = new MultiMeshInstance3D { Name = name, Multimesh = mm };
         AddChild(node);
         return node;

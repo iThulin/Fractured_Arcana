@@ -121,7 +121,7 @@ public partial class WorldAtlas3D : Node3D
     /// across recolors.</summary>
     private byte[] _tileLayer;
     private const byte LayerLand = 0, LayerWater = 1, LayerCanvas = 2;
-    private MultiMeshInstance3D _riverLayer;
+    private MeshInstance3D _riverLayer;        // A9b: one winding ribbon mesh (RiverMesh)
     private MultiMeshInstance3D _roadLayer;
     private readonly List<Node3D> _markers = new();   // POI/settlement/staging/etc, rebuilt together
     // Map labels that hold a constant on-screen size across zoom (their world PixelSize is retuned
@@ -667,6 +667,9 @@ public partial class WorldAtlas3D : Node3D
         _cityMode = true;
 
         if (_cityBorders != null) _cityBorders.Visible = true;
+        // A9: river/road strokes read as litter at city zoom — hide them.
+        if (_riverLayer != null) _riverLayer.Visible = false;
+        if (_roadLayer != null) _roadLayer.Visible = false;
         foreach (var m in _cityHiddenMarkers)
             if (m != null && IsInstanceValid(m)) m.Visible = false;
         _camera.Near = 0.02f;   // let the camera get in close without slicing tiles
@@ -702,6 +705,8 @@ public partial class WorldAtlas3D : Node3D
 
         _homeGrounds?.SetSurroundingPreviewVisible(false);
         if (_cityBorders != null) _cityBorders.Visible = false;
+        if (_riverLayer != null) _riverLayer.Visible = true;
+        if (_roadLayer != null) _roadLayer.Visible = true;
         foreach (var m in _cityHiddenMarkers)
             if (m != null && IsInstanceValid(m)) m.Visible = true;
         if (_camera != null) { _camera.Near = 0.05f; _camera.Far = 600f; }
@@ -1282,13 +1287,10 @@ public partial class WorldAtlas3D : Node3D
             Rings = 0,
             CapBottom = false,
         };
-        landMesh.Material = new StandardMaterial3D
-        {
-            VertexColorUseAsAlbedo = true,
-            // A4: gouache-matte. The pass-2 satin sheen WAS the "crafted object"
-            // material read — paint doesn't glint as the camera pans.
-            Roughness = 0.9f,
-        };
+        // A2: painterly prism shader (brush grain, striated skirts, banded toon
+        // light) via the shared factory; PainterlyPrism.Enabled = false is the
+        // instant fallback to the flat A4 materials.
+        landMesh.Material = PainterlyPrism.TileMaterial(PainterlyPrism.Land, 0.9f);
 
         var waterMesh = new CylinderMesh
         {
@@ -1301,14 +1303,10 @@ public partial class WorldAtlas3D : Node3D
             Rings = 0,
             CapBottom = false,
         };
-        waterMesh.Material = new StandardMaterial3D
-        {
-            VertexColorUseAsAlbedo = true,
-            // A4 interim: the pass-2 dark lacquer (0.15, hard amber glint) is gone;
-            // a soft satin holds the sea together until the A3 painterly water
-            // plane replaces this material entirely.
-            Roughness = 0.55f,
-        };
+        // A3-lite: animated painterly sea — world-space swell, drifting sky
+        // bands, banded sun glints — on the existing prisms. The full welded
+        // water plane (combat's WaterPlane port) remains a later upgrade.
+        waterMesh.Material = PainterlyPrism.TileMaterial(PainterlyPrism.Water, 0.55f);
 
         var canvasMesh = new CylinderMesh
         {
@@ -1321,12 +1319,9 @@ public partial class WorldAtlas3D : Node3D
             Rings = 0,
             CapBottom = false,
         };
-        canvasMesh.Material = new StandardMaterial3D
-        {
-            VertexColorUseAsAlbedo = true,
-            // Paper is fully matte — no sheen may slide across the unpainted world.
-            Roughness = 1.0f,
-        };
+        // Paper-fibre grain, fully matte — no sheen may slide across the
+        // unpainted world.
+        canvasMesh.Material = PainterlyPrism.TileMaterial(PainterlyPrism.Canvas, 1.0f);
 
         var landMm = new MultiMesh
         {
@@ -1465,16 +1460,23 @@ public partial class WorldAtlas3D : Node3D
 
     // ── Build: river/road edges ─────────────────────────────────────────────
 
-    /// <summary>Rivers and roads are EDGES in WorldData (6-bit masks, set on both
-    /// sides). Each interior edge is drawn once: a tile draws its bits 0–2, whose
-    /// mirrors are the neighbor's bits 3–5. Thin flat boxes laid along the shared
-    /// edge at the taller tile's top.</summary>
+    /// <summary>Rivers and roads as DRAWN STROKES (art pass A9): for each tile a
+    /// thin strip runs from its CENTRE out to each active edge midpoint — the
+    /// neighbour draws its own half, so paths run continuously THROUGH tiles
+    /// (the model the expedition window always used, matching the 2D map)
+    /// instead of as boundary dashes. Each half hugs its OWN tile's top, so
+    /// lines follow the terrain and step at cliffs like ink over relief.
+    /// Water tiles are skipped (no strokes across lakes); Unseen is skipped
+    /// (nothing is drawn on unpainted canvas); Charted keeps its strokes —
+    /// inked chart lines on the underpainting.</summary>
     private void RebuildEdges()
     {
         _riverLayer?.QueueFree();
         _roadLayer?.QueueFree();
 
-        var rivers = new List<Transform3D>();
+        // A9b: rivers become WINDING RIBBONS (RiverMesh — Bézier through-curves +
+        // deterministic meander, bank-shaded); roads stay straight strokes.
+        var riverTiles = new List<(Vector3 center, List<Vector3> mids)>();
         var roads = new List<Transform3D>();
 
         for (int row = 0; row < _world.Height; row++)
@@ -1483,45 +1485,62 @@ public partial class WorldAtlas3D : Node3D
             var tile = _world.GetTile(col, row);
             if ((tile.RiverEdges | tile.RoadEdges) == 0)
                 continue;
+            if (tile.IsWater)
+                continue;
             var discovery = _revealAll ? TileDiscovery.Explored : tile.Discovery;
             if (discovery == TileDiscovery.Unseen)
                 continue;
 
+            Vector3 center = TileOrigin(col, row);
+            center.Y = TileHeightAt(col, row) + 0.02f;
+            List<Vector3> riverMids = null;
             var (q, r) = HexCoord.OffsetToAxial(col, row);
             for (int i = 0; i < 6; i++)
             {
-                var (dq, dr) = HexCoord.AxialDirections[i];
-                var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
-                bool neighborIn = _world.InBounds(nc, nr);
-                // Ownership rule: draw bits 0–2; draw 3–5 only when the mirror side
-                // doesn't exist to draw them.
-                if (i >= 3 && neighborIn)
+                bool riv = (tile.RiverEdges & (1 << i)) != 0;
+                bool road = (tile.RoadEdges & (1 << i)) != 0;
+                if (!riv && !road)
                     continue;
 
-                Vector3 a = TileOrigin(col, row);
-                Vector3 b = neighborIn ? TileOrigin(nc, nr)
-                                       : a + DirectionVector(a, col, i);
-                float hA = TileHeightAt(col, row);
-                float hB = neighborIn ? TileHeightAt(nc, nr) : hA;
-                Vector3 mid = (a + b) * 0.5f;
-                mid.Y = Mathf.Max(hA, hB) + 0.03f;
-
-                // The edge runs perpendicular to the center→neighbor line.
-                Vector3 d = (b - a).Normalized();
-                Vector3 perp = new Vector3(-d.Z, 0f, d.X);
-                float yaw = Mathf.Atan2(-perp.Z, perp.X);
-                var basis = new Basis(Vector3.Up, yaw);
-
-                var xf = new Transform3D(basis, mid);
-                if ((tile.RiverEdges & (1 << i)) != 0) rivers.Add(xf);
-                if ((tile.RoadEdges & (1 << i)) != 0) roads.Add(xf);
+                var (dq, dr) = HexCoord.AxialDirections[i];
+                var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+                Vector3 nbr = _world.InBounds(nc, nr) ? TileOrigin(nc, nr)
+                                                      : center + DirectionVector(center, col, i);
+                nbr.Y = center.Y;
+                Vector3 edgeMid = (center + nbr) * 0.5f;
+                if (riv)
+                    (riverMids ??= new List<Vector3>()).Add(edgeMid);
+                if (road)
+                {
+                    Vector3 seg = edgeMid - center;
+                    float len = seg.Length();
+                    if (len < 1e-4f)
+                        continue;
+                    Vector3 dir = seg / len;
+                    // Box local +X spans the segment (per-instance X scale carries length).
+                    var basis = new Basis(Vector3.Up, Mathf.Atan2(-dir.Z, dir.X))
+                                * Basis.FromScale(new Vector3(len, 1f, 1f));
+                    roads.Add(new Transform3D(basis, (center + edgeMid) * 0.5f));
+                }
             }
+            if (riverMids != null)
+                riverTiles.Add((center, riverMids));
         }
 
-        _riverLayer = MakeEdgeLayer("RiverLayer", rivers,
-            new Vector3(HexR * 0.95f, 0.05f, 0.22f), UITheme.TerrainWaterShallow);
+        _riverLayer = new MeshInstance3D
+        {
+            Name = "RiverLayer",
+            // A9c: 0.22 was invisible at map zoom — map rivers are exaggerated, not to scale.
+            Mesh = RiverMesh.Build(riverTiles, 0.36f, Hex3DPalette.RiverWater, Hex3DPalette.RiverBank),
+            MaterialOverride = PainterlyPrism.RiverMaterial(),
+        };
+        AddChild(_riverLayer);
         _roadLayer = MakeEdgeLayer("RoadLayer", roads,
-            new Vector3(HexR * 0.95f, 0.05f, 0.16f), UITheme.TerrainRoad.Lightened(0.15f));
+            new Vector3(1f, 0.025f, 0.14f), Hex3DPalette.RoadStroke);
+        // Phase-2 polish note honoured: strokes read as litter at city zoom — hidden
+        // in city view (Enter/LeaveCityMode toggle them).
+        _riverLayer.Visible = !_cityMode;
+        _roadLayer.Visible = !_cityMode;
     }
 
     /// <summary>Fallback direction for a border edge with no in-bounds neighbor:
@@ -1541,7 +1560,8 @@ public partial class WorldAtlas3D : Node3D
         Vector3 size, Color color)
     {
         var mesh = new BoxMesh { Size = size };
-        mesh.Material = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.8f };
+        // A9: matte ink stroke, no sheen.
+        mesh.Material = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.95f };
         var mm = new MultiMesh
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
@@ -1550,6 +1570,18 @@ public partial class WorldAtlas3D : Node3D
         };
         for (int i = 0; i < xfs.Count; i++)
             mm.SetInstanceTransform(i, xfs[i]);
+        // Scatter law: explicit CustomAabb (was latent here too).
+        if (xfs.Count > 0)
+        {
+            Vector3 min = xfs[0].Origin, max = min;
+            for (int i = 1; i < xfs.Count; i++)
+            {
+                var o = xfs[i].Origin;
+                min = new Vector3(Mathf.Min(min.X, o.X), Mathf.Min(min.Y, o.Y), Mathf.Min(min.Z, o.Z));
+                max = new Vector3(Mathf.Max(max.X, o.X), Mathf.Max(max.Y, o.Y), Mathf.Max(max.Z, o.Z));
+            }
+            mm.CustomAabb = new Aabb(min, max - min).Grow(HexR);
+        }
         var layer = new MultiMeshInstance3D { Name = name, Multimesh = mm };
         AddChild(layer);
         return layer;
@@ -1753,7 +1785,8 @@ public partial class WorldAtlas3D : Node3D
             l.QueueFree();
         _decoLayers.Clear();
 
-        var trees = new List<(Transform3D xf, Color c)>();
+        var broadleaf = new List<(Transform3D xf, Color c)>();
+        var conifers = new List<(Transform3D xf, Color c)>();
         var peaks = new List<(Transform3D xf, Color c)>();
 
         for (int row = 0; row < _world.Height; row++)
@@ -1769,19 +1802,22 @@ public partial class WorldAtlas3D : Node3D
 
             if (t.Terrain == TT.Forest)
             {
+                // A5: canopy blob clusters (base-origin meshes — placed AT ground
+                // height), 60/40 broadleaf/conifer by hash, random yaw so the
+                // cluster meshes don't read as clones.
                 int n = 2 + (int)(HashTile(col, row, 1) % 2);
                 for (int i = 0; i < n; i++)
                 {
                     float ang = Hash01(HashTile(col, row, (uint)(7 + i))) * Mathf.Tau;
                     float rad = Hash01(HashTile(col, row, (uint)(31 + i))) * 0.55f;
                     float s = 0.55f + Hash01(HashTile(col, row, (uint)(53 + i))) * 0.55f;
-                    var pos = basePos + new Vector3(
-                        Mathf.Cos(ang) * rad,
-                        h + 0.8f * s * 0.5f - 0.04f,
-                        Mathf.Sin(ang) * rad);
-                    trees.Add((
-                        new Transform3D(Basis.FromScale(new Vector3(s, s, s)), pos),
-                        Jitter(new Color(0.16f, 0.30f, 0.14f), col, row + i * 977, 0.10f)));
+                    var pos = basePos + new Vector3(Mathf.Cos(ang) * rad, h - 0.03f, Mathf.Sin(ang) * rad);
+                    var yaw = new Basis(Vector3.Up, Hash01(HashTile(col, row, (uint)(97 + i))) * Mathf.Tau);
+                    var xf = new Transform3D(yaw * Basis.FromScale(new Vector3(s, s, s)), pos);
+                    if (HashTile(col, row, (uint)(71 + i)) % 10 < 6)
+                        broadleaf.Add((xf, Jitter(new Color(0.21f, 0.35f, 0.15f), col, row + i * 977, 0.12f)));
+                    else
+                        conifers.Add((xf, Jitter(new Color(0.13f, 0.25f, 0.15f), col, row + i * 977, 0.10f)));
                 }
             }
             else if (t.Terrain == TT.Mountain || t.Terrain == TT.Volcanic)
@@ -1809,20 +1845,14 @@ public partial class WorldAtlas3D : Node3D
             }
         }
 
-        _decoLayers.Add(MakeDecoLayer("TreeLayer", trees, 0.26f, 0.8f));
-        _decoLayers.Add(MakeDecoLayer("PeakLayer", peaks, 0.34f, 0.9f));
+        _decoLayers.Add(MakeDecoLayer("BroadleafLayer", broadleaf, PainterlyProps.BroadleafCanopy(), 1.3f));
+        _decoLayers.Add(MakeDecoLayer("ConiferLayer", conifers, PainterlyProps.ConiferCanopy(), 1.4f));
+        _decoLayers.Add(MakeDecoLayer("PeakLayer", peaks, PainterlyProps.PeakCone(0.34f, 0.9f), 1.6f));
     }
 
     private MultiMeshInstance3D MakeDecoLayer(string name,
-        List<(Transform3D xf, Color c)> items, float baseRadius, float height)
+        List<(Transform3D xf, Color c)> items, Mesh mesh, float meshExtent)
     {
-        var mesh = new CylinderMesh
-        {
-            TopRadius = 0f, BottomRadius = baseRadius, Height = height,
-            RadialSegments = 5, Rings = 0,
-        };
-        mesh.Material = new StandardMaterial3D
-        { VertexColorUseAsAlbedo = true, Roughness = 0.85f };
         var mm = new MultiMesh
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
@@ -1834,6 +1864,22 @@ public partial class WorldAtlas3D : Node3D
         {
             mm.SetInstanceTransform(i, items[i].xf);
             mm.SetInstanceColor(i, items[i].c);
+        }
+        // Style-guide scatter law: every world-space MultiMesh needs an explicit
+        // CustomAabb (auto AABB on world-space instance transforms is unreliable —
+        // whole layers frustum-cull as one unit on a camera turn). Latent here
+        // since stage 1; fixed with the A5 refactor. Grown by mesh extent × the
+        // max scale band.
+        if (items.Count > 0)
+        {
+            Vector3 min = items[0].xf.Origin, max = min;
+            for (int i = 1; i < items.Count; i++)
+            {
+                var o = items[i].xf.Origin;
+                min = new Vector3(Mathf.Min(min.X, o.X), Mathf.Min(min.Y, o.Y), Mathf.Min(min.Z, o.Z));
+                max = new Vector3(Mathf.Max(max.X, o.X), Mathf.Max(max.Y, o.Y), Mathf.Max(max.Z, o.Z));
+            }
+            mm.CustomAabb = new Aabb(min, max - min).Grow(meshExtent);
         }
         var layer = new MultiMeshInstance3D { Name = name, Multimesh = mm };
         AddChild(layer);
