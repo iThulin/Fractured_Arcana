@@ -35,6 +35,13 @@ group_uniforms land_grain;
 uniform float grain_strength : hint_range(0.0, 0.3) = 0.07;
 /** World-space scale of the brush grain. */
 uniform float grain_scale : hint_range(0.05, 5.0) = 0.9;
+/** Gentle world-space undulation of land TOP surfaces, world units. 0 = flat
+    lids (the strategic map). The expedition window sets ~0.07 on a subdivided
+    tile mesh so the ground rolls naturally ACROSS tiles (world-space noise ⇒
+    adjacent rims displace identically — no tearing at seams). */
+uniform float top_undulation : hint_range(0.0, 0.2) = 0.0;
+/** World-space scale of the undulation noise. */
+uniform float undulation_scale : hint_range(0.05, 3.0) = 0.5;
 group_uniforms;
 
 group_uniforms skirt;
@@ -104,6 +111,18 @@ void vertex()
 {
 	v_inst_color = COLOR;
 	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	if (mode == 0 && top_undulation > 0.0)
+	{
+		// Roll the land tops (object-space top cap sits at +0.5 on the unit
+		// prism). Same world-unit conversion as the water swell; static — the
+		// ground does not breathe.
+		float top = step(0.49, VERTEX.y);
+		float n = vnoise(wp.xz * undulation_scale)
+		        + vnoise(wp.xz * undulation_scale * 2.4 + 31.7) * 0.5;
+		float ys = max(length(MODEL_MATRIX[1].xyz), 0.0001);
+		VERTEX.y += top * (n - 0.75) * top_undulation / ys;
+		wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	}
 	if (mode == 1)
 	{
 		// World-space swell on TOP vertices only (object-space top cap sits at

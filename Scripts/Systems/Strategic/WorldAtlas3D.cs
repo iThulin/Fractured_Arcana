@@ -123,6 +123,7 @@ public partial class WorldAtlas3D : Node3D
     private const byte LayerLand = 0, LayerWater = 1, LayerCanvas = 2;
     private MeshInstance3D _riverLayer;        // A9b: one winding ribbon mesh (RiverMesh)
     private MultiMeshInstance3D _roadLayer;
+    private MultiMeshInstance3D _borderLayer;  // A7: kingdom-border ink strokes
     private readonly List<Node3D> _markers = new();   // POI/settlement/staging/etc, rebuilt together
     // Map labels that hold a constant on-screen size across zoom (their world PixelSize is retuned
     // from _camDist each camera move — see UpdateLabelScales). Their nodes live in _markers.
@@ -667,9 +668,10 @@ public partial class WorldAtlas3D : Node3D
         _cityMode = true;
 
         if (_cityBorders != null) _cityBorders.Visible = true;
-        // A9: river/road strokes read as litter at city zoom — hide them.
+        // A9/A7: river/road/border strokes read as litter at city zoom — hide them.
         if (_riverLayer != null) _riverLayer.Visible = false;
         if (_roadLayer != null) _roadLayer.Visible = false;
+        if (_borderLayer != null) _borderLayer.Visible = false;
         foreach (var m in _cityHiddenMarkers)
             if (m != null && IsInstanceValid(m)) m.Visible = false;
         _camera.Near = 0.02f;   // let the camera get in close without slicing tiles
@@ -707,6 +709,7 @@ public partial class WorldAtlas3D : Node3D
         if (_cityBorders != null) _cityBorders.Visible = false;
         if (_riverLayer != null) _riverLayer.Visible = true;
         if (_roadLayer != null) _roadLayer.Visible = true;
+        if (_borderLayer != null) _borderLayer.Visible = true;
         foreach (var m in _cityHiddenMarkers)
             if (m != null && IsInstanceValid(m)) m.Visible = true;
         if (_camera != null) { _camera.Near = 0.05f; _camera.Far = 600f; }
@@ -1504,10 +1507,17 @@ public partial class WorldAtlas3D : Node3D
 
                 var (dq, dr) = HexCoord.AxialDirections[i];
                 var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
-                Vector3 nbr = _world.InBounds(nc, nr) ? TileOrigin(nc, nr)
-                                                      : center + DirectionVector(center, col, i);
-                nbr.Y = center.Y;
-                Vector3 edgeMid = (center + nbr) * 0.5f;
+                bool inBounds = _world.InBounds(nc, nr);
+                Vector3 nbr = inBounds ? TileOrigin(nc, nr)
+                                       : center + DirectionVector(center, col, i);
+                // CONTINUITY (user report: strokes break at height steps): the
+                // shared edge midpoint sits at the AVERAGE of the two rendered
+                // heights, so both tiles' halves meet at the same point and the
+                // stroke SLOPES across the tile instead of jumping at the seam.
+                float nbrH = inBounds ? TileHeightAt(nc, nr) : TileHeightAt(col, row);
+                Vector3 edgeMid = new Vector3((center.X + nbr.X) * 0.5f,
+                                              (TileHeightAt(col, row) + nbrH) * 0.5f + 0.02f,
+                                              (center.Z + nbr.Z) * 0.5f);
                 if (riv)
                     (riverMids ??= new List<Vector3>()).Add(edgeMid);
                 if (road)
@@ -1516,11 +1526,14 @@ public partial class WorldAtlas3D : Node3D
                     float len = seg.Length();
                     if (len < 1e-4f)
                         continue;
-                    Vector3 dir = seg / len;
-                    // Box local +X spans the segment (per-instance X scale carries length).
-                    var basis = new Basis(Vector3.Up, Mathf.Atan2(-dir.Z, dir.X))
-                                * Basis.FromScale(new Vector3(len, 1f, 1f));
-                    roads.Add(new Transform3D(basis, (center + edgeMid) * 0.5f));
+                    // Tilted basis: local +X runs along the (possibly sloped)
+                    // segment, slightly overlength so joints at slope kinks close.
+                    Vector3 ax = seg / len;
+                    Vector3 az = ax.Cross(Vector3.Up);
+                    az = az.LengthSquared() > 1e-6f ? az.Normalized() : Vector3.Forward;
+                    Vector3 ay = az.Cross(ax).Normalized();
+                    roads.Add(new Transform3D(new Basis(ax * (len * 1.05f), ay, az),
+                                              (center + edgeMid) * 0.5f));
                 }
             }
             if (riverMids != null)
@@ -1539,8 +1552,52 @@ public partial class WorldAtlas3D : Node3D
             new Vector3(1f, 0.025f, 0.14f), Hex3DPalette.RoadStroke);
         // Phase-2 polish note honoured: strokes read as litter at city zoom — hidden
         // in city view (Enter/LeaveCityMode toggle them).
+        // A7: kingdom-border ink — a dark drawn line along every edge where two
+        // differing realms (or a realm and the wilds) meet. Both sides must be
+        // discovered: a border may not leak into the unpainted canvas. Interior
+        // edges once via direction bits 0–2 (the mirror is the neighbour's 3–5).
+        _borderLayer?.QueueFree();
+        var borders = new List<Transform3D>();
+        for (int row = 0; row < _world.Height; row++)
+        for (int col = 0; col < _world.Width; col++)
+        {
+            var t = _world.GetTile(col, row);
+            if (!t.IsLand)
+                continue;
+            var d1 = _revealAll ? TileDiscovery.Explored : t.Discovery;
+            if (d1 == TileDiscovery.Unseen)
+                continue;
+            var (q, r) = HexCoord.OffsetToAxial(col, row);
+            for (int i = 0; i < 3; i++)
+            {
+                var (dq, dr) = HexCoord.AxialDirections[i];
+                var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+                if (!_world.InBounds(nc, nr))
+                    continue;
+                var n = _world.GetTile(nc, nr);
+                if (!n.IsLand)
+                    continue;
+                var d2 = _revealAll ? TileDiscovery.Explored : n.Discovery;
+                if (d2 == TileDiscovery.Unseen)
+                    continue;
+                if (t.KingdomId == n.KingdomId)
+                    continue;
+                Vector3 a = TileOrigin(col, row);
+                Vector3 b = TileOrigin(nc, nr);
+                Vector3 mid = (a + b) * 0.5f;
+                mid.Y = Mathf.Max(TileHeightAt(col, row), TileHeightAt(nc, nr)) + 0.012f;
+                Vector3 dd = (b - a).Normalized();
+                Vector3 perp = new Vector3(-dd.Z, 0f, dd.X);
+                borders.Add(new Transform3D(
+                    new Basis(Vector3.Up, Mathf.Atan2(-perp.Z, perp.X)), mid));
+            }
+        }
+        _borderLayer = MakeEdgeLayer("BorderLayer", borders,
+            new Vector3(HexR * 0.98f, 0.02f, 0.06f), Hex3DPalette.BorderInk);
+
         _riverLayer.Visible = !_cityMode;
         _roadLayer.Visible = !_cityMode;
+        _borderLayer.Visible = !_cityMode;
     }
 
     /// <summary>Fallback direction for a border edge with no in-bounds neighbor:
@@ -1598,7 +1655,8 @@ public partial class WorldAtlas3D : Node3D
         _cityHiddenMarkers.Clear();   // its nodes live in _markers, just freed above
 
         // POIs — discovered only (or reveal), same rule as StrategicView's POI layer.
-        var poiMesh = new SphereMesh { Radius = 0.30f, Height = 0.60f, RadialSegments = 10, Rings = 6 };
+        // A7: a flattened DAB of paint on the map rather than a floating ball.
+        var poiMesh = new SphereMesh { Radius = 0.34f, Height = 0.26f, RadialSegments = 10, Rings = 6 };
         foreach (var poi in _world.Pois)
         {
             if (!poi.Discovered && !_revealAll) continue;
@@ -1611,7 +1669,7 @@ public partial class WorldAtlas3D : Node3D
                     AlbedoColor = c,
                     EmissionEnabled = true, Emission = c, EmissionEnergyMultiplier = 0.35f,
                 },
-                Position = MarkerPos(poi.X, poi.Y, 0.4f),
+                Position = MarkerPos(poi.X, poi.Y, 0.16f),   // A7: sits ON the ground, a dab of paint
             }, poi.X, poi.Y);
         }
 
@@ -1678,27 +1736,26 @@ public partial class WorldAtlas3D : Node3D
         // AddMarker's city-tile tracking hides it in city view like the seat block.
         foreach (var sp in _world.StagingPoints)
         {
+            // A7: a planted gold STANDARD instead of the cone — the guild's launch
+            // flag in the world. The glowing orb cap stays smaller but bright: it
+            // is the "see me from across the map" element (loudness law).
+            var banner = new MeshInstance3D
+            {
+                Mesh = PainterlyProps.Banner(),
+                Position = MarkerPos(sp.X, sp.Y, 0.02f),
+            };
+            banner.SetSurfaceOverrideMaterial(PainterlyProps.BannerFlagSurface,
+                FlagMaterial(UITheme.Gold, 0.7f));
+            AddMarker(banner, sp.X, sp.Y);
             AddMarker(new MeshInstance3D
             {
-                Mesh = new CylinderMesh { TopRadius = 0.22f, BottomRadius = 0.5f, Height = 3.4f, RadialSegments = 8, Rings = 0 },
-                MaterialOverride = new StandardMaterial3D
-                {
-                    AlbedoColor = UITheme.Gold,
-                    Metallic = 0f, Roughness = 0.6f,   // A4: gilded paint, not brass (was Metallic 0.85)
-                    EmissionEnabled = true, Emission = UITheme.Gold, EmissionEnergyMultiplier = 0.6f,
-                },
-                Position = MarkerPos(sp.X, sp.Y, 1.7f),
-            }, sp.X, sp.Y);
-            // Glowing orb cap — the actual "you can see me from across the map" element.
-            AddMarker(new MeshInstance3D
-            {
-                Mesh = new SphereMesh { Radius = 0.7f, Height = 1.4f, RadialSegments = 12, Rings = 8 },
+                Mesh = new SphereMesh { Radius = 0.55f, Height = 1.1f, RadialSegments = 12, Rings = 8 },
                 MaterialOverride = new StandardMaterial3D
                 {
                     AlbedoColor = UITheme.Gold,
                     EmissionEnabled = true, Emission = UITheme.Gold, EmissionEnergyMultiplier = 1.0f,
                 },
-                Position = MarkerPos(sp.X, sp.Y, 3.7f),
+                Position = MarkerPos(sp.X, sp.Y, 3.6f),
             }, sp.X, sp.Y);
         }
 
@@ -1741,29 +1798,44 @@ public partial class WorldAtlas3D : Node3D
         // so an active front can't be missed on the whole-world view.
         foreach (var wf in _warfronts)
         {
+            // A7: a WAR BANNER instead of the spike — scaled past the staging
+            // standards so a front still can't be missed (loudness law: the orb +
+            // label stay).
+            var banner = new MeshInstance3D
+            {
+                Mesh = PainterlyProps.Banner(),
+                Position = MarkerPos(wf.X, wf.Y, 0.02f),
+                Scale = new Vector3(1.3f, 1.3f, 1.3f),
+            };
+            banner.SetSurfaceOverrideMaterial(PainterlyProps.BannerFlagSurface,
+                FlagMaterial(UITheme.Danger, 1.0f));
+            AddMarker(banner);
             AddMarker(new MeshInstance3D
             {
-                Mesh = new CylinderMesh { TopRadius = 0.18f, BottomRadius = 0.55f, Height = 4.2f, RadialSegments = 8, Rings = 0 },
-                MaterialOverride = new StandardMaterial3D
-                {
-                    AlbedoColor = UITheme.Danger,
-                    EmissionEnabled = true, Emission = UITheme.Danger, EmissionEnergyMultiplier = 0.9f,
-                },
-                Position = MarkerPos(wf.X, wf.Y, 2.1f),
-            });
-            AddMarker(new MeshInstance3D
-            {
-                Mesh = new SphereMesh { Radius = 0.85f, Height = 1.7f, RadialSegments = 12, Rings = 8 },
+                Mesh = new SphereMesh { Radius = 0.7f, Height = 1.4f, RadialSegments = 12, Rings = 8 },
                 MaterialOverride = new StandardMaterial3D
                 {
                     AlbedoColor = UITheme.Danger,
                     EmissionEnabled = true, Emission = UITheme.Danger, EmissionEnergyMultiplier = 1.3f,
                 },
-                Position = MarkerPos(wf.X, wf.Y, 4.6f),
+                Position = MarkerPos(wf.X, wf.Y, 4.7f),
             });
             AddMarker(MakeLabel("⚔ War", UITheme.Danger, MarkerPos(wf.X, wf.Y, 5.9f)));
         }
     }
+
+    /// <summary>Pennant material for a planted banner (A7): coloured, matte,
+    /// two-sided, glowing enough to stay findable at whole-world zoom.</summary>
+    private static StandardMaterial3D FlagMaterial(Color c, float emission)
+        => new StandardMaterial3D
+        {
+            AlbedoColor = c,
+            Roughness = 0.8f,
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            EmissionEnabled = true,
+            Emission = c,
+            EmissionEnergyMultiplier = emission,
+        };
 
     // ── Stage 1: decoration layers ──────────────────────────────────────────
 

@@ -508,8 +508,23 @@ public partial class ExpeditionWindow3D : Node3D
             else land.Add((xf, TileColor(t, c, fog)));
         }
 
-        _landLayer = MakeTileLayer("WinLand", land, taper: 0.96f, roughness: 0.9f,
-                                   prismMode: PainterlyPrism.Land);
+        // Terrain break-up stage 1 (window-only): subdivided tile tops on a
+        // thinner grout, rolled by the shader's top_undulation — the ground
+        // undulates ACROSS tiles while height steps stay crisp for navigation.
+        _landLayer = MakeTileLayer("WinLand", land, taper: 0.985f, roughness: 0.9f,
+                                   prismMode: PainterlyPrism.Land,
+                                   customMesh: PainterlyProps.HexTileMesh(0.985f));
+        // Close-zoom identity (user: "everything is too similar"): the atlas
+        // grain settings are too broad to read at walking distance — finer,
+        // slightly stronger brushwork, plus the undulation, window only.
+        if (_landLayer.Multimesh.Mesh is ArrayMesh lam
+            && lam.SurfaceGetMaterial(0) is ShaderMaterial landSm)
+        {
+            landSm.SetShaderParameter("grain_scale", 1.8f);
+            landSm.SetShaderParameter("grain_strength", 0.11f);
+            landSm.SetShaderParameter("top_undulation", 0.06f);
+            landSm.SetShaderParameter("undulation_scale", 0.5f);
+        }
         _waterLayer = MakeTileLayer("WinWater", water, taper: 1.0f, roughness: 0.55f,
                                     prismMode: PainterlyPrism.Water);
         // No shadow casting on canvas: it is the lowest geometry, and coplanar
@@ -541,16 +556,21 @@ public partial class ExpeditionWindow3D : Node3D
     }
 
     private MultiMeshInstance3D MakeTileLayer(string name, List<(Transform3D xf, Color c)> items,
-                                              float taper, float roughness, int prismMode)
+                                              float taper, float roughness, int prismMode,
+                                              Mesh customMesh = null)
     {
-        var mesh = new CylinderMesh
+        Mesh mesh = customMesh ?? new CylinderMesh
         {
             TopRadius = HexR * taper, BottomRadius = HexR, Height = 1f,
             RadialSegments = 6, Rings = 0, CapBottom = false,
         };
         // A2/A3-lite: shared painterly prism shader (same factory as the atlas —
         // the two views must not drift); roughness is the fallback material's.
-        mesh.Material = PainterlyPrism.TileMaterial(prismMode, roughness);
+        // The material lives on the mesh either way.
+        if (mesh is PrimitiveMesh pm)
+            pm.Material = PainterlyPrism.TileMaterial(prismMode, roughness);
+        else if (mesh is ArrayMesh am)
+            am.SurfaceSetMaterial(0, PainterlyPrism.TileMaterial(prismMode, roughness));
         var mm = new MultiMesh
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
@@ -562,6 +582,14 @@ public partial class ExpeditionWindow3D : Node3D
         AddChild(node);
         return node;
     }
+
+    /// <summary>WINDOW-ONLY height compression (user ruling 2026-08-12: full
+    /// strategic terracing is busy and hard to navigate at walking zoom). The
+    /// strategic map's relief is INFORMATION at survey distance; here the
+    /// information is adjacency and walkability, so the variable part of the
+    /// height is compressed — relief survives as gentle steps, cliffs stop
+    /// occluding the tiles behind them. 1.0 restores the strategic profile.</summary>
+    private const float HeightScale = 0.45f;
 
     private float TileHeight(Vector2I c)
     {
@@ -580,7 +608,7 @@ public partial class ExpeditionWindow3D : Node3D
             case TT.Swamp: case TT.Marsh: h = Mathf.Min(h, 0.30f); break;
             case TT.Coast: h = Mathf.Min(h, 0.26f); break;
         }
-        return h;
+        return 0.22f + (h - 0.22f) * HeightScale;
     }
 
     // ── Rivers & roads (edge masks) ──────────────────────────────────────────
@@ -618,9 +646,15 @@ public partial class ExpeditionWindow3D : Node3D
 
                 var (dq, dr) = HexCoord.AxialDirections[i];
                 var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
-                Vector3 nbr = _world.InBounds(nc, nr) ? TileOrigin(nc, nr) : center + EdgeDir(i);
-                nbr.Y = center.Y;
-                Vector3 edgeMid = (center + nbr) * 0.5f;
+                bool inBounds = _world.InBounds(nc, nr);
+                Vector3 nbr = inBounds ? TileOrigin(nc, nr) : center + EdgeDir(i);
+                // CONTINUITY: edge midpoint at the AVERAGE of the two rendered
+                // heights (hidden neighbours count at the canvas slab, so a stroke
+                // dives into the fog) — halves meet, strokes slope, no seam jumps.
+                float nbrH = inBounds ? RenderedTileHeight(new Vector2I(nc, nr)) : TileHeight(c);
+                Vector3 edgeMid = new Vector3((center.X + nbr.X) * 0.5f,
+                                              (TileHeight(c) + nbrH) * 0.5f + 0.03f,
+                                              (center.Z + nbr.Z) * 0.5f);
                 if (riv)
                     (riverMids ??= new List<Vector3>()).Add(edgeMid);
                 if (road)
@@ -628,10 +662,14 @@ public partial class ExpeditionWindow3D : Node3D
                     Vector3 seg = edgeMid - center;
                     float len = seg.Length();
                     if (len < 1e-4f) continue;
-                    Vector3 dir = seg / len;
-                    // Box local +X spans the segment (scaled by len); position at segment midpoint.
-                    var basis = new Basis(Vector3.Up, Mathf.Atan2(-dir.Z, dir.X)) * Basis.FromScale(new Vector3(len, 1f, 1f));
-                    roads.Add(new Transform3D(basis, (center + edgeMid) * 0.5f));
+                    // Tilted basis: local +X along the sloped segment, slightly
+                    // overlength so joints at slope kinks close.
+                    Vector3 ax = seg / len;
+                    Vector3 az = ax.Cross(Vector3.Up);
+                    az = az.LengthSquared() > 1e-6f ? az.Normalized() : Vector3.Forward;
+                    Vector3 ay = az.Cross(ax).Normalized();
+                    roads.Add(new Transform3D(new Basis(ax * (len * 1.05f), ay, az),
+                                              (center + edgeMid) * 0.5f));
                 }
             }
             if (riverMids != null)
@@ -648,6 +686,12 @@ public partial class ExpeditionWindow3D : Node3D
         AddChild(_riverLayer);
         _roadLayer = MakeEdgeLayer("WinRoads", roads, new Vector3(1f, 0.03f, 0.15f), Hex3DPalette.RoadStroke);
     }
+
+    /// <summary>A tile's height as it actually RENDERS: hidden tiles sit at the
+    /// canvas slab (FogSlabHeight), not TileHeight's internal void value — used
+    /// for edge-midpoint averaging so strokes meet what is really drawn.</summary>
+    private float RenderedTileHeight(Vector2I c)
+        => _fog.FogAt(c) == Fog.Hidden ? FogSlabHeight : TileHeight(c);
 
     /// <summary>Approx render-space direction to a border tile's missing neighbour.</summary>
     private static Vector3 EdgeDir(int i)
@@ -719,6 +763,22 @@ public partial class ExpeditionWindow3D : Node3D
                         conifers.Add((xf, Jitter(new Color(0.13f, 0.25f, 0.15f), c, 0.10f)));
                 }
             }
+            else if (t.Terrain == TT.Hills && Hash(c, 4) % 10 < 4)
+            {
+                // Shrub clumps on hills (window-only): breaks the big gold fields
+                // at walking zoom — the atlas reads hills fine at survey distance.
+                int n = 1 + (int)(Hash(c, 5) % 2);
+                for (int i = 0; i < n; i++)
+                {
+                    float a = H01(Hash(c, (uint)(61 + i))) * Mathf.Tau;
+                    float rad = 0.15f + H01(Hash(c, (uint)(67 + i))) * 0.45f;
+                    float s = 0.24f + H01(Hash(c, (uint)(73 + i))) * 0.14f;
+                    var pos = basePos + new Vector3(Mathf.Cos(a) * rad, h - 0.02f, Mathf.Sin(a) * rad);
+                    var yaw = new Basis(Vector3.Up, H01(Hash(c, (uint)(79 + i))) * Mathf.Tau);
+                    broadleaf.Add((new Transform3D(yaw * Basis.FromScale(new Vector3(s, s * 0.8f, s)), pos),
+                                   Jitter(new Color(0.44f, 0.45f, 0.24f), c, 0.14f)));
+                }
+            }
             else if ((t.Terrain == TT.Mountain || t.Terrain == TT.Volcanic) && Hash(c, 2) % 10 < 5)
             {
                 float s = 0.7f + H01(Hash(c, 11)) * 0.6f;
@@ -782,7 +842,8 @@ public partial class ExpeditionWindow3D : Node3D
             var pos = TileOrigin(c.X, c.Y); pos.Y = TileHeight(c) + 0.9f;
             _markers.Add(AddChildReturn(new MeshInstance3D
             {
-                Mesh = new SphereMesh { Radius = 0.28f, Height = 0.56f, RadialSegments = 10, Rings = 6 },
+                // A7: flattened paint-dab, matching the atlas's POI language.
+                Mesh = new SphereMesh { Radius = 0.32f, Height = 0.24f, RadialSegments = 10, Rings = 6 },
                 // NoDepthTest so a marker is never hidden behind a taller tile at this shallow angle —
                 // the "markers don't reliably appear" fix. It reads through terrain like a map pin.
                 MaterialOverride = new StandardMaterial3D

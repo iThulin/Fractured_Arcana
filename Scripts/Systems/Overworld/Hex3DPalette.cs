@@ -117,6 +117,10 @@ public static class Hex3DPalette
     /// <summary>Road stroke — a warm worn-earth line.</summary>
     public static readonly Color RoadStroke = new Color(0.56f, 0.47f, 0.34f);
 
+    /// <summary>Kingdom-border ink (A7) — the dark drawn line where two realms
+    /// meet on the painting.</summary>
+    public static readonly Color BorderInk = new Color(0.16f, 0.13f, 0.12f);
+
     // ── Painterly discovery: the "unpainted world" (art pass A6, 2026-08-12) ──
     // Shared by BOTH 3D renderers so the discovery language can never drift between
     // the strategic map and the expedition window. (The per-view fog colors this

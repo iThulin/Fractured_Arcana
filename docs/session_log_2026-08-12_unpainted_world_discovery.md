@@ -292,6 +292,91 @@ to (0.10, 0.18, 0.28) — the water must separate from olive ground, not
 harmonize with it. If still faint at whole-world zoom the next knob is
 `sky_mix` → 0.10 on RiverMaterial (the wash lightens the base), then width.
 
+## A7 — marker language (same session; A9c rivers confirmed in play)
+- **`PainterlyProps.Banner()`** — planted standard, ~3.3 tall, base at y = 0.
+  TWO surfaces: 0 = pole (baked wood material), 1 = pennant (recolour per
+  marker via `SetSurfaceOverrideMaterial(BannerFlagSurface, …)`). Pennant emits
+  BOTH windings + the override material is `CullMode.Disabled` — a flag must
+  read from every side. Built via AppendFrom (pole) + `Commit(existing)`
+  (appends pennant as surface 1 — the one engine-API assumption this
+  increment; if the pennant is missing at build, that call is the suspect).
+- **Atlas staging beacons** → gold standards (`FlagMaterial(Gold, 0.7)`); the
+  glowing orb cap stays (smaller, 0.55) — it is the loudness element, and
+  AddMarker's city-tile tracking still hides portal banners in city view.
+- **Warfronts** → red war banners at 1.3× scale + orb + "⚔ War" label (spike
+  gone; loudness preserved).
+- **POI markers, both renderers** → flattened paint-DABS (SphereMesh height
+  ~0.25) sitting on the ground instead of floating balls; emission kept.
+- **Kingdom-border ink** (the pass-3 candidate, now real): `_borderLayer` in
+  atlas RebuildEdges — a thin dark stroke (`Hex3DPalette.BorderInk`) on every
+  interior edge where two differing realms (or realm vs wilds) meet, land only,
+  BOTH sides discovered (no leaking into canvas), edge drawn once via direction
+  bits 0–2. All lenses; hidden in city view with rivers/roads.
+- Left as-is, deliberately: shard-gate + Convergence spikes (arcane spikes read
+  correctly), settlement blocks + labels (already de-metallized in A4).
+
+NOT compile-run. Loudness check on build: staging standards and war banners
+must stay findable at whole-world ortho zoom — if the pennants vanish at that
+distance, raise the orb emission or banner scale, don't thicken the pennant.
+
+## Expedition readability + stroke continuity (same session; two user rulings)
+Rulings: (1) expedition window "too similar, heights busy and hard to navigate";
+(2) "water and roads are not continuous on the tiles."
+
+**Window readability (window-only; strategic untouched — the two views have
+different jobs: survey relief is information, walking relief is noise):**
+- `HeightScale = 0.45` — TileHeight's variable part compressed; base 0.22 and
+  water heights untouched; 1.0 restores the strategic profile. PickTile shares
+  TileHeight so picking stays consistent.
+- Land material (window instance only): grain_scale 1.8 / grain_strength 0.11 —
+  the atlas grain is too broad to read at walking distance.
+- Hills shrub clumps (window decorations): 1–2 small flattened broadleaf blobs
+  on 40% of Hills tiles, dry-olive, deterministic, Revealed-only — breaks the
+  gold fields.
+
+**Stroke continuity (BOTH renderers — the strategic map had the same breaks,
+smaller):** the shared edge midpoint now sits at the AVERAGE of the two
+rendered heights, so each tile's half-stroke meets its neighbour's at the same
+point and paths SLOPE across tiles instead of jumping at seams. Rivers: the
+Bézier interpolates Y through the tile-centre control → smooth vertical
+profile, and a stroke toward a hidden neighbour dives to the canvas slab
+(window `RenderedTileHeight` helper — TileHeight's hidden branch returns the
+old void value, NOT the rendered FogSlabHeight; averaging must use what is
+actually drawn). Roads: yaw-only basis → full tilted basis (local +X along the
+sloped segment, orthonormal Y/Z, ×1.05 overlength so joints at slope kinks
+close).
+
+NOT compile-run (static checks only). Judge: expedition board navigable with
+gentle relief; rivers running downhill continuously; roads climbing steps
+without gaps; shrub-dotted hills. If 0.45 flattens too much, raise toward 0.6;
+if cliffs still occlude, drop toward 0.35 — one knob.
+
+## Window terrain break-up, stage 1 (user: "break up the terrain like combat?")
+Ruling given as a staged answer: YES for the window, NO for the strategic map
+(survey view keeps crisp tiles), and NOT the full combat weld port yet.
+
+- **Stage 1 (this increment)**: `PainterlyProps.HexTileMesh(taper)` — a hex
+  prism with SUBDIVIDED top (centre + mid ring + rim, 18 top tris), matching
+  CylinderMesh conventions exactly (unit height ±0.5, x=sin/z=cos corner phase,
+  no bottom cap; windings verified by the RH-normal sign test against the CW
+  front-face rule; flat outward wall normals). New shader uniforms
+  `top_undulation` (default 0 — atlas flat) + `undulation_scale`: land mode
+  rolls TOP vertices by static world-space noise, world-unit amplitude through
+  the instance basis (the water-swell conversion). World-space ⇒ adjacent rims
+  displace identically ⇒ ground undulates ACROSS tiles, no tearing. Window land
+  layer: custom mesh, grout thinned 0.96 → 0.985, undulation 0.06 @ scale 0.5.
+  `MakeTileLayer` gained an optional customMesh (material set on PrimitiveMesh
+  or ArrayMesh surface 0 accordingly). HexTileMesh cache ignores taper after
+  first call (single caller).
+- **Stage 2 (escalation, NOT built)**: true welded window mesh — merged
+  ArrayMesh of the ~469 window tiles with combat-style corner averaging under
+  a cliff threshold, canvas slabs hard-edged, colors baked per-vertex. ~a
+  session; touches picking + recolor. Build only if stage 1 screenshots still
+  read as poker chips.
+- Watch on build: move-hint overlays sit ~0.02 above tile tops — undulation
+  peaks (~+0.05) may poke through highlight quads; if so raise the overlay
+  lift, don't drop the undulation first.
+
 ## Open threads
 - Viewport background (`BackgroundColor = UITheme.WorldDeep`, both renderers) is
   still the dark void — a parchment world floating in darkness at cycle start.

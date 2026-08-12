@@ -75,6 +75,131 @@ public static class PainterlyProps
         return _peak;
     }
 
+    private static ArrayMesh _hexTile;
+
+    /// <summary>A hex tile prism with a SUBDIVIDED top (centre + mid ring + rim)
+    /// so the prism shader's <c>top_undulation</c> can roll the ground surface —
+    /// stage 1 of the expedition window's terrain break-up. Matches CylinderMesh
+    /// conventions exactly (unit height ±0.5, x = sin/z = cos corner phase, no
+    /// bottom cap) so it drops into the same per-instance transforms; flat
+    /// outward wall normals keep the carved-facet read. Windings follow the
+    /// project's CW-front rule (verified by the RH-normal sign test).
+    /// NOTE: cached — the taper argument is honoured on first call only.</summary>
+    public static ArrayMesh HexTileMesh(float taper)
+    {
+        if (_hexTile != null) return _hexTile;
+
+        var corner = new Vector3[7];
+        var rim = new Vector3[7];
+        var mid = new Vector3[7];
+        var bottom = new Vector3[7];
+        for (int i = 0; i < 7; i++)
+        {
+            float ang = (i % 6) * Mathf.Tau / 6f;
+            var dir = new Vector3(Mathf.Sin(ang), 0f, Mathf.Cos(ang));
+            corner[i] = dir;
+            rim[i] = dir * taper + Vector3.Up * 0.5f;
+            mid[i] = dir * (taper * 0.5f) + Vector3.Up * 0.5f;
+            bottom[i] = dir - Vector3.Up * 0.5f;
+        }
+        var centre = Vector3.Up * 0.5f;
+
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        for (int i = 0; i < 6; i++)
+        {
+            // Top: centre fan + mid→rim band, smooth up normals.
+            TopTri(st, centre, mid[i + 1], mid[i]);
+            TopTri(st, mid[i], mid[i + 1], rim[i + 1]);
+            TopTri(st, mid[i], rim[i + 1], rim[i]);
+            // Wall: flat outward normal.
+            Vector3 n = (corner[i] + corner[i + 1]).Normalized();
+            WallTri(st, n, rim[i], rim[i + 1], bottom[i + 1]);
+            WallTri(st, n, rim[i], bottom[i + 1], bottom[i]);
+        }
+        _hexTile = st.Commit();
+        return _hexTile;
+    }
+
+    private static void TopTri(SurfaceTool st, Vector3 a, Vector3 b, Vector3 c)
+    {
+        st.SetNormal(Vector3.Up); st.AddVertex(a);
+        st.SetNormal(Vector3.Up); st.AddVertex(b);
+        st.SetNormal(Vector3.Up); st.AddVertex(c);
+    }
+
+    private static void WallTri(SurfaceTool st, Vector3 n, Vector3 a, Vector3 b, Vector3 c)
+    {
+        st.SetNormal(n); st.AddVertex(a);
+        st.SetNormal(n); st.AddVertex(b);
+        st.SetNormal(n); st.AddVertex(c);
+    }
+
+    /// <summary>Surface index of the banner's pennant — recolour a planted banner
+    /// via <c>MeshInstance3D.SetSurfaceOverrideMaterial(BannerFlagSurface, mat)</c>;
+    /// the pole material is baked on surface 0.</summary>
+    public const int BannerFlagSurface = 1;
+    private static ArrayMesh _banner;
+
+    /// <summary>A planted standard (art pass A7): wooden pole + gently waving
+    /// swallow pennant, base at y = 0, ~3.3 tall — replaces the cone beacons.
+    /// The pennant emits BOTH windings so the flag reads from every side
+    /// regardless of the override material's cull mode.</summary>
+    public static ArrayMesh Banner()
+    {
+        if (_banner != null) return _banner;
+
+        // Surface 0: the pole.
+        var pole = new CylinderMesh
+        {
+            TopRadius = 0.045f, BottomRadius = 0.06f, Height = 3.3f,
+            RadialSegments = 6, Rings = 0,
+        };
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        st.AppendFrom(pole, 0, new Transform3D(Basis.Identity, new Vector3(0f, 1.65f, 0f)));
+        _banner = st.Commit();
+        _banner.SurfaceSetMaterial(0, new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.32f, 0.25f, 0.19f),
+            Roughness = 0.9f,
+        });
+
+        // Surface 1: the pennant — two quads with a gentle Z wave and tip droop.
+        var fst = new SurfaceTool();
+        fst.Begin(Mesh.PrimitiveType.Triangles);
+        var rootTop = new Vector3(0.05f, 3.10f, 0f);
+        var rootBot = new Vector3(0.05f, 2.50f, 0f);
+        var midTop = new Vector3(0.60f, 3.06f, 0.09f);
+        var midBot = new Vector3(0.60f, 2.52f, 0.09f);
+        var tipTop = new Vector3(1.10f, 2.99f, 0.18f);
+        var tipBot = new Vector3(1.10f, 2.57f, 0.18f);
+        FlagQuad(fst, rootTop, midTop, midBot, rootBot);
+        FlagQuad(fst, midTop, tipTop, tipBot, midBot);
+        fst.Commit(_banner);   // appends as surface 1
+        _banner.SurfaceSetMaterial(BannerFlagSurface, PropMaterial());   // safe default; instances override
+        return _banner;
+    }
+
+    private static void FlagQuad(SurfaceTool st, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+    {
+        Vector3 n = (b - a).Cross(d - a);
+        n = n.LengthSquared() > 1e-8f ? n.Normalized() : Vector3.Back;
+        st.SetNormal(n); st.AddVertex(a);
+        st.SetNormal(n); st.AddVertex(b);
+        st.SetNormal(n); st.AddVertex(c);
+        st.SetNormal(n); st.AddVertex(a);
+        st.SetNormal(n); st.AddVertex(c);
+        st.SetNormal(n); st.AddVertex(d);
+        Vector3 m = -n;
+        st.SetNormal(m); st.AddVertex(a);
+        st.SetNormal(m); st.AddVertex(c);
+        st.SetNormal(m); st.AddVertex(b);
+        st.SetNormal(m); st.AddVertex(a);
+        st.SetNormal(m); st.AddVertex(d);
+        st.SetNormal(m); st.AddVertex(c);
+    }
+
     private static StandardMaterial3D _mat;
 
     /// <summary>Matte, instance-coloured — gouache paint, same register as the A4
