@@ -53,35 +53,107 @@ public static class Hex3DPalette
         return c.Lerp(UITheme.WorldDeep, dissolve);
     }
 
-    /// <summary>Terrain enum → its authored base colour from UITheme.</summary>
+    /// <summary>Terrain enum → its authored PAINTERLY base colour (art pass A1,
+    /// 2026-08-12). These are FINAL lit-scene swatches for the daylight rig (A4):
+    /// muted, wide-range hues in the combat painterly register — no post-grade, no
+    /// per-view saturation compensation (the old Grade()/×1.35 stack is deleted;
+    /// lighting owns brightness, THESE own richness). Authored here rather than in
+    /// UITheme on the SchoolColors/ElementColors precedent: this class IS the
+    /// dedicated colour source for 3D terrain; UITheme's Terrain* set stays tuned
+    /// for the unlit 2D fallback map. Readability law: every pair of swatches must
+    /// stay tellable apart at whole-world zoom, and explored Desert must never be
+    /// mistaken for unpainted canvas (CanvasUnseen 0.72/0.66/0.545 — Desert is
+    /// deliberately more orange and more saturated).</summary>
     public static Color TerrainColor(TT t) => t switch
     {
-        TT.Grassland => UITheme.TerrainGrassland,
-        TT.Forest => UITheme.TerrainForest,
-        TT.Road => UITheme.TerrainRoad,
-        TT.Ruins => UITheme.TerrainRuins,
-        TT.Mountain => UITheme.TerrainMountain,
-        TT.Swamp => UITheme.TerrainSwamp,
-        TT.ArcaneGround => UITheme.TerrainArcaneGround,
-        TT.Volcanic => UITheme.TerrainVolcanic,
-        TT.Water => UITheme.TerrainWater,
-        TT.Hills => UITheme.TerrainHills,
-        TT.Coast => UITheme.TerrainCoast,
-        TT.Lake => UITheme.TerrainLake,
-        TT.Desert => UITheme.TerrainDesert,
-        TT.Tundra => UITheme.TerrainTundra,
-        TT.Snow => UITheme.TerrainSnow,
-        TT.Marsh => UITheme.TerrainMarsh,
+        // A1b (screenshot tune): exposure verified correct — these read on screen at
+        // authored value now, so richness is edited HERE, not in the lights. Greens
+        // deepened/saturated (v1 was authored too grey); Snow pulled off pure white
+        // and Mountain darkened so snowcaps, bare stone, and unpainted canvas stop
+        // crowding each other at whole-world zoom.
+        TT.Grassland => new Color(0.43f, 0.53f, 0.26f),   // meadow green, richer
+        TT.Forest => new Color(0.21f, 0.36f, 0.18f),      // deep leaf green
+        TT.Road => new Color(0.60f, 0.51f, 0.38f),        // worn earth track
+        TT.Ruins => new Color(0.56f, 0.53f, 0.45f),       // weathered masonry
+        TT.Mountain => new Color(0.49f, 0.45f, 0.41f),    // bare stone, darker + warmer
+        TT.Swamp => new Color(0.30f, 0.36f, 0.22f),       // murk green
+        TT.ArcaneGround => new Color(0.49f, 0.40f, 0.58f),// muted violet
+        TT.Water => new Color(0.30f, 0.42f, 0.52f),       // fallback; real ocean via OceanColor
+        TT.Hills => new Color(0.55f, 0.51f, 0.28f),       // dry olive-gold, more sat
+        TT.Coast => new Color(0.68f, 0.64f, 0.46f),       // dune grass
+        TT.Lake => new Color(0.33f, 0.46f, 0.53f),        // clear inland blue
+        TT.Desert => new Color(0.79f, 0.60f, 0.36f),      // hot sand (kept off parchment)
+        TT.Tundra => new Color(0.53f, 0.56f, 0.48f),      // cold sage
+        TT.Snow => new Color(0.82f, 0.84f, 0.86f),        // snowfield, faint cool cast (off canvas + off pure white)
+        TT.Marsh => new Color(0.52f, 0.55f, 0.32f),       // pale sedge, more sat
         _ => UITheme.Neutral,
     };
 
-    /// <summary>Lit-scene compensation for a palette tuned on unlit 2D quads:
-    /// saturation +12%, value +2% (lighting owns brightness, grading owns richness).
-    /// Land only — callers gate on IsLand.</summary>
-    public static Color Grade(Color c)
+    /// <summary>Per-terrain jitter amplitude (art pass A1): the map-scale cousin of
+    /// combat's per-blade jitter. Organic ground gets wider wobble so big biome
+    /// fields read as painted masses with internal variation, not fill-tool flats;
+    /// water stays calm; snow stays clean.</summary>
+    public static float JitterAmp(in WorldTile t)
     {
+        if (t.IsWater) return 0.02f;
+        return t.Terrain switch
+        {
+            TT.Grassland or TT.Forest or TT.Swamp or TT.Marsh or TT.Hills => 0.055f,
+            TT.Snow => 0.025f,
+            _ => 0.04f,
+        };
+    }
+
+    // ── Painterly discovery: the "unpainted world" (art pass A6, 2026-08-12) ──
+    // Shared by BOTH 3D renderers so the discovery language can never drift between
+    // the strategic map and the expedition window. (The per-view fog colors this
+    // replaces were view-local dark-void lerps toward UITheme.StrategicCharted.)
+
+    /// <summary>Charted/Silhouette ground as a flat UNDERPAINTING: a pale, heavily
+    /// desaturated wash of the tile's real color pulled toward raw canvas. The terrain
+    /// hue stays faintly readable (it is charted — the shape and kind are known), but
+    /// the ground clearly hasn't been "painted in" by an expedition yet. Replaces the
+    /// old dim-toward-dark treatment.</summary>
+    public static Color Underpaint(Color c)
+    {
+        // A1b: the v1 wash (val→~0.68, 25% toward parchment) sat within a few
+        // percent of CanvasUnseen (0.72) — charted/silhouette rings mushed into
+        // the unpainted field, and a fresh expedition window read as one cream
+        // sheet. The underpainting must sit clearly BELOW the canvas: a toned
+        // wash on the paper, darker than the paper itself.
         c.ToHsv(out float hue, out float sat, out float val);
-        return Color.FromHsv(hue, Mathf.Clamp(sat * 1.12f, 0f, 1f),
-                             Mathf.Clamp(val * 1.02f, 0f, 1f), c.A);
+        Color washed = Color.FromHsv(hue, sat * 0.38f, Mathf.Lerp(val, 0.56f, 0.6f), 1f);
+        return washed.Lerp(UITheme.CanvasUnseen, 0.15f);
+    }
+
+    /// <summary>Unseen/Hidden ground as raw canvas, with a deterministic per-tile
+    /// paper-grain wobble. The wobble hashes ONLY the coordinate — it carries zero
+    /// world data (terrain, height, contents never feed it), so it cannot be read as
+    /// information; it just keeps a big unpainted field from rendering as one flat
+    /// fill. <paramref name="wetEdge01"/> &gt; 0 darkens toward the watercolor
+    /// edge-line tone where the canvas borders painted ground.</summary>
+    public static Color CanvasTone(int col, int row, float wetEdge01 = 0f)
+    {
+        uint h = (uint)(col * 73856093) ^ (uint)(row * 19349663) ^ 0x9E3779B9u;
+        h ^= h >> 13; h *= 2654435761u; h ^= h >> 16;
+        float grain = 1f + (((h & 1023u) / 1023f) - 0.5f) * 2f * 0.018f;
+        Color c = UITheme.CanvasUnseen;
+        c = new Color(
+            Mathf.Clamp(c.R * grain, 0f, 1f),
+            Mathf.Clamp(c.G * grain, 0f, 1f),
+            Mathf.Clamp(c.B * grain, 0f, 1f), 1f);
+        if (wetEdge01 > 0f)
+            c = c.Lerp(UITheme.CanvasWetEdge, Mathf.Clamp(wetEdge01, 0f, 1f));
+        return c;
+    }
+
+    /// <summary>Noise amount for the torn wet-edge blend on a boundary canvas tile:
+    /// 0.12–0.38 by coordinate hash, so the painted world's edge reads as a torn
+    /// watercolor boundary instead of a ruled line. Deterministic, data-free.</summary>
+    public static float WetEdgeAmount(int col, int row)
+    {
+        uint h = (uint)(col * 40503) ^ (uint)(row * 20011) ^ 0x85EBCA6Bu;
+        h ^= h >> 13; h *= 2654435761u; h ^= h >> 16;
+        return 0.12f + ((h & 1023u) / 1023f) * 0.26f;
     }
 }

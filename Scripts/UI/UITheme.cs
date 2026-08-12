@@ -443,8 +443,15 @@ public static class UITheme
     }
 
     // Strategic-view discovery tones (read by StrategicView).
-    public static readonly Color StrategicUnseen = WorldDeep;                       // unexplored void
-    public static readonly Color StrategicCharted = new Color(0.16f, 0.14f, 0.20f, 1f); // dim known-shape
+    public static readonly Color StrategicUnseen = WorldDeep;                       // unexplored void (2D fallback map only)
+    public static readonly Color StrategicCharted = new Color(0.16f, 0.14f, 0.20f, 1f); // dim known-shape (2D fallback map only)
+
+    // Painterly discovery — "the unpainted world" (art pass A6, 2026-08-12). The 3D
+    // renderers (WorldAtlas3D + ExpeditionWindow3D) render undiscovered ground as raw
+    // canvas instead of a dark void: exploration literally paints the world in.
+    // The 2D StrategicView fallback keeps the void tones above, untouched.
+    public static readonly Color CanvasUnseen = new Color(0.72f, 0.66f, 0.545f, 1f);  // raw parchment/gesso — unpainted ground
+    public static readonly Color CanvasWetEdge = new Color(0.55f, 0.47f, 0.36f, 1f);  // watercolor edge-darkening where paint meets canvas
     public static readonly Color StrategicCorruption = new Color(0.78f, 0.12f, 0.20f, 1f); // red wash, blended by level
     public static readonly Color StrategicCorruptionWash = new Color(0.42f, 0.10f, 0.16f, 1f); // dark stain for the political-lens overlay
     public static readonly Color POIConvergence = new Color(0.72f, 0.18f, 0.62f, 1f); // endgame seat: corrupt magenta-violet

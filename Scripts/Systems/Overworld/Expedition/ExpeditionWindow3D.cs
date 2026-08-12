@@ -104,6 +104,7 @@ public partial class ExpeditionWindow3D : Node3D
     // ── Scene ───────────────────────────────────────────────────────────────
     private Camera3D _camera;
     private MultiMeshInstance3D _landLayer, _waterLayer;
+    private MultiMeshInstance3D _canvasLayer;   // Hidden fog = unpainted canvas (art pass A6)
     private MultiMeshInstance3D _riverLayer, _roadLayer;
     private readonly List<Node3D> _decor = new();
     private readonly List<Node3D> _markers = new();
@@ -252,20 +253,24 @@ public partial class ExpeditionWindow3D : Node3D
                 BackgroundMode = Godot.Environment.BGMode.Color,
                 BackgroundColor = UITheme.WorldDeep,
                 AmbientLightSource = Godot.Environment.AmbientSource.Color,
-                AmbientLightColor = new Color(0.44f, 0.43f, 0.54f),
-                AmbientLightEnergy = 0.6f,
+                // A4b: same daylight rig as the strategic atlas — the two 3D views
+                // must light the shared A1 palette identically or the colours
+                // drift apart. Exposure per the atlas's A4b note: ≈0.97 total on
+                // flat tops at ~2.3:1 key-to-fill.
+                AmbientLightColor = new Color(0.55f, 0.56f, 0.60f),
+                AmbientLightEnergy = 0.5f,
             },
         });
         var sun = new DirectionalLight3D
         {
-            LightColor = new Color(1f, 0.9f, 0.74f, 1f),
-            LightEnergy = 1.7f,
+            LightColor = new Color(1f, 0.97f, 0.90f, 1f),
+            LightEnergy = 1.0f,
             ShadowEnabled = true,
             DirectionalShadowMaxDistance = 120f,
             ShadowBlur = 1.0f,
         };
         AddChild(sun);
-        sun.RotationDegrees = new Vector3(-32f, -40f, 0f);
+        sun.RotationDegrees = new Vector3(-45f, -40f, 0f);
     }
 
     private Vector3 TileOrigin(int col, int row)
@@ -474,28 +479,63 @@ public partial class ExpeditionWindow3D : Node3D
     {
         _landLayer?.QueueFree();
         _waterLayer?.QueueFree();
+        _canvasLayer?.QueueFree();
 
         var land = new List<(Transform3D xf, Color c)>();
         var water = new List<(Transform3D xf, Color c)>();
+        var canvas = new List<(Transform3D xf, Color c)>();
         foreach (var c in _windowTiles)
         {
             var fog = _fog.FogAt(c);
             var t = _world.GetTile(c.X, c.Y);
-            // Unexplored (Hidden) tiles render as a FLAT dark fog slab — a fog-of-war disc around the
-            // explored island, not a black void (the old "lantern" skipped them). Their terrain
-            // HEIGHT is not revealed (flat), so the fog doesn't leak elevation. Explored/charted
-            // tiles render normally.
+            // Unexplored (Hidden) tiles render as a FLAT slab of UNPAINTED CANVAS
+            // (art pass A6) — the run's frontier is a live painting edge; walking
+            // paints the world in. Their terrain HEIGHT is not revealed (flat), so
+            // the fog doesn't leak elevation, and land + water share one canvas
+            // layer so no coastline leaks through mesh differences either.
+            // Explored/charted tiles render normally.
             bool hidden = fog == Fog.Hidden;
             float h = hidden ? FogSlabHeight : TileHeight(c);
             var xf = new Transform3D(HexYaw * Basis.FromScale(new Vector3(1f, h, 1f)),
                                      TileOrigin(c.X, c.Y) + new Vector3(0f, h * 0.5f, 0f));
-            var col = hidden ? UITheme.StrategicUnseen : TileColor(t, c, fog);
-            if (!hidden && t.IsWater) water.Add((xf, col));
-            else land.Add((xf, col));
+            if (hidden)
+            {
+                float edge = HasPaintedNeighbor(c) ? Hex3DPalette.WetEdgeAmount(c.X, c.Y) : 0f;
+                canvas.Add((xf, Hex3DPalette.CanvasTone(c.X, c.Y, edge)));
+            }
+            else if (t.IsWater) water.Add((xf, TileColor(t, c, fog)));
+            else land.Add((xf, TileColor(t, c, fog)));
         }
 
-        _landLayer = MakeTileLayer("WinLand", land, taper: 0.96f, roughness: 0.65f);
-        _waterLayer = MakeTileLayer("WinWater", water, taper: 1.0f, roughness: 0.15f);
+        // A4: gouache-matte land (was satin 0.65), soft satin water (was lacquer
+        // 0.15) — interim until the A3 painterly water plane.
+        _landLayer = MakeTileLayer("WinLand", land, taper: 0.96f, roughness: 0.9f);
+        _waterLayer = MakeTileLayer("WinWater", water, taper: 1.0f, roughness: 0.55f);
+        // Paper is fully matte — no sheen on the unpainted world. No shadow casting
+        // either: canvas is the lowest geometry, and coplanar bright slabs
+        // self-shadowing under a low sun produce acne (seen on the strategic map).
+        _canvasLayer = MakeTileLayer("WinCanvas", canvas, taper: 0.96f, roughness: 1.0f);
+        _canvasLayer.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+    }
+
+    /// <summary>True when any hex neighbor of a Hidden tile is itself not Hidden —
+    /// the canvas tile borders painted/underpainted ground and takes the wet-edge
+    /// darkening (see Hex3DPalette.CanvasTone). Absent coords read Hidden, matching
+    /// the fog model's contract, so the window boundary stays clean canvas.</summary>
+    private bool HasPaintedNeighbor(Vector2I c)
+    {
+        // Window coords are WORLD OFFSET (col,row) — neighbor steps must round-trip
+        // through axial (offset steps are column-parity-dependent), same as the
+        // adjacency walks elsewhere in this file.
+        var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
+        for (int i = 0; i < 6; i++)
+        {
+            var (dq, dr) = HexCoord.AxialDirections[i];
+            var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+            if (_fog.FogAt(new Vector2I(nc, nr)) != Fog.Hidden)
+                return true;
+        }
+        return false;
     }
 
     private MultiMeshInstance3D MakeTileLayer(string name, List<(Transform3D xf, Color c)> items,
@@ -844,21 +884,22 @@ public partial class ExpeditionWindow3D : Node3D
         // view-local: the window's jitter uses a salted &0xFFFF hash, distinct from
         // the Atlas's &1023 noise, so they stay here.
         Color baseCol = Hex3DPalette.TerrainColorOf(t);
-        if (fog == Fog.Hidden) return UITheme.StrategicUnseen;
-        if (fog == Fog.Silhouette) return baseCol.Lerp(UITheme.StrategicCharted, 0.55f);
-        if (t.IsLand)
-        {
-            baseCol = Hex3DPalette.Grade(baseCol);
-            // The window's close, shallow, lit framing desaturates terrain more than the strategic
-            // overview — push saturation so greens/tans read as vividly as on the 2D map.
-            baseCol.ToHsv(out float hue, out float sat, out float val);
-            baseCol = Color.FromHsv(hue, Mathf.Clamp(sat * 1.35f, 0f, 1f), Mathf.Clamp(val * 1.04f, 0f, 1f), baseCol.A);
-        }
+        // Hidden is normally routed to the canvas layer in RebuildTiles; this guard
+        // is a safety net for any other caller. Silhouette is the UNDERPAINTING —
+        // a flat pale wash, terrain hue faintly present (art pass A6; shared with
+        // the strategic map via Hex3DPalette so the discovery language can't drift).
+        if (fog == Fog.Hidden) return Hex3DPalette.CanvasTone(c.X, c.Y);
+        if (fog == Fog.Silhouette) return Hex3DPalette.Underpaint(baseCol);
+        // A1: the swatches are final lit-scene painterly colours — the old
+        // Grade() + ×1.35 saturation compensation stack is deleted. Both 3D views
+        // now light the SAME colours under the SAME daylight rig (A4); if the
+        // window still reads flatter than the atlas after that, retune with
+        // screenshots rather than reintroducing a per-view grade.
         // City footprint reads as a grey region (revealed tiles only — fog handled above).
         if (t.SettlementIndex >= 0 && _world != null && t.SettlementIndex < _world.Settlements.Count
             && _world.Settlements[t.SettlementIndex].Tier == SettlementTier.City)
             baseCol = CityRegionTint;
-        return Jitter(baseCol, c, t.IsWater ? 0.02f : 0.04f);
+        return Jitter(baseCol, c, Hex3DPalette.JitterAmp(t));
     }
 
     private static Color Jitter(Color c, Vector2I co, float amp)

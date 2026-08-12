@@ -63,7 +63,7 @@ public partial class WorldAtlas3D : Node3D
     private static readonly Basis HexYaw = new Basis(Vector3.Up, Mathf.Pi / 6f);
 
     // ── Heights ─────────────────────────────────────────────────────────────
-    private const float VoidSlabHeight = 0.06f;   // Unseen: flat dark slab, no silhouette leak
+    private const float VoidSlabHeight = 0.06f;   // Unseen: flat canvas slab, no silhouette leak (A6: renders as unpainted parchment)
     private const float OceanHeight = 0.08f;
     private const float LakeHeight = 0.12f;
 
@@ -109,11 +109,18 @@ public partial class WorldAtlas3D : Node3D
     // low-roughness material so the sun glints on it.
     private MultiMeshInstance3D _landLayer;
     private MultiMeshInstance3D _waterLayer;
+    /// <summary>Unseen tiles — the UNPAINTED CANVAS layer (art pass A6): matte
+    /// parchment slabs with the same grout taper for land AND water, so no
+    /// coastline silhouette can leak through the fog via mesh differences.</summary>
+    private MultiMeshInstance3D _canvasLayer;
     /// <summary>flat tile index → instance index inside its layer's MultiMesh.</summary>
     private int[] _instanceIndexOf;
-    /// <summary>flat tile index → true when the instance lives in the water layer.
-    /// Membership is by terrain (IsWater), fixed per world — safe across recolors.</summary>
-    private bool[] _isWaterInstance;
+    /// <summary>flat tile index → which layer the instance lives in (Land/Water/Canvas).
+    /// Membership is by terrain + discovery, computed in RebuildTiles; discovery only
+    /// changes between SetWorld/SetRevealAll (both full rebuilds), so it is safe
+    /// across recolors.</summary>
+    private byte[] _tileLayer;
+    private const byte LayerLand = 0, LayerWater = 1, LayerCanvas = 2;
     private MultiMeshInstance3D _riverLayer;
     private MultiMeshInstance3D _roadLayer;
     private readonly List<Node3D> _markers = new();   // POI/settlement/staging/etc, rebuilt together
@@ -853,7 +860,7 @@ public partial class WorldAtlas3D : Node3D
         var t = _world.GetTile(col, row);
         var discovery = _revealAll ? TileDiscovery.Explored : t.Discovery;
         if (discovery == TileDiscovery.Unseen)
-            return $"({col},{row})  Unseen — no expedition has come this far.";
+            return $"({col},{row})  Unpainted — no expedition has come this far.";
 
         var parts = new List<string> { $"({col},{row})  {t.Terrain}" };
         if (t.IsOcean) parts.Add($"depth {t.OceanDepth}");
@@ -887,27 +894,29 @@ public partial class WorldAtlas3D : Node3D
                 BackgroundMode = Godot.Environment.BGMode.Color,
                 BackgroundColor = UITheme.WorldDeep,
                 AmbientLightSource = Godot.Environment.AmbientSource.Color,
-                // Pass 1b: 0.35 energy read as underexposed once shadows + the color
-                // grade stacked on top — three darkening knobs multiplied. Ambient is
-                // the FILL: bright enough that shadowed ground stays readable, still
-                // below the sun so relief keeps its ratio.
-                AmbientLightColor = new Color(0.44f, 0.43f, 0.54f),
-                AmbientLightEnergy = 0.55f,
+                // A4b (exposure fix after user screenshots): the first daylight rig
+                // recreated the Pass-1 failure — fill ~equal to the sun's top-face
+                // contribution = milky and flat. The steeper −45° sun catches tile
+                // TOPS at sin45 ≈ 0.71 (the lamp only grazed them at 0.45), so both
+                // knobs must drop to hold the OLD exposure with the NEW hue:
+                // target ≈ 0.97 total on flat tops at ~2.3:1 key-to-fill
+                // (sun 0.96·1.0·0.71 ≈ 0.68 + fill 0.575·0.5 ≈ 0.29).
+                AmbientLightColor = new Color(0.55f, 0.56f, 0.60f),
+                AmbientLightEnergy = 0.5f,
             },
         });
 
-        // Pass 2 sun: RAKING amber light instead of the campus's neutral 45° —
-        // the "crafted model under a lamp" read comes from long shadows sliding
-        // across the relief, not overhead illumination. ~27° elevation; energy
-        // raised to compensate for grazing incidence on tile tops. Shadows ON
-        // (pass 1): one directional map over a handful of MultiMesh draws is
-        // cheap even in Compatibility, and at this angle mountain chains throw
-        // long blades of shadow across the lowlands — the biggest depth cue
-        // this view has. Max distance covers the zoomed-out camera.
+        // A4 sun (painterly overrides the lamp, 2026-08-12): PAINTERLY DAYLIGHT
+        // replaces the raking late-afternoon amber. The lamp's ~27° grazing angle
+        // and heavy warm cast were the "crafted model" read; a ~45° near-neutral
+        // warm sun lets the A1 terrain hues render TRUE while mountain chains
+        // still throw readable shadow (higher would flatten the relief entirely —
+        // this is mid-morning, not noon). Energy drops with the steeper incidence.
+        // Shadows stay ON: cast shadow remains the atlas's biggest depth cue.
         _sun = new DirectionalLight3D
         {
-            LightColor = new Color(1f, 0.87f, 0.68f, 1f),   // late-afternoon amber
-            LightEnergy = 1.8f,
+            LightColor = new Color(1f, 0.97f, 0.90f, 1f),   // near-neutral warm daylight
+            LightEnergy = 1.0f,   // A4b: 1.3 overexposed the steeper sun (see ambient note)
             ShadowEnabled = true,
             DirectionalShadowMaxDistance = 350f,
             // Softens the hard shadow terminator and the bright-rim speckle on
@@ -915,7 +924,7 @@ public partial class WorldAtlas3D : Node3D
             ShadowBlur = 1.0f,
         };
         AddChild(_sun);
-        _sun.RotationDegrees = new Vector3(-27f, -35f, 0f);
+        _sun.RotationDegrees = new Vector3(-45f, -35f, 0f);
     }
 
     /// <summary>The atlas sun — kept so city view can tighten its shadow range. One
@@ -1241,17 +1250,25 @@ public partial class WorldAtlas3D : Node3D
     {
         _landLayer?.QueueFree();
         _waterLayer?.QueueFree();
+        _canvasLayer?.QueueFree();
 
         int total = _world.Width * _world.Height;
         _instanceIndexOf = new int[total];
-        _isWaterInstance = new bool[total];
+        _tileLayer = new byte[total];
 
         // Pass over the world once to split membership and count each layer.
-        int waterCount = 0;
+        // Unseen tiles — land AND water — go to the canvas layer (art pass A6), so
+        // the unpainted world is one uniform matte surface with one grout pattern
+        // and nothing about the ground can leak through mesh differences.
+        int waterCount = 0, canvasCount = 0;
         for (int i = 0; i < total; i++)
         {
-            _isWaterInstance[i] = _world.Tiles[i].IsWater;
-            if (_isWaterInstance[i]) waterCount++;
+            var d = _revealAll ? TileDiscovery.Explored : _world.Tiles[i].Discovery;
+            _tileLayer[i] = d == TileDiscovery.Unseen ? LayerCanvas
+                          : _world.Tiles[i].IsWater ? LayerWater
+                          : LayerLand;
+            if (_tileLayer[i] == LayerWater) waterCount++;
+            else if (_tileLayer[i] == LayerCanvas) canvasCount++;
         }
 
         var landMesh = new CylinderMesh
@@ -1268,10 +1285,9 @@ public partial class WorldAtlas3D : Node3D
         landMesh.Material = new StandardMaterial3D
         {
             VertexColorUseAsAlbedo = true,
-            // Pass 2: satin, not matte — under the raking sun a slight sheen lets
-            // light SLIDE across the carving as the camera pans, which is most of
-            // the "crafted object" material read.
-            Roughness = 0.65f,
+            // A4: gouache-matte. The pass-2 satin sheen WAS the "crafted object"
+            // material read — paint doesn't glint as the camera pans.
+            Roughness = 0.9f,
         };
 
         var waterMesh = new CylinderMesh
@@ -1288,9 +1304,28 @@ public partial class WorldAtlas3D : Node3D
         waterMesh.Material = new StandardMaterial3D
         {
             VertexColorUseAsAlbedo = true,
-            // Pass 2: dark lacquer — near-mirror so the amber sun lays a hard
-            // glint line across the sea.
-            Roughness = 0.15f,
+            // A4 interim: the pass-2 dark lacquer (0.15, hard amber glint) is gone;
+            // a soft satin holds the sea together until the A3 painterly water
+            // plane replaces this material entirely.
+            Roughness = 0.55f,
+        };
+
+        var canvasMesh = new CylinderMesh
+        {
+            // Same grout taper as land: the rim lines over the parchment read as the
+            // map's PENCIL UNDER-DRAWING — a faint hex grid waiting to be painted.
+            TopRadius = HexR * 0.96f,
+            BottomRadius = HexR * 1.0f,
+            Height = 1f,
+            RadialSegments = 6,
+            Rings = 0,
+            CapBottom = false,
+        };
+        canvasMesh.Material = new StandardMaterial3D
+        {
+            VertexColorUseAsAlbedo = true,
+            // Paper is fully matte — no sheen may slide across the unpainted world.
+            Roughness = 1.0f,
         };
 
         var landMm = new MultiMesh
@@ -1298,7 +1333,7 @@ public partial class WorldAtlas3D : Node3D
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
             UseColors = true,
             Mesh = landMesh,
-            InstanceCount = total - waterCount,
+            InstanceCount = total - waterCount - canvasCount,
         };
         var waterMm = new MultiMesh
         {
@@ -1307,8 +1342,15 @@ public partial class WorldAtlas3D : Node3D
             Mesh = waterMesh,
             InstanceCount = waterCount,
         };
+        var canvasMm = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            UseColors = true,
+            Mesh = canvasMesh,
+            InstanceCount = canvasCount,
+        };
 
-        int landIdx = 0, waterIdx = 0;
+        int landIdx = 0, waterIdx = 0, canvasIdx = 0;
         for (int row = 0; row < _world.Height; row++)
         for (int col = 0; col < _world.Width; col++)
         {
@@ -1319,45 +1361,70 @@ public partial class WorldAtlas3D : Node3D
             var origin = TileOrigin(col, row) + new Vector3(0f, h * 0.5f, 0f);
             var xf = new Transform3D(basis, origin);
             var c = TileColor(tile, col, row);
-            if (_isWaterInstance[i])
+            switch (_tileLayer[i])
             {
-                _instanceIndexOf[i] = waterIdx;
-                waterMm.SetInstanceTransform(waterIdx, xf);
-                waterMm.SetInstanceColor(waterIdx, c);
-                waterIdx++;
-            }
-            else
-            {
-                _instanceIndexOf[i] = landIdx;
-                landMm.SetInstanceTransform(landIdx, xf);
-                landMm.SetInstanceColor(landIdx, c);
-                landIdx++;
+                case LayerWater:
+                    _instanceIndexOf[i] = waterIdx;
+                    waterMm.SetInstanceTransform(waterIdx, xf);
+                    waterMm.SetInstanceColor(waterIdx, c);
+                    waterIdx++;
+                    break;
+                case LayerCanvas:
+                    _instanceIndexOf[i] = canvasIdx;
+                    canvasMm.SetInstanceTransform(canvasIdx, xf);
+                    canvasMm.SetInstanceColor(canvasIdx, c);
+                    canvasIdx++;
+                    break;
+                default:
+                    _instanceIndexOf[i] = landIdx;
+                    landMm.SetInstanceTransform(landIdx, xf);
+                    landMm.SetInstanceColor(landIdx, c);
+                    landIdx++;
+                    break;
             }
         }
 
         _landLayer = new MultiMeshInstance3D { Name = "LandLayer", Multimesh = landMm };
         _waterLayer = new MultiMeshInstance3D { Name = "WaterLayer", Multimesh = waterMm };
+        _canvasLayer = new MultiMeshInstance3D
+        {
+            Name = "CanvasLayer",
+            Multimesh = canvasMm,
+            // Canvas is the LOWEST geometry — nothing below it receives shadow, and
+            // thousands of coplanar bright slabs self-shadowing under the raking sun
+            // produce acne (the diagonal slash artifacts, invisible on the old dark
+            // void). It still RECEIVES shadows, so the painted world rests on the
+            // paper with a real cast shadow.
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
         AddChild(_landLayer);
         AddChild(_waterLayer);
+        AddChild(_canvasLayer);
     }
 
     /// <summary>Recolor every instance in place (lens switch). Transforms untouched.</summary>
     private void RecolorTiles()
     {
-        if (_landLayer?.Multimesh == null || _waterLayer?.Multimesh == null || _world == null)
+        if (_landLayer?.Multimesh == null || _waterLayer?.Multimesh == null
+            || _canvasLayer?.Multimesh == null || _world == null)
             return;
         for (int i = 0; i < _world.Tiles.Length; i++)
         {
             int col = i % _world.Width, row = i / _world.Width;
             var c = TileColor(_world.Tiles[i], col, row);
-            if (_isWaterInstance[i])
-                _waterLayer.Multimesh.SetInstanceColor(_instanceIndexOf[i], c);
-            else
-                _landLayer.Multimesh.SetInstanceColor(_instanceIndexOf[i], c);
+            LayerMultimesh(i).SetInstanceColor(_instanceIndexOf[i], c);
         }
         if (PreviewActive)
             ApplyWindowTint();
     }
+
+    /// <summary>The MultiMesh holding a flat tile index's instance.</summary>
+    private MultiMesh LayerMultimesh(int i) => _tileLayer[i] switch
+    {
+        LayerWater => _waterLayer.Multimesh,
+        LayerCanvas => _canvasLayer.Multimesh,
+        _ => _landLayer.Multimesh,
+    };
 
     /// <summary>THE 3D translation: discovery and terrain decide a tile's height.
     /// Unseen is a flat void slab so the continent's silhouette can't leak through
@@ -1526,7 +1593,10 @@ public partial class WorldAtlas3D : Node3D
             if (!home && !SettlementVisible(s)) continue;
             bool city = s.Tier == SettlementTier.City;
             Color c = home ? UITheme.Violet : (s.IsSeat ? UITheme.Gold : UITheme.ArcaneBlue);
-            var mat = new StandardMaterial3D { AlbedoColor = c, Metallic = 0.9f, Roughness = 0.35f };
+            // A4: painted game-piece, not polished metal (Metallic 0.9 was the
+            // pass-2 crafted-model read). Emission below keeps the map-readability
+            // glow — loudness law unchanged.
+            var mat = new StandardMaterial3D { AlbedoColor = c, Metallic = 0f, Roughness = 0.7f };
             // The city is now marked primarily by its grey FOOTPRINT REGION (see TileColor) + a large
             // name label, so the centre marker is just a modest metal accent — deliberately NOT a tall
             // pillar, which read as one of the gold staging beacons. Cities glow faintly; towns don't.
@@ -1582,7 +1652,7 @@ public partial class WorldAtlas3D : Node3D
                 MaterialOverride = new StandardMaterial3D
                 {
                     AlbedoColor = UITheme.Gold,
-                    Metallic = 0.85f, Roughness = 0.3f,   // pass 2: brass beacons
+                    Metallic = 0f, Roughness = 0.6f,   // A4: gilded paint, not brass (was Metallic 0.85)
                     EmissionEnabled = true, Emission = UITheme.Gold, EmissionEnergyMultiplier = 0.6f,
                 },
                 Position = MarkerPos(sp.X, sp.Y, 1.7f),
@@ -1864,10 +1934,7 @@ public partial class WorldAtlas3D : Node3D
         {
             int i = r2 * _world.Width + c2;
             var lifted = TileColor(_world.Tiles[i], c2, r2).Lightened(0.18f);
-            if (_isWaterInstance[i])
-                _waterLayer.Multimesh.SetInstanceColor(_instanceIndexOf[i], lifted);
-            else
-                _landLayer.Multimesh.SetInstanceColor(_instanceIndexOf[i], lifted);
+            LayerMultimesh(i).SetInstanceColor(_instanceIndexOf[i], lifted);
         }
     }
 
@@ -1982,26 +2049,49 @@ public partial class WorldAtlas3D : Node3D
     private Color TileColor(in WorldTile t, int col, int row)
     {
         var discovery = _revealAll ? TileDiscovery.Explored : t.Discovery;
-        // Unseen stays a UNIFORM void — jittering fog would sparkle and read as data.
+        // THE UNPAINTED WORLD (art pass A6): Unseen ground is raw canvas — paper
+        // grain only (coordinate hash, zero world data), plus a noisy watercolor
+        // wet-edge where the canvas borders painted ground, so the frontier reads
+        // as a torn wash boundary instead of a ruled line. Exploration paints the
+        // world in.
         if (discovery == TileDiscovery.Unseen)
-            return UITheme.StrategicUnseen;
+            return Hex3DPalette.CanvasTone(col, row,
+                HasPaintedNeighbor(col, row) ? Hex3DPalette.WetEdgeAmount(col, row) : 0f);
+        // Charted is the UNDERPAINTING: a flat pale wash with the terrain hue
+        // faintly present — known shape, not yet painted in.
         if (discovery == TileDiscovery.Charted)
-            return Jitter(LensBaseColor(t).Lerp(UITheme.StrategicCharted, 0.55f), col, row, 0.02f);
+            return Jitter(Hex3DPalette.Underpaint(LensBaseColor(t)), col, row, 0.02f);
 
         Color c = LensColor(t);
-        // Pass 1 grading, LOCAL to the 3D view (UITheme untouched — the 2D map keeps
-        // its tuning): the palette was authored for unlit quads; under a lit scene it
-        // washes out, so saturate up and darken slightly. Then per-tile value jitter
-        // (hash of col,row — stable across recolors) breaks the flat fill-tool fields;
-        // this one trick is most of why the HTML mockup read painterly.
-        if (t.IsLand)
-            c = Hex3DPalette.Grade(c);
+        // A1: the palette is now authored as FINAL lit-scene painterly swatches in
+        // Hex3DPalette — the old Grade() compensation stack is gone. Per-tile value
+        // jitter (hash of col,row — stable across recolors) breaks the flat
+        // fill-tool fields, amplitude per terrain so organic biomes read as painted
+        // masses; this one trick is most of why the HTML mockup read painterly.
         // Cities read as a solid slate-grey REGION over their whole footprint (any lens), so a
-        // capital is obvious at whole-world zoom. Applied after grading so it stays a flat grey.
+        // capital is obvious at whole-world zoom. Applied last so it stays a flat grey.
         if (t.SettlementIndex >= 0 && t.SettlementIndex < _world.Settlements.Count
             && _world.Settlements[t.SettlementIndex].Tier == SettlementTier.City)
             c = CityRegionTint;
-        return Jitter(c, col, row, t.IsWater ? 0.02f : 0.04f);
+        return Jitter(c, col, row, Hex3DPalette.JitterAmp(t));
+    }
+
+    /// <summary>True when any hex neighbor of an Unseen tile has been discovered —
+    /// the canvas tile sits on the painted world's frontier and takes the wet-edge
+    /// darkening. Carries no new information: adjacency to explored ground is
+    /// already visible on the map.</summary>
+    private bool HasPaintedNeighbor(int col, int row)
+    {
+        var (q, r) = HexCoord.OffsetToAxial(col, row);
+        for (int i = 0; i < 6; i++)
+        {
+            var (dq, dr) = HexCoord.AxialDirections[i];
+            var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+            if (_world.InBounds(nc, nr)
+                && _world.GetTile(nc, nr).Discovery != TileDiscovery.Unseen)
+                return true;
+        }
+        return false;
     }
 
     /// <summary>Deterministic per-tile brightness wobble, ±amp around 1.0.</summary>
