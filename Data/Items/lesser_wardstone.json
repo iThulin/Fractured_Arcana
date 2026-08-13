@@ -1,0 +1,12 @@
+{
+  "id": "lesser_wardstone",
+  "name": "Lesser Wardstone",
+  "description": "It drinks a little of the blight. Reduces corruption attrition by 2 per corrupted step.",
+  "rarity": "Uncommon",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "corruption_ward",
+  "passiveValue": 2,
+  "goldValue": 95
+}

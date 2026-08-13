@@ -125,7 +125,12 @@ public static class CouncilLedger
             KingdomId = court.KingdomId,
             CourtierId = creditor.Id,
             Type = OfficeToFavorType(creditor.Office),
-            IsMajor = false,
+            // Q4.3: a court's Patron owes MAJOR debts — the first Major
+            // minting path (Majors previously never existed in play; the
+            // redemption surfaces are ExecuteCallIn's gift + the Arcane
+            // retainer). Everyone else still mints minor.
+            IsMajor = !string.IsNullOrEmpty(court.PatronCourtierId)
+                      && creditor.Id == court.PatronCourtierId,
             SourceDescription = sourceDescription,
             LunationMinted = cycle.Calendar.CurrentLunation,
         };

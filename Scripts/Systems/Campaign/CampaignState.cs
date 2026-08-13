@@ -156,6 +156,12 @@ public class CampaignState
     /// </summary>
     public Dictionary<string, int> CorruptionLevels = new();
 
+    /// <summary>Q4.2: absolute lunation each archmage was united, recorded by
+    /// RecruitmentSources.OnArchmageUnited. Drives the relic anniversary gift
+    /// (ArchmageRelics.TickUniteAnniversaries). Additive field — old saves
+    /// deserialize an empty dict, no version bump.</summary>
+    public Dictionary<string, int> UniteLunations = new();
+
     // ── Chronomancer's clock ──────────────────────────────────────────────
     /// <summary>
     /// Total player steps taken across ALL runs in this campaign.

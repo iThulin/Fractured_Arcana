@@ -1,0 +1,12 @@
+{
+  "id": "greater_wardstone",
+  "name": "Greater Wardstone",
+  "description": "Carved from a sanctum threshold. Reduces corruption attrition by 4 per corrupted step (capped by the tile's tier).",
+  "rarity": "Rare",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "corruption_ward",
+  "passiveValue": 4,
+  "goldValue": 185
+}

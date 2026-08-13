@@ -1,0 +1,13 @@
+{
+  "id": "barbed_harness",
+  "name": "Barbed Harness",
+  "description": "Grappling it is the mistake. When struck, the attacker begins to bleed.",
+  "rarity": "Rare",
+  "slot": "Armor",
+  "unitClass": "Martial",
+  "stats": {},
+  "passive": "apply_bleed",
+  "passiveValue": 1,
+  "goldValue": 150,
+  "trigger": "onStruck"
+}

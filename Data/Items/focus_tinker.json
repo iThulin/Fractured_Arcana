@@ -1,0 +1,13 @@
+{
+  "id": "focus_tinker",
+  "name": "Calibrated Conduit",
+  "description": "Every joint machined to the breath. Tinker spells deal +1 damage.",
+  "rarity": "Uncommon",
+  "slot": "Weapon",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "SchoolSpellDamage",
+  "passiveValue": 1,
+  "goldValue": 85,
+  "passiveParam": "Tinker"
+}

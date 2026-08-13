@@ -1,0 +1,37 @@
+{
+  "id": "enchanters_workshop",
+  "name": "Enchanter's Workshop",
+  "category": "Core",
+  "schoolAffinity": "Enchanter",
+  "hostsSystem": "workshop",
+  "description": "The guild's sole venue for item mutation. One enchant slot per item, handcrafted scripts only — the Workshop bends things, it does not mass-produce them.",
+  "tiers": [
+    {
+      "tier": 1,
+      "displayName": "Enchanter's Bench",
+      "goldCost": 100,
+      "description": "Stat-line enchants: keener edges, harder plate, deeper wells.",
+      "requiredBuildings": [],
+      "passiveEffects": [],
+      "activeEffects": []
+    },
+    {
+      "tier": 2,
+      "displayName": "Scripting Chamber",
+      "goldCost": 220,
+      "description": "Scripted enchants: wards, waymarks, mending verses — living effects written onto worn things.",
+      "requiredBuildings": [],
+      "passiveEffects": [],
+      "activeEffects": []
+    },
+    {
+      "tier": 3,
+      "displayName": "The Unbinding Floor",
+      "goldCost": 400,
+      "description": "Cleanse: strip a blighted item's drawback and unseal its enchant slot. What the corruption improved, it keeps.",
+      "requiredBuildings": [],
+      "passiveEffects": [],
+      "activeEffects": []
+    }
+  ]
+}

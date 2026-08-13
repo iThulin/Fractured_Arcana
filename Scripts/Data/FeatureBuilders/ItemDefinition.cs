@@ -45,8 +45,12 @@ public enum ItemPassiveTag
     None,
 
     // ── Wizard weapon passives ───────────────────────────────────────────
-    StormSpellCostReduction,    // Storm spells cost 1 less mana
-    FireSpellBonusDamage,       // Fire spells deal +N damage (N from PassiveValue)
+    // RETIRED 2026-08-13 (never had consumers — cards carry SCHOOL, not
+    // element; these were designed against a taxonomy that doesn't exist).
+    // Kept so old save/JSON strings still parse; do not author new items
+    // with them. Use the School* pair below.
+    StormSpellCostReduction,    // retired — use SchoolSpellCostReduction
+    FireSpellBonusDamage,       // retired — use SchoolSpellDamage
 
     // ── Wizard armor passives ────────────────────────────────────────────
     StartCombatWithShield,      // Gain N shield at combat start
@@ -56,11 +60,18 @@ public enum ItemPassiveTag
     FirstCardCostReduction,     // First card each turn costs N less mana
 
     // ── Martial weapon passives ──────────────────────────────────────────
-    AttackAppliesBleed,         // Melee attacks apply bleed (1 turn)
+    // RETIRED 2026-08-13: superseded by the trigger-bus key apply_bleed
+    // (same behavior, one dispatcher). Kept for parse safety only.
+    AttackAppliesBleed,         // retired — use apply_bleed / onAttack
 
-    // ── Martial trinket passives ─────────────────────────────────────────
-    BonusDamageAboveHalfHP,     // +N attack damage when HP > 50%
-    DamageReductionPerHit,      // Take N less damage from each hit (flat reduction)
+    // ── Martial trinket passives (implemented 2026-08-13) ────────────────
+    BonusDamageAboveHalfHP,     // +N attack damage when HP > 50% (ResolveMartialAttack)
+    DamageReductionPerHit,      // Take N less damage from each hit, floor 1 (Unit.ApplyDamage)
+
+    // ── School-keyed spell passives (2026-08-13, replace Fire/Storm) ─────
+    // PassiveParam = CardSchool name ("Elementalist", …); empty = ALL schools.
+    SchoolSpellDamage,          // +N damage on spells of the keyed school (cast pin)
+    SchoolSpellCostReduction,   // keyed school's cards cost N less mana
 }
 
 /// <summary>
@@ -147,6 +158,33 @@ public class ItemInstance
     public string UnitClass = "Any";
     public string Rarity = "Common";
     public int GoldValue = 50;
+
+    // ── Q5: the enchant slot (v1 rules: ONE slot, Workshop is the sole
+    // mutation venue, handcrafted scripts only). Additive save fields — old
+    // instances deserialize with an empty, unsealed slot. ────────────────
+    /// <summary>WorkshopEnchants catalog id. "" = empty slot.</summary>
+    public string EnchantKey = "";
+    public int EnchantValue = 0;
+    public string EnchantParam = "";
+    public string EnchantTrigger = "";
+
+    /// <summary>Blighted items arrive with the slot SEALED (§7d) — no enchant
+    /// until Cleansed at Workshop tier 3.</summary>
+    public bool EnchantSealed = false;
+
+    // ── Q5: blight (§7d) — authored drawback, never rolled ───────────────
+    /// <summary>WorkshopEnchants drawback id. "" = not blighted.</summary>
+    public string DrawbackKey = "";
+    public int DrawbackValue = 0;
+
+    /// <summary>The above-floor innate bump a blighted drop carries (+N to the
+    /// definition's PassiveValue in loadout resolution). SURVIVES Cleanse —
+    /// what the corruption improved, it keeps; only the drawback and the seal
+    /// are removed.</summary>
+    public int BlightBonus = 0;
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsBlighted => !string.IsNullOrEmpty(DrawbackKey);
 
     public static ItemInstance FromDefinition(ItemDefinition def)
     {

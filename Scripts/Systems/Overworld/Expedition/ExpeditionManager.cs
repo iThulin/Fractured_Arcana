@@ -2005,6 +2005,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         var resultHex = router.SavedCombatHexCoord;
 
+        // Spoils card (2026-08-13): victory rewards collect here and show as
+        // ONE card instead of scattering into toasts. Defeat has no card —
+        // FailExpedition's banner owns that beat.
+        var spoils = new List<(string, Color)>();
+
         if (NegotiationContext.HasResult)
         {
             OnNegotiationReturned(resultHex);
@@ -2035,6 +2040,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                         _toasts?.Push(qt.Text, qt.Kind);
                 }
                 _toasts?.Push("The guardian falls — the way to the fragment is open.", QuestToastKind.Progress);
+                spoils.Add(("The guardian falls — the way to the fragment is open.", UITheme.Violet));
             }
 
             // Step 9: archmage resolution boss felled → Overthrown.
@@ -2054,6 +2060,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 }
                 _toasts?.Push($"{rDef?.DisplayName ?? "The archmage"} is overthrown — their shard answers you now.",
                               QuestToastKind.Progress);
+                // Q4.2 (§7c): Overthrow drops the archmage's authored relic.
+                string relicLine = ArchmageRelics.TryGrant(rid, "torn from the fallen seat");
+                if (relicLine != null)
+                {
+                    _toasts?.Push(relicLine, QuestToastKind.Progress);
+                    spoils.Add((relicLine, UITheme.RarityColor("Legendary")));
+                }
             }
 
             GoldEarned += router.GoldReward;
@@ -2064,6 +2077,37 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                    $" — encounter #{EncountersWon}",
                    goldDelta: +router.GoldReward, splinterDelta: +router.SplinterReward,
                    at: resultHex);
+            if (router.GoldReward > 0 || router.SplinterReward > 0)
+                spoils.Add(($"+{router.GoldReward} gold   ·   +{router.SplinterReward} Arcane Splinters",
+                            UITheme.Gold));
+
+            // Q4.4 (§7c): combat pays in things. Tier-keyed drop roll — the
+            // primary item faucet (encounter choices were the only one before
+            // this). Siege rolls twice; Siege/Boss skip the chance gate.
+            var lootSave = SaveManager.ActiveSave;
+            if (lootSave != null)
+            {
+                // Q5 (§7d): drops won on corrupted ground (tier ≥ 2 at the
+                // combat hex) may come back Blighted — better innate, authored
+                // drawback, enchant slot sealed until Cleansed.
+                bool blightGround = CorruptionTierAt(resultHex) >= 2;
+                var blightRng = new RandomNumberGenerator();
+                blightRng.Randomize();
+
+                foreach (var lootDef in CombatLootTable.Roll(
+                    TerritoryTierAt(resultHex), router.CurrentTier))
+                {
+                    var lootInst = ItemInstance.FromDefinition(lootDef);
+                    if (blightGround)
+                        WorkshopEnchants.MaybeBlight(lootInst, blightRng);
+                    lootSave.Armory.AddItem(lootInst);
+                    LogRun("item_drop", lootInst.Name, at: resultHex);
+                    spoils.Add(($"{lootInst.Name}  ·  {lootInst.Rarity}" +
+                                (lootInst.IsBlighted ? "  ·  BLIGHTED" : ""),
+                                UITheme.RarityColor(lootInst.Rarity)));
+                }
+                SaveManager.MarkDirty();
+            }
 
             // Warfront objective: storming the besieging STRONGHOLD breaks the siege.
             // Only a win on the stronghold tile counts (if one was sited); if none
@@ -2148,6 +2192,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 // S4 (Identify): the pinned composition served its purpose.
                 _identifiedEncounters.Remove(mark);
             }
+
+            // The spoils card — everything the win paid, one modal read. Its
+            // own backdrop gates map input until Continue; no host state to
+            // re-enable on close.
+            CombatSummaryPanel.Show(this, spoils, null);
         }
         else
         {
@@ -2439,13 +2488,35 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var gateSave = SaveManager.ActiveSave;
         System.Func<string, bool> hasFlag = null;
         if (gateSave != null) hasFlag = gateSave.HasFlag;
+
+        // T3 gates (2026-08-13): the Armory and the fielded party are keys.
+        System.Func<string, bool> hasItem = null;
+        System.Func<string, bool> hasCompanion = null;
+        if (gateSave != null)
+        {
+            hasItem = id =>
+            {
+                foreach (var inst in gateSave.Armory.OwnedItems)
+                    if (inst.DefinitionId == id) return true;
+                return false;
+            };
+            hasCompanion = id =>
+            {
+                foreach (var c in CompanionRoster.GetActiveParty())
+                    if (c.Id == id) return true;
+                return false;
+            };
+        }
+
         var shownEnc = EncounterAssembler.ForDisplay(encounter, TerrainAt(coord), StagingTemplateRegion());
         _narrativePanel.ShowEncounter(
             shownEnc,
             hasFlag,
             gateSave?.Cycle?.SelectedSchool,
             GoldEarned,
-            gateSave?.Cycle?.Campaign);
+            gateSave?.Cycle?.Campaign,
+            hasItem,
+            hasCompanion);
         LogRun("narrative_start", encounter.Id, at: coord);
         var loreTerrain = TerrainAt(coord); // S4: the drop pool is terrain-flavored
         _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(encounter, choice, loreTerrain);
@@ -2500,6 +2571,42 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 },
             },
         };
+    }
+
+    /// <summary>T3 intel verb (2026-08-13): reveal the N nearest hidden,
+    /// unconsumed POI hexes as landmark BEACONS (IsLandmark set BEFORE the
+    /// fog write — the 08-08 lesson: the redraw catches the styling only in
+    /// that order). Distance from the party's current hex; ties break by
+    /// iteration order. Returns how many were actually revealed (the window
+    /// may hold fewer hidden POIs than asked).</summary>
+    private int RevealNearestPois(int count)
+    {
+        if (_grid == null || _fog == null || _party == null || count <= 0)
+            return 0;
+
+        var candidates = new List<(int dist, Vector2I coord, OverworldHex hex)>();
+        var from = _party.CurrentCoord;
+        foreach (var kvp in _grid.Hexes)
+        {
+            var hex = kvp.Value;
+            if (hex.POI == OverworldHex.POIType.None || hex.POIConsumed)
+                continue;
+            if (hex.Fog == OverworldHex.FogState.Revealed)
+                continue;   // already known
+            candidates.Add((HexCoord.OffsetDistance(from.X, from.Y, kvp.Key.X, kvp.Key.Y),
+                            kvp.Key, hex));
+        }
+        candidates.Sort((a, b) => a.dist - b.dist);
+
+        int revealed = 0;
+        foreach (var (_, coord, hex) in candidates)
+        {
+            if (revealed >= count) break;
+            hex.IsLandmark = true;          // beacon styling — BEFORE the fog write
+            _fog.RevealHex(coord);
+            revealed++;
+        }
+        return revealed;
     }
 
     /// <summary>Difficulty multiplier applied to fragment-guardian boss units.</summary>
@@ -2682,6 +2789,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         int spl = SplinterDropTable.Narrative();
         SplinterEarned += spl;
+
+        // T3 (2026-08-13): the intel verb — information as a first-class
+        // reward. Reveals the N nearest hidden POIs as beacons.
+        if (choice.RevealPois > 0)
+        {
+            int marked = RevealNearestPois(choice.RevealPois);
+            if (marked > 0)
+                ShowInfo($"Intel: {marked} site{(marked == 1 ? "" : "s")} marked on the map.");
+        }
 
         if (SaveManager.ActiveSave != null && !string.IsNullOrEmpty(encounter.Id))
             if (!SaveManager.ActiveSave.CompletedEvents.Contains(encounter.Id))
@@ -4555,14 +4671,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return "No favor.";
         if (!f.OwedToGuild)
             return "Owed by the guild — repay it, don't call it in.";
-        if (f.IsMajor)
-            return "Major favors cannot be called in from the field yet.";
-        if (!CouncilLedger.CallableTypes.Contains(f.Type))
+        // Q4.3: Major favors ARE callable now — the courtier's own gift
+        // (item, or the Arcane retainer). They skip the minor-effect type
+        // gates below; territory + expedition checks still apply.
+        if (!f.IsMajor && !CouncilLedger.CallableTypes.Contains(f.Type))
             return $"{f.Type} favors have no field effect yet.";
         if (ExpeditionComplete)
             return "The expedition is over.";
         if (KingdomIdAt(_party.CurrentCoord) != f.KingdomId)
             return "Must be inside the creditor's territory.";
+        if (f.IsMajor)
+            return null; // Major redemptions have no further preconditions
         if (f.Type == "Military" &&
             (_factionManager == null || !_factionManager.HasStandablePatrol()))
             return "No patrols in the field to stand down.";
@@ -4599,10 +4718,24 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         UpdateUI();
     }
 
-    /// <summary>The four C3 call-in effects. Returns (consumed, message);
-    /// a no-op outcome refuses without consuming the favor.</summary>
+    /// <summary>The C3 call-in effects (+ Q4.3 Major redemptions). Returns
+    /// (consumed, message); a no-op outcome refuses without consuming.</summary>
     private (bool ok, string msg) ExecuteCallIn(Favor f)
     {
+        // Q4.3 (§7c): a Major favor is the courtier's own gift — an item
+        // flavored by their office ("the Marshal's own sword is a gift with a
+        // story and a watcher"). Arcane Majors stay the retainer (K5).
+        if (f.IsMajor && f.Type != "Arcane")
+        {
+            var gift = RollCourtierGift(f);
+            if (gift == null)
+                return (false, "The court has nothing worthy to send.");
+            SaveManager.ActiveSave?.Armory.AddItem(gift);
+            SaveManager.MarkDirty();
+            return (true, $"A courier arrives under seal: {gift.Name} ({gift.Rarity}) " +
+                          "— a gift with a story, and a watcher.");
+        }
+
         switch (f.Type)
         {
             case "Military":
@@ -4654,6 +4787,41 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
         }
         return (false, "That favor has no field effect yet.");
+    }
+
+    /// <summary>Q4.3: pick the Major-favor gift — slot flavored by the favor
+    /// type (Military → Weapon, Passage → Armor, the rest → Trinket), Rare
+    /// preferred, Uncommon fallback, never Legendary (Auction House rule).</summary>
+    private ItemDefinition RollCourtierGift(Favor f)
+    {
+        string slot = f.Type switch
+        {
+            "Military" => "Weapon",
+            "Passage" => "Armor",
+            _ => "Trinket",
+        };
+
+        var all = ItemDatabase.GetAll();
+        if (all == null || all.Count == 0) return null;
+
+        var rng = new RandomNumberGenerator();
+        rng.Randomize();
+
+        foreach (string rarity in new[] { "Rare", "Uncommon" })
+        {
+            var band = new List<ItemDefinition>();
+            foreach (var d in all)
+                if (d.Rarity == rarity && d.Slot == slot)
+                    band.Add(d);
+            if (band.Count > 0)
+                return band[rng.RandiRange(0, band.Count - 1)];
+        }
+        // No item of that slot below Legendary — fall back to any Rare.
+        var any = new List<ItemDefinition>();
+        foreach (var d in all)
+            if (d.Rarity == "Rare")
+                any.Add(d);
+        return any.Count > 0 ? any[rng.RandiRange(0, any.Count - 1)] : null;
     }
 
     /// <summary>If the resolved tile is a Prison holding a guild envoy, free

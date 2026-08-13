@@ -1,0 +1,12 @@
+{
+  "id": "mana_prism",
+  "name": "Mana Prism",
+  "description": "Light goes in; readiness comes out. Restore 1 mana at the start of each turn.",
+  "rarity": "Uncommon",
+  "slot": "Trinket",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "RestoreManaOnTurnStart",
+  "passiveValue": 1,
+  "goldValue": 95
+}

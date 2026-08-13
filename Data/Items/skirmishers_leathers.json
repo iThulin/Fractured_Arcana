@@ -1,0 +1,15 @@
+{
+  "id": "skirmishers_leathers",
+  "name": "Skirmisher's Leathers",
+  "description": "Cut for running toward and away. +1 speed, +2 max HP.",
+  "rarity": "Common",
+  "slot": "Armor",
+  "unitClass": "Martial",
+  "stats": {
+    "baseSpeed": 1,
+    "maxHP": 2
+  },
+  "passive": "None",
+  "passiveValue": 0,
+  "goldValue": 55
+}

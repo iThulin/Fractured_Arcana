@@ -1,0 +1,14 @@
+{
+  "id": "padded_vestment",
+  "name": "Padded Vestment",
+  "description": "Quilted against a hard world. +4 max HP.",
+  "rarity": "Common",
+  "slot": "Armor",
+  "unitClass": "Wizard",
+  "stats": {
+    "maxHP": 4
+  },
+  "passive": "None",
+  "passiveValue": 0,
+  "goldValue": 45
+}

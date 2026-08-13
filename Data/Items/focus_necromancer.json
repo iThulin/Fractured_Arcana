@@ -1,0 +1,13 @@
+{
+  "id": "focus_necromancer",
+  "name": "Knucklebone Sceptre",
+  "description": "The bones remember being a hand. Necromancer spells deal +1 damage.",
+  "rarity": "Uncommon",
+  "slot": "Weapon",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "SchoolSpellDamage",
+  "passiveValue": 1,
+  "goldValue": 85,
+  "passiveParam": "Necromancer"
+}

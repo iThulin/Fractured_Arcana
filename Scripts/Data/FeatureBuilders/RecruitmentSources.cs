@@ -42,6 +42,16 @@ public static class RecruitmentSources
         var save = SaveManager.ActiveSave;
         if (save == null || string.IsNullOrEmpty(archmageId)) return null;
 
+        // Q4.2: stamp the unite lunation for the relic anniversary — BEFORE
+        // the adept idempotence check, but never overwritten (the first
+        // swearing is the anniversary that counts).
+        var campaign = save.Cycle?.Campaign;
+        if (campaign != null && !campaign.UniteLunations.ContainsKey(archmageId))
+        {
+            campaign.UniteLunations[archmageId] = save.Cycle.Calendar.CurrentLunation;
+            SaveManager.MarkDirty();
+        }
+
         string id = $"hire_unite_{archmageId}";
         if (save.Companions.Any(c => c.Id == id)) return null; // already seconded
 

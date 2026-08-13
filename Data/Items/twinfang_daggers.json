@@ -1,0 +1,15 @@
+{
+  "id": "twinfang_daggers",
+  "name": "Twinfang Daggers",
+  "description": "Two mouths, one appetite. +1 attack damage; attacks apply deep bleed.",
+  "rarity": "Rare",
+  "slot": "Weapon",
+  "unitClass": "Martial",
+  "stats": {
+    "attackDamage": 1
+  },
+  "passive": "apply_bleed",
+  "passiveValue": 2,
+  "goldValue": 180,
+  "trigger": "onAttack"
+}

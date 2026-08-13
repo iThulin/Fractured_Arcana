@@ -1,0 +1,12 @@
+{
+  "id": "emberproof_charm",
+  "name": "Emberproof Charm",
+  "description": "Ash falls around, never on. Reduces volcanic and swamp terrain drain by 2 per step.",
+  "rarity": "Uncommon",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "hazard_ward",
+  "passiveValue": 2,
+  "goldValue": 95
+}

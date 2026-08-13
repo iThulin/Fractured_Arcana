@@ -312,6 +312,7 @@ public partial class StrategicView : Node2D
         _atlas3D.HomeBuildingPicked += OnHomeBuildingPicked;
         _atlas3D.HomeLandmarkPicked += OnHomeLandmarkPicked;
         _atlas3D.HomeDistrictPicked += OnHomeDistrictPicked;
+        _atlas3D.HomeGroundPicked += OnHomeGroundPicked;
         _atlas3D.CityModeChanged += OnCityModeChanged;
         _atlas3D.DistrictContentTriggered += OnDistrictContentTriggered;
         vp.AddChild(_atlas3D);            // _Ready builds the camera (no world yet)
@@ -506,7 +507,13 @@ public partial class StrategicView : Node2D
     {
         var dest = CampusLocationRegistry.ForBuilding(buildingId);
         if (!dest.IsValid)
+        {
+            // No system panel — still open the host for its tier/upgrade
+            // strip (2026-08-13: the city view's upgrade path; previously
+            // these buildings were mute).
+            ShowFloatingPanel(null, buildingId);
             return;
+        }
         if (dest.Panel.HasValue)
         {
             if (HomeBuildingPanelHost.CanFloat(dest.Panel.Value))
@@ -522,13 +529,13 @@ public partial class StrategicView : Node2D
     /// <see cref="ShowCampusOverlay"/> this leaves the atlas/world VISIBLE (only its input is
     /// gated) and closes back to the city rather than the world — the finish that lets a
     /// building's menu open in place. One panel at a time.</summary>
-    private void ShowFloatingPanel(CampusPanelId panel, string buildingId)
+    private void ShowFloatingPanel(CampusPanelId? panel, string buildingId)
     {
         if (_floatingPanel != null) return;
         // The world stays drawn, but its camera must not steer behind the panel's input catcher.
         if (_atlas3D != null) _atlas3D.AcceptInput = false;
         string title = BuildingDatabase.GetTemplate(buildingId)?.Name ?? "";
-        _floatingPanel = HomeBuildingPanelHost.Create(this, panel, title, HideFloatingPanel);
+        _floatingPanel = HomeBuildingPanelHost.Create(this, panel, title, HideFloatingPanel, buildingId);
         AddChild(_floatingPanel);
     }
 
@@ -547,6 +554,185 @@ public partial class StrategicView : Node2D
     /// destination yet (their restoration beats live inside the campus systems), and city
     /// view already shows the grounds, so this is a no-op for now.</summary>
     private void OnHomeLandmarkPicked(string landmarkId, Vector2I coord) { }
+
+    // ── Construction from the city view (2026-08-13) ─────────────────────
+
+    private CanvasLayer _constructCard;
+
+    /// <summary>A bare home-grounds hex was clicked: open the construct card —
+    /// the unbuilt ledger with tier-1 costs, buildable in place at that hex.
+    /// This closes the Phase-2 gap where NEW buildings could only be raised
+    /// through the full-screen campus overlay.</summary>
+    private void OnHomeGroundPicked(Vector2I coord)
+    {
+        if (_constructCard != null) return;
+        var save = SaveManager.ActiveSave;
+        if (save == null) return;
+
+        var unbuilt = CampusConstruction.Unbuilt(save);
+
+        _constructCard = new CanvasLayer { Name = "ConstructCard", Layer = 50 };
+        AddChild(_constructCard);
+        if (_atlas3D != null) _atlas3D.AcceptInput = false;
+
+        var catcher = new Control();
+        catcher.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        catcher.MouseFilter = Control.MouseFilterEnum.Stop;
+        _constructCard.AddChild(catcher);
+
+        var card = new PanelContainer();
+        card.SetAnchorsPreset(Control.LayoutPreset.RightWide);
+        card.OffsetLeft = -520;
+        card.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = UITheme.BgBase });
+        catcher.AddChild(card);
+
+        var margins = new MarginContainer();
+        margins.AddThemeConstantOverride("margin_left", 18);
+        margins.AddThemeConstantOverride("margin_right", 18);
+        margins.AddThemeConstantOverride("margin_top", 14);
+        margins.AddThemeConstantOverride("margin_bottom", 14);
+        card.AddChild(margins);
+
+        var scroll = new ScrollContainer
+        { SizeFlagsVertical = Control.SizeFlags.ExpandFill, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        margins.AddChild(scroll);
+
+        var vbox = new VBoxContainer
+        { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        vbox.AddThemeConstantOverride("separation", 10);
+        scroll.AddChild(vbox);
+
+        var header = new HBoxContainer();
+        vbox.AddChild(header);
+        var title = new Label
+        {
+            Text = "Raise a Building",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        title.AddThemeFontSizeOverride("font_size", UITheme.CampusTitleFontSize);
+        title.AddThemeColorOverride("font_color", UITheme.Gold);
+        header.AddChild(title);
+        var closeBtn = new Button { Text = "✕  Close" };
+        UITheme.ApplyButtonStyle(closeBtn, isPrimary: false);
+        closeBtn.Pressed += CloseConstructCard;
+        header.AddChild(closeBtn);
+
+        var sub = new Label
+        {
+            Text = $"Gold: {save.Gold}   Materials: {save.BuildMaterials}   — siting at the chosen ground.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        sub.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        sub.AddThemeColorOverride("font_color", UITheme.TextDim);
+        vbox.AddChild(sub);
+
+        if (unbuilt.Count == 0)
+        {
+            var none = new Label { Text = "Every building in the ledger already stands." };
+            none.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            vbox.AddChild(none);
+        }
+
+        foreach (var (bs, template) in unbuilt)
+        {
+            var tier1 = template.Tiers.Find(t => t.Tier == 1);
+            if (tier1 == null) continue;
+            string reason = CampusConstruction.CannotBuildReason(save, bs.Id);
+
+            var row = new PanelContainer();
+            row.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = UITheme.BgCard,
+                ContentMarginLeft = 12, ContentMarginRight = 12,
+                ContentMarginTop = 8, ContentMarginBottom = 8,
+            });
+            vbox.AddChild(row);
+
+            // Footprint preview (2026-08-13): hovering a row paints the
+            // building's would-be footprint on the grounds at the chosen
+            // anchor — gold fits, red doesn't. Siting will matter more once
+            // adjacency bonuses land; this is the read-before-you-build.
+            string hoverId = bs.Id;
+            row.MouseEntered += () => _atlas3D?.PreviewHomeFootprint(hoverId, coord);
+            row.MouseExited += () => _atlas3D?.ClearHomeFootprintPreview();
+
+            var col = new VBoxContainer();
+            col.AddThemeConstantOverride("separation", 4);
+            row.AddChild(col);
+
+            var name = new Label
+            { Text = $"{template.Name}   ·   footprint {template.Footprint.Count} hex{(template.Footprint.Count == 1 ? "" : "es")}" };
+            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            col.AddChild(name);
+
+            var desc = new Label { Text = template.Description };
+            desc.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            desc.AddThemeColorOverride("font_color", UITheme.TextDim);
+            desc.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            col.AddChild(desc);
+
+            var buildBtn = new Button
+            {
+                Text = reason == null
+                    ? $"Build ({tier1.GoldCost}g + {tier1.EffectiveMaterialsCost} materials)"
+                    : reason,
+                Disabled = reason != null,
+                SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
+            };
+            buildBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            UITheme.ApplyButtonStyle(buildBtn, isPrimary: reason == null);
+            string capturedId = bs.Id;
+            buildBtn.Pressed += () => OnConstructPicked(capturedId, coord);
+            col.AddChild(buildBtn);
+        }
+    }
+
+    /// <summary>Place FIRST, purchase second: placement writes only siting
+    /// fields and is revertible; a paid-but-unplaceable building would strand
+    /// gold. If the anchor doesn't fit (multi-tile footprint on a cramped
+    /// hex), the campus overlay's placement tool — with rotation — remains
+    /// the fallback.</summary>
+    private void OnConstructPicked(string buildingId, Vector2I coord)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null) return;
+
+        EnsureCityExploreToasts();
+
+        // PURCHASE FIRST — PlaceBuilding refuses Tier 0 buildings (the campus
+        // flow's contract: buy, then site). A failed siting refunds the tier,
+        // so gold is never stranded. (2026-08-13 fix: the original
+        // place-first ordering failed silently for every unbuilt building.)
+        if (!CampusConstruction.TryBuildOrUpgrade(save, buildingId))
+        {
+            _cityExploreToasts?.Push("The coin came up short — construction cancelled.",
+                                     QuestToastKind.Progress);
+            return;
+        }
+
+        if (_atlas3D == null || !_atlas3D.TryPlaceHomeBuilding(buildingId, coord))
+        {
+            CampusConstruction.RefundTier(save, buildingId);
+            _cityExploreToasts?.Push("It doesn't fit there — pick more open ground, or site it " +
+                                     "from the campus placement tool (it can rotate).",
+                                     QuestToastKind.Progress);
+            return;
+        }
+
+        var template = BuildingDatabase.GetTemplate(buildingId);
+        _cityExploreToasts?.Push($"{template?.Name ?? buildingId} rises on the campus.",
+                                 QuestToastKind.Complete);
+        CloseConstructCard();
+    }
+
+    private void CloseConstructCard()
+    {
+        if (_constructCard == null) return;
+        _atlas3D?.ClearHomeFootprintPreview();
+        _constructCard.QueueFree();
+        _constructCard = null;
+        if (_atlas3D != null) _atlas3D.AcceptInput = true;
+    }
 
     /// <summary>City view entered/left: reuse the overlay flag to hide the world HUD, and
     /// show/hide the host buttons (leave-to-world, annex-a-district) that only make sense in
@@ -673,7 +859,9 @@ public partial class StrategicView : Node2D
         if (_atlas3D != null) _atlas3D.AcceptInput = false;   // panel owns the screen
         _cityNarrativePanel.Visible = true;
         _cityNarrativePanel.ShowEncounter(enc, save.HasFlag,
-            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign);
+            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign,
+            hasItem: id => save.Armory.OwnedItems.Exists(i => i.DefinitionId == id),
+            hasCompanion: id => CompanionRoster.GetActiveParty().Exists(c => c.Id == id));
         _cityNarrativePanel.OnCompleted = choice => OnCityEventCompleted(enc, choice, entry);
     }
 
@@ -3109,6 +3297,8 @@ public partial class StrategicView : Node2D
         KingdomTickSimulation.Tick(cycle, FactionDisplay);
         SupplyCacheSystem.Tick(cycle, FactionDisplay);
         CompanionInjurySystem.TickRecovery(SaveManager.ActiveSave);
+        // Q4.2: a united archmage's relic arrives when the unite moon returns.
+        ArchmageRelics.TickUniteAnniversaries(cycle);
     }
 
     /// <summary>The Grand Conjunction has arrived. For now the cycle simply ends —

@@ -86,6 +86,15 @@ public class EncounterChoice
     public string RequiredSchool = "";
     public int RequiredGold = 0;
 
+    // ── Tranche 3 gates (2026-08-13): the gear you carry and the people
+    // you brought open doors (discovery spec Layer A). ──────────────────
+    /// <summary>Choice surfaces only when the Armory owns at least one of
+    /// this ItemDefinition id. "" = ungated.</summary>
+    public string RequiredItem = "";
+    /// <summary>Choice surfaces only when this companion is in the ACTIVE
+    /// party (fielded, alive). "" = ungated.</summary>
+    public string RequiredCompanion = "";
+
     /// <summary>Step 9: "unite" | "coerce" | "overthrow" (empty for ordinary
     /// choices). Only meaningful on encounters with a non-empty ArchmageId.
     /// Unite/Coerce resolve the archmage's disposition directly; Overthrow
@@ -105,4 +114,10 @@ public class EncounterChoice
     public int ReputationAmount = 0;
     /// <summary>Lore id recorded permanently in the Hall of Records (Records tab).</summary>
     public string LoreId = "";
+
+    // ── Tranche 3 reward verb (2026-08-13) ───────────────────────────────
+    /// <summary>Intel: reveal the N nearest hidden POIs in the expedition
+    /// window as beacons ("information is the primary resource" —
+    /// run_structure). 0 = none. No-op on campus/city narrative hosts.</summary>
+    public int RevealPois = 0;
 }

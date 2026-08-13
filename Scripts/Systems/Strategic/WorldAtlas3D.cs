@@ -87,6 +87,51 @@ public partial class WorldAtlas3D : Node3D
     /// this is the "build in place on the world map" seam (Phase 2, true geometry merge).</summary>
     public event System.Action<string, Vector2I> HomeBuildingPicked;
 
+    /// <summary>A bare (unbuilt, non-landmark) home-grounds hex was clicked in
+    /// city view — a candidate building site. The host opens the construct card.</summary>
+    public event System.Action<Vector2I> HomeGroundPicked;
+
+    // ── Footprint preview (2026-08-13) ───────────────────────────────────
+
+    private List<Vector2I> _footprintPreview;
+
+    /// <summary>Tint a building's would-be footprint at an anchor on the home
+    /// grounds: Gold = fits, Danger = doesn't (off-grid hexes simply don't
+    /// tint — fewer gold tiles than the footprint size IS the signal). One
+    /// preview at a time; call <see cref="ClearHomeFootprintPreview"/> after.</summary>
+    public void PreviewHomeFootprint(string buildingId, Vector2I anchor)
+    {
+        ClearHomeFootprintPreview();
+        if (_homeGrounds == null) return;
+        var template = BuildingDatabase.GetTemplate(buildingId);
+        if (template == null) return;
+
+        var hexes = CampusGridManager.GetFootprintHexes(template, anchor, 0);
+        bool fits = _homeGrounds.CanPlaceBuilding(template, anchor, 0);
+        _homeGrounds.TintHexes(hexes, fits ? UITheme.Gold : UITheme.Danger);
+        _footprintPreview = hexes;
+    }
+
+    public void ClearHomeFootprintPreview()
+    {
+        if (_footprintPreview == null || _homeGrounds == null) { _footprintPreview = null; return; }
+        _homeGrounds.RestoreHexVisuals(_footprintPreview);
+        _footprintPreview = null;
+    }
+
+    /// <summary>Place a building's anchor at a grounds hex (rotation 0 — the
+    /// city card's placement; rotated/multi-tile siting stays on the campus
+    /// overlay's placement tool). On success rebuilds the grounds in place.</summary>
+    public bool TryPlaceHomeBuilding(string buildingId, Vector2I coord)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null || _homeGrounds == null) return false;
+        if (!_homeGrounds.PlaceBuilding(buildingId, coord, 0, save.Buildings)) return false;
+        SaveManager.Save();
+        RefreshCityGrowth();
+        return true;
+    }
+
     /// <summary>As <see cref="HomeBuildingPicked"/>, but for a landmark hex on the grounds
     /// model.</summary>
     public event System.Action<string, Vector2I> HomeLandmarkPicked;
@@ -830,7 +875,11 @@ public partial class WorldAtlas3D : Node3D
         if (!string.IsNullOrEmpty(buildingId)) { HomeBuildingPicked?.Invoke(buildingId, coord); return true; }
         string landmarkId = _homeGrounds.GetLandmarkIdAt(coord);
         if (!string.IsNullOrEmpty(landmarkId)) { HomeLandmarkPicked?.Invoke(landmarkId, coord); return true; }
-        return true;   // hit a bare grounds hex — consume so it doesn't fall through to a world pick
+        // Construction (2026-08-13): a bare grounds hex is a building site —
+        // the host opens the construct card for this coord ("build in place",
+        // the Phase-2 promise finally kept for NEW buildings).
+        HomeGroundPicked?.Invoke(coord);
+        return true;   // consumed either way — never falls through to a world pick
     }
 
     /// <summary>Inject the active warfront focus tiles (cycle state — not in WorldData)

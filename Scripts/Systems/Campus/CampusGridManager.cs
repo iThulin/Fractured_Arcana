@@ -524,6 +524,29 @@ public partial class CampusGridManager : HexGridManager
     /// <summary>Explore fog (Phase 3): dim the flower tiles of UNREVEALED districts and restore the
     /// normal terrain colour on revealed ones. <paramref name="isRevealed"/> tests a child coord's
     /// owning district. Cheap re-tint over the loaded tiles — call whenever the revealed set changes.</summary>
+    /// <summary>Footprint preview (2026-08-13): tint a set of hexes (e.g. a
+    /// building's would-be footprint) a flat colour. Restore with
+    /// <see cref="RestoreHexVisuals"/>. Hexes not on the grid are skipped —
+    /// an off-grid footprint simply shows fewer tinted tiles, which is
+    /// itself the "doesn't fit" signal.</summary>
+    public void TintHexes(List<Vector2I> hexes, Color color)
+    {
+        if (hexes == null) return;
+        foreach (var h in hexes)
+            if (Tiles.TryGetValue(h, out var tile) && tile.TileView != null)
+                tile.TileView.SetBaseColor(color);
+    }
+
+    /// <summary>Undo <see cref="TintHexes"/> — restores each hex's real
+    /// terrain/building visual.</summary>
+    public void RestoreHexVisuals(List<Vector2I> hexes)
+    {
+        if (hexes == null) return;
+        foreach (var h in hexes)
+            if (Tiles.TryGetValue(h, out var tile))
+                ApplyVisualToTile(tile);
+    }
+
     public void ApplyDistrictFog(System.Func<Vector2I, bool> isRevealed, Color fogColor)
     {
         if (isRevealed == null) return;

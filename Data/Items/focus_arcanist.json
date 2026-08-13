@@ -1,0 +1,13 @@
+{
+  "id": "focus_arcanist",
+  "name": "Prism of the Fifth Proof",
+  "description": "Splits a thought into its working parts. Arcanist spells deal +1 damage.",
+  "rarity": "Uncommon",
+  "slot": "Weapon",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "SchoolSpellDamage",
+  "passiveValue": 1,
+  "goldValue": 85,
+  "passiveParam": "Arcanist"
+}

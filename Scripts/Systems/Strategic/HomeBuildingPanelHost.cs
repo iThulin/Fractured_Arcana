@@ -38,11 +38,16 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
     /// floated panel reads as the same surface the tab bar used to show.</summary>
     private const int CardWidth = 560;
 
-    private CampusPanelId _panelId;
+    private CampusPanelId? _panelId;  // null = no system panel (upgrade strip only)
     private string _title = "";
+    private string _buildingId = "";  // non-empty → the tier/upgrade strip renders
     private Node _panelHost;          // what the panel reaches through (scene changes, dialogs)
     private Action _onClosed;         // fired on close so StrategicView returns to city view
     private CampusPanel _panel;
+
+    // Upgrade strip widgets (relabeled after a purchase)
+    private Label _tierLabel;
+    private Button _upgradeBtn;
 
     /// <summary>True when <paramref name="id"/> is a panel this host can float today — i.e. one
     /// whose <see cref="CampusContext"/> needs no shell cycle/narrative lifecycle. Guard every
@@ -53,7 +58,8 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             or CampusPanelId.Companions
             or CampusPanelId.Armory
             or CampusPanelId.Training
-            or CampusPanelId.Records => true,
+            or CampusPanelId.Records
+            or CampusPanelId.Workshop => true,
         _ => false,
     };
 
@@ -62,9 +68,10 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
     /// rules — README §8). <paramref name="panelHost"/> is passed to the panel as
     /// <see cref="CampusContext.Host"/>; <paramref name="onClosed"/> runs when the player
     /// closes the panel.</summary>
-    public static HomeBuildingPanelHost Create(Node panelHost, CampusPanelId id, string title, Action onClosed)
+    public static HomeBuildingPanelHost Create(Node panelHost, CampusPanelId? id, string title,
+        Action onClosed, string buildingId = "")
     {
-        if (!CanFloat(id))
+        if (id.HasValue && !CanFloat(id.Value))
             throw new ArgumentOutOfRangeException(nameof(id), id, "panel is not floatable — guard with CanFloat");
         return new HomeBuildingPanelHost
         {
@@ -72,6 +79,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             Layer = 50,
             _panelId = id,
             _title = title,
+            _buildingId = buildingId ?? "",
             _panelHost = panelHost,
             _onClosed = onClosed,
         };
@@ -128,6 +136,29 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         closeBtn.Pressed += Close;
         header.AddChild(closeBtn);
 
+        // Upgrade strip (2026-08-13): tier + upgrade verb, right under the
+        // header, for ANY building this host opens — the city view's missing
+        // upgrade path. Purchase goes through the one CampusConstruction core.
+        if (!string.IsNullOrEmpty(_buildingId))
+        {
+            var strip = new HBoxContainer();
+            strip.AddThemeConstantOverride("separation", 10);
+            vbox.AddChild(strip);
+
+            _tierLabel = new Label { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            _tierLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            _tierLabel.AddThemeColorOverride("font_color", UITheme.TextDim);
+            strip.AddChild(_tierLabel);
+
+            _upgradeBtn = new Button();
+            _upgradeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            _upgradeBtn.Pressed += OnUpgradePressed;
+            strip.AddChild(_upgradeBtn);
+
+            vbox.AddChild(new HSeparator());
+            RefreshUpgradeStrip();
+        }
+
         // Panel body host. CampusPanel.Build fills a ScrollContainer (its contract).
         var scroll = new ScrollContainer
         {
@@ -159,9 +190,58 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             beginNextCycle: _ => { },
             ensureSaveSeeded: () => { });
 
-        _panel = CreatePanel(_panelId);
+        _panel = _panelId.HasValue ? CreatePanel(_panelId.Value) : null;
+        if (_panel == null) return;   // strip-only host (building with no system panel)
         _panel.Build(scroll, ctx);
         _panel.Refresh();
+    }
+
+    /// <summary>Repaint the tier label + upgrade button from the save — at
+    /// build and after each purchase.</summary>
+    private void RefreshUpgradeStrip()
+    {
+        if (_tierLabel == null || _upgradeBtn == null) return;
+        var save = SaveManager.ActiveSave;
+        var template = BuildingDatabase.GetTemplate(_buildingId);
+        BuildingSaveData bs = null;
+        if (save != null)
+            foreach (var b in save.Buildings)
+                if (b.Id == _buildingId) { bs = b; break; }
+
+        if (save == null || template == null || bs == null)
+        {
+            _tierLabel.Text = "";
+            _upgradeBtn.Visible = false;
+            return;
+        }
+
+        var tierData = template.Tiers.Find(t => t.Tier == bs.Tier);
+        _tierLabel.Text = $"Tier {bs.Tier}/{template.MaxTier}" +
+                          (tierData != null && !string.IsNullOrEmpty(tierData.DisplayName)
+                              ? $" — {tierData.DisplayName}" : "");
+
+        string reason = CampusConstruction.CannotBuildReason(save, _buildingId);
+        var next = template.Tiers.Find(t => t.Tier == bs.Tier + 1);
+        if (bs.Tier >= template.MaxTier || next == null)
+        {
+            _upgradeBtn.Visible = false;
+            return;
+        }
+        _upgradeBtn.Visible = true;
+        _upgradeBtn.Text = reason == null
+            ? $"Upgrade ({next.GoldCost}g + {next.EffectiveMaterialsCost} mats)"
+            : reason;
+        _upgradeBtn.Disabled = reason != null;
+        UITheme.ApplyButtonStyle(_upgradeBtn, isPrimary: reason == null);
+    }
+
+    private void OnUpgradePressed()
+    {
+        if (CampusConstruction.TryBuildOrUpgrade(SaveManager.ActiveSave, _buildingId))
+        {
+            RefreshUpgradeStrip();
+            _panel?.Refresh();   // tier-gated panel content (e.g. Workshop verbs) updates live
+        }
     }
 
     /// <summary>Close the floated panel and hand control back to the city view via
@@ -183,6 +263,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         CampusPanelId.Armory     => new CampusArmoryPanel(),
         CampusPanelId.Training   => new CampusTrainingPanel(),
         CampusPanelId.Records    => new CampusRecordsPanel(),
+        CampusPanelId.Workshop   => new CampusWorkshopPanel(),
         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "not a floatable panel"),
     };
 }

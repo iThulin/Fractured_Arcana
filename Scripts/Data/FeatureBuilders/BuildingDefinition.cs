@@ -115,6 +115,13 @@ public class Building
 public class BuildingTier
 {
     public int Tier = 1;
+
+    /// <summary>Flavor name for this tier ("Basic Training Grounds", "The
+    /// Unbinding Floor"). The building JSONs have carried "displayName" all
+    /// along — this field just lets the CamelCase loader finally parse it
+    /// (2026-08-13, for the city-view upgrade strip). Empty = untitled tier.</summary>
+    public string DisplayName = "";
+
     public string Description = "";     // what this tier adds
     public int GoldCost = 100;
 

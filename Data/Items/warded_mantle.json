@@ -1,0 +1,12 @@
+{
+  "id": "warded_mantle",
+  "name": "Warded Mantle",
+  "description": "Old sigils, still holding. Gain 3 shield at the start of combat.",
+  "rarity": "Uncommon",
+  "slot": "Armor",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "StartCombatWithShield",
+  "passiveValue": 3,
+  "goldValue": 80
+}

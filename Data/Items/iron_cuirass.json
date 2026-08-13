@@ -1,0 +1,14 @@
+{
+  "id": "iron_cuirass",
+  "name": "Iron Cuirass",
+  "description": "Honest weight. +2 armor.",
+  "rarity": "Common",
+  "slot": "Armor",
+  "unitClass": "Martial",
+  "stats": {
+    "armor": 2
+  },
+  "passive": "None",
+  "passiveValue": 0,
+  "goldValue": 55
+}

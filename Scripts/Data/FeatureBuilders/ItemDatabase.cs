@@ -255,7 +255,8 @@ public class ResolvedLoadout
     public int BonusSpellDamage = 0;
 
     // All passive tags active on this unit (one per equipped item max)
-    public List<(ItemPassiveTag tag, int value)> Passives = new();
+    // Param added 2026-08-13 for the school-keyed passives (empty for the rest).
+    public List<(ItemPassiveTag tag, int value, string param)> Passives = new();
 
     // Q2 (§7a): trigger-bus abilities from equipped items — dispatched on the
     // shared handler map in combat, NOT via the ItemPassiveTag switch above.
@@ -350,19 +351,45 @@ public static class EquipmentLoadout
                 resolved.BonusAttackRange += def.Stats.AttackRange;
                 resolved.BonusSpellDamage += def.Stats.SpellDamage;
 
+                // Q5 (§7d): a blighted drop's above-floor innate — +N to the
+                // definition's PassiveValue, wherever that value lands below.
+                // Survives Cleanse by design.
+                int pv = def.PassiveValue + instance.BlightBonus;
+
+                // Q5 (§7d): blight drawbacks — authored stat penalties. Land
+                // as negative bonuses so every consumer (combat spawn, pool,
+                // readouts) prices the blight without new plumbing.
+                if (instance.IsBlighted)
+                {
+                    switch (instance.DrawbackKey)
+                    {
+                        case "blight_maxhp":  resolved.BonusMaxHP        -= instance.DrawbackValue; break;
+                        case "blight_armor":  resolved.BonusArmor        -= instance.DrawbackValue; break;
+                        case "blight_speed":  resolved.BonusBaseSpeed    -= instance.DrawbackValue; break;
+                        case "blight_damage": resolved.BonusAttackDamage -= instance.DrawbackValue; break;
+                    }
+                }
+
+                // Q5: the enchant slot rides the SAME accumulator as innates —
+                // one resolution seam, no parallel system (§7a's whole point).
+                if (!string.IsNullOrEmpty(instance.EnchantKey))
+                    AccumulateEffect(resolved, instance.EnchantKey, instance.EnchantValue,
+                                     instance.EnchantParam, instance.EnchantTrigger,
+                                     $"{def.Name} (enchant)");
+
                 // Q3 (§4b/§7b): overworld traversal-resistance passives route into
                 // dedicated party-summed fields, consumed during expedition
                 // traversal — NOT a combat trigger, NOT an ItemPassiveTag. Checked
                 // BEFORE the Q2 trigger block and the enum path so an overworld
                 // item is completely inert in combat.
                 string ovKey = (def.Passive ?? "").ToLowerInvariant();
-                if (ovKey == "corruption_ward") { resolved.CorruptionWard += def.PassiveValue; continue; }
-                if (ovKey == "hazard_ward")     { resolved.HazardWard    += def.PassiveValue; continue; }
+                if (ovKey == "corruption_ward") { resolved.CorruptionWard += pv; continue; }
+                if (ovKey == "hazard_ward")     { resolved.HazardWard    += pv; continue; }
                 if (ovKey == "pathfinder")
                 {
                     string terrain = def.PassiveParam ?? "";
                     resolved.Pathfinder.TryGetValue(terrain, out int cur);
-                    resolved.Pathfinder[terrain] = cur + def.PassiveValue;
+                    resolved.Pathfinder[terrain] = cur + pv;
                     continue;
                 }
 
@@ -377,7 +404,7 @@ public static class EquipmentLoadout
                     {
                         Key = def.Passive,
                         Trigger = def.Trigger,
-                        Value = def.PassiveValue,
+                        Value = pv,
                         SourceName = def.Name,
                     });
                     continue;   // do NOT also add it to the enum Passives list
@@ -386,12 +413,54 @@ public static class EquipmentLoadout
                 // Collect passive tag (legacy enum path — unmigrated items)
                 var tag = ItemDatabase.ParsePassive(def);
                 if (tag != ItemPassiveTag.None)
-                    resolved.Passives.Add((tag, def.PassiveValue));
+                    resolved.Passives.Add((tag, pv, def.PassiveParam ?? ""));
             }
 
             _loadouts[unitId] = resolved;
         }
 
         GD.Print($"EquipmentLoadout: Built loadouts for {_loadouts.Count} unit(s).");
+    }
+
+    /// <summary>Q5: route one effect line (an enchant) into the resolved
+    /// loadout, using the same key vocabulary as definitions: "stat_*" →
+    /// bonus fields, overworld keys → party-summed fields, trigger keys →
+    /// the Q2 bus. Unknown keys are inert (a typo'd enchant does nothing,
+    /// it doesn't crash a run).</summary>
+    private static void AccumulateEffect(ResolvedLoadout resolved, string key,
+        int value, string param, string trigger, string sourceName)
+    {
+        switch ((key ?? "").ToLowerInvariant())
+        {
+            case "stat_maxhp":        resolved.BonusMaxHP += value; return;
+            case "stat_maxmana":      resolved.BonusMaxMana += value; return;
+            case "stat_armor":        resolved.BonusArmor += value; return;
+            case "stat_speed":        resolved.BonusBaseSpeed += value; return;
+            case "stat_attackdamage": resolved.BonusAttackDamage += value; return;
+            case "stat_attackrange":  resolved.BonusAttackRange += value; return;
+            case "stat_spelldamage":  resolved.BonusSpellDamage += value; return;
+
+            case "corruption_ward":   resolved.CorruptionWard += value; return;
+            case "hazard_ward":       resolved.HazardWard += value; return;
+            case "pathfinder":
+            {
+                string terrain = param ?? "";
+                resolved.Pathfinder.TryGetValue(terrain, out int cur);
+                resolved.Pathfinder[terrain] = cur + value;
+                return;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(trigger) &&
+            !string.Equals(trigger, "none", System.StringComparison.OrdinalIgnoreCase))
+        {
+            resolved.Abilities.Add(new ItemAbility
+            {
+                Key = key,
+                Trigger = trigger,
+                Value = value,
+                SourceName = sourceName,
+            });
+        }
     }
 }

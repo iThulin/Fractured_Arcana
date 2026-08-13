@@ -104,6 +104,9 @@ public partial class CampusScreen : Control
     // Training tab
     private readonly CampusTrainingPanel _trainingPanel = new();
 
+    // Workshop tab (Q5)
+    private readonly CampusWorkshopPanel _workshopPanel = new();
+
     // Expedition tab
     private readonly CampusExpeditionPanel _expeditionPanel = new();
     // NOTE: the Atlas and Window comparison-prototype tabs were removed once their 3D
@@ -216,7 +219,7 @@ public partial class CampusScreen : Control
         tabBar.AddThemeConstantOverride("separation", 0);
         AddChild(tabBar);
 
-        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council" };
+        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop" };
         // CampusPanelId's values ARE these indices — the map routes by enum, the bar routes
         // by index, and nothing else ties them together. Reordering one without the other
         // would silently send every building on the campus to the wrong room.
@@ -308,6 +311,7 @@ public partial class CampusScreen : Control
         _recordsPanel.Build((ScrollContainer)_tabPanels[6], _ctx);
         _questsPanel.Build((ScrollContainer)_tabPanels[7], _ctx);
         _councilTab.Build((ScrollContainer)_tabPanels[8], _ctx);
+        _workshopPanel.Build((ScrollContainer)_tabPanels[9], _ctx);
 
         // Layered last — see the construction note above.
         AddChild(_campusNarrativePanel);
@@ -382,6 +386,9 @@ public partial class CampusScreen : Control
                 break;
             case 5:
                 _trainingPanel.Refresh();
+                break;
+            case 9:
+                _workshopPanel.Refresh();
                 break;
             case 6:
                 _recordsPanel.Refresh();
@@ -869,7 +876,12 @@ public partial class CampusScreen : Control
 
             var catLabel = new Label
             {
-                Text = template.Category + (string.IsNullOrEmpty(template.SchoolAffinity) ? "" : $"  ·  {template.SchoolAffinity}")
+                // Footprint shown up front (2026-08-13): siting will carry
+                // adjacency mechanics — the shape must be readable BEFORE
+                // buying, not discovered inside the placement tool.
+                Text = template.Category
+                       + (string.IsNullOrEmpty(template.SchoolAffinity) ? "" : $"  ·  {template.SchoolAffinity}")
+                       + $"  ·  footprint {template.Footprint.Count} hex{(template.Footprint.Count == 1 ? "" : "es")}"
             };
             catLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildTinyFontSize);
             catLabel.Modulate = UITheme.BuildingCategoryText;
@@ -1086,47 +1098,12 @@ public partial class CampusScreen : Control
 
     private bool TryBuildOrUpgrade(string buildingId)
     {
-        var save = SaveManager.ActiveSave;
-        if (save == null)
-            return false;
-        var template = BuildingDatabase.GetTemplate(buildingId);
-        if (template == null)
-            return false;
-
-        BuildingSaveData buildingSave = null;
-        foreach (var b in save.Buildings)
-            if (b.Id == buildingId)
-            { buildingSave = b; break; }
-        if (buildingSave == null)
-            return false;
-
-        int nextTier = buildingSave.Tier + 1;
-        if (nextTier > template.MaxTier)
-            return false;
-        var tierData = template.Tiers.Find(t => t.Tier == nextTier);
-        if (tierData == null || save.Gold < tierData.GoldCost || save.BuildMaterials < tierData.EffectiveMaterialsCost)
-            return false;
-
-        foreach (var reqId in tierData.RequiredBuildings)
-        {
-            bool found = false;
-            foreach (var b in save.Buildings)
-                if (b.Id == reqId && b.Tier > 0)
-                { found = true; break; }
-            if (!found)
-                return false;
-        }
-
-        save.Gold -= tierData.GoldCost;
-        save.BuildMaterials -= tierData.EffectiveMaterialsCost;
-        if (buildingSave.Tier == 0)
-            buildingSave.CurrentIntegrity = buildingSave.MaxIntegrity; // fresh build (or rebuild after destruction) starts at full HP
-        buildingSave.Tier = nextTier;
-
-        SaveManager.Save();
-        RefreshGoldLabel();
-        GD.Print($"Built {buildingSave.Name} tier {nextTier}. Gold: {save.Gold}, Materials: {save.BuildMaterials}");
-        return true;
+        // Purchase core extracted to CampusConstruction (2026-08-13) so the
+        // strategic city view can construct without this screen. Behavior
+        // identical; this wrapper keeps the tab's refresh.
+        bool ok = CampusConstruction.TryBuildOrUpgrade(SaveManager.ActiveSave, buildingId);
+        if (ok) RefreshGoldLabel();
+        return ok;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1259,7 +1236,9 @@ public partial class CampusScreen : Control
         if (enc == null || save == null || _campusNarrativePanel == null) return;
 
         _campusNarrativePanel.ShowEncounter(enc, save.HasFlag,
-            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign);
+            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign,
+            hasItem: id => save.Armory.OwnedItems.Exists(i => i.DefinitionId == id),
+            hasCompanion: id => CompanionRoster.GetActiveParty().Exists(c => c.Id == id));
         _campusNarrativePanel.OnCompleted = choice => OnCampusNarrativeCompleted(enc, choice);
     }
 

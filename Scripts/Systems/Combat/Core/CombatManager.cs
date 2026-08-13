@@ -1815,6 +1815,15 @@ public partial class CombatManager : Node3D
         if (loadout != null)
             damage += loadout.BonusAttackDamage;
 
+        // BonusDamageAboveHalfHP (implemented 2026-08-13 — the tag existed
+        // since Q1 with no consumer): the healthy fighter hits harder.
+        if (attacker.Stats.Health * 2 > attacker.Stats.MaxHealth)
+        {
+            foreach (var (tag, value, _) in attacker.EquipmentPassives)
+                if (tag == ItemPassiveTag.BonusDamageAboveHalfHP)
+                    damage += value;
+        }
+
         // Stance passive damage bonus
         if (stance != null)
             damage += stance.AttackDamageBonus;
@@ -2138,7 +2147,7 @@ public partial class CombatManager : Node3D
             }
 
             // ── Equipment passive: restore mana on turn start ────────────
-            foreach (var (tag, value) in unit.EquipmentPassives)
+            foreach (var (tag, value, _) in unit.EquipmentPassives)
             {
                 if (tag == ItemPassiveTag.RestoreManaOnTurnStart)
                 {
@@ -5248,7 +5257,7 @@ public partial class CombatManager : Node3D
             unit.BonusSpellDamage = loadout.BonusSpellDamage;
 
         // ── Passive tags ──────────────────────────────────────────────────
-        unit.EquipmentPassives = new List<(ItemPassiveTag, int)>(loadout.Passives);
+        unit.EquipmentPassives = new List<(ItemPassiveTag, int, string)>(loadout.Passives);
 
         // Q2 (§7a): trigger-bus item abilities — dispatched on the shared map,
         // separate from the enum passives (so the Q1 parity assert below, which
@@ -5256,7 +5265,7 @@ public partial class CombatManager : Node3D
         unit.ItemAbilities = new List<ItemAbility>(loadout.Abilities);
 
         // Apply immediate passives that take effect at combat start
-        foreach (var (tag, value) in loadout.Passives)
+        foreach (var (tag, value, _) in loadout.Passives)
         {
             switch (tag)
             {
@@ -5280,7 +5289,7 @@ public partial class CombatManager : Node3D
         // by stat at spawn. Fails LOUDLY (PushError) — a silently-dropped item
         // bonus is exactly the defect class this exists to catch.
         int expShieldBonus = 0;
-        foreach (var (tag, value) in loadout.Passives)
+        foreach (var (tag, value, _) in loadout.Passives)
             if (tag == ItemPassiveTag.StartCombatWithShield)
                 expShieldBonus += value;
 

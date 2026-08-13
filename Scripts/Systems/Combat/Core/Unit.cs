@@ -106,7 +106,7 @@ public partial class Unit : Node3D
     [Export] public CardSchool School = CardSchool.Adept;
 
     // ── Equipment passives — set by CombatManager after applying loadout ────
-    public List<(ItemPassiveTag tag, int value)> EquipmentPassives = new();
+    public List<(ItemPassiveTag tag, int value, string param)> EquipmentPassives = new();
     public int BonusSpellDamage = 0;   // from wizard weapon/trinket
 
     /// <summary>Q2 (§7a): trigger-bus abilities granted by equipped items, fired
@@ -910,6 +910,23 @@ public partial class Unit : Node3D
                 return;
             }
             BodyguardedBy = null;      // guard died between recompute and this hit
+        }
+
+        // DamageReductionPerHit (implemented 2026-08-13 — the tag existed
+        // since Q1 with no consumer). Flat per-hit reduction from equipment,
+        // FLOOR 1: relief is bought, immunity does not exist (the wards'
+        // guardrail applied to combat chip). Ordered AFTER bodyguard — the
+        // interposing guard takes the original hit, and their own recursive
+        // ApplyDamage applies THEIR plate — and BEFORE the sim gate, so the
+        // R22 preview prices the true target's reduction.
+        if (EquipmentPassives.Count > 0 && amount > 1)
+        {
+            int flatReduction = 0;
+            foreach (var (tag, value, _) in EquipmentPassives)
+                if (tag == ItemPassiveTag.DamageReductionPerHit)
+                    flatReduction += value;
+            if (flatReduction > 0)
+                amount = Mathf.Max(1, amount - flatReduction);
         }
 
         if (CombatSim.Active)

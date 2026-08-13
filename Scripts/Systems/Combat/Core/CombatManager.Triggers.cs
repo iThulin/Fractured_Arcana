@@ -292,6 +292,12 @@ public partial class CombatManager
     private void HandleUnitStruck(Unit struck, int hpLoss, Unit source)
     {
         QueueAbilityTriggers(struck, "onStruck", source);
+        // Phase B (2026-08-13): items answer wounds too — the wearer's
+        // onStruck abilities queue through the same seam. Because the
+        // dispatcher routes by KEY, existing keys gain defensive readings
+        // for free: shield_self here = "harden when wounded", apply_bleed
+        // here = "barbed armor bites the attacker".
+        QueueItemStruckTriggers(struck, source);
 
         // Riposte re-hook (2026-07-28). ResolveRetaliation was called from
         // PerformAttack / PerformRangedAttack — but the U2 intent-AI migration routed
@@ -360,6 +366,14 @@ public partial class CombatManager
             // cached on Unit at spawn and read inline in the damage path; they never
             // reach this dispatcher, and the registry exempts them from needing a case.
             case "retaliate":
+                // Phase B: items share this key (onStruck seam). Enemy path
+                // reads its ability def; the item path reads ItemValue and
+                // strikes the ItemTarget (= the attacker). Sourceless chip
+                // (null target) reflects nothing.
+                if (t.Def == null)
+                    return t.ItemTarget != null
+                        ? new ThornsEffect(t.Carrier, t.ItemTarget, t.ItemValue, this)
+                        : null;
                 return new ThornsEffect(t.Carrier, t.TargetUnit,
                                            t.Def.GetIntParam("amount", 3), this);
             case "regrowth":
@@ -397,7 +411,11 @@ public partial class CombatManager
             case "shield_self":
                 return new ItemShieldSelfEffect(t.ItemValue, t.Carrier, t.SourceName, this);
             case "apply_bleed":
-                return new ItemBleedOnAttackEffect(t.ItemValue, t.ItemTarget, t.SourceName, this);
+                // Null target guard (Phase B): on the onStruck seam the
+                // "target" is the attacker, which sourceless chip lacks.
+                return t.ItemTarget != null
+                    ? new ItemBleedOnAttackEffect(t.ItemValue, t.ItemTarget, t.SourceName, this)
+                    : null;
 
             default:
                 GD.PrintErr($"[Triggers] Unknown trigger key '{t.DispatchKey}' on {t.SourceName} — skipped.");
@@ -449,6 +467,33 @@ public partial class CombatManager
                 ItemTarget = target,
                 DisplayName = ab.SourceName,
                 PlayerControlled = attacker.IsPlayerControlled,
+            });
+        }
+    }
+
+    /// <summary>Phase B (2026-08-13): queues the STRUCK unit's onStruck item
+    /// abilities — the defensive mirror of QueueItemAttackTriggers. ItemTarget
+    /// is the ATTACKER (so apply_bleed bites back, retaliate reflects); keys
+    /// that only touch the carrier (shield_self) ignore it. Fires only when
+    /// the wearer lost HP and survived, same contract as the U3b seam. The
+    /// existing drain kick at the damage call site covers these too.</summary>
+    private void QueueItemStruckTriggers(Unit struck, Unit source)
+    {
+        if (struck?.ItemAbilities == null)
+            return;
+        foreach (var ab in struck.ItemAbilities)
+        {
+            if (!string.Equals(ab.Trigger, "onStruck", StringComparison.OrdinalIgnoreCase))
+                continue;
+            _pendingTriggers.Add(new QueuedTrigger
+            {
+                Carrier = struck,
+                SourceName = ab.SourceName,
+                ItemKey = ab.Key,
+                ItemValue = ab.Value,
+                ItemTarget = source,   // may be null (sourceless chip) — key handlers guard
+                DisplayName = ab.SourceName,
+                PlayerControlled = struck.IsPlayerControlled,
             });
         }
     }

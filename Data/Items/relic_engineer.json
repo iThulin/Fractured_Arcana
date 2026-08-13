@@ -1,0 +1,15 @@
+{
+  "id": "relic_engineer",
+  "name": "The Engineer's Bulwark Frame",
+  "description": "Load-bearing in every sense. Take 1 less damage from each hit.",
+  "rarity": "Legendary",
+  "slot": "Armor",
+  "unitClass": "Any",
+  "stats": {
+    "armor": 2,
+    "maxHP": 3
+  },
+  "passive": "DamageReductionPerHit",
+  "passiveValue": 1,
+  "goldValue": 500
+}

@@ -1,0 +1,13 @@
+{
+  "id": "dune_compass",
+  "name": "Dune Compass",
+  "description": "It points to water, which is the same as pointing home. -1 step cost crossing Desert (never below 1).",
+  "rarity": "Uncommon",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "pathfinder",
+  "passiveValue": 1,
+  "goldValue": 90,
+  "passiveParam": "Desert"
+}

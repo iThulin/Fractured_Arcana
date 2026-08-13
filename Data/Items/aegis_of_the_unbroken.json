@@ -1,0 +1,13 @@
+{
+  "id": "aegis_of_the_unbroken",
+  "name": "Aegis of the Unbroken",
+  "description": "It answers the wound, not the blow. When struck, gain 4 shield.",
+  "rarity": "Rare",
+  "slot": "Armor",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "shield_self",
+  "passiveValue": 4,
+  "goldValue": 175,
+  "trigger": "onStruck"
+}

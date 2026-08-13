@@ -1,0 +1,12 @@
+{
+  "id": "bulwark_plate",
+  "name": "Bulwark Plate",
+  "description": "Each blow arrives a little tired. Take 1 less damage from every hit.",
+  "rarity": "Uncommon",
+  "slot": "Armor",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "DamageReductionPerHit",
+  "passiveValue": 1,
+  "goldValue": 110
+}

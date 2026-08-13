@@ -154,6 +154,23 @@ public sealed class Resolver
         }
         else perfectedBonus = 0;
 
+        // Equipment: school-keyed spell damage (2026-08-13, replaces the
+        // never-implemented FireSpellBonusDamage). Same pin/unpin shape as
+        // Perfected — BonusSpellDamage is how DealDamageEffect already reads
+        // flat bonuses, so every damage leaf prices it without changing.
+        int schoolItemBonus = 0;
+        if (item.SourceCard != null && item.CasterUnit != null
+            && GodotObject.IsInstanceValid(item.CasterUnit))
+        {
+            string cardSchool = Rules.SchoolOfCard(item.SourceCard);
+            foreach (var (tag, value, param) in item.CasterUnit.EquipmentPassives)
+                if (tag == ItemPassiveTag.SchoolSpellDamage &&
+                    (string.IsNullOrEmpty(param) || param == cardSchool))
+                    schoolItemBonus += value;
+            if (schoolItemBonus > 0)
+                item.CasterUnit.BonusSpellDamage += schoolItemBonus;
+        }
+
         s.ResolutionDepth++;   // GameState.RequestCardChoice: a resolver pass is live
         try
         {
@@ -166,6 +183,9 @@ public sealed class Resolver
             if (perfectedBonus > 0 && item.CasterUnit != null
                 && GodotObject.IsInstanceValid(item.CasterUnit))
                 item.CasterUnit.BonusSpellDamage -= perfectedBonus;
+            if (schoolItemBonus > 0 && item.CasterUnit != null
+                && GodotObject.IsInstanceValid(item.CasterUnit))
+                item.CasterUnit.BonusSpellDamage -= schoolItemBonus;
             s.ActiveCasterUnit = prevCaster;
             Unit.AmbientDamageSource = prevDamageSource;
         }
@@ -300,9 +320,24 @@ public static class Rules
         // ── Equipment: first-card reduction ────────────────────────────────────────
         if (s.ActiveCasterUnit != null && !s.ActiveCasterUnit.Stats.HasPlayedCardThisTurn)
         {
-            foreach (var (tag, value) in s.ActiveCasterUnit.EquipmentPassives)
+            foreach (var (tag, value, _) in s.ActiveCasterUnit.EquipmentPassives)
             {
                 if (tag == ItemPassiveTag.FirstCardCostReduction)
+                    manaDiscount += value;
+            }
+        }
+
+        // ── Equipment: school-keyed cost reduction (2026-08-13) ────────────────────
+        // Replaces the never-implemented StormSpellCostReduction. Param = school
+        // name; empty param = all schools. Reads the card's school off its
+        // blueprint (runtime Cards carry no school).
+        if (s.ActiveCasterUnit != null && sourceCard != null)
+        {
+            string cardSchool = SchoolOfCard(sourceCard);
+            foreach (var (tag, value, param) in s.ActiveCasterUnit.EquipmentPassives)
+            {
+                if (tag == ItemPassiveTag.SchoolSpellCostReduction &&
+                    (string.IsNullOrEmpty(param) || param == cardSchool))
                     manaDiscount += value;
             }
         }
@@ -406,5 +441,16 @@ public static class Rules
         {
             s.CostContextCard = null;
         }
+    }
+
+    /// <summary>The school of a runtime card, via its blueprint (runtime Cards
+    /// carry no school field). Empty string when the blueprint is unknown —
+    /// which makes school-keyed item passives inert for it, never wrong.
+    /// Public: consumed by both Rules (cost discount) and Resolver (damage pin).</summary>
+    public static string SchoolOfCard(Card card)
+    {
+        if (card == null || string.IsNullOrEmpty(card.BlueprintId)) return "";
+        var bp = CardDatabase.Blueprints.Find(b => b.Id == card.BlueprintId);
+        return bp != null ? bp.School.ToString() : "";
     }
 }

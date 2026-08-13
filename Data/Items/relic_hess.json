@@ -1,0 +1,15 @@
+{
+  "id": "relic_hess",
+  "name": "The Witness's Green Way",
+  "description": "Hess walked every forest path and the forests remember. -1 step cost crossing Forest (never below 1).",
+  "rarity": "Legendary",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {
+    "baseSpeed": 1
+  },
+  "passive": "pathfinder",
+  "passiveValue": 1,
+  "passiveParam": "Forest",
+  "goldValue": 500
+}

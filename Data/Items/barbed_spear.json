@@ -1,0 +1,13 @@
+{
+  "id": "barbed_spear",
+  "name": "Barbed Spear",
+  "description": "It leaves something behind. Attacks apply bleed.",
+  "rarity": "Uncommon",
+  "slot": "Weapon",
+  "unitClass": "Martial",
+  "stats": {},
+  "passive": "apply_bleed",
+  "passiveValue": 1,
+  "goldValue": 90,
+  "trigger": "onAttack"
+}

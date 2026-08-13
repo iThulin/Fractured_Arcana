@@ -1,0 +1,14 @@
+{
+  "id": "heavy_maul",
+  "name": "Heavy Maul",
+  "description": "Argument by tonnage. +2 attack damage.",
+  "rarity": "Common",
+  "slot": "Weapon",
+  "unitClass": "Martial",
+  "stats": {
+    "attackDamage": 2
+  },
+  "passive": "None",
+  "passiveValue": 0,
+  "goldValue": 60
+}

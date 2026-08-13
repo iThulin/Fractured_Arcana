@@ -1,0 +1,13 @@
+{
+  "id": "focus_druid",
+  "name": "Living Heartwood",
+  "description": "It grows a leaf every spring, wherever it is. Druid spells deal +1 damage.",
+  "rarity": "Uncommon",
+  "slot": "Weapon",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "SchoolSpellDamage",
+  "passiveValue": 1,
+  "goldValue": 85,
+  "passiveParam": "Druid"
+}
