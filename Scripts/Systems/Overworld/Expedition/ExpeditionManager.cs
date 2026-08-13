@@ -1715,7 +1715,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
 
         if (_window3D != null) _window3D.AcceptInput = false;   // the menu owns the screen
-        _cityServices = CityServicesHost.Create(CitySettlementName(s), CloseCityServices);
+        _cityServices = CityServicesHost.Create(CitySettlementName(s), s, CloseCityServices);
         AddChild(_cityServices);
     }
 
@@ -2409,7 +2409,19 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         string terrainName = TerrainAt(coord).ToString();   // Step 3: world read
         var completedIds = SaveManager.ActiveSave?.CompletedEvents;
-        var encounter = NarrativeEncounterLoader.PickRandom(_encounterPool, terrainName, completedIds, SaveManager.ActiveSave);
+
+        // K3 (§5a): a rescue POI wears a Narrative marker in-window, but the
+        // world-side kind survives — route it to a found-person encounter.
+        // Falls through to the normal pool when no one is left to find
+        // (a rescue site must never dead-end into nothing).
+        NarrativeEncounterData encounter = null;
+        if (_window.TryLocalToWorld(coord, out int wcol, out int wrow) &&
+            _world.PoiAt(wcol, wrow)?.Kind == PoiKind.Companion)
+        {
+            encounter = BuildRescueEncounter();
+        }
+
+        encounter ??= NarrativeEncounterLoader.PickRandom(_encounterPool, terrainName, completedIds, SaveManager.ActiveSave);
 
         ConsumeOverlayPoi(coord);   // Step 2
         ConsumeWorldPoi(coord);
@@ -2437,6 +2449,57 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         LogRun("narrative_start", encounter.Id, at: coord);
         var loreTerrain = TerrainAt(coord); // S4: the drop pool is terrain-flavored
         _narrativePanel.OnCompleted = (choice) => OnNarrativeCompleted(encounter, choice, loreTerrain);
+    }
+
+    /// <summary>K3 (§5a): synthesize the found-person encounter for a rescue POI.
+    /// Eligible: authored, not recruited, not dead, and NOT IsAvailable — the
+    /// available ones are the hiring halls' pool; rescues find the people no
+    /// hall will ever list. Complementary by construction, so a rescue never
+    /// duplicates a hall offer. Returns null when no one is left to find
+    /// (caller falls through to the normal narrative pool). The grant rides
+    /// the existing CompanionUnlock → GrantFromEncounter path — no gold, per
+    /// spec ("found people"). NOTE (logged deviation): the spec's "arrives
+    /// with a live arc, ArcStage > 0" is deferred to K4 — ArcStage is derived
+    /// state owned by CompanionArcTracker's flag sync, and forcing it here
+    /// would desync the tracker (single-source discipline).</summary>
+    private NarrativeEncounterData BuildRescueEncounter()
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null) return null;
+
+        var pool = new List<Companion>();
+        foreach (var c in save.Companions)
+            if (!c.IsRecruited && !c.IsPermadead && !c.IsAvailable)
+                pool.Add(c);
+        if (pool.Count == 0) return null;
+
+        var found = pool[(int)(GD.Randf() * pool.Count) % pool.Count];
+
+        return new NarrativeEncounterData
+        {
+            Id = $"rescue_{found.Id}",
+            Title = "A Found Person",
+            Body = $"Half-hidden from the road: a makeshift camp, cold ashes, and someone " +
+                   $"who has been out here too long. {found.Name} — " +
+                   $"{found.Backstory} They watch you decide what you are before " +
+                   $"they decide what they'll be.",
+            Choices = new List<EncounterChoice>
+            {
+                new EncounterChoice
+                {
+                    Label = $"Take {found.Name} in",
+                    ResultText = $"{found.Name} gathers what little there is to gather. " +
+                                 "Found, not bought — and they will remember which.",
+                    CompanionUnlock = found.Id,
+                },
+                new EncounterChoice
+                {
+                    Label = "Leave them to their road",
+                    ResultText = "You mark the camp on the map and move on. " +
+                                 "Some debts are cheaper never taken on.",
+                },
+            },
+        };
     }
 
     /// <summary>Difficulty multiplier applied to fragment-guardian boss units.</summary>
@@ -2519,6 +2582,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     _toasts?.Push(qt.Text, qt.Kind);
                 _toasts?.Push($"{def?.DisplayName ?? "The archmage"} stands with the guild.",
                               QuestToastKind.Progress);
+                // K5 (§5a): the united school seconds one adept.
+                string unitedAdept = RecruitmentSources.OnArchmageUnited(archmageId);
+                if (unitedAdept != null) _toasts?.Push(unitedAdept, QuestToastKind.Progress);
                 SaveManager.MarkDirty();
                 SaveManager.SaveIfDirty();
                 UpdateUI();
@@ -3108,6 +3174,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
         _identifiedEncounters.Clear(); // S4: Identify pins end with it too
         _pinnedNegotiations.Clear();   // S5: True Names pre-reads likewise
+
+        // K4: loyalty homecoming (+1 fielded, +2 heroism for the stabilized)
+        // BEFORE the extraction check — ApplyExtractionCheck resets
+        // ExpeditionHP, which is the heroism evidence. Then the Cunning
+        // Finder's Fee lands before banking.
+        LoyaltyEvents.OnExtraction(SaveManager.ActiveSave);
+        GoldEarned += CompanionPerks.ExtractionGold(SaveManager.ActiveSave);
 
         // K2.5 ruling: extraction infirmary check — who came home broken?
         // Stabilized (downed in a won fight) → 1–2 lunations; below 25% of
@@ -4566,6 +4639,19 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     return (false, "No ill word is travelling toward this court.");
                 return (true, $"The Chancellor's quiet work: the tale of {buried} will never reach the court.");
             }
+            case "Arcane":
+            {
+                // K5 (§5a): the Arcane MAJOR favor is the retainer redemption —
+                // the Court Wizard's own person, sent to settle the debt.
+                // (Scope ruling: spec offered any Major favor; Arcane was the
+                // one empty effect slot, so no existing effect is overloaded.)
+                if (!f.IsMajor)
+                    return (false, "A minor arcane favor buys no one's service.");
+                string joined = RecruitmentSources.RedeemRetainer(f);
+                if (joined == null)
+                    return (false, "The court's debt cannot be paid right now.");
+                return (true, joined);
+            }
         }
         return (false, "That favor has no field effect yet.");
     }
@@ -4845,9 +4931,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 continue;
             int contribution = c.BaseHP / 2;   // floor — int division, BaseHP ≥ 0
             int bonus = c.LoyaltyPoolBonus();
-            total += contribution + bonus;
-            readout.Append($" + {c.Name} {contribution + bonus} (⌊{c.BaseHP}/2⌋" +
-                           $"{(bonus > 0 ? $" +{bonus} {c.GetLoyaltyTier()}" : "")})");
+            int perk = CompanionPerks.PoolBonus(c);   // K4: Trusted Loyal
+            total += contribution + bonus + perk;
+            readout.Append($" + {c.Name} {contribution + bonus + perk} (⌊{c.BaseHP}/2⌋" +
+                           $"{(bonus > 0 ? $" +{bonus} {c.GetLoyaltyTier()}" : "")}" +
+                           $"{(perk > 0 ? $" +{perk} Loyal perk" : "")})");
         }
         readout.Append($" = {total}");
         GD.Print(readout.ToString());

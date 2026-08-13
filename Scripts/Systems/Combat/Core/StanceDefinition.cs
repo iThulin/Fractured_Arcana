@@ -74,6 +74,12 @@ public class StanceDefinition
     // ── Special behaviour ─────────────────────────────────────────────────
     public StanceSpecialTag SpecialTag = StanceSpecialTag.None;
     public int SpecialTagValue = 0;  // magnitude for scaling specials
+
+    // ── Signature (K4, v2.1 §2 carried from v1) ──────────────────────────
+    /// <summary>An ArcStage-4 signature stance: never trained, never listed by
+    /// the campus Training tab, granted at spawn by StanceRegistry.
+    /// EligibleSignature when the arc is complete and loyalty is above Wary.</summary>
+    public bool IsSignature = false;
 }
 
 /// <summary>
@@ -235,7 +241,177 @@ public static class StanceRegistry
             SpecialTag = StanceSpecialTag.MarkedTarget,
             SpecialTagValue = 3, // bonus damage for next ally hit
         });
+
+        // ── Signature stances (K4) ────────────────────────────────────────
+        // One per Class × Trait cell — elevated versions of the base kit with
+        // a personality-shaped identity. FRESH-AUTHORED K4 STARTING VALUES
+        // (the v1 signature matrix could not be located). Granted at spawn
+        // via EligibleSignature — never trained, never in TrainedStanceIds.
+        // Authored companions may override via Companion.SignatureStanceId.
+
+        Add(new StanceDefinition
+        {
+            Id = "sig_fighter_cunning",
+            DisplayName = "Feintwork ✦",
+            Description = "Signature. +1 damage. On hit: apply Vulnerable for 1 turn.",
+            Class = MartialClass.Fighter,
+            IsSignature = true,
+            AttackDamageBonus = 1,
+            OnHitStatusName = "vulnerable",
+            OnHitStatusDuration = 1,
+        });
+
+        Add(new StanceDefinition
+        {
+            Id = "sig_fighter_loyal",
+            DisplayName = "Oathwall ✦",
+            Description = "Signature. +2 armor. Adjacent allies gain +3 armor.",
+            Class = MartialClass.Fighter,
+            IsSignature = true,
+            PassiveArmorBonus = 2,
+            SpecialTag = StanceSpecialTag.GuardianAura,
+            SpecialTagValue = 3,
+        });
+
+        Add(new StanceDefinition
+        {
+            Id = "sig_fighter_curious",
+            DisplayName = "Openings ✦",
+            Description = "Signature. +1 damage. Attacks ignore armor.",
+            Class = MartialClass.Fighter,
+            IsSignature = true,
+            AttackDamageBonus = 1,
+            AttackIgnoresArmor = true,
+        });
+
+        Add(new StanceDefinition
+        {
+            Id = "sig_fighter_stoic",
+            DisplayName = "Immovable ✦",
+            Description = "Signature. +5 armor. On hit: gain 2 shield.",
+            Class = MartialClass.Fighter,
+            IsSignature = true,
+            PassiveArmorBonus = 5,
+            OnHitSelfShieldGain = 2,
+        });
+
+        Add(new StanceDefinition
+        {
+            Id = "sig_fighter_reckless",
+            DisplayName = "Avalanche ✦",
+            Description = "Signature. Attack hits all adjacent enemies at +2 damage. " +
+                          "Take 2 damage after attacking. -1 armor.",
+            Class = MartialClass.Fighter,
+            IsSignature = true,
+            AttackDamageBonus = 2,
+            PassiveArmorPenalty = 1,
+            OnHitSelfDamage = 2,
+            SpecialTag = StanceSpecialTag.AoeAdjacent,
+        });
+
+        Add(new StanceDefinition
+        {
+            Id = "sig_ranger_cunning",
+            DisplayName = "Killing Angle ✦",
+            Description = "Signature. +1 damage. On hit: apply Marked — next ally attack " +
+                          "on that target deals +4 damage.",
+            Class = MartialClass.Ranger,
+            IsSignature = true,
+            AttackDamageBonus = 1,
+            OnHitStatusName = "marked",
+            OnHitStatusDuration = 2,
+            SpecialTag = StanceSpecialTag.MarkedTarget,
+            SpecialTagValue = 4,
+        });
+
+        Add(new StanceDefinition
+        {
+            Id = "sig_ranger_loyal",
+            DisplayName = "Warding Volley ✦",
+            Description = "Signature. Attack hits all enemies in a line. On hit: target " +
+                          "loses 1 move point next turn.",
+            Class = MartialClass.Ranger,
+            IsSignature = true,
+            OnHitStatusName = "suppressed",
+            OnHitStatusDuration = 1,
+            SpecialTag = StanceSpecialTag.LinePiercing,
+        });
+
+        Add(new StanceDefinition
+        {
+            Id = "sig_ranger_curious",
+            DisplayName = "Read the Wind ✦",
+            Description = "Signature. +4 damage if you haven't moved this turn. Ignores armor.",
+            Class = MartialClass.Ranger,
+            IsSignature = true,
+            AttackDamageBonus = 4,
+            AttackIgnoresArmor = true,
+            SpecialTag = StanceSpecialTag.AimedRequiresNoMove,
+        });
+
+        Add(new StanceDefinition
+        {
+            Id = "sig_ranger_stoic",
+            DisplayName = "Patient Shot ✦",
+            Description = "Signature. +1 range. First attack this combat deals double damage.",
+            Class = MartialClass.Ranger,
+            IsSignature = true,
+            AttackRangeBonus = 1,
+            SpecialTag = StanceSpecialTag.AmbushFirstStrike,
+        });
+
+        Add(new StanceDefinition
+        {
+            Id = "sig_ranger_reckless",
+            DisplayName = "Storm of Shafts ✦",
+            Description = "Signature. +1 damage, +1 speed. After attacking, move up to " +
+                          "3 tiles for free.",
+            Class = MartialClass.Ranger,
+            IsSignature = true,
+            AttackDamageBonus = 1,
+            PassiveSpeedBonus = 1,
+            SpecialTag = StanceSpecialTag.SkirmishDash,
+            SpecialTagValue = 3,
+        });
     }
 
     private static void Add(StanceDefinition s) => _stances[s.Id] = s;
+
+    // ═════════════════════════════════════════════════════════════════════
+    // K4 — signature grant (derived, single-source)
+    // ═════════════════════════════════════════════════════════════════════
+
+    /// <summary>The Class × Trait matrix id for a martial companion, or the
+    /// authored override when set. Null for wizards/levies (arcane signatures
+    /// are DEFERRED pending card schema — v1 lock, carried in v2.1 §2).</summary>
+    public static string SignatureIdFor(Companion c)
+    {
+        if (c == null) return null;
+        if (!string.IsNullOrEmpty(c.SignatureStanceId)) return c.SignatureStanceId;
+        string cls = c.UnitClass switch
+        {
+            "Fighter" => "fighter",
+            "Ranger" => "ranger",
+            _ => null,
+        };
+        if (cls == null || string.IsNullOrEmpty(c.PersonalityTrait)) return null;
+        return $"sig_{cls}_{c.PersonalityTrait.ToLower()}";
+    }
+
+    /// <summary>The signature stance this companion fields RIGHT NOW, or null.
+    /// Rules (v1, locked): arc complete (ArcStage 4) and not Wary — a signature
+    /// is personal, and the Wary don't give you their best. Destroyed on
+    /// permadeath by construction: this is derived state, and the dead never
+    /// spawn. Never stored in TrainedStanceIds.</summary>
+    public static StanceDefinition EligibleSignature(Companion c)
+    {
+        if (c == null || c.IsPermadead) return null;
+        if (c.ArcStage < 4) return null;
+        if (c.GetLoyaltyTier() == LoyaltyTier.Wary) return null;
+        string id = SignatureIdFor(c);
+        if (id == null) return null;
+        var s = Get(id);
+        if (s == null || !s.IsSignature) return null;
+        return s;
+    }
 }

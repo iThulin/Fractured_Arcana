@@ -4006,6 +4006,17 @@ public partial class CombatManager : Node3D
                         unit.AvailableStances.Add(stance);
                 }
 
+                // K4: the ArcStage-4 signature — derived, never trained.
+                // EligibleSignature owns all the rules (arc complete, not
+                // Wary, authored override, dead never reach here).
+                var sig = StanceRegistry.EligibleSignature(companion);
+                if (sig != null && !unit.AvailableStances.Contains(sig))
+                {
+                    unit.AvailableStances.Add(sig);
+                    GD.Print($"[Signature] {companion.Name} fields {sig.DisplayName} " +
+                             $"(ArcStage {companion.ArcStage}, {companion.GetLoyaltyTier()}).");
+                }
+
                 // Default to first stance (the lead authored stance)
                 if (unit.AvailableStances.Count > 0)
                     unit.ActiveStance = unit.AvailableStances[0];
@@ -4022,6 +4033,10 @@ public partial class CombatManager : Node3D
                 unit.MaxActionPoints = unit.Stats.BaseSpeed;      // ← add this
                 unit.CurrentActionPoints = unit.MaxActionPoints;  // ← add this
             }
+
+            // K4: Trusted personality perks — both branches (armor and stride
+            // mean the same thing to a wizard's bodyguard and a wizard).
+            CompanionPerks.ApplyToUnit(unit, companion);
 
             playerUnits.Add(unit);
             GD.Print($"[Spawn] {companion.Name} IsMartial={unit.IsMartial} UnitClass={companion.UnitClass}");

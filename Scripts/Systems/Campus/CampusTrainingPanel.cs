@@ -203,6 +203,11 @@ public sealed class CampusTrainingPanel : CampusPanel
         {
             if (stance.Class != martialClass)
                 continue;
+            // K4: signatures are earned (ArcStage 4), never bought — the
+            // Training Grounds is the global floor, the signature is the
+            // personal ceiling. Granted at spawn by EligibleSignature.
+            if (stance.IsSignature)
+                continue;
             if (companion.TrainedStanceIds.Contains(stance.Id))
                 continue;
 

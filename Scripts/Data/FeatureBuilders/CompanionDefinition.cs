@@ -79,6 +79,13 @@ public class Companion
     // Stored here so the UI can show it between runs
     public int BaseActionPoints = 3; // levy default
 
+    // ── Signature override (K4, v1's signatureId hook) ───────────────────
+    // Authored companions may name a bespoke signature stance id here (JSON
+    // "signatureStanceId"). Empty = the Class × Trait matrix id. The GRANT
+    // is always derived (StanceRegistry.EligibleSignature) — this field only
+    // redirects WHICH signature, never whether one is fielded.
+    public string SignatureStanceId = "";
+
     // ── Runtime state (not in JSON — set during combat) ──────────────────
     // These are not serialized; they're rebuilt each combat from save data.
     [System.Text.Json.Serialization.JsonIgnore]
@@ -107,11 +114,16 @@ public class Companion
     public const int DevotedThreshold = 75;
     public const int SwornThreshold = 90;
 
-    public LoyaltyTier GetLoyaltyTier() =>
-        Loyalty >= SwornThreshold ? LoyaltyTier.Sworn
-        : Loyalty >= DevotedThreshold ? LoyaltyTier.Devoted
-        : Loyalty >= TrustedThreshold ? LoyaltyTier.Trusted
-        : Loyalty >= 25 ? LoyaltyTier.Hired
+    public LoyaltyTier GetLoyaltyTier() => TierOfValue(Loyalty);
+
+    /// <summary>The ONE place a loyalty value becomes a tier (K4: extracted so
+    /// LoyaltyEvents' before/after tier reporting reads through the same
+    /// thresholds instead of re-deriving them).</summary>
+    public static LoyaltyTier TierOfValue(int loyalty) =>
+        loyalty >= SwornThreshold ? LoyaltyTier.Sworn
+        : loyalty >= DevotedThreshold ? LoyaltyTier.Devoted
+        : loyalty >= TrustedThreshold ? LoyaltyTier.Trusted
+        : loyalty >= 25 ? LoyaltyTier.Hired
         : LoyaltyTier.Wary;
 
     /// <summary>§4a pool-HP loyalty bonus: Devoted +2, Sworn +4 — "the personal

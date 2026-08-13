@@ -668,6 +668,27 @@ public static class WorldGenerator
                 AddPoi(world, x, y, kind, id, grantsStaging: staging);
                 placedList.Add((x, y));
             }
+
+            // K3 (companion_item_systems v2.1 §5a): rescue POIs — found people.
+            // At most ONE per kingdom, 35% chance, wilderness only. Rare by
+            // design: rescues are the richest recruits narratively, so they
+            // must not read as farm nodes. In-window the POI presents as a
+            // Narrative site; ExpeditionManager routes it to a rescue
+            // encounter when one is warranted.
+            if (rng.Randi() % 100 < 35)
+            {
+                int rAttempts = 0;
+                while (rAttempts < 12)
+                {
+                    rAttempts++;
+                    var (x, y) = tiles[(int)(rng.Randi() % (uint)tiles.Count)];
+                    if (world.GetTile(x, y).PoiIndex >= 0) continue;
+                    if (TooClose(placedList, x, y, 2)) continue;
+                    AddPoi(world, x, y, PoiKind.Companion, id, grantsStaging: false);
+                    placedList.Add((x, y));
+                    break;
+                }
+            }
         }
     }
 

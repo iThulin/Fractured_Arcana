@@ -52,6 +52,10 @@ public static class CouncilEcho
     public const string SpellcraftTransgression = "spellcraft_transgression";
     public const string PatrolCompelled = "patrol_compelled";
 
+    // K3 (companion_item_systems v2.1 §5a, R25): hiring inside a court's
+    // territory is employment given — a minor positive deed, Steward-routed.
+    public const string HireGiven = "hire_given";
+
     // ═════════════════════════════════════════════════════════════════════
     // Emission (deed time, mid-expedition)
     // ═════════════════════════════════════════════════════════════════════
@@ -210,6 +214,9 @@ public static class CouncilEcho
                 // state, not of magic: Chancellor and Commanders.
                 PatrolCompelled => c.Office == CourtVocab.OfficeChancellor ||
                                    c.Archetype == "Commander",
+                // K3 (R25): employment given in the kingdom's territory is
+                // the Steward's ledger — money and livelihoods.
+                HireGiven => c.Office == CourtVocab.OfficeSteward,
                 _ => false,
             };
             if (match)
@@ -260,6 +267,7 @@ public static class CouncilEcho
             SpellcraftAid => "great warding worked over the kingdom's people",
             SpellcraftTransgression => "necromancy worked openly in the kingdom's lands",
             PatrolCompelled => "the kingdom's own patrol bent by enchantment",
+            HireGiven => "honest work given to the kingdom's own at the hiring hall",
             _ => "the guild's doings",
         };
     }

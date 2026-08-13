@@ -1381,6 +1381,9 @@ public partial class CampusScreen : Control
                     _campusToasts?.Push(qt.Text, qt.Kind);
                 _campusToasts?.Push($"{def?.DisplayName ?? "The archmage"} stands with the guild.",
                                     QuestToastKind.Progress);
+                // K5 (§5a): the united school seconds one adept.
+                string unitedAdept = RecruitmentSources.OnArchmageUnited(archmageId);
+                if (unitedAdept != null) _campusToasts?.Push(unitedAdept, QuestToastKind.Progress);
                 SaveManager.MarkDirty();
                 SaveManager.SaveIfDirty();
                 _councilTab.Refresh();

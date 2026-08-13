@@ -156,6 +156,11 @@ public partial class WorldAtlas3D : Node3D
     /// <summary>Display name of the visited NPC city (empty at home) — for the services menu header.</summary>
     public string ActiveCityName => _activeCity != null ? SettlementDisplayName(_activeCity) : "";
 
+    /// <summary>The visited NPC city's settlement record (null at home). K3: the
+    /// services menu needs the settlement itself — KingdomId for Steward pricing
+    /// and the R25 deed, IsSeat for hall quality — not just its display name.</summary>
+    public WorldSettlement ActiveCity => _activeCity;
+
     // ── District growth (city view) ──────────────────────────────────────
     /// <summary>Dim tint for annexable preview flowers, so they read as not-yet-yours.</summary>
     private static readonly Color CityLockedPreview = new Color(0.34f, 0.36f, 0.44f, 1f);

@@ -166,6 +166,16 @@ public class CycleState
     /// Additive save field — no SaveManager version bump.</summary>
     public List<CityExploreState> CityExplore = new();
 
+    /// <summary>K3 hiring halls: per-city candidate stock, lazily refreshed each
+    /// lunation when the hall is opened (HiringHallService). Keyed by the same
+    /// CityExploreService.CityId convention as CityExplore. Cycle-scoped (the
+    /// world reseeds each cycle). Additive save field — no version bump.</summary>
+    public List<HiringHallState> HiringHalls = new();
+
+    /// <summary>Q4 city markets: per-city item stock, same lifecycle and key
+    /// convention as HiringHalls (CityMarketService). Additive — no bump.</summary>
+    public List<CityMarketState> CityMarkets = new();
+
     /// <summary>Warfront the player is currently deployed to intervene in (empty =
     /// none). Set when an intervention deploy launches; consumed by StrategicView
     /// on return, applying the expedition outcome to the front. Serialized so the

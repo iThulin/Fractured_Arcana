@@ -228,6 +228,7 @@ public partial class ExpeditionWindow3D : Node3D
         PoiKind.Seat => OverworldHex.POIType.Seat,
         PoiKind.Settlement => OverworldHex.POIType.Settlement,
         PoiKind.SupplyCache => OverworldHex.POIType.SupplyCache,
+        PoiKind.Companion => OverworldHex.POIType.Narrative, // K3 rescue sites
         _ => OverworldHex.POIType.Combat,
     };
 

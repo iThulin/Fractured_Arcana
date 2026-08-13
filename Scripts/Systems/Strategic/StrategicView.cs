@@ -599,7 +599,8 @@ public partial class StrategicView : Node2D
     {
         if (_cityServices != null || (_atlas3D?.ActiveCityIsHome ?? true)) return;
         if (_atlas3D != null) _atlas3D.AcceptInput = false;
-        _cityServices = CityServicesHost.Create(_atlas3D?.ActiveCityName ?? "", HideCityServices);
+        _cityServices = CityServicesHost.Create(
+            _atlas3D?.ActiveCityName ?? "", _atlas3D?.ActiveCity, HideCityServices);
         AddChild(_cityServices);
     }
 

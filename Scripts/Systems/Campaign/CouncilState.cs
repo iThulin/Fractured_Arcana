@@ -77,6 +77,31 @@ public static class CourtVocab
     public const string FavorPolitical = "Political";
     public const string FavorPassage = "Passage";
     public const string FavorIntelligence = "Intelligence";
+
+    // ── K5 (companion_item_systems v2.1 §6): trait → archetype matchup ──
+    // One affinity and one friction row per PersonalityTrait, against the
+    // NEGOTIATION archetype vocabulary above (casing verified 2026-08-13:
+    // the canonical set is this file's Archetypes array; the "Soldier"
+    // strings elsewhere are UNIT archetypes, a different system).
+    // K5 STARTING VALUES — the v1-era table was never written; tune here.
+
+    /// <summary>Matchup term for an envoy's trait against a courtier's
+    /// archetype: +1 affinity, -1 friction, 0 otherwise.</summary>
+    public static int TraitArchetypeAffinity(string trait, string archetype)
+        => (trait, archetype) switch
+        {
+            ("Cunning", "Opportunist") => +1,  // speaks their language
+            ("Cunning", "Idealist") => -1,     // smells the angle
+            ("Loyal", "Commander") => +1,      // soldiers trust the steadfast
+            ("Loyal", "Opportunist") => -1,    // can't be bought, can't be read
+            ("Curious", "Scholar") => +1,      // two open books
+            ("Curious", "Survivor") => -1,     // questions feel like knives
+            ("Stoic", "Survivor") => +1,       // both know what endurance costs
+            ("Stoic", "Merchant") => -1,       // no flattery, no haggle, no sale
+            ("Reckless", "Idealist") => +1,    // bold hearts recognize each other
+            ("Reckless", "Scholar") => -1,     // carelessness offends the careful
+            _ => 0,
+        };
 }
 
 /// <summary>
