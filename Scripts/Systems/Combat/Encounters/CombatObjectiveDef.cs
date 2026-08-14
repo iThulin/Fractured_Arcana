@@ -60,7 +60,8 @@ public class CombatObjectiveDef
     /// that silently behaves as annihilate. hold_zone (O4) implemented
     /// 2026-08-11 with the city siege work; protect (O3) still pending.</summary>
     public static bool IsImplementedKind(string kind) =>
-        kind == KindAnnihilate || kind == KindSurvive || kind == KindHoldZone;
+        kind == KindAnnihilate || kind == KindSurvive || kind == KindHoldZone
+        || kind == KindProtect;   // O3 (2026-08-13)
 }
 
 /// <summary>

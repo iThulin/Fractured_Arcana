@@ -1,0 +1,19 @@
+{
+  "id": "anchor_moment",
+  "threatLabel": "The Anchor of the Moment",
+  "role": "ward",
+  "intelDescription": "A held instant, made object. It does nothing but exist — which is exactly what must not stop.",
+  "maxHealth": 30,
+  "baseSpeed": 0,
+  "armor": 1,
+  "attackRange": 0,
+  "attackDamage": 0,
+  "preferredDistance": 1,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "colorR": 0.85,
+  "colorG": 0.75,
+  "colorB": 0.35
+}

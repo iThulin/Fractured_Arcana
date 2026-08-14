@@ -1521,6 +1521,10 @@ public partial class CombatUI : CanvasLayer
 			var unit = playerUnits[i];
 			if (unit == null)
 				continue;
+			// O3: the ward is a mission element, not a squad member — its
+			// health reads on the board, not in the party bar.
+			if (unit.IsObjectiveWard)
+				continue;
 
 			bool isSelected = unit == selectedUnit;
 			bool isAlive = unit.Stats.IsAlive;

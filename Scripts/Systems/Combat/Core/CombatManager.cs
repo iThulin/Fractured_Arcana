@@ -1334,7 +1334,9 @@ public partial class CombatManager : Node3D
 
     private void SelectUnit(Unit unit)
     {
-        if (unit == null || !unit.IsPlayerControlled)
+        // O3: the ward is player-side but not commandable — 0 AP, 0 move;
+        // selecting it would only dead-end the input state.
+        if (unit == null || !unit.IsPlayerControlled || unit.IsObjectiveWard)
             return;
 
         // Collapse previous selection's bar
@@ -3236,6 +3238,10 @@ public partial class CombatManager : Node3D
         // Queuing only; the drain runs at the next safe async point.
         QueueDeathTriggers(unit);
 
+        // O3: the ward's death latches objective defeat (declaration still
+        // flows through CheckCombatEnd — trigger-settle order intact).
+        NoteObjectiveUnitDeath(unit);
+
         // (2026-07-28, PT-U3e-5) The camera and the selection used to stay parked on a
         // companion that had just died — most visibly when binding_geas killed one
         // mid-move, since the player was looking right at it. Harmless (the corpse
@@ -3465,8 +3471,9 @@ public partial class CombatManager : Node3D
             { allEnemiesDead = false; break; }
 
         foreach (var u in playerUnits)
-            if (u != null && !u.IsStructure && u.Stats.IsAlive)
-            { allPlayersDead = false; break; }   // a standing door is not a survivor
+            if (u != null && !u.IsStructure && !u.IsObjectiveWard && u.Stats.IsAlive)
+            { allPlayersDead = false; break; }   // a standing door is not a survivor,
+                                                 // and neither is the ward (O-ruling 5)
 
         // O-track ruling 4: an empty board is only a victory once every
         // authored wave has actually arrived. Inert on every encounter that
@@ -4084,6 +4091,13 @@ public partial class CombatManager : Node3D
         else
             QueueDefaultEncounter();
 
+        // O3 (2026-08-13, ordering fix): the ward spawns AFTER the encounter
+        // queue — InitObjectiveState runs inside QueueEncounterFromContext, so
+        // any earlier call sees _objective == null and spawns nothing (the
+        // "banner without a body" bug). Also deliberately after the equipment
+        // loop above: the ward must not consume a companion_N loadout slot.
+        SpawnObjectiveWard();
+
         if (playerUnits.Count == 0)
         {
             GD.PrintErr("Failed to spawn any player units.");
@@ -4299,6 +4313,11 @@ public partial class CombatManager : Node3D
                 grid.EnemySpawnCount = enemyHeadcount + largestWave;
         }
         int partyHeadcount = 1 + (CompanionRoster.GetActiveParty()?.Count ?? 0);
+        // O3: a protect objective's ward claims a player slot too — size for
+        // it, or a full party leaves the ward slotless (loud degrade, no fight).
+        if (EncounterContextCarrier.HasEncounter &&
+            EncounterContextCarrier.Current?.Objective?.Kind == CombatObjectiveDef.KindProtect)
+            partyHeadcount += 1;
         if (partyHeadcount > grid.PlayerSpawnCount)
             grid.PlayerSpawnCount = partyHeadcount;
 

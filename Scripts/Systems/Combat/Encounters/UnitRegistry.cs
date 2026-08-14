@@ -191,6 +191,10 @@ public static class UnitRegistry
             // damage — its threat is force-moving the player onto hazards. Legal as a
             // BehaviorKey (shoves as its whole identity) or a cycle beat.
             "shove",
+            // O3 (2026-08-13): ward-seeker — playtest showed default planners only
+            // hit the ward opportunistically, so protect fights had no pressure.
+            // Hunts the objective ward; behaves as melee_advance when none stands.
+            "hunt_ward",
         };
         // U3a: keys legal ONLY inside an IntentCycle. hold_ground braces and never
         // advances, so a unit whose base routine were hold_ground would stand still

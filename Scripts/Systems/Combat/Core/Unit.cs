@@ -496,6 +496,13 @@ public partial class Unit : Node3D
 
     // ── Spirit fields (Necromancer summoned units) ─────────────────────────────
     public bool IsSpirit = false;
+
+    /// <summary>O3 (2026-08-13): a protect-objective ward. Player-side and
+    /// targetable, benefits from shields/heals/auras — but not a combatant:
+    /// excluded from the unit bar, from selection, and from the all-players-
+    /// dead defeat scan (a board with only the ward standing is a Defeat).
+    /// Its death latches objective defeat (CombatManager.Objectives).</summary>
+    public bool IsObjectiveWard = false;
     public int SummonerTeamId = -1;
     public bool OnDeathMemorial = false;
     public bool CreateMemorialOnKill = false;

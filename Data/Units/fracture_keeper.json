@@ -1,0 +1,17 @@
+{
+  "id": "fracture_keeper",
+  "threatLabel": "Keeper of the Unmaking",
+  "role": "line",
+  "intelDescription": "It does not see you. It sees the thing you are protecting, and it walks toward it through anything.",
+  "maxHealth": 18,
+  "baseSpeed": 3,
+  "armor": 1,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
+  "behaviorKey": "hunt_ward",
+  "behaviorTags": [],
+  "colorR": 0.35,
+  "colorG": 0.2,
+  "colorB": 0.5
+}

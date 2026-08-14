@@ -39,6 +39,7 @@ public partial class CombatDebugLauncher : CanvasLayer
     private CheckBox _stopOnTriggersChk;
     private CheckBox _wavesChk;
     private CheckBox _surviveChk;
+    private CheckBox _protectChk;   // O3
     private OptionButton _mapEventKindOpt;
     private OptionButton _mapEventElemOpt;
     private CheckBox _noHazardCapChk;
@@ -307,6 +308,11 @@ public partial class CombatDebugLauncher : CanvasLayer
         _surviveChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         form.AddChild(_surviveChk);
 
+        // O3 (2026-08-13): protect test — spawns the Anchor as the ward.
+        _protectChk = new CheckBox { Text = "Objective: protect the Anchor (ward)" };
+        _protectChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_protectChk);
+
         _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _status.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         _status.AddThemeColorOverride("font_color", UITheme.TextDim);
@@ -372,6 +378,18 @@ public partial class CombatDebugLauncher : CanvasLayer
                 Kind = CombatObjectiveDef.KindSurvive,
                 Rounds = 6,
                 Description = "Hold the ground",
+            };
+        }
+
+        // O3: protect wins over survive when both are ticked (one objective
+        // per fight — the def has a single slot).
+        if (_protectChk != null && _protectChk.ButtonPressed)
+        {
+            def.Objective = new CombatObjectiveDef
+            {
+                Kind = CombatObjectiveDef.KindProtect,
+                WardUnitId = "anchor_moment",
+                Description = "Protect the Anchor",
             };
         }
 
