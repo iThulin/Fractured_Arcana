@@ -115,6 +115,13 @@ public class Building
 public class BuildingTier
 {
     public int Tier = 1;
+
+    /// <summary>Flavor name for this tier ("Basic Training Grounds", "The
+    /// Unbinding Floor"). The building JSONs have carried "displayName" all
+    /// along — this field just lets the CamelCase loader finally parse it
+    /// (2026-08-13, for the city-view upgrade strip). Empty = untitled tier.</summary>
+    public string DisplayName = "";
+
     public string Description = "";     // what this tier adds
     public int GoldCost = 100;
 
@@ -128,6 +135,12 @@ public class BuildingTier
     /// on the tier, otherwise GoldCost * 3 (the standard ratio).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public int EffectiveMaterialsCost => MaterialsCost >= 0 ? MaterialsCost : GoldCost * 3;
+
+    /// <summary>(2026-08-13) Campus-persistent party-size growth — the §4a
+    /// "party-size growth via campus" lever, finally given a home (the Grand
+    /// Hall's tiers). Accumulated across built tiers by
+    /// BuildingEffectApplier.ApplyCampusEffects onto CycleState.MaxPartySize.</summary>
+    public int PartySizeBonus = 0;
 
     public List<string> RequiredBuildings = new();  // other building ids required
 

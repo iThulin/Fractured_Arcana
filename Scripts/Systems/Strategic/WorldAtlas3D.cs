@@ -87,6 +87,93 @@ public partial class WorldAtlas3D : Node3D
     /// this is the "build in place on the world map" seam (Phase 2, true geometry merge).</summary>
     public event System.Action<string, Vector2I> HomeBuildingPicked;
 
+    /// <summary>A bare (unbuilt, non-landmark) home-grounds hex was clicked in
+    /// city view — a candidate building site. The host opens the construct card.</summary>
+    public event System.Action<Vector2I> HomeGroundPicked;
+
+    // ── Footprint preview (2026-08-13) ───────────────────────────────────
+
+    private List<Vector2I> _footprintPreview;
+
+    /// <summary>Tint a building's would-be footprint at an anchor on the home
+    /// grounds: Gold = fits, Danger = doesn't (off-grid hexes simply don't
+    /// tint — fewer gold tiles than the footprint size IS the signal). One
+    /// preview at a time; call <see cref="ClearHomeFootprintPreview"/> after.</summary>
+    public void PreviewHomeFootprint(string buildingId, Vector2I anchor)
+    {
+        ClearHomeFootprintPreview();
+        if (_homeGrounds == null) return;
+        var template = BuildingDatabase.GetTemplate(buildingId);
+        if (template == null) return;
+
+        var hexes = CampusGridManager.GetFootprintHexes(template, anchor, 0);
+        bool fits = _homeGrounds.CanPlaceBuilding(template, anchor, 0);
+        _homeGrounds.TintHexes(hexes, fits ? UITheme.Gold : UITheme.Danger);
+        _footprintPreview = hexes;
+    }
+
+    public void ClearHomeFootprintPreview()
+    {
+        if (_footprintPreview == null || _homeGrounds == null) { _footprintPreview = null; return; }
+        _homeGrounds.RestoreHexVisuals(_footprintPreview);
+        _footprintPreview = null;
+    }
+
+    // ── Building focus (2026-08-13, Magos: "show off the art to come") ───
+
+    /// <summary>How close the building-focus swoop lands. ORTHO MATH, not
+    /// metres: the camera is orthographic and vertical framing = _camDist ×
+    /// OrthoSizeFactor (1.5), so dist 0.67 → Size ≈ 1.0 world unit — one
+    /// campus tile (0.67 across at the 1/3 grounds scale) genuinely fills
+    /// the frame, with the 40° cinematic pitch this zoom implies. Deeper
+    /// than the wheel floor (CamDistMinCity 1.5) on purpose: the showcase
+    /// beat may go where the wheel doesn't. (History: 3.2 could pull BACK;
+    /// 1.8 still framed ~4 tiles — both wrong for the same ortho reason.)</summary>
+    private const float BuildingFocusDist = 1.0f;
+
+    /// <summary>Swoop the camera down to frame one home-grounds building —
+    /// the beat that plays under its floating panel. No-op outside city view.
+    ///
+    /// <para>Two composition rules learned the hard way (2026-08-13): the
+    /// building must center in the VISIBLE area — the floating panel docks
+    /// right, so the look-target shifts camera-right by ~a fifth of the
+    /// horizontal framing, placing the mesh left-of-screen-centre = centre
+    /// of what the player can see. And it must sit in the tilt-shift post's
+    /// SHARP band (mid-frame) — off-centre framing dropped it into the
+    /// miniature blur and the whole close-up read as soup.</para></summary>
+    public void FocusHomeBuilding(Vector2I coord)
+    {
+        if (!_cityMode || _homeGrounds == null) return;
+        var view = _homeGrounds.GetTileView(coord);
+        if (view == null) return;
+
+        float dist = Mathf.Min(BuildingFocusDist, _camDist);
+        Vector3 right = new Vector3(Mathf.Cos(_camYaw), 0f, -Mathf.Sin(_camYaw));
+        Vector3 target = view.GlobalPosition + right * (dist * OrthoSizeFactor * 0.2f);
+        FlyTo(target, dist);
+    }
+
+    /// <summary>Pull back to the city framing after a focused panel closes.
+    /// Only if still in city view — leaving for the world already reframes.</summary>
+    public void UnfocusHomeBuilding()
+    {
+        if (!_cityMode) return;
+        FlyTo(_cityCentre, _cityFitDist);
+    }
+
+    /// <summary>Place a building's anchor at a grounds hex (rotation 0 — the
+    /// city card's placement; rotated/multi-tile siting stays on the campus
+    /// overlay's placement tool). On success rebuilds the grounds in place.</summary>
+    public bool TryPlaceHomeBuilding(string buildingId, Vector2I coord)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null || _homeGrounds == null) return false;
+        if (!_homeGrounds.PlaceBuilding(buildingId, coord, 0, save.Buildings)) return false;
+        SaveManager.Save();
+        RefreshCityGrowth();
+        return true;
+    }
+
     /// <summary>As <see cref="HomeBuildingPicked"/>, but for a landmark hex on the grounds
     /// model.</summary>
     public event System.Action<string, Vector2I> HomeLandmarkPicked;
@@ -156,6 +243,11 @@ public partial class WorldAtlas3D : Node3D
     /// <summary>Display name of the visited NPC city (empty at home) — for the services menu header.</summary>
     public string ActiveCityName => _activeCity != null ? SettlementDisplayName(_activeCity) : "";
 
+    /// <summary>The visited NPC city's settlement record (null at home). K3: the
+    /// services menu needs the settlement itself — KingdomId for Steward pricing
+    /// and the R25 deed, IsSeat for hall quality — not just its display name.</summary>
+    public WorldSettlement ActiveCity => _activeCity;
+
     // ── District growth (city view) ──────────────────────────────────────
     /// <summary>Dim tint for annexable preview flowers, so they read as not-yet-yours.</summary>
     private static readonly Color CityLockedPreview = new Color(0.34f, 0.36f, 0.44f, 1f);
@@ -204,6 +296,18 @@ public partial class WorldAtlas3D : Node3D
     // Camera rig state (position derived, not stored on nodes).
     private Vector3 _camTarget = Vector3.Zero;
     private float _camDist = 80f;
+
+    // ── Orbit (2026-08-13, Magos: full camera controls) ─────────────────
+    /// <summary>Camera yaw in radians (0 = the classic fixed-yaw framing).
+    /// Middle-mouse horizontal drag turns it; persists across pans/zooms.</summary>
+    private float _camYaw = 0f;
+    /// <summary>Middle-mouse vertical drag sets an explicit pitch (degrees).
+    /// -1 = automatic zoom-slaved pitch (the original behaviour).</summary>
+    private float _pitchOverrideDeg = -1f;
+    private bool _orbiting;
+    private const float OrbitYawSens = 0.008f;    // rad per px
+    private const float OrbitPitchSens = 0.25f;   // deg per px
+    private const float PitchMinDeg = 15f, PitchMaxDeg = 82f;
     // Stage 1: min dropped 12→6 — close zoom is where exploration reads, and the
     // decoration layer + adaptive post blur make it worth going there.
     private const float CamDistMin = 6f, CamDistMax = 150f;
@@ -825,7 +929,11 @@ public partial class WorldAtlas3D : Node3D
         if (!string.IsNullOrEmpty(buildingId)) { HomeBuildingPicked?.Invoke(buildingId, coord); return true; }
         string landmarkId = _homeGrounds.GetLandmarkIdAt(coord);
         if (!string.IsNullOrEmpty(landmarkId)) { HomeLandmarkPicked?.Invoke(landmarkId, coord); return true; }
-        return true;   // hit a bare grounds hex — consume so it doesn't fall through to a world pick
+        // Construction (2026-08-13): a bare grounds hex is a building site —
+        // the host opens the construct card for this coord ("build in place",
+        // the Phase-2 promise finally kept for NEW buildings).
+        HomeGroundPicked?.Invoke(coord);
+        return true;   // consumed either way — never falls through to a world pick
     }
 
     /// <summary>Inject the active warfront focus tiles (cycle state — not in WorldData)
@@ -985,8 +1093,16 @@ public partial class WorldAtlas3D : Node3D
     {
         float zoom01 = Mathf.InverseLerp(CamDistMin, CamDistMax, _camDist);
         // Pass 2: close zoom sweeps lower (40°) for the cinematic across-the-model shot.
-        float pitch = Mathf.DegToRad(Mathf.Lerp(40f, 68f, zoom01));
-        Vector3 offset = new Vector3(0f, Mathf.Sin(pitch), Mathf.Cos(pitch)) * _camDist;
+        // (2026-08-13) Middle-mouse orbit can override the auto pitch; yaw
+        // rotates the whole rig around the look target.
+        float pitchDeg = _pitchOverrideDeg >= 0f
+            ? _pitchOverrideDeg
+            : Mathf.Lerp(40f, 68f, zoom01);
+        float pitch = Mathf.DegToRad(pitchDeg);
+        Vector3 offset = new Vector3(
+            Mathf.Sin(_camYaw) * Mathf.Cos(pitch),
+            Mathf.Sin(pitch),
+            Mathf.Cos(_camYaw) * Mathf.Cos(pitch)) * _camDist;
         _camera.Position = _camTarget + offset;
         _camera.LookAt(_camTarget, Vector3.Up);
         // Projection: orthographic (strategic map) samples every tile at one scale, so
@@ -1031,6 +1147,14 @@ public partial class WorldAtlas3D : Node3D
             { _camDist = Mathf.Clamp(_camDist * 0.9f, MinDist(), CamDistMax); PlaceCamera(); MaybeAutoCityTransition(); }
             else if (mb.ButtonIndex == MouseButton.WheelDown && mb.Pressed)
             { _camDist = Mathf.Clamp(_camDist * 1.1f, MinDist(), CamDistMax); PlaceCamera(); MaybeAutoCityTransition(); }
+            else if (mb.ButtonIndex == MouseButton.Middle)
+            {
+                // (2026-08-13) Middle-drag = orbit: horizontal turns the yaw,
+                // vertical adjusts the viewing angle. Double-click resets to
+                // the classic framing.
+                if (mb.Pressed && mb.DoubleClick) { ResetOrbit(); _orbiting = false; }
+                else _orbiting = mb.Pressed;
+            }
             else if (mb.ButtonIndex == MouseButton.Left)
             {
                 if (mb.Pressed) { _dragging = true; _dragMoved = false; }
@@ -1049,6 +1173,18 @@ public partial class WorldAtlas3D : Node3D
                 }
             }
         }
+        else if (ev is InputEventMouseMotion mmOrbit && _orbiting)
+        {
+            // (2026-08-13) Orbit: yaw from horizontal, pitch from vertical
+            // (an explicit pitch sticks until the next big zoom-slaved fly).
+            _camYaw -= mmOrbit.Relative.X * OrbitYawSens;
+            float basePitch = _pitchOverrideDeg >= 0f
+                ? _pitchOverrideDeg
+                : Mathf.Lerp(40f, 68f, Mathf.InverseLerp(CamDistMin, CamDistMax, _camDist));
+            _pitchOverrideDeg = Mathf.Clamp(
+                basePitch + mmOrbit.Relative.Y * OrbitPitchSens, PitchMinDeg, PitchMaxDeg);
+            PlaceCamera();
+        }
         else if (ev is InputEventMouseMotion mm && _dragging)
         {
             if (mm.Relative.LengthSquared() > 1f)
@@ -1056,8 +1192,13 @@ public partial class WorldAtlas3D : Node3D
             float k = _camDist * 0.0012f;
             // Screen-up drags the map away from the camera; divide by sin(pitch) so a
             // vertical drag covers the same GROUND distance as a horizontal one.
+            // (2026-08-13) Pan in the CAMERA's ground frame so dragging right
+            // always moves the map right regardless of orbit yaw.
             float pitchSin = Mathf.Max(0.3f, (_camera.Position - _camTarget).Normalized().Y);
-            _camTarget += new Vector3(-mm.Relative.X * k, 0f, -mm.Relative.Y * k / pitchSin);
+            Vector3 right = new Vector3(Mathf.Cos(_camYaw), 0f, -Mathf.Sin(_camYaw));
+            Vector3 fwdGround = new Vector3(-Mathf.Sin(_camYaw), 0f, -Mathf.Cos(_camYaw));
+            _camTarget += right * (-mm.Relative.X * k)
+                        + fwdGround * (mm.Relative.Y * k / pitchSin);
             ClampTarget();
             PlaceCamera();
         }
@@ -1071,12 +1212,42 @@ public partial class WorldAtlas3D : Node3D
         }
         else if (ev is InputEventPanGesture pan)
         {
+            // (2026-08-13) Trackpad orbit: Alt/Option + two-finger drag turns
+            // the rig (a trackpad has no middle button). Plain two-finger
+            // drag pans, yaw-aware like the mouse pan.
+            if (pan.AltPressed)
+            {
+                _camYaw -= pan.Delta.X * OrbitYawSens * 6f;   // gesture deltas are small
+                float basePitch = _pitchOverrideDeg >= 0f
+                    ? _pitchOverrideDeg
+                    : Mathf.Lerp(40f, 68f, Mathf.InverseLerp(CamDistMin, CamDistMax, _camDist));
+                _pitchOverrideDeg = Mathf.Clamp(
+                    basePitch + pan.Delta.Y * OrbitPitchSens * 6f, PitchMinDeg, PitchMaxDeg);
+                PlaceCamera();
+                return;
+            }
             float k = _camDist * 0.010f;
             float pitchSin = Mathf.Max(0.3f, (_camera.Position - _camTarget).Normalized().Y);
-            _camTarget += new Vector3(pan.Delta.X * k, 0f, pan.Delta.Y * k / pitchSin);
+            Vector3 right = new Vector3(Mathf.Cos(_camYaw), 0f, -Mathf.Sin(_camYaw));
+            Vector3 fwdGround = new Vector3(-Mathf.Sin(_camYaw), 0f, -Mathf.Cos(_camYaw));
+            _camTarget += right * (pan.Delta.X * k)
+                        + fwdGround * (-pan.Delta.Y * k / pitchSin);
             ClampTarget();
             PlaceCamera();
         }
+        else if (ev is InputEventKey { Pressed: true, Echo: false, Keycode: Key.R })
+        {
+            ResetOrbit();
+        }
+    }
+
+    /// <summary>Reset the orbit to the classic framing: yaw 0, pitch back on
+    /// its zoom-slaved automatic. R key, or double-middle-click.</summary>
+    private void ResetOrbit()
+    {
+        _camYaw = 0f;
+        _pitchOverrideDeg = -1f;
+        PlaceCamera();
     }
 
     private void ClampTarget()

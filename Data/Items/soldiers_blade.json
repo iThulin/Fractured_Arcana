@@ -1,0 +1,14 @@
+{
+  "id": "soldiers_blade",
+  "name": "Soldier's Blade",
+  "description": "Issued, carried, trusted. +1 attack damage.",
+  "rarity": "Common",
+  "slot": "Weapon",
+  "unitClass": "Martial",
+  "stats": {
+    "attackDamage": 1
+  },
+  "passive": "None",
+  "passiveValue": 0,
+  "goldValue": 45
+}

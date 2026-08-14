@@ -1,0 +1,15 @@
+{
+  "id": "thornmail",
+  "name": "Thornmail",
+  "description": "What strikes it, it strikes. +1 armor; when struck, the attacker takes 2 damage.",
+  "rarity": "Rare",
+  "slot": "Armor",
+  "unitClass": "Any",
+  "stats": {
+    "armor": 1
+  },
+  "passive": "retaliate",
+  "passiveValue": 2,
+  "goldValue": 175,
+  "trigger": "onStruck"
+}

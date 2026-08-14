@@ -1,0 +1,14 @@
+{
+  "id": "scribes_charm",
+  "name": "Scribe's Charm",
+  "description": "A drop of ink that never dries. +1 max mana.",
+  "rarity": "Common",
+  "slot": "Trinket",
+  "unitClass": "Wizard",
+  "stats": {
+    "maxMana": 1
+  },
+  "passive": "None",
+  "passiveValue": 0,
+  "goldValue": 50
+}

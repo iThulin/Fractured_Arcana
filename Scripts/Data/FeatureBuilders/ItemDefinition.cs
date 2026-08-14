@@ -45,8 +45,12 @@ public enum ItemPassiveTag
     None,
 
     // ── Wizard weapon passives ───────────────────────────────────────────
-    StormSpellCostReduction,    // Storm spells cost 1 less mana
-    FireSpellBonusDamage,       // Fire spells deal +N damage (N from PassiveValue)
+    // RETIRED 2026-08-13 (never had consumers — cards carry SCHOOL, not
+    // element; these were designed against a taxonomy that doesn't exist).
+    // Kept so old save/JSON strings still parse; do not author new items
+    // with them. Use the School* pair below.
+    StormSpellCostReduction,    // retired — use SchoolSpellCostReduction
+    FireSpellBonusDamage,       // retired — use SchoolSpellDamage
 
     // ── Wizard armor passives ────────────────────────────────────────────
     StartCombatWithShield,      // Gain N shield at combat start
@@ -56,11 +60,18 @@ public enum ItemPassiveTag
     FirstCardCostReduction,     // First card each turn costs N less mana
 
     // ── Martial weapon passives ──────────────────────────────────────────
-    AttackAppliesBleed,         // Melee attacks apply bleed (1 turn)
+    // RETIRED 2026-08-13: superseded by the trigger-bus key apply_bleed
+    // (same behavior, one dispatcher). Kept for parse safety only.
+    AttackAppliesBleed,         // retired — use apply_bleed / onAttack
 
-    // ── Martial trinket passives ─────────────────────────────────────────
-    BonusDamageAboveHalfHP,     // +N attack damage when HP > 50%
-    DamageReductionPerHit,      // Take N less damage from each hit (flat reduction)
+    // ── Martial trinket passives (implemented 2026-08-13) ────────────────
+    BonusDamageAboveHalfHP,     // +N attack damage when HP > 50% (ResolveMartialAttack)
+    DamageReductionPerHit,      // Take N less damage from each hit, floor 1 (Unit.ApplyDamage)
+
+    // ── School-keyed spell passives (2026-08-13, replace Fire/Storm) ─────
+    // PassiveParam = CardSchool name ("Elementalist", …); empty = ALL schools.
+    SchoolSpellDamage,          // +N damage on spells of the keyed school (cast pin)
+    SchoolSpellCostReduction,   // keyed school's cards cost N less mana
 }
 
 /// <summary>
@@ -117,6 +128,26 @@ public class ItemDefinition
 
     // ── Economy ───────────────────────────────────────────────────────────
     public int GoldValue = 50;   // base sell/buy price
+
+    // ── Consumables (2026-08-13 — v1's "actives are scrolls", finally built) ──
+    // Slot = "Consumable": unequippable BY CONSTRUCTION (Equip's
+    // EquipmentSlot enum parse fails), so nothing in the loadout pipeline
+    // ever sees one. Used from the combat Scrolls button; consuming removes
+    // the instance from the Armory. One consumable per unit per turn.
+    /// <summary>"heal" | "shield" | "mana" | "ap". "" = not a consumable.</summary>
+    public string ConsumeEffect = "";
+    public int ConsumeValue = 0;
+
+    /// <summary>"potion" (default) | "scroll" — two RULES, not two flavors:
+    /// a potion is the UNIT's resource (drunk by the selected unit, one per
+    /// unit per turn, body effects, the ward cannot drink); a scroll is the
+    /// PARTY's resource (an arcane reading, one per player turn total,
+    /// stacks with a potion on the same unit, and CAN target the ward —
+    /// the protect-mission tool).</summary>
+    public string ConsumeKind = "potion";
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsConsumable => !string.IsNullOrEmpty(ConsumeEffect);
 }
 
 /// <summary>Q2: a triggered ability an item grants its wearer. Carried on the
@@ -147,6 +178,33 @@ public class ItemInstance
     public string UnitClass = "Any";
     public string Rarity = "Common";
     public int GoldValue = 50;
+
+    // ── Q5: the enchant slot (v1 rules: ONE slot, Workshop is the sole
+    // mutation venue, handcrafted scripts only). Additive save fields — old
+    // instances deserialize with an empty, unsealed slot. ────────────────
+    /// <summary>WorkshopEnchants catalog id. "" = empty slot.</summary>
+    public string EnchantKey = "";
+    public int EnchantValue = 0;
+    public string EnchantParam = "";
+    public string EnchantTrigger = "";
+
+    /// <summary>Blighted items arrive with the slot SEALED (§7d) — no enchant
+    /// until Cleansed at Workshop tier 3.</summary>
+    public bool EnchantSealed = false;
+
+    // ── Q5: blight (§7d) — authored drawback, never rolled ───────────────
+    /// <summary>WorkshopEnchants drawback id. "" = not blighted.</summary>
+    public string DrawbackKey = "";
+    public int DrawbackValue = 0;
+
+    /// <summary>The above-floor innate bump a blighted drop carries (+N to the
+    /// definition's PassiveValue in loadout resolution). SURVIVES Cleanse —
+    /// what the corruption improved, it keeps; only the drawback and the seal
+    /// are removed.</summary>
+    public int BlightBonus = 0;
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsBlighted => !string.IsNullOrEmpty(DrawbackKey);
 
     public static ItemInstance FromDefinition(ItemDefinition def)
     {

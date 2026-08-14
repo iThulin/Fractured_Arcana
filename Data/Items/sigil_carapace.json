@@ -1,0 +1,12 @@
+{
+  "id": "sigil_carapace",
+  "name": "Sigil Carapace",
+  "description": "A shell of written protections. Gain 5 shield at the start of combat.",
+  "rarity": "Uncommon",
+  "slot": "Armor",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "StartCombatWithShield",
+  "passiveValue": 5,
+  "goldValue": 105
+}

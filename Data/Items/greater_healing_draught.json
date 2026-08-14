@@ -1,0 +1,15 @@
+{
+  "id": "greater_healing_draught",
+  "name": "Greater Healing Draught",
+  "description": "The apothecary's honest best. Restore 16 HP.",
+  "rarity": "Uncommon",
+  "slot": "Consumable",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "None",
+  "passiveValue": 0,
+  "consumeEffect": "heal",
+  "consumeValue": 16,
+  "goldValue": 90,
+  "consumeKind": "potion"
+}

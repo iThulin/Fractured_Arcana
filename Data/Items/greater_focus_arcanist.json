@@ -1,0 +1,15 @@
+{
+  "id": "greater_focus_arcanist",
+  "name": "The Proof Absolute",
+  "description": "An argument no ward has answered. Arcanist spells deal +2 damage.",
+  "rarity": "Rare",
+  "slot": "Weapon",
+  "unitClass": "Wizard",
+  "stats": {
+    "spellDamage": 1
+  },
+  "passive": "SchoolSpellDamage",
+  "passiveValue": 2,
+  "goldValue": 170,
+  "passiveParam": "Arcanist"
+}

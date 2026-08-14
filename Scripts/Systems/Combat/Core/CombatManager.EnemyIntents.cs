@@ -241,6 +241,7 @@ public partial class CombatManager
             { "imbue",                   PlanImbue },      // tile_interaction §7: telegraphed ground imbue
             { "shove",                   PlanShove },      // tile_interaction §7: telegraphed gust push
             { "warp_channeler",          PlanWarpChanneler }, // city siege: interruptible teleport assault
+            { "hunt_ward",               PlanHuntWard },   // O3: protect-objective pressure
         };
 
         // U3a: an authored IntentCycle overrides BehaviorKey for THIS activation.
@@ -531,6 +532,40 @@ public partial class CombatManager
         var target = FindNearestPlayerUnit(enemy);
         if (target?.CurrentTile == null)
             return null;
+
+        var tile = target.CurrentTile.Axial;
+        int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5;
+        return new EnemyIntent
+        {
+            Kind = IntentKind.Attack,
+            TargetUnit = target,
+            TargetTile = tile,
+            ThreatTiles = { tile },
+            Value = dmg,
+            BaseValue = dmg
+        };
+    }
+
+    /// <summary>O3 (2026-08-13): the ward-seeker. Built on playtest evidence
+    /// (spec §3.5's deferred ruling, threshold met same day): default planners
+    /// only struck the ward when it happened to be nearest, so protect fights
+    /// carried no pressure. Hunts the objective ward through everything except
+    /// spell-level target overrides (RedirectAll/decoys rewrite reality, not
+    /// preference — the Stalker rule). Taunt does NOT divert it, same ruling as
+    /// Stalker: taunt nudges nearest-selection, and ignoring nearest-selection
+    /// is this key's identity — body-blocking, shields, and heals are the
+    /// counterplay, which is exactly the protect toolkit. No ward standing →
+    /// behaves as melee_advance (authored hunters stay useful in reuse).</summary>
+    private EnemyIntent PlanHuntWard(Unit enemy)
+    {
+        var target = FindTargetOverride(enemy);
+        if (target == null && _wardUnit != null && IsInstanceValid(_wardUnit)
+            && _wardUnit.Stats.IsAlive && _wardUnit.CurrentTile != null
+            && !_wardUnit.HasStatus("untargetable"))
+            target = _wardUnit;
+
+        if (target?.CurrentTile == null)
+            return PlanSoldier(enemy);   // no ward, no override → ordinary advance
 
         var tile = target.CurrentTile.Axial;
         int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5;

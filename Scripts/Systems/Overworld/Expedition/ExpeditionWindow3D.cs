@@ -103,10 +103,11 @@ public partial class ExpeditionWindow3D : Node3D
 
     // ── Scene ───────────────────────────────────────────────────────────────
     private Camera3D _camera;
-    private MultiMeshInstance3D _landLayer, _waterLayer;
-    private MultiMeshInstance3D _canvasLayer;   // Hidden fog = unpainted canvas (art pass A6)
-    private MeshInstance3D _riverLayer;        // A9b: one winding ribbon mesh (RiverMesh)
-    private MultiMeshInstance3D _roadLayer;
+    private GeometryInstance3D _landLayer;      // welded ArrayMesh (stage 2) or MultiMesh fallback
+    private MultiMeshInstance3D _waterLayer;
+    private GeometryInstance3D _canvasLayer;    // Hidden fog = unpainted canvas (welded sheet or MultiMesh fallback)
+    private MeshInstance3D _riverLayer;         // A9b: one winding ribbon mesh (RiverMesh)
+    private MeshInstance3D _roadLayer;          // stage 2: ground-following ribbon too
     private readonly List<Node3D> _decor = new();
     private readonly List<Node3D> _markers = new();
     private readonly List<Node3D> _entities = new();   // moving entities: enemy patrols + roamer
@@ -227,6 +228,7 @@ public partial class ExpeditionWindow3D : Node3D
         PoiKind.Seat => OverworldHex.POIType.Seat,
         PoiKind.Settlement => OverworldHex.POIType.Settlement,
         PoiKind.SupplyCache => OverworldHex.POIType.SupplyCache,
+        PoiKind.Companion => OverworldHex.POIType.Narrative, // K3 rescue sites
         _ => OverworldHex.POIType.Combat,
     };
 
@@ -483,8 +485,10 @@ public partial class ExpeditionWindow3D : Node3D
         _canvasLayer?.QueueFree();
 
         var land = new List<(Transform3D xf, Color c)>();
+        var landCoords = new List<Vector2I>();
         var water = new List<(Transform3D xf, Color c)>();
         var canvas = new List<(Transform3D xf, Color c)>();
+        var canvasCoords = new List<Vector2I>();
         foreach (var c in _windowTiles)
         {
             var fog = _fog.FogAt(c);
@@ -501,38 +505,176 @@ public partial class ExpeditionWindow3D : Node3D
                                      TileOrigin(c.X, c.Y) + new Vector3(0f, h * 0.5f, 0f));
             if (hidden)
             {
-                float edge = HasPaintedNeighbor(c) ? Hex3DPalette.WetEdgeAmount(c.X, c.Y) : 0f;
-                canvas.Add((xf, Hex3DPalette.CanvasTone(c.X, c.Y, edge)));
+                canvasCoords.Add(c);
+                if (!UseWeldedTerrain)
+                {
+                    float edge = HasPaintedNeighbor(c) ? Hex3DPalette.WetEdgeAmount(c.X, c.Y) : 0f;
+                    canvas.Add((xf, Hex3DPalette.CanvasTone(c.X, c.Y, edge)));
+                }
             }
             else if (t.IsWater) water.Add((xf, TileColor(t, c, fog)));
-            else land.Add((xf, TileColor(t, c, fog)));
+            else
+            {
+                landCoords.Add(c);
+                if (!UseWeldedTerrain)
+                    land.Add((xf, TileColor(t, c, fog)));
+            }
         }
 
-        // Terrain break-up stage 1 (window-only): subdivided tile tops on a
-        // thinner grout, rolled by the shader's top_undulation — the ground
-        // undulates ACROSS tiles while height steps stay crisp for navigation.
-        _landLayer = MakeTileLayer("WinLand", land, taper: 0.985f, roughness: 0.9f,
-                                   prismMode: PainterlyPrism.Land,
-                                   customMesh: PainterlyProps.HexTileMesh(0.985f));
-        // Close-zoom identity (user: "everything is too similar"): the atlas
-        // grain settings are too broad to read at walking distance — finer,
-        // slightly stronger brushwork, plus the undulation, window only.
-        if (_landLayer.Multimesh.Mesh is ArrayMesh lam
-            && lam.SurfaceGetMaterial(0) is ShaderMaterial landSm)
+        // The painting must end ON PAPER, not on void: extend the canvas a few
+        // rings past the loaded window so the walkable disc sits on parchment
+        // (the hex-scalloped land edge then reads as the painted area's edge on
+        // the sheet — same metaphor as the strategic map). Not pickable: PickTile
+        // iterates _windowTiles only.
+        var known = new HashSet<Vector2I>(_windowTiles);
+        var frontier = new List<Vector2I>(_windowTiles);
+        for (int ring = 0; ring < 3; ring++)
         {
-            landSm.SetShaderParameter("grain_scale", 1.8f);
-            landSm.SetShaderParameter("grain_strength", 0.11f);
-            landSm.SetShaderParameter("top_undulation", 0.06f);
-            landSm.SetShaderParameter("undulation_scale", 0.5f);
+            var next = new List<Vector2I>();
+            foreach (var c in frontier)
+            {
+                var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
+                for (int i = 0; i < 6; i++)
+                {
+                    var (dq, dr) = HexCoord.AxialDirections[i];
+                    var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+                    var nco = new Vector2I(nc, nr);
+                    if (known.Contains(nco) || !_world.InBounds(nc, nr))
+                        continue;
+                    known.Add(nco);
+                    next.Add(nco);
+                    canvasCoords.Add(nco);
+                    if (!UseWeldedTerrain)
+                    {
+                        var nxf = new Transform3D(HexYaw * Basis.FromScale(new Vector3(1f, FogSlabHeight, 1f)),
+                                                  TileOrigin(nc, nr) + new Vector3(0f, FogSlabHeight * 0.5f, 0f));
+                        canvas.Add((nxf, Hex3DPalette.CanvasTone(nc, nr)));
+                    }
+                }
+            }
+            frontier = next;
+        }
+
+        if (UseWeldedTerrain)
+        {
+            // Terrain break-up stage 2 (user ruling: "the full welded look"):
+            // one merged ArrayMesh — corner-averaged welds fuse tiles into
+            // continuous ground below the cliff threshold, undulation is BAKED
+            // into the vertices (so C# knows the true surface and the stroke
+            // ribbons can follow it — the stage-1 shader displacement was
+            // invisible to placement, which is why rivers/roads clipped).
+            _landLayer = BuildWeldedLand(landCoords);
+        }
+        else
+        {
+            // Stage-1 fallback: subdivided tops rolled by the shader.
+            _landLayer = MakeTileLayer("WinLand", land, taper: 0.985f, roughness: 0.9f,
+                                       prismMode: PainterlyPrism.Land,
+                                       customMesh: PainterlyProps.HexTileMesh(0.985f));
+            if (((MultiMeshInstance3D)_landLayer).Multimesh.Mesh is ArrayMesh lam
+                && lam.SurfaceGetMaterial(0) is ShaderMaterial landSm)
+            {
+                landSm.SetShaderParameter("grain_scale", 1.8f);
+                landSm.SetShaderParameter("grain_strength", 0.11f);
+                landSm.SetShaderParameter("top_undulation", 0.06f);
+                landSm.SetShaderParameter("undulation_scale", 0.5f);
+            }
         }
         _waterLayer = MakeTileLayer("WinWater", water, taper: 1.0f, roughness: 0.55f,
                                     prismMode: PainterlyPrism.Water);
+        if (UseWeldedTerrain)
+        {
+            // Stage 2d (user: the parchment prisms don't match the welded ground):
+            // the canvas becomes ONE seamless flat sheet — same corner-centroid
+            // construction as the welded land, no grout, paper grain from the
+            // shader. Where the sheet meets lower painted ground it walls down.
+            _canvasLayer = BuildCanvasSheet(canvasCoords);
+        }
+        else
+        {
+            _canvasLayer = MakeTileLayer("WinCanvas", canvas, taper: 0.96f, roughness: 1.0f,
+                                         prismMode: PainterlyPrism.Canvas);
+        }
         // No shadow casting on canvas: it is the lowest geometry, and coplanar
         // bright slabs self-shadowing under a low sun produce acne (seen on the
         // strategic map).
-        _canvasLayer = MakeTileLayer("WinCanvas", canvas, taper: 0.96f, roughness: 1.0f,
-                                     prismMode: PainterlyPrism.Canvas);
         _canvasLayer.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+    }
+
+    /// <summary>The unpainted world as one welded flat sheet at the canvas slab
+    /// height: per tile a simple 6-triangle fan to corner centroids (shared XZ ⇒
+    /// seamless paper), per-tile CanvasTone with the wet edge where the painting
+    /// borders it, edge walls where the sheet ends or overhangs lower painted
+    /// ground.</summary>
+    private MeshInstance3D BuildCanvasSheet(List<Vector2I> coords)
+    {
+        var set = new HashSet<Vector2I>(coords);
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        foreach (var c in coords)
+        {
+            Vector3 o = TileOrigin(c.X, c.Y);
+            o.Y = FogSlabHeight;
+            float edge = HasPaintedNeighbor(c) ? Hex3DPalette.WetEdgeAmount(c.X, c.Y) : 0f;
+            Color col = Hex3DPalette.CanvasTone(c.X, c.Y, edge);
+            var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
+            var nOrigin = new Vector3[6];
+            var nInSheet = new bool[6];
+            var nCoord = new Vector2I[6];
+            for (int i = 0; i < 6; i++)
+            {
+                var (dq, dr) = HexCoord.AxialDirections[i];
+                var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+                nCoord[i] = new Vector2I(nc, nr);
+                nOrigin[i] = _world.InBounds(nc, nr) ? TileOrigin(nc, nr) : o + EdgeDir(i);
+                nOrigin[i].Y = FogSlabHeight;
+                nInSheet[i] = set.Contains(nCoord[i]);
+            }
+            var corners = new Vector3[6];
+            for (int i = 0; i < 6; i++)
+            {
+                int j = (i + 1) % 6;
+                corners[i] = (o + nOrigin[i] + nOrigin[j]) / 3f;
+                corners[i].Y = FogSlabHeight;
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                int j = (i + 1) % 6;
+                TopTri(st, o, col, corners[i], col, corners[j], col);
+            }
+            // Edge walls where the sheet is not continued by more canvas.
+            for (int i = 0; i < 6; i++)
+            {
+                if (nInSheet[i])
+                    continue;
+                float floor;
+                var nco = nCoord[i];
+                if (!_world.InBounds(nco.X, nco.Y))
+                    floor = FogSlabHeight - 0.5f;                 // world edge skirt
+                else if (_fog.FogAt(nco) == Fog.Hidden)
+                    floor = FogSlabHeight - 0.5f;                 // beyond the margin
+                else
+                {
+                    var nt = _world.GetTile(nco.X, nco.Y);
+                    float nTop = nt.IsOcean ? 0.08f : nt.IsLake ? 0.12f : TileHeight(nco);
+                    if (nTop >= FogSlabHeight - 0.01f)
+                        continue;                                  // painted side is higher; it walls to us
+                    floor = nTop;
+                }
+                Vector3 a = corners[(i + 5) % 6];
+                Vector3 b = corners[i];
+                WallQuad(st, a, b, floor, floor, col, o);
+            }
+        }
+        var mesh = st.Commit();
+        var node = new MeshInstance3D
+        {
+            Name = "WinCanvasSheet",
+            Mesh = mesh,
+            MaterialOverride = PainterlyPrism.TileMaterial(PainterlyPrism.Canvas, 1.0f),
+        };
+        AddChild(node);
+        return node;
     }
 
     /// <summary>True when any hex neighbor of a Hidden tile is itself not Hidden —
@@ -622,10 +764,12 @@ public partial class ExpeditionWindow3D : Node3D
     {
         _riverLayer?.QueueFree();
         _roadLayer?.QueueFree();
-        // A9b: rivers become WINDING RIBBONS (RiverMesh — same builder as the
-        // atlas); roads stay straight strokes.
-        var riverTiles = new List<(Vector3 center, List<Vector3> mids)>();
-        var roads = new List<Transform3D>();
+        // Stage 2: BOTH rivers and roads are ground-following ribbons — every
+        // vertex re-heighted by SampleGround (the same function that built the
+        // welded terrain), so strokes lie ON the surface. This is the fix for
+        // the reported clipping: placement now sees the real ground.
+        var riverTiles = new List<(Vector3 center, List<Vector3> mids, System.Func<Vector3, float> ground)>();
+        var roadTiles = new List<(Vector3 center, List<Vector3> mids, System.Func<Vector3, float> ground)>();
 
         foreach (var c in _windowTiles)
         {
@@ -635,8 +779,12 @@ public partial class ExpeditionWindow3D : Node3D
             if ((tile.RiverEdges | tile.RoadEdges) == 0) continue;
 
             Vector3 center = TileOrigin(c.X, c.Y);
-            center.Y = TileHeight(c) + 0.03f;   // hug the ground — drawn water, not a floating strip
+            center.Y = TileHeight(c) + 0.03f;
+            var cc = c;   // closure copy
+            System.Func<Vector3, float> ground =
+                UseWeldedTerrain ? (p => SampleGround(cc, p)) : (System.Func<Vector3, float>)null;
             List<Vector3> riverMids = null;
+            List<Vector3> roadMids = null;
             var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
             for (int i = 0; i < 6; i++)
             {
@@ -650,41 +798,70 @@ public partial class ExpeditionWindow3D : Node3D
                 Vector3 nbr = inBounds ? TileOrigin(nc, nr) : center + EdgeDir(i);
                 // CONTINUITY: edge midpoint at the AVERAGE of the two rendered
                 // heights (hidden neighbours count at the canvas slab, so a stroke
-                // dives into the fog) — halves meet, strokes slope, no seam jumps.
+                // dives into the fog). With welded terrain the sampler overrides
+                // these Y values anyway; they remain the non-welded fallback.
                 float nbrH = inBounds ? RenderedTileHeight(new Vector2I(nc, nr)) : TileHeight(c);
                 Vector3 edgeMid = new Vector3((center.X + nbr.X) * 0.5f,
                                               (TileHeight(c) + nbrH) * 0.5f + 0.03f,
                                               (center.Z + nbr.Z) * 0.5f);
                 if (riv)
-                    (riverMids ??= new List<Vector3>()).Add(edgeMid);
-                if (road)
                 {
-                    Vector3 seg = edgeMid - center;
-                    float len = seg.Length();
-                    if (len < 1e-4f) continue;
-                    // Tilted basis: local +X along the sloped segment, slightly
-                    // overlength so joints at slope kinks close.
-                    Vector3 ax = seg / len;
-                    Vector3 az = ax.Cross(Vector3.Up);
-                    az = az.LengthSquared() > 1e-6f ? az.Normalized() : Vector3.Forward;
-                    Vector3 ay = az.Cross(ax).Normalized();
-                    roads.Add(new Transform3D(new Basis(ax * (len * 1.05f), ay, az),
-                                              (center + edgeMid) * 0.5f));
+                    (riverMids ??= new List<Vector3>()).Add(edgeMid);
+                    // Stage 2d — WATERFALL connector: across an UNWELDED cliff
+                    // edge the two halves now end at different heights (each
+                    // samples its own fan), which read as the river running into
+                    // the wall. The higher side drops a short steep ribbon to the
+                    // lower side's surface.
+                    if (UseWeldedTerrain && inBounds)
+                    {
+                        var nbrCo = new Vector2I(nc, nr);
+                        if (_surf.ContainsKey(nbrCo))
+                        {
+                            float selfY = SampleGround(cc, edgeMid);
+                            float nbrY = SampleGround(nbrCo, edgeMid);
+                            if (selfY - nbrY > 0.15f)
+                            {
+                                Vector3 toNbr = new Vector3(nbr.X - center.X, 0f, nbr.Z - center.Z).Normalized() * 0.14f;
+                                var top = new Vector3(edgeMid.X - toNbr.X * 0.3f, selfY + 0.05f, edgeMid.Z - toNbr.Z * 0.3f);
+                                var plunge = new Vector3(edgeMid.X + toNbr.X, nbrY + 0.05f, edgeMid.Z + toNbr.Z);
+                                riverTiles.Add((top, new List<Vector3> { plunge }, null));
+                            }
+                        }
+                    }
                 }
+                if (road)
+                    (roadMids ??= new List<Vector3>()).Add(edgeMid);
             }
             if (riverMids != null)
-                riverTiles.Add((center, riverMids));
+                riverTiles.Add((center, riverMids, ground));
+            if (roadMids != null)
+                roadTiles.Add((center, roadMids, ground));
         }
 
         _riverLayer = new MeshInstance3D
         {
             Name = "WinRivers",
-            // A9c: widened with the atlas (window is closer, so slightly narrower).
-            Mesh = RiverMesh.Build(riverTiles, 0.30f, Hex3DPalette.RiverWater, Hex3DPalette.RiverBank),
+            // Stage 2d: lift raised — covers inter-sample pokes on fan creases.
+            Mesh = RiverMesh.Build(riverTiles, 0.30f, Hex3DPalette.RiverWater, Hex3DPalette.RiverBank,
+                                   lift: 0.06f, meanderScale: 1f),
             MaterialOverride = PainterlyPrism.RiverMaterial(),
         };
         AddChild(_riverLayer);
-        _roadLayer = MakeEdgeLayer("WinRoads", roads, new Vector3(1f, 0.03f, 0.15f), Hex3DPalette.RoadStroke);
+        _roadLayer = new MeshInstance3D
+        {
+            Name = "WinRoads",
+            // Roads: narrow, barely-winding, matte earth — same ground-following
+            // builder so they hug the welded terrain exactly like the rivers.
+            Mesh = RiverMesh.Build(roadTiles, 0.15f, Hex3DPalette.RoadStroke,
+                                   Hex3DPalette.RoadStroke.Darkened(0.2f),
+                                   lift: 0.055f, meanderScale: 0.3f),
+            MaterialOverride = new StandardMaterial3D
+            {
+                VertexColorUseAsAlbedo = true,
+                Roughness = 0.95f,
+            },
+        };
+        AddChild(_roadLayer);
     }
 
     /// <summary>A tile's height as it actually RENDERS: hidden tiles sit at the
@@ -693,39 +870,347 @@ public partial class ExpeditionWindow3D : Node3D
     private float RenderedTileHeight(Vector2I c)
         => _fog.FogAt(c) == Fog.Hidden ? FogSlabHeight : TileHeight(c);
 
+    // ── Welded terrain (stage 2 — user ruling: "the full welded look") ──────
+    // The combat map's model at window scale: hex corners shared by up to three
+    // tiles average their heights (and colours) when the spread stays inside the
+    // weld threshold — tiles fuse into continuous rolling ground; bigger steps
+    // stay crisp cliffs with real walls. Undulation is baked into the VERTICES
+    // (not the shader), so SampleGround can hand the exact surface to the
+    // river/road ribbons. Canvas (Hidden) slabs stay a separate hard-edged
+    // MultiMesh layer — the unpainted world is flat paper, never welded.
+
+    /// <summary>Kill-switch back to the stage-1 prism look.</summary>
+    private static readonly bool UseWeldedTerrain = true;
+    /// <summary>Max height difference that still fuses into a slope. 0.50 welds
+    /// up to two compressed terrace steps (isolated low pockets become steep
+    /// DELLS, not sheer-walled sinkholes — the user's "holes"); only 3+ step
+    /// drops remain true cliffs, which makes the remaining cliffs meaningful.</summary>
+    private const float WeldThreshold = 0.50f;
+    private const float UndulationAmp = 0.06f;
+
+    private struct TileSurf
+    {
+        public Vector3 Center;         // welded base heights, pre-undulation
+        public Vector3[] Corners;      // 6, corner i = centroid of self + nbr i + nbr i+1
+        public Vector3[] EdgeMids;     // 6
+        public Color CenterCol;
+        public Color[] CornerCols;
+        public Color[] EdgeCols;
+        public bool[] EdgeWelded;      // edge i fused with neighbour i (no wall)
+        public Vector2I[] Nbrs;
+    }
+
+    private readonly Dictionary<Vector2I, TileSurf> _surf = new();
+
+    private MeshInstance3D BuildWeldedLand(List<Vector2I> coords)
+    {
+        _surf.Clear();
+        var landSet = new HashSet<Vector2I>(coords);
+
+        // Pass 1 — per-tile welded surface data (heights + colours, pre-undulation).
+        foreach (var c in coords)
+        {
+            var t = _world.GetTile(c.X, c.Y);
+            var fog = _fog.FogAt(c);
+            float h0 = TileHeight(c);
+            Color col0 = TileColor(t, c, fog);
+            Vector3 o = TileOrigin(c.X, c.Y);
+            var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
+
+            bool city0 = IsCityTile(c);
+            var nOrigin = new Vector3[6];
+            var nIsLand = new bool[6];
+            var nH = new float[6];
+            var nCol = new Color[6];
+            var nCity = new bool[6];
+            var s = new TileSurf
+            {
+                Corners = new Vector3[6], EdgeMids = new Vector3[6],
+                CornerCols = new Color[6], EdgeCols = new Color[6],
+                EdgeWelded = new bool[6], Nbrs = new Vector2I[6],
+                Center = new Vector3(o.X, h0, o.Z), CenterCol = col0,
+            };
+            for (int i = 0; i < 6; i++)
+            {
+                var (dq, dr) = HexCoord.AxialDirections[i];
+                var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+                var nco = new Vector2I(nc, nr);
+                s.Nbrs[i] = nco;
+                nOrigin[i] = _world.InBounds(nc, nr) ? TileOrigin(nc, nr) : o + EdgeDir(i);
+                nIsLand[i] = landSet.Contains(nco);
+                if (nIsLand[i])
+                {
+                    nH[i] = TileHeight(nco);
+                    nCol[i] = TileColor(_world.GetTile(nc, nr), nco, _fog.FogAt(nco));
+                    nCity[i] = IsCityTile(nco);
+                }
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                int j = (i + 1) % 6;
+                // Corner i = centroid of the three tile centres meeting there —
+                // orientation-proof, no assumptions about axial direction order.
+                // Stage 2d city rule: HEIGHTS weld across the city boundary, but
+                // COLOURS average only among participants on the same side of it —
+                // a settlement footprint is a built thing with a hard edge, not a
+                // biome gradient.
+                Vector3 cp = (o + nOrigin[i] + nOrigin[j]) / 3f;
+                WeldCorner(h0, col0, city0,
+                           nIsLand[i], nH[i], nCol[i], nCity[i],
+                           nIsLand[j], nH[j], nCol[j], nCity[j],
+                           out float ch, out Color cc);
+                s.Corners[i] = new Vector3(cp.X, ch, cp.Z);
+                s.CornerCols[i] = cc;
+
+                Vector3 ep = (o + nOrigin[i]) * 0.5f;
+                bool weld = nIsLand[i] && Mathf.Abs(nH[i] - h0) <= WeldThreshold;
+                s.EdgeWelded[i] = weld;
+                s.EdgeMids[i] = new Vector3(ep.X, weld ? (h0 + nH[i]) * 0.5f : h0, ep.Z);
+                s.EdgeCols[i] = (weld && nCity[i] == city0) ? col0.Lerp(nCol[i], 0.5f) : col0;
+            }
+            _surf[c] = s;
+        }
+
+        // Pass 2 — emit tops + cliff/shore walls. Winding is settled per-triangle
+        // by the RH-normal sign test (Godot front faces are CW), so no assumption
+        // about boundary orientation can break it.
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        foreach (var c in coords)
+        {
+            var s = _surf[c];
+            Vector3 ctr = Undulate(s.Center);
+            for (int j = 0; j < 12; j++)
+            {
+                int k = (j + 1) % 12;
+                TopTri(st, ctr, s.CenterCol,
+                       Undulate(Bnd(s, j)), BndCol(s, j),
+                       Undulate(Bnd(s, k)), BndCol(s, k));
+            }
+            // Walls per unwelded edge: our (corner i-1, edgeMid i, corner i) rim
+            // down to whatever is really below on the other side — PER VERTEX
+            // (a flat shelf left triangular slivers where the neighbour's rim
+            // varies corner to corner; matching XZ floors close them exactly).
+            for (int i = 0; i < 6; i++)
+            {
+                if (s.EdgeWelded[i])
+                    continue;
+                Vector3 a = Undulate(s.Corners[(i + 5) % 6]);
+                Vector3 m = Undulate(s.EdgeMids[i]);
+                Vector3 b = Undulate(s.Corners[i]);
+                float fa = WallFloorAt(s, i, a);
+                float fm = WallFloorAt(s, i, m);
+                float fb = WallFloorAt(s, i, b);
+                if (a.Y <= fa + 0.01f && m.Y <= fm + 0.01f && b.Y <= fb + 0.01f)
+                    continue;   // we are the lower side; the neighbour walls down to us
+                Color wc = s.CenterCol;
+                WallQuad(st, a, m, fa, fm, wc, s.Center);
+                WallQuad(st, m, b, fm, fb, wc, s.Center);
+            }
+        }
+        var mesh = st.Commit();
+
+        var mat = PainterlyPrism.TileMaterial(PainterlyPrism.Land, 0.9f);
+        if (mat is ShaderMaterial sm)
+        {
+            // Close-zoom brushwork (undulation is baked — the shader knob stays 0).
+            sm.SetShaderParameter("grain_scale", 1.8f);
+            sm.SetShaderParameter("grain_strength", 0.11f);
+            // Welded cliffs are painted BANKS, not voids: the full skirt darkening
+            // + stripes + shadow pushed them near-black (the "torn hole" read).
+            sm.SetShaderParameter("skirt_darken", 0.14f);
+            sm.SetShaderParameter("stripe_strength", 0.10f);
+        }
+        var node = new MeshInstance3D { Name = "WinLandWelded", Mesh = mesh, MaterialOverride = mat };
+        AddChild(node);
+        return node;
+    }
+
+    /// <summary>Corner weld by connected components over pairwise height diffs ≤
+    /// threshold — symmetric (every participant computes the same subset), so
+    /// welded corners are crack-free by construction. Colours additionally
+    /// average only among participants on the same side of a city boundary
+    /// (heights still weld — the ground is continuous; the paint is not).</summary>
+    private static void WeldCorner(float h0, Color c0, bool city0,
+                                   bool aIn, float ha, Color ca, bool aCity,
+                                   bool bIn, float hb, Color cb, bool bCity,
+                                   out float h, out Color col)
+    {
+        bool sa = aIn && Mathf.Abs(ha - h0) <= WeldThreshold;
+        bool sb = bIn && Mathf.Abs(hb - h0) <= WeldThreshold;
+        bool ab = aIn && bIn && Mathf.Abs(ha - hb) <= WeldThreshold;
+        bool useA = aIn && (sa || (sb && ab));
+        bool useB = bIn && (sb || (sa && ab));
+        int n = 1;
+        h = h0;
+        if (useA) { h += ha; n++; }
+        if (useB) { h += hb; n++; }
+        h /= n;
+        int cn = 1;
+        float cr = c0.R, cg = c0.G, cbl = c0.B;
+        if (useA && aCity == city0) { cr += ca.R; cg += ca.G; cbl += ca.B; cn++; }
+        if (useB && bCity == city0) { cr += cb.R; cg += cb.G; cbl += cb.B; cn++; }
+        col = new Color(cr / cn, cg / cn, cbl / cn, 1f);
+    }
+
+    private bool IsCityTile(Vector2I c)
+    {
+        var t = _world.GetTile(c.X, c.Y);
+        return t.SettlementIndex >= 0 && _world != null
+            && t.SettlementIndex < _world.Settlements.Count
+            && _world.Settlements[t.SettlementIndex].Tier == SettlementTier.City;
+    }
+
+    /// <summary>What an unwelded edge's wall descends to AT a given rim vertex:
+    /// neighbour land at its matching rim vertex (same XZ ⇒ the two sides share
+    /// wall edges exactly, no slivers), hidden ground at the canvas slab, water
+    /// at its pool top, out-of-window at a skirt below us.</summary>
+    private float WallFloorAt(in TileSurf s, int i, Vector3 rimVert)
+    {
+        var nco = s.Nbrs[i];
+        if (_surf.TryGetValue(nco, out var ns))
+        {
+            float best = float.MaxValue;
+            float y = ns.Center.Y;
+            for (int j = 0; j < 12; j++)
+            {
+                Vector3 v = Bnd(ns, j);
+                float d = (v.X - rimVert.X) * (v.X - rimVert.X) + (v.Z - rimVert.Z) * (v.Z - rimVert.Z);
+                if (d < best) { best = d; y = v.Y; }
+            }
+            return y + Undulation(rimVert.X, rimVert.Z);
+        }
+        if (!_world.InBounds(nco.X, nco.Y))
+            return s.Center.Y - 0.6f;   // window/map boundary skirt
+        if (_fog.FogAt(nco) == Fog.Hidden)
+            return FogSlabHeight;
+        var nt = _world.GetTile(nco.X, nco.Y);
+        if (nt.IsOcean) return 0.08f;
+        if (nt.IsLake) return 0.12f;
+        return s.Center.Y - 0.6f;
+    }
+
+    private Vector3 Undulate(Vector3 p) => new Vector3(p.X, p.Y + Undulation(p.X, p.Z), p.Z);
+
+    private static Vector3 Bnd(in TileSurf s, int j)
+        => (j & 1) == 0 ? s.EdgeMids[(j >> 1)] : s.Corners[(j >> 1)];
+
+    private static Color BndCol(in TileSurf s, int j)
+        => (j & 1) == 0 ? s.EdgeCols[(j >> 1)] : s.CornerCols[(j >> 1)];
+
+    /// <summary>Up-facing triangle under the CW front-face rule: emit so the
+    /// RH-normal points DOWN (checked numerically — orientation-proof).</summary>
+    private static void TopTri(SurfaceTool st, Vector3 a, Color ca, Vector3 b, Color cb, Vector3 c, Color cc)
+    {
+        float crossY = (b.Z - a.Z) * (c.X - a.X) - (b.X - a.X) * (c.Z - a.Z);
+        if (crossY > 0f)
+        { (b, c) = (c, b); (cb, cc) = (cc, cb); }
+        st.SetColor(ca); st.SetNormal(Vector3.Up); st.AddVertex(a);
+        st.SetColor(cb); st.SetNormal(Vector3.Up); st.AddVertex(b);
+        st.SetColor(cc); st.SetNormal(Vector3.Up); st.AddVertex(c);
+    }
+
+    /// <summary>Outward-facing wall quad from rim segment a→b down to per-vertex
+    /// floors. Winding settled numerically: RH-normal must point INWARD (toward
+    /// the tile centre) for the face to render outward under the CW rule.</summary>
+    private static void WallQuad(SurfaceTool st, Vector3 a, Vector3 b, float aFloorY, float bFloorY, Color col, Vector3 centre)
+    {
+        Vector3 a2 = new Vector3(a.X, aFloorY, a.Z);
+        Vector3 b2 = new Vector3(b.X, bFloorY, b.Z);
+        Vector3 n = (b - a).Cross(a2 - a);
+        Vector3 outward = new Vector3((a.X + b.X) * 0.5f - centre.X, 0f, (a.Z + b.Z) * 0.5f - centre.Z);
+        bool swap = n.Dot(outward) > 0f;   // RH-normal outward would render inward — swap
+        Vector3 t0 = swap ? b : a, t1 = swap ? a : b;
+        Vector3 b0 = swap ? b2 : a2, b1 = swap ? a2 : b2;
+        Vector3 wn = swap ? -n : n;
+        wn = wn.LengthSquared() > 1e-8f ? -wn.Normalized() : Vector3.Up;   // face normal points outward
+        st.SetColor(col); st.SetNormal(wn); st.AddVertex(t0);
+        st.SetColor(col); st.SetNormal(wn); st.AddVertex(t1);
+        st.SetColor(col); st.SetNormal(wn); st.AddVertex(b1);
+        st.SetColor(col); st.SetNormal(wn); st.AddVertex(t0);
+        st.SetColor(col); st.SetNormal(wn); st.AddVertex(b1);
+        st.SetColor(col); st.SetNormal(wn); st.AddVertex(b0);
+    }
+
+    /// <summary>The true rendered ground height at a world point inside (or just
+    /// beside) a tile — welded fan interpolation + baked undulation. This is the
+    /// single source of truth the stroke ribbons follow.</summary>
+    private float SampleGround(Vector2I tile, Vector3 p)
+    {
+        if (!_surf.TryGetValue(tile, out var s))
+            return RenderedTileHeight(tile) + Undulation(p.X, p.Z);
+        if (TryFan(s, p, out float inY, out float bestY))
+            return inY + Undulation(p.X, p.Z);
+        // Cross-tile (stage 2d, river-clip fix): bank vertices near a welded edge
+        // can land in the NEIGHBOUR's fan — extrapolating our own edge plane there
+        // read as clipping. Ask the neighbours for the true surface first.
+        for (int i = 0; i < 6; i++)
+        {
+            if (_surf.TryGetValue(s.Nbrs[i], out var ns) && TryFan(ns, p, out float ny, out _))
+                return ny + Undulation(p.X, p.Z);
+        }
+        return bestY + Undulation(p.X, p.Z);
+    }
+
+    /// <summary>Fan interpolation for one tile: true when p lies inside; bestY is
+    /// the nearest-triangle extrapolation for the fallback path.</summary>
+    private static bool TryFan(in TileSurf s, Vector3 p, out float y, out float bestY)
+    {
+        float bestErr = float.MaxValue;
+        bestY = s.Center.Y;
+        for (int j = 0; j < 12; j++)
+        {
+            int k = (j + 1) % 12;
+            if (BaryY(s.Center, Bnd(s, j), Bnd(s, k), p, out float ty, out float err))
+            { y = ty; return true; }
+            if (err < bestErr) { bestErr = err; bestY = ty; }
+        }
+        y = bestY;
+        return false;
+    }
+
+    /// <summary>2D barycentric plane interpolation in XZ; err is how far outside
+    /// the triangle the point sits (≤ small epsilon counts as inside).</summary>
+    private static bool BaryY(Vector3 a, Vector3 b, Vector3 c, Vector3 p, out float y, out float err)
+    {
+        float d = (b.Z - c.Z) * (a.X - c.X) + (c.X - b.X) * (a.Z - c.Z);
+        if (Mathf.Abs(d) < 1e-6f) { y = a.Y; err = float.MaxValue; return false; }
+        float l0 = ((b.Z - c.Z) * (p.X - c.X) + (c.X - b.X) * (p.Z - c.Z)) / d;
+        float l1 = ((c.Z - a.Z) * (p.X - c.X) + (a.X - c.X) * (p.Z - c.Z)) / d;
+        float l2 = 1f - l0 - l1;
+        y = l0 * a.Y + l1 * b.Y + l2 * c.Y;
+        err = -Mathf.Min(l0, Mathf.Min(l1, l2));
+        return err <= 0.02f;
+    }
+
+    // Deterministic CPU value noise for the baked undulation (window-local — the
+    // shader's top_undulation stays 0 here; geometry carries the roll).
+    private static float UHash(int x, int z)
+    {
+        uint h = (uint)(x * 73856093) ^ (uint)(z * 19349663) ^ 0xA511E9B3u;
+        h ^= h >> 13; h *= 2654435761u; h ^= h >> 16;
+        return (h & 0xFFFFu) / 65535f;
+    }
+
+    private static float UNoise(float x, float z)
+    {
+        int xi = Mathf.FloorToInt(x), zi = Mathf.FloorToInt(z);
+        float fx = x - xi, fz = z - zi;
+        fx = fx * fx * (3f - 2f * fx);
+        fz = fz * fz * (3f - 2f * fz);
+        float a = UHash(xi, zi), b = UHash(xi + 1, zi);
+        float c = UHash(xi, zi + 1), d = UHash(xi + 1, zi + 1);
+        return Mathf.Lerp(Mathf.Lerp(a, b, fx), Mathf.Lerp(c, d, fx), fz);
+    }
+
+    private static float Undulation(float wx, float wz)
+        => ((UNoise(wx * 0.5f, wz * 0.5f) + UNoise(wx * 1.2f + 31.7f, wz * 1.2f) * 0.5f) - 0.75f) * UndulationAmp;
+
     /// <summary>Approx render-space direction to a border tile's missing neighbour.</summary>
     private static Vector3 EdgeDir(int i)
     {
         var (dq, dr) = HexCoord.AxialDirections[i];
         return new Vector3(dq * ColSpacing, 0f, (dr + dq * 0.5f) * RowSpacing);
-    }
-
-    private MultiMeshInstance3D MakeEdgeLayer(string name, List<Transform3D> xfs, Vector3 size, Color color)
-    {
-        var mesh = new BoxMesh { Size = size };
-        // A9: matte ink stroke, no sheen.
-        mesh.Material = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.95f };
-        var mm = new MultiMesh
-        {
-            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-            Mesh = mesh, InstanceCount = xfs.Count,
-        };
-        for (int i = 0; i < xfs.Count; i++) mm.SetInstanceTransform(i, xfs[i]);
-        // Scatter law: explicit CustomAabb (was latent here too).
-        if (xfs.Count > 0)
-        {
-            Vector3 min = xfs[0].Origin, max = min;
-            for (int i = 1; i < xfs.Count; i++)
-            {
-                var o = xfs[i].Origin;
-                min = new Vector3(Mathf.Min(min.X, o.X), Mathf.Min(min.Y, o.Y), Mathf.Min(min.Z, o.Z));
-                max = new Vector3(Mathf.Max(max.X, o.X), Mathf.Max(max.Y, o.Y), Mathf.Max(max.Z, o.Z));
-            }
-            mm.CustomAabb = new Aabb(min, max - min).Grow(HexR);
-        }
-        var node = new MultiMeshInstance3D { Name = name, Multimesh = mm };
-        AddChild(node);
-        return node;
     }
 
     // ── Decorations (revealed land only) ─────────────────────────────────────
@@ -744,6 +1229,9 @@ public partial class ExpeditionWindow3D : Node3D
             if (t.IsWater) continue;
             float h = TileHeight(c);
             var basePos = TileOrigin(c.X, c.Y);
+            // Stage 2: props must stand on the WELDED ground, not the flat tile
+            // height (deviation up to ~±0.2 would float or bury them).
+            float GroundAt(Vector3 p) => UseWeldedTerrain ? SampleGround(c, p) : h;
             if (t.Terrain == TT.Forest)
             {
                 // A5: canopy blob clusters (base-origin — placed AT ground height),
@@ -754,7 +1242,8 @@ public partial class ExpeditionWindow3D : Node3D
                     float a = H01(Hash(c, (uint)(7 + i))) * Mathf.Tau;
                     float rad = H01(Hash(c, (uint)(31 + i))) * 0.55f;
                     float s = 0.55f + H01(Hash(c, (uint)(53 + i))) * 0.55f;
-                    var pos = basePos + new Vector3(Mathf.Cos(a) * rad, h - 0.03f, Mathf.Sin(a) * rad);
+                    var pos = basePos + new Vector3(Mathf.Cos(a) * rad, 0f, Mathf.Sin(a) * rad);
+                    pos.Y = GroundAt(pos) - 0.03f;
                     var yaw = new Basis(Vector3.Up, H01(Hash(c, (uint)(97 + i))) * Mathf.Tau);
                     var xf = new Transform3D(yaw * Basis.FromScale(new Vector3(s, s, s)), pos);
                     if (Hash(c, (uint)(71 + i)) % 10 < 6)
@@ -773,7 +1262,8 @@ public partial class ExpeditionWindow3D : Node3D
                     float a = H01(Hash(c, (uint)(61 + i))) * Mathf.Tau;
                     float rad = 0.15f + H01(Hash(c, (uint)(67 + i))) * 0.45f;
                     float s = 0.24f + H01(Hash(c, (uint)(73 + i))) * 0.14f;
-                    var pos = basePos + new Vector3(Mathf.Cos(a) * rad, h - 0.02f, Mathf.Sin(a) * rad);
+                    var pos = basePos + new Vector3(Mathf.Cos(a) * rad, 0f, Mathf.Sin(a) * rad);
+                    pos.Y = GroundAt(pos) - 0.02f;
                     var yaw = new Basis(Vector3.Up, H01(Hash(c, (uint)(79 + i))) * Mathf.Tau);
                     broadleaf.Add((new Transform3D(yaw * Basis.FromScale(new Vector3(s, s * 0.8f, s)), pos),
                                    Jitter(new Color(0.44f, 0.45f, 0.24f), c, 0.14f)));
@@ -783,14 +1273,14 @@ public partial class ExpeditionWindow3D : Node3D
             {
                 float s = 0.7f + H01(Hash(c, 11)) * 0.6f;
                 peaks.Add((new Transform3D(Basis.FromScale(new Vector3(s, s, s)),
-                          basePos + new Vector3(0f, h + 0.9f * s * 0.5f - 0.04f, 0f)),
+                          basePos + new Vector3(0f, GroundAt(basePos) + 0.9f * s * 0.5f - 0.04f, 0f)),
                           t.Terrain == TT.Volcanic ? new Color(0.30f, 0.22f, 0.20f) : new Color(0.55f, 0.52f, 0.48f)));
             }
             else if (t.Terrain == TT.Snow && Hash(c, 3) % 10 < 5)
             {
                 float s = 0.6f + H01(Hash(c, 13)) * 0.5f;
                 peaks.Add((new Transform3D(Basis.FromScale(new Vector3(s, s, s)),
-                          basePos + new Vector3(0f, h + 0.9f * s * 0.5f - 0.04f, 0f)),
+                          basePos + new Vector3(0f, GroundAt(basePos) + 0.9f * s * 0.5f - 0.04f, 0f)),
                           new Color(0.92f, 0.94f, 0.97f)));
             }
         }

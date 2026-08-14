@@ -157,7 +157,7 @@ public partial class CampusGridManager : HexGridManager
                 continue;
             }
 
-            StampBuilding(b.Id, anchor, footprintHexes);
+            StampBuilding(b.Id, anchor, footprintHexes, b.Tier, b.Rotation);
         }
     }
 
@@ -317,7 +317,8 @@ public partial class CampusGridManager : HexGridManager
     /// to route it through the inherited visual method.</summary>
     private static readonly Color BuildingTint = new Color(0.55f, 0.4f, 0.6f);
 
-    private void StampBuilding(string buildingId, Vector2I anchor, List<Vector2I> footprintHexes)
+    private void StampBuilding(string buildingId, Vector2I anchor, List<Vector2I> footprintHexes,
+        int tier = 1, int rotation = 0)
     {
         foreach (var coord in footprintHexes)
         {
@@ -348,6 +349,20 @@ public partial class CampusGridManager : HexGridManager
                 template.EffectiveMapLabel,
                 isDoor ? UITheme.BuildingLabelDoor : UITheme.BuildingLabelPlain,
                 UITheme.Label3DPlaceName);
+
+            // ── Building mesh (2026-08-13) ─────────────────────────────────
+            // Convention scene on the ANCHOR tile, tier group visible per the
+            // save's tier, rotated with the footprint. Replaces any previous
+            // instance (in-place re-stamp after an upgrade); no authored
+            // scene → the tint + label above remain the rendering, as today.
+            if (anchorTile.TileView != null)
+            {
+                if (anchorTile.TileView.GetNodeOrNull(BuildingMeshLibrary.InstanceName) is Node old)
+                    old.QueueFree();
+                var mesh = BuildingMeshLibrary.TryInstantiate(buildingId, tier, rotation);
+                if (mesh != null)
+                    anchorTile.TileView.AddChild(mesh);
+            }
         }
     }
 
@@ -392,7 +407,8 @@ public partial class CampusGridManager : HexGridManager
         target.Rotation = rotation;
         target.IsPlaced = true;
 
-        StampBuilding(buildingId, anchor, GetFootprintHexes(template, anchor, rotation));
+        StampBuilding(buildingId, anchor, GetFootprintHexes(template, anchor, rotation),
+                      target.Tier, rotation);
         return true;
     }
 
@@ -524,6 +540,29 @@ public partial class CampusGridManager : HexGridManager
     /// <summary>Explore fog (Phase 3): dim the flower tiles of UNREVEALED districts and restore the
     /// normal terrain colour on revealed ones. <paramref name="isRevealed"/> tests a child coord's
     /// owning district. Cheap re-tint over the loaded tiles — call whenever the revealed set changes.</summary>
+    /// <summary>Footprint preview (2026-08-13): tint a set of hexes (e.g. a
+    /// building's would-be footprint) a flat colour. Restore with
+    /// <see cref="RestoreHexVisuals"/>. Hexes not on the grid are skipped —
+    /// an off-grid footprint simply shows fewer tinted tiles, which is
+    /// itself the "doesn't fit" signal.</summary>
+    public void TintHexes(List<Vector2I> hexes, Color color)
+    {
+        if (hexes == null) return;
+        foreach (var h in hexes)
+            if (Tiles.TryGetValue(h, out var tile) && tile.TileView != null)
+                tile.TileView.SetBaseColor(color);
+    }
+
+    /// <summary>Undo <see cref="TintHexes"/> — restores each hex's real
+    /// terrain/building visual.</summary>
+    public void RestoreHexVisuals(List<Vector2I> hexes)
+    {
+        if (hexes == null) return;
+        foreach (var h in hexes)
+            if (Tiles.TryGetValue(h, out var tile))
+                ApplyVisualToTile(tile);
+    }
+
     public void ApplyDistrictFog(System.Func<Vector2I, bool> isRevealed, Color fogColor)
     {
         if (isRevealed == null) return;

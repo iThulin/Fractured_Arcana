@@ -377,6 +377,99 @@ Ruling given as a staged answer: YES for the window, NO for the strategic map
   peaks (~+0.05) may poke through highlight quads; if so raise the overlay
   lift, don't drop the undulation first.
 
+## Stage 2 — WELDED window terrain (user rulings: clipping + "full welded look")
+Two rulings: stroke clipping (root cause: stage-1 undulation lived in the
+SHADER, invisible to C# placement) and "I kind of want to see the full welded
+look." Both solved by the same move — terrain shape becomes real geometry with
+ONE ground function shared by the mesh and the strokes. Window-only; the
+strategic map keeps crisp prisms. `UseWeldedTerrain = false` is the
+kill-switch back to stage 1.
+
+- **`BuildWeldedLand`** (ExpeditionWindow3D): one merged ArrayMesh for all
+  revealed/silhouette land. Corners = centroid of the three meeting tile
+  centres (orientation-proof); heights/colours weld by CONNECTED COMPONENTS
+  over pairwise diffs ≤ `WeldThreshold` (0.30) — symmetric, so welded corners
+  are crack-free by construction; chained welds smooth 2-step slopes into
+  ramps (accepted). Unwelded edges emit walls down to what is really below
+  (neighbour land rim / canvas slab / water top / boundary skirt); the lower
+  side skips (no double walls). Vertex colours carry TileColor with corner
+  blending — soft biome transitions, exactly the "natural feel" asked for.
+  Winding settled PER-TRIANGLE by the RH-normal sign test (CW front rule) —
+  no orientation assumptions to get wrong. Undulation (CPU value noise,
+  UndulationAmp 0.06) baked into vertices.
+- **`SampleGround(tile, p)`** — welded fan barycentric interpolation +
+  undulation: the single source of truth for surface height.
+- **Strokes**: `RiverMesh.Build` gained a grounded overload (per-tile sampler,
+  lift, meanderScale); every ribbon vertex (banks included) re-heights to
+  ground + lift. Rivers lift 0.045; **roads are now ribbons too** (width 0.15,
+  meanderScale 0.3, matte vertex-colour material) — they hug the welded ground
+  identically. Window MakeEdgeLayer deleted (dead). Atlas untouched (flat
+  tops there — the old signature wraps the new one).
+- **Decorations** stand on `SampleGround` (flat TileHeight would float/bury
+  props by ±0.2). `_landLayer` is now `GeometryInstance3D` (welded
+  MeshInstance3D or the stage-1 MultiMesh fallback).
+- Stage-1 shader undulation NOT set on the welded material (geometry carries
+  the roll); HexTileMesh remains for the fallback path.
+
+RISKS (not compile-run, the biggest blind increment of this pass): brace/paren
+balanced, symbols verified, but the weld emission + wall floors + barycentric
+sampler have never rendered. Watch for: holes at corners (weld asymmetry —
+should be impossible by construction, but that claim has never met a GPU),
+inverted triangles (per-tri winding test should prevent), pawn/move-hint
+overlays now sitting on welded ground they don't sample (markers float high —
+likely fine; if hints clip, they need the same SampleGround treatment).
+PickTile intersects flat per-tile planes — welded deviation ≤ ~0.2 is inside
+its tolerance; if picking feels off near cliffs, that is where to look.
+
+## Stage 2b — wall fix (welded terrain CONFIRMED IN PLAY, first build)
+The weld rendered on first build: continuous ground, rivers/roads ON the
+surface, props planted. Two wall blemishes (the dark angular "torn hole"
+shards near cliffs), both fixed:
+1. **Per-vertex wall floors** — `WallFloor` dropped to the neighbour's CENTRE
+   height as a flat shelf, leaving triangular slivers where the neighbour's
+   rim varies corner to corner. `WallFloorAt(s, i, rimVert)` now matches each
+   rim vertex to the neighbour's nearest boundary vertex by XZ (+ undulation
+   at that XZ) — the two sides share wall edges exactly. `WallQuad` takes
+   per-vertex floors.
+2. **Wall shading** — full skirt_darken (0.26) + stripes + shadow read as
+   voids; window welded material now sets skirt_darken 0.14 / stripe_strength
+   0.10 — cliffs read as painted banks.
+
+## Stage 2c — dells + paper margin (user: "what are these holes?" / edge corners)
+- The "holes" were NOT lakes: land pockets ≥2 compressed terrace steps below
+  their surroundings, declared cliffs by WeldThreshold 0.30 → sheer-walled
+  sinkholes. **WeldThreshold 0.30 → 0.50**: ≤2-step differences now weld into
+  steep dells; only 3+ step drops stay true cliffs (rarer = more meaningful).
+- **Canvas margin**: the window disc simply ENDED — hex-scalloped land against
+  black void (no tiles beyond the streamed disc, not even canvas). Three BFS
+  rings of parchment slabs now extend past the window edge (in-bounds only,
+  not pickable), so the walkable painting sits on paper like the strategic
+  map. Sharp hex facets on interior CLIFFS kept deliberately — carved
+  painterly read, same as combat's cliff rule.
+
+## Stage 2d — river clips, canvas sheet, hard city edges (three user rulings)
+1. **Rivers still clipped** — two residual mechanisms, both fixed:
+   (a) bank vertices near welded edges fell into the NEIGHBOUR's fan; the
+   bound-tile sampler extrapolated its own edge plane there. `SampleGround`
+   now tries the neighbours' fans (via `TryFan`) before extrapolating.
+   (b) across UNWELDED cliff edges each half samples its own fan → the halves
+   end at different heights and the river ran into the wall. The higher side
+   now drops a short steep WATERFALL ribbon (tapered spoke, edgeMid ±0.14
+   toward the lower side) when the gap exceeds 0.15. Lifts raised: rivers
+   0.06, roads 0.055 (fan-crease poke margin).
+2. **Parchment ring didn't match the welded ground** — `BuildCanvasSheet`:
+   the entire canvas (hidden window tiles + 3-ring margin) is now ONE seamless
+   flat sheet — same corner-centroid construction as the land, no grout,
+   paper grain from the canvas shader mode, wet edge kept, walls where the
+   sheet ends (skirt) or overhangs LOWER painted ground; higher painted ground
+   still walls down to the sheet from its side. Prism canvas remains the
+   non-welded fallback. `_canvasLayer` → GeometryInstance3D.
+3. **Cities: hard transition** — heights still weld across a city boundary
+   (the ground is continuous) but COLOURS average only among participants on
+   the same side of it (`IsCityTile` gating in WeldCorner + edge colours): a
+   settlement footprint is a built thing with a hard edge, not a biome
+   gradient.
+
 ## Open threads
 - Viewport background (`BackgroundColor = UITheme.WorldDeep`, both renderers) is
   still the dark void — a parchment world floating in darkness at cycle start.

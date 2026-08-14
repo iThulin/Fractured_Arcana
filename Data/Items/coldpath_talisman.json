@@ -1,0 +1,13 @@
+{
+  "id": "coldpath_talisman",
+  "name": "Coldpath Talisman",
+  "description": "The frost parts for old promises. -1 step cost crossing Tundra (never below 1).",
+  "rarity": "Uncommon",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "pathfinder",
+  "passiveValue": 1,
+  "goldValue": 90,
+  "passiveParam": "Tundra"
+}

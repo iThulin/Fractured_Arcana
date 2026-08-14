@@ -1,0 +1,14 @@
+{
+  "id": "relic_astrologer",
+  "name": "Mantle of the Borrowed Hour",
+  "description": "Woven from time the Astrologer never returned. Begin each combat with 6 shield.",
+  "rarity": "Legendary",
+  "slot": "Armor",
+  "unitClass": "Wizard",
+  "stats": {
+    "armor": 1
+  },
+  "passive": "StartCombatWithShield",
+  "passiveValue": 6,
+  "goldValue": 500
+}

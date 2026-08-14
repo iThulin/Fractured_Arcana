@@ -1,0 +1,12 @@
+{
+  "id": "archivists_ring",
+  "name": "Archivist's Ring",
+  "description": "The first citation is always free. Your first card each turn costs 2 less mana.",
+  "rarity": "Rare",
+  "slot": "Trinket",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "FirstCardCostReduction",
+  "passiveValue": 2,
+  "goldValue": 165
+}

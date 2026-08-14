@@ -27,7 +27,7 @@
   {
     "id": "abandoned_campsite",
     "title": "Abandoned Campsite",
-    "body": "You find the remnants of a campsite — ashes still warm, bedrolls scattered. Whoever was here left in a hurry. A pack lies open near the fire pit.",
+    "body": "You find the remnants of a campsite \u2014 ashes still warm, bedrolls scattered. Whoever was here left in a hurry. A pack lies open near the fire pit.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -42,7 +42,7 @@
         "hpDelta": 20
       },
       {
-        "label": "Move on — this doesn't feel right",
+        "label": "Move on \u2014 this doesn't feel right",
         "resultText": "Smart. You hear distant movement minutes later.",
         "stepDelta": 1
       }
@@ -51,12 +51,12 @@
   {
     "id": "fork_in_the_road",
     "title": "Fork in the Road",
-    "body": "The path splits. A weathered signpost points two directions — one toward sounds of distant conflict, one into deeper wilderness. A third path looks recently cleared.",
+    "body": "The path splits. A weathered signpost points two directions \u2014 one toward sounds of distant conflict, one into deeper wilderness. A third path looks recently cleared.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
       {
-        "label": "Toward the conflict — danger means opportunity",
+        "label": "Toward the conflict \u2014 danger means opportunity",
         "resultText": "You find the aftermath of a skirmish. Among the fallen, scattered coin.",
         "goldDelta": 35,
         "hpDelta": -10
@@ -94,7 +94,7 @@
         ]
       },
       {
-        "label": "Take only the letter — they'll have to fend for themselves",
+        "label": "Take only the letter \u2014 they'll have to fend for themselves",
         "resultText": "They watch you go without a word. The letter is heavier than it looked.",
         "goldDelta": 30,
         "setFlags": [
@@ -110,7 +110,7 @@
   {
     "id": "sealed_letter_delivery",
     "title": "The Addressee",
-    "body": "A waystone shrine marks the crossroads, its niche stacked with wax-stubs and older offerings. A robed keeper tends a low flame and watches you approach. This is the place named on the sealed letter's face — if you still carry it.",
+    "body": "A waystone shrine marks the crossroads, its niche stacked with wax-stubs and older offerings. A robed keeper tends a low flame and watches you approach. This is the place named on the sealed letter's face \u2014 if you still carry it.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -126,7 +126,7 @@
       },
       {
         "label": "Read the sigils warding the shrine",
-        "resultText": "The wards resolve under a trained eye — a scholar's shortcut. You note a cache the keeper never mentions.",
+        "resultText": "The wards resolve under a trained eye \u2014 a scholar's shortcut. You note a cache the keeper never mentions.",
         "goldDelta": 25,
         "stepDelta": 2,
         "requiredSchool": "Arcanist"
@@ -148,7 +148,7 @@
   {
     "id": "grateful_courier",
     "title": "A Familiar Face",
-    "body": "A courier slows on the road, squinting at your party as if placing a memory. 'You're the ones who carried word to the shrine,' she says — or maybe she's mistaken. She waits to see how you answer.",
+    "body": "A courier slows on the road, squinting at your party as if placing a memory. 'You're the ones who carried word to the shrine,' she says \u2014 or maybe she's mistaken. She waits to see how you answer.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -173,7 +173,7 @@
   {
     "id": "armory_cache",
     "title": "The Weaponsmith's Cache",
-    "body": "A collapsed forge-shrine, its bellows long cold. Wrapped in oilcloth beneath the anvil lies a blade that never took the rust — someone meant it to be found.",
+    "body": "A collapsed forge-shrine, its bellows long cold. Wrapped in oilcloth beneath the anvil lies a blade that never took the rust \u2014 someone meant it to be found.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -192,7 +192,7 @@
   {
     "id": "wilds_companion",
     "title": "A Debt Repaid",
-    "body": "A broad-shouldered figure steps from the treeline, hands open. Word of your deeds in these lands reached them before you did. 'You do right by strangers,' they say. 'Let me do right by you — I'll walk your road a while.'",
+    "body": "A broad-shouldered figure steps from the treeline, hands open. Word of your deeds in these lands reached them before you did. 'You do right by strangers,' they say. 'Let me do right by you \u2014 I'll walk your road a while.'",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -231,7 +231,7 @@
   {
     "id": "vault_inscription",
     "title": "The Vault Inscription",
-    "body": "A sealed vault door, its lock long fused — but the lintel above is dense with a script older than any kingdom. It tells of a concord that drowned itself rather than yield what it guarded.",
+    "body": "A sealed vault door, its lock long fused \u2014 but the lintel above is dense with a script older than any kingdom. It tells of a concord that drowned itself rather than yield what it guarded.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -275,7 +275,7 @@
   {
     "id": "primal_seek",
     "title": "The Storm on the Horizon",
-    "body": "Past the last ridge the sky is wrong — a wall of iron cloud that never moves, lightning frozen inside it mid-strike. The drowned archive named this place. If the rumour holds, the Primal Shard is in there.",
+    "body": "Past the last ridge the sky is wrong \u2014 a wall of iron cloud that never moves, lightning frozen inside it mid-strike. The drowned archive named this place. If the rumour holds, the Primal Shard is in there.",
     "terrainTags": [
       "Volcanic",
       "Coast",
@@ -285,14 +285,14 @@
     "choices": [
       {
         "label": "Chart a course into the tempest",
-        "resultText": "You map the eye of the storm and the paths that might survive it. The way is known now — the rest is nerve.",
+        "resultText": "You map the eye of the storm and the paths that might survive it. The way is known now \u2014 the rest is nerve.",
         "requiredFlag": "primal_rumor",
         "setMetaFlags": [
           "primal_location_known"
         ]
       },
       {
-        "label": "Turn back — the storm is death unprepared",
+        "label": "Turn back \u2014 the storm is death unprepared",
         "resultText": "Some doors you knock on twice.",
         "stepDelta": 1
       }
@@ -301,7 +301,7 @@
   {
     "id": "primal_trial",
     "title": "The Warden of Elements",
-    "body": "At the storm's threshold something waits — not a beast but a will, six elements braided into one guardian. It regards your party the way a furnace regards a moth. It will not simply let you pass.",
+    "body": "At the storm's threshold something waits \u2014 not a beast but a will, six elements braided into one guardian. It regards your party the way a furnace regards a moth. It will not simply let you pass.",
     "terrainTags": [
       "Volcanic",
       "ArcaneGround"
@@ -334,7 +334,7 @@
   {
     "id": "primal_recover",
     "title": "The Heart of the Storm",
-    "body": "In the eye, everything is still. The Primal Shard hangs in the silence — raw creation, fire that does not burn, lightning frozen mid-strike. One of the six pieces of the Sixfold Seal. It is yours to take, and to answer for.",
+    "body": "In the eye, everything is still. The Primal Shard hangs in the silence \u2014 raw creation, fire that does not burn, lightning frozen mid-strike. One of the six pieces of the Sixfold Seal. It is yours to take, and to answer for.",
     "terrainTags": [
       "Volcanic",
       "ArcaneGround"
@@ -353,9 +353,83 @@
         "spellReward": "fulminant_charge"
       },
       {
-        "label": "Leave it — the world is not ready",
+        "label": "Leave it \u2014 the world is not ready",
         "resultText": "You close the way behind you. The Shard waits in the stillness, patient as the storm.",
         "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "old_scouts_cairn",
+    "title": "The Old Scout's Cairn",
+    "body": "A stone cairn with a weathered tin box wedged in its base. Inside: trail notes in a dead scout's shorthand, half the marks worn away. Someone who knew the land wrote these.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "[Wayfarer's Map] Cross-reference the shorthand against your map",
+        "resultText": "The old marks and your map disagree in exactly the ways that matter. Three sites resolve out of the fog of guesswork.",
+        "requiredItem": "wayfarers_map",
+        "revealPois": 3
+      },
+      {
+        "label": "Puzzle out what you can",
+        "resultText": "Most of it is lost, but one mark is unmistakable.",
+        "revealPois": 1
+      },
+      {
+        "label": "Leave the dead their secrets",
+        "resultText": "You stack a stone on the cairn and move on.",
+        "goldDelta": 5
+      }
+    ]
+  },
+  {
+    "id": "captured_courier",
+    "title": "The Captured Courier",
+    "body": "A courier sits trussed beside a cold campfire, abandoned by whoever caught them. Their satchel is gone but their memory isn't. 'Cut me loose and I'll tell you what roads I've run.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "[Wren Holloway] Let Wren talk shop with a fellow traveler",
+        "resultText": "Wren trades road-gossip like currency. The courier's whole route spills out, landmark by landmark.",
+        "requiredCompanion": "wren_holloway",
+        "revealPois": 3
+      },
+      {
+        "label": "Pay for the route (25 gold)",
+        "resultText": "Coin loosens a careful tongue. Two waypoints, precisely described.",
+        "goldDelta": -25,
+        "revealPois": 2
+      },
+      {
+        "label": "Cut them loose and ask nothing",
+        "resultText": "They vanish down the road. Word of the kindness travels ahead of you.",
+        "hpDelta": 0
+      }
+    ]
+  },
+  {
+    "id": "signal_mirror_ridge",
+    "title": "Signal Mirrors on the Ridge",
+    "body": "Sun-flash from a ridgeline: an abandoned signal station, its bronze mirrors still true. From up here the land lays itself open \u2014 if you can work the old sight-lines.",
+    "terrainTags": [
+      "Mountain",
+      "Hills"
+    ],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Work the mirrors through the morning (2 steps)",
+        "resultText": "Flash by flash, the country answers. You mark what moves and what doesn't.",
+        "stepDelta": -2,
+        "revealPois": 2
+      },
+      {
+        "label": "Pry a mirror loose to sell",
+        "resultText": "The bronze alone is worth the climb.",
+        "goldDelta": 30
       }
     ]
   }

@@ -1,0 +1,14 @@
+{
+  "id": "hunters_longbow",
+  "name": "Hunter's Longbow",
+  "description": "A quiet extra stride of reach. +1 attack range.",
+  "rarity": "Uncommon",
+  "slot": "Weapon",
+  "unitClass": "Martial",
+  "stats": {
+    "attackRange": 1
+  },
+  "passive": "None",
+  "passiveValue": 0,
+  "goldValue": 100
+}

@@ -1,0 +1,15 @@
+{
+  "id": "healing_draught",
+  "name": "Healing Draught",
+  "description": "Bitter, warm, and immediate. Restore 8 HP.",
+  "rarity": "Common",
+  "slot": "Consumable",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "None",
+  "passiveValue": 0,
+  "consumeEffect": "heal",
+  "consumeValue": 8,
+  "goldValue": 45,
+  "consumeKind": "potion"
+}

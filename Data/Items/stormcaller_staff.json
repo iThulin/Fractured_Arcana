@@ -6,7 +6,8 @@
   "slot": "Weapon",
   "unitClass": "Wizard",
   "stats": {},
-  "passive": "StormSpellCostReduction",
+  "passive": "SchoolSpellCostReduction",
   "passiveValue": 1,
-  "goldValue": 90
+  "goldValue": 90,
+  "passiveParam": "Elementalist"
 }

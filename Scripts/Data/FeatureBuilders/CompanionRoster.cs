@@ -63,6 +63,7 @@ public static class CompanionRoster
                     BaseAttackDamage = template.BaseAttackDamage,
                     BaseAttackRange = template.BaseAttackRange,
                     BaseMana = template.BaseMana,
+                    SignatureStanceId = template.SignatureStanceId, // K4
                 });
             }
             else
@@ -83,6 +84,10 @@ public static class CompanionRoster
                     existing.BaseMana = template.BaseMana;
                 if (existing.BaseArmor == 0 && template.BaseArmor > 0)
                     existing.BaseArmor = template.BaseArmor;
+                // K4: backfill the signature override on saves that predate it.
+                if (string.IsNullOrEmpty(existing.SignatureStanceId) &&
+                    !string.IsNullOrEmpty(template.SignatureStanceId))
+                    existing.SignatureStanceId = template.SignatureStanceId;
             }
         }
     }

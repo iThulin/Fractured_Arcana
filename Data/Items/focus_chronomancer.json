@@ -1,0 +1,13 @@
+{
+  "id": "focus_chronomancer",
+  "name": "Pendulum Wand",
+  "description": "It swings to a beat one second ahead. Chronomancer spells deal +1 damage.",
+  "rarity": "Uncommon",
+  "slot": "Weapon",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "SchoolSpellDamage",
+  "passiveValue": 1,
+  "goldValue": 85,
+  "passiveParam": "Chronomancer"
+}

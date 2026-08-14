@@ -5,8 +5,11 @@
   "rarity": "Uncommon",
   "slot": "Weapon",
   "unitClass": "Martial",
-  "stats": { "attackDamage": 1 },
-  "passive": "AttackAppliesBleed",
+  "stats": {
+    "attackDamage": 1
+  },
+  "passive": "apply_bleed",
   "passiveValue": 1,
-  "goldValue": 90
+  "goldValue": 90,
+  "trigger": "onAttack"
 }

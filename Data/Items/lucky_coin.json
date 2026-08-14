@@ -1,0 +1,14 @@
+{
+  "id": "lucky_coin",
+  "name": "Lucky Coin",
+  "description": "Heads, again. +1 speed.",
+  "rarity": "Common",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {
+    "baseSpeed": 1
+  },
+  "passive": "None",
+  "passiveValue": 0,
+  "goldValue": 40
+}

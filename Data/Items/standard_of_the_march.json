@@ -1,0 +1,15 @@
+{
+  "id": "standard_of_the_march",
+  "name": "Standard of the March",
+  "description": "Feet keep time with it of their own accord. +2 max HP; allies within 1 tile recover 1 HP at the start of each of your turns.",
+  "rarity": "Rare",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {
+    "maxHP": 2
+  },
+  "passive": "regen_aura",
+  "passiveValue": 1,
+  "goldValue": 170,
+  "trigger": "aura"
+}

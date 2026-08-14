@@ -41,8 +41,10 @@ public sealed class CampusCompanionsPanel : CampusPanel
 
         var note = new Label
         {
-            Text = "Recruit companions to bring on expeditions. Active party members " +
-                           "contribute cards to your deck and tokens to negotiations.",
+            Text = "Manage your roster and pick the active party. Active party members " +
+                           "contribute cards to your deck and tokens to negotiations. " +
+                           "New people are found in the world — city hiring halls, rescues, " +
+                           "and the courts — not hired from home.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -117,9 +119,11 @@ public sealed class CampusCompanionsPanel : CampusPanel
             // K2 (§5b): the infirmary must be VISIBLE — injured companions
             // won't field, and the player learns that here, not from a
             // missing unit in the next fight.
+            // K3 (§5a): the campus storefront is retired — unrecruited people
+            // show as ABROAD (findable in the world), never as a price tag.
             string badge = c.IsInjured
                 ? $"  [INFIRMARY — {c.InjuredLunationsRemaining} lunation{(c.InjuredLunationsRemaining == 1 ? "" : "s")}]"
-                : c.IsRecruited ? (inParty ? "  [PARTY]" : "  [ROSTER]") : $"  [{c.RecruitmentCost}g]";
+                : c.IsRecruited ? (inParty ? "  [PARTY]" : "  [ROSTER]") : "  [ABROAD]";
 
             var nameLabel = new Label { Text = $"{c.Name}{badge}" };
             nameLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusNameFontSize);
@@ -144,10 +148,12 @@ public sealed class CampusCompanionsPanel : CampusPanel
 
             if (!c.IsRecruited)
             {
-                btn.Text = $"Recruit ({c.RecruitmentCost}g)";
-                btn.Disabled = save.Gold < c.RecruitmentCost;
-                // Spends gold → whole-screen refresh (see the class remarks).
-                btn.Pressed += () => { if (CompanionRoster.TryRecruit(capturedId)) Ctx.RequestRefreshAll?.Invoke(); };
+                // K3: campus-menu recruiting retired (v2.1 §2 — "the
+                // storefront dies"). They're out there: hiring halls carry
+                // them at a chance per lunation, and their encounters still
+                // grant them directly.
+                btn.Text = "Seek them abroad";
+                btn.Disabled = true;
             }
             else if (inParty)
             {

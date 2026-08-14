@@ -1,0 +1,12 @@
+{
+  "id": "wolfpack_glaive",
+  "name": "Wolfpack Glaive",
+  "description": "It hunts best on a strong scent. +3 attack damage while above half HP.",
+  "rarity": "Rare",
+  "slot": "Weapon",
+  "unitClass": "Martial",
+  "stats": {},
+  "passive": "BonusDamageAboveHalfHP",
+  "passiveValue": 3,
+  "goldValue": 155
+}

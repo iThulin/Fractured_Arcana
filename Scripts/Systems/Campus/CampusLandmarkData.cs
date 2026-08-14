@@ -339,7 +339,10 @@ public static class CampusLandmarkRegistry
                 Id = "infirmary",
                 DisplayName = "The Infirmary",
                 HexLabel = "IF",
-                Q = -1, R = 0,  // district campus (centre district)
+                Q = 3, R = -1,  // (2026-08-13 declump) martial district ring — the
+                                // infirmary belongs by the training yard (R24), and
+                                // the home flower was 7/7 full while two founding
+                                // districts sat near-empty.
                 RestoredFlag = "campus_infirmary_restored",
                 Beats = new List<LandmarkBeat>
                 {
@@ -603,7 +606,9 @@ public static class CampusLandmarkRegistry
                 Id = "library_wing",
                 DisplayName = "The Uncatalogued Wing",
                 HexLabel = "UW",
-                Q = -1, R = 1,  // district campus (centre district)
+                Q = -1, R = 3,  // (2026-08-13 declump) arcane district ring — the
+                                // Uncatalogued Wing beside the Observatory and the
+                                // Sanctum's plaza; see the infirmary note.
                 RestoredFlag = "campus_library_restored",
                 Beats = new List<LandmarkBeat>
                 {

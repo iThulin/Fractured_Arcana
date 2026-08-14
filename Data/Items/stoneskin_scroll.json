@@ -1,0 +1,15 @@
+{
+  "id": "stoneskin_scroll",
+  "name": "Stoneskin Scroll",
+  "description": "The mountain lends what it can spare. Gain 9 shield.",
+  "rarity": "Rare",
+  "slot": "Consumable",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "None",
+  "passiveValue": 0,
+  "consumeEffect": "shield",
+  "consumeValue": 9,
+  "goldValue": 145,
+  "consumeKind": "scroll"
+}

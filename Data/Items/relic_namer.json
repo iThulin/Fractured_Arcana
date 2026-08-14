@@ -1,0 +1,13 @@
+{
+  "id": "relic_namer",
+  "name": "The Name, Spoken Rightly",
+  "description": "The Namer's last working: a word that mends what hears it. Allies within 1 tile recover 2 HP at the start of each of your turns.",
+  "rarity": "Legendary",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "regen_aura",
+  "passiveValue": 2,
+  "trigger": "aura",
+  "goldValue": 500
+}

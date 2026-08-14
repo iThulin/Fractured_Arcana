@@ -1,0 +1,13 @@
+{
+  "id": "thrift_enchanter",
+  "name": "Contract of Small Words",
+  "description": "The fine print favors the bearer. Enchanter cards cost 1 less mana.",
+  "rarity": "Rare",
+  "slot": "Trinket",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "SchoolSpellCostReduction",
+  "passiveValue": 1,
+  "goldValue": 160,
+  "passiveParam": "Enchanter"
+}

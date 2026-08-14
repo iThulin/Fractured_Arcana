@@ -1,0 +1,15 @@
+{
+  "id": "relic_conductor",
+  "name": "The Conductor's Cadence",
+  "description": "The baton keeps a beat that flesh obeys. Attacks apply bleed, and strike 2 harder.",
+  "rarity": "Legendary",
+  "slot": "Weapon",
+  "unitClass": "Martial",
+  "stats": {
+    "attackDamage": 2
+  },
+  "passive": "apply_bleed",
+  "passiveValue": 1,
+  "trigger": "onAttack",
+  "goldValue": 500
+}

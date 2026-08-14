@@ -28,7 +28,10 @@ public partial class NarrativeEncounterPanel : Control
     private ScrollContainer _bodyScroll;
     private Label _bodyLabel;
     private VBoxContainer _choiceContainer;
-    private Panel _resultPanel;
+    // (2026-08-13) PanelContainer, not Panel: the old fixed-110px Panel with a
+    // full-rect label let long result texts overflow onto the Continue row —
+    // a container grows with its content instead.
+    private PanelContainer _resultPanel;
     private Label _resultLabel;
     private Button _continueButton;
 
@@ -37,6 +40,8 @@ public partial class NarrativeEncounterPanel : Control
 
     // Gating context supplied by the caller (ExpeditionManager) at show-time.
     private System.Func<string, bool> _hasFlag;
+    private System.Func<string, bool> _hasItem;       // T3: Armory ownership gate
+    private System.Func<string, bool> _hasCompanion;  // T3: active-party gate
     private string _activeSchool = "";
     private int _currentGold;
 
@@ -150,7 +155,7 @@ public partial class NarrativeEncounterPanel : Control
         layout.AddChild(_choiceContainer);
 
         // Result panel (shown after choice)
-        _resultPanel = new Panel { Visible = false };
+        _resultPanel = new PanelContainer { Visible = false };
         var resultStyle = new StyleBoxFlat
         {
             BgColor = UITheme.NarrativeResultBg,
@@ -169,13 +174,11 @@ public partial class NarrativeEncounterPanel : Control
             ContentMarginBottom = UITheme.PaddingNormal + 2,
         };
         _resultPanel.AddThemeStyleboxOverride("panel", resultStyle);
-        _resultPanel.CustomMinimumSize = new Vector2(0, 110);
+        _resultPanel.CustomMinimumSize = new Vector2(0, 110);   // floor, not ceiling
         layout.AddChild(_resultPanel);
 
         _resultLabel = new Label
         {
-            AnchorRight = 1f,
-            AnchorBottom = 1f,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         _resultLabel.AddThemeFontSizeOverride("font_size", UITheme.NarrativeResultFontSize);
@@ -204,8 +207,12 @@ public partial class NarrativeEncounterPanel : Control
                               System.Func<string, bool> hasFlag = null,
                               string activeSchool = null,
                               int currentGold = 0,
-                              CampaignState campaign = null)
+                              CampaignState campaign = null,
+                              System.Func<string, bool> hasItem = null,
+                              System.Func<string, bool> hasCompanion = null)
     {
+        _hasItem = hasItem;
+        _hasCompanion = hasCompanion;
         _encounter = encounter;
         _chosenResult = null;
         _hasFlag = hasFlag;
@@ -238,6 +245,15 @@ public partial class NarrativeEncounterPanel : Control
             // remembers the earlier choice. Omit entirely when unmet.
             if (!string.IsNullOrEmpty(choice.RequiredFlag) &&
                 (_hasFlag == null || !_hasFlag(choice.RequiredFlag)))
+                continue;
+
+            // Tranche 3 (2026-08-13): item/companion gates, same omit-when-unmet
+            // convention as flags — the door only exists for those holding the key.
+            if (!string.IsNullOrEmpty(choice.RequiredItem) &&
+                (_hasItem == null || !_hasItem(choice.RequiredItem)))
+                continue;
+            if (!string.IsNullOrEmpty(choice.RequiredCompanion) &&
+                (_hasCompanion == null || !_hasCompanion(choice.RequiredCompanion)))
                 continue;
 
             // RequiredSchool — option exists only for the matching school.

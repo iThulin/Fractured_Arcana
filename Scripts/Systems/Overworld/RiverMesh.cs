@@ -40,23 +40,40 @@ public static class RiverMesh
 {
     /// <summary>Build the world's rivers as one mesh. <paramref name="width"/> is
     /// the base ribbon width in world units; colour runs body at the waterline to
-    /// bank at the edges.</summary>
+    /// bank at the edges. (Flat variant — callers supply pre-lifted heights.)</summary>
     public static ArrayMesh Build(List<(Vector3 center, List<Vector3> mids)> tiles,
                                   float width, Color body, Color bank)
     {
+        var grounded = new List<(Vector3, List<Vector3>, System.Func<Vector3, float>)>(tiles.Count);
+        foreach (var (c, m) in tiles)
+            grounded.Add((c, m, null));
+        return Build(grounded, width, body, bank, 0f, 1f);
+    }
+
+    /// <summary>Ground-following variant (welded-terrain stage 2): each tile may
+    /// carry a ground sampler; every ribbon vertex is re-heighted to
+    /// ground(p) + lift, so strokes LIE ON the actual terrain surface instead of
+    /// lerping between endpoint heights (the source of the clipping the user
+    /// reported). <paramref name="meanderScale"/> scales the winding amplitude —
+    /// roads use a small value; they are drawn with this builder too so they
+    /// follow the ground the same way.</summary>
+    public static ArrayMesh Build(List<(Vector3 center, List<Vector3> mids, System.Func<Vector3, float> ground)> tiles,
+                                  float width, Color body, Color bank, float lift, float meanderScale)
+    {
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
-        foreach (var (center, mids) in tiles)
+        foreach (var (center, mids, ground) in tiles)
         {
             if (mids.Count == 2)
             {
-                Ribbon(st, Path(mids[0], center, mids[1], 14), width, body, bank, taperStart: false);
+                Ribbon(st, Path(mids[0], center, mids[1], 14, meanderScale), width, body, bank,
+                       taperStart: false, ground, lift);
             }
             else
             {
                 foreach (var m in mids)
-                    Ribbon(st, Path(center, (center + m) * 0.5f, m, 8), width, body, bank,
-                           taperStart: mids.Count == 1);
+                    Ribbon(st, Path(center, (center + m) * 0.5f, m, 8, meanderScale), width, body, bank,
+                           taperStart: mids.Count == 1, ground, lift);
             }
         }
         return st.Commit();
@@ -64,10 +81,10 @@ public static class RiverMesh
 
     /// <summary>Sample a quadratic Bézier a→b (control c) and add the meander:
     /// perpendicular offset, deterministic from the endpoints' world position.</summary>
-    private static List<Vector3> Path(Vector3 a, Vector3 c, Vector3 b, int segs)
+    private static List<Vector3> Path(Vector3 a, Vector3 c, Vector3 b, int segs, float meanderScale)
     {
         uint h = HashV(a + b);
-        float amp = 0.10f + F01(h) * 0.12f;
+        float amp = (0.10f + F01(h) * 0.12f) * meanderScale;
         float freq = 0.8f + F01(h * 2654435761u) * 0.5f;
         float ph = F01(h ^ 0x9E3779B9u);
         float ph2 = F01(h * 40503u);
@@ -92,7 +109,8 @@ public static class RiverMesh
     /// <summary>Triangulate a path into a flat ribbon: bank / waterline / bank
     /// cross-sections, width breathing gently along the run.</summary>
     private static void Ribbon(SurfaceTool st, List<Vector3> pts, float width,
-                               Color body, Color bank, bool taperStart)
+                               Color body, Color bank, bool taperStart,
+                               System.Func<Vector3, float> ground = null, float lift = 0f)
     {
         int n = pts.Count;
         if (n < 2) return;
@@ -116,6 +134,14 @@ public static class RiverMesh
             left[k] = pts[k] - nor * (w * 0.5f);
             mid[k] = pts[k];
             right[k] = pts[k] + nor * (w * 0.5f);
+            if (ground != null)
+            {
+                // Ground-following: every vertex re-heighted to the actual
+                // terrain surface — banks included, so cross-slopes can't clip.
+                left[k].Y = ground(left[k]) + lift;
+                mid[k].Y = ground(mid[k]) + lift;
+                right[k].Y = ground(right[k]) + lift;
+            }
         }
         for (int k = 0; k + 1 < n; k++)
         {

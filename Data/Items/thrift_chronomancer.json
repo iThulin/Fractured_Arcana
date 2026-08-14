@@ -1,0 +1,13 @@
+{
+  "id": "thrift_chronomancer",
+  "name": "The Borrowed Minute",
+  "description": "Paid back somewhere you will never notice. Chronomancer cards cost 1 less mana.",
+  "rarity": "Rare",
+  "slot": "Trinket",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "SchoolSpellCostReduction",
+  "passiveValue": 1,
+  "goldValue": 160,
+  "passiveParam": "Chronomancer"
+}

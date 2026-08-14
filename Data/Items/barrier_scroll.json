@@ -1,0 +1,15 @@
+{
+  "id": "barrier_scroll",
+  "name": "Barrier Scroll",
+  "description": "Read aloud, it stands where you do. Gain 5 shield.",
+  "rarity": "Uncommon",
+  "slot": "Consumable",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "None",
+  "passiveValue": 0,
+  "consumeEffect": "shield",
+  "consumeValue": 5,
+  "goldValue": 80,
+  "consumeKind": "scroll"
+}

@@ -241,6 +241,9 @@ public class WorldWindowBuilder
         PoiKind.Seat => OverworldHex.POIType.Outpost,
         PoiKind.Settlement => OverworldHex.POIType.Outpost,
         PoiKind.Prison => OverworldHex.POIType.Prison,
+        // K3: rescue POIs present as Narrative sites in-window; the manager
+        // detects the world-side kind at trigger time and routes to a rescue.
+        PoiKind.Companion => OverworldHex.POIType.Narrative,
         // v1.1: caches render in-window as a green crate landmark. Sieges and
         // overseers still live on the strategic map; walking onto one is
         // reconnaissance (discovery + a report), not an encounter.

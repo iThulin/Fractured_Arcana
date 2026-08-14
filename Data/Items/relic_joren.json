@@ -1,0 +1,15 @@
+{
+  "id": "relic_joren",
+  "name": "Emberheart of the Vessel",
+  "description": "What burned in Joren burns on. Fire spells deal +2 damage.",
+  "rarity": "Legendary",
+  "slot": "Weapon",
+  "unitClass": "Wizard",
+  "stats": {
+    "spellDamage": 1
+  },
+  "passive": "SchoolSpellDamage",
+  "passiveValue": 2,
+  "goldValue": 500,
+  "passiveParam": "Elementalist"
+}

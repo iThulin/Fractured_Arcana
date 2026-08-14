@@ -489,9 +489,9 @@ public static class CouncilTick
         }
         court.HasContact = true;
 
-        // Match-quality roll, shifted by envoy fitness. School-vs-archmage
-        // modifiers wait on ArchmageDefinition exposing a school field.
-        int roll = (int)(GD.Randi() % 100) + 15 * FitnessMod(envoy);
+        // Match-quality roll, shifted by the K5 fitness vector (standing +
+        // arc + trait-vs-archetype + school-vs-archmage).
+        int roll = (int)(GD.Randi() % 100) + 15 * FitnessMod(envoy, court, target);
         int delta;
         string verdict;
         if (roll < 20)
@@ -559,8 +559,9 @@ public static class CouncilTick
         }
 
         // Secret discovery roll (the mission's second lunation of work).
+        // K5: no specific counterpart — the archetype term sits this one out.
         CourtierState secretHolder = null;
-        int roll = (int)(GD.Randi() % 100) + 15 * FitnessMod(envoy);
+        int roll = (int)(GD.Randi() % 100) + 15 * FitnessMod(envoy, court);
         bool secretFound = roll >= 25; // 75% base
         if (secretFound)
         {
@@ -616,7 +617,8 @@ public static class CouncilTick
         // the target: Influence -1 (weight at court, floor 1). Failure rebounds +1
         // (ceiling 3) as the smear is traced back — the doc's "Influence +/-1".
         // Exposure rises +2 on a clean job, +3 when fingers point at the guild.
-        int roll = (int)(GD.Randi() % 100) + 15 * FitnessMod(envoy);
+        // K5: full vector — the smear's target IS the counterpart being read.
+        int roll = (int)(GD.Randi() % 100) + 15 * FitnessMod(envoy, court, target);
         bool success = roll >= 40;
 
         int delta = success ? -1 : +1;
@@ -915,12 +917,54 @@ public static class CouncilTick
         });
     }
 
-    /// <summary>Envoy fitness modifier. C2: completed arc only. School-vs-
-    /// archmage terms join when ArchmageDefinition exposes a school; the
-    /// archetype-matchup term joins when the negotiation token mapping is
-    /// shared or promoted to companion data (§2a).</summary>
-    private static int FitnessMod(Companion envoy)
-        => (envoy != null && envoy.ArcStage >= 4) ? 1 : 0;
+    /// <summary>K5 envoy fitness vector (companion_item_systems v2.1 §6),
+    /// replacing the C2 arc-only stub. Four terms, each read from state the
+    /// player already develops — no second track:
+    ///   standing (loyalty): Wary −2 ("they are not yours"), Sworn +1
+    ///   experience: completed arc (ArcStage 4) +1 — people with history perform
+    ///   archetype matchup: trait vs the TARGET courtier (CourtVocab table), ±1
+    ///   school: envoy school == the court's archmage school, +1
+    /// Sum clamped to [−3, +3]; callers multiply by 15 on a d100, so a Wary
+    /// mismatched envoy swings −45 and a Sworn matched veteran +45. K5
+    /// STARTING VALUES. <paramref name="target"/> null where the mission has
+    /// no specific counterpart (e.g. the secret sweep).</summary>
+    private static int FitnessMod(Companion envoy, CourtState court = null,
+        CourtierState target = null)
+    {
+        if (envoy == null) return 0;
+        int mod = 0;
+
+        // Standing (loyalty tier)
+        switch (envoy.GetLoyaltyTier())
+        {
+            case LoyaltyTier.Wary: mod -= 2; break;
+            case LoyaltyTier.Sworn: mod += 1; break;
+        }
+
+        // Experience (completed arc — the old stub, preserved as one term)
+        if (envoy.ArcStage >= 4) mod += 1;
+
+        // Archetype matchup (trait vs the specific counterpart)
+        if (target != null)
+            mod += CourtVocab.TraitArchetypeAffinity(
+                envoy.PersonalityTrait, target.Archetype);
+
+        // School (envoy school vs the court's archmage school)
+        if (court != null && !string.IsNullOrEmpty(envoy.School) && envoy.School != "None")
+        {
+            var cycle = SaveManager.ActiveSave?.Cycle;
+            if (cycle != null &&
+                cycle.Kingdoms.TryGetValue(court.KingdomId, out var ks) &&
+                !string.IsNullOrEmpty(ks.TemplateRegionId))
+            {
+                string amId = cycle.Campaign?.GetArchmageForRegion(ks.TemplateRegionId);
+                var am = string.IsNullOrEmpty(amId) ? null : ArchmageRegistry.Get(amId);
+                if (am != null && am.School == envoy.School) mod += 1;
+            }
+        }
+
+        return Mathf.Clamp(mod, -3, 3);
+    }
 
     public static string CourtDisplayName(CycleState cycle, string kingdomId)
     {

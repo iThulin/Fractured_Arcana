@@ -31,6 +31,8 @@ public enum CampusPanelId
     // The Atlas (9) and Window (10) prototype tabs were removed once their 3D renderers
     // moved into the real strategic scene and expedition overlay. Neither was routed from
     // a campus building, so dropping them shifts nothing else.
+    /// <summary>Q5: the Enchanter's Workshop — item enchanting + Cleanse.</summary>
+    Workshop = 9,
 }
 
 /// <summary>What activating a campus location does. Two shapes, because the campus systems
@@ -101,6 +103,7 @@ public static class CampusLocationRegistry
         "records"    => CampusDestination.ToPanel(CampusPanelId.Records),
         "quests"     => CampusDestination.ToPanel(CampusPanelId.Quests),
         "council"    => CampusDestination.ToPanel(CampusPanelId.Council),
+        "workshop"   => CampusDestination.ToPanel(CampusPanelId.Workshop),
         // Scene destinations. These are the campus systems that were never tabs — they
         // are reached today only as buttons on the Guild tab, which is exactly the
         // arrangement the diegetic campus replaces: the Arcane Library IS the card

@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 using System.Text.Json;
 
 // ============================================================
@@ -65,6 +66,13 @@ public static class CompanionInjurySystem
         GD.Print($"[Injury] Wipe rolls — {context} (territory tier {territoryTier}" +
                  $"{(bossContext ? ", BOSS" : "")}, base death {baseChance}%).");
 
+        // K4 ordering: deltas and ripples apply AFTER every roll is made —
+        // a mid-loop ripple could push a not-yet-rolled Sworn companion
+        // below the threshold and strip their death-chance armor. Everyone
+        // rolls against the loyalty they walked in with.
+        var died = new List<Companion>();
+        var survived = new List<Companion>();
+
         foreach (var id in save.ActivePartyCompanionIds)
         {
             var c = save.Companions.Find(x => x.Id == id && x.IsRecruited && !x.IsPermadead);
@@ -80,9 +88,9 @@ public static class CompanionInjurySystem
             {
                 c.IsPermadead = true;
                 GD.Print($"[Injury] {c.Name} DIES (rolled {roll} < {chance}%" +
-                         $"{(c.GetLoyaltyTier() == LoyaltyTier.Sworn ? ", Sworn −10 applied" : "")}). " +
-                         "Ripple + signature destruction land with K4's loyalty hooks.");
+                         $"{(c.GetLoyaltyTier() == LoyaltyTier.Sworn ? ", Sworn −10 applied" : "")}).");
                 summary.Append($" {c.Name} is DEAD.");
+                died.Add(c);
             }
             else
             {
@@ -91,8 +99,20 @@ public static class CompanionInjurySystem
                 GD.Print($"[Injury] {c.Name} injured — {c.InjuredLunationsRemaining} lunation(s) " +
                          $"in the infirmary (death roll {roll} ≥ {chance}%).");
                 summary.Append($" {c.Name} injured — {c.InjuredLunationsRemaining} lunation(s).");
+                survived.Add(c);
             }
         }
+
+        // K4: surviving the wipe still costs — the run died and they carried
+        // it home. Then the v1 morale ripple lands at last: each death moves
+        // the whole living roster (Sworn dampened). Signature destruction is
+        // automatic — signatures are derived (StanceRegistry.EligibleSignature)
+        // and the dead never spawn.
+        foreach (var c in survived)
+            LoyaltyEvents.OnWipeSurvived(c);
+        foreach (var c in died)
+            LoyaltyEvents.OnDeathRipple(save, c);
+
         return summary.ToString().Trim();
     }
 

@@ -21,11 +21,10 @@ using System.Linq;
 //                 CombatUI.cs (SetObjectiveText)
 // See:            docs/combat_objectives_spec_v1.md
 //
-// Scope of this build: O1 (waves) + O2 (survive).
-//   protect  (O3) — ward spawn/flags/exclusions: NOT YET.
-//   hold_zone(O4) — zone build/render/breaches: NOT YET.
-// Both are rejected loudly by EncounterPoolLoader, so a not-yet-built
-// kind can never silently degrade into an ordinary kill-fight.
+// Scope: O1 (waves) + O2 (survive) + O4 (hold_zone, 2026-08-11 gate
+// defense) + O3 (protect, 2026-08-13). All four kinds implemented —
+// the O-track substrate is COMPLETE; the finale's Fracture and
+// Restoration Threshold (convergence spec v1.1) are unblocked.
 // ============================================================
 
 public partial class CombatManager
@@ -65,6 +64,11 @@ public partial class CombatManager
     /// change) so it lands as soon as grid + renderer both exist.</summary>
     private bool _objectiveZoneShown;
 
+    // ── protect (O3) state ───────────────────────────────────────────────
+    /// <summary>The protect objective's ward, spawned player-side in
+    /// SpawnTestUnits. Null on every other kind. Its death is the defeat.</summary>
+    private Unit _wardUnit;
+
     private bool ObjectiveWavesPending => _pendingWaves != null && _pendingWaves.Count > 0;
 
     // ── Init ─────────────────────────────────────────────────────────────
@@ -83,6 +87,7 @@ public partial class CombatManager
         _objectiveZone = null;
         _breaches = 0;
         _objectiveZoneShown = false;
+        _wardUnit = null;   // O3
         _zoneRenderer?.ClearObjectiveZone();
 
         if (def == null)
@@ -131,6 +136,70 @@ public partial class CombatManager
             GD.Print($"[Objective] Armed: kind={kindLabel}, rounds={roundsLabel}, " +
                      $"waves={_pendingWaves.Count}.");
         }
+    }
+
+    // ── protect (O3): ward spawn + death ─────────────────────────────────
+
+    /// <summary>Spawns the protect objective's ward player-side, after the
+    /// party (SpawnTestUnits tail). Stats from UnitRegistry; 0 speed, 0 AP —
+    /// it takes damage and benefits from shields/heals/auras normally, but
+    /// never acts. Protecting it with the existing toolkit IS the mission.
+    /// Registry-miss falls back loudly to a plain 20-HP ward rather than
+    /// degrading the objective (UnitRegistry.Get already returns a fallback
+    /// def and prints).</summary>
+    private void SpawnObjectiveWard()
+    {
+        if (_objective == null || _objective.Kind != CombatObjectiveDef.KindProtect)
+            return;
+        if (string.IsNullOrEmpty(_objective.WardUnitId))
+        {
+            GD.PrintErr("[Objective] protect objective with no WardUnitId — " +
+                        "running as annihilate.");
+            _objective = null;
+            return;
+        }
+
+        var def = UnitRegistry.Get(_objective.WardUnitId);
+        var ward = SpawnUnitFromSide(HexGridManager.SpawnSide.Player, PlayerUnitScene,
+            teamId: 0, isPlayerControlled: true,
+            namePrefix: "Ward",
+            maxHealth: def.MaxHealth, health: def.MaxHealth,
+            baseSpeed: 0, maxMana: 0, mana: 0,
+            armor: def.Armor, shield: 0);
+        if (ward == null)
+        {
+            GD.PrintErr("[Objective] Ward spawn failed (no slot) — protect degrades " +
+                        "to annihilate rather than an unwinnable fight.");
+            _objective = null;
+            return;
+        }
+
+        ward.IsObjectiveWard = true;
+        ward.IsMartial = false;
+        ward.DisplayName = string.IsNullOrEmpty(def.ThreatLabel)
+            ? "The Ward" : def.ThreatLabel;
+        ward.MaxActionPoints = 0;
+        ward.CurrentActionPoints = 0;
+        ward.MoveRange = 0;
+        _wardUnit = ward;
+        playerUnits.Add(ward);
+
+        GD.Print($"[Objective] Ward '{ward.DisplayName}' fielded " +
+                 $"({def.MaxHealth} HP, {def.Armor} armor). Its death is the defeat.");
+        combatUI?.AppendActionLog($"── Protect {ward.DisplayName}. ──");
+    }
+
+    /// <summary>Called from HandleUnitDeath right after QueueDeathTriggers —
+    /// corpse tile still valid, trigger order intact. Declaration still flows
+    /// through CheckCombatEnd (the latch), so trigger-settle deferral and the
+    /// emit-once guard hold.</summary>
+    private void NoteObjectiveUnitDeath(Unit unit)
+    {
+        if (_wardUnit == null || unit != _wardUnit)
+            return;
+        _objectiveDefeat = true;
+        GD.Print("[Objective] The ward has fallen — objective failed.");
+        combatUI?.AppendActionLog("── The ward falls. The field is lost. ──");
     }
 
     // ── The round boundary ───────────────────────────────────────────────

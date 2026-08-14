@@ -1,0 +1,13 @@
+{
+  "id": "focus_enchanter",
+  "name": "The Gilded Syllable",
+  "description": "A word made object, worn smooth by saying. Enchanter spells deal +1 damage.",
+  "rarity": "Uncommon",
+  "slot": "Weapon",
+  "unitClass": "Wizard",
+  "stats": {},
+  "passive": "SchoolSpellDamage",
+  "passiveValue": 1,
+  "goldValue": 85,
+  "passiveParam": "Enchanter"
+}
