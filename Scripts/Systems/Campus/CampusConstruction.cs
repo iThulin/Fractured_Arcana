@@ -114,6 +114,12 @@ public static class CampusConstruction
             buildingSave.CurrentIntegrity = buildingSave.MaxIntegrity; // fresh build starts at full HP
         buildingSave.Tier = nextTier;
 
+        // Campus-persistent effects recompute on every purchase (2026-08-13):
+        // the city-view upgrade path must apply party-size growth etc.
+        // immediately, not on the next campus visit. Pure recompute — safe
+        // from any caller.
+        BuildingEffectApplier.ApplyCampusEffects(save);
+
         SaveManager.Save();
         GD.Print($"[Construction] {buildingSave.Name} tier {nextTier}. " +
                  $"Gold: {save.Gold}, Materials: {save.BuildMaterials}");

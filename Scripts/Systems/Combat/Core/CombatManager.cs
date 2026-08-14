@@ -258,6 +258,8 @@ public partial class CombatManager : Node3D
         {
             combatUI.ConfirmDeploymentPressed += OnConfirmDeploymentPressed;
             combatUI.EndTurnPressed += OnEndTurnPressed;
+            combatUI.ScrollsPressed += OnScrollsPressed;             // consumables (2026-08-13)
+            combatUI.UseConsumablePressed += OnUseConsumablePressed;
             combatUI.StanceSwitchRequested += OnStanceSwitchRequested;   // 2026-07-29 stance switcher
             combatUI.PriorityPassPressed += OnPriorityPassPressed;   // U3 trigger window
             combatUI.PriorityRespondPressed += OnPriorityRespondPressed;   // §7c Respond affordance
@@ -1332,11 +1334,145 @@ public partial class CombatManager : Node3D
     // Unit selection / movement
     // ═══════════════════════════════════════════════════════════════════════
 
+    // ── Consumables (2026-08-13 — v1's "actives are scrolls") ────────────
+
+    /// <summary>The Scrolls button: list the Armory's consumables, grouped by
+    /// definition with counts, plus the gate note explaining why a pick might
+    /// refuse (wrong phase / no unit / already used this turn).</summary>
+    private void OnScrollsPressed()
+    {
+        var save = SaveManager.ActiveSave;
+        var entries = new List<CombatUI.ConsumableEntry>();
+
+        if (save != null)
+        {
+            // Group by definition: one row per kind, consuming one instance.
+            var byDef = new Dictionary<string, (ItemInstance first, int count)>();
+            foreach (var inst in save.Armory.OwnedItems)
+            {
+                var d = ItemDatabase.Get(inst.DefinitionId);
+                if (d == null || !d.IsConsumable)
+                    continue;
+                if (byDef.TryGetValue(inst.DefinitionId, out var cur))
+                    byDef[inst.DefinitionId] = (cur.first, cur.count + 1);
+                else
+                    byDef[inst.DefinitionId] = (inst, 1);
+            }
+            // Potions first, then scrolls — two sections in one list, each
+            // row carrying its kind tag so the two rules read at a glance.
+            var ordered = new List<(string defId, ItemInstance first, int count, bool scroll)>();
+            foreach (var kv in byDef)
+            {
+                var d = ItemDatabase.Get(kv.Key);
+                ordered.Add((kv.Key, kv.Value.first, kv.Value.count, d.ConsumeKind == "scroll"));
+            }
+            ordered.Sort((a, b) => a.scroll == b.scroll ? string.CompareOrdinal(a.defId, b.defId)
+                                                        : a.scroll ? 1 : -1);
+            foreach (var (defId, first, count, scroll) in ordered)
+            {
+                var d = ItemDatabase.Get(defId);
+                string tag = scroll ? "[Scroll]" : "[Potion]";
+                string label = $"{tag} {d.Name}{(count > 1 ? $" ×{count}" : "")} — {d.Description}";
+                entries.Add(new CombatUI.ConsumableEntry(first.InstanceId, label));
+            }
+        }
+
+        string note =
+            currentPhase != CombatPhase.PlayerTurn ? "Consumables can only be used on your turn." :
+            selectedUnit == null ? "Select a unit first." :
+            selectedUnit.IsObjectiveWard
+                ? $"Target: {selectedUnit.DisplayName} — it cannot drink; scrolls only." +
+                  (_scrollReadThisTurn ? " The party's scroll is spent this turn." : "")
+                : $"Target: {selectedUnit.DisplayName}. Potions: " +
+                  (selectedUnit.HasUsedConsumableThisTurn ? "already drunk this turn." : "available.") +
+                  $" Scroll: {(_scrollReadThisTurn ? "spent this turn." : "one per turn, party-wide.")}";
+        combatUI.ShowConsumableList(entries, note);
+    }
+
+    /// <summary>One scroll per PLAYER TURN, party-wide. Reset in StartPlayerTurn.</summary>
+    private bool _scrollReadThisTurn;
+
+    /// <summary>Apply a consumable to the selected unit. All gates re-checked
+    /// at use (the popup can outlive the state it was opened in). Two kinds,
+    /// two rules: potions are the unit's turn resource (drinker-only, ward
+    /// can't drink); scrolls are the party's (one per player turn, stack
+    /// with a potion, CAN target the ward).</summary>
+    private void OnUseConsumablePressed(string instanceId)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null || currentPhase != CombatPhase.PlayerTurn)
+            return;
+        var unit = selectedUnit;
+        if (unit == null || !unit.IsPlayerControlled || !unit.Stats.IsAlive)
+            return;
+
+        ItemInstance inst = null;
+        foreach (var i in save.Armory.OwnedItems)
+            if (i.InstanceId == instanceId) { inst = i; break; }
+        if (inst == null)
+            return;   // consumed by another pick since the popup opened
+        var def = ItemDatabase.Get(inst.DefinitionId);
+        if (def == null || !def.IsConsumable)
+            return;
+
+        bool isScroll = def.ConsumeKind == "scroll";
+        if (isScroll)
+        {
+            if (_scrollReadThisTurn)
+                return;   // the party's one reading is spent
+        }
+        else
+        {
+            // Potion gates: the drinker's own turn slot; objects don't drink.
+            if (unit.IsObjectiveWard || unit.HasUsedConsumableThisTurn)
+                return;
+        }
+
+        string line;
+        switch (def.ConsumeEffect)
+        {
+            case "heal":
+                int before = unit.Stats.Health;
+                unit.Stats.Health = Mathf.Min(unit.Stats.MaxHealth,
+                                              unit.Stats.Health + def.ConsumeValue);
+                line = $"{unit.DisplayName} drinks the {def.Name} — restores {unit.Stats.Health - before} HP.";
+                break;
+            case "shield":
+                unit.Stats.Shield += def.ConsumeValue;
+                line = $"{unit.DisplayName} reads the {def.Name} — gains {def.ConsumeValue} shield.";
+                break;
+            case "mana":
+                unit.Stats.Mana = Mathf.Min(unit.Stats.MaxMana,
+                                            unit.Stats.Mana + def.ConsumeValue);
+                line = $"{unit.DisplayName} drinks the {def.Name} — mana restored.";
+                break;
+            case "ap":
+                unit.CurrentActionPoints += def.ConsumeValue;
+                line = $"{unit.DisplayName} drinks the {def.Name} — +{def.ConsumeValue} action points.";
+                break;
+            default:
+                GD.PrintErr($"[Consumable] Unknown effect '{def.ConsumeEffect}' on {def.Id}.");
+                return;
+        }
+
+        if (isScroll) _scrollReadThisTurn = true;
+        else unit.HasUsedConsumableThisTurn = true;
+        save.Armory.RemoveItem(inst.InstanceId);
+        SaveManager.MarkDirty();
+        unit.RefreshHealthBar();
+        combatUI?.AppendActionLog(line);
+        GD.Print($"[Consumable] {line}");
+        combatUI?.CloseConsumableList();
+        RefreshPlayerUnitBar();
+    }
+
     private void SelectUnit(Unit unit)
     {
-        // O3: the ward is player-side but not commandable — 0 AP, 0 move;
-        // selecting it would only dead-end the input state.
-        if (unit == null || !unit.IsPlayerControlled || unit.IsObjectiveWard)
+        // O3 + consumables (2026-08-13): the ward IS selectable now — a
+        // scroll's shield needs a way to land on it, and its detailed HP bar
+        // is protect-mission information. It remains un-commandable by
+        // construction (0 AP, 0 move, no deck) and off the unit bar.
+        if (unit == null || !unit.IsPlayerControlled)
             return;
 
         // Collapse previous selection's bar
@@ -2085,6 +2221,7 @@ public partial class CombatManager : Node3D
     private void StartPlayerTurn()
     {
         State.EnemyPhaseContext = false;   // Time Bank: reaction costs revert to pure mana
+        _scrollReadThisTurn = false;       // consumables: one scroll per player turn, party-wide
 
         // Reset extra-turn flag and per-round tracking
         if (!_isExtraTurn)

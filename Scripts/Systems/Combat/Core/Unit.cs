@@ -503,6 +503,10 @@ public partial class Unit : Node3D
     /// dead defeat scan (a board with only the ward standing is a Defeat).
     /// Its death latches objective defeat (CombatManager.Objectives).</summary>
     public bool IsObjectiveWard = false;
+
+    /// <summary>Consumables (2026-08-13): one scroll/draught per unit per
+    /// turn. Reset in StartTurn.</summary>
+    public bool HasUsedConsumableThisTurn = false;
     public int SummonerTeamId = -1;
     public bool OnDeathMemorial = false;
     public bool CreateMemorialOnKill = false;
@@ -618,6 +622,7 @@ public partial class Unit : Node3D
         Stats.HasActed = false;
         Stats.HasPlayedCardThisTurn = false;   // (2026-08-05) was never cleared — see the field
         HasAttackedThisTurn = false;
+        HasUsedConsumableThisTurn = false;     // consumables: one per unit per turn
         TilesMovedThisTurn = 0;
         Stats.MovePoints = Stats.BaseSpeed;
         Stats.BonusMoveRange = 0;   // movespeed grants last one turn

@@ -1,0 +1,15 @@
+{
+  "id": "quickening_draught",
+  "name": "Quickening Draught",
+  "description": "The next three heartbeats arrive at once. Gain 2 action points.",
+  "rarity": "Rare",
+  "slot": "Consumable",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "None",
+  "passiveValue": 0,
+  "consumeEffect": "ap",
+  "consumeValue": 2,
+  "goldValue": 160,
+  "consumeKind": "potion"
+}

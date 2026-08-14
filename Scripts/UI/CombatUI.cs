@@ -48,6 +48,9 @@ public partial class CombatUI : CanvasLayer
 	// ── Signals ──────────────────────────────────────────────────────────
 	[Signal] public delegate void ConfirmDeploymentPressedEventHandler();
 	[Signal] public delegate void EndTurnPressedEventHandler();
+	// Consumables (2026-08-13): the Scrolls button + a pick from its popup.
+	[Signal] public delegate void ScrollsPressedEventHandler();
+	[Signal] public delegate void UseConsumablePressedEventHandler(string instanceId);
 	[Signal] public delegate void UnitButtonPressedEventHandler(int unitIndex);
 	[Signal] public delegate void EnemyButtonPressedEventHandler(int unitIndex);
 	/// <summary>U3: the player surrenders priority during an enemy-trigger window.</summary>
@@ -95,6 +98,8 @@ public partial class CombatUI : CanvasLayer
 	private Button _deckButton;
 	private Button _graveButton;
 	private Button _endTurnButton;
+	private Button _scrollsButton;           // consumables (2026-08-13)
+	private PanelContainer _consumablePopup; // built on demand, freed on close
 	private Button _confirmDeploymentButton;
 
 	// Pending selected unit state for when ShowSelectedUnit arrives before BuildUI
@@ -481,6 +486,20 @@ public partial class CombatUI : CanvasLayer
 		_confirmDeploymentButton.Pressed += () => EmitSignal(SignalName.ConfirmDeploymentPressed);
 		block.AddChild(_confirmDeploymentButton);
 
+		// Consumables (2026-08-13): the scroll satchel, beside End Turn —
+		// combat is the only place actives fire (v1: "actives are scrolls").
+		_scrollsButton = new Button
+		{
+			Name = "ScrollsButton",
+			Text = "Scrolls",
+			TooltipText = "Use a consumable on the selected unit (one per unit per turn)",
+			CustomMinimumSize = new Vector2(110, 48),
+		};
+		_scrollsButton.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+		UITheme.ApplyButtonStyle(_scrollsButton, isPrimary: false);
+		_scrollsButton.Pressed += () => EmitSignal(SignalName.ScrollsPressed);
+		block.AddChild(_scrollsButton);
+
 		_endTurnButton = new Button
 		{
 			Name = "EndTurnButton",
@@ -762,6 +781,86 @@ public partial class CombatUI : CanvasLayer
 	// auto-passes and the panel's own toggles are unreachable). All instances
 	// write the same PlayerSession flags and stay mirrored via SyncStopToggles.
 	private readonly List<(CheckBox cb, System.Func<bool> read)> _stopToggles = new();
+
+	// ── Consumables (2026-08-13): the scroll satchel popup ────────────────
+
+	/// <summary>One row of the satchel: definition-grouped with a count.</summary>
+	public readonly struct ConsumableEntry
+	{
+		public readonly string InstanceId;   // one instance to consume on pick
+		public readonly string Label;        // "Healing Draught ×3 — restore 8 HP"
+		public ConsumableEntry(string instanceId, string label)
+		{ InstanceId = instanceId; Label = label; }
+	}
+
+	/// <summary>Show (or replace) the satchel popup above the Scrolls button.
+	/// Empty list shows the empty line. Manager owns eligibility — this only
+	/// renders what it is handed and reports the pick.</summary>
+	public void ShowConsumableList(List<ConsumableEntry> entries, string gateNote)
+	{
+		CloseConsumableList();
+
+		_consumablePopup = new PanelContainer
+		{
+			Name = "ConsumablePopup",
+			AnchorLeft = 1f, AnchorTop = 1f, AnchorRight = 1f, AnchorBottom = 1f,
+			GrowHorizontal = Control.GrowDirection.Begin,
+			GrowVertical = Control.GrowDirection.Begin,
+			OffsetLeft = -360, OffsetRight = -12, OffsetBottom = -110,
+		};
+		_consumablePopup.AddThemeStyleboxOverride("panel",
+			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
+		AddChild(_consumablePopup);
+
+		var margins = new MarginContainer();
+		margins.AddThemeConstantOverride("margin_left", 10);
+		margins.AddThemeConstantOverride("margin_right", 10);
+		margins.AddThemeConstantOverride("margin_top", 8);
+		margins.AddThemeConstantOverride("margin_bottom", 8);
+		_consumablePopup.AddChild(margins);
+
+		var vbox = new VBoxContainer();
+		vbox.AddThemeConstantOverride("separation", 6);
+		margins.AddChild(vbox);
+
+		var head = new HBoxContainer();
+		vbox.AddChild(head);
+		var title = MakeLabel("Scroll Satchel", UITheme.FontSizeSmall, UITheme.Gold);
+		title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		head.AddChild(title);
+		var close = new Button { Text = "✕" };
+		close.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+		close.Pressed += CloseConsumableList;
+		head.AddChild(close);
+
+		if (!string.IsNullOrEmpty(gateNote))
+			vbox.AddChild(MakeLabel(gateNote, UITheme.FontSizeSmall - 1, UITheme.TextDim));
+
+		if (entries == null || entries.Count == 0)
+			vbox.AddChild(MakeLabel("The satchel is empty.", UITheme.FontSizeSmall - 1, UITheme.TextDim));
+		else
+		{
+			foreach (var e in entries)
+			{
+				var btn = new Button
+				{
+					Text = e.Label,
+					SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+				};
+				btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
+				UITheme.ApplyButtonStyle(btn, isPrimary: false);
+				string captured = e.InstanceId;
+				btn.Pressed += () => EmitSignal(SignalName.UseConsumablePressed, captured);
+				vbox.AddChild(btn);
+			}
+		}
+	}
+
+	public void CloseConsumableList()
+	{
+		_consumablePopup?.QueueFree();
+		_consumablePopup = null;
+	}
 
 	/// <summary>Adds the standard "stop: Strikes/Abilities/Items" toggle set.</summary>
 	private void AddStopToggleSet(HBoxContainer parent)

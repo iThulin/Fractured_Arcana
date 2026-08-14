@@ -1,0 +1,15 @@
+{
+  "id": "soldiers_ration",
+  "name": "Soldier's Ration",
+  "description": "Hard bread, harder cheese, and the will to continue. Restore 5 HP.",
+  "rarity": "Common",
+  "slot": "Consumable",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "None",
+  "passiveValue": 0,
+  "consumeEffect": "heal",
+  "consumeValue": 5,
+  "goldValue": 30,
+  "consumeKind": "potion"
+}

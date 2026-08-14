@@ -1,0 +1,15 @@
+{
+  "id": "clarity_philter",
+  "name": "Clarity Philter",
+  "description": "Tastes like cold morning air. Restore 2 mana.",
+  "rarity": "Common",
+  "slot": "Consumable",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "None",
+  "passiveValue": 0,
+  "consumeEffect": "mana",
+  "consumeValue": 2,
+  "goldValue": 50,
+  "consumeKind": "potion"
+}

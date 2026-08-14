@@ -1,0 +1,15 @@
+{
+  "id": "mana_philter",
+  "name": "Mana Philter",
+  "description": "Moonlight, bottled and argued into staying. Restore 4 mana.",
+  "rarity": "Uncommon",
+  "slot": "Consumable",
+  "unitClass": "Any",
+  "stats": {},
+  "passive": "None",
+  "passiveValue": 0,
+  "consumeEffect": "mana",
+  "consumeValue": 4,
+  "goldValue": 95,
+  "consumeKind": "potion"
+}

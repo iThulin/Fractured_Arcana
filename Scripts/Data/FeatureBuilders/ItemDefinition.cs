@@ -128,6 +128,26 @@ public class ItemDefinition
 
     // ── Economy ───────────────────────────────────────────────────────────
     public int GoldValue = 50;   // base sell/buy price
+
+    // ── Consumables (2026-08-13 — v1's "actives are scrolls", finally built) ──
+    // Slot = "Consumable": unequippable BY CONSTRUCTION (Equip's
+    // EquipmentSlot enum parse fails), so nothing in the loadout pipeline
+    // ever sees one. Used from the combat Scrolls button; consuming removes
+    // the instance from the Armory. One consumable per unit per turn.
+    /// <summary>"heal" | "shield" | "mana" | "ap". "" = not a consumable.</summary>
+    public string ConsumeEffect = "";
+    public int ConsumeValue = 0;
+
+    /// <summary>"potion" (default) | "scroll" — two RULES, not two flavors:
+    /// a potion is the UNIT's resource (drunk by the selected unit, one per
+    /// unit per turn, body effects, the ward cannot drink); a scroll is the
+    /// PARTY's resource (an arcane reading, one per player turn total,
+    /// stacks with a potion on the same unit, and CAN target the ward —
+    /// the protect-mission tool).</summary>
+    public string ConsumeKind = "potion";
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsConsumable => !string.IsNullOrEmpty(ConsumeEffect);
 }
 
 /// <summary>Q2: a triggered ability an item grants its wearer. Carried on the

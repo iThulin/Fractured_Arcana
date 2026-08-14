@@ -73,9 +73,21 @@ public sealed partial class CityServicesHost : CanvasLayer
         margins.AddThemeConstantOverride("margin_bottom", 14);
         card.AddChild(margins);
 
-        var vbox = new VBoxContainer();
+        // (2026-08-13, Magos) The live Market + Hiring Hall outgrew the
+        // screen — the section stack scrolls now (construct-card pattern).
+        var scroll = new ScrollContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+        };
+        margins.AddChild(scroll);
+
+        var vbox = new VBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
         vbox.AddThemeConstantOverride("separation", 12);
-        margins.AddChild(vbox);
+        scroll.AddChild(vbox);
 
         // Header: city name + close.
         var header = new HBoxContainer { CustomMinimumSize = new Vector2(0, 44) };

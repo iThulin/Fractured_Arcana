@@ -99,8 +99,9 @@ public static class BuildingEffectApplier
     {
         if (save == null) return;
 
-        // Reset to default before recomputing
+        // Reset to defaults before recomputing
         save.MinDeckSize = 5;
+        save.MaxPartySize = 2;   // §4a baseline; growth is bought below
 
         foreach (var buildingSave in save.Buildings)
         {
@@ -119,6 +120,9 @@ public static class BuildingEffectApplier
                 {
                     save.MinDeckSize = Math.Max(3, save.MinDeckSize - 2);
                 }
+
+                // (2026-08-13) Party-size growth via campus — §4a's lever.
+                save.MaxPartySize += tier.PartySizeBonus;
             }
         }
     }

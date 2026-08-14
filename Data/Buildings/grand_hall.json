@@ -1,23 +1,50 @@
 {
-    "id": "grand_hall",
-    "name": "The Grand Hall",
-    "description": "The heart of the campus, and the one room the Stillness never reached all the way into. The guild's name is cut over the door; the roll of every cycle you have spent is kept inside.",
-    "category": "Core",
-    "schoolAffinity": "",
-    "isFoundational": true,
-    "hostsSystem": "guild",
-    "startsBuiltAt": { "q": 0, "r": 0 },
-    "footprint": [
-        { "q": 0, "r": 0 }
-    ],
-    "maxTier": 1,
-    "tiers": [
-        {
-            "tier": 1,
-            "description": "The hall stands. Guild identity, school of study, and the record of your cycles.",
-            "goldCost": 0,
-            "materialsCost": 0,
-            "requiredBuildings": []
-        }
-    ]
+  "id": "grand_hall",
+  "name": "The Grand Hall",
+  "description": "The heart of the campus, and the one room the Stillness never reached all the way into. The guild's name is cut over the door; the roll of every cycle you have spent is kept inside.",
+  "category": "Core",
+  "schoolAffinity": "",
+  "isFoundational": true,
+  "hostsSystem": "guild",
+  "startsBuiltAt": {
+    "q": 0,
+    "r": 0
+  },
+  "footprint": [
+    {
+      "q": 0,
+      "r": 0
+    }
+  ],
+  "maxTier": 3,
+  "tiers": [
+    {
+      "tier": 1,
+      "description": "The hall stands. Guild identity, school of study, and the record of your cycles.",
+      "goldCost": 0,
+      "materialsCost": 0,
+      "requiredBuildings": [],
+      "displayName": "The Grand Hall"
+    },
+    {
+      "tier": 2,
+      "displayName": "The Great Hall",
+      "goldCost": 300,
+      "description": "The hall doubles its long tables and its ambitions. The active party grows to three.",
+      "requiredBuildings": [],
+      "passiveEffects": [],
+      "activeEffects": [],
+      "partySizeBonus": 1
+    },
+    {
+      "tier": 3,
+      "displayName": "Seat of the Guild",
+      "goldCost": 700,
+      "description": "Banners, a dais, and room for every voice. The active party grows to four.",
+      "requiredBuildings": [],
+      "passiveEffects": [],
+      "activeEffects": [],
+      "partySizeBonus": 1
+    }
+  ]
 }

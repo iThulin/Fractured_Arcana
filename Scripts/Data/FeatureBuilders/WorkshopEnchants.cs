@@ -116,6 +116,9 @@ public static class WorkshopEnchants
     public static List<EnchantDef> AvailableFor(ItemInstance item, int workshopTier)
     {
         if (item == null || item.EnchantSealed) return new List<EnchantDef>();
+        // Consumables have no enchant slot — the "Any" slot lines must not
+        // offer themselves to a potion.
+        if (item.Slot == "Consumable") return new List<EnchantDef>();
         return Catalog
             .Where(e => e.MinTier <= workshopTier
                         && (e.AllowedSlot == "Any" || e.AllowedSlot == item.Slot))
@@ -178,6 +181,10 @@ public static class WorkshopEnchants
     public static ItemInstance MaybeBlight(ItemInstance item, RandomNumberGenerator rng)
     {
         if (item == null || rng.RandiRange(1, 100) > BlightChancePct) return item;
+        // Consumables never blight — a one-use item has no slot to seal and
+        // no worn drawback to carry; a "Blighted Draught" is a different
+        // design (poison mechanics) this deliberately isn't.
+        if (item.Slot == "Consumable") return item;
 
         var (key, value, _) = Drawbacks[rng.RandiRange(0, Drawbacks.Length - 1)];
         item.DrawbackKey = key;

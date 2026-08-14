@@ -28,7 +28,10 @@ public partial class NarrativeEncounterPanel : Control
     private ScrollContainer _bodyScroll;
     private Label _bodyLabel;
     private VBoxContainer _choiceContainer;
-    private Panel _resultPanel;
+    // (2026-08-13) PanelContainer, not Panel: the old fixed-110px Panel with a
+    // full-rect label let long result texts overflow onto the Continue row —
+    // a container grows with its content instead.
+    private PanelContainer _resultPanel;
     private Label _resultLabel;
     private Button _continueButton;
 
@@ -152,7 +155,7 @@ public partial class NarrativeEncounterPanel : Control
         layout.AddChild(_choiceContainer);
 
         // Result panel (shown after choice)
-        _resultPanel = new Panel { Visible = false };
+        _resultPanel = new PanelContainer { Visible = false };
         var resultStyle = new StyleBoxFlat
         {
             BgColor = UITheme.NarrativeResultBg,
@@ -171,13 +174,11 @@ public partial class NarrativeEncounterPanel : Control
             ContentMarginBottom = UITheme.PaddingNormal + 2,
         };
         _resultPanel.AddThemeStyleboxOverride("panel", resultStyle);
-        _resultPanel.CustomMinimumSize = new Vector2(0, 110);
+        _resultPanel.CustomMinimumSize = new Vector2(0, 110);   // floor, not ceiling
         layout.AddChild(_resultPanel);
 
         _resultLabel = new Label
         {
-            AnchorRight = 1f,
-            AnchorBottom = 1f,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         _resultLabel.AddThemeFontSizeOverride("font_size", UITheme.NarrativeResultFontSize);

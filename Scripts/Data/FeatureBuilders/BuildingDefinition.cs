@@ -136,6 +136,12 @@ public class BuildingTier
     [System.Text.Json.Serialization.JsonIgnore]
     public int EffectiveMaterialsCost => MaterialsCost >= 0 ? MaterialsCost : GoldCost * 3;
 
+    /// <summary>(2026-08-13) Campus-persistent party-size growth — the §4a
+    /// "party-size growth via campus" lever, finally given a home (the Grand
+    /// Hall's tiers). Accumulated across built tiers by
+    /// BuildingEffectApplier.ApplyCampusEffects onto CycleState.MaxPartySize.</summary>
+    public int PartySizeBonus = 0;
+
     public List<string> RequiredBuildings = new();  // other building ids required
 
     // ── Effects ──────────────────────────────────────────────────────────

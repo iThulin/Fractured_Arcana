@@ -32,9 +32,16 @@ public static class CompanionDossier
     public static Control Build(Companion c, string actionText = null,
         bool actionEnabled = true, System.Action onAction = null)
     {
+        // Authored companions (named souls with arcs — anyone not minted by
+        // the procedural matrix, whose ids all carry the "hire_" prefix)
+        // read APART in any list: gold border, star, and a tell line. The
+        // emotional backbone should never look like stock (2026-08-13).
+        bool authored = !c.Id.StartsWith("hire_");
+
         var card = new PanelContainer();
         card.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(
-            UITheme.CompanionCardBg, UITheme.CompanionCardBorderInactive));
+            UITheme.CompanionCardBg,
+            authored ? UITheme.Gold : UITheme.CompanionCardBorderInactive));
 
         var pad = new MarginContainer();
         pad.AddThemeConstantOverride("margin_left", 12);
@@ -48,10 +55,18 @@ public static class CompanionDossier
         pad.AddChild(col);
 
         // ── Header: name + the identity line ────────────────────────────
-        var name = new Label { Text = c.Name };
+        var name = new Label { Text = authored ? $"✦ {c.Name}" : c.Name };
         name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         name.AddThemeColorOverride("font_color", UITheme.Gold);
         col.AddChild(name);
+
+        if (authored)
+        {
+            var tell = new Label { Text = "A named soul — their story travels with them." };
+            tell.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            tell.AddThemeColorOverride("font_color", UITheme.Gold);
+            col.AddChild(tell);
+        }
 
         string schoolBit = (c.School != "None" && !string.IsNullOrEmpty(c.School))
             ? $" · {c.School}" : "";

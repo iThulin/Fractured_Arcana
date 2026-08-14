@@ -87,6 +87,26 @@ public static class CityMarketService
         int slots = city.IsSeat ? SeatStock : CityStock;
         int totalWeight = RarityWeights.Sum(w => w.weight);
 
+        // Consumables (2026-08-13): every shop reliably carries sundries —
+        // one guaranteed draught/scroll slot (two at seats), Common-leaning,
+        // on TOP of the gear slots so potions never crowd out equipment.
+        // (Note: existing saves show potions only after the NEXT lunation
+        // refresh — stock is lazy-persisted per lunation by design.)
+        var sundries = all.Where(d => d.IsConsumable
+                                      && !market.StockItemIds.Contains(d.Id)).ToList();
+        int sundrySlots = city.IsSeat ? 2 : 1;
+        for (int i = 0; i < sundrySlots && sundries.Count > 0; i++)
+        {
+            // Common 60 / Uncommon 30 / Rare 10 within the sundry slot.
+            int sr = rng.RandiRange(1, 100);
+            string want = sr <= 60 ? "Common" : sr <= 90 ? "Uncommon" : "Rare";
+            var band = sundries.Where(d => d.Rarity == want).ToList();
+            if (band.Count == 0) band = sundries;
+            var pick = band[rng.RandiRange(0, band.Count - 1)];
+            market.StockItemIds.Add(pick.Id);
+            sundries.Remove(pick);
+        }
+
         for (int i = 0; i < slots; i++)
         {
             // Pick a rarity band, then a uniform item inside it. A band with

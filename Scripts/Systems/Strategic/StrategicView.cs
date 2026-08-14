@@ -512,12 +512,16 @@ public partial class StrategicView : Node2D
             // strip (2026-08-13: the city view's upgrade path; previously
             // these buildings were mute).
             ShowFloatingPanel(null, buildingId);
+            _atlas3D?.FocusHomeBuilding(coord);
             return;
         }
         if (dest.Panel.HasValue)
         {
             if (HomeBuildingPanelHost.CanFloat(dest.Panel.Value))
+            {
                 ShowFloatingPanel(dest.Panel.Value, buildingId);
+                _atlas3D?.FocusHomeBuilding(coord);   // the showcase swoop (2026-08-13)
+            }
             else
                 ShowCampusOverlay(dest.Panel.Value);   // lifecycle-heavy panel: full overlay for now
         }
@@ -531,11 +535,20 @@ public partial class StrategicView : Node2D
     /// building's menu open in place. One panel at a time.</summary>
     private void ShowFloatingPanel(CampusPanelId? panel, string buildingId)
     {
-        if (_floatingPanel != null) return;
-        // The world stays drawn, but its camera must not steer behind the panel's input catcher.
-        if (_atlas3D != null) _atlas3D.AcceptInput = false;
+        // (2026-08-13) Panel SWAP: picking another building replaces the open
+        // card instead of being swallowed. Atlas input stays ENABLED — the
+        // host's catcher now covers only the card, so grounds clicks (and the
+        // camera) work beside it; that's the point.
+        if (_floatingPanel != null)
+        {
+            var old = _floatingPanel;
+            _floatingPanel = null;   // null first: Close() fires HideFloatingPanel
+            old.Close();
+        }
         string title = BuildingDatabase.GetTemplate(buildingId)?.Name ?? "";
-        _floatingPanel = HomeBuildingPanelHost.Create(this, panel, title, HideFloatingPanel, buildingId);
+        _floatingPanel = HomeBuildingPanelHost.Create(this, panel, title, HideFloatingPanel,
+            buildingId, enc => ShowFloatedPanelNarrative(enc),
+            onBuildingChanged: () => _atlas3D?.RefreshCityGrowth());
         AddChild(_floatingPanel);
     }
 
@@ -546,14 +559,37 @@ public partial class StrategicView : Node2D
     {
         if (_floatingPanel == null) return;
         _floatingPanel = null;
-        if (_atlas3D != null) _atlas3D.AcceptInput = true;
-        // Deliberately does NOT leave city view — the panel closes back into the city.
+        // Atlas input was never disabled for floated panels (2026-08-13 swap
+        // behavior) — nothing to re-enable. Deliberately does NOT leave city
+        // view — the panel closes back into the city, pulling the camera
+        // back up from the building-focus swoop.
+        _atlas3D?.UnfocusHomeBuilding();
     }
 
-    /// <summary>A landmark hex in city view was clicked. Landmarks aren't routed to a
-    /// destination yet (their restoration beats live inside the campus systems), and city
-    /// view already shows the grounds, so this is a no-op for now.</summary>
-    private void OnHomeLandmarkPicked(string landmarkId, Vector2I coord) { }
+    /// <summary>A landmark hex in city view was clicked (2026-08-13: no longer
+    /// a no-op). Landmark restoration beats are PURE narrative (verified: no
+    /// LaunchGuardian/ResolutionKind in CampusLandmarkData), so the
+    /// session-one floated-narrative host carries them completely — beat
+    /// shows over the live city, outcome through the shared applier, flags
+    /// advance the ruined → active → restored chain. A fully restored
+    /// landmark toasts instead of opening nothing.</summary>
+    private void OnHomeLandmarkPicked(string landmarkId, Vector2I coord)
+    {
+        var lm = CampusLandmarkRegistry.Get(landmarkId);
+        var save = SaveManager.ActiveSave;
+        if (lm == null || save == null) return;
+
+        var enc = lm.GetEncounter(save.HasFlag);
+        if (enc == null)
+        {
+            EnsureCityExploreToasts();
+            _cityExploreToasts?.Push($"{lm.DisplayName} — restored.", QuestToastKind.Complete);
+            return;
+        }
+        // Restoration advances change the grounds themselves (ruined → active
+        // → restored stamps) — rebuild the 3D grounds after the beat applies.
+        ShowFloatedPanelNarrative(enc, onApplied: () => _atlas3D?.RefreshCityGrowth());
+    }
 
     // ── Construction from the city view (2026-08-13) ─────────────────────
 
@@ -566,6 +602,14 @@ public partial class StrategicView : Node2D
     private void OnHomeGroundPicked(Vector2I coord)
     {
         if (_constructCard != null) return;
+        // Swap symmetry: clicking bare ground while a building panel floats
+        // closes the panel and opens the construct card in its place.
+        if (_floatingPanel != null)
+        {
+            var old = _floatingPanel;
+            _floatingPanel = null;
+            old.Close();
+        }
         var save = SaveManager.ActiveSave;
         if (save == null) return;
 
@@ -872,27 +916,94 @@ public partial class StrategicView : Node2D
     {
         if (_cityNarrativePanel != null) _cityNarrativePanel.Visible = false;
         if (_atlas3D != null) _atlas3D.AcceptInput = true;
-
-        var save = SaveManager.ActiveSave;
-        if (choice != null && save != null)
-        {
-            if (choice.GoldDelta != 0)
-                save.Gold = Mathf.Max(0, save.Gold + choice.GoldDelta);
-
-            if (enc != null && !string.IsNullOrEmpty(enc.Id)
-                && !save.CompletedEvents.Contains(enc.Id))
-                save.CompletedEvents.Add(enc.Id);
-
-            if (choice.SetFlags != null)
-                foreach (var flag in choice.SetFlags)
-                    if (!string.IsNullOrEmpty(flag)) save.SetFlag(flag);
-
-            if (choice.SetMetaFlags != null && save.Ledger != null)
-                foreach (var flag in choice.SetMetaFlags)
-                    if (!string.IsNullOrEmpty(flag) && !save.Ledger.MetaNarrativeFlags.Contains(flag))
-                        save.Ledger.MetaNarrativeFlags.Add(flag);
-        }
+        ApplyNarrativeOutcome(enc, choice);
         ClearDistrict(entry);
+    }
+
+    /// <summary>The non-expedition narrative outcome, shared by city district
+    /// events and floated campus panels (2026-08-13 CampusScreen extraction,
+    /// session one). Mirrors CampusScreen.OnCampusNarrativeCompleted's save
+    /// mutations — including the item/companion/reputation/lore/arc verbs the
+    /// city path had deferred. HP/steps don't apply off-expedition;
+    /// ResolutionKind/LaunchGuardian encounters must NOT route here (the
+    /// Council panel stays on the campus overlay until session two).</summary>
+    private void ApplyNarrativeOutcome(NarrativeEncounterData enc, EncounterChoice choice)
+    {
+        var save = SaveManager.ActiveSave;
+        if (choice == null || save == null) return;
+
+        if (choice.GoldDelta != 0)
+            save.Gold = Mathf.Max(0, save.Gold + choice.GoldDelta);
+
+        if (enc != null && !string.IsNullOrEmpty(enc.Id)
+            && !save.CompletedEvents.Contains(enc.Id))
+            save.CompletedEvents.Add(enc.Id);
+
+        if (choice.SetFlags != null)
+            foreach (var flag in choice.SetFlags)
+                if (!string.IsNullOrEmpty(flag)) save.SetFlag(flag);
+
+        if (choice.SetMetaFlags != null && save.Ledger != null)
+            foreach (var flag in choice.SetMetaFlags)
+                if (!string.IsNullOrEmpty(flag) && !save.Ledger.MetaNarrativeFlags.Contains(flag))
+                    save.Ledger.MetaNarrativeFlags.Add(flag);
+
+        if (!string.IsNullOrEmpty(choice.ItemReward))
+        {
+            var idef = ItemDatabase.Get(choice.ItemReward);
+            if (idef != null) save.Armory.AddItem(idef);
+        }
+
+        if (!string.IsNullOrEmpty(choice.CompanionUnlock))
+            CompanionRoster.GrantFromEncounter(choice.CompanionUnlock);
+
+        if (!string.IsNullOrEmpty(choice.ReputationFactionId) && choice.ReputationAmount != 0)
+        {
+            save.FactionReputation.TryGetValue(choice.ReputationFactionId, out int cur);
+            save.FactionReputation[choice.ReputationFactionId] = cur + choice.ReputationAmount;
+        }
+
+        if (!string.IsNullOrEmpty(choice.LoreId) &&
+            !save.UnlockedLoreEntries.Contains(choice.LoreId))
+            save.UnlockedLoreEntries.Add(choice.LoreId);
+
+        var arcStatus = CompanionArcTracker.TryCompleteByEncounter(enc?.Id, save);
+        if (arcStatus != null)
+        {
+            EnsureCityExploreToasts();
+            _cityExploreToasts?.Push(arcStatus.IsComplete
+                ? $"{arcStatus.CompanionName} — \"{arcStatus.ArcName}\" complete."
+                : $"{arcStatus.CompanionName} — \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
+                QuestToastKind.Progress);
+        }
+
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+    }
+
+    /// <summary>Session-one extraction: a floated campus panel's narrative
+    /// (today: the Quests panel) hosts on the city narrative layer, outcome
+    /// through the shared applier, then the panel refreshes.</summary>
+    private void ShowFloatedPanelNarrative(NarrativeEncounterData enc,
+        System.Action onApplied = null)
+    {
+        var save = SaveManager.ActiveSave;
+        if (enc == null || save == null) return;
+        EnsureCityNarrativePanel();
+        if (_atlas3D != null) _atlas3D.AcceptInput = false;
+        _cityNarrativePanel.Visible = true;
+        _cityNarrativePanel.ShowEncounter(enc, save.HasFlag,
+            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign,
+            hasItem: id => save.Armory.OwnedItems.Exists(i => i.DefinitionId == id),
+            hasCompanion: id => CompanionRoster.GetActiveParty().Exists(c => c.Id == id));
+        _cityNarrativePanel.OnCompleted = choice =>
+        {
+            if (_cityNarrativePanel != null) _cityNarrativePanel.Visible = false;
+            if (_atlas3D != null) _atlas3D.AcceptInput = true;
+            ApplyNarrativeOutcome(enc, choice);
+            _floatingPanel?.RefreshHostedPanel();
+            onApplied?.Invoke();
+        };
     }
 
     /// <summary>Mark a district's content consumed, refresh the atlas markers, and persist.</summary>

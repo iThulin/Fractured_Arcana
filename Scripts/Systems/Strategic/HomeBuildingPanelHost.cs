@@ -59,7 +59,8 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             or CampusPanelId.Armory
             or CampusPanelId.Training
             or CampusPanelId.Records
-            or CampusPanelId.Workshop => true,
+            or CampusPanelId.Workshop
+            or CampusPanelId.Quests => true,   // session-one extraction (2026-08-13)
         _ => false,
     };
 
@@ -69,7 +70,9 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
     /// <see cref="CampusContext.Host"/>; <paramref name="onClosed"/> runs when the player
     /// closes the panel.</summary>
     public static HomeBuildingPanelHost Create(Node panelHost, CampusPanelId? id, string title,
-        Action onClosed, string buildingId = "")
+        Action onClosed, string buildingId = "",
+        Action<NarrativeEncounterData> showNarrative = null,
+        Action onBuildingChanged = null)
     {
         if (id.HasValue && !CanFloat(id.Value))
             throw new ArgumentOutOfRangeException(nameof(id), id, "panel is not floatable — guard with CanFloat");
@@ -82,28 +85,39 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             _buildingId = buildingId ?? "",
             _panelHost = panelHost,
             _onClosed = onClosed,
+            _showNarrative = showNarrative,
+            _onBuildingChanged = onBuildingChanged,
         };
     }
+
+    private Action<NarrativeEncounterData> _showNarrative;
+
+    /// <summary>Fired after a tier purchase so the host can re-stamp visuals
+    /// (the 3D grounds' building meshes are tier-keyed).</summary>
+    private Action _onBuildingChanged;
+
+    /// <summary>Refresh the hosted panel from outside — e.g. after a floated
+    /// narrative resolves (the host applied the outcome; the panel re-reads).</summary>
+    public void RefreshHostedPanel() => _panel?.Refresh();
 
     public override void _Ready() => CallDeferred(nameof(BuildOverlay));
 
     private void BuildOverlay()
     {
-        // Full-rect input catcher: the world stays VISIBLE, but clicks off the card must not
-        // fall through to the hex grid / camera behind it. MouseFilter.Stop is load-bearing —
-        // the same lesson as CampusScreen._dimBackdrop. The card is a CHILD of the catcher, so
-        // the panel's own buttons still receive events (children are hit-tested first).
-        var catcher = new Control { Name = "InputCatcher" };
-        catcher.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        catcher.MouseFilter = Control.MouseFilterEnum.Stop;
-        AddChild(catcher);
-
-        // Right-docked card, full height, CardWidth wide.
-        var card = new PanelContainer { Name = "PanelCard" };
+        // (2026-08-13, Magos request) The catcher is the CARD, not the screen:
+        // clicks beside the card reach the atlas, so picking another building
+        // SWAPS the panel instead of requiring close-then-click. The card
+        // itself still stops input (PanelContainer + explicit filter), so
+        // nothing leaks through the panel body to the grid behind it.
+        var card = new PanelContainer
+        {
+            Name = "PanelCard",
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
         card.SetAnchorsPreset(Control.LayoutPreset.RightWide);
         card.OffsetLeft = -CardWidth;
         card.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = UITheme.BgBase });
-        catcher.AddChild(card);
+        AddChild(card);
 
         var margins = new MarginContainer();
         margins.AddThemeConstantOverride("margin_left", 16);
@@ -183,7 +197,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         var ctx = new CampusContext(
             host: _panelHost,
             toasts: toasts,
-            showNarrative: _ => { },
+            showNarrative: enc => _showNarrative?.Invoke(enc),   // session one: real host
             requestRefreshAll: () => _panel?.Refresh(),
             refreshGold: () => { },
             enterStrategicMap: Close,
@@ -241,6 +255,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         {
             RefreshUpgradeStrip();
             _panel?.Refresh();   // tier-gated panel content (e.g. Workshop verbs) updates live
+            _onBuildingChanged?.Invoke();   // tier-keyed mesh re-stamps (2026-08-13)
         }
     }
 
@@ -264,6 +279,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         CampusPanelId.Training   => new CampusTrainingPanel(),
         CampusPanelId.Records    => new CampusRecordsPanel(),
         CampusPanelId.Workshop   => new CampusWorkshopPanel(),
+        CampusPanelId.Quests     => new CampusQuestsPanel(),
         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "not a floatable panel"),
     };
 }

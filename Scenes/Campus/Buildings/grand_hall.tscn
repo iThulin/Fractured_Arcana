@@ -1,0 +1,70 @@
+[gd_scene format=3]
+
+; ═══════════════════════════════════════════════════════════════════
+; grand_hall — the PIPELINE EXAMPLE for building meshes (2026-08-13).
+; Contract (see BuildingMeshLibrary.cs):
+;   root Node3D · children "T1"/"T2"/"T3" · origin at hex centre,
+;   ground at Y=0, +Y up · hex radius = 1.0 unit, keep within ~0.9.
+; These are placeholder primitives — replace each Tn's children with
+; inherited .glb meshes from Blender; the loader only cares about the
+; T1/T2/T3 node names. Visibility is managed at runtime; the values
+; here don't matter.
+; ═══════════════════════════════════════════════════════════════════
+
+[sub_resource type="BoxMesh" id="t1_hall"]
+size = Vector3(1.0, 0.5, 0.7)
+
+[sub_resource type="BoxMesh" id="t2_hall"]
+size = Vector3(1.2, 0.7, 0.8)
+
+[sub_resource type="BoxMesh" id="t2_wing"]
+size = Vector3(0.45, 0.45, 0.45)
+
+[sub_resource type="BoxMesh" id="t3_hall"]
+size = Vector3(1.3, 0.9, 0.9)
+
+[sub_resource type="CylinderMesh" id="t3_tower"]
+top_radius = 0.14
+bottom_radius = 0.2
+height = 1.5
+
+[sub_resource type="StandardMaterial3D" id="mat_stone"]
+albedo_color = Color(0.72, 0.68, 0.6, 1)
+
+[sub_resource type="StandardMaterial3D" id="mat_roof"]
+albedo_color = Color(0.45, 0.3, 0.25, 1)
+
+[node name="BuildingMesh" type="Node3D"]
+
+[node name="T1" type="Node3D" parent="."]
+
+[node name="Hall" type="MeshInstance3D" parent="T1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+mesh = SubResource("t1_hall")
+surface_material_override/0 = SubResource("mat_stone")
+
+[node name="T2" type="Node3D" parent="."]
+visible = false
+
+[node name="Hall" type="MeshInstance3D" parent="T2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
+mesh = SubResource("t2_hall")
+surface_material_override/0 = SubResource("mat_stone")
+
+[node name="Wing" type="MeshInstance3D" parent="T2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.55, 0.225, 0.45)
+mesh = SubResource("t2_wing")
+surface_material_override/0 = SubResource("mat_roof")
+
+[node name="T3" type="Node3D" parent="."]
+visible = false
+
+[node name="Hall" type="MeshInstance3D" parent="T3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+mesh = SubResource("t3_hall")
+surface_material_override/0 = SubResource("mat_stone")
+
+[node name="Tower" type="MeshInstance3D" parent="T3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.45, 0.75, -0.35)
+mesh = SubResource("t3_tower")
+surface_material_override/0 = SubResource("mat_roof")
