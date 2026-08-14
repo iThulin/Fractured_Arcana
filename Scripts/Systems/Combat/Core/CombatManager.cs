@@ -1691,6 +1691,19 @@ public partial class CombatManager : Node3D
         if (attacker.ActiveStance != null)
             effectiveRange += attacker.ActiveStance.AttackRangeBonus;
 
+        // Height rules (2026-08-11 ruling), symmetric with the enemy AI:
+        // melee reaches where feet reach — no swording across a cliff edge;
+        // ranged shots from above reach +1 (the rampart's payoff).
+        int heightDiff = attacker.CurrentTile.Height - target.CurrentTile.Height;
+        if (effectiveRange <= 1 && Math.Abs(heightDiff) > grid.CliffHeightThreshold)
+        {
+            combatUI?.AppendActionLog(
+                $"{attacker.Name} — too great a height to strike across.");
+            return;
+        }
+        if (effectiveRange > 1 && heightDiff > 0)
+            effectiveRange += 1;
+
         int dist = grid.Distance(attacker.CurrentTile, target.CurrentTile);
         if (dist > effectiveRange)
         {
@@ -4553,6 +4566,8 @@ public partial class CombatManager : Node3D
                         continue;
                     if (doorway.Contains(n))
                         continue;   // never widen through (or onto) the doorway
+                    if (!grid.StepLegal(cur, n))
+                        continue;   // cliff rule: no widening onto rampart tops
                     frontier.Enqueue(n);
                     var td = grid.GetTile(n);
                     if (td != null && td.IsWalkable && !td.IsBlocked && !td.IsOccupied &&

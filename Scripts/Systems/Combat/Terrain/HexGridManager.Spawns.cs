@@ -113,6 +113,8 @@ public partial class HexGridManager
                         continue;
                     if (t.IsBlocked || !t.IsWalkable)
                         continue;
+                    if (!StepAllowed(c, n))
+                        continue;   // cliff rule: candidates must be walkable-to
                     depth[n] = depth[c] + 1;
                     queue.Enqueue(n);
                 }
@@ -393,6 +395,8 @@ public partial class HexGridManager
                 visited.Add(neighbor);
                 if (doorway.Contains(neighbor))
                     continue;   // don't traverse through the doorway either
+                if (!StepAllowed(current, neighbor))
+                    continue;   // cliff rule: no zoning onto rampart tops
                 queue.Enqueue(neighbor);
             }
         }

@@ -191,6 +191,10 @@ public static class UnitRegistry
             // damage — its threat is force-moving the player onto hazards. Legal as a
             // BehaviorKey (shoves as its whole identity) or a cycle beat.
             "shove",
+            // City siege: interruptible teleport assault (CombatManager.WarpChanneler).
+            // Channels a telegraphed rift two activations, collapses on ANY damage,
+            // lands beside its target ignoring walls. Melee fallback when close.
+            "warp_channeler",
         };
         // U3a: keys legal ONLY inside an IntentCycle. hold_ground braces and never
         // advances, so a unit whose base routine were hold_ground would stand still

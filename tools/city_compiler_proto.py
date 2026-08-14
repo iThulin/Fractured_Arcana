@@ -272,6 +272,48 @@ def compile_window(focus=GATE_LOT, opening="door"):
     wall_set = set(shell)
     bldg_tiles = {t for t, k in tiles.items() if k.startswith("bldg")}
 
+    # RAMPARTS (2026-08-11 ruling): wall tiles within 2 of the gap become
+    # WALKABLE stone at height 4 — fighting positions over the entrance. The
+    # seal moves from "blocked" to the CLIFF RULE (CliffHeightThreshold = 2:
+    # ground 0 -> rampart 4 is an illegal step). One stair tile (height 2)
+    # per flank inside the courtyard gives defenders a legal 0->2->4 climb;
+    # enemies that force the door can storm the stairs — correct fiction.
+    heights = {}
+    rampart = set()
+    if opening == "door":   # a collapsed breach has no pristine fighting platforms
+        rampart = {t for t in wall_set if any(hexdist(t, g) <= 2 for g in gap)}
+    wall_set -= rampart
+    for t in rampart:
+        heights[t] = 4
+
+    def step_ok(a, b):
+        return abs(heights.get(a, 0) - heights.get(b, 0)) <= 2  # CliffHeightThreshold
+
+    def cross_side(t):
+        # which flank of the outward ray a tile sits on (cartesian cross sign)
+        px, py = cart(t)
+        px, py = px - gx, py - gy
+        return (-px * ny + py * nx) >= 0
+
+    stairs = set()
+    for side in (True, False):
+        cands = sorted(
+            n
+            for r_t in rampart if cross_side(r_t) == side
+            for n in [(r_t[0] + d[0], r_t[1] + d[1]) for d in DIRS]
+            if n in arena and n in region and n not in gap
+            and n not in wall_set and n not in rampart
+            and not tiles.get(n, "").startswith("bldg"))
+        if cands:
+            stairs.add(cands[0])
+    for t in stairs:
+        heights[t] = 2
+
+    for t in rampart:
+        tiles[t] = "rampart"
+    for t in stairs:
+        tiles[t] = "stair"
+
     def sealed(wset):
         passable = (arena - wset - bldg_tiles) - gap
         seed_t = (gate_outer[0] + d_out[0] * 3, gate_outer[1] + d_out[1] * 3)
@@ -282,10 +324,12 @@ def compile_window(focus=GATE_LOT, opening="door"):
             c = stack.pop()
             for dq, dr in DIRS:
                 n = (c[0] + dq, c[1] + dr)
-                if n in passable and n not in seen:
+                if n in passable and n not in seen and step_ok(c, n):
                     seen.add(n)
                     stack.append(n)
-        return inside_seed not in seen
+        # sealed = neither the interior NOR the rampart top is reachable —
+        # the cliff rule is now part of the seal, so it is asserted, not hoped
+        return inside_seed not in seen and not (rampart & seen)
     assert sealed(wall_set), "curtain path does not seal the approach"
 
     for t in wall_set:
@@ -312,7 +356,7 @@ def compile_window(focus=GATE_LOT, opening="door"):
             c = stack.pop()
             for dq, dr in DIRS:
                 n = (c[0] + dq, c[1] + dr)
-                if n in arena and n not in sealed_blocked and n not in out2:
+                if n in arena and n not in sealed_blocked and n not in out2 and step_ok(c, n):
                     out2.add(n)
                     stack.append(n)
     assert not (objective_zone - gap) & out2, \
@@ -343,6 +387,31 @@ def compile_window(focus=GATE_LOT, opening="door"):
         for t in debris[:3]:
             tiles[t] = "rubble"
 
+    # opening == "dock": the approach pocket floods as HARBOR WATER (impassable);
+    # the quay (gap) stays ground, and the landing barge + pier are carved back
+    # in with the lanes below. Wall tiles stay wall (sea wall).
+    if opening == "dock":
+        wseed = (gate_outer[0] + d_out[0] * 3, gate_outer[1] + d_out[1] * 3)
+        pocket = set()
+        if wseed in arena and wseed not in region:
+            stack = [wseed]
+            pocket.add(wseed)
+            while stack:
+                c = stack.pop()
+                for dq, dr in DIRS:
+                    n = (c[0] + dq, c[1] + dr)
+                    if (n in arena and n not in region and n not in boundary
+                            and n not in gap and n not in pocket):
+                        pocket.add(n)
+                        stack.append(n)
+        for t in pocket:
+            if tiles.get(t, "") == "ground":
+                tiles[t] = "water"
+        # the landing barge: walkable deck around the attacker anchor
+        for t in disk(wseed, 1):
+            if tiles.get(t, "") == "water":
+                tiles[t] = "pier"
+
     # streets: lanes lot->parent + approach lane through the gap
     def carve(a, b):
         cur = a
@@ -350,10 +419,10 @@ def compile_window(focus=GATE_LOT, opening="door"):
             best = min([(cur[0] + dq, cur[1] + dr) for dq, dr in DIRS],
                        key=lambda t: hexdist(t, b))
             cur = best
-            if cur in arena and tiles[cur] in ("ground", "lawn", "wall"):
+            if cur in arena and tiles[cur] in ("ground", "lawn", "wall", "water"):
                 if tiles[cur] == "wall" and cur not in gap:
                     continue                        # walls first, doors second
-                tiles[cur] = "street"
+                tiles[cur] = "pier" if tiles[cur] == "water" else "street"
     for lot in admitted:
         if parent[lot]:
             carve(pos[lot], pos[parent[lot]])
@@ -366,14 +435,14 @@ def compile_window(focus=GATE_LOT, opening="door"):
 
     # connectivity asserts
     passable = {t for t, k in tiles.items()
-                if not k.startswith("bldg") and k not in ("wall", "rubble")}
+                if not k.startswith("bldg") and k not in ("wall", "rubble", "water")}
     def flood(start):
         seen, stack = {start}, [start]
         while stack:
             c = stack.pop()
             for dq, dr in DIRS:
                 n = (c[0] + dq, c[1] + dr)
-                if n in passable and n not in seen:
+                if n in passable and n not in seen and step_ok(c, n):
                     seen.add(n)
                     stack.append(n)
         return seen
@@ -389,9 +458,11 @@ def compile_window(focus=GATE_LOT, opening="door"):
         c = stack.pop()
         for dq, dr in DIRS:
             n = (c[0] + dq, c[1] + dr)
-            if n in passable_nogap and n not in seen2:
+            if n in passable_nogap and n not in seen2 and step_ok(c, n):
                 seen2.add(n); stack.append(n)
     assert inside_probe not in seen2, "wall is porous: inside reachable without the gate gap"
+    if rampart:
+        assert rampart & reach, "rampart unreachable: stairs failed"
     for lot in admitted:
         anchor_t = pos[lot]
         near = [t for t in disk(anchor_t, stamp_radius(lot) + 1) if t in reach]
@@ -402,7 +473,7 @@ def compile_window(focus=GATE_LOT, opening="door"):
 # --------------------------------------------------------------------- render
 def render(tiles):
     qs = [t[0] for t in tiles]; rs = [t[1] for t in tiles]
-    sym = {"ground": ",", "lawn": ",", "plaza": "^", "street": ".", "wall": "#", "rubble": "%"}
+    sym = {"ground": ",", "lawn": ",", "plaza": "^", "street": ".", "wall": "#", "rubble": "%", "water": "~", "pier": "=", "rampart": "R", "stair": "s"}
     rows = []
     for r in range(min(rs), max(rs) + 1):
         row = " " * (r - min(rs))
@@ -416,6 +487,80 @@ def render(tiles):
                 row += sym[k] + " "
         rows.append(row)
     return "\n".join(rows)
+
+def compile_portal(focus=(0, 1)):
+    """PortalStrike window: interior focus (the teleport_sigil lot — modelled
+    as a modest building even though the default save leaves it unplaced).
+    No perimeter opening: the wall is the FULL boundary; enemies erupt at the
+    sigil ring, defenders muster at the far admitted lot. Asserts: anchors
+    passable + mutually connected, in-arena stamp overlap."""
+    all_lots = extract_window(focus)
+    pos, parent = layout(all_lots, focus)
+    admitted = [l for l in all_lots if hexdist(pos[l], (0, 0)) <= MAP_RADIUS]
+    arena = set(disk((0, 0), MAP_RADIUS))
+    tiles = {t: "ground" for t in arena}
+
+    sigil_r = 2   # modelled modest
+    for lot in all_lots:
+        r = sigil_r if lot == focus else stamp_radius(lot)
+        if lot in BUILDINGS or lot == focus:
+            name = BUILDINGS[lot][0] if lot in BUILDINGS else "teleport_sigil"
+            for t in disk(pos[lot], r):
+                if t in arena:
+                    tiles[t] = "bldg:" + name
+        elif lot in admitted:
+            for t in disk(pos[lot], 1):
+                if t in arena:
+                    tiles[t] = "plaza" if CAMPUS[lot] == "Plaza" else "lawn"
+
+    region = set()
+    for lot in all_lots:
+        r = sigil_r if lot == focus else stamp_radius(lot)
+        for t in disk(pos[lot], r + 2):
+            region.add(t)
+    for t in region:
+        for d in DIRS:
+            n = (t[0] + d[0], t[1] + d[1])
+            if n not in region and n in arena and not tiles.get(n, "").startswith("bldg"):
+                tiles[n] = "wall"
+
+    # enemy anchor: first free ring tile around the sigil; player: farthest lot
+    enemy_anchor = None
+    for t in sorted(disk((0, 0), sigil_r + 1)):
+        if hexdist(t, (0, 0)) == sigil_r + 1 and tiles.get(t, "") in ("ground", "lawn", "plaza"):
+            enemy_anchor = t
+            break
+    assert enemy_anchor, "no free ring tile around the sigil"
+    others = [l for l in admitted if l != focus]
+    assert others, "portal window admitted only the sigil lot"
+    # defenders muster at the farthest admitted lot — on its centre if the lot
+    # is empty ground, else on a free ring tile beside its building stamp
+    player_lot = max(others, key=lambda l: (hexdist(pos[l], (0, 0)), l))
+    player_anchor = pos[player_lot]
+    if tiles.get(player_anchor, "").startswith("bldg"):
+        ring_r = stamp_radius(player_lot) + 1
+        for t in sorted(disk(player_anchor, ring_r)):
+            if (hexdist(t, player_anchor) == ring_r and t in arena
+                    and tiles.get(t, "") in ("ground", "lawn", "plaza")):
+                player_anchor = t
+                break
+    assert not tiles.get(player_anchor, "").startswith("bldg"), \
+        "portal window: no standable defender anchor"
+
+    passable = {t for t, k in tiles.items()
+                if not k.startswith("bldg") and k != "wall"}
+    assert enemy_anchor in passable and player_anchor in passable
+    seen, stack = {enemy_anchor}, [enemy_anchor]
+    while stack:
+        c = stack.pop()
+        for dq, dr in DIRS:
+            n = (c[0] + dq, c[1] + dr)
+            if n in passable and n not in seen:
+                seen.add(n)
+                stack.append(n)
+    assert player_anchor in seen, "portal window: anchors disconnected"
+    return tiles, pos, admitted, player_anchor, enemy_anchor
+
 
 def breach_focus():
     """Perimeter lot for the wall-breach window: farthest (lattice) from the

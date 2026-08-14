@@ -395,6 +395,8 @@ public partial class CombatManager
             {
                 if (!seen.Add(n))
                     continue;
+                if (!grid.StepLegal(cur, n))
+                    continue;   // cliff rule: waves don't arrive on rampart tops
                 frontier.Enqueue(n);
                 var td = grid.GetTile(n);
                 if (td != null && td.IsWalkable && !td.IsBlocked && !td.IsOccupied)
