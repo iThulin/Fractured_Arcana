@@ -32,6 +32,11 @@ public partial class HexGridManager : Node3D
     /// (CombatManager.SiegeDoors reads Defending + GateGap.)</summary>
     public SiegeSpec ActiveSiege => _activeRecipe?.Siege;
 
+    /// <summary>Public face of the private cliff rule (StepAllowed) for
+    /// CombatManager-side spawn floods — zones and wave arrivals must not
+    /// leap onto ramparts a unit could never walk to.</summary>
+    public bool StepLegal(Vector2I from, Vector2I to) => StepAllowed(from, to);
+
     /// <summary>The active siege recipe's gate-gap tiles, or empty when this
     /// map is not a compiled city siege. Consumed by the hold_zone "gate"
     /// zone anchor (CombatManager.Objectives).</summary>

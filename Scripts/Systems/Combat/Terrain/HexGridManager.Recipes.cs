@@ -381,7 +381,12 @@ public partial class HexGridManager : Node3D
         if (op.Has("terrain"))
         {
             var tr = MapRecipe.ParseTerrain(op.GetStr("terrain", "grass"));
-            return t => { t.TerrainType = tr; };
+            // Full-fidelity write (2026-08-11): TerrainType alone left gameplay
+            // flags stale — recipe-written water was WALKABLE. ApplyTerrainType
+            // sets walkability/cost/hazard to match the terrain. NOTE it also
+            // clears obstacle flags, so terrain ops must never target wall tiles
+            // (the city compiler orders its ops accordingly).
+            return t => ApplyTerrainType(t, tr);
         }
         if (op.Has("height"))
         {

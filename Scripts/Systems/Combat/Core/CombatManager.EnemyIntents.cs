@@ -240,6 +240,7 @@ public partial class CombatManager
             { "hold_ground",             PlanHoldGround }, // U3a: cycle-only wind-up beat
             { "imbue",                   PlanImbue },      // tile_interaction §7: telegraphed ground imbue
             { "shove",                   PlanShove },      // tile_interaction §7: telegraphed gust push
+            { "warp_channeler",          PlanWarpChanneler }, // city siege: interruptible teleport assault
             { "hunt_ward",               PlanHuntWard },   // O3: protect-objective pressure
         };
 
@@ -827,6 +828,38 @@ public partial class CombatManager
         var target = FindNearestPlayerUnit(enemy);
         if (target?.CurrentTile == null)
             return null;
+
+        // Covering fire first (2026-08-11 ruling): a ranger prefers a LIVING
+        // SOLDIER it can actually service — nearest non-structure with LoS
+        // within range+1 (one reposition step). It shoots the DOOR only when
+        // no such target exists. Taunt/untargetable semantics: taunters are
+        // never structures, so a taunter pick survives this branch untouched;
+        // the manual scan mirrors FindNearestPlayerUnit's untargetable skip.
+        bool Viable(Unit u) =>
+            u?.CurrentTile != null && u.Stats.IsAlive && !u.HasStatus("untargetable")
+            && grid.Distance(enemy.CurrentTile.Axial, u.CurrentTile.Axial) <= enemy.AttackRange + 1
+            && grid.HasLineOfSight(enemy.CurrentTile.Axial, u.CurrentTile.Axial);
+
+        if (target.IsStructure || !Viable(target))
+        {
+            Unit bestSoldier = null;
+            int bestD = int.MaxValue;
+            Unit bestDoor = null;
+            int bestDoorD = int.MaxValue;
+            foreach (var u in playerUnits)
+            {
+                if (!Viable(u))
+                    continue;
+                int d = grid.Distance(enemy.CurrentTile.Axial, u.CurrentTile.Axial);
+                if (!u.IsStructure && d < bestD) { bestD = d; bestSoldier = u; }
+                if (u.IsStructure && d < bestDoorD) { bestDoorD = d; bestDoor = u; }
+            }
+            if (bestSoldier != null)
+                target = bestSoldier;          // covering fire
+            else if (bestDoor != null)
+                target = bestDoor;             // no viable soldier — the door
+            // else: keep the original pick and let execution walk/report
+        }
 
         var tile = target.CurrentTile.Axial;
         int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 4;
@@ -1521,10 +1554,16 @@ public partial class CombatManager
                 await ExecuteRangedIntent(enemy, intent);
                 break;
             case IntentKind.Channel:
-                await ExecuteChannelStart(enemy, intent);
+                if (IsWarpChanneler(enemy))
+                    await ExecuteWarpStart(enemy, intent);
+                else
+                    await ExecuteChannelStart(enemy, intent);
                 break;
             case IntentKind.Release:
-                await ExecuteChannelRelease(enemy, intent);
+                if (IsWarpChanneler(enemy))
+                    await ExecuteWarpRelease(enemy, intent);
+                else
+                    await ExecuteChannelRelease(enemy, intent);
                 break;
             case IntentKind.Guard:
                 await ExecuteGuardIntent(enemy, intent);
@@ -1608,6 +1647,19 @@ public partial class CombatManager
 
         if (grid.Distance(enemy.CurrentTile.Axial, tile) <= 1)
         {
+            // Height gate (2026-08-11 ruling): melee reaches where feet reach —
+            // no swording across a cliff edge (rampart tops). Ranged/magic only.
+            var atkTd = grid.GetTile(enemy.CurrentTile.Axial);
+            var defTd = grid.GetTile(tile);
+            if (atkTd != null && defTd != null &&
+                Math.Abs(atkTd.Height - defTd.Height) > grid.CliffHeightThreshold)
+            {
+                string tooHigh = $"{enemy.Name} — the wall is too high to reach!";
+                GD.Print(tooHigh);
+                combatUI?.AppendActionLog(tooHigh);
+                return;
+            }
+
             // U2: recompute tag bonuses against the board as the player left it.
             // Tag-evidence lines are GD.Print-mirrored: console transcripts are the
             // verification medium (u2_verification.md), and AppendActionLog alone
@@ -1918,7 +1970,15 @@ public partial class CombatManager
             return;
 
         int tileDist = grid.Distance(enemy.CurrentTile.Axial, tile);
-        if (tileDist > enemy.AttackRange)
+
+        // High ground (2026-08-11 ruling): ranged shots from above reach +1.
+        int effRange = enemy.AttackRange;
+        var shooterTd = grid.GetTile(enemy.CurrentTile.Axial);
+        var markTd = grid.GetTile(tile);
+        if (shooterTd != null && markTd != null && shooterTd.Height > markTd.Height)
+            effRange += 1;
+
+        if (tileDist > effRange)
         {
             combatUI?.AppendActionLog($"{enemy.Name} — mark out of range, shot wasted.");
             return;

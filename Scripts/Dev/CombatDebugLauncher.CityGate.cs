@@ -21,19 +21,22 @@ public partial class CombatDebugLauncher : CanvasLayer
     private const string CompiledGateLabel = "campus_gate (compiled)";
     private const string CompiledGateDefenseLabel = "campus_gate DEFENSE (hold the gate)";
     private const string CompiledBreachLabel = "campus_breach (compiled)";
+    private const string CompiledDockDefenseLabel = "campus_dock DEFENSE (hold the quay)";
+    private const string CompiledPortalDefenseLabel = "campus_portal DEFENSE (seal the rift)";
 
     /// <summary>Fixed debug seed → identical map every launch, so visual
     /// tuning between launches is comparing like with like.</summary>
     private const ulong CompiledGateSeed = 0xC1717E;
 
-    /// <summary>Compile + register + force the home gate window. Returns false
+    /// <summary>Compile + register + force a home siege window. Returns false
     /// (with the reason in the status label) if the save can't produce one —
     /// launch should be aborted, not fall back silently to a wrong map.
-    /// <paramref name="defending"/>: home-defense orientation (player holds
-    /// the gate courtyard, enemies attack up the approach) + a hold_zone
-    /// objective sited on the gate gap.</summary>
+    /// <paramref name="vectorKind"/>: "gate" | "breach" | "dock" | "portal".
+    /// <paramref name="defending"/>: home-defense orientation; attaches
+    /// hold_zone on the opening (gate/dock) or survive (portal — the rift
+    /// keeps disgorging; pair it with the waves checkbox).</summary>
     private bool TryForceCompiledGate(EncounterDefinition def, bool defending = false,
-        bool breach = false)
+        string vectorKind = "gate")
     {
         var ledger = SaveManager.ActiveSave?.Ledger;
         if (ledger == null)
@@ -43,20 +46,31 @@ public partial class CombatDebugLauncher : CanvasLayer
         }
 
         var city = new HomeCityCombatSource(ledger);
-        if (!breach && city.GateCell == null)
+        if (vectorKind == "gate" && city.GateCell == null)
         {
             _status.Text = "compiled gate: no placed gatehouse_yard on this save.";
+            return false;
+        }
+        if (vectorKind == "portal" && city.TeleporterCell == null)
+        {
+            _status.Text = "compiled portal: no placed teleport_sigil — build and site one first.";
             return false;
         }
 
         CityWindowResult win;
         try
         {
-            win = breach
-                ? CityBattlemapCompiler.CompileWallBreach(
-                    city, CompiledGateSeed, defending: defending)
-                : CityBattlemapCompiler.CompileGateAssault(
-                    city, CompiledGateSeed, defending: defending);
+            win = vectorKind switch
+            {
+                "breach" => CityBattlemapCompiler.CompileWallBreach(
+                    city, CompiledGateSeed, defending: defending),
+                "dock" => CityBattlemapCompiler.CompileDockRaid(
+                    city, CompiledGateSeed, defending: defending),
+                "portal" => CityBattlemapCompiler.CompilePortalStrike(
+                    city, CompiledGateSeed, defending: defending),
+                _ => CityBattlemapCompiler.CompileGateAssault(
+                    city, CompiledGateSeed, defending: defending),
+            };
         }
         catch (Exception e)
         {
@@ -78,17 +92,30 @@ public partial class CombatDebugLauncher : CanvasLayer
 
         if (defending)
         {
-            // The Campus Defense objective: hold the door. Rounds/BreachLimit
-            // are debug starting values — the real encounter defs own tuning.
-            def.Objective = new CombatObjectiveDef
+            // Debug starting values — the real encounter defs own tuning.
+            // Portal: the opening IS the enemy spawn, so hold_zone would be
+            // lost at round 1 — survive is the seal-the-rift objective.
+            if (vectorKind == "portal")
             {
-                Kind = CombatObjectiveDef.KindHoldZone,
-                Rounds = 8,
-                BreachLimit = 2,
-                ZoneAnchor = "gate",
-                ZoneRadius = 2,
-                Description = "Hold the gate",
-            };
+                def.Objective = new CombatObjectiveDef
+                {
+                    Kind = CombatObjectiveDef.KindSurvive,
+                    Rounds = 8,
+                    Description = "Seal the rift — survive",
+                };
+            }
+            else
+            {
+                def.Objective = new CombatObjectiveDef
+                {
+                    Kind = CombatObjectiveDef.KindHoldZone,
+                    Rounds = 8,
+                    BreachLimit = 2,
+                    ZoneAnchor = "gate",
+                    ZoneRadius = 2,
+                    Description = vectorKind == "dock" ? "Hold the quay" : "Hold the gate",
+                };
+            }
         }
 
         GD.Print($"[CityCompiler] forced '{win.RecipeId}': walls={win.WallTiles.Count} " +

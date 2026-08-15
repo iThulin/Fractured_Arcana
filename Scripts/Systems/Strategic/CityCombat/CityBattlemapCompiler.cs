@@ -38,6 +38,8 @@ public sealed class CityWindowResult
     public (int q, int r) EnemyAnchor;
     public List<(int q, int r)> GateGap = new();
     public List<(int q, int r)> WallTiles = new();
+    public List<(int q, int r)> RampartTiles = new();
+    public List<(int q, int r)> StairTiles = new();
     public Dictionary<(int q, int r), string> StampTiles = new();
 }
 
@@ -202,20 +204,213 @@ public static class CityBattlemapCompiler
         ICityCombatSource city, ulong seed, int mapRadius = DefaultMapRadius,
         bool defending = false)
     {
-        var reference = city.GateCell ?? city.SeatCell;
-        (int q, int r)? best = null;
-        foreach (var cell in city.Cells.OrderBy(c => c.q).ThenBy(c => c.r))
+        return CompileWindow(city, seed, PickPerimeterFocus(city, rank: 0),
+            "rubble", defending, mapRadius);
+    }
+
+    /// <summary>DockRaid: the harbor assault. Focus = the city's dock lot when
+    /// wired (EntryDockType); until then, the rank-1 far perimeter lot (rank 0
+    /// belongs to the breach — the two vectors get distinct faces). The
+    /// approach pocket floods as impassable harbor water; the quay opening
+    /// (gap machinery) plus a straight pier are the only ways ashore.</summary>
+    public static CityWindowResult CompileDockRaid(
+        ICityCombatSource city, ulong seed, int mapRadius = DefaultMapRadius,
+        bool defending = false)
+    {
+        var focus = city.DockCell ?? PickPerimeterFocus(city, rank: 1);
+        return CompileWindow(city, seed, focus, "dock", defending, mapRadius);
+    }
+
+    /// <summary>PortalStrike: the interior incursion — no perimeter opening at
+    /// all. Window centres on the teleport_sigil's lot; the wall is the full
+    /// boundary; the ENEMY anchor is the ritual ring around the sigil (waves
+    /// arrive there — the portal keeps disgorging), defenders muster at the
+    /// far lot. Diegetic availability: no placed sigil, no vector — throws.
+    /// (Mirror of the proto's compile_portal; keep in lockstep.)</summary>
+    public static CityWindowResult CompilePortalStrike(
+        ICityCombatSource city, ulong seed, int mapRadius = DefaultMapRadius,
+        bool defending = true)
+    {
+        if (city.TeleporterCell == null)
+            throw new InvalidOperationException(
+                "[CityCompiler] no placed teleport_sigil — the portal vector is diegetically unavailable.");
+        var focus = city.TeleporterCell.Value;
+
+        var allLots = ExtractWindow(city, focus);
+        var (pos, parent) = Layout(city, allLots, focus);
+        allLots = allLots.Where(l => pos.ContainsKey(l)).ToList();
+        var admitted = allLots.Where(l => HexDist(pos[l], (0, 0)) <= mapRadius).ToList();
+        var arena = new HashSet<(int q, int r)>(Disk((0, 0), mapRadius));
+        var result = new CityWindowResult();
+
+        foreach (var lot in allLots)
         {
-            if (MissingDirs(city, cell).Count == 0)
-                continue;   // interior — no wall here
-            if (city.GateCell != null && cell == city.GateCell.Value)
-                continue;   // the gate is the OTHER vector
-            if (best == null || HexDist(cell, reference) > HexDist(best.Value, reference))
-                best = cell;
+            var b = city.BuildingAt(lot.q, lot.r);
+            if (b == null)
+                continue;
+            foreach (var t in Disk(pos[lot], StampRadius(city, lot)))
+                if (arena.Contains(t))
+                    result.StampTiles[t] = b.BlueprintId;
         }
-        if (best == null)
-            throw new InvalidOperationException("[CityCompiler] city has no breachable perimeter lot.");
-        return CompileWindow(city, seed, best.Value, "rubble", defending, mapRadius);
+
+        var region = new HashSet<(int q, int r)>();
+        foreach (var lot in allLots)
+            foreach (var t in Disk(pos[lot], StampRadius(city, lot) + 2))
+                region.Add(t);
+        foreach (var t in region)
+        {
+            foreach (var d in Dirs)
+            {
+                var n = (q: t.q + d.q, r: t.r + d.r);
+                if (!region.Contains(n) && arena.Contains(n)
+                    && !result.StampTiles.ContainsKey(n))
+                    result.WallTiles.Add(n);
+            }
+        }
+
+        // enemy anchor: first free ring tile around the sigil stamp; player:
+        // farthest admitted lot (free ring tile beside it if it's a building)
+        int sigilR = StampRadius(city, focus);
+        (int q, int r)? enemyAnchor = null;
+        foreach (var t in Disk((0, 0), sigilR + 1).OrderBy(t => t.q).ThenBy(t => t.r))
+        {
+            if (HexDist(t, (0, 0)) != sigilR + 1 || !arena.Contains(t))
+                continue;
+            if (result.StampTiles.ContainsKey(t) || result.WallTiles.Contains(t))
+                continue;
+            enemyAnchor = t;
+            break;
+        }
+        if (enemyAnchor == null)
+            throw new InvalidOperationException("[CityCompiler] no free ring tile around the sigil.");
+
+        var others = admitted.Where(l => l != focus).ToList();
+        if (others.Count == 0)
+            throw new InvalidOperationException("[CityCompiler] portal window admitted only the sigil lot.");
+        var playerLot = others
+            .OrderByDescending(l => HexDist(pos[l], (0, 0)))
+            .ThenBy(l => l.q).ThenBy(l => l.r).First();
+        var playerAnchor = pos[playerLot];
+        if (result.StampTiles.ContainsKey(playerAnchor))
+        {
+            int rr = StampRadius(city, playerLot) + 1;
+            foreach (var t in Disk(playerAnchor, rr).OrderBy(t => t.q).ThenBy(t => t.r))
+            {
+                if (HexDist(t, playerAnchor) == rr && arena.Contains(t)
+                    && !result.StampTiles.ContainsKey(t) && !result.WallTiles.Contains(t))
+                { playerAnchor = t; break; }
+            }
+        }
+        result.PlayerAnchor = defending ? playerAnchor : enemyAnchor.Value;
+        result.EnemyAnchor = defending ? enemyAnchor.Value : playerAnchor;
+
+        // ── emit ────────────────────────────────────────────────────────────
+        var features = new JsonArray();
+        foreach (var lot in admitted)
+        {
+            if (city.BuildingAt(lot.q, lot.r) != null)
+                continue;
+            features.Add(new JsonObject
+            {
+                ["feature"] = "patch",
+                ["phase"] = "skeleton",
+                ["at"] = new JsonArray(pos[lot].q, pos[lot].r),
+                ["radius"] = EmptyLotRadius + 1,
+                ["terrain"] = city.KindOf(lot.q, lot.r) == CityCellKind.Plaza ? "stone" : "grass",
+            });
+        }
+        // ritual ground: cleared ring around the sigil
+        features.Add(new JsonObject
+        {
+            ["feature"] = "clearing",
+            ["phase"] = "skeleton",
+            ["at"] = new JsonArray(0, 0),
+            ["radius"] = sigilR + 2,
+        });
+        foreach (var lot in admitted)
+        {
+            if (parent[lot] == null || !admitted.Contains(parent[lot].Value))
+                continue;
+            features.Add(new JsonObject
+            {
+                ["feature"] = "carve_lane",
+                ["phase"] = "skeleton",
+                ["from"] = new JsonArray(pos[lot].q, pos[lot].r),
+                ["to"] = new JsonArray(pos[parent[lot].Value].q, pos[parent[lot].Value].r),
+                ["width"] = 1,
+            });
+        }
+        foreach (var t in result.WallTiles)
+        {
+            features.Add(new JsonObject
+            {
+                ["feature"] = "filled_radius",
+                ["phase"] = "skeleton",
+                ["at"] = new JsonArray(t.q, t.r),
+                ["radius"] = 0,
+                ["obstacle_kind"] = "wall",
+                ["chance"] = 1.0,
+            });
+        }
+        foreach (var lot in allLots)
+        {
+            var b = city.BuildingAt(lot.q, lot.r);
+            if (b == null)
+                continue;
+            features.Add(new JsonObject
+            {
+                ["feature"] = "building_stamp",
+                ["phase"] = "skeleton",
+                ["at"] = new JsonArray(pos[lot].q, pos[lot].r),
+                ["radius"] = StampRadius(city, lot),
+                ["building_id"] = b.BlueprintId,
+                ["rotation"] = b.Rotation,
+            });
+        }
+
+        result.RecipeId = $"city_portalstrike{(defending ? "def" : "")}_{seed:x8}";
+        var recipe = new JsonObject
+        {
+            ["id"] = result.RecipeId,
+            ["display_name"] = "The Rift",
+            ["shape"] = new JsonObject { ["type"] = "hexagon", ["radius"] = mapRadius },
+            ["base_terrain"] = new JsonObject
+            {
+                ["elevation_frequency"] = 0.08,
+                ["moisture_frequency"] = 0.08,
+                ["detail_weight"] = 0.15,
+                ["max_height_step"] = 1,
+                ["palette"] = new JsonArray(new JsonObject { ["terrain"] = "grass" }),
+            },
+            ["features"] = features,
+            ["siege"] = new JsonObject
+            {
+                ["vector"] = "PortalStrike",
+                ["entry"] = "portal",
+                ["defending"] = defending,
+                ["player_anchor"] = new JsonArray(result.PlayerAnchor.q, result.PlayerAnchor.r),
+                ["enemy_anchor"] = new JsonArray(result.EnemyAnchor.q, result.EnemyAnchor.r),
+            },
+        };
+        result.RecipeJson = recipe.ToJsonString(
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        return result;
+    }
+
+    /// <summary>Perimeter lots (non-gate), ordered farthest-from-gate first
+    /// with a deterministic tiebreak; <paramref name="rank"/> indexes in.</summary>
+    private static (int q, int r) PickPerimeterFocus(ICityCombatSource city, int rank)
+    {
+        var reference = city.GateCell ?? city.SeatCell;
+        var ordered = city.Cells
+            .Where(c => MissingDirs(city, c).Count > 0)
+            .Where(c => city.GateCell == null || c != city.GateCell.Value)
+            .OrderByDescending(c => HexDist(c, reference))
+            .ThenBy(c => c.q).ThenBy(c => c.r)
+            .ToList();
+        if (ordered.Count == 0)
+            throw new InvalidOperationException("[CityCompiler] city has no usable perimeter lot.");
+        return ordered[Math.Min(rank, ordered.Count - 1)];
     }
 
     /// <summary>Shared window core. <paramref name="gate"/> is the FOCUS lot —
@@ -322,8 +517,47 @@ public static class CityBattlemapCompiler
             .Take(GateGapWidth));
         result.GateGap = gap.ToList();
 
+        // RAMPARTS (2026-08-11 ruling; gate windows only — a collapsed breach
+        // has no pristine fighting platforms): wall tiles within 2 of the gap
+        // become WALKABLE stone at height 4. The seal moves from "blocked" to
+        // the CLIFF RULE (CliffHeightThreshold = 2 — ground 0 → rampart 4 is
+        // an illegal step). One stair tile (height 2) per flank inside the
+        // courtyard gives a legal 0→2→4 climb; enemies that force the door
+        // can storm the stairs. Proto-asserted: sealed incl. rampart top;
+        // rampart reachable from inside via stairs.
+        var rampart = new HashSet<(int q, int r)>();
+        var stairs = new HashSet<(int q, int r)>();
+        if (opening == "door")
+        {
+            foreach (var t in boundary)
+                if (!gap.Contains(t) && gap.Any(g => HexDist(t, g) <= 2))
+                    rampart.Add(t);
+
+            bool CrossSide((int q, int r) t)
+            {
+                var c = Cart(t);
+                double px = c.x - g0.x, py = c.y - g0.y;
+                return (-px * nyv + py * nxv) >= 0;
+            }
+            foreach (bool side in new[] { true, false })
+            {
+                var cands = rampart
+                    .Where(rt => CrossSide(rt) == side)
+                    .SelectMany(rt => Dirs.Select(d => (q: rt.q + d.q, r: rt.r + d.r)))
+                    .Where(n => arena.Contains(n) && region.Contains(n)
+                                && !gap.Contains(n) && !boundary.Contains(n)
+                                && !result.StampTiles.ContainsKey(n))
+                    .OrderBy(n => n.q).ThenBy(n => n.r)
+                    .ToList();
+                if (cands.Count > 0)
+                    stairs.Add(cands[0]);
+            }
+        }
+        result.RampartTiles = rampart.ToList();
+        result.StairTiles = stairs.ToList();
+
         foreach (var t in boundary)
-            if (!gap.Contains(t))
+            if (!gap.Contains(t) && !rampart.Contains(t))
                 result.WallTiles.Add(t);
 
         // anchors: attacker beyond the gate; defender at the deepest interior
@@ -447,6 +681,102 @@ public static class CityBattlemapCompiler
             });
         }
 
+        // ramparts + stairs: walkable raised stone. TWO ops per tile because
+        // RecipeTileApplier applies the FIRST recognized key only (element >
+        // obstacle_kind > terrain > height) — terrain and height cannot share
+        // an op. No obstacle kind: these tiles are open ground, high up.
+        foreach (var (set, h) in new[] { (rampart, 4), (stairs, 2) })
+        {
+            foreach (var t in set)
+            {
+                features.Add(new JsonObject
+                {
+                    ["feature"] = "filled_radius",
+                    ["phase"] = "skeleton",
+                    ["at"] = new JsonArray(t.q, t.r),
+                    ["radius"] = 0,
+                    ["terrain"] = "stone",
+                    ["chance"] = 1.0,
+                });
+                features.Add(new JsonObject
+                {
+                    ["feature"] = "filled_radius",
+                    ["phase"] = "skeleton",
+                    ["at"] = new JsonArray(t.q, t.r),
+                    ["radius"] = 0,
+                    ["height"] = h,
+                    ["chance"] = 1.0,
+                });
+            }
+        }
+
+        // "dock" opening: the approach pocket floods as HARBOR WATER (the
+        // terrain applier is full-fidelity since 2026-08-11, so recipe water is
+        // genuinely impassable). The quay (gap) stays ground; a straight pier
+        // (anchor → quay along the ray, colinear by construction) and the
+        // landing barge (grass disk at the anchor) are carved back on top —
+        // emitted AFTER the water ops so ordering does the carving.
+        if (opening == "dock")
+        {
+            var pocket = new HashSet<(int q, int r)>();
+            var wseed = approachAnchor;
+            if (arena.Contains(wseed) && !region.Contains(wseed))
+            {
+                var stack = new Stack<(int q, int r)>();
+                stack.Push(wseed);
+                pocket.Add(wseed);
+                while (stack.Count > 0)
+                {
+                    var c = stack.Pop();
+                    foreach (var d in Dirs)
+                    {
+                        var n = (q: c.q + d.q, r: c.r + d.r);
+                        if (arena.Contains(n) && !region.Contains(n) && !boundary.Contains(n)
+                            && !gap.Contains(n) && pocket.Add(n))
+                            stack.Push(n);
+                    }
+                }
+            }
+            foreach (var t in pocket)
+            {
+                features.Add(new JsonObject
+                {
+                    ["feature"] = "filled_radius",
+                    ["phase"] = "skeleton",
+                    ["at"] = new JsonArray(t.q, t.r),
+                    ["radius"] = 0,
+                    ["terrain"] = "water",
+                    ["chance"] = 1.0,
+                });
+            }
+            // landing barge deck
+            features.Add(new JsonObject
+            {
+                ["feature"] = "filled_radius",
+                ["phase"] = "skeleton",
+                ["at"] = new JsonArray(approachAnchor.q, approachAnchor.r),
+                ["radius"] = 1,
+                ["terrain"] = "grass",
+                ["chance"] = 1.0,
+            });
+            // the pier: straight planks from the barge to the quay
+            for (int k = 0; k <= 4; k++)
+            {
+                var t = (q: approachAnchor.q - dOut.q * k, r: approachAnchor.r - dOut.r * k);
+                if (!arena.Contains(t) || region.Contains(t))
+                    break;
+                features.Add(new JsonObject
+                {
+                    ["feature"] = "filled_radius",
+                    ["phase"] = "skeleton",
+                    ["at"] = new JsonArray(t.q, t.r),
+                    ["radius"] = 0,
+                    ["terrain"] = "grass",
+                    ["chance"] = 1.0,
+                });
+            }
+        }
+
         // "rubble" opening (wall breach): no doors — up to 2 pocket tiles that
         // FLANK the breach (adjacent to exactly one gap tile, never the
         // central lane) become rock cover. Proto-asserted to never re-seal
@@ -515,12 +845,23 @@ public static class CityBattlemapCompiler
             });
         }
 
-        string entry = opening == "door" ? "gate" : "breach";
-        result.RecipeId = $"city_wallsiege_{entry}{(defending ? "def" : "")}_{seed:x8}";
+        string entry = opening switch
+        {
+            "door" => "gate",
+            "dock" => "dock",
+            _ => "breach",
+        };
+        string vector = opening == "dock" ? "DockRaid" : "WallSiege";
+        result.RecipeId = $"city_{vector.ToLowerInvariant()}_{entry}{(defending ? "def" : "")}_{seed:x8}";
         var recipe = new JsonObject
         {
             ["id"] = result.RecipeId,
-            ["display_name"] = entry == "gate" ? "The Gate" : "The Breach",
+            ["display_name"] = entry switch
+            {
+                "gate" => "The Gate",
+                "dock" => "The Quay",
+                _ => "The Breach",
+            },
             ["shape"] = new JsonObject { ["type"] = "hexagon", ["radius"] = mapRadius },
             ["base_terrain"] = new JsonObject
             {
@@ -535,7 +876,7 @@ public static class CityBattlemapCompiler
             // the spawn/objective geometry for the step-4 encounter wiring.
             ["siege"] = new JsonObject
             {
-                ["vector"] = "WallSiege",
+                ["vector"] = vector,
                 ["entry"] = entry,
                 ["defending"] = defending,
                 ["player_anchor"] = new JsonArray(result.PlayerAnchor.q, result.PlayerAnchor.r),

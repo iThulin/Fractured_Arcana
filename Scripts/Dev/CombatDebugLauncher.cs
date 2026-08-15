@@ -157,13 +157,15 @@ public partial class CombatDebugLauncher : CanvasLayer
         _vistaOpt = AddEnumDropdown(form, "Vista border:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
             (int)OverworldHex.TerrainType.Grassland);
         // E6: force a specific battlefield archetype, or "(from terrain)" for the map dropdown's default.
-        var recipeItems = new string[BattlefieldRecipes.Length + 4];
+        var recipeItems = new string[BattlefieldRecipes.Length + 6];
         recipeItems[0] = "(from terrain)";
         for (int ri = 0; ri < BattlefieldRecipes.Length; ri++)
             recipeItems[ri + 1] = BattlefieldRecipes[ri];
         recipeItems[BattlefieldRecipes.Length + 1] = CompiledGateLabel;          // city siege: gate attack
         recipeItems[BattlefieldRecipes.Length + 2] = CompiledGateDefenseLabel;   // city siege: hold_zone defense
         recipeItems[BattlefieldRecipes.Length + 3] = CompiledBreachLabel;        // city siege: breach attack
+        recipeItems[BattlefieldRecipes.Length + 4] = CompiledDockDefenseLabel;   // city siege: quay defense
+        recipeItems[BattlefieldRecipes.Length + 5] = CompiledPortalDefenseLabel; // city siege: rift defense
         _forceRecipeOpt = AddStringDropdown(form, "Force battlefield:", recipeItems);
         _diffSpin = AddSpin(form, "Difficulty ×:", 0.5, 3.0, 0.25, 1.0);
 
@@ -456,7 +458,11 @@ public partial class CombatDebugLauncher : CanvasLayer
             return;   // compile failed — reason already in the status label
         else if (recipeSel == BattlefieldRecipes.Length + 2 && !TryForceCompiledGate(def, defending: true))
             return;   // compile failed — reason already in the status label
-        else if (recipeSel == BattlefieldRecipes.Length + 3 && !TryForceCompiledGate(def, breach: true))
+        else if (recipeSel == BattlefieldRecipes.Length + 3 && !TryForceCompiledGate(def, vectorKind: "breach"))
+            return;   // compile failed — reason already in the status label
+        else if (recipeSel == BattlefieldRecipes.Length + 4 && !TryForceCompiledGate(def, defending: true, vectorKind: "dock"))
+            return;   // compile failed — reason already in the status label
+        else if (recipeSel == BattlefieldRecipes.Length + 5 && !TryForceCompiledGate(def, defending: true, vectorKind: "portal"))
             return;   // compile failed — reason already in the status label
 
         EncounterContextCarrier.Set(def);

@@ -299,6 +299,12 @@ public partial class CombatManager
         // here = "barbed armor bites the attacker".
         QueueItemStruckTriggers(struck, source);
 
+        // City siege: damage collapses a WARP channel (warp_channeler only —
+        // the blast wizard's channel is deliberately not damage-interruptible).
+        // Same one-call-site rationale as Riposte below: OnStruck fires on ANY
+        // damage, so every card, attack and hazard can interrupt the rift.
+        TryInterruptWarpChannel(struck, hpLoss);
+
         // Riposte re-hook (2026-07-28). ResolveRetaliation was called from
         // PerformAttack / PerformRangedAttack — but the U2 intent-AI migration routed
         // every enemy attack through ExecuteIntent -> StrikeTile -> ResolveStrike, and

@@ -1,0 +1,17 @@
+{
+  "id": "veil_warper",
+  "threatLabel": "Veil Warper",
+  "role": "line",
+  "intelDescription": "It does not knock. Kill it while it channels or meet it in your courtyard — the wall means nothing to the veil.",
+  "maxHealth": 12,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 4,
+  "preferredDistance": 1,
+  "behaviorKey": "warp_channeler",
+  "behaviorTags": [],
+  "colorR": 0.55,
+  "colorG": 0.25,
+  "colorB": 0.75
+}

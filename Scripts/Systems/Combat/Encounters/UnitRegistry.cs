@@ -191,6 +191,10 @@ public static class UnitRegistry
             // damage — its threat is force-moving the player onto hazards. Legal as a
             // BehaviorKey (shoves as its whole identity) or a cycle beat.
             "shove",
+            // City siege: interruptible teleport assault (CombatManager.WarpChanneler).
+            // Channels a telegraphed rift two activations, collapses on ANY damage,
+            // lands beside its target ignoring walls. Melee fallback when close.
+            "warp_channeler",
             // O3 (2026-08-13): ward-seeker — playtest showed default planners only
             // hit the ward opportunistically, so protect fights had no pressure.
             // Hunts the objective ward; behaves as melee_advance when none stands.
