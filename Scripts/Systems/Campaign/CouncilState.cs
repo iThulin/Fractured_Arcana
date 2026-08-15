@@ -383,4 +383,36 @@ public class CouncilState
     /// grouping) instead of parsing interpolated prose. Cycle-tier: BeginNewCycle
     /// replaces CycleState wholesale, correctly wiping the report with the timeline.</summary>
     public List<HeraldReport> Reports = new();
+
+    // ── Espionage layer (ShadowState.cs) ─────────────────────────────────
+    // The third tick tenant. Two new struct types (InformantState,
+    // ConcordContract); the rest are scalars/lists on this container.
+    // See espionage_veiled_concord_spec_v1.md §7. All save-adjacent —
+    // round-trip asserted in CouncilSaveAssert.
+
+    /// <summary>Standing informant assets — turned NPCs, not companions.
+    /// Yield on the tick; hunted by counter-intelligence (E2+).</summary>
+    public List<InformantState> Informants = new();
+
+    /// <summary>Live Veiled Concord contracts, guild-bought or (at Marked 9)
+    /// Astrologer-commissioned against the guild (E3+).</summary>
+    public List<ConcordContract> ConcordContracts = new();
+
+    /// <summary>The espionage currency — earned by fencing the network's
+    /// product to the Concord, spent on contracts and the outbid (§3b/§3e).</summary>
+    public int ConcordFavor = 0;
+
+    /// <summary>0..10, the shadow-world's memory of the guild. Raised by
+    /// contracts and traced sells; decays -1 per idle lunation, like Exposure.
+    /// Thresholds 3/6/9 = Noticed / Sold Out / Contracted Against (§3d).</summary>
+    public int Marked = 0;
+
+    /// <summary>Lifetime completed dealings (contracts + traced sells). The
+    /// DERIVED-standing driver — ConcordStandingBand is computed from this via
+    /// ShadowVocab.StandingBand, never stored, so it cannot drift.</summary>
+    public int ConcordDealings = 0;
+
+    /// <summary>False until the guild first reaches a Concord node — the
+    /// Unaware band gate, mirroring CourtState.HasContact.</summary>
+    public bool ConcordContacted = false;
 }

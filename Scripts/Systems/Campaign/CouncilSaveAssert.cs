@@ -46,6 +46,9 @@ public static class CouncilSaveAssert
         ok &= AssertHeraldReport(sb);
         ok &= AssertCourtState(sb);
         ok &= AssertImprisonedEnvoy(sb);
+        ok &= AssertInformantState(sb);
+        ok &= AssertConcordContract(sb);
+        ok &= AssertCouncilEspionageFields(sb);
 
         sb.AppendLine(ok
             ? "RESULT: ALL PASSED — save-adjacent council structs round-trip clean."
@@ -202,6 +205,158 @@ public static class CouncilSaveAssert
         }
 
         sb.AppendLine(ok ? "  ImprisonedEnvoy: PASS" : "  ImprisonedEnvoy: FAIL");
+        return ok;
+    }
+
+    // ── Espionage layer (ShadowState.cs) ─────────────────────────────────
+
+    private static bool AssertInformantState(StringBuilder sb)
+    {
+        var src = new InformantState
+        {
+            Id = "informant_1",
+            KingdomId = "kingdom_2",
+            CourtierId = "courtier_3",   // court-embedded — shares court Exposure
+            WarfrontId = "",
+            Role = ShadowVocab.RoleCutout,
+            Cover = 7,
+            Access = 2,
+            HandlerCompanionId = "comp_9",
+            LunationPlaced = 4,
+        };
+        var rt = RoundTrip(src);
+
+        bool ok = rt != null;
+        if (rt != null)
+        {
+            ok &= Check(sb, "InformantState.Id", rt.Id == src.Id);
+            ok &= Check(sb, "InformantState.KingdomId", rt.KingdomId == src.KingdomId);
+            ok &= Check(sb, "InformantState.CourtierId", rt.CourtierId == src.CourtierId);
+            ok &= Check(sb, "InformantState.WarfrontId", rt.WarfrontId == src.WarfrontId);
+            ok &= Check(sb, "InformantState.Role", rt.Role == src.Role);
+            ok &= Check(sb, "InformantState.Cover", rt.Cover == src.Cover);
+            ok &= Check(sb, "InformantState.Access", rt.Access == src.Access);
+            ok &= Check(sb, "InformantState.HandlerCompanionId",
+                rt.HandlerCompanionId == src.HandlerCompanionId);
+            ok &= Check(sb, "InformantState.LunationPlaced",
+                rt.LunationPlaced == src.LunationPlaced);
+        }
+        else
+        {
+            sb.AppendLine("    FAIL: InformantState deserialized to null.");
+        }
+
+        sb.AppendLine(ok ? "  InformantState: PASS" : "  InformantState: FAIL");
+        return ok;
+    }
+
+    private static bool AssertConcordContract(StringBuilder sb)
+    {
+        var src = new ConcordContract
+        {
+            Id = "contract_1",
+            ContractType = ShadowVocab.ContractExtraction,
+            TargetKingdomId = "kingdom_6",
+            TargetId = "comp_2",
+            LunationsRemaining = 2,
+            FavorPaid = 40,
+            AgainstPlayer = true,   // the outbid path — must survive intact
+        };
+        var rt = RoundTrip(src);
+
+        bool ok = rt != null;
+        if (rt != null)
+        {
+            ok &= Check(sb, "ConcordContract.Id", rt.Id == src.Id);
+            ok &= Check(sb, "ConcordContract.ContractType", rt.ContractType == src.ContractType);
+            ok &= Check(sb, "ConcordContract.TargetKingdomId",
+                rt.TargetKingdomId == src.TargetKingdomId);
+            ok &= Check(sb, "ConcordContract.TargetId", rt.TargetId == src.TargetId);
+            ok &= Check(sb, "ConcordContract.LunationsRemaining",
+                rt.LunationsRemaining == src.LunationsRemaining);
+            ok &= Check(sb, "ConcordContract.FavorPaid", rt.FavorPaid == src.FavorPaid);
+            ok &= Check(sb, "ConcordContract.AgainstPlayer",
+                rt.AgainstPlayer == src.AgainstPlayer);
+        }
+        else
+        {
+            sb.AppendLine("    FAIL: ConcordContract deserialized to null.");
+        }
+
+        sb.AppendLine(ok ? "  ConcordContract: PASS" : "  ConcordContract: FAIL");
+        return ok;
+    }
+
+    /// <summary>The espionage fields on the CouncilState container round-trip,
+    /// AND the derived Concord standing band recomputes identically from the
+    /// persisted ConcordDealings driver — the derived-never-stored tell,
+    /// same shape as the CourtState.StandingScore() check above.</summary>
+    private static bool AssertCouncilEspionageFields(StringBuilder sb)
+    {
+        var src = new CouncilState
+        {
+            ConcordFavor = 55,
+            Marked = 8,
+            ConcordDealings = 5,        // -> Trusted band (>=4, <8)
+            ConcordContacted = true,
+        };
+        src.Informants.Add(new InformantState
+        {
+            Id = "informant_2",
+            KingdomId = "kingdom_1",
+            Role = ShadowVocab.RoleSaboteur,
+            Cover = 4,
+            Access = 3,
+            LunationPlaced = 2,
+        });
+        src.ConcordContracts.Add(new ConcordContract
+        {
+            Id = "contract_2",
+            ContractType = ShadowVocab.ContractSabotage,
+            TargetKingdomId = "kingdom_1",
+            LunationsRemaining = 1,
+            FavorPaid = 20,
+        });
+
+        var rt = RoundTrip(src);
+        bool ok = rt != null;
+        if (rt != null)
+        {
+            ok &= Check(sb, "CouncilState.ConcordFavor", rt.ConcordFavor == src.ConcordFavor);
+            ok &= Check(sb, "CouncilState.Marked", rt.Marked == src.Marked);
+            ok &= Check(sb, "CouncilState.ConcordDealings",
+                rt.ConcordDealings == src.ConcordDealings);
+            ok &= Check(sb, "CouncilState.ConcordContacted",
+                rt.ConcordContacted == src.ConcordContacted);
+            ok &= Check(sb, "CouncilState.Informants.Count",
+                rt.Informants.Count == src.Informants.Count);
+            ok &= Check(sb, "CouncilState.ConcordContracts.Count",
+                rt.ConcordContracts.Count == src.ConcordContracts.Count);
+
+            if (rt.Informants.Count == 1)
+            {
+                ok &= Check(sb, "InformantState.Cover (nested)",
+                    rt.Informants[0].Cover == src.Informants[0].Cover);
+                ok &= Check(sb, "InformantState.Role (nested)",
+                    rt.Informants[0].Role == src.Informants[0].Role);
+            }
+
+            // Derived band must recompute identically post-round-trip. If
+            // ConcordDealings were dropped to 0 the band would read Unaware
+            // instead of Trusted — the derived-never-stored tell.
+            ok &= Check(sb, "ShadowVocab.StandingBand(ConcordDealings) == Trusted",
+                ShadowVocab.StandingBand(rt.ConcordDealings) == ConcordStandingBand.Trusted
+                && ShadowVocab.StandingBand(rt.ConcordDealings)
+                   == ShadowVocab.StandingBand(src.ConcordDealings));
+        }
+        else
+        {
+            sb.AppendLine("    FAIL: CouncilState (espionage fields) deserialized to null.");
+        }
+
+        sb.AppendLine(ok
+            ? "  CouncilState espionage fields (+derived band): PASS"
+            : "  CouncilState espionage fields (+derived band): FAIL");
         return ok;
     }
 }

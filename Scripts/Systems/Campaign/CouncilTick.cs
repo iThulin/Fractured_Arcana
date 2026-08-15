@@ -358,6 +358,20 @@ public static class CouncilTick
             ResolveMission(cycle, mission, reports);
         }
 
+        // ── Step 4b (espionage): informant passive yields + Access ripen ──
+        ShadowTick.ResolveYields(cycle, reports);
+
+        // ── Step 4c (espionage): Concord contract completions. After yields so a
+        // just-planted asset does not also act this tick. dealt shields Marked
+        // from idle decay in step 6b.
+        bool shadowDealt = ShadowTick.ResolveContracts(cycle, reports);
+
+        // ── Step 5a (espionage): counter-intelligence burns. Runs BEFORE the
+        // exposure loop so a court-embedded burn's Exposure spike is present
+        // for the edge-check below, and adds the burned court to intelCourts so
+        // the spike is not decayed away the same tick (§2e / §5).
+        ShadowTick.ResolveCounterIntel(cycle, reports, intelCourts);
+
         // ── Step 5: exposure decay, freeze decrement, threshold consequences ─
         foreach (var court in council.Courts.Values)
         {
@@ -373,6 +387,9 @@ public static class CouncilTick
             int before = exposureBefore.TryGetValue(court.KingdomId, out var b) ? b : 0;
             CheckExposureThresholds(cycle, court, before, court.Exposure, lun, reports, resolverThisTick);
         }
+
+        // ── Step 6b (espionage): Marked decay + threshold status ─────────
+        ShadowTick.ResolveMarked(cycle, reports, shadowDealt);
 
         // ── Step 8: append to the persisted report and trim ──────────────
         if (reports.Count > 0)
@@ -882,6 +899,42 @@ public static class CouncilTick
         Emit(reports, lun, court.KingdomId,
             $"IMPRISONMENT at {CourtDisplayName(cycle, court.KingdomId)}: {envoyName} is seized and " +
             $"cast into a gaol near the kingdom's seat. Storm it to bring them home.");
+    }
+
+    /// <summary>Seize a companion into a fresh gaol in <paramref name="kingdomId"/>
+    /// (espionage E5 — the Astrologer's shadow contract). Sites a Prison POI and
+    /// records the captive by STABLE coordinates, exactly as Imprisonment does, so
+    /// the same rescue path (ExpeditionManager.ReleaseImprisonedAt) or a Concord
+    /// Extraction frees them. Returns false if already held or no gaol could be
+    /// sited (the captive slips away — no soft-lock).</summary>
+    public static bool SeizeEnvoyToGaol(CycleState cycle, string kingdomId, string companionId, int lun)
+    {
+        if (cycle?.Council == null || string.IsNullOrEmpty(companionId))
+        {
+            return false;
+        }
+        if (CouncilQueries.IsImprisoned(companionId))
+        {
+            return false;
+        }
+        int poiIndex = cycle.World != null
+            ? WorldGenerator.SiteRuntimePoi(cycle.World, PoiKind.Prison, kingdomId)
+            : -1;
+        if (poiIndex < 0)
+        {
+            return false;
+        }
+        var prisonPoi = cycle.World.Pois[poiIndex];
+        cycle.Council.Imprisoned.Add(new ImprisonedEnvoy
+        {
+            CompanionId = companionId,
+            KingdomId = kingdomId,
+            PrisonX = prisonPoi.X,
+            PrisonY = prisonPoi.Y,
+            LunationImprisoned = lun,
+        });
+        SaveManager.MarkDirty();
+        return true;
     }
 
     /// <summary>Who catches the intrigue: the Spymaster if the court has one,
