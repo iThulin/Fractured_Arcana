@@ -67,6 +67,21 @@ public class EncounterChoice
     /// which only runs when this is empty). Already-known spells no-op.</summary>
     public string SpellReward = "";
 
+    /// <summary>Explore→named codices (progression_card_acquisition_v1 §8): a
+    /// specific card blueprint id this choice DISCOVERS — unlocking it into the
+    /// permanent draft pool (EternalLedger.UnlockedCardBlueprintIds), the card
+    /// analogue of SpellReward. "The cold three hexes north is ALWAYS the
+    /// Frostward Codex." Legendaries, Marginalia cards, and already-known cards
+    /// no-op. When empty, a CardCodex roll may still fire (see below).</summary>
+    public string CardReward = "";
+
+    /// <summary>When true and CardReward is empty, this choice discovers a random
+    /// UNKNOWN in-school Rare — the stochastic codex, matching the terrain-flavored
+    /// spell bonus-roll. In-school only, per the §2a organizing law (found breadth
+    /// pays the school you are playing). Gated on this bool so ordinary narrative
+    /// choices never leak card discovery; only authored codices do.</summary>
+    public bool CardCodex = false;
+
     // Phase 3+ tracking
     public List<string> SetFlags = new();
 

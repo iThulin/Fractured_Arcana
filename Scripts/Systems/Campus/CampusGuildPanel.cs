@@ -666,7 +666,11 @@ public sealed class CampusGuildPanel : CampusPanel
             CustomMinimumSize = new Vector2(140, 28),
         };
         assertRtBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        assertRtBtn.Pressed += () => CouncilSaveAssert.AssertAll();
+        assertRtBtn.Pressed += () =>
+        {
+            CouncilSaveAssert.AssertAll();
+            ProgressionSaveAssert.AssertAll();
+        };
         grid.AddChild(assertRtBtn);
 
         // ── Espionage E2 verification (ShadowTick / ConcordDebug.cs) ─────
@@ -957,6 +961,16 @@ public sealed class CampusGuildPanel : CampusPanel
             GD.Print($"[Debug] Unlocked {n} blueprint(s) — " +
                      $"{save.Ledger.UnlockedCardBlueprintIds.Count} known. " +
                      $"Legendaries remain undraftable (they are Regalia).");
+        });
+
+        DebugGrant("Commission Random Rare", save =>
+        {
+            // Bypasses the Archives/gold/capacity gates and uses a 1-lunation timer
+            // so a single moon-turn settles it — lets you exercise the §8 pity-timer
+            // tick + unlock without first building the Arcane Library to tier III.
+            var id = CardCommissionService.DebugCommissionRandom(save, lunations: 1);
+            if (id == null)
+                GD.Print("[Debug] Nothing to commission — every Rare is already known here.");
         });
 
         DebugGrant("Learn All Spells", save =>

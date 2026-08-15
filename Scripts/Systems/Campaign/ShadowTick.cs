@@ -371,11 +371,16 @@ public static class ShadowTick
         else if (c.ContractType == ShadowVocab.ContractTheft)
         {
             bool stole = StealSecret(cycle, c.TargetKingdomId, c.TargetId, lun, reports, where);
-            if (!stole)
-            {
+            if (stole)
+                // §8 stolen spellbook: a successful break-in also lifts a working —
+                // an off-school Rare of the target court's school enters the permanent
+                // pool. The sanctioned §2a exception (another school's card without
+                // alliance, mastery, or purchase); the Marked the Theft contract already
+                // charged is what makes theft feel like the cheat it is.
+                StealCard(cycle, c.TargetKingdomId, lun, reports, where);
+            else
                 Emit(reports, lun, c.TargetKingdomId,
                     $"Shadow: the Concord's thief in {where} found no secret left to take.");
-            }
         }
         else if (c.ContractType == ShadowVocab.ContractSabotage)
         {
@@ -597,6 +602,46 @@ public static class ShadowTick
             ChartAround(world, kingdomId, 3, 24); // light chart around the newly-known ground
         }
         return revealed;
+    }
+
+    /// <summary>The §8 "stolen spellbook" payoff on a successful Theft: discover an
+    /// unknown Rare of the TARGET court's school, unlocking it into the permanent
+    /// pool. Off-school by construction (you rob someone else's court), which is the
+    /// sanctioned §2a exception. No-op when the target has no school we can resolve,
+    /// or every one of its Rares is already known. Emits a Herald line on success.</summary>
+    private static void StealCard(CycleState cycle, string kingdomId,
+                                  int lun, List<HeraldReport> reports, string where)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save?.Ledger == null) return;
+
+        string school = SchoolOfKingdom(cycle, kingdomId);
+        if (string.IsNullOrEmpty(school)) return;
+
+        string id = CardAcquisition.RollUnknownRareOfSchool(save, school);
+        if (string.IsNullOrEmpty(id)) return;
+
+        string name = CardAcquisition.Discover(save, id);
+        if (!string.IsNullOrEmpty(name))
+            Emit(reports, lun, kingdomId,
+                $"Shadow: your thief in {where} makes off with a working — " +
+                $"the {name} enters your library.");
+    }
+
+    /// <summary>The archmage-school governing a kingdom, or "" — the exact mapping
+    /// CouncilTick uses (kingdom → TemplateRegionId → GetArchmageForRegion →
+    /// ArchmageRegistry school), reused so theft and diplomacy read the world the
+    /// same way.</summary>
+    private static string SchoolOfKingdom(CycleState cycle, string kingdomId)
+    {
+        if (cycle?.Kingdoms != null &&
+            cycle.Kingdoms.TryGetValue(kingdomId, out var ks) &&
+            !string.IsNullOrEmpty(ks.TemplateRegionId))
+        {
+            string amId = cycle.Campaign?.GetArchmageForRegion(ks.TemplateRegionId);
+            return string.IsNullOrEmpty(amId) ? "" : (ArchmageRegistry.Get(amId)?.School ?? "");
+        }
+        return "";
     }
 
     private static bool StealSecret(CycleState cycle, string kingdomId, string courtierId,

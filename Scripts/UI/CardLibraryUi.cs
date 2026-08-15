@@ -385,6 +385,85 @@ public partial class CardLibraryUi : Control
         }
     }
 
+    /// <summary>The §8 pity-timer surface: for a locked card the player has not yet
+    /// discovered, offer to commission its research from the Forbidden Archives —
+    /// pay gold now, receive the card after a fixed number of lunations. Shows the
+    /// in-flight countdown when a commission already exists, and nothing at all for
+    /// cards that are already known, are Regalia, or belong to another verb
+    /// (Marginalia). Additive to the mint section, which handles already-known cards.</summary>
+    private void BuildResearchSection(CardBlueprint bp)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null || bp == null) return;
+
+        // Only speak up when this card is a legitimate research target OR already
+        // has a commission in flight — otherwise stay silent (mint/Marginalia own it).
+        bool commissionable = CardCommissionService.IsCommissionable(save, bp);
+        var existing = CardCommissionService.Find(save, bp.Id);
+        if (!commissionable && existing == null) return;
+
+        var status = CardCommissionService.Evaluate(save, bp);
+
+        // Already under research — show the countdown, no button.
+        if (existing != null)
+        {
+            var pending = new Label
+            {
+                Text = $"Forbidden Archives: under research — {existing.LunationsRemaining} " +
+                       $"lunation(s) remain. It enters the draft pool on completion.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            pending.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            pending.AddThemeColorOverride("font_color", UITheme.HealthGreen);
+            _detailContent.AddChild(pending);
+            return;
+        }
+
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 10);
+        _detailContent.AddChild(row);
+
+        var info = new Label
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        info.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+
+        if (!status.CanCommission)
+        {
+            // A locked card the player cannot yet research (no Archives, at capacity,
+            // too little gold). Show why — this is the want-list surface.
+            info.Text = status.Blocker;
+            info.AddThemeColorOverride("font_color", UITheme.TextDim);
+            row.AddChild(info);
+            return;
+        }
+
+        info.Text = $"Undiscovered. Commission its research from the Forbidden Archives " +
+                    $"({status.InFlight}/{status.MaxConcurrent} in progress) — delivers in " +
+                    $"{status.Lunations} lunations.";
+        info.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+        row.AddChild(info);
+
+        var captured = bp;
+        var btn = new Button
+        {
+            Text = $"Commission  {status.GoldCost} gold",
+            CustomMinimumSize = new Vector2(200, 32),
+            TooltipText = "Pay now; the card unlocks after the research completes.",
+        };
+        btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(btn, isPrimary: true);
+        btn.Pressed += () =>
+        {
+            if (CardCommissionService.Commission(SaveManager.ActiveSave, captured) == null) return;
+            SaveManager.Save();
+            ShowDetailPanel(captured);   // re-evaluate: gold spent, commission now in flight
+        };
+        row.AddChild(btn);
+    }
+
     /// <summary>Marginalia lock note (marginalia_spec_v1 R5): a Marginalia reward
     /// card shows WHY it is locked and how far the hunt has come, turning the
     /// library into the want-list surface. One label; nothing when the blueprint
@@ -460,6 +539,7 @@ public partial class CardLibraryUi : Control
         header.AddChild(rarityLabel);
 
         BuildMintSection(bp);
+        BuildResearchSection(bp);
         BuildMarginaliaNote(bp);
 
         var closeBtn = new Button { Text = "✕" };

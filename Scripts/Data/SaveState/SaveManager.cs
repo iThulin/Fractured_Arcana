@@ -273,6 +273,12 @@ public static class SaveManager
         // gets paid the moment it loads.
         ProgressionSweep.Run(data);
 
+        // Self-heal any research commission that finished but lost its settlement
+        // to a crash between the lunation tick and the save (§8 pity-timer). The
+        // tick is the normal settle path; this only pays a completed-but-unsettled
+        // one. Idempotent — a no-op on the common case.
+        CardCommissionService.Reconcile(data);
+
         GD.Print($"SaveManager: Loaded slot {slot} " +
                  $"(v{data.Ledger.SaveVersion}, guild: {data.Ledger.GuildName}, " +
                  $"cycle {data.Cycle.CycleNumber})");
