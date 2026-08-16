@@ -2857,6 +2857,26 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
         }
 
+        // ── Explore→named codices (§8): the card analogue of the spell block
+        // above. An authored CardReward discovers exactly that blueprint; a
+        // CardCodex choice with no named reward rolls an unknown in-school Rare.
+        // Discovery is permanent (rides the ledger), so a card found in the field
+        // is known across every timeline — the same knowledge/power split. ──
+        string discoveredCard = "";
+        var cardSave = SaveManager.ActiveSave;
+        if (cardSave?.Ledger != null)
+        {
+            if (!string.IsNullOrEmpty(choice.CardReward))
+                discoveredCard = CardAcquisition.Discover(cardSave, choice.CardReward);
+            else if (choice.CardCodex)
+            {
+                string roll = CardAcquisition.RollUnknownInSchoolRare(
+                    cardSave, cardSave.Cycle?.SelectedSchool);
+                if (!string.IsNullOrEmpty(roll))
+                    discoveredCard = CardAcquisition.Discover(cardSave, roll);
+            }
+        }
+
         // ── Tranche 2 reward verbs: item / companion / reputation / lore ──
         var t2 = new System.Collections.Generic.List<string>();
         var t2save = SaveManager.ActiveSave;
@@ -2905,10 +2925,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             : $"Encounter resolved. +{spl} Arcane Splinters.";
         if (t2.Count > 0)
             msg += " You " + string.Join(", ", t2) + ".";
+        if (discoveredCard != "")
+            msg += $" A codex here yields the {discoveredCard} — now in your card library, " +
+                   $"draftable and scribable.";
 
         LogRun("narrative_choice",
                encounter.Id
                + (learnedId != "" ? $"; learned {learnedId}" : "")
+               + (discoveredCard != "" ? $"; discovered card {discoveredCard}" : "")
                + (t2.Count > 0 ? "; " + string.Join("; ", t2) : ""),
                goldDelta: GoldEarned - nGoldBefore,
                splinterDelta: spl,
@@ -3153,6 +3177,28 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                         SchoolMasteryService.Award(SaveManager.ActiveSave,
                             taughtSchool.ToString(), SchoolMasteryService.PointsTuition,
                             $"tuition: taught '{taughtDef.Id}' at a cordial table");
+
+                        // Card tuition (§8, "Negotiate → tuition"): a teacher of YOUR
+                        // OWN school also imparts a technique — an unknown in-school
+                        // Rare enters the pool. Off-school teachers pay only the spell
+                        // + SchoolMastery above (§2a: off-school pays access, not
+                        // cards), so this is gated to same-school instruction. Bounded
+                        // by the spell-teaching beat (each spell teaches once ever), so
+                        // it cannot be farmed as a standalone card faucet.
+                        string curSchool = SaveManager.ActiveSave?.Cycle?.SelectedSchool ?? "";
+                        if (System.Enum.TryParse<CardSchool>(curSchool, true, out var curParsed) &&
+                            curParsed == taughtSchool)
+                        {
+                            string rareId = CardAcquisition.RollUnknownInSchoolRare(
+                                SaveManager.ActiveSave, curSchool);
+                            if (!string.IsNullOrEmpty(rareId))
+                            {
+                                string cardName = CardAcquisition.Discover(
+                                    SaveManager.ActiveSave, rareId);
+                                if (!string.IsNullOrEmpty(cardName))
+                                    taught += $"  They show you the {cardName}, too.";
+                            }
+                        }
                     }
                 }
             }

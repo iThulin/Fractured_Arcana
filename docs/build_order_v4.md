@@ -74,6 +74,8 @@ The uncomfortable synthesis: **this project is in danger of being permanently pr
 | **Text / localization** | 5,962-row player-facing inventory delivered as `.xlsx`. **Replacement Text column empty.** |
 | **Convergence / finale** | **NOT BUILT. NOT STARTED. NO SCENE, NO TRIGGER, NO ENCOUNTER.** |
 
+> **Post-audit update (2026-08-15):** a **progression / card-acquisition track** absent from this 07-31 table was built 08-04 → 08-15 — the full slow-reveal card-unlock system (draft-pool gate, unlock seed, SchoolMastery + Fluency, declaration, Regalia, deterministic minting) plus the `progression_card_acquisition` **§8 acquisition-verb layer**. This materially advances **G7 (Cards)** and adds a track this table never listed. Folded record in **§11**. Compiles and runs as of 2026-08-15.
+
 ### Deferred by standing ruling (do not build)
 
 Settlement combat module (R11) · Grand Rituals (R14/S6) · campus interactions with spells (R6 — campus rework owns them) · arcane arc-signatures (v1 lock) · enemy card-casting · negotiation Module C/E cores · post-cast bucket (c) "Puppeteer" · `unstable` ability key.
@@ -228,3 +230,64 @@ Effective patience = `max(BasePatience, Resolve + Guile + PatienceFloorOverPool)
 3. **F1 — make it finishable.** Wire `AllArchmagiResolved()` to a Conjunction check; route victory/defeat; gate Continue on victory; drop in a placeholder Convergence encounter. Settle R-F1 through R-F6 in the same session — they are all one conversation, and they gate everything in Phase F.
 
 *If you get stuck on any piece — the Convergence encounter structure, fragment powers, the lunation arithmetic, the campus rework's design doc — that piece deserves its own scoped spec the way C6 got one. Ad-hoc is what produced three roadmaps.*
+
+---
+
+## 11. Progression & Card Acquisition — the §8 acquisition-verb layer *(folded 2026-08-15)*
+
+*Consolidates the four 2026-08-15 session logs (the individual logs are retired into this section). "§8" throughout this section refers to `docs/progression_card_acquisition_v1.md` §8, NOT this document's §8 (the Negotiation Table Audit). **Compiles and runs — confirmed by Magos 2026-08-15.***
+
+### The correction that started it
+
+Project memory flagged "the card unlock system is inert / highest priority." That was **stale**. Verified against the live tree, the whole spine was already built (2026-08-04+): `CardDatabase.DraftablePool`/`WeightedDraftPool` read `EternalLedger.UnlockedCardBlueprintIds` and drop Legendaries/owned Regalia; `CardRewardScreen.GenerateOffers` uses them; `StarterDeckLoader.SeedUnlockedPool` seeds all Commons+Uncommons+starters and leaves Rares locked; `SchoolMasteryService` (Fluency 60 / Declarable 8), `DeclarationService`, `RegaliaService`, `CardMintService`, and `ProgressionSweep` all exist and are wired. The gate/mastery/Regalia/mint work is **done**.
+
+The real gap: **52 Rares are locked at seed with no discovery path** — nothing wrote them into the unlock list in normal play, so they were undraftable AND unmintable (mint requires prior discovery). §8's acquisition verbs are that path.
+
+### §8 verb status (all eight)
+
+| Verb | Status | Where |
+| --- | --- | --- |
+| **Kill → Marginalia** | Built pre-08-15 | `ProgressionSweep.SweepMarginalia` (8 faction cards) |
+| **Befriend → arc capstone** | Built pre-08-15 | `ProgressionSweep.SweepCompanionArcs` (signature → Regalia at stage 4) |
+| **Library → pity-timer** | **Built 08-15** | Forbidden Archives — deterministic *named* discovery |
+| **Explore → named codices** | **Built 08-15** | narrative POIs — stochastic *in-school* discovery |
+| **Espionage → stolen card** | **Built 08-15** | Theft contract — stochastic *off-school* (§2a exception) |
+| **Death → memorial** | **Built 08-15** | companion permadeath — signature card, "loss accrues" |
+| **Negotiate → card tuition** | **Built 08-15** | cordial close — *in-school*, same-school teacher only |
+| **Court → archmage card** | **Skipped** | Redundant: archmage resolution already grants Regalia + SchoolMastery |
+
+The three deliberate discovery *shapes*: in-school stochastic (codex, tuition), in-school deterministic/paid (pity-timer), off-school (theft). All write the one permanent pool via `CardAcquisition.Discover` / `CardCommissionService`.
+
+### What each new verb does
+
+- **Library pity-timer** — on the Arcane Library's `forbidden_archives` T3 flag (previously *set and never consumed*). Name a locked Rare, pay gold up front, it unlocks after N lunations. The delay is the design — instant unlock would collapse the slow reveal. New save struct `CardCommission` on `EternalLedger.CardCommissions` (permanent, survives reseed; stores a remaining-count, not a due-lunation, since the calendar resets each cycle). Settles on the single lunation-tick chokepoint (`StrategicView.RunLunationTick`) with a load-time `Reconcile` self-heal.
+- **Explore → codices** — adds the card analogue of `SpellReward` to `EncounterChoice`: `CardReward` (named blueprint) and `CardCodex` (roll an unknown in-school Rare). Replaces the doc's dead "Hidden Vault → legendary 10%" (Legendaries aren't draftable; it was doc-only). Three biome-tagged codex encounters authored (no new card defs).
+- **Espionage → theft** — the Theft contract's successful break-in now also lifts an off-school Rare of the target court's school (kingdom → region → archmage → school, reusing `CouncilTick`'s mapping). Off-school breadth is the sanctioned §2a exception; the Marked meter is its throttle.
+- **Death → memorial** — on companion permadeath (`CompanionInjurySystem.ApplyWipe`), their signature card is discovered permanently. Fires at any arc stage, so distinct from the capstone Regalia; `Discover` no-ops if already known. *Open:* the doc's "altered form" wants a distinct variant blueprint per companion — content authoring, deferred.
+- **Negotiate → card tuition** — a cordial-close teacher **of your own school** who grants a spell also imparts an in-school Rare. §2a-gated to same-school (off-school stays espionage-only); bounded by the once-ever spell-teaching beat, so not farmable.
+
+### Files
+
+New: `CardCommissionService.cs`, `CardAcquisition.cs`, `ProgressionSaveAssert.cs`.
+Edited: `EternalLedger.cs` (`CardCommission` + field), `SaveManager.cs` (load-time reconcile), `StrategicView.cs` (lunation tick), `CardLibraryUi.cs` (commission surface), `CampusGuildPanel.cs` (debug "Commission Random Rare" + assert wiring), `ShadowTick.cs` (theft card), `NarrativeEncounterData.cs` (`CardReward`/`CardCodex`), `ExpeditionManager.cs` (codex + card tuition), `CompanionInjurySystem.cs` (memorial), `Data/Encounters/generic_encounters.json` (3 codices).
+
+Save-schema: one new struct + one field (two-structs-max held), round-tripped by `ProgressionSaveAssert` (wired to the campus "Assert Round-Trips" button). The other four verbs ride the existing `UnlockedCardBlueprintIds`, so no further assertions owed.
+
+### Tuning knobs (empirical anchors — tune as a set, per §9 "Untuned knobs compound")
+
+- Pity-timer: `ResearchLunations = 3`; gold Rare 250 / Uncommon 120 / Common 60; max concurrent = Arcane Library tier (3 at T3). Co-tune with the mint cap — together they are the archetype-chasing dial. If grindy, cut lunations before gold; if too cheap, raise gold before shortening the timer.
+- Codex: three encounters (Snow/Tundra, Ruins/ArcaneGround, Volcanic/Desert) — watch appearance frequency.
+- Theft/tuition/memorial: bounded by design (Marked meter / once-ever spell beat / permadeath), low farm risk.
+
+### First-launch checks (retained from the folded logs)
+
+- **Pity-timer:** Library → T3, open Card Library, Commission a locked Rare, advance lunations, confirm it enters the draft pool and is mintable. (Debug: "Commission Random Rare" seeds a 1-lunation commission.) Press "Assert Round-Trips" — now runs `ProgressionSaveAssert` too.
+- **Codex:** walk a fresh school onto a Snow/Tundra, Ruins/ArcaneGround, or Volcanic/Desert narrative POI; resolve the study choice; confirm the toast names a card and it shows unlocked.
+- **Theft:** commission a Theft against a court of a school you are NOT playing; advance to contract resolution; confirm the Herald line names a stolen working and the (off-school) card is unlocked.
+- **Memorial:** wipe on a tier-2+/boss territory with a fielded companion; on a death roll, confirm the summary names their card and it is unlocked.
+- **Tuition:** close a negotiation cordially with a same-school teacher who grants a spell; confirm the return text adds "They show you the &lt;card&gt;, too" and the card is unlocked.
+
+### Open / next
+
+- Author the memorial **variant** blueprints (the "altered form"), if desired — the only content piece the verb defers to.
+- Playtest the acquisition dial across a full 12-lunation cycle before tuning (§9). The discovery layer is functionally **complete** pending that pass.

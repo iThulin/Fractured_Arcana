@@ -62,4 +62,12 @@ public enum PoiKind
     /// strategic map is its interface). Appended last for int-serialization
     /// stability.</summary>
     SupplyCache,
+
+    /// <summary>A Veiled Concord node — the espionage layer's shadow-market
+    /// contact point (espionage_veiled_concord_spec_v1 §3a). Faction-neutral,
+    /// mostly undiscovered at generation; reaching one first-contacts the
+    /// Concord (CouncilState.ConcordContacted). World-scale only — inside an
+    /// expedition window it resolves to a bespoke broker interaction, not a
+    /// plain POIType. Appended last for int-serialization stability.</summary>
+    Concord,
 }

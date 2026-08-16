@@ -3410,6 +3410,10 @@ public partial class StrategicView : Node2D
         CompanionInjurySystem.TickRecovery(SaveManager.ActiveSave);
         // Q4.2: a united archmage's relic arrives when the unite moon returns.
         ArchmageRelics.TickUniteAnniversaries(cycle);
+        // §8 pity-timer: advance Library research commissions; a completed one
+        // unlocks its named card into the permanent draft pool. This is the ONE
+        // per-lunation call site — calling it twice would double the countdown.
+        CardCommissionService.TickLunation(SaveManager.ActiveSave);
     }
 
     /// <summary>The Grand Conjunction has arrived. For now the cycle simply ends —

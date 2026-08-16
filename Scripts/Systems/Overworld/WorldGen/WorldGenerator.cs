@@ -235,6 +235,11 @@ public static class WorldGenerator
         // output is bit-identical with or without court generation.
         var council = CourtGenerator.Generate(seed, kingdoms, convergenceKingdom);
 
+        // ── 9b. Veiled Concord nodes (espionage phase E1c) ───────────────
+        // Own RNG (seed ^ FNV1a("veiled_concord")); appends Concord POIs and
+        // does NOT consume this method's rng, so world output is unchanged.
+        ConcordGenerator.Generate(seed, world, kingdoms, convergenceKingdom);
+
         GD.Print($"[WorldGenerator] World {p.Width}x{p.Height} seed={seed}: " +
                  $"{kingdoms.Count} territories, convergence='{convergenceKingdom}' " +
                  $"at ({convergence.x},{convergence.y}), " +

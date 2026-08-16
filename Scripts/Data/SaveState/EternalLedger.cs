@@ -40,6 +40,32 @@ using System.Collections.Generic;
 /// The per-copy OwnedCard.CastCount still exists and still increments; this is the
 /// authoritative record that survives, and the one the upgrade gate reads.
 /// </summary>
+/// <summary>
+/// An in-flight Library research commission — the deterministic DISCOVERY verb
+/// (progression_card_acquisition_v1 §8, "Library research → the pity timer").
+/// The player names a locked blueprint and pays gold up front; the card is
+/// unlocked once <see cref="LunationsRemaining"/> ticks to zero. Distinct from
+/// minting, which COPIES an already-discovered card for splinters instantly.
+///
+/// Permanent by design: a commission lives on the ledger, so it keeps counting
+/// down across a cycle reseed (the calendar resets to lunation 1 each cycle, so
+/// the remaining count is stored absolutely, not as a due-lunation).
+/// </summary>
+public class CardCommission
+{
+    /// <summary>Blueprint id the research will unlock on completion.</summary>
+    public string BlueprintId = "";
+
+    /// <summary>Lunations still to elapse. Decremented once per lunation tick;
+    /// the card unlocks when this reaches 0. Stored as a remaining count rather
+    /// than an absolute due-lunation because the calendar resets every cycle.</summary>
+    public int LunationsRemaining = 0;
+
+    /// <summary>Gold charged when the commission was placed. Audit/display only —
+    /// the payment already happened; this is never refunded on settlement.</summary>
+    public int GoldPaid = 0;
+}
+
 public class CardMasteryRecord
 {
     /// <summary>Lifetime casts of this blueprint, all copies, all timelines.</summary>
@@ -217,6 +243,15 @@ public class EternalLedger
     /// Knowing a card is knowledge; owning a copy is tier-2 power.
     /// </summary>
     public List<string> UnlockedCardBlueprintIds = new();
+
+    /// <summary>
+    /// In-flight Library research commissions (the §8 pity-timer). Each names a
+    /// locked blueprint and a remaining lunation count; on completion the id is
+    /// moved into <see cref="UnlockedCardBlueprintIds"/> and the entry removed.
+    /// Settled by CardCommissionService on the lunation tick. Permanent so a
+    /// commission survives the cycle reseed and keeps counting down.
+    /// </summary>
+    public List<CardCommission> CardCommissions = new();
 
     // ── Regalia (the ONE reseed exception) ───────────────────────────────
     /// <summary>

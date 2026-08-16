@@ -90,6 +90,20 @@ public static class CompanionInjurySystem
                 GD.Print($"[Injury] {c.Name} DIES (rolled {roll} < {chance}%" +
                          $"{(c.GetLoyaltyTier() == LoyaltyTier.Sworn ? ", Sworn −10 applied" : "")}).");
                 summary.Append($" {c.Name} is DEAD.");
+
+                // Death→memorial (§8): the fallen companion's signature technique
+                // outlives them, entering the permanent card pool — the one reward
+                // that makes loss accrue. Fires on permadeath at ANY arc stage, so it
+                // is distinct from the arc-capstone grant (ProgressionSweep), which
+                // needs the arc COMPLETED. Discover no-ops if the card is already
+                // known (e.g. a completed capstone already granted it), and skips
+                // Legendaries/Marginalia. Signature = the first contributed card.
+                string memId = (c.ContributedCardIds != null && c.ContributedCardIds.Count > 0)
+                    ? c.ContributedCardIds[0] : "";
+                string memCard = CardAcquisition.Discover(save, memId);
+                if (!string.IsNullOrEmpty(memCard))
+                    summary.Append($" Their {memCard} passes into the guild's keeping.");
+
                 died.Add(c);
             }
             else

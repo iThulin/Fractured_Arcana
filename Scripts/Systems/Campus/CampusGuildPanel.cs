@@ -666,8 +666,201 @@ public sealed class CampusGuildPanel : CampusPanel
             CustomMinimumSize = new Vector2(140, 28),
         };
         assertRtBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        assertRtBtn.Pressed += () => CouncilSaveAssert.AssertAll();
+        assertRtBtn.Pressed += () =>
+        {
+            CouncilSaveAssert.AssertAll();
+            ProgressionSaveAssert.AssertAll();
+        };
         grid.AddChild(assertRtBtn);
+
+        // ── Espionage E2 verification (ShadowTick / ConcordDebug.cs) ─────
+        var plantWatcherBtn = new Button
+        {
+            Text = "Plant Watcher",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        plantWatcherBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        plantWatcherBtn.Pressed += () => ConcordDebug.DebugPlantWatcher();
+        grid.AddChild(plantWatcherBtn);
+
+        var contactConcordBtn = new Button
+        {
+            Text = "Contact Concord",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        contactConcordBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        contactConcordBtn.Pressed += () => ConcordDebug.DebugContactConcord();
+        grid.AddChild(contactConcordBtn);
+
+        var dumpShadowBtn = new Button
+        {
+            Text = "Dump Shadow",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        dumpShadowBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        dumpShadowBtn.Pressed += () =>
+        {
+            ConcordDebug.DumpNodes();
+            ConcordDebug.DumpShadow();
+        };
+        grid.AddChild(dumpShadowBtn);
+
+        // ── Espionage E3 marketplace (ShadowMarket / ConcordDebug.cs) ────
+        var grantFavorBtn = new Button
+        {
+            Text = "+50 Favor",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        grantFavorBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        grantFavorBtn.Pressed += () => ConcordDebug.DebugGrantFavor();
+        grid.AddChild(grantFavorBtn);
+
+        var sellSecretBtn = new Button
+        {
+            Text = "Sell Secret",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        sellSecretBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        sellSecretBtn.Pressed += () => ConcordDebug.DebugSellSecret();
+        grid.AddChild(sellSecretBtn);
+
+        var buyPlantBtn = new Button
+        {
+            Text = "Buy: Plant",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        buyPlantBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        buyPlantBtn.Pressed += () => ConcordDebug.DebugCommissionPlant();
+        grid.AddChild(buyPlantBtn);
+
+        var buyIntelBtn = new Button
+        {
+            Text = "Buy: Intel",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        buyIntelBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        buyIntelBtn.Pressed += () => ConcordDebug.DebugCommissionIntel();
+        grid.AddChild(buyIntelBtn);
+
+        var buyTheftBtn = new Button
+        {
+            Text = "Buy: Theft",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        buyTheftBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        buyTheftBtn.Pressed += () => ConcordDebug.DebugCommissionTheft();
+        grid.AddChild(buyTheftBtn);
+
+        // ── Espionage E4 sabotage & false echoes (ShadowOps / ShadowMarket) ─
+        var plantSaboteurBtn = new Button
+        {
+            Text = "Plant Saboteur",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        plantSaboteurBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        plantSaboteurBtn.Pressed += () => ConcordDebug.DebugPlantSaboteur();
+        grid.AddChild(plantSaboteurBtn);
+
+        var saboteurStrikeBtn = new Button
+        {
+            Text = "Saboteur Strike",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        saboteurStrikeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        saboteurStrikeBtn.Pressed += () => ConcordDebug.DebugSaboteurStrike();
+        grid.AddChild(saboteurStrikeBtn);
+
+        var forgeEchoBtn = new Button
+        {
+            Text = "Forge Echo",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        forgeEchoBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        forgeEchoBtn.Pressed += () => ConcordDebug.DebugForgeEcho();
+        grid.AddChild(forgeEchoBtn);
+
+        var buySabotageSiegeBtn = new Button
+        {
+            Text = "Buy: Sabotage Siege",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        buySabotageSiegeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        buySabotageSiegeBtn.Pressed += () => ConcordDebug.DebugBuySabotageSiege();
+        grid.AddChild(buySabotageSiegeBtn);
+
+        var buySabotageCorrBtn = new Button
+        {
+            Text = "Buy: Sabotage Corr.",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        buySabotageCorrBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        buySabotageCorrBtn.Pressed += () => ConcordDebug.DebugBuySabotageCorruption();
+        grid.AddChild(buySabotageCorrBtn);
+
+        // ── Espionage E5 shadow war (ShadowMarket / CouncilTick) ─────────
+        var forceMarkedBtn = new Button
+        {
+            Text = "Marked → 9",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        forceMarkedBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        forceMarkedBtn.Pressed += () => ConcordDebug.DebugForceMarked();
+        grid.AddChild(forceMarkedBtn);
+
+        var outbidBtn = new Button
+        {
+            Text = "Outbid",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        outbidBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        outbidBtn.Pressed += () => ConcordDebug.DebugOutbid();
+        grid.AddChild(outbidBtn);
+
+        var imprisonBtn = new Button
+        {
+            Text = "Imprison Envoy",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        imprisonBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        imprisonBtn.Pressed += () => ConcordDebug.DebugImprisonEnvoy();
+        grid.AddChild(imprisonBtn);
+
+        var buyExtractionBtn = new Button
+        {
+            Text = "Buy: Extraction",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        buyExtractionBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        buyExtractionBtn.Pressed += () => ConcordDebug.DebugBuyExtraction();
+        grid.AddChild(buyExtractionBtn);
+
+        // ── Espionage E6 Tier C + the spine (ShadowMarket / ShadowOps) ───
+        var undercroftBtn = new Button
+        {
+            Text = "Undercroft +1",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        undercroftBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        undercroftBtn.Pressed += () => ConcordDebug.DebugUndercroftUp();
+        grid.AddChild(undercroftBtn);
+
+        var exfilBtn = new Button
+        {
+            Text = "Exfiltrate",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        exfilBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        exfilBtn.Pressed += () => ConcordDebug.DebugExfiltrate();
+        grid.AddChild(exfilBtn);
+
+        var buyAssassinationBtn = new Button
+        {
+            Text = "Buy: Assassination",
+            CustomMinimumSize = new Vector2(140, 28),
+        };
+        buyAssassinationBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        buyAssassinationBtn.Pressed += () => ConcordDebug.DebugBuyAssassination();
+        grid.AddChild(buyAssassinationBtn);
 
         var assertUnitsBtn = new Button
         {
@@ -768,6 +961,16 @@ public sealed class CampusGuildPanel : CampusPanel
             GD.Print($"[Debug] Unlocked {n} blueprint(s) — " +
                      $"{save.Ledger.UnlockedCardBlueprintIds.Count} known. " +
                      $"Legendaries remain undraftable (they are Regalia).");
+        });
+
+        DebugGrant("Commission Random Rare", save =>
+        {
+            // Bypasses the Archives/gold/capacity gates and uses a 1-lunation timer
+            // so a single moon-turn settles it — lets you exercise the §8 pity-timer
+            // tick + unlock without first building the Arcane Library to tier III.
+            var id = CardCommissionService.DebugCommissionRandom(save, lunations: 1);
+            if (id == null)
+                GD.Print("[Debug] Nothing to commission — every Rare is already known here.");
         });
 
         DebugGrant("Learn All Spells", save =>

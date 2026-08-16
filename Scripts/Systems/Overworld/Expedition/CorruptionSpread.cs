@@ -87,6 +87,48 @@ public static class CorruptionSpread
         => _kingdomToRegion.TryGetValue(kingdomId, out var r) && !string.IsNullOrEmpty(r)
             ? r : kingdomId;
 
+    // ── Espionage corruption mitigation (espionage spec §4) ──────────────
+    // Regions whose territory-level ADVANCE is shielded for the coming tick.
+    // The espionage layer (Saboteur / Concord Sabotage) requests a delay; the
+    // §4 cap holds the map to a bounded number of mitigations per lunation so
+    // the doomsday clock is slowed for tempo, never stopped. C6 envoy
+    // deflection can share this same set + cap when it lands.
+    private static readonly HashSet<string> _delayedRegions = new();
+
+    /// <summary>Map-wide corruption mitigations per lunation (§4). Per-region is
+    /// capped at 1 by set dedupe. Severable tuning; co-tune with the corruption
+    /// tempo and (later) envoy deflection.</summary>
+    private const int MaxDelaysPerLunation = 2;
+
+    /// <summary>Request that <paramref name="kingdomId"/>'s corruption level not
+    /// rise on the next spread tick. Returns false if the map-wide cap is already
+    /// spent this lunation (an already-shielded region returns true — no-op).
+    /// The region key mirrors Tick's kingdom→region resolution so the shield
+    /// lands on the right campaign bucket.</summary>
+    public static bool TryRequestDelay(string kingdomId, Dictionary<string, KingdomState> kingdoms)
+    {
+        if (string.IsNullOrEmpty(kingdomId))
+        {
+            return false;
+        }
+        string region = kingdomId;
+        if (kingdoms != null && kingdoms.TryGetValue(kingdomId, out var ks) &&
+            !string.IsNullOrEmpty(ks.TemplateRegionId))
+        {
+            region = ks.TemplateRegionId;
+        }
+        if (_delayedRegions.Contains(region))
+        {
+            return true; // already shielded this lunation
+        }
+        if (_delayedRegions.Count >= MaxDelaysPerLunation)
+        {
+            return false; // §4 cap: the clock will not be fully stopped
+        }
+        _delayedRegions.Add(region);
+        return true;
+    }
+
     /// <summary>Run one lunation of corruption spread on the cycle's world +
     /// campaign. Call from the lunation-boundary hook (one deploy = one lunation).</summary>
     public static void Tick(WorldData world, CampaignState campaign,
@@ -118,6 +160,10 @@ public static class CorruptionSpread
 
         // ── 2. Tiles flood toward their kingdom's pressure ───────────────
         FloodTiles(world, campaign, rateMult);
+
+        // Espionage delays are single-lunation: consume them now so next
+        // lunation starts unshielded and the cap resets.
+        _delayedRegions.Clear();
 
         GD.Print("[Corruption] Lunation spread applied.");
     }
@@ -187,6 +233,16 @@ public static class CorruptionSpread
             string region = RegionOf(kid);
             int targetLevel = Mathf.FloorToInt(kvp.Value);
             int curLevel = campaign.GetCorruption(region);
+
+            // Espionage delay (§4): a shielded region holds its level this tick.
+            // Pressure still accumulates, so the delay postpones by a lunation
+            // rather than pausing the clock — tempo, not a stop.
+            if (_delayedRegions.Contains(region) && targetLevel > curLevel)
+            {
+                GD.Print($"[Corruption] Kingdom '{kid}' ({region}) advance delayed this lunation (sabotage).");
+                continue;
+            }
+
             // AdvanceCorruption raises by 1 and handles the archmage flip; call it
             // until the integer level matches the accumulated pressure.
             while (curLevel < targetLevel && curLevel < 3)
@@ -343,5 +399,6 @@ public static class CorruptionSpread
         _adjacency = null;
         _adjacencyWorld = null;
         _pressure.Clear();
+        _delayedRegions.Clear();
     }
 }
