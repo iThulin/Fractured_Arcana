@@ -269,11 +269,52 @@ public partial class ExpeditionWindow3D : Node3D
             LightColor = new Color(1f, 0.97f, 0.90f, 1f),
             LightEnergy = 1.0f,
             ShadowEnabled = true,
-            DirectionalShadowMaxDistance = 120f,
+            // SHADOW-MAP HYGIENE (the "lines everywhere + spotted shadows"
+            // fix). The old rig projected acne artifacts across every tile:
+            // - MaxDistance 120 over a ~50-unit scene wasted >half the depth
+            //   range → coarse texels → their grid stamped as regularly
+            //   spaced straight stripes on the gently sloped tops (the toon
+            //   light() multiplies raw ATTENUATION at full albedo contrast,
+            //   so acne shows far harder than under PBR).
+            // - Blur 3 spread the PCF sampling noise into a visible stipple
+            //   ("spotted shadows") instead of hiding it.
+            // - Orthogonal single-split: uniform texel density, no split
+            //   seams, max precision for a small fixed-size scene.
+            DirectionalShadowMaxDistance = 45f,
+            DirectionalShadowMode = DirectionalLight3D.ShadowMode.Orthogonal,
             ShadowBlur = 1.0f,
+            ShadowBias = 0.3f,
+            ShadowNormalBias = 3.0f,
         };
         AddChild(sun);
         sun.RotationDegrees = new Vector3(-45f, -40f, 0f);
+        _sun = sun;
+    }
+
+    private DirectionalLight3D _sun;
+    private int _debugViz;
+
+    /// <summary>V-key diagnostic: cycles isolation modes so the layer painting
+    /// an artifact identifies itself live — no more inferring from screenshots.
+    /// 0 all on · 1 sun shadows OFF · 2 toon banding OFF (smooth light) ·
+    /// 3 grain OFF · 4 colour map OFF (vertex colours) · 5 UNSHADED albedo.
+    /// The mode at which the artifact vanishes names its source.</summary>
+    private void ApplyDebugViz()
+    {
+        string[] names = { "all on (normal)", "sun shadows OFF", "toon banding OFF (smooth light)",
+                           "grain OFF", "color map OFF (vertex colours)", "UNSHADED (flat albedo)" };
+        GD.Print($"[ExpeditionWindow3D] V debug {_debugViz}: {names[_debugViz]}");
+        if (_sun != null)
+            _sun.ShadowEnabled = _debugViz != 1;
+        foreach (GeometryInstance3D gi in new GeometryInstance3D[] { _landLayer, _canvasLayer })
+        {
+            if (gi is not MeshInstance3D mi || mi.MaterialOverride is not ShaderMaterial m)
+                continue;
+            m.SetShaderParameter("debug_mode", (_debugViz == 2 || _debugViz == 5) ? _debugViz : 0);
+            m.SetShaderParameter("grain_strength", _debugViz == 3 ? 0f : 0.11f);
+            m.SetShaderParameter("paper_grain", _debugViz == 3 ? 0f : 0.05f);
+            m.SetShaderParameter("use_color_map", _debugViz != 4 && _groundColorMap != null);
+        }
     }
 
     private Vector3 TileOrigin(int col, int row)
@@ -357,6 +398,15 @@ public partial class ExpeditionWindow3D : Node3D
 
     public override void _UnhandledInput(InputEvent ev)
     {
+        // V debug-viz cycler works whenever the view exists (before the
+        // AcceptInput gate) — it's a diagnostic, not a game input. (F8 was a
+        // mistake: it's the editor's Stop-project shortcut and killed the run.)
+        if (ev is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.V)
+        {
+            _debugViz = (_debugViz + 1) % 6;
+            ApplyDebugViz();
+            return;
+        }
         if (!AcceptInput || _camera == null) return;
         if (ev is InputEventMouseButton mb)
         {
@@ -599,6 +649,10 @@ public partial class ExpeditionWindow3D : Node3D
         // bright slabs self-shadowing under a low sun produce acne (seen on the
         // strategic map).
         _canvasLayer.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        // Keep the active F8 diagnostic mode across rebuilds (each party step
+        // rebuilds these layers with fresh materials).
+        if (_debugViz != 0)
+            ApplyDebugViz();
     }
 
     /// <summary>The unpainted world as one welded flat sheet at the canvas slab
@@ -673,6 +727,18 @@ public partial class ExpeditionWindow3D : Node3D
             Mesh = mesh,
             MaterialOverride = PainterlyPrism.TileMaterial(PainterlyPrism.Canvas, 1.0f),
         };
+        // Same blurred colour map as the welded land: the per-tile paper-tone
+        // jitter + random wet-edge amounts otherwise render as a regular hex
+        // mosaic across the big unpainted field — the same lattice-pattern
+        // class the land's vertex colours had. BuildWeldedLand runs first in
+        // RebuildTiles, so the map is fresh for this rebuild.
+        if (_groundColorMap != null && node.MaterialOverride is ShaderMaterial csm)
+        {
+            csm.SetShaderParameter("use_color_map", true);
+            csm.SetShaderParameter("color_map", _groundColorMap);
+            csm.SetShaderParameter("color_map_origin", _cmOrigin);
+            csm.SetShaderParameter("color_map_inv_size", new Vector2(1f / _cmSize.X, 1f / _cmSize.Y));
+        }
         AddChild(node);
         return node;
     }
@@ -902,6 +968,11 @@ public partial class ExpeditionWindow3D : Node3D
 
     private readonly Dictionary<Vector2I, TileSurf> _surf = new();
 
+    // Ground colour map shared by the welded land AND the canvas sheet
+    // (built once per rebuild in BuildWeldedLand, consumed by both materials).
+    private ImageTexture _groundColorMap;
+    private Vector2 _cmOrigin, _cmSize;
+
     private MeshInstance3D BuildWeldedLand(List<Vector2I> coords)
     {
         _surf.Clear();
@@ -923,6 +994,7 @@ public partial class ExpeditionWindow3D : Node3D
             var nH = new float[6];
             var nCol = new Color[6];
             var nCity = new bool[6];
+            var nFog = new Fog[6];
             var s = new TileSurf
             {
                 Corners = new Vector3[6], EdgeMids = new Vector3[6],
@@ -940,8 +1012,9 @@ public partial class ExpeditionWindow3D : Node3D
                 nIsLand[i] = landSet.Contains(nco);
                 if (nIsLand[i])
                 {
+                    nFog[i] = _fog.FogAt(nco);
                     nH[i] = TileHeight(nco);
-                    nCol[i] = TileColor(_world.GetTile(nc, nr), nco, _fog.FogAt(nco));
+                    nCol[i] = TileColor(_world.GetTile(nc, nr), nco, nFog[i]);
                     nCity[i] = IsCityTile(nco);
                 }
             }
@@ -958,12 +1031,15 @@ public partial class ExpeditionWindow3D : Node3D
                 WeldCorner(h0, col0, city0,
                            nIsLand[i], nH[i], nCol[i], nCity[i],
                            nIsLand[j], nH[j], nCol[j], nCity[j],
+                           PairWeldThreshold(fog, nFog[i]),
+                           PairWeldThreshold(fog, nFog[j]),
+                           PairWeldThreshold(nFog[i], nFog[j]),
                            out float ch, out Color cc);
                 s.Corners[i] = new Vector3(cp.X, ch, cp.Z);
                 s.CornerCols[i] = cc;
 
                 Vector3 ep = (o + nOrigin[i]) * 0.5f;
-                bool weld = nIsLand[i] && Mathf.Abs(nH[i] - h0) <= WeldThreshold;
+                bool weld = nIsLand[i] && Mathf.Abs(nH[i] - h0) <= PairWeldThreshold(fog, nFog[i]);
                 s.EdgeWelded[i] = weld;
                 s.EdgeMids[i] = new Vector3(ep.X, weld ? (h0 + nH[i]) * 0.5f : h0, ep.Z);
                 s.EdgeCols[i] = (weld && nCity[i] == city0) ? col0.Lerp(nCol[i], 0.5f) : col0;
@@ -979,33 +1055,48 @@ public partial class ExpeditionWindow3D : Node3D
         foreach (var c in coords)
         {
             var s = _surf[c];
-            Vector3 ctr = Undulate(s.Center);
             for (int j = 0; j < 12; j++)
             {
                 int k = (j + 1) % 12;
-                TopTri(st, ctr, s.CenterCol,
-                       Undulate(Bnd(s, j)), BndCol(s, j),
-                       Undulate(Bnd(s, k)), BndCol(s, k));
+                SubdivTopTri(st, s.Center, s.CenterCol,
+                             Bnd(s, j), BndCol(s, j),
+                             Bnd(s, k), BndCol(s, k), FanSubdivDepth);
             }
             // Walls per unwelded edge: our (corner i-1, edgeMid i, corner i) rim
-            // down to whatever is really below on the other side — PER VERTEX
-            // (a flat shelf left triangular slivers where the neighbour's rim
-            // varies corner to corner; matching XZ floors close them exactly).
+            // down to whatever is really below on the other side — the rim is
+            // SUBDIVIDED to match the top tessellation exactly (nested midpoints
+            // ⇒ shared floats ⇒ no cracks), and the floor at each sub-point is
+            // the neighbour's true rendered surface: endpoint base floors lerped
+            // (their rim is linear in the base heights) + this point's own
+            // undulation, matching their subdivided rim by construction.
             for (int i = 0; i < 6; i++)
             {
                 if (s.EdgeWelded[i])
                     continue;
-                Vector3 a = Undulate(s.Corners[(i + 5) % 6]);
-                Vector3 m = Undulate(s.EdgeMids[i]);
-                Vector3 b = Undulate(s.Corners[i]);
-                float fa = WallFloorAt(s, i, a);
-                float fm = WallFloorAt(s, i, m);
-                float fb = WallFloorAt(s, i, b);
-                if (a.Y <= fa + 0.01f && m.Y <= fm + 0.01f && b.Y <= fb + 0.01f)
+                Vector3 A = s.Corners[(i + 5) % 6], M = s.EdgeMids[i], B = s.Corners[i];
+                float faBase = WallFloorAt(s, i, A) - Undulation(A.X, A.Z);
+                float fmBase = WallFloorAt(s, i, M) - Undulation(M.X, M.Z);
+                float fbBase = WallFloorAt(s, i, B) - Undulation(B.X, B.Z);
+                int segs = 1 << FanSubdivDepth;              // per half-edge
+                int n = 2 * segs + 1;
+                var top = new Vector3[n];
+                var floor = new float[n];
+                bool anyAbove = false;
+                for (int t = 0; t < n; t++)
+                {
+                    float u = t / (float)segs;               // 0..2 across A→M→B
+                    Vector3 p = u <= 1f ? A.Lerp(M, u) : M.Lerp(B, u - 1f);
+                    float fBase = u <= 1f ? Mathf.Lerp(faBase, fmBase, u)
+                                          : Mathf.Lerp(fmBase, fbBase, u - 1f);
+                    top[t] = Undulate(p);
+                    floor[t] = fBase + Undulation(p.X, p.Z);
+                    if (top[t].Y > floor[t] + 0.01f) anyAbove = true;
+                }
+                if (!anyAbove)
                     continue;   // we are the lower side; the neighbour walls down to us
                 Color wc = s.CenterCol;
-                WallQuad(st, a, m, fa, fm, wc, s.Center);
-                WallQuad(st, m, b, fm, fb, wc, s.Center);
+                for (int t = 0; t < n - 1; t++)
+                    WallQuad(st, top[t], top[t + 1], floor[t], floor[t + 1], wc, s.Center);
             }
         }
         var mesh = st.Commit();
@@ -1020,25 +1111,150 @@ public partial class ExpeditionWindow3D : Node3D
             // + stripes + shadow pushed them near-black (the "torn hole" read).
             sm.SetShaderParameter("skirt_darken", 0.14f);
             sm.SetShaderParameter("stripe_strength", 0.10f);
+            // Band-edge break-up (the "straight lines across the map" fix):
+            // with continuous normals the toon quantisation draws N·L
+            // iso-contours, which are STRAIGHT within each large fan triangle —
+            // long pale creases crossing many tiles. Jittering the band
+            // threshold with world-space noise turns those edges brushy; a
+            // slightly softer step widens the transition. Window-only: the
+            // atlas keeps flat lids (constant N·L per top ⇒ no contours) and
+            // the shader default of 0 leaves every other material untouched.
+            sm.SetShaderParameter("toon_softness", 0.28f);
+            sm.SetShaderParameter("toon_jitter", 0.7f);
+            sm.SetShaderParameter("toon_jitter_scale", 1.3f);
+            // Ground COLOUR map (the "lines everywhere" fix): Gouraud vertex
+            // colours interpolate linearly, and the gradient kinks at fan/rim
+            // edges draw a faint straight-line lattice no tessellation density
+            // can remove — the colour field itself is piecewise-linear. The
+            // tops (and walls) sample this blurred world-space map instead;
+            // vertex colours remain only as the fallback when the flag is off.
+            _groundColorMap = BuildGroundColorMap(out _cmOrigin, out _cmSize);
+            sm.SetShaderParameter("use_color_map", true);
+            sm.SetShaderParameter("color_map", _groundColorMap);
+            sm.SetShaderParameter("color_map_origin", _cmOrigin);
+            sm.SetShaderParameter("color_map_inv_size", new Vector2(1f / _cmSize.X, 1f / _cmSize.Y));
         }
         var node = new MeshInstance3D { Name = "WinLandWelded", Mesh = mesh, MaterialOverride = mat };
         AddChild(node);
         return node;
     }
 
+    /// <summary>Pairwise weld threshold. A pair of charted-but-unpainted
+    /// (Silhouette) tiles welds far more aggressively: the underpainting is a
+    /// shape HINT, so its relief should roll — small unwelded steps there read
+    /// as straight seam lines "interrupting the map" (hex edges chain into
+    /// long collinear runs). Any pair touching a Revealed tile keeps the
+    /// strict threshold, so painted cliffs stay crisp and meaningful.
+    /// Symmetric in its arguments — corner weld stays crack-free.</summary>
+    private static float PairWeldThreshold(Fog a, Fog b)
+        => (a != Fog.Revealed && b != Fog.Revealed) ? WeldThreshold * 2.4f : WeldThreshold;
+
+    /// <summary>Rasterise every window tile's rendered colour (canvas tone for
+    /// Hidden, underpaint for Silhouette, full painterly colour for Revealed)
+    /// into a world-aligned float texture at 4 texels/world-unit, then box-blur
+    /// it (~0.5 world units of wash) so tile-to-tile transitions are smooth
+    /// washes with no lattice-aligned gradient kinks. The land shader samples
+    /// this instead of Gouraud vertex colour. Cost per rebuild is a few ms
+    /// (~250×250 texels); float format so the palette round-trips exactly
+    /// (8-bit would re-introduce banding on the pale washes).</summary>
+    private ImageTexture BuildGroundColorMap(out Vector2 origin, out Vector2 size)
+    {
+        const float texelsPerUnit = 4f;
+        const int blurRadius = 2;   // texels ⇒ ~0.5 world units of wash
+        float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
+        foreach (var c in _windowTiles)
+        {
+            var o = TileOrigin(c.X, c.Y);
+            minX = Mathf.Min(minX, o.X); maxX = Mathf.Max(maxX, o.X);
+            minZ = Mathf.Min(minZ, o.Z); maxZ = Mathf.Max(maxZ, o.Z);
+        }
+        minX -= 6f; minZ -= 6f; maxX += 6f; maxZ += 6f;   // margin rings + blur skirt
+        origin = new Vector2(minX, minZ);
+        size = new Vector2(maxX - minX, maxZ - minZ);
+        int w = Mathf.CeilToInt(size.X * texelsPerUnit), h = Mathf.CeilToInt(size.Y * texelsPerUnit);
+        var buf = new Color[w * h];
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                float wx = minX + (x + 0.5f) / texelsPerUnit;
+                float wz = minZ + (y + 0.5f) / texelsPerUnit;
+                var (col, row) = WorldToOffset(wx, wz);
+                var co = new Vector2I(col, row);
+                bool hidden = !_world.InBounds(col, row) || _fog.FogAt(co) == Fog.Hidden;
+                Color cc;
+                if (hidden)
+                {
+                    // Same wet-edge treatment the canvas vertices carried, so
+                    // the torn watercolor frontier survives the map path.
+                    float edge = HasPaintedNeighbor(co) ? Hex3DPalette.WetEdgeAmount(col, row) : 0f;
+                    cc = Hex3DPalette.CanvasTone(col, row, edge);
+                }
+                else
+                    cc = TileColor(_world.GetTile(col, row), co, _fog.FogAt(co));
+                buf[y * w + x] = cc;
+            }
+        var tmp = new Color[w * h];
+        BoxBlur(buf, tmp, w, h, blurRadius, horizontal: true);
+        BoxBlur(tmp, buf, w, h, blurRadius, horizontal: false);
+        var data = new byte[w * h * 16];   // RGBAF: 4 floats per texel
+        for (int i = 0; i < buf.Length; i++)
+        {
+            System.Buffer.BlockCopy(System.BitConverter.GetBytes(buf[i].R), 0, data, i * 16 + 0, 4);
+            System.Buffer.BlockCopy(System.BitConverter.GetBytes(buf[i].G), 0, data, i * 16 + 4, 4);
+            System.Buffer.BlockCopy(System.BitConverter.GetBytes(buf[i].B), 0, data, i * 16 + 8, 4);
+            System.Buffer.BlockCopy(System.BitConverter.GetBytes(1f), 0, data, i * 16 + 12, 4);
+        }
+        var img = Image.CreateFromData(w, h, false, Image.Format.Rgbaf, data);
+        return ImageTexture.CreateFromImage(img);
+    }
+
+    private static void BoxBlur(Color[] src, Color[] dst, int w, int h, int r, bool horizontal)
+    {
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                float cr = 0f, cg = 0f, cb = 0f; int n = 0;
+                for (int k = -r; k <= r; k++)
+                {
+                    int xx = horizontal ? x + k : x, yy = horizontal ? y : y + k;
+                    if (xx < 0 || xx >= w || yy < 0 || yy >= h) continue;
+                    var s = src[yy * w + xx];
+                    cr += s.R; cg += s.G; cb += s.B; n++;
+                }
+                dst[y * w + x] = new Color(cr / n, cg / n, cb / n, 1f);
+            }
+    }
+
+    /// <summary>World XZ → offset tile coord, via fractional axial + cube
+    /// rounding (inverse of <see cref="TileOrigin"/>: x = q·1.5, z = √3·(r + q/2)).</summary>
+    private static (int col, int row) WorldToOffset(float wx, float wz)
+    {
+        float qf = wx / ColSpacing;
+        float rf = wz / RowSpacing - qf * 0.5f;
+        float yf = -qf - rf;
+        int rq = Mathf.RoundToInt(qf), ry = Mathf.RoundToInt(yf), rr = Mathf.RoundToInt(rf);
+        float dq = Mathf.Abs(rq - qf), dy = Mathf.Abs(ry - yf), dr = Mathf.Abs(rr - rf);
+        if (dq > dy && dq > dr) rq = -ry - rr;
+        else if (dr > dy) rr = -rq - ry;
+        return HexCoord.AxialToOffset(rq, rr);
+    }
+
     /// <summary>Corner weld by connected components over pairwise height diffs ≤
     /// threshold — symmetric (every participant computes the same subset), so
-    /// welded corners are crack-free by construction. Colours additionally
+    /// welded corners are crack-free by construction. Thresholds are PER PAIR
+    /// (fog-aware, see <see cref="PairWeldThreshold"/>) but symmetric, so the
+    /// crack-free property holds. Colours additionally
     /// average only among participants on the same side of a city boundary
     /// (heights still weld — the ground is continuous; the paint is not).</summary>
     private static void WeldCorner(float h0, Color c0, bool city0,
                                    bool aIn, float ha, Color ca, bool aCity,
                                    bool bIn, float hb, Color cb, bool bCity,
+                                   float thA, float thB, float thAB,
                                    out float h, out Color col)
     {
-        bool sa = aIn && Mathf.Abs(ha - h0) <= WeldThreshold;
-        bool sb = bIn && Mathf.Abs(hb - h0) <= WeldThreshold;
-        bool ab = aIn && bIn && Mathf.Abs(ha - hb) <= WeldThreshold;
+        bool sa = aIn && Mathf.Abs(ha - h0) <= thA;
+        bool sb = bIn && Mathf.Abs(hb - h0) <= thB;
+        bool ab = aIn && bIn && Mathf.Abs(ha - hb) <= thAB;
         bool useA = aIn && (sa || (sb && ab));
         bool useB = bIn && (sb || (sa && ab));
         int n = 1;
@@ -1098,16 +1314,63 @@ public partial class ExpeditionWindow3D : Node3D
     private static Color BndCol(in TileSurf s, int j)
         => (j & 1) == 0 ? s.EdgeCols[(j >> 1)] : s.CornerCols[(j >> 1)];
 
+    /// <summary>Fan tessellation depth. 0 = the original 12-triangle fan. At 0
+    /// the ~0.9-unit triangles interpolate the smooth ground normal LINEARLY,
+    /// and the slope change at every triangle edge reads as a faint straight
+    /// crease repeating at tile spacing (Mach banding — the "different set of
+    /// lines" left after the noise-lattice fix). Each level quarters the
+    /// triangles; 2 → 16 sub-tris, edge ~0.22, banding below visibility.
+    /// Costs ~16× the vertex work per rebuild — drop to 1 if stepping hitches.</summary>
+    private const int FanSubdivDepth = 2;
+
+    /// <summary>Midpoint-subdivide one fan triangle given PRE-undulation
+    /// vertices; only the FINAL vertices get undulated (via TopTri's smooth
+    /// path), so the base surface stays the exact welded plane and rim points
+    /// remain shared-float identical between neighbouring tiles and the wall
+    /// tops. Colours interpolate with the positions.</summary>
+    private void SubdivTopTri(SurfaceTool st, Vector3 a, Color ca, Vector3 b, Color cb, Vector3 c, Color cc, int depth)
+    {
+        if (depth == 0)
+        {
+            TopTri(st, Undulate(a), ca, Undulate(b), cb, Undulate(c), cc, smoothGround: true);
+            return;
+        }
+        Vector3 ab = (a + b) * 0.5f, bc = (b + c) * 0.5f, ca2 = (c + a) * 0.5f;
+        Color cab = ca.Lerp(cb, 0.5f), cbc = cb.Lerp(cc, 0.5f), cca = cc.Lerp(ca, 0.5f);
+        SubdivTopTri(st, a, ca, ab, cab, ca2, cca, depth - 1);
+        SubdivTopTri(st, ab, cab, b, cb, bc, cbc, depth - 1);
+        SubdivTopTri(st, ca2, cca, bc, cbc, c, cc, depth - 1);
+        SubdivTopTri(st, ab, cab, bc, cbc, ca2, cca, depth - 1);
+    }
+
     /// <summary>Up-facing triangle under the CW front-face rule: emit so the
-    /// RH-normal points DOWN (checked numerically — orientation-proof).</summary>
-    private static void TopTri(SurfaceTool st, Vector3 a, Color ca, Vector3 b, Color cb, Vector3 c, Color cc)
+    /// RH-normal points DOWN (checked numerically — orientation-proof).
+    /// <paramref name="smoothGround"/> = true gives each vertex the analytic
+    /// undulation-gradient normal (see <see cref="GroundNormal"/>) so the rolling
+    /// land shades as ONE continuous surface across tiles — no facet creases.
+    /// Flat sheets (the canvas fog) leave it false and keep straight-up normals.</summary>
+    private static void TopTri(SurfaceTool st, Vector3 a, Color ca, Vector3 b, Color cb, Vector3 c, Color cc,
+                               bool smoothGround = false)
     {
         float crossY = (b.Z - a.Z) * (c.X - a.X) - (b.X - a.X) * (c.Z - a.Z);
         if (crossY > 0f)
         { (b, c) = (c, b); (cb, cc) = (cc, cb); }
-        st.SetColor(ca); st.SetNormal(Vector3.Up); st.AddVertex(a);
-        st.SetColor(cb); st.SetNormal(Vector3.Up); st.AddVertex(b);
-        st.SetColor(cc); st.SetNormal(Vector3.Up); st.AddVertex(c);
+        st.SetColor(ca); st.SetNormal(smoothGround ? GroundNormal(a.X, a.Z) : Vector3.Up); st.AddVertex(a);
+        st.SetColor(cb); st.SetNormal(smoothGround ? GroundNormal(b.X, b.Z) : Vector3.Up); st.AddVertex(b);
+        st.SetColor(cc); st.SetNormal(smoothGround ? GroundNormal(c.X, c.Z) : Vector3.Up); st.AddVertex(c);
+    }
+
+    /// <summary>Smooth surface normal of the undulated land at world XZ, taken as
+    /// the analytic gradient of <see cref="Undulation"/>. Because it is a pure
+    /// function of world XZ, adjacent tiles agree at shared rims by construction —
+    /// the ground reads as one continuous rolling sheet, not faceted hex plates.
+    /// Central-difference epsilon is small vs the noise scales (0.5 / 1.2 per unit).</summary>
+    private static Vector3 GroundNormal(float wx, float wz)
+    {
+        const float e = 0.05f;
+        float dUdx = (Undulation(wx + e, wz) - Undulation(wx - e, wz)) / (2f * e);
+        float dUdz = (Undulation(wx, wz + e) - Undulation(wx, wz - e)) / (2f * e);
+        return new Vector3(-dUdx, 1f, -dUdz).Normalized();
     }
 
     /// <summary>Outward-facing wall quad from rim segment a→b down to per-vertex
@@ -1124,12 +1387,21 @@ public partial class ExpeditionWindow3D : Node3D
         Vector3 b0 = swap ? b2 : a2, b1 = swap ? a2 : b2;
         Vector3 wn = swap ? -n : n;
         wn = wn.LengthSquared() > 1e-8f ? -wn.Normalized() : Vector3.Up;   // face normal points outward
-        st.SetColor(col); st.SetNormal(wn); st.AddVertex(t0);
-        st.SetColor(col); st.SetNormal(wn); st.AddVertex(t1);
-        st.SetColor(col); st.SetNormal(wn); st.AddVertex(b1);
-        st.SetColor(col); st.SetNormal(wn); st.AddVertex(t0);
-        st.SetColor(col); st.SetNormal(wn); st.AddVertex(b1);
-        st.SetColor(col); st.SetNormal(wn); st.AddVertex(b0);
+        // SHORT walls — lips under ~0.3 world units (the silhouette-land ↔
+        // canvas-slab seam sits at ~0.06; single compressed terrace steps at
+        // ~0.23) — take the smooth GROUND normal instead of the horizontal
+        // face normal. The strip then lights exactly like the surrounding
+        // tops: no toon step, and the shader's skirt darkening (keyed off
+        // NORMAL.y ≈ 0) skips it — the straight dark seam lines vanish.
+        // Tall drops keep the crisp painted cliff wall.
+        bool soft = Mathf.Max(a.Y - aFloorY, b.Y - bFloorY) < 0.30f;
+        Vector3 NAt(Vector3 v) => soft ? GroundNormal(v.X, v.Z) : wn;
+        st.SetColor(col); st.SetNormal(NAt(t0)); st.AddVertex(t0);
+        st.SetColor(col); st.SetNormal(NAt(t1)); st.AddVertex(t1);
+        st.SetColor(col); st.SetNormal(NAt(b1)); st.AddVertex(b1);
+        st.SetColor(col); st.SetNormal(NAt(t0)); st.AddVertex(t0);
+        st.SetColor(col); st.SetNormal(NAt(b1)); st.AddVertex(b1);
+        st.SetColor(col); st.SetNormal(NAt(b0)); st.AddVertex(b0);
     }
 
     /// <summary>The true rendered ground height at a world point inside (or just
@@ -1196,15 +1468,33 @@ public partial class ExpeditionWindow3D : Node3D
     {
         int xi = Mathf.FloorToInt(x), zi = Mathf.FloorToInt(z);
         float fx = x - xi, fz = z - zi;
-        fx = fx * fx * (3f - 2f * fx);
-        fz = fz * fz * (3f - 2f * fz);
+        // Quintic fade (C2), not smoothstep (C1): smoothstep's curvature snaps
+        // at every noise-cell boundary, the analytic-gradient normals inherit
+        // the kink, and the lit ground shows a straight crease along every
+        // lattice line. Quintic removes the second-derivative discontinuity.
+        fx = fx * fx * fx * (fx * (fx * 6f - 15f) + 10f);
+        fz = fz * fz * fz * (fz * (fz * 6f - 15f) + 10f);
         float a = UHash(xi, zi), b = UHash(xi + 1, zi);
         float c = UHash(xi, zi + 1), d = UHash(xi + 1, zi + 1);
         return Mathf.Lerp(Mathf.Lerp(a, b, fx), Mathf.Lerp(c, d, fx), fz);
     }
 
     private static float Undulation(float wx, float wz)
-        => ((UNoise(wx * 0.5f, wz * 0.5f) + UNoise(wx * 1.2f + 31.7f, wz * 1.2f) * 0.5f) - 0.75f) * UndulationAmp;
+    {
+        // ROTATED octave domains. Value noise lives on an integer lattice; with
+        // both octaves axis-aligned, their cell boundaries (2.0 and 0.83 world
+        // units) stamp a RECTANGULAR, REGULARLY SPACED grid of shading creases
+        // across the ground — the reported "straight lines on the tiles".
+        // Rotating each octave (18° / 49°) off the world axes and off each
+        // other breaks the aligned grid into unstructured rolling. Pure
+        // function of world XZ as before — welds, SampleGround, and the stroke
+        // ribbons all stay consistent by construction.
+        const float c1 = 0.9511f, s1 = 0.3090f;   // 18°
+        const float c2 = 0.6561f, s2 = 0.7547f;   // 49°
+        float x1 = (wx * c1 - wz * s1) * 0.5f, z1 = (wx * s1 + wz * c1) * 0.5f;
+        float x2 = (wx * c2 - wz * s2) * 1.2f + 31.7f, z2 = (wx * s2 + wz * c2) * 1.2f;
+        return ((UNoise(x1, z1) + UNoise(x2, z2) * 0.5f) - 0.75f) * UndulationAmp;
+    }
 
     /// <summary>Approx render-space direction to a border tile's missing neighbour.</summary>
     private static Vector3 EdgeDir(int i)
