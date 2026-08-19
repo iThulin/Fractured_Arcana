@@ -244,6 +244,16 @@ void fragment()
 		EMISSION = base;
 		ALBEDO = vec3(0.0);
 	}
+	if (debug_mode == 6)
+	{
+		// CRACK TEST: perfectly uniform unlit grey — no colour map, no grain,
+		// no lighting, no per-tile variation of any kind. A flawless mesh is
+		// then a single blank grey shape. Any line that SURVIVES this is a
+		// physical gap between triangles (background showing through) or an
+		// MSAA edge — i.e. mesh topology, the only thing left.
+		EMISSION = vec3(0.6);
+		ALBEDO = vec3(0.0);
+	}
 }
 
 void light()
@@ -252,9 +262,9 @@ void light()
 	// front faces only, so no abs() — walls in shadow band down, never black,
 	// thanks to the wrap; scene ambient adds the floor).
 	// NOTE: 'return' is illegal in the light processor — branch instead.
-	// debug_mode 5 = unshaded diagnostic: EMISSION carries the colour, this
+	// debug_mode 5/6 = unshaded diagnostics: EMISSION carries the colour, this
 	// function contributes nothing.
-	if (debug_mode != 5)
+	if (debug_mode != 5 && debug_mode != 6)
 	{
 		float nd = dot(NORMAL, LIGHT);
 		float wrapped = clamp((nd + toon_wrap) / (1.0 + toon_wrap), 0.0, 1.0);
