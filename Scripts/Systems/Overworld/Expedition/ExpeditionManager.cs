@@ -453,6 +453,7 @@ public partial class ExpeditionManager : Node2D
         SpawnRoamer();
         StampStronghold(); // warfront objective: place + reveal the besieging stronghold
         PaintContestedGround();   // and show WHICH ground the war is over
+        ApplyScryingReveals(bonuses);   // Scrying Chambers run-start intel (scrying_chambers_spec_v1)
 
         CenterCamera();
         UpdateUI();
@@ -1933,6 +1934,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         }
 
+        // Scrying Chambers T3 Portent (scrying_chambers_spec_v1 §2): the party foresaw this
+        // interception. Spend the once-per-run portent to slip the first Ambush — the patrol
+        // passes without forcing combat. Player-armed Parley (above) takes precedence: a
+        // deliberate cast must not be pre-empted by passive foresight.
+        if (PlayerSession.ScryingPortentAvailable)
+        {
+            PlayerSession.ScryingPortentAvailable = false;
+            ShowInfo("The scrying held true — you foresee the patrol and slip past unseen.");
+            return;
+        }
+
         _ambushPending = true;
         ShowInfo("A patrol has intercepted you!");
         string regionId = StagingTemplateRegion();
@@ -2607,6 +2619,37 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             revealed++;
         }
         return revealed;
+    }
+
+    /// <summary>Scrying Chambers run-start intelligence (scrying_chambers_spec_v1 §2).
+    /// T1+: chart the nearest hidden POIs as beacons. T2+: chart a radius around the run
+    /// objective so its site is known from turn one. T3: arm the once-per-run Ambush
+    /// Portent. Pure reuse of existing primitives (RevealNearestPois, SpellChartHexRadius,
+    /// the fog) — no new reveal machinery. Called after the grid, fog, and party are all
+    /// placed (post-StampStronghold), because RevealNearestPois reads _party.CurrentCoord.</summary>
+    private void ApplyScryingReveals(BuildingEffectApplier.RunBonuses bonuses)
+    {
+        if (bonuses.RevealPoiCount > 0)
+        {
+            int marked = RevealNearestPois(bonuses.RevealPoiCount);
+            if (marked > 0)
+                ShowInfo($"Scrying: {marked} site{(marked == 1 ? "" : "s")} charted.");
+        }
+
+        // Chart around the run objective. Not every run has a discrete objective hex
+        // (open explorations do not); when none is flagged this simply does nothing.
+        if (bonuses.ChartObjectiveRadius > 0 && _grid != null)
+        {
+            foreach (var kvp in _grid.Hexes)
+            {
+                if (!kvp.Value.IsObjective) continue;
+                SpellChartHexRadius(kvp.Key.X, kvp.Key.Y, bonuses.ChartObjectiveRadius);
+                break;   // a run has one objective; chart the first and stop
+            }
+        }
+
+        if (bonuses.ScryingPortent)
+            PlayerSession.ScryingPortentAvailable = true;
     }
 
     /// <summary>Difficulty multiplier applied to fragment-guardian boss units.</summary>

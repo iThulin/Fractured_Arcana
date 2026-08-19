@@ -49,6 +49,11 @@ public static class PlayerSession
     /// <summary>True while the player is on an active expedition run.
     /// Gates deck editing in DeckEditorUi.</summary>
     public static bool IsOnExpedition = false;
+
+    /// <summary>Scrying Chambers T3 "Portent" (scrying_chambers_spec_v1 §2): armed at
+    /// run start when the Scrying Chambers is tier 3+, consumed to negate the first
+    /// Ambush of the run. Per-run only — reset by ClearRunState, never persisted.</summary>
+    public static bool ScryingPortentAvailable = false;
     /// <summary>Currently selected wizard school. Drives starting deck composition and school-specific systems.</summary>
     public static CardSchool SelectedSchool = CardSchool.Elementalist;
     public static bool DebugMode = false;
@@ -153,6 +158,7 @@ public static class PlayerSession
         DisenchantSplinterBonus = 0;
         CardSlotCost = 30;
         ForceNextEncounterType = -1;
+        ScryingPortentAvailable = false;
     }
 
     // ── Wizard expedition HP carry (K2.5 symmetry, 2026-07-29) ───────────

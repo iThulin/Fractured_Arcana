@@ -25,7 +25,9 @@ public static class BuildingEffectApplier
         public int BonusHP;
         public int BonusSteps;
         public int BonusGold;
-        public int PreRevealHexCount;
+        public int RevealPoiCount;
+        public int ChartObjectiveRadius;
+        public bool ScryingPortent;
         public int NegotiationTokenCount;
         public string NegotiationTokenType;
     }
@@ -56,7 +58,10 @@ public static class BuildingEffectApplier
                 bonuses.BonusHP += tierData.BonusStartingHP;
                 bonuses.BonusSteps += tierData.BonusStartingSteps;
                 bonuses.BonusGold += tierData.BonusStartingGold;
-                bonuses.PreRevealHexCount += tierData.PreRevealHexCount;
+                bonuses.RevealPoiCount += tierData.RevealPoiCount;
+                bonuses.ChartObjectiveRadius = Math.Max(bonuses.ChartObjectiveRadius,
+                                                        tierData.ChartObjectiveRadius);
+                bonuses.ScryingPortent |= tierData.ScryingPortent;
 
                 if (tierData.BonusNegotiationTokens > 0 &&
                     !string.IsNullOrEmpty(tierData.BonusTokenType))
@@ -86,8 +91,7 @@ public static class BuildingEffectApplier
 
         if (bonuses.BonusHP > 0 || bonuses.BonusSteps > 0 || bonuses.BonusGold > 0)
             GD.Print($"[Buildings] Run bonuses: +{bonuses.BonusHP}HP, " +
-                     $"+{bonuses.BonusSteps}Steps, +{bonuses.BonusGold}Gold, " +
-                     $"{bonuses.PreRevealHexCount} pre-reveals");
+                     $"+{bonuses.BonusSteps}Steps, +{bonuses.BonusGold}Gold");
         return bonuses;
     }
 

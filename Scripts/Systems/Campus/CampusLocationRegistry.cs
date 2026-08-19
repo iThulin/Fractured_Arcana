@@ -74,10 +74,12 @@ public readonly struct CampusDestination
 /// this step would be data, not code — adding a door means editing one JSON file, and a
 /// building with no key is simply not a door.</para>
 ///
-/// <para>Landmarks are NOT routed here yet. All six have live restoration arcs, and clicking
-/// one opens its current beat — see <c>CampusScreen.OnCampusLandmarkClicked</c>. Whether a
-/// restored landmark should then become a door (the Observatory hosting dossiers, the Gatehouse
-/// hosting expedition) is an open design question, not a wiring one.</para></summary>
+/// <para>Landmarks with an UNFINISHED restoration arc are not routed here — clicking one opens
+/// its current beat (see <c>StrategicView.OnHomeLandmarkPicked</c> / <c>CampusScreen
+/// .OnCampusLandmarkClicked</c>). Once a landmark's arc is complete, <see cref="ForLandmark"/>
+/// decides whether it becomes a door: the restored Observatory hosts the Hall of Records
+/// (its "Night-Ledgers" beat). The mapping lives here, not in <c>CampusLandmarkData</c>, so
+/// every campus route — building or landmark — is resolved by one table.</para></summary>
 public static class CampusLocationRegistry
 {
     /// <summary>Where clicking this building leads, or <see cref="CampusDestination.None"/>
@@ -89,6 +91,21 @@ public static class CampusLocationRegistry
         var template = BuildingDatabase.GetTemplate(buildingId);
         return template == null ? CampusDestination.None : ForSystemKey(template.HostsSystem);
     }
+
+    /// <summary>Where clicking a FULLY RESTORED landmark leads, or
+    /// <see cref="CampusDestination.None"/> for a landmark that is not a door. Parallels
+    /// <see cref="ForBuilding"/>: a restored landmark can host a campus system the same way a
+    /// building does. Only consult this once a landmark's restoration chain is complete (its
+    /// <c>GetEncounter</c> returns null) — a half-restored Observatory is still a narrative beat,
+    /// not a door.</summary>
+    public static CampusDestination ForLandmark(string landmarkId) => landmarkId switch
+    {
+        // The Observatory's final beat is "The Night-Ledgers" — the restored instrument becomes
+        // the Hall of Records (deal ledger + enemy Marginalia). Records is floatable, so this
+        // opens in place over the city like any building door.
+        "observatory" => CampusDestination.ToPanel(CampusPanelId.Records),
+        _             => CampusDestination.None,
+    };
 
     /// <summary>Resolve an authored <c>hostsSystem</c> key. Unknown or empty keys return
     /// <see cref="CampusDestination.None"/> rather than throwing — a typo in JSON should make

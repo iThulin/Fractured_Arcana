@@ -1,33 +1,31 @@
 {
   "id": "courier_station",
   "name": "Courier Station",
-  "description": "A network of scouts and informants. Pre-reveals hexes on the overworld at the start of each run.",
+  "description": "A network of scouts and informants. Dispatches the guild's missions and cultivates the Connections that smooth every court negotiation.",
   "category": "Reputation",
   "schoolAffinity": "",
+  "hostsSystem": "quests",
   "maxTier": 3,
   "tiers": [
     {
       "tier": 1,
-      "description": "Local contacts. Pre-reveals 3 hexes near the entry point.",
+      "description": "Local contacts. Establishes the guild's mission board — quests and companion errands are dispatched from here.",
       "goldCost": 120,
-      "requiredBuildings": [],
-      "preRevealHexCount": 3
+      "requiredBuildings": []
     },
     {
       "tier": 2,
-      "description": "Regional network. Pre-reveals 6 hexes and adds +1 Connections token.",
+      "description": "Regional network. The guild's reach earns it standing at court: +1 Connections token to the negotiation pool.",
       "goldCost": 240,
       "requiredBuildings": [],
-      "preRevealHexCount": 6,
       "bonusNegotiationTokens": 1,
       "bonusTokenType": "Connections"
     },
     {
       "tier": 3,
-      "description": "Spy Network. Pre-reveals 10 hexes including one near the objective.",
+      "description": "Spy Network. Informants in every court: +1 further Connections token (2 total).",
       "goldCost": 450,
       "requiredBuildings": [],
-      "preRevealHexCount": 10,
       "bonusNegotiationTokens": 1,
       "bonusTokenType": "Connections"
     }

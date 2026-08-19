@@ -11,32 +11,21 @@
             "displayName": "The Dead Drop",
             "description": "A first quiet room and a handful of trusted couriers. Up to 2 informants may run at once and 1 Veiled Concord contract may be in play.",
             "goldCost": 150,
-            "requiredBuildings": [],
-            "unlocksFeatures": [
-                "undercroft_network",
-                "undercroft_contracts"
-            ]
+            "requiredBuildings": []
         },
         {
             "tier": 2,
             "displayName": "The Handler's Table",
             "description": "A standing corps of handlers works the networks so companions need not. Up to 4 informants and 2 contracts at once, and the Undercroft itself runs your assets — unhandled informants take less heat from counter-intelligence.",
             "goldCost": 300,
-            "requiredBuildings": [],
-            "unlocksFeatures": [
-                "undercroft_free_handler"
-            ]
+            "requiredBuildings": []
         },
         {
             "tier": 3,
             "displayName": "The Silent Floor",
             "description": "Tradecraft deep enough to reach the Inner cabal. Up to 6 informants and 3 contracts at once; the guild may commission Assassination from the Veiled Concord, and every contract leaves a shorter shadow (−1 Marked per completed contract).",
             "goldCost": 500,
-            "requiredBuildings": [],
-            "unlocksFeatures": [
-                "undercroft_assassination",
-                "undercroft_marked_discount"
-            ]
+            "requiredBuildings": []
         }
     ]
 }

@@ -1,7 +1,7 @@
 {
     "id": "scrying_chambers",
     "name": "Scrying Chambers",
-    "description": "A place to ponder where things are.",
+    "description": "A vaulted hall of still water and lenses. The guild's divination organ: it charts what lies ahead before the party ever sets out — sites, objectives, and the patrols that hunt them.",
     "category": "Magic",
     "schoolAffinity": "",
     "footprint": [
@@ -13,21 +13,29 @@
     "tiers": [
         {
             "tier": 1,
-            "description": "Placeholder — mechanical effects not yet designed.",
+            "displayName": "The Still Water",
+            "description": "The lenses find the nearest hidden sites. At the start of each expedition, the 2 nearest undiscovered points of interest are charted as beacons.",
             "goldCost": 150,
-            "requiredBuildings": []
+            "requiredBuildings": [],
+            "revealPoiCount": 2
         },
         {
             "tier": 2,
-            "description": "Placeholder — mechanical effects not yet designed.",
+            "displayName": "The Far Sight",
+            "description": "Sight enough to fix the goal itself. Charts one further site (3 total), and reveals the run objective's location, charting the ground around it — no more wandering blind toward the destination.",
             "goldCost": 275,
-            "requiredBuildings": []
+            "requiredBuildings": [],
+            "revealPoiCount": 1,
+            "chartObjectiveRadius": 2
         },
         {
             "tier": 3,
-            "description": "Placeholder — mechanical effects not yet designed.",
+            "displayName": "The Third Eye",
+            "description": "Foresight sharp enough to read intent. Charts a fourth site (4 total), and once per expedition the party foresees and slips the first ambush — the patrol passes without forcing combat.",
             "goldCost": 450,
-            "requiredBuildings": []
+            "requiredBuildings": [],
+            "revealPoiCount": 1,
+            "scryingPortent": true
         }
     ]
 }

@@ -151,7 +151,13 @@ public class BuildingTier
     public int BonusStartingGold = 0;
     public int BonusNegotiationTokens = 0;  // added to token pool
     public string BonusTokenType = "";       // which token type
-    public int PreRevealHexCount = 0;        // hexes revealed at run start
+
+    // Scrying Chambers (scrying_chambers_spec_v1). Per-tier DELTAS — CalculateRunBonuses
+    // sums tiers 1..current, so author increments, not cumulative totals (spec §4).
+    public int RevealPoiCount = 0;           // nearest hidden POIs charted at run start
+    public int ChartObjectiveRadius = 0;     // chart radius around the run objective at start
+    public bool ScryingPortent = false;      // arms the once-per-run Ambush Portent
+
     public bool UnlocksCardLibrary = false;  // Phase 2 stub
     public int DisenchantSplinterBonus = 0;
 

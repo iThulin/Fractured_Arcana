@@ -533,7 +533,7 @@ public partial class StrategicView : Node2D
     /// <see cref="ShowCampusOverlay"/> this leaves the atlas/world VISIBLE (only its input is
     /// gated) and closes back to the city rather than the world — the finish that lets a
     /// building's menu open in place. One panel at a time.</summary>
-    private void ShowFloatingPanel(CampusPanelId? panel, string buildingId)
+    private void ShowFloatingPanel(CampusPanelId? panel, string buildingId, string titleOverride = null)
     {
         // (2026-08-13) Panel SWAP: picking another building replaces the open
         // card instead of being swallowed. Atlas input stays ENABLED — the
@@ -545,7 +545,7 @@ public partial class StrategicView : Node2D
             _floatingPanel = null;   // null first: Close() fires HideFloatingPanel
             old.Close();
         }
-        string title = BuildingDatabase.GetTemplate(buildingId)?.Name ?? "";
+        string title = titleOverride ?? (BuildingDatabase.GetTemplate(buildingId)?.Name ?? "");
         _floatingPanel = HomeBuildingPanelHost.Create(this, panel, title, HideFloatingPanel,
             buildingId, enc => ShowFloatedPanelNarrative(enc),
             onBuildingChanged: () => _atlas3D?.RefreshCityGrowth());
@@ -582,6 +582,15 @@ public partial class StrategicView : Node2D
         var enc = lm.GetEncounter(save.HasFlag);
         if (enc == null)
         {
+            // Restoration complete. If this landmark is now a door (restored Observatory →
+            // Hall of Records), open it in place like a building; otherwise acknowledge and stop.
+            var dest = CampusLocationRegistry.ForLandmark(landmarkId);
+            if (dest.Panel.HasValue && HomeBuildingPanelHost.CanFloat(dest.Panel.Value))
+            {
+                ShowFloatingPanel(dest.Panel.Value, buildingId: "", titleOverride: lm.DisplayName);
+                _atlas3D?.FocusHomeBuilding(coord);
+                return;
+            }
             EnsureCityExploreToasts();
             _cityExploreToasts?.Push($"{lm.DisplayName} — restored.", QuestToastKind.Complete);
             return;
