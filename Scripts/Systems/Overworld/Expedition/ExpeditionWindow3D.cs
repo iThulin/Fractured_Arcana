@@ -57,7 +57,6 @@ public partial class ExpeditionWindow3D : Node3D
     private const float FogSlabHeight = 0.25f;   // flat height for unexplored (Hidden) fog tiles
     private static readonly float ColSpacing = 1.5f * HexR;
     private static readonly float RowSpacing = Mathf.Sqrt(3f) * HexR;
-    private static readonly Basis HexYaw = new Basis(Vector3.Up, Mathf.Pi / 6f);
 
     private const float VoidSlabHeight = 0.06f;
     private const float TerraceSteps = 5f;
@@ -117,7 +116,10 @@ public partial class ExpeditionWindow3D : Node3D
     private Vector3 _camTarget = Vector3.Zero;
     private float _camDist = 26f;
     private float _camYaw = 0f;   // camera orbit yaw (Q/E rotate); 0 = looking down +Z as before
-    private const float CamDistMin = 8f, CamDistMax = 60f;
+    // Max zoom is the Inspector-editable MaxZoom export (default 36, was a const
+    // 60) so pulling out frames the projection + table + figures instead of
+    // shrinking the map to a dot in a black chamber.
+    private const float CamDistMin = 8f;
     private const float CamRotateSpeed = 1.8f;   // rad/s for Q/E
     private const float CamPanSpeed = 1.1f;      // WASD pan speed as a fraction of zoom distance per second
     // Deadzone "leash": how far (as a fraction of the current zoom distance, so it
@@ -137,6 +139,10 @@ public partial class ExpeditionWindow3D : Node3D
             GenerateStandalone();
         if (_world != null)
             RebuildAll(frameCamera: true);
+        // Standalone preview (F6 in the editor): drive the camera so the scene
+        // can be inspected/tuned. In-game the host sets AcceptInput on hover.
+        if (Standalone)
+            AcceptInput = true;
     }
 
     /// <summary>Inject the live run's data and render. The thesis in one call: the same
@@ -249,21 +255,20 @@ public partial class ExpeditionWindow3D : Node3D
 
     private void BuildEnvironment()
     {
-        AddChild(new WorldEnvironment
+        _env = new Godot.Environment
         {
-            Environment = new Godot.Environment
-            {
-                BackgroundMode = Godot.Environment.BGMode.Color,
-                BackgroundColor = UITheme.WorldDeep,
-                AmbientLightSource = Godot.Environment.AmbientSource.Color,
-                // A4b: same daylight rig as the strategic atlas — the two 3D views
-                // must light the shared A1 palette identically or the colours
-                // drift apart. Exposure per the atlas's A4b note: ≈0.97 total on
-                // flat tops at ~2.3:1 key-to-fill.
-                AmbientLightColor = new Color(0.55f, 0.56f, 0.60f),
-                AmbientLightEnergy = 0.5f,
-            },
-        });
+            BackgroundMode = Godot.Environment.BGMode.Color,
+            BackgroundColor = UITheme.WorldDeep,
+            AmbientLightSource = Godot.Environment.AmbientSource.Color,
+            // A4b: same daylight rig as the strategic atlas — the two 3D views
+            // must light the shared A1 palette identically or the colours
+            // drift apart. Exposure per the atlas's A4b note: ≈0.97 total on
+            // flat tops at ~2.3:1 key-to-fill.
+            AmbientLightColor = new Color(0.55f, 0.56f, 0.60f),
+            AmbientLightEnergy = 0.5f,
+        };
+        AddChild(new WorldEnvironment { Environment = _env });
+        ApplySurround();
         var sun = new DirectionalLight3D
         {
             LightColor = new Color(1f, 0.97f, 0.90f, 1f),
@@ -291,6 +296,128 @@ public partial class ExpeditionWindow3D : Node3D
         _sun = sun;
     }
 
+    // ── Surround / unexplored look (three switchable styles, cycle with B) ───
+    // The world used to be a hard-edged pale slab floating in black. Each style
+    // reconfigures FOUR things together so it reads as one intentional look:
+    // the background colour, distance fog (dissolves the mesh edge so there's
+    // no floating rectangle), the unexplored-tile tone (so unknown ground is
+    // obvious), and the rim colour the ground fades toward. Cycled live so the
+    // look can be judged in-scene; the mesh recolours + refogs on each switch.
+    public enum SurroundStyle { Haze, Desk, Vignette }
+    // Default is the dark chamber (Vignette) — the scrying-table setting. B still
+    // cycles to Haze/Desk for comparison.
+    private SurroundStyle _surround = SurroundStyle.Vignette;
+    private Godot.Environment _env;
+    /// <summary>Colour the ground fades toward at its rim (set per style) — the
+    /// heightmap lerps edge vertices to this so the boundary dissolves.</summary>
+    private Color _surroundEdge = new Color(0.92f, 0.89f, 0.82f);
+
+    // ── Scrying table rig (Phase 1: glowing projection over a table, watched by
+    //    stand-in companions in a dark chamber; free camera keeps the table as a
+    //    peripheral frame). The map disc is the "scried projection" hovering just
+    //    above a round table; a ring of stylised figures stands around it. ──────
+    private Node3D _scryRig;
+    private float _mapCenterX, _mapCenterZ, _mapDiscR;   // set by BuildHeightmapSurface
+
+    // ── Inspector tuning (Path A) ────────────────────────────────────────────
+    // Editable in the Godot Inspector on the ExpeditionWindow3D node; grouped so
+    // the scrying-view knobs are all in one place. Tweak, re-run (F6 to preview
+    // standalone), see the change — no code edits.
+    [ExportGroup("Scrying Chamber")]
+    [Export] public Color ChamberBackground = new Color(0.035f, 0.045f, 0.065f);
+    [Export] public float ChamberFogDensity = 0.05f;
+    [Export] public float ChamberAmbientEnergy = 0.40f;
+    /// <summary>Arcane glow shared by the projection rim, the chamber light, and
+    /// the figures' under-light, so the scene reads as one magical source.</summary>
+    [Export] public Color ArcaneGlow = new Color(0.42f, 0.68f, 0.92f);
+
+    [ExportGroup("Scrying Table")]
+    [Export] public Color TableColor = new Color(0.20f, 0.16f, 0.14f);
+    [Export] public Color FloorColor = new Color(0.11f, 0.11f, 0.14f);
+    [Export] public float TableTopY = -0.35f;   // just below the map ⇒ projection floats
+    [Export] public float FloorY = -3.2f;       // chamber floor the figures stand on
+    [Export] public float ProjectionRimEnergy = 3.4f;
+    [Export] public float GlowEnergy = 3.2f;
+
+    [ExportGroup("Companions")]
+    [Export] public int CompanionCount = 5;
+    [Export] public float CompanionHeight = 3.2f;
+    [Export] public float CompanionRingMargin = 3.0f;   // ring radius = map radius + this
+    [Export] public Color CompanionRobe = new Color(0.10f, 0.10f, 0.13f);
+
+    [ExportGroup("Camera")]
+    [Export] public float MaxZoom = 36f;
+
+    private void CycleSurround()
+    {
+        _surround = (SurroundStyle)(((int)_surround + 1) % 3);
+        GD.Print($"[ExpeditionWindow3D] Surround style: {_surround}");
+        ApplySurround();
+        if (_world != null) RebuildTiles();   // unexplored tone + rim fade depend on style
+    }
+
+    /// <summary>Configure the environment (background + fog) and the rim-fade
+    /// colour for the active style. The unexplored TONE is applied in
+    /// BuildFieldData via <see cref="StyleUnexplored"/>.</summary>
+    private void ApplySurround()
+    {
+        if (_env == null) return;
+        switch (_surround)
+        {
+            case SurroundStyle.Haze:
+                // Warm morning mist: ground dissolves into a soft sky, unexplored
+                // reads as pale fog the painted world emerges from.
+                _surroundEdge = new Color(0.91f, 0.88f, 0.81f);
+                _env.BackgroundColor = new Color(0.90f, 0.88f, 0.83f);
+                _env.AmbientLightColor = new Color(0.60f, 0.61f, 0.63f);
+                _env.AmbientLightEnergy = 0.55f;
+                _env.FogEnabled = true;
+                _env.FogLightColor = new Color(0.92f, 0.89f, 0.83f);
+                _env.FogLightEnergy = 1.0f;
+                _env.FogDensity = 0.035f;
+                break;
+            case SurroundStyle.Desk:
+                // Cartographer's artifact: the map sits on a dark warm surface,
+                // its edges fading into the desk; unexplored is blank parchment.
+                _surroundEdge = new Color(0.20f, 0.16f, 0.12f);
+                _env.BackgroundColor = new Color(0.16f, 0.13f, 0.10f);
+                _env.AmbientLightColor = new Color(0.52f, 0.52f, 0.54f);
+                _env.AmbientLightEnergy = 0.5f;
+                _env.FogEnabled = true;
+                _env.FogLightColor = new Color(0.18f, 0.145f, 0.11f);
+                _env.FogLightEnergy = 1.0f;
+                _env.FogDensity = 0.05f;
+                break;
+            case SurroundStyle.Vignette:
+                // Scrying chamber: a dark room the projection glows in. Driven by
+                // the Inspector-editable Chamber exports. The map rim fades to a
+                // faint arcane tone (not black), so the edge reads as the
+                // projection's light spilling into the dark.
+                _surroundEdge = new Color(0.10f, 0.16f, 0.22f);
+                _env.BackgroundColor = ChamberBackground;
+                _env.AmbientLightColor = new Color(0.42f, 0.47f, 0.58f);
+                _env.AmbientLightEnergy = ChamberAmbientEnergy;
+                _env.FogEnabled = true;
+                _env.FogLightColor = ChamberBackground.Darkened(0.2f);
+                _env.FogLightEnergy = 1.0f;
+                _env.FogDensity = ChamberFogDensity;
+                break;
+        }
+    }
+
+    /// <summary>Restyle an unexplored (canvas) tile's tone so unknown ground is
+    /// obvious and matches the active surround.</summary>
+    private Color StyleUnexplored(Color canvas) => _surround switch
+    {
+        // Pale mist — lift toward white so the painted world pops against it.
+        SurroundStyle.Haze => canvas.Lerp(new Color(0.95f, 0.94f, 0.91f), 0.45f),
+        // Flat blank parchment — warmer/greyer than painted ground.
+        SurroundStyle.Desk => canvas.Lerp(new Color(0.80f, 0.74f, 0.62f), 0.5f),
+        // Sink toward shadow so unexplored recedes.
+        SurroundStyle.Vignette => canvas.Darkened(0.5f),
+        _ => canvas,
+    };
+
     private DirectionalLight3D _sun;
     private int _debugViz;
 
@@ -302,18 +429,17 @@ public partial class ExpeditionWindow3D : Node3D
     private void ApplyDebugViz()
     {
         string[] names = { "all on (normal)", "sun shadows OFF", "toon banding OFF (smooth light)",
-                           "grain OFF", "color map OFF (vertex colours)", "UNSHADED (flat albedo)" };
+                           "grain OFF", "color map OFF (vertex colours)", "UNSHADED (flat albedo)",
+                           "CRACK TEST (uniform grey — surviving lines = mesh gaps/MSAA)" };
         GD.Print($"[ExpeditionWindow3D] V debug {_debugViz}: {names[_debugViz]}");
         if (_sun != null)
             _sun.ShadowEnabled = _debugViz != 1;
-        foreach (GeometryInstance3D gi in new GeometryInstance3D[] { _landLayer, _canvasLayer })
+        if (_landLayer is MeshInstance3D mi && mi.MaterialOverride is ShaderMaterial m)
         {
-            if (gi is not MeshInstance3D mi || mi.MaterialOverride is not ShaderMaterial m)
-                continue;
-            m.SetShaderParameter("debug_mode", (_debugViz == 2 || _debugViz == 5) ? _debugViz : 0);
-            m.SetShaderParameter("grain_strength", _debugViz == 3 ? 0f : 0.11f);
-            m.SetShaderParameter("paper_grain", _debugViz == 3 ? 0f : 0.05f);
-            m.SetShaderParameter("use_color_map", _debugViz != 4 && _groundColorMap != null);
+            m.SetShaderParameter("debug_mode", (_debugViz == 2 || _debugViz == 5 || _debugViz == 6) ? _debugViz : 0);
+            // grain is OFF on the heightmap (0); mode 3 keeps it off, every other
+            // mode restores that same 0 — cycling back never reintroduces grain.
+            m.SetShaderParameter("grain_strength", 0f);
         }
     }
 
@@ -332,7 +458,7 @@ public partial class ExpeditionWindow3D : Node3D
 
     private void PlaceCamera()
     {
-        float zoom01 = Mathf.InverseLerp(CamDistMin, CamDistMax, _camDist);
+        float zoom01 = Mathf.InverseLerp(CamDistMin, MaxZoom, _camDist);
         float pitch = Mathf.DegToRad(Mathf.Lerp(38f, 60f, zoom01));
         // Base orbit offset (behind + above), yawed around the focus so Q/E rotate the view.
         float cp = Mathf.Cos(pitch), sp = Mathf.Sin(pitch);
@@ -403,17 +529,23 @@ public partial class ExpeditionWindow3D : Node3D
         // mistake: it's the editor's Stop-project shortcut and killed the run.)
         if (ev is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.V)
         {
-            _debugViz = (_debugViz + 1) % 6;
+            _debugViz = (_debugViz + 1) % 7;
             ApplyDebugViz();
+            return;
+        }
+        // B cycles the surround style (Haze → Desk → Vignette) live.
+        if (ev is InputEventKey bkey && bkey.Pressed && !bkey.Echo && bkey.Keycode == Key.B)
+        {
+            CycleSurround();
             return;
         }
         if (!AcceptInput || _camera == null) return;
         if (ev is InputEventMouseButton mb)
         {
             if (mb.ButtonIndex == MouseButton.WheelUp && mb.Pressed)
-            { _camDist = Mathf.Clamp(_camDist * 0.9f, CamDistMin, CamDistMax); PlaceCamera(); }
+            { _camDist = Mathf.Clamp(_camDist * 0.9f, CamDistMin, MaxZoom); PlaceCamera(); }
             else if (mb.ButtonIndex == MouseButton.WheelDown && mb.Pressed)
-            { _camDist = Mathf.Clamp(_camDist * 1.1f, CamDistMin, CamDistMax); PlaceCamera(); }
+            { _camDist = Mathf.Clamp(_camDist * 1.1f, CamDistMin, MaxZoom); PlaceCamera(); }
             else if (mb.ButtonIndex == MouseButton.Left)
             {
                 if (mb.Pressed) { _dragging = true; _dragMoved = false; }
@@ -512,6 +644,7 @@ public partial class ExpeditionWindow3D : Node3D
     private void RebuildAll(bool frameCamera)
     {
         RebuildTiles();
+        BuildScryingRig();   // frames the map (its centre/radius were set by RebuildTiles)
         RebuildEdges();
         RebuildDecorations();
         RebuildMarkers();
@@ -528,57 +661,67 @@ public partial class ExpeditionWindow3D : Node3D
         else LeashCameraToParty();
     }
 
+    // ── Unified heightmap surface (2026-08-16 rewrite) ───────────────────────
+    // The ground is now ONE continuous mesh. Height and colour come from SMOOTH
+    // FIELDS: at any world point, each nearby hex's fog-aware rendered height
+    // and colour are blended by an overlapping smooth kernel (a partition of
+    // unity). The fields are C1-continuous and have ZERO relationship to tile
+    // topology, so there is no cell, seam, facet, or crack for a line to live
+    // in — the entire class of tile-lattice artifacts is gone by construction.
+    // Hexes stay pure gameplay data (picking, fog, movement, POIs unchanged).
+    // Replaced the welded-fan land + canvas sheet + water prisms.
+
+    /// <summary>Per-hex fog-aware rendered height + colour, the field's sample
+    /// points. Rebuilt each RebuildTiles.</summary>
+    private readonly Dictionary<Vector2I, (float h, Color col)> _field = new();
+    private Vector2 _fieldMin, _fieldMax;
+    /// <summary>Kernel radius in WORLD units. Must exceed the hex spacing
+    /// (~1.5–1.73) so kernels overlap and the blended field is smooth. Larger =
+    /// softer washes and gentler slopes; smaller = crisper terrain identity.</summary>
+    private const float FieldKernelRadius = 2.4f;
+
     private void RebuildTiles()
     {
         _landLayer?.QueueFree();
         _waterLayer?.QueueFree();
         _canvasLayer?.QueueFree();
+        _waterLayer = null;
+        _canvasLayer = null;
 
-        var land = new List<(Transform3D xf, Color c)>();
-        var landCoords = new List<Vector2I>();
-        var water = new List<(Transform3D xf, Color c)>();
-        var canvas = new List<(Transform3D xf, Color c)>();
-        var canvasCoords = new List<Vector2I>();
-        foreach (var c in _windowTiles)
+        BuildFieldData();
+        _landLayer = BuildHeightmapSurface();
+
+        // Keep the active V-key diagnostic mode across rebuilds.
+        if (_debugViz != 0)
+            ApplyDebugViz();
+    }
+
+    /// <summary>Populate <see cref="_field"/> with every window tile plus a few
+    /// margin rings (so the disc sits on paper and the kernel has support past
+    /// the edge), each carrying its fog-aware RENDERED height and colour —
+    /// exactly what the old per-tile path drew, now as field samples.</summary>
+    private void BuildFieldData()
+    {
+        _field.Clear();
+        void Add(Vector2I c)
         {
-            var fog = _fog.FogAt(c);
-            var t = _world.GetTile(c.X, c.Y);
-            // Unexplored (Hidden) tiles render as a FLAT slab of UNPAINTED CANVAS
-            // (art pass A6) — the run's frontier is a live painting edge; walking
-            // paints the world in. Their terrain HEIGHT is not revealed (flat), so
-            // the fog doesn't leak elevation, and land + water share one canvas
-            // layer so no coastline leaks through mesh differences either.
-            // Explored/charted tiles render normally.
-            bool hidden = fog == Fog.Hidden;
-            float h = hidden ? FogSlabHeight : TileHeight(c);
-            var xf = new Transform3D(HexYaw * Basis.FromScale(new Vector3(1f, h, 1f)),
-                                     TileOrigin(c.X, c.Y) + new Vector3(0f, h * 0.5f, 0f));
+            if (_field.ContainsKey(c)) return;
+            bool hidden = !_world.InBounds(c.X, c.Y) || _fog.FogAt(c) == Fog.Hidden;
             if (hidden)
             {
-                canvasCoords.Add(c);
-                if (!UseWeldedTerrain)
-                {
-                    float edge = HasPaintedNeighbor(c) ? Hex3DPalette.WetEdgeAmount(c.X, c.Y) : 0f;
-                    canvas.Add((xf, Hex3DPalette.CanvasTone(c.X, c.Y, edge)));
-                }
+                float edge = HasPaintedNeighbor(c) ? Hex3DPalette.WetEdgeAmount(c.X, c.Y) : 0f;
+                _field[c] = (FogSlabHeight, StyleUnexplored(Hex3DPalette.CanvasTone(c.X, c.Y, edge)));
             }
-            else if (t.IsWater) water.Add((xf, TileColor(t, c, fog)));
             else
             {
-                landCoords.Add(c);
-                if (!UseWeldedTerrain)
-                    land.Add((xf, TileColor(t, c, fog)));
+                var f = _fog.FogAt(c);
+                _field[c] = (RenderedTileHeight(c), TileColor(_world.GetTile(c.X, c.Y), c, f));
             }
         }
 
-        // The painting must end ON PAPER, not on void: extend the canvas a few
-        // rings past the loaded window so the walkable disc sits on parchment
-        // (the hex-scalloped land edge then reads as the painted area's edge on
-        // the sheet — same metaphor as the strategic map). Not pickable: PickTile
-        // iterates _windowTiles only.
-        var known = new HashSet<Vector2I>(_windowTiles);
+        foreach (var c in _windowTiles) Add(c);
         var frontier = new List<Vector2I>(_windowTiles);
-        for (int ring = 0; ring < 3; ring++)
+        for (int ring = 0; ring < 4; ring++)
         {
             var next = new List<Vector2I>();
             foreach (var c in frontier)
@@ -589,158 +732,289 @@ public partial class ExpeditionWindow3D : Node3D
                     var (dq, dr) = HexCoord.AxialDirections[i];
                     var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
                     var nco = new Vector2I(nc, nr);
-                    if (known.Contains(nco) || !_world.InBounds(nc, nr))
-                        continue;
-                    known.Add(nco);
+                    if (_field.ContainsKey(nco)) continue;
+                    Add(nco);
                     next.Add(nco);
-                    canvasCoords.Add(nco);
-                    if (!UseWeldedTerrain)
-                    {
-                        var nxf = new Transform3D(HexYaw * Basis.FromScale(new Vector3(1f, FogSlabHeight, 1f)),
-                                                  TileOrigin(nc, nr) + new Vector3(0f, FogSlabHeight * 0.5f, 0f));
-                        canvas.Add((nxf, Hex3DPalette.CanvasTone(nc, nr)));
-                    }
                 }
             }
             frontier = next;
         }
 
-        if (UseWeldedTerrain)
+        float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
+        foreach (var c in _field.Keys)
         {
-            // Terrain break-up stage 2 (user ruling: "the full welded look"):
-            // one merged ArrayMesh — corner-averaged welds fuse tiles into
-            // continuous ground below the cliff threshold, undulation is BAKED
-            // into the vertices (so C# knows the true surface and the stroke
-            // ribbons can follow it — the stage-1 shader displacement was
-            // invisible to placement, which is why rivers/roads clipped).
-            _landLayer = BuildWeldedLand(landCoords);
+            var o = TileOrigin(c.X, c.Y);
+            minX = Mathf.Min(minX, o.X); maxX = Mathf.Max(maxX, o.X);
+            minZ = Mathf.Min(minZ, o.Z); maxZ = Mathf.Max(maxZ, o.Z);
         }
-        else
-        {
-            // Stage-1 fallback: subdivided tops rolled by the shader.
-            _landLayer = MakeTileLayer("WinLand", land, taper: 0.985f, roughness: 0.9f,
-                                       prismMode: PainterlyPrism.Land,
-                                       customMesh: PainterlyProps.HexTileMesh(0.985f));
-            if (((MultiMeshInstance3D)_landLayer).Multimesh.Mesh is ArrayMesh lam
-                && lam.SurfaceGetMaterial(0) is ShaderMaterial landSm)
-            {
-                landSm.SetShaderParameter("grain_scale", 1.8f);
-                landSm.SetShaderParameter("grain_strength", 0.11f);
-                landSm.SetShaderParameter("top_undulation", 0.06f);
-                landSm.SetShaderParameter("undulation_scale", 0.5f);
-            }
-        }
-        _waterLayer = MakeTileLayer("WinWater", water, taper: 1.0f, roughness: 0.55f,
-                                    prismMode: PainterlyPrism.Water);
-        if (UseWeldedTerrain)
-        {
-            // Stage 2d (user: the parchment prisms don't match the welded ground):
-            // the canvas becomes ONE seamless flat sheet — same corner-centroid
-            // construction as the welded land, no grout, paper grain from the
-            // shader. Where the sheet meets lower painted ground it walls down.
-            _canvasLayer = BuildCanvasSheet(canvasCoords);
-        }
-        else
-        {
-            _canvasLayer = MakeTileLayer("WinCanvas", canvas, taper: 0.96f, roughness: 1.0f,
-                                         prismMode: PainterlyPrism.Canvas);
-        }
-        // No shadow casting on canvas: it is the lowest geometry, and coplanar
-        // bright slabs self-shadowing under a low sun produce acne (seen on the
-        // strategic map).
-        _canvasLayer.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
-        // Keep the active F8 diagnostic mode across rebuilds (each party step
-        // rebuilds these layers with fresh materials).
-        if (_debugViz != 0)
-            ApplyDebugViz();
+        _fieldMin = new Vector2(minX, minZ);
+        _fieldMax = new Vector2(maxX, maxZ);
     }
 
-    /// <summary>The unpainted world as one welded flat sheet at the canvas slab
-    /// height: per tile a simple 6-triangle fan to corner centroids (shared XZ ⇒
-    /// seamless paper), per-tile CanvasTone with the wet edge where the painting
-    /// borders it, edge walls where the sheet ends or overhangs lower painted
-    /// ground.</summary>
-    private MeshInstance3D BuildCanvasSheet(List<Vector2I> coords)
+    /// <summary>Smooth blended field at a world point: kernel-weighted average of
+    /// nearby hexes' heights and colours (partition of unity ⇒ C1-smooth). Out
+    /// param carries the colour; return value is the height PRE-undulation.</summary>
+    private float SampleField(float wx, float wz, out Color col)
     {
-        var set = new HashSet<Vector2I>(coords);
+        var (cc, cr) = WorldToOffset(wx, wz);
+        var (q0, r0) = HexCoord.OffsetToAxial(cc, cr);
+        float wsum = 0f, hsum = 0f, rr = 0f, gg = 0f, bb = 0f;
+        float R = FieldKernelRadius, R2 = R * R;
+        for (int dq = -2; dq <= 2; dq++)
+            for (int dr = -2; dr <= 2; dr++)
+            {
+                var (nc, nr) = HexCoord.AxialToOffset(q0 + dq, r0 + dr);
+                if (!_field.TryGetValue(new Vector2I(nc, nr), out var d)) continue;
+                var o = TileOrigin(nc, nr);
+                float dx = wx - o.X, dz = wz - o.Z;
+                float dist2 = dx * dx + dz * dz;
+                if (dist2 >= R2) continue;
+                float tt = Mathf.Sqrt(dist2) / R;                 // 0 at centre, 1 at radius
+                float w = 1f - tt * tt * (3f - 2f * tt);          // smoothstep-down, C1
+                wsum += w; hsum += w * d.h;
+                rr += w * d.col.R; gg += w * d.col.G; bb += w * d.col.B;
+            }
+        if (wsum <= 1e-6f) { col = UITheme.CanvasUnseen; return FogSlabHeight; }
+        col = new Color(rr / wsum, gg / wsum, bb / wsum, 1f);
+        return hsum / wsum;
+    }
+
+    private float SampleFieldHeight(float wx, float wz)
+        => SampleField(wx, wz, out _) + Undulation(wx, wz);
+
+    /// <summary>Build the single continuous ground mesh over the field bounds:
+    /// a regular XZ grid, each vertex placed at the smooth field height with a
+    /// grid-derived smooth normal and the smooth field colour. Dense grid + a
+    /// smooth field ⇒ Gouraud vertex colour interpolates smoothly (no mosaic),
+    /// grid-difference normals vary smoothly (no facets).</summary>
+    private MeshInstance3D BuildHeightmapSurface()
+    {
+        const float vertsPerUnit = 2.5f;
+        float wSpan = _fieldMax.X - _fieldMin.X, hSpan = _fieldMax.Y - _fieldMin.Y;
+        int nx = Mathf.Max(2, Mathf.CeilToInt(wSpan * vertsPerUnit));
+        int nz = Mathf.Max(2, Mathf.CeilToInt(hSpan * vertsPerUnit));
+        int stride = nx + 1;
+        var pos = new Vector3[stride * (nz + 1)];
+        var col = new Color[stride * (nz + 1)];
+        var outside = new bool[stride * (nz + 1)];
+        // Disc clip + rim fade (the "floating rectangle" fix). The field bounds
+        // are a RECTANGLE, which drew a hard slab with cut corners. Clip the
+        // mesh to the largest inscribed circle and fade the last few units of
+        // ground toward the surround colour, so the world is a soft-edged island
+        // that dissolves into the fog instead of a slab with a hard edge.
+        float cx = (_fieldMin.X + _fieldMax.X) * 0.5f, cz = (_fieldMin.Y + _fieldMax.Y) * 0.5f;
+        float discR = 0.5f * Mathf.Min(wSpan, hSpan);
+        _mapCenterX = cx; _mapCenterZ = cz; _mapDiscR = discR;   // the scrying rig frames this
+        const float rimFade = 7f;                       // world units of colour fade
+        for (int j = 0; j <= nz; j++)
+            for (int i = 0; i <= nx; i++)
+            {
+                float wx = _fieldMin.X + wSpan * i / nx;
+                float wz = _fieldMin.Y + hSpan * j / nz;
+                int idx = j * stride + i;
+                float baseH = SampleField(wx, wz, out var c);   // one sample: height + colour
+                float rad = Mathf.Sqrt((wx - cx) * (wx - cx) + (wz - cz) * (wz - cz));
+                outside[idx] = rad > discR;
+                if (rad > discR - rimFade)
+                {
+                    float t = Mathf.Clamp((rad - (discR - rimFade)) / rimFade, 0f, 1f);
+                    c = c.Lerp(_surroundEdge, t * t * (3f - 2f * t));   // smoothstep to surround
+                }
+                pos[idx] = new Vector3(wx, baseH + Undulation(wx, wz), wz);
+                col[idx] = c;
+            }
+
+        // Grid-difference normals (cheap, smooth) — central where possible.
+        float dx0 = wSpan / nx, dz0 = hSpan / nz;
+        var nrm = new Vector3[pos.Length];
+        for (int j = 0; j <= nz; j++)
+            for (int i = 0; i <= nx; i++)
+            {
+                int L = j * stride + Mathf.Max(i - 1, 0);
+                int Rr = j * stride + Mathf.Min(i + 1, nx);
+                int D = Mathf.Max(j - 1, 0) * stride + i;
+                int U = Mathf.Min(j + 1, nz) * stride + i;
+                float gx = (pos[Rr].Y - pos[L].Y) / ((Mathf.Min(i + 1, nx) - Mathf.Max(i - 1, 0)) * dx0);
+                float gz = (pos[U].Y - pos[D].Y) / ((Mathf.Min(j + 1, nz) - Mathf.Max(j - 1, 0)) * dz0);
+                nrm[j * stride + i] = new Vector3(-gx, 1f, -gz).Normalized();
+            }
+
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
-        foreach (var c in coords)
+        void AddTri(int a, int b, int c)
         {
-            Vector3 o = TileOrigin(c.X, c.Y);
-            o.Y = FogSlabHeight;
-            float edge = HasPaintedNeighbor(c) ? Hex3DPalette.WetEdgeAmount(c.X, c.Y) : 0f;
-            Color col = Hex3DPalette.CanvasTone(c.X, c.Y, edge);
-            var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
-            var nOrigin = new Vector3[6];
-            var nInSheet = new bool[6];
-            var nCoord = new Vector2I[6];
-            for (int i = 0; i < 6; i++)
-            {
-                var (dq, dr) = HexCoord.AxialDirections[i];
-                var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
-                nCoord[i] = new Vector2I(nc, nr);
-                nOrigin[i] = _world.InBounds(nc, nr) ? TileOrigin(nc, nr) : o + EdgeDir(i);
-                nOrigin[i].Y = FogSlabHeight;
-                nInSheet[i] = set.Contains(nCoord[i]);
-            }
-            var corners = new Vector3[6];
-            for (int i = 0; i < 6; i++)
-            {
-                int j = (i + 1) % 6;
-                corners[i] = (o + nOrigin[i] + nOrigin[j]) / 3f;
-                corners[i].Y = FogSlabHeight;
-            }
-            for (int i = 0; i < 6; i++)
-            {
-                int j = (i + 1) % 6;
-                TopTri(st, o, col, corners[i], col, corners[j], col);
-            }
-            // Edge walls where the sheet is not continued by more canvas.
-            for (int i = 0; i < 6; i++)
-            {
-                if (nInSheet[i])
-                    continue;
-                float floor;
-                var nco = nCoord[i];
-                if (!_world.InBounds(nco.X, nco.Y))
-                    floor = FogSlabHeight - 0.5f;                 // world edge skirt
-                else if (_fog.FogAt(nco) == Fog.Hidden)
-                    floor = FogSlabHeight - 0.5f;                 // beyond the margin
-                else
-                {
-                    var nt = _world.GetTile(nco.X, nco.Y);
-                    float nTop = nt.IsOcean ? 0.08f : nt.IsLake ? 0.12f : TileHeight(nco);
-                    if (nTop >= FogSlabHeight - 0.01f)
-                        continue;                                  // painted side is higher; it walls to us
-                    floor = nTop;
-                }
-                Vector3 a = corners[(i + 5) % 6];
-                Vector3 b = corners[i];
-                WallQuad(st, a, b, floor, floor, col, o);
-            }
+            // Up-facing under Godot's CW front-face rule (numeric, orientation-proof).
+            float crossY = (pos[b].Z - pos[a].Z) * (pos[c].X - pos[a].X)
+                         - (pos[b].X - pos[a].X) * (pos[c].Z - pos[a].Z);
+            if (crossY > 0f) (b, c) = (c, b);
+            st.SetColor(col[a]); st.SetNormal(nrm[a]); st.AddVertex(pos[a]);
+            st.SetColor(col[b]); st.SetNormal(nrm[b]); st.AddVertex(pos[b]);
+            st.SetColor(col[c]); st.SetNormal(nrm[c]); st.AddVertex(pos[c]);
         }
-        var mesh = st.Commit();
-        var node = new MeshInstance3D
+        for (int j = 0; j < nz; j++)
+            for (int i = 0; i < nx; i++)
+            {
+                int a = j * stride + i, b = a + 1, c = a + stride, d = c + 1;
+                if (outside[a] && outside[b] && outside[c] && outside[d]) continue;   // beyond the disc
+                AddTri(a, c, b);
+                AddTri(b, c, d);
+            }
+
+        var mat = PainterlyPrism.TileMaterial(PainterlyPrism.Land, 0.9f);
+        if (mat is ShaderMaterial sm)
         {
-            Name = "WinCanvasSheet",
-            Mesh = mesh,
-            MaterialOverride = PainterlyPrism.TileMaterial(PainterlyPrism.Canvas, 1.0f),
-        };
-        // Same blurred colour map as the welded land: the per-tile paper-tone
-        // jitter + random wet-edge amounts otherwise render as a regular hex
-        // mosaic across the big unpainted field — the same lattice-pattern
-        // class the land's vertex colours had. BuildWeldedLand runs first in
-        // RebuildTiles, so the map is fresh for this rebuild.
-        if (_groundColorMap != null && node.MaterialOverride is ShaderMaterial csm)
-        {
-            csm.SetShaderParameter("use_color_map", true);
-            csm.SetShaderParameter("color_map", _groundColorMap);
-            csm.SetShaderParameter("color_map_origin", _cmOrigin);
-            csm.SetShaderParameter("color_map_inv_size", new Vector2(1f / _cmSize.X, 1f / _cmSize.Y));
+            sm.SetShaderParameter("use_color_map", false);   // colour is smooth vertex colour
+            sm.SetShaderParameter("top_undulation", 0f);     // undulation is baked into vertices
+            // grain OFF (0, was 0.07) — CONFIRMED cause of the lines. The fbm2
+            // brush grain is high-frequency world-space noise; across the large
+            // ground at distance/grazing angles it undersamples and ALIASES into
+            // regular moiré lines. How badly depends on resolution/GPU/MSAA,
+            // which is why it showed on this desktop but not the laptop. The
+            // painterly read is carried by the toon light + colour, not grain;
+            // if fine surface texture is wanted back, re-add it camera-distance-
+            // faded so it only appears close up where it can be sampled.
+            sm.SetShaderParameter("grain_strength", 0f);
+            sm.SetShaderParameter("skirt_darken", 0.10f);
+            sm.SetShaderParameter("stripe_strength", 0.06f);
+            sm.SetShaderParameter("toon_softness", 0.26f);
         }
+        var node = new MeshInstance3D { Name = "WinHeightmap", Mesh = st.Commit(), MaterialOverride = mat };
         AddChild(node);
         return node;
+    }
+
+    // ── Scrying table rig ────────────────────────────────────────────────────
+    private const uint RigLayer = 2;   // render layer for table/figures (bit 1)
+
+    /// <summary>Build the scrying-chamber frame around the map: a round table the
+    /// projection hovers over, a chamber floor, a glowing projection rim, an
+    /// arcane light, and a ring of stand-in companions. Positioned at the current
+    /// map centre so it travels with a sliding window. The arcane light is
+    /// cull-masked to <see cref="RigLayer"/> so it lights only the rig — the map's
+    /// tuned colours are untouched. Nothing here is pickable (picking is pure math
+    /// over the tile grid, not physics), so it's purely a visual frame.</summary>
+    private void BuildScryingRig()
+    {
+        _scryRig?.QueueFree();
+        _scryRig = new Node3D { Name = "ScryingRig" };
+        AddChild(_scryRig);
+
+        float R = _mapDiscR;
+        Vector3 c = new Vector3(_mapCenterX, 0f, _mapCenterZ);
+        float tableTopY = TableTopY;   // just below the map's lowest ground ⇒ projection floats
+        float floorY = FloorY;         // chamber floor the figures stand on
+
+        void Add(Node3D n) { if (n is VisualInstance3D vi) vi.Layers = RigLayer; _scryRig.AddChild(n); }
+
+        // Chamber floor — a broad dark disc so the figures aren't standing in void.
+        Add(new MeshInstance3D
+        {
+            Name = "ChamberFloor",
+            Mesh = new CylinderMesh { TopRadius = R + 16f, BottomRadius = R + 16f, Height = 0.4f, RadialSegments = 48 },
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = FloorColor, Roughness = 1f },
+            Position = c + new Vector3(0f, floorY - 0.2f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+
+        // The scrying table — a round pedestal/basin the projection sits over.
+        Add(new MeshInstance3D
+        {
+            Name = "ScryTable",
+            Mesh = new CylinderMesh { TopRadius = R + 1.2f, BottomRadius = R + 2.2f, Height = tableTopY - floorY, RadialSegments = 48 },
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = TableColor, Roughness = 0.85f },
+            Position = c + new Vector3(0f, (tableTopY + floorY) * 0.5f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+
+        // Glowing projection rim — a flat emissive annulus at the map edge.
+        Add(MakeRing(c + new Vector3(0f, tableTopY + 0.06f, 0f), R - 0.2f, R + 0.35f, ArcaneGlow, ProjectionRimEnergy));
+
+        // Arcane light from the projection — lights ONLY the rig (cull mask), so
+        // the map colours stay as tuned. No shadows (avoids the acne we fixed).
+        // Energy/range up so it pools visible light on the table + floor around
+        // the projection rather than leaving a black void when zoomed out.
+        Add(new OmniLight3D
+        {
+            Name = "ScryGlow",
+            LightColor = ArcaneGlow, LightEnergy = GlowEnergy, OmniRange = R * 2.8f,
+            ShadowEnabled = false, LightCullMask = RigLayer,
+            Position = c + new Vector3(0f, tableTopY + 2.4f, 0f),
+        });
+
+        // Stand-in companions around the rim, faces turned to the map.
+        int n = Mathf.Max(1, CompanionCount);
+        float ringR = R + CompanionRingMargin;
+        for (int i = 0; i < n; i++)
+        {
+            float a = Mathf.Tau * (i + 0.5f) / n;
+            var basePos = c + new Vector3(Mathf.Cos(a) * ringR, floorY, Mathf.Sin(a) * ringR);
+            Add(MakeStandIn(basePos, c));
+        }
+    }
+
+    /// <summary>Flat emissive annulus (ring) in the XZ plane — orientation-proof
+    /// (built directly), used for the glowing projection rim.</summary>
+    private MeshInstance3D MakeRing(Vector3 centre, float inner, float outer, Color glow, float energy)
+    {
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        const int seg = 72;
+        for (int i = 0; i < seg; i++)
+        {
+            float a0 = Mathf.Tau * i / seg, a1 = Mathf.Tau * (i + 1) / seg;
+            Vector3 i0 = centre + new Vector3(Mathf.Cos(a0) * inner, 0f, Mathf.Sin(a0) * inner);
+            Vector3 i1 = centre + new Vector3(Mathf.Cos(a1) * inner, 0f, Mathf.Sin(a1) * inner);
+            Vector3 o0 = centre + new Vector3(Mathf.Cos(a0) * outer, 0f, Mathf.Sin(a0) * outer);
+            Vector3 o1 = centre + new Vector3(Mathf.Cos(a1) * outer, 0f, Mathf.Sin(a1) * outer);
+            foreach (var v in new[] { i0, o0, o1, i0, o1, i1 })
+            { st.SetNormal(Vector3.Up); st.AddVertex(v); }
+        }
+        return new MeshInstance3D
+        {
+            Name = "ProjectionRim",
+            Mesh = st.Commit(),
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = glow, EmissionEnabled = true, Emission = glow, EmissionEnergyMultiplier = energy,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            },
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+    }
+
+    /// <summary>One stylised stand-in companion: a robed body + head, dark with a
+    /// faint arcane under-light, turned to face the map centre. Real companion
+    /// models replace these in a later pass.</summary>
+    private Node3D MakeStandIn(Vector3 basePos, Vector3 lookCentre)
+    {
+        float h = CompanionHeight;   // head clears the table rim to peer at the map
+        var fig = new Node3D { Position = basePos };
+        var robe = new MeshInstance3D
+        {
+            Mesh = new CylinderMesh { TopRadius = 0.28f, BottomRadius = 0.62f, Height = h * 0.8f, RadialSegments = 8 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = CompanionRobe, Roughness = 1f,
+                EmissionEnabled = true, Emission = ArcaneGlow, EmissionEnergyMultiplier = 0.10f,
+            },
+            Position = new Vector3(0f, h * 0.4f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Layers = RigLayer,
+        };
+        var head = new MeshInstance3D
+        {
+            Mesh = new SphereMesh { Radius = 0.26f, Height = 0.52f, RadialSegments = 10, Rings = 6 },
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.14f, 0.13f, 0.16f), Roughness = 1f },
+            Position = new Vector3(0f, h * 0.8f + 0.18f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Layers = RigLayer,
+        };
+        fig.AddChild(robe); fig.AddChild(head);
+        // Yaw to face the map centre (compute directly — no in-tree LookAt needed).
+        Vector3 dir = new Vector3(lookCentre.X - basePos.X, 0f, lookCentre.Z - basePos.Z);
+        if (dir.LengthSquared() > 1e-4f)
+            fig.Rotation = new Vector3(0f, Mathf.Atan2(dir.X, dir.Z), 0f);
+        return fig;
     }
 
     /// <summary>True when any hex neighbor of a Hidden tile is itself not Hidden —
@@ -761,34 +1035,6 @@ public partial class ExpeditionWindow3D : Node3D
                 return true;
         }
         return false;
-    }
-
-    private MultiMeshInstance3D MakeTileLayer(string name, List<(Transform3D xf, Color c)> items,
-                                              float taper, float roughness, int prismMode,
-                                              Mesh customMesh = null)
-    {
-        Mesh mesh = customMesh ?? new CylinderMesh
-        {
-            TopRadius = HexR * taper, BottomRadius = HexR, Height = 1f,
-            RadialSegments = 6, Rings = 0, CapBottom = false,
-        };
-        // A2/A3-lite: shared painterly prism shader (same factory as the atlas —
-        // the two views must not drift); roughness is the fallback material's.
-        // The material lives on the mesh either way.
-        if (mesh is PrimitiveMesh pm)
-            pm.Material = PainterlyPrism.TileMaterial(prismMode, roughness);
-        else if (mesh is ArrayMesh am)
-            am.SurfaceSetMaterial(0, PainterlyPrism.TileMaterial(prismMode, roughness));
-        var mm = new MultiMesh
-        {
-            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-            UseColors = true, Mesh = mesh, InstanceCount = items.Count,
-        };
-        for (int i = 0; i < items.Count; i++)
-        { mm.SetInstanceTransform(i, items[i].xf); mm.SetInstanceColor(i, items[i].c); }
-        var node = new MultiMeshInstance3D { Name = name, Multimesh = mm };
-        AddChild(node);
-        return node;
     }
 
     /// <summary>WINDOW-ONLY height compression (user ruling 2026-08-12: full
@@ -830,10 +1076,9 @@ public partial class ExpeditionWindow3D : Node3D
     {
         _riverLayer?.QueueFree();
         _roadLayer?.QueueFree();
-        // Stage 2: BOTH rivers and roads are ground-following ribbons — every
-        // vertex re-heighted by SampleGround (the same function that built the
-        // welded terrain), so strokes lie ON the surface. This is the fix for
-        // the reported clipping: placement now sees the real ground.
+        // Rivers and roads are ground-following ribbons — every vertex re-heighted
+        // by SampleGround (the unified heightmap field), so strokes lie ON the
+        // surface.
         var riverTiles = new List<(Vector3 center, List<Vector3> mids, System.Func<Vector3, float> ground)>();
         var roadTiles = new List<(Vector3 center, List<Vector3> mids, System.Func<Vector3, float> ground)>();
 
@@ -847,8 +1092,7 @@ public partial class ExpeditionWindow3D : Node3D
             Vector3 center = TileOrigin(c.X, c.Y);
             center.Y = TileHeight(c) + 0.03f;
             var cc = c;   // closure copy
-            System.Func<Vector3, float> ground =
-                UseWeldedTerrain ? (p => SampleGround(cc, p)) : (System.Func<Vector3, float>)null;
+            System.Func<Vector3, float> ground = p => SampleGround(cc, p);
             List<Vector3> riverMids = null;
             List<Vector3> roadMids = null;
             var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
@@ -871,30 +1115,7 @@ public partial class ExpeditionWindow3D : Node3D
                                               (TileHeight(c) + nbrH) * 0.5f + 0.03f,
                                               (center.Z + nbr.Z) * 0.5f);
                 if (riv)
-                {
                     (riverMids ??= new List<Vector3>()).Add(edgeMid);
-                    // Stage 2d — WATERFALL connector: across an UNWELDED cliff
-                    // edge the two halves now end at different heights (each
-                    // samples its own fan), which read as the river running into
-                    // the wall. The higher side drops a short steep ribbon to the
-                    // lower side's surface.
-                    if (UseWeldedTerrain && inBounds)
-                    {
-                        var nbrCo = new Vector2I(nc, nr);
-                        if (_surf.ContainsKey(nbrCo))
-                        {
-                            float selfY = SampleGround(cc, edgeMid);
-                            float nbrY = SampleGround(nbrCo, edgeMid);
-                            if (selfY - nbrY > 0.15f)
-                            {
-                                Vector3 toNbr = new Vector3(nbr.X - center.X, 0f, nbr.Z - center.Z).Normalized() * 0.14f;
-                                var top = new Vector3(edgeMid.X - toNbr.X * 0.3f, selfY + 0.05f, edgeMid.Z - toNbr.Z * 0.3f);
-                                var plunge = new Vector3(edgeMid.X + toNbr.X, nbrY + 0.05f, edgeMid.Z + toNbr.Z);
-                                riverTiles.Add((top, new List<Vector3> { plunge }, null));
-                            }
-                        }
-                    }
-                }
                 if (road)
                     (roadMids ??= new List<Vector3>()).Add(edgeMid);
             }
@@ -936,294 +1157,13 @@ public partial class ExpeditionWindow3D : Node3D
     private float RenderedTileHeight(Vector2I c)
         => _fog.FogAt(c) == Fog.Hidden ? FogSlabHeight : TileHeight(c);
 
-    // ── Welded terrain (stage 2 — user ruling: "the full welded look") ──────
-    // The combat map's model at window scale: hex corners shared by up to three
-    // tiles average their heights (and colours) when the spread stays inside the
-    // weld threshold — tiles fuse into continuous rolling ground; bigger steps
-    // stay crisp cliffs with real walls. Undulation is baked into the VERTICES
-    // (not the shader), so SampleGround can hand the exact surface to the
-    // river/road ribbons. Canvas (Hidden) slabs stay a separate hard-edged
-    // MultiMesh layer — the unpainted world is flat paper, never welded.
-
-    /// <summary>Kill-switch back to the stage-1 prism look.</summary>
-    private static readonly bool UseWeldedTerrain = true;
-    /// <summary>Max height difference that still fuses into a slope. 0.50 welds
-    /// up to two compressed terrace steps (isolated low pockets become steep
-    /// DELLS, not sheer-walled sinkholes — the user's "holes"); only 3+ step
-    /// drops remain true cliffs, which makes the remaining cliffs meaningful.</summary>
-    private const float WeldThreshold = 0.50f;
-    private const float UndulationAmp = 0.06f;
-
-    private struct TileSurf
-    {
-        public Vector3 Center;         // welded base heights, pre-undulation
-        public Vector3[] Corners;      // 6, corner i = centroid of self + nbr i + nbr i+1
-        public Vector3[] EdgeMids;     // 6
-        public Color CenterCol;
-        public Color[] CornerCols;
-        public Color[] EdgeCols;
-        public bool[] EdgeWelded;      // edge i fused with neighbour i (no wall)
-        public Vector2I[] Nbrs;
-    }
-
-    private readonly Dictionary<Vector2I, TileSurf> _surf = new();
-
-    // Ground colour map shared by the welded land AND the canvas sheet
-    // (built once per rebuild in BuildWeldedLand, consumed by both materials).
-    private ImageTexture _groundColorMap;
-    private Vector2 _cmOrigin, _cmSize;
-
-    private MeshInstance3D BuildWeldedLand(List<Vector2I> coords)
-    {
-        _surf.Clear();
-        var landSet = new HashSet<Vector2I>(coords);
-
-        // Pass 1 — per-tile welded surface data (heights + colours, pre-undulation).
-        foreach (var c in coords)
-        {
-            var t = _world.GetTile(c.X, c.Y);
-            var fog = _fog.FogAt(c);
-            float h0 = TileHeight(c);
-            Color col0 = TileColor(t, c, fog);
-            Vector3 o = TileOrigin(c.X, c.Y);
-            var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
-
-            bool city0 = IsCityTile(c);
-            var nOrigin = new Vector3[6];
-            var nIsLand = new bool[6];
-            var nH = new float[6];
-            var nCol = new Color[6];
-            var nCity = new bool[6];
-            var nFog = new Fog[6];
-            var s = new TileSurf
-            {
-                Corners = new Vector3[6], EdgeMids = new Vector3[6],
-                CornerCols = new Color[6], EdgeCols = new Color[6],
-                EdgeWelded = new bool[6], Nbrs = new Vector2I[6],
-                Center = new Vector3(o.X, h0, o.Z), CenterCol = col0,
-            };
-            for (int i = 0; i < 6; i++)
-            {
-                var (dq, dr) = HexCoord.AxialDirections[i];
-                var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
-                var nco = new Vector2I(nc, nr);
-                s.Nbrs[i] = nco;
-                nOrigin[i] = _world.InBounds(nc, nr) ? TileOrigin(nc, nr) : o + EdgeDir(i);
-                nIsLand[i] = landSet.Contains(nco);
-                if (nIsLand[i])
-                {
-                    nFog[i] = _fog.FogAt(nco);
-                    nH[i] = TileHeight(nco);
-                    nCol[i] = TileColor(_world.GetTile(nc, nr), nco, nFog[i]);
-                    nCity[i] = IsCityTile(nco);
-                }
-            }
-            for (int i = 0; i < 6; i++)
-            {
-                int j = (i + 1) % 6;
-                // Corner i = centroid of the three tile centres meeting there —
-                // orientation-proof, no assumptions about axial direction order.
-                // Stage 2d city rule: HEIGHTS weld across the city boundary, but
-                // COLOURS average only among participants on the same side of it —
-                // a settlement footprint is a built thing with a hard edge, not a
-                // biome gradient.
-                Vector3 cp = (o + nOrigin[i] + nOrigin[j]) / 3f;
-                WeldCorner(h0, col0, city0,
-                           nIsLand[i], nH[i], nCol[i], nCity[i],
-                           nIsLand[j], nH[j], nCol[j], nCity[j],
-                           PairWeldThreshold(fog, nFog[i]),
-                           PairWeldThreshold(fog, nFog[j]),
-                           PairWeldThreshold(nFog[i], nFog[j]),
-                           out float ch, out Color cc);
-                s.Corners[i] = new Vector3(cp.X, ch, cp.Z);
-                s.CornerCols[i] = cc;
-
-                Vector3 ep = (o + nOrigin[i]) * 0.5f;
-                bool weld = nIsLand[i] && Mathf.Abs(nH[i] - h0) <= PairWeldThreshold(fog, nFog[i]);
-                s.EdgeWelded[i] = weld;
-                s.EdgeMids[i] = new Vector3(ep.X, weld ? (h0 + nH[i]) * 0.5f : h0, ep.Z);
-                s.EdgeCols[i] = (weld && nCity[i] == city0) ? col0.Lerp(nCol[i], 0.5f) : col0;
-            }
-            _surf[c] = s;
-        }
-
-        // Pass 2 — emit tops + cliff/shore walls. Winding is settled per-triangle
-        // by the RH-normal sign test (Godot front faces are CW), so no assumption
-        // about boundary orientation can break it.
-        var st = new SurfaceTool();
-        st.Begin(Mesh.PrimitiveType.Triangles);
-        foreach (var c in coords)
-        {
-            var s = _surf[c];
-            for (int j = 0; j < 12; j++)
-            {
-                int k = (j + 1) % 12;
-                SubdivTopTri(st, s.Center, s.CenterCol,
-                             Bnd(s, j), BndCol(s, j),
-                             Bnd(s, k), BndCol(s, k), FanSubdivDepth);
-            }
-            // Walls per unwelded edge: our (corner i-1, edgeMid i, corner i) rim
-            // down to whatever is really below on the other side — the rim is
-            // SUBDIVIDED to match the top tessellation exactly (nested midpoints
-            // ⇒ shared floats ⇒ no cracks), and the floor at each sub-point is
-            // the neighbour's true rendered surface: endpoint base floors lerped
-            // (their rim is linear in the base heights) + this point's own
-            // undulation, matching their subdivided rim by construction.
-            for (int i = 0; i < 6; i++)
-            {
-                if (s.EdgeWelded[i])
-                    continue;
-                Vector3 A = s.Corners[(i + 5) % 6], M = s.EdgeMids[i], B = s.Corners[i];
-                float faBase = WallFloorAt(s, i, A) - Undulation(A.X, A.Z);
-                float fmBase = WallFloorAt(s, i, M) - Undulation(M.X, M.Z);
-                float fbBase = WallFloorAt(s, i, B) - Undulation(B.X, B.Z);
-                int segs = 1 << FanSubdivDepth;              // per half-edge
-                int n = 2 * segs + 1;
-                var top = new Vector3[n];
-                var floor = new float[n];
-                bool anyAbove = false;
-                for (int t = 0; t < n; t++)
-                {
-                    float u = t / (float)segs;               // 0..2 across A→M→B
-                    Vector3 p = u <= 1f ? A.Lerp(M, u) : M.Lerp(B, u - 1f);
-                    float fBase = u <= 1f ? Mathf.Lerp(faBase, fmBase, u)
-                                          : Mathf.Lerp(fmBase, fbBase, u - 1f);
-                    top[t] = Undulate(p);
-                    floor[t] = fBase + Undulation(p.X, p.Z);
-                    if (top[t].Y > floor[t] + 0.01f) anyAbove = true;
-                }
-                if (!anyAbove)
-                    continue;   // we are the lower side; the neighbour walls down to us
-                Color wc = s.CenterCol;
-                for (int t = 0; t < n - 1; t++)
-                    WallQuad(st, top[t], top[t + 1], floor[t], floor[t + 1], wc, s.Center);
-            }
-        }
-        var mesh = st.Commit();
-
-        var mat = PainterlyPrism.TileMaterial(PainterlyPrism.Land, 0.9f);
-        if (mat is ShaderMaterial sm)
-        {
-            // Close-zoom brushwork (undulation is baked — the shader knob stays 0).
-            sm.SetShaderParameter("grain_scale", 1.8f);
-            sm.SetShaderParameter("grain_strength", 0.11f);
-            // Welded cliffs are painted BANKS, not voids: the full skirt darkening
-            // + stripes + shadow pushed them near-black (the "torn hole" read).
-            sm.SetShaderParameter("skirt_darken", 0.14f);
-            sm.SetShaderParameter("stripe_strength", 0.10f);
-            // Band-edge break-up (the "straight lines across the map" fix):
-            // with continuous normals the toon quantisation draws N·L
-            // iso-contours, which are STRAIGHT within each large fan triangle —
-            // long pale creases crossing many tiles. Jittering the band
-            // threshold with world-space noise turns those edges brushy; a
-            // slightly softer step widens the transition. Window-only: the
-            // atlas keeps flat lids (constant N·L per top ⇒ no contours) and
-            // the shader default of 0 leaves every other material untouched.
-            sm.SetShaderParameter("toon_softness", 0.28f);
-            sm.SetShaderParameter("toon_jitter", 0.7f);
-            sm.SetShaderParameter("toon_jitter_scale", 1.3f);
-            // Ground COLOUR map (the "lines everywhere" fix): Gouraud vertex
-            // colours interpolate linearly, and the gradient kinks at fan/rim
-            // edges draw a faint straight-line lattice no tessellation density
-            // can remove — the colour field itself is piecewise-linear. The
-            // tops (and walls) sample this blurred world-space map instead;
-            // vertex colours remain only as the fallback when the flag is off.
-            _groundColorMap = BuildGroundColorMap(out _cmOrigin, out _cmSize);
-            sm.SetShaderParameter("use_color_map", true);
-            sm.SetShaderParameter("color_map", _groundColorMap);
-            sm.SetShaderParameter("color_map_origin", _cmOrigin);
-            sm.SetShaderParameter("color_map_inv_size", new Vector2(1f / _cmSize.X, 1f / _cmSize.Y));
-        }
-        var node = new MeshInstance3D { Name = "WinLandWelded", Mesh = mesh, MaterialOverride = mat };
-        AddChild(node);
-        return node;
-    }
-
-    /// <summary>Pairwise weld threshold. A pair of charted-but-unpainted
-    /// (Silhouette) tiles welds far more aggressively: the underpainting is a
-    /// shape HINT, so its relief should roll — small unwelded steps there read
-    /// as straight seam lines "interrupting the map" (hex edges chain into
-    /// long collinear runs). Any pair touching a Revealed tile keeps the
-    /// strict threshold, so painted cliffs stay crisp and meaningful.
-    /// Symmetric in its arguments — corner weld stays crack-free.</summary>
-    private static float PairWeldThreshold(Fog a, Fog b)
-        => (a != Fog.Revealed && b != Fog.Revealed) ? WeldThreshold * 2.4f : WeldThreshold;
-
-    /// <summary>Rasterise every window tile's rendered colour (canvas tone for
-    /// Hidden, underpaint for Silhouette, full painterly colour for Revealed)
-    /// into a world-aligned float texture at 4 texels/world-unit, then box-blur
-    /// it (~0.5 world units of wash) so tile-to-tile transitions are smooth
-    /// washes with no lattice-aligned gradient kinks. The land shader samples
-    /// this instead of Gouraud vertex colour. Cost per rebuild is a few ms
-    /// (~250×250 texels); float format so the palette round-trips exactly
-    /// (8-bit would re-introduce banding on the pale washes).</summary>
-    private ImageTexture BuildGroundColorMap(out Vector2 origin, out Vector2 size)
-    {
-        const float texelsPerUnit = 4f;
-        const int blurRadius = 2;   // texels ⇒ ~0.5 world units of wash
-        float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
-        foreach (var c in _windowTiles)
-        {
-            var o = TileOrigin(c.X, c.Y);
-            minX = Mathf.Min(minX, o.X); maxX = Mathf.Max(maxX, o.X);
-            minZ = Mathf.Min(minZ, o.Z); maxZ = Mathf.Max(maxZ, o.Z);
-        }
-        minX -= 6f; minZ -= 6f; maxX += 6f; maxZ += 6f;   // margin rings + blur skirt
-        origin = new Vector2(minX, minZ);
-        size = new Vector2(maxX - minX, maxZ - minZ);
-        int w = Mathf.CeilToInt(size.X * texelsPerUnit), h = Mathf.CeilToInt(size.Y * texelsPerUnit);
-        var buf = new Color[w * h];
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-            {
-                float wx = minX + (x + 0.5f) / texelsPerUnit;
-                float wz = minZ + (y + 0.5f) / texelsPerUnit;
-                var (col, row) = WorldToOffset(wx, wz);
-                var co = new Vector2I(col, row);
-                bool hidden = !_world.InBounds(col, row) || _fog.FogAt(co) == Fog.Hidden;
-                Color cc;
-                if (hidden)
-                {
-                    // Same wet-edge treatment the canvas vertices carried, so
-                    // the torn watercolor frontier survives the map path.
-                    float edge = HasPaintedNeighbor(co) ? Hex3DPalette.WetEdgeAmount(col, row) : 0f;
-                    cc = Hex3DPalette.CanvasTone(col, row, edge);
-                }
-                else
-                    cc = TileColor(_world.GetTile(col, row), co, _fog.FogAt(co));
-                buf[y * w + x] = cc;
-            }
-        var tmp = new Color[w * h];
-        BoxBlur(buf, tmp, w, h, blurRadius, horizontal: true);
-        BoxBlur(tmp, buf, w, h, blurRadius, horizontal: false);
-        var data = new byte[w * h * 16];   // RGBAF: 4 floats per texel
-        for (int i = 0; i < buf.Length; i++)
-        {
-            System.Buffer.BlockCopy(System.BitConverter.GetBytes(buf[i].R), 0, data, i * 16 + 0, 4);
-            System.Buffer.BlockCopy(System.BitConverter.GetBytes(buf[i].G), 0, data, i * 16 + 4, 4);
-            System.Buffer.BlockCopy(System.BitConverter.GetBytes(buf[i].B), 0, data, i * 16 + 8, 4);
-            System.Buffer.BlockCopy(System.BitConverter.GetBytes(1f), 0, data, i * 16 + 12, 4);
-        }
-        var img = Image.CreateFromData(w, h, false, Image.Format.Rgbaf, data);
-        return ImageTexture.CreateFromImage(img);
-    }
-
-    private static void BoxBlur(Color[] src, Color[] dst, int w, int h, int r, bool horizontal)
-    {
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-            {
-                float cr = 0f, cg = 0f, cb = 0f; int n = 0;
-                for (int k = -r; k <= r; k++)
-                {
-                    int xx = horizontal ? x + k : x, yy = horizontal ? y : y + k;
-                    if (xx < 0 || xx >= w || yy < 0 || yy >= h) continue;
-                    var s = src[yy * w + xx];
-                    cr += s.R; cg += s.G; cb += s.B; n++;
-                }
-                dst[y * w + x] = new Color(cr / n, cg / n, cb / n, 1f);
-            }
-    }
+    // ── Baked undulation amplitude (world-space height roll) ────────────────
+    // 0 (was 0.06): the fine world-locked height roll. Its normals, resolved by
+    // the toon-banded directional light, paint a soft ~2-unit quilt across the
+    // ground — the renderer-dependent "lines" (visible on Forward+/this GPU,
+    // hidden on the laptop). Killed while we confirm the diagnosis; a smoother
+    // reintroduction (shaded flat, or fewer harder bands) can follow.
+    private const float UndulationAmp = 0f;
 
     /// <summary>World XZ → offset tile coord, via fractional axial + cube
     /// rounding (inverse of <see cref="TileOrigin"/>: x = q·1.5, z = √3·(r + q/2)).</summary>
@@ -1239,220 +1179,17 @@ public partial class ExpeditionWindow3D : Node3D
         return HexCoord.AxialToOffset(rq, rr);
     }
 
-    /// <summary>Corner weld by connected components over pairwise height diffs ≤
-    /// threshold — symmetric (every participant computes the same subset), so
-    /// welded corners are crack-free by construction. Thresholds are PER PAIR
-    /// (fog-aware, see <see cref="PairWeldThreshold"/>) but symmetric, so the
-    /// crack-free property holds. Colours additionally
-    /// average only among participants on the same side of a city boundary
-    /// (heights still weld — the ground is continuous; the paint is not).</summary>
-    private static void WeldCorner(float h0, Color c0, bool city0,
-                                   bool aIn, float ha, Color ca, bool aCity,
-                                   bool bIn, float hb, Color cb, bool bCity,
-                                   float thA, float thB, float thAB,
-                                   out float h, out Color col)
-    {
-        bool sa = aIn && Mathf.Abs(ha - h0) <= thA;
-        bool sb = bIn && Mathf.Abs(hb - h0) <= thB;
-        bool ab = aIn && bIn && Mathf.Abs(ha - hb) <= thAB;
-        bool useA = aIn && (sa || (sb && ab));
-        bool useB = bIn && (sb || (sa && ab));
-        int n = 1;
-        h = h0;
-        if (useA) { h += ha; n++; }
-        if (useB) { h += hb; n++; }
-        h /= n;
-        int cn = 1;
-        float cr = c0.R, cg = c0.G, cbl = c0.B;
-        if (useA && aCity == city0) { cr += ca.R; cg += ca.G; cbl += ca.B; cn++; }
-        if (useB && bCity == city0) { cr += cb.R; cg += cb.G; cbl += cb.B; cn++; }
-        col = new Color(cr / cn, cg / cn, cbl / cn, 1f);
-    }
-
-    private bool IsCityTile(Vector2I c)
-    {
-        var t = _world.GetTile(c.X, c.Y);
-        return t.SettlementIndex >= 0 && _world != null
-            && t.SettlementIndex < _world.Settlements.Count
-            && _world.Settlements[t.SettlementIndex].Tier == SettlementTier.City;
-    }
-
-    /// <summary>What an unwelded edge's wall descends to AT a given rim vertex:
-    /// neighbour land at its matching rim vertex (same XZ ⇒ the two sides share
-    /// wall edges exactly, no slivers), hidden ground at the canvas slab, water
-    /// at its pool top, out-of-window at a skirt below us.</summary>
-    private float WallFloorAt(in TileSurf s, int i, Vector3 rimVert)
-    {
-        var nco = s.Nbrs[i];
-        if (_surf.TryGetValue(nco, out var ns))
-        {
-            float best = float.MaxValue;
-            float y = ns.Center.Y;
-            for (int j = 0; j < 12; j++)
-            {
-                Vector3 v = Bnd(ns, j);
-                float d = (v.X - rimVert.X) * (v.X - rimVert.X) + (v.Z - rimVert.Z) * (v.Z - rimVert.Z);
-                if (d < best) { best = d; y = v.Y; }
-            }
-            return y + Undulation(rimVert.X, rimVert.Z);
-        }
-        if (!_world.InBounds(nco.X, nco.Y))
-            return s.Center.Y - 0.6f;   // window/map boundary skirt
-        if (_fog.FogAt(nco) == Fog.Hidden)
-            return FogSlabHeight;
-        var nt = _world.GetTile(nco.X, nco.Y);
-        if (nt.IsOcean) return 0.08f;
-        if (nt.IsLake) return 0.12f;
-        return s.Center.Y - 0.6f;
-    }
-
-    private Vector3 Undulate(Vector3 p) => new Vector3(p.X, p.Y + Undulation(p.X, p.Z), p.Z);
-
-    private static Vector3 Bnd(in TileSurf s, int j)
-        => (j & 1) == 0 ? s.EdgeMids[(j >> 1)] : s.Corners[(j >> 1)];
-
-    private static Color BndCol(in TileSurf s, int j)
-        => (j & 1) == 0 ? s.EdgeCols[(j >> 1)] : s.CornerCols[(j >> 1)];
-
-    /// <summary>Fan tessellation depth. 0 = the original 12-triangle fan. At 0
-    /// the ~0.9-unit triangles interpolate the smooth ground normal LINEARLY,
-    /// and the slope change at every triangle edge reads as a faint straight
-    /// crease repeating at tile spacing (Mach banding — the "different set of
-    /// lines" left after the noise-lattice fix). Each level quarters the
-    /// triangles; 2 → 16 sub-tris, edge ~0.22, banding below visibility.
-    /// Costs ~16× the vertex work per rebuild — drop to 1 if stepping hitches.</summary>
-    private const int FanSubdivDepth = 2;
-
-    /// <summary>Midpoint-subdivide one fan triangle given PRE-undulation
-    /// vertices; only the FINAL vertices get undulated (via TopTri's smooth
-    /// path), so the base surface stays the exact welded plane and rim points
-    /// remain shared-float identical between neighbouring tiles and the wall
-    /// tops. Colours interpolate with the positions.</summary>
-    private void SubdivTopTri(SurfaceTool st, Vector3 a, Color ca, Vector3 b, Color cb, Vector3 c, Color cc, int depth)
-    {
-        if (depth == 0)
-        {
-            TopTri(st, Undulate(a), ca, Undulate(b), cb, Undulate(c), cc, smoothGround: true);
-            return;
-        }
-        Vector3 ab = (a + b) * 0.5f, bc = (b + c) * 0.5f, ca2 = (c + a) * 0.5f;
-        Color cab = ca.Lerp(cb, 0.5f), cbc = cb.Lerp(cc, 0.5f), cca = cc.Lerp(ca, 0.5f);
-        SubdivTopTri(st, a, ca, ab, cab, ca2, cca, depth - 1);
-        SubdivTopTri(st, ab, cab, b, cb, bc, cbc, depth - 1);
-        SubdivTopTri(st, ca2, cca, bc, cbc, c, cc, depth - 1);
-        SubdivTopTri(st, ab, cab, bc, cbc, ca2, cca, depth - 1);
-    }
-
-    /// <summary>Up-facing triangle under the CW front-face rule: emit so the
-    /// RH-normal points DOWN (checked numerically — orientation-proof).
-    /// <paramref name="smoothGround"/> = true gives each vertex the analytic
-    /// undulation-gradient normal (see <see cref="GroundNormal"/>) so the rolling
-    /// land shades as ONE continuous surface across tiles — no facet creases.
-    /// Flat sheets (the canvas fog) leave it false and keep straight-up normals.</summary>
-    private static void TopTri(SurfaceTool st, Vector3 a, Color ca, Vector3 b, Color cb, Vector3 c, Color cc,
-                               bool smoothGround = false)
-    {
-        float crossY = (b.Z - a.Z) * (c.X - a.X) - (b.X - a.X) * (c.Z - a.Z);
-        if (crossY > 0f)
-        { (b, c) = (c, b); (cb, cc) = (cc, cb); }
-        st.SetColor(ca); st.SetNormal(smoothGround ? GroundNormal(a.X, a.Z) : Vector3.Up); st.AddVertex(a);
-        st.SetColor(cb); st.SetNormal(smoothGround ? GroundNormal(b.X, b.Z) : Vector3.Up); st.AddVertex(b);
-        st.SetColor(cc); st.SetNormal(smoothGround ? GroundNormal(c.X, c.Z) : Vector3.Up); st.AddVertex(c);
-    }
-
-    /// <summary>Smooth surface normal of the undulated land at world XZ, taken as
-    /// the analytic gradient of <see cref="Undulation"/>. Because it is a pure
-    /// function of world XZ, adjacent tiles agree at shared rims by construction —
-    /// the ground reads as one continuous rolling sheet, not faceted hex plates.
-    /// Central-difference epsilon is small vs the noise scales (0.5 / 1.2 per unit).</summary>
-    private static Vector3 GroundNormal(float wx, float wz)
-    {
-        const float e = 0.05f;
-        float dUdx = (Undulation(wx + e, wz) - Undulation(wx - e, wz)) / (2f * e);
-        float dUdz = (Undulation(wx, wz + e) - Undulation(wx, wz - e)) / (2f * e);
-        return new Vector3(-dUdx, 1f, -dUdz).Normalized();
-    }
-
-    /// <summary>Outward-facing wall quad from rim segment a→b down to per-vertex
-    /// floors. Winding settled numerically: RH-normal must point INWARD (toward
-    /// the tile centre) for the face to render outward under the CW rule.</summary>
-    private static void WallQuad(SurfaceTool st, Vector3 a, Vector3 b, float aFloorY, float bFloorY, Color col, Vector3 centre)
-    {
-        Vector3 a2 = new Vector3(a.X, aFloorY, a.Z);
-        Vector3 b2 = new Vector3(b.X, bFloorY, b.Z);
-        Vector3 n = (b - a).Cross(a2 - a);
-        Vector3 outward = new Vector3((a.X + b.X) * 0.5f - centre.X, 0f, (a.Z + b.Z) * 0.5f - centre.Z);
-        bool swap = n.Dot(outward) > 0f;   // RH-normal outward would render inward — swap
-        Vector3 t0 = swap ? b : a, t1 = swap ? a : b;
-        Vector3 b0 = swap ? b2 : a2, b1 = swap ? a2 : b2;
-        Vector3 wn = swap ? -n : n;
-        wn = wn.LengthSquared() > 1e-8f ? -wn.Normalized() : Vector3.Up;   // face normal points outward
-        // SHORT walls — lips under ~0.3 world units (the silhouette-land ↔
-        // canvas-slab seam sits at ~0.06; single compressed terrace steps at
-        // ~0.23) — take the smooth GROUND normal instead of the horizontal
-        // face normal. The strip then lights exactly like the surrounding
-        // tops: no toon step, and the shader's skirt darkening (keyed off
-        // NORMAL.y ≈ 0) skips it — the straight dark seam lines vanish.
-        // Tall drops keep the crisp painted cliff wall.
-        bool soft = Mathf.Max(a.Y - aFloorY, b.Y - bFloorY) < 0.30f;
-        Vector3 NAt(Vector3 v) => soft ? GroundNormal(v.X, v.Z) : wn;
-        st.SetColor(col); st.SetNormal(NAt(t0)); st.AddVertex(t0);
-        st.SetColor(col); st.SetNormal(NAt(t1)); st.AddVertex(t1);
-        st.SetColor(col); st.SetNormal(NAt(b1)); st.AddVertex(b1);
-        st.SetColor(col); st.SetNormal(NAt(t0)); st.AddVertex(t0);
-        st.SetColor(col); st.SetNormal(NAt(b1)); st.AddVertex(b1);
-        st.SetColor(col); st.SetNormal(NAt(b0)); st.AddVertex(b0);
-    }
-
     /// <summary>The true rendered ground height at a world point inside (or just
     /// beside) a tile — welded fan interpolation + baked undulation. This is the
     /// single source of truth the stroke ribbons follow.</summary>
     private float SampleGround(Vector2I tile, Vector3 p)
     {
-        if (!_surf.TryGetValue(tile, out var s))
+        // Unified-heightmap rewrite: the true surface is now the smooth field,
+        // so rivers/roads/props read it directly (tile arg kept for signature).
+        // Falls back to the flat rendered tile height before the field is built.
+        if (_field.Count == 0)
             return RenderedTileHeight(tile) + Undulation(p.X, p.Z);
-        if (TryFan(s, p, out float inY, out float bestY))
-            return inY + Undulation(p.X, p.Z);
-        // Cross-tile (stage 2d, river-clip fix): bank vertices near a welded edge
-        // can land in the NEIGHBOUR's fan — extrapolating our own edge plane there
-        // read as clipping. Ask the neighbours for the true surface first.
-        for (int i = 0; i < 6; i++)
-        {
-            if (_surf.TryGetValue(s.Nbrs[i], out var ns) && TryFan(ns, p, out float ny, out _))
-                return ny + Undulation(p.X, p.Z);
-        }
-        return bestY + Undulation(p.X, p.Z);
-    }
-
-    /// <summary>Fan interpolation for one tile: true when p lies inside; bestY is
-    /// the nearest-triangle extrapolation for the fallback path.</summary>
-    private static bool TryFan(in TileSurf s, Vector3 p, out float y, out float bestY)
-    {
-        float bestErr = float.MaxValue;
-        bestY = s.Center.Y;
-        for (int j = 0; j < 12; j++)
-        {
-            int k = (j + 1) % 12;
-            if (BaryY(s.Center, Bnd(s, j), Bnd(s, k), p, out float ty, out float err))
-            { y = ty; return true; }
-            if (err < bestErr) { bestErr = err; bestY = ty; }
-        }
-        y = bestY;
-        return false;
-    }
-
-    /// <summary>2D barycentric plane interpolation in XZ; err is how far outside
-    /// the triangle the point sits (≤ small epsilon counts as inside).</summary>
-    private static bool BaryY(Vector3 a, Vector3 b, Vector3 c, Vector3 p, out float y, out float err)
-    {
-        float d = (b.Z - c.Z) * (a.X - c.X) + (c.X - b.X) * (a.Z - c.Z);
-        if (Mathf.Abs(d) < 1e-6f) { y = a.Y; err = float.MaxValue; return false; }
-        float l0 = ((b.Z - c.Z) * (p.X - c.X) + (c.X - b.X) * (p.Z - c.Z)) / d;
-        float l1 = ((c.Z - a.Z) * (p.X - c.X) + (a.X - c.X) * (p.Z - c.Z)) / d;
-        float l2 = 1f - l0 - l1;
-        y = l0 * a.Y + l1 * b.Y + l2 * c.Y;
-        err = -Mathf.Min(l0, Mathf.Min(l1, l2));
-        return err <= 0.02f;
+        return SampleFieldHeight(p.X, p.Z);
     }
 
     // Deterministic CPU value noise for the baked undulation (window-local — the
@@ -1517,11 +1254,9 @@ public partial class ExpeditionWindow3D : Node3D
             if (_fog.FogAt(c) != Fog.Revealed) continue;
             var t = _world.GetTile(c.X, c.Y);
             if (t.IsWater) continue;
-            float h = TileHeight(c);
             var basePos = TileOrigin(c.X, c.Y);
-            // Stage 2: props must stand on the WELDED ground, not the flat tile
-            // height (deviation up to ~±0.2 would float or bury them).
-            float GroundAt(Vector3 p) => UseWeldedTerrain ? SampleGround(c, p) : h;
+            // Props stand on the smooth heightmap surface, not the flat tile height.
+            float GroundAt(Vector3 p) => SampleGround(c, p);
             if (t.Terrain == TT.Forest)
             {
                 // A5: canopy blob clusters (base-origin — placed AT ground height),

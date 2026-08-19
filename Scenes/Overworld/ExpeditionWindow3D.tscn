@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://c3xwn2scry3dw"]
+
+[ext_resource type="Script" uid="uid://d3q28b4ivs4tk" path="res://Scripts/Systems/Overworld/Expedition/ExpeditionWindow3D.cs" id="1_scry3d"]
+
+[node name="ExpeditionWindow3D" type="Node3D"]
+script = ExtResource("1_scry3d")
+Standalone = true

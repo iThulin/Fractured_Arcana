@@ -743,16 +743,10 @@ public partial class ExpeditionManager : Node2D
     {
         // ── View toggle (Stage 3): a REAL, non-debug feature, so it's handled
         //    BEFORE the debug gate. M flips this run between the 2D map and the
-        //    3D expedition view; Esc closes the 3D view if it's open. Esc only
-        //    consumes the event while the overlay is up, so in 2D the pause menu's
-        //    Esc still works untouched.
+        //    3D expedition view. Esc is deliberately NOT handled here — it is
+        //    reserved for the pause menu — so use M (or the "Switch to 2D"
+        //    button) to leave the 3D view.
         if (@event is InputEventKey { Pressed: true, Keycode: Key.M } && !ExpeditionComplete)
-        {
-            OnView3DTogglePressed();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-        if (_window3D != null && @event is InputEventKey { Pressed: true, Keycode: Key.Escape })
         {
             OnView3DTogglePressed();
             GetViewport().SetInputAsHandled();
@@ -905,7 +899,14 @@ public partial class ExpeditionManager : Node2D
         var vp = new SubViewport { OwnWorld3D = true, Msaa3D = Viewport.Msaa.Msaa4X };
         _window3DContainer.AddChild(vp);
 
-        _window3D = new ExpeditionWindow3D { Standalone = false, SelfDrive = false };
+        // Instance the ExpeditionWindow3D SCENE (not `new`) so its Inspector-tuned
+        // export values (chamber, table, companions, camera) drive the live view;
+        // the same scene is F6-previewable. Force run-mode flags after instancing.
+        // Falls back to a code-built node if the scene can't be loaded.
+        var winScene = GD.Load<PackedScene>("res://Scenes/Overworld/ExpeditionWindow3D.tscn");
+        _window3D = winScene != null ? winScene.Instantiate<ExpeditionWindow3D>() : new ExpeditionWindow3D();
+        _window3D.Standalone = false;
+        _window3D.SelfDrive = false;
         _window3D.MoveRequested += OnWindow3DMove;
         _window3D.TileHovered += OnWindow3DHover;
         _window3D.TileUnhovered += OnWindow3DUnhover;
@@ -920,7 +921,7 @@ public partial class ExpeditionManager : Node2D
 
         FeedWindow3D(frameCamera: true);
         UpdateView3DButton();
-        ShowInfo("3D expedition view — click an adjacent tile to walk. \"Switch to 2D\", M, or Esc returns.");
+        ShowInfo("3D expedition view — click an adjacent tile to walk. \"Switch to 2D\" or M returns.");
     }
 
     private void CloseWindow3D()
