@@ -38,6 +38,16 @@ public partial class CampusScreen : Control
     /// the city lands on the grounds map, not a menu (Phase 2, Stage 3).</summary>
     public static CampusPanelId? InitialPanel;
 
+    /// <summary>Playtest switch (2026-08-19, revised same day): the STRATEGIC CITY VIEW
+    /// is the hub now. True hides the tab bar — systems are reached by clicking buildings
+    /// in the city (StrategicView.OnHomeBuildingPicked) or on the overlay-hosted campus.
+    /// This screen survives as two rooms only: the no-save slot picker / cycle-end ritual
+    /// (standalone, lands on Guild) and the lifecycle-heavy panel host (overlay). The
+    /// floating campus map tab is no longer routed from anywhere — deletion candidate
+    /// once rotated/multi-tile siting moves to the city view. Flip to false to restore
+    /// the tab bar if the diegetic hub blocks a playtest session.</summary>
+    private static readonly bool DiegeticHubOnly = true;   // readonly, not const: const trips CS0162 in the gates below
+
     private Button[] _tabButtons;
     private Control[] _tabPanels;
 
@@ -211,12 +221,15 @@ public partial class CampusScreen : Control
         quitBtn.Pressed += () => GetTree().Quit();
         titleBar.AddChild(quitBtn);
 
-        // Tab bar
+        // Tab bar. Hidden under the diegetic hub — the buttons still exist and SelectTab
+        // still drives their pressed state, so flipping DiegeticHubOnly back on restores
+        // the bar with zero other changes.
         var tabBar = new HBoxContainer();
         tabBar.SetAnchorsPreset(LayoutPreset.TopWide);
         tabBar.OffsetTop = 60;
         tabBar.OffsetBottom = 104;
         tabBar.AddThemeConstantOverride("separation", 0);
+        tabBar.Visible = !DiegeticHubOnly;
         AddChild(tabBar);
 
         string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop" };
@@ -335,9 +348,12 @@ public partial class CampusScreen : Control
         ConsumeCampusCombatReturn();
 
         RefreshAll();
-        // Open on the requested panel (Stage 3: the Campus grounds map when descending
-        // from the world), else the default Guild tab. One-shot.
-        SelectTab(InitialPanel.HasValue ? (int)InitialPanel.Value : 0);
+        // Open on the requested panel (the overlay host always sets InitialPanel).
+        // Standalone default: the GUILD tab, always — with the strategic city as the
+        // hub, this screen is only ever entered standalone as the no-save slot picker
+        // or the cycle-end ritual (school choice + BeginNextCycle), both Guild-tab
+        // business. The floating campus map is not a landing anywhere. One-shot.
+        SelectTab(InitialPanel.HasValue ? (int)InitialPanel.Value : (int)CampusPanelId.Guild);
         InitialPanel = null;
     }
 
@@ -345,6 +361,25 @@ public partial class CampusScreen : Control
     /// selectors that call this — neither is baked into any panel, which is what makes the bar
     /// deletable later rather than something the map has to replace.</summary>
     public void Show(CampusPanelId id) => SelectTab((int)id);
+
+    /// <summary>Diegetic hub: Escape leaves the overlay-hosted campus back to the world
+    /// — the keyboard twin of the overlay's "↑ To the World Map" button. Overlay-only:
+    /// standalone (slot picker / cycle ritual) has nowhere to Escape to, and the
+    /// narrative panel owns its own dismissal. Escape on the standalone screen falls
+    /// through to PauseManager as before.</summary>
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (!DiegeticHubOnly)
+            return;
+        if (!@event.IsActionPressed("ui_cancel"))
+            return;
+        if (OverlayLeaveHandler == null)
+            return;
+        if (_campusNarrativePanel != null && _campusNarrativePanel.Visible)
+            return;
+        OverlayLeaveHandler.Invoke();
+        GetViewport().SetInputAsHandled();
+    }
 
     private void SelectTab(int index)
     {
@@ -680,101 +715,17 @@ public partial class CampusScreen : Control
         if (Enum.TryParse<CardSchool>(school, out var cs))
             PlayerSession.SelectedSchool = cs;
 
-        // Generate the new cycle's world and open it.
+        // Generate the new cycle's world and open it — in city view, the hub state.
         EnsureCycleWorld();
         RefreshAll();
+        PlayerSession.StartInCityOnOpen = true;
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
     }
 
     /// <summary>Generate the cycle's world on first entry if it doesn't exist yet.
-    /// Deterministic per cycle + slot, stored in the cycle save, generated once.
-    /// (Later this moves to a dedicated CycleInitializer at cycle start.)</summary>
-    private void EnsureCycleWorld()
-    {
-        var save = SaveManager.ActiveSave;
-        var cycle = save?.Cycle;
-        if (cycle == null)
-            return;
-        if (cycle.World != null && cycle.World.Tiles.Length > 0)
-            return; // already generated this cycle
-
-        // The founding scenario is guild-level (EternalLedger) and re-applied to
-        // every cycle's world generation. The direct founding path sets it on the
-        // ledger; the OnComplete host path leaves it null but stashes the id in
-        // PlayerSession — resolve that here and persist it onto the guild so it is
-        // stable for every later cycle/load. Pre-feature saves → Standard.
-        var scenario = save.Ledger?.FoundingScenario;
-        if (scenario == null)
-        {
-            scenario = (!string.IsNullOrEmpty(PlayerSession.PendingStartScenarioId)
-                            ? StartScenarioLoader.Load(PlayerSession.PendingStartScenarioId)
-                            : null)
-                       ?? StartScenarioLoader.Default();
-            if (save.Ledger != null)
-                save.Ledger.FoundingScenario = scenario;
-        }
-
-        if (cycle.WorldSeed == 0)              // 0 = "not yet rolled" sentinel
-        {
-            int baseSeed = scenario.Seed;
-            if (baseSeed == 0)                 // scenario without a fixed seed → roll one
-            {
-                var rng = new RandomNumberGenerator();
-                rng.Randomize();
-                baseSeed = (int)rng.Randi();
-            }
-            // Cycle 1 uses the curated seed verbatim (the map the scenario was
-            // balanced on); later timelines mix in the cycle number so each differs
-            // while the founding difficulty levers stay constant.
-            cycle.WorldSeed = WorldGenerator.DeriveCycleSeed(baseSeed, cycle.CycleNumber);
-        }
-        int seed = cycle.WorldSeed;
-        var g = WorldGenerator.Generate(seed, cycle.SelectedSchool, scenario.ToWorldParams());
-        cycle.World = g.World;
-        cycle.Kingdoms = g.Kingdoms;
-        cycle.Campaign = g.Campaign;
-        cycle.Council = g.Council;
-        // Stamp the founding scenario's runtime difficulty onto the timeline so the
-        // combat + corruption layers can read it (consumed in milestone 2B).
-        cycle.EnemyDifficultyMult = scenario.EnemyDifficultyMult;
-        cycle.CorruptionSpreadMult = scenario.CorruptionSpreadMult;
-
-        // Phase 2: resolve the campus entry dock ONCE from the home tile's terrain
-        // (near water → Dock, else Skydock). Eternal campus property — never
-        // recomputed once set, even as later cycles re-site the home elsewhere.
-        var campusMap = save.Ledger?.CampusMap;
-        if (campusMap != null && string.IsNullOrEmpty(campusMap.EntryDockType))
-        {
-            bool nearWater = false;
-            if (g.World.InBounds(g.World.HomeX, g.World.HomeY))
-            {
-                var homeTile = g.World.GetTile(g.World.HomeX, g.World.HomeY);
-                nearWater = homeTile.IsCoast || homeTile.IsWater;
-                if (!nearWater)
-                    foreach (var (nx, ny) in HexCoord.Neighbors(
-                                 g.World.HomeX, g.World.HomeY, g.World.Width, g.World.Height))
-                    {
-                        var nt = g.World.GetTile(nx, ny);
-                        if (nt.IsWater || nt.IsLake || nt.IsOcean)
-                        { nearWater = true; break; }
-                    }
-            }
-            campusMap.EntryDockType = nearWater ? "Dock" : "Skydock";
-            GD.Print($"[Campus] Entry dock resolved to '{campusMap.EntryDockType}' " +
-                     $"from home tile ({g.World.HomeX},{g.World.HomeY}).");
-        }
-        CorruptionSpread.Reset(); // new world — drop cached adjacency + pressure
-        KingdomTickSimulation.Reset(); // new world — drop cached kingdom adjacency
-        // Seed echo-eligible flags from permanent records (quest_hooks §5, step 6).
-        // Runs after world generation so echo encounters can reference the new world.
-        EchoSeeder.Seed(SaveManager.ActiveSave);
-        // Roster rotation: which starters are present this rendering (2026-07-22).
-        CompanionUnlocks.SeedCycleRotation(SaveManager.ActiveSave);
-        SaveManager.Save();
-        GD.Print($"[Campus] Generated cycle {cycle.CycleNumber} world (scenario '{scenario.Id}', seed {seed}, " +
-                 $"{g.Kingdoms.Count} territories, {g.World.Pois.Count} POIs, " +
-                 $"{g.Council.Courts.Count} courts).");
-    }
+    /// Body extracted to <see cref="CycleInitializer.EnsureCycleWorld"/> (2026-08-19)
+    /// so the strategic scene — the hub now — can boot without this screen.</summary>
+    private void EnsureCycleWorld() => CycleInitializer.EnsureCycleWorld();
 
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1030,6 +981,9 @@ public partial class CampusScreen : Control
         else
         {
             GD.Print($"[Campus] '{buildingId}' → {dest.ScenePath}");
+            // The hub is the strategic city (2026-08-19): a utility screen entered
+            // from here should warp back to the city view, not the world overview.
+            PlayerSession.StartInCityOnOpen = true;
             GetTree().ChangeSceneToFile(dest.ScenePath);
         }
     }
@@ -1124,70 +1078,7 @@ public partial class CampusScreen : Control
     /// have left that shape intact. EnsureStarterItems is idempotent — it skips demo items
     /// that already exist and gates starter seeding on an empty armory — so callers may
     /// invoke this freely.</summary>
-    private void EnsureSaveSeeded()
-    {
-        if (SaveManager.ActiveSave == null)
-            return;
-        CompanionRoster.EnsureRoster(SaveManager.ActiveSave);
-        BuildingDatabase.EnsureBuildings(SaveManager.ActiveSave);
-        EnsureStarterItems();
-    }
-
-    private void EnsureStarterItems()
-    {
-        var save = SaveManager.ActiveSave;
-        if (save == null)
-            return;
-
-        ItemDatabase.LoadAll();
-
-        // Q2 (§7a) + Q3 (§4b) demo items — ensure the six exemplars exist even on
-        // an ESTABLISHED armory, so they're equippable for verification without a
-        // fresh save. Q2: trigger-bus (aegis/duelist/standard). Q3: overworld
-        // traversal-resistance (wardstone/cinderweave/trailwarden). Runs before
-        // the fresh-armory gate below.
-        bool grantedDemo = false;
-        foreach (var id in new[] { "aegis_charm", "duelists_brand", "standard_of_the_vigil",
-                                   "wardstone_amulet", "cinderweave_cloak", "trailwardens_compass" })
-        {
-            if (save.Armory.OwnedItems.Exists(i => i.DefinitionId == id))
-                continue;
-            var demoDef = ItemDatabase.Get(id);
-            if (demoDef != null)
-            {
-                save.Armory.AddItem(demoDef);
-                grantedDemo = true;
-            }
-        }
-        if (grantedDemo)
-        {
-            SaveManager.Save();
-            GD.Print("[Armory] Q2/Q3 demo items granted (Aegis Charm, Duelist's Brand, Standard of the Vigil, Wardstone Amulet, Cinderweave Cloak, Trailwarden's Compass).");
-        }
-
-        // Only seed on a fresh armory
-        if (save.Armory.OwnedItems.Count > 0)
-            return;
-
-        // Give one of each starter item
-        var starterIds = new[]
-        {
-            "apprentices_focus", "travellers_robe", "mana_crystal",
-            "stormcaller_staff", "warding_cloak", "spell_focus",
-            "iron_sword", "leather_jerkin", "warriors_sigil",
-            "hunters_bow", "chain_hauberk", "scouts_leathers",
-        };
-
-        foreach (var id in starterIds)
-        {
-            var def = ItemDatabase.Get(id);
-            if (def != null)
-                save.Armory.AddItem(def);
-        }
-
-        SaveManager.Save();
-        GD.Print($"[Armory] Seeded {save.Armory.OwnedItems.Count} starter items.");
-    }
+    private void EnsureSaveSeeded() => CycleInitializer.EnsureSaveSeeded();
 
     // ApplyTabStyle moved to CampusUi 2026-08-03, unchanged. It styles the tab-bar
     // SELECTOR rather than any panel's content — which is exactly the piece the campus

@@ -25,7 +25,7 @@ using System.Collections.Generic;
 public partial class CombatDebugLauncher : CanvasLayer
 {
     private const string BattlefieldScene = "res://Scenes/Combat/Battlefield.tscn";
-    private const string CampusScene = "res://Scenes/Campus/CampusScene.tscn";
+    private const string CampusScene = "res://Scenes/Overworld/StrategicScene.tscn";   // hub swap 2026-08-19
 
     private static CombatDebugLauncher _instance;
     public static bool IsOpen => _instance != null && IsInstanceValid(_instance);

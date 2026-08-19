@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+; ═══════════════════════════════════════════════════════════════════
+; LANDMARK PLACEHOLDER (2026-08-19): instances grand_hall's primitive
+; massing so restored/ruined landmarks read as structures, not bare
+; tinted hexes. Tier group = restoration phase (ruined→T1, active→T2,
+; restored→T3 — see CampusGridManager.LoadLandmarks). Replace with
+; authored art per the BuildingMeshLibrary.cs contract (root Node3D,
+; children "T1"/"T2"/"T3", hex radius 1.0, ground at Y=0).
+; ═══════════════════════════════════════════════════════════════════
+
+[ext_resource type="PackedScene" path="res://Scenes/Campus/Buildings/grand_hall.tscn" id="1"]
+
+[node name="BuildingMesh" instance=ExtResource("1")]

@@ -264,7 +264,8 @@ public partial class WorldAtlas3D : Node3D
     public event System.Action<Vector2I> HomeDistrictPicked;
     private Vector3 _cityCentre;                          // world centre of the city footprint
     private float _cityFitDist = 8f;                      // camera distance framing the whole city
-    private MultiMeshInstance3D _cityBorders;             // per-city-tile hex outlines, city view only
+    private MultiMeshInstance3D _cityBorders;             // city PERIMETER outline, city view only
+    private MultiMeshInstance3D _cityBordersInner;        // faint interior district seams, city view only
     private float _cityPlateau = 0f;                      // the city's uniform ground height (above all neighbours)
     /// <summary>Every marker standing ON a city tile (the seat block + label, the portal
     /// beacon — the gold "staging" marker on the city IS the portal building — POI orbs).
@@ -383,11 +384,11 @@ public partial class WorldAtlas3D : Node3D
         if (_cityTiles.Count == 0)
             _cityTiles.Add(new Vector2I(_world.HomeX, _world.HomeY));
 
-        // Contour-follow: the city is NOT flattened to a plateau — each district renders at its
-        // own strategic tile's terrain height (see TileHeightAt / ChildDistrictTopWorldY), so the
-        // campus sits INTO the landscape. _cityPlateau is repurposed as the camera-framing height:
-        // the home tile's terrain top, which the city undulates around.
-        _cityPlateau = TileHeightAt(_world.HomeX, _world.HomeY);
+        // The city IS flattened to a plateau (2026-08-19): the home tile's natural terrain
+        // height, applied to every city tile via the TileHeightAt override. RAW height here —
+        // TileHeightAt consults _cityPlateau for city tiles, so computing it through the
+        // override would read the previous city's value.
+        _cityPlateau = TileHeight(_world.GetTile(_world.HomeX, _world.HomeY));
 
         // Centre + framing distance for the city-view camera. Target Y sits at the home-tile
         // height so the camera frames the city surface, not the y=0 ground plane far beneath it.
@@ -404,12 +405,17 @@ public partial class WorldAtlas3D : Node3D
         _cityFitDist = Mathf.Clamp(span * 1.0f / OrthoSizeFactor, CamDistMinCity, CamDistMax);
     }
 
-    /// <summary>Contour-follow height: every tile — city or not — renders at its own terrain
-    /// height, so the campus/city sits INTO the landscape rather than on a flat plateau. (The
-    /// city-plateau override was removed for contour-follow; the campus tracks per-district
-    /// height via <see cref="ChildDistrictTopWorldY"/>.)</summary>
+    /// <summary>Contour-follow height with ONE exception (2026-08-19, reversing the earlier
+    /// contour-follow-everywhere choice): the ACTIVE city's strategic tiles are flattened to
+    /// <see cref="_cityPlateau"/> — the centre tile's natural height. Under contour-follow
+    /// the 3-way corner bonus hexes straddled terrace cliffs (never constructable-looking),
+    /// building labels stacked down the hillside, and the border ring stepped. Every height
+    /// consumer routes through here (tile prisms, grounds contour, borders, marker lifts),
+    /// so the flatten is consistent by construction. Non-city tiles keep their own height.</summary>
     private float TileHeightAt(int col, int row)
-        => TileHeight(_world.GetTile(col, row));
+        => _cityTiles.Contains(new Vector2I(col, row))
+            ? _cityPlateau
+            : TileHeight(_world.GetTile(col, row));
 
     /// <summary>Stage 3 (Phase 2, true geometry merge) — render the guild's actual campus
     /// GROUNDS as a scaled model standing on the home tile, so the world map literally
@@ -430,6 +436,7 @@ public partial class WorldAtlas3D : Node3D
         // spacing lands exactly on the sublattice.
         if (_cityMode) LeaveCityMode();
         if (_cityBorders != null) { _cityBorders.QueueFree(); _cityBorders = null; }
+        if (_cityBordersInner != null) { _cityBordersInner.QueueFree(); _cityBordersInner = null; }
         if (_homeGrounds != null) { _homeGrounds.QueueFree(); _homeGrounds = null; }
         if (_world == null || !_world.InBounds(_world.HomeX, _world.HomeY)) return;
 
@@ -443,6 +450,10 @@ public partial class WorldAtlas3D : Node3D
             HexTileScene3D = GD.Load<PackedScene>("res://Scenes/Combat/HexTile.tscn"),
             HexRadius = 1.0f,
             UseBlendedTerrainMesh = false,
+            TileVisualShrink = 1f,     // full mesh (2026-08-19): the shrink's seams read as
+                                       // chasms at the 3-way centre; the perimeter SKIRT now
+                                       // covers the exterior overhang instead, so children
+                                       // tessellate seamlessly again
         };
         AddChild(grounds);
 
@@ -547,15 +558,26 @@ public partial class WorldAtlas3D : Node3D
         return h + GroundsLift;
     }
 
-    /// <summary>City-view borders: a thin outline along each city strategic tile's six
-    /// edges, so the districts read as discrete strategic tiles when zoomed in. Hidden on
-    /// the world map (toggled by Enter/LeaveCityMode). Each tile's border sits at that tile's
-    /// own terrain height (contour-follow).</summary>
+    /// <summary>City-view borders, reworked 2026-08-19 per playtest: the old version outlined
+    /// EVERY city tile's six edges in full violet, which read as a harsh grid of purple rings.
+    /// Now the city's outer PERIMETER (edges facing the world) gets the violet outline — one
+    /// outline around the whole city — while interior edges shared by two city tiles become
+    /// thin, low, darkened seams that still let each district be counted without shouting.
+    /// Hidden on the world map (toggled by Enter/LeaveCityMode); heights sit on the plateau.</summary>
     private void BuildCityBorders()
     {
         if (_cityBorders != null) { _cityBorders.QueueFree(); _cityBorders = null; }   // safe to call repeatedly
-        var xfs = new List<Transform3D>();
+        if (_cityBordersInner != null) { _cityBordersInner.QueueFree(); _cityBordersInner = null; }
+        var outer = new List<Transform3D>();
+        var inner = new List<Transform3D>();
+        var seenInterior = new HashSet<Vector2I>();   // quantized edge midpoints — draw shared edges once
         float apo = HexR * Mathf.Sqrt(3f) * 0.5f;   // flat-top apothem: edge midpoints at 60k+30°
+
+        // City-tile centres in the ground plane, for resolving which side of an edge is city.
+        var centres = new List<Vector3>();
+        foreach (var ct in _cityTiles)
+            centres.Add(TileOrigin(ct.X, ct.Y));
+
         foreach (var ct in _cityTiles)
         {
             Vector3 c = TileOrigin(ct.X, ct.Y);
@@ -563,18 +585,58 @@ public partial class WorldAtlas3D : Node3D
             for (int k = 0; k < 6; k++)
             {
                 float mid = Mathf.DegToRad(60f * k + 30f);
-                var pos = new Vector3(c.X + Mathf.Cos(mid) * apo, top + 0.06f, c.Z + Mathf.Sin(mid) * apo);
+                var dir = new Vector3(Mathf.Cos(mid), 0f, Mathf.Sin(mid));
+                var pos = new Vector3(c.X + dir.X * apo, top + 0.05f, c.Z + dir.Z * apo);
                 // Box +X along the edge: the edge runs perpendicular to the radial direction.
                 // Basis(Up, θ) maps +X to (cos θ, 0, -sin θ), so θ = -(mid + 90°) puts +X at
                 // planar angle mid+90° in (x, z) = (cos, sin) convention.
                 var basis = new Basis(Vector3.Up, -(mid + Mathf.Pi * 0.5f));
-                xfs.Add(new Transform3D(basis, pos));
+
+                // The tile across this edge sits one full tile-width past the midpoint.
+                // If it's another city tile, the edge is interior.
+                var nbr = c + dir * (2f * apo);
+                bool interior = false;
+                foreach (var oc in centres)
+                    if (new Vector2(oc.X - nbr.X, oc.Z - nbr.Z).LengthSquared() < 0.05f * HexR * HexR)
+                    { interior = true; break; }
+
+                if (interior)
+                {
+                    var key = new Vector2I(Mathf.RoundToInt(pos.X * 64f), Mathf.RoundToInt(pos.Z * 64f));
+                    if (seenInterior.Add(key))
+                        inner.Add(new Transform3D(basis, pos));
+                }
+                else
+                {
+                    // SKIRT band (2026-08-19): the perimeter border DROPS from the plateau
+                    // lip to just below the neighbouring tile's top — it frames the city
+                    // like a model base and covers the child tiles' slight overhang at the
+                    // exterior edge. Per-edge height is baked into the instance basis (the
+                    // layer's box is unit-height), since each neighbour sits at its own
+                    // terrain height.
+                    int ncol = Mathf.RoundToInt(nbr.X / ColSpacing);
+                    float zOff = ((ncol & 1) == 1) ? RowSpacing * 0.5f : 0f;
+                    int nrow = Mathf.RoundToInt((nbr.Z - zOff) / RowSpacing);
+                    float nbrTop = _world.InBounds(ncol, nrow) ? TileHeightAt(ncol, nrow) : top;
+                    float bandTop = top + 0.02f;
+                    float bandBot = Mathf.Min(nbrTop, top) - 0.08f;
+                    float bandH = Mathf.Max(bandTop - bandBot, 0.08f);
+                    var sPos = new Vector3(pos.X, (bandTop + bandBot) * 0.5f, pos.Z);
+                    outer.Add(new Transform3D(basis.Scaled(new Vector3(1f, bandH, 1f)), sPos));
+                }
             }
         }
-        // Interior (shared) edges are drawn twice, perfectly overlapping — harmless.
-        _cityBorders = MakeEdgeLayer("CityBorders", xfs,
-            new Vector3(HexR * 1.02f, 0.05f, 0.09f), UITheme.Violet);
+
+        // Perimeter skirt: unit-height box (per-instance Y scale above), darker violet so
+        // it reads as the city's base rather than a bright ring.
+        _cityBorders = MakeEdgeLayer("CityBorders", outer,
+            new Vector3(HexR * 1.02f, 1f, 0.06f), UITheme.Violet.Darkened(0.35f));
         _cityBorders.Visible = _cityMode;
+        // Interior seams: same hue family (derived from UITheme.Violet, per the UI color
+        // rule), darkened toward the ground and much thinner/lower than the perimeter.
+        _cityBordersInner = MakeEdgeLayer("CityBordersInner", inner,
+            new Vector3(HexR * 1.0f, 0.015f, 0.03f), UITheme.Violet.Darkened(0.55f));
+        _cityBordersInner.Visible = _cityMode;
     }
 
     // ── Phase 3: visited NPC cities ──────────────────────────────────────────
@@ -601,6 +663,7 @@ public partial class WorldAtlas3D : Node3D
                 if (e.Revealed) _revealedDistricts.Add(new Vector2I(e.Dq, e.Dr));
 
         ComputeNpcFootprint(city);
+        Rebuild();   // the city set changed → the plateau flatten moves to THIS city's tiles
         BuildNpcGrounds(city);
         BuildCityBorders();
         EnterCityMode();
@@ -638,7 +701,9 @@ public partial class WorldAtlas3D : Node3D
             if (_world.InBounds(x, y)) _cityTiles.Add(new Vector2I(x, y));
         if (_cityTiles.Count == 0) _cityTiles.Add(new Vector2I(city.CenterX, city.CenterY));
 
-        _cityPlateau = TileHeightAt(city.CenterX, city.CenterY);
+        // RAW height, same reason as ComputeCityFootprint: the TileHeightAt override
+        // consults _cityPlateau for tiles already in the (just-refilled) city set.
+        _cityPlateau = TileHeight(_world.GetTile(city.CenterX, city.CenterY));
         Vector3 min = new(float.MaxValue, 0, float.MaxValue), max = new(float.MinValue, 0, float.MinValue);
         foreach (var ct in _cityTiles)
         {
@@ -684,6 +749,7 @@ public partial class WorldAtlas3D : Node3D
             HexTileScene3D = GD.Load<PackedScene>("res://Scenes/Combat/HexTile.tscn"),
             HexRadius = 1.0f,
             UseBlendedTerrainMesh = false,
+            TileVisualShrink = 1f,     // full mesh, matching the home grounds (skirt covers the edge)
         };
         AddChild(grounds);
         var center = new Vector2I(city.CenterX, city.CenterY);
@@ -772,6 +838,7 @@ public partial class WorldAtlas3D : Node3D
         _cityMode = true;
 
         if (_cityBorders != null) _cityBorders.Visible = true;
+        if (_cityBordersInner != null) _cityBordersInner.Visible = true;
         // A9/A7: river/road/border strokes read as litter at city zoom — hide them.
         if (_riverLayer != null) _riverLayer.Visible = false;
         if (_roadLayer != null) _roadLayer.Visible = false;
@@ -811,6 +878,7 @@ public partial class WorldAtlas3D : Node3D
 
         _homeGrounds?.SetSurroundingPreviewVisible(false);
         if (_cityBorders != null) _cityBorders.Visible = false;
+        if (_cityBordersInner != null) _cityBordersInner.Visible = false;
         if (_riverLayer != null) _riverLayer.Visible = true;
         if (_roadLayer != null) _roadLayer.Visible = true;
         if (_borderLayer != null) _borderLayer.Visible = true;
@@ -831,6 +899,7 @@ public partial class WorldAtlas3D : Node3D
             if (_cityGrounds != null) { _cityGrounds.QueueFree(); _cityGrounds = null; }
             _activeCity = null;
             ComputeCityFootprint();
+            Rebuild();   // restore the home footprint's flatten (the NPC city's tiles re-contour)
             BuildCityBorders();
         }
 
@@ -1135,6 +1204,47 @@ public partial class WorldAtlas3D : Node3D
     }
 
     // ── Input: pan / zoom / pick ────────────────────────────────────────────
+
+    /// <summary>Keyboard camera controls (2026-08-19): Q/E orbit via rotate_left /
+    /// rotate_right, WASD/arrows pan via the ui_* actions (which the project binds to
+    /// both) — the same bindings every other 3D scene reads through CameraController.
+    /// Polled per-frame for held keys; zoom stays on the wheel. Pan runs in the camera's
+    /// ground frame, same math as left-drag, and scales with zoom so a held key covers
+    /// the screen in about the same time at any distance.</summary>
+    private const float KeyOrbitYawSpeed = 1.75f;   // rad/s ≈ 100°/s, CameraController-comparable
+    private const float KeyPanSpeedFactor = 0.55f;  // × _camDist per second of held key
+
+    public override void _Process(double delta)
+    {
+        if (!AcceptInput || _camera == null)
+            return;
+
+        float turn = 0f;
+        if (Input.IsActionPressed("rotate_left")) turn -= 1f;
+        if (Input.IsActionPressed("rotate_right")) turn += 1f;
+
+        float panX = 0f, panZ = 0f;   // screen-right, screen-up on the ground plane
+        if (Input.IsActionPressed("ui_right")) panX += 1f;
+        if (Input.IsActionPressed("ui_left")) panX -= 1f;
+        if (Input.IsActionPressed("ui_up")) panZ += 1f;
+        if (Input.IsActionPressed("ui_down")) panZ -= 1f;
+
+        if (turn == 0f && panX == 0f && panZ == 0f)
+            return;
+
+        _camYaw += turn * KeyOrbitYawSpeed * (float)delta;
+        if (panX != 0f || panZ != 0f)
+        {
+            // Same ground frame the drag pan uses, so screen-right is always right
+            // regardless of orbit yaw.
+            Vector3 right = new Vector3(Mathf.Cos(_camYaw), 0f, -Mathf.Sin(_camYaw));
+            Vector3 fwdGround = new Vector3(-Mathf.Sin(_camYaw), 0f, -Mathf.Cos(_camYaw));
+            float speed = _camDist * KeyPanSpeedFactor * (float)delta;
+            _camTarget += right * (panX * speed) + fwdGround * (panZ * speed);
+            ClampTarget();
+        }
+        PlaceCamera();   // no MaybeAutoCityTransition: pan never changes _camDist, matching drag-pan
+    }
 
     public override void _UnhandledInput(InputEvent ev)
     {
@@ -2040,7 +2150,7 @@ public partial class WorldAtlas3D : Node3D
             if (discovery != TileDiscovery.Explored || !t.IsLand)
                 continue;
 
-            float h = TileHeight(t);
+            float h = TileHeightAt(col, row);   // city-aware: decorations sit on the flattened plateau too
             Vector3 basePos = TileOrigin(col, row);
 
             if (t.Terrain == TT.Forest)

@@ -33,7 +33,7 @@ using System.Linq;
 public partial class DeckEditorUi : Control
 {
     [Export] public PackedScene CardUIScene;
-    [Export] public string ReturnScenePath = "res://Scenes/Campus/CampusScene.tscn";
+    [Export] public string ReturnScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
 
     // ── Layout nodes ─────────────────────────────────────────────────────
     private VBoxContainer _activeList;

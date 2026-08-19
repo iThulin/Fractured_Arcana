@@ -40,6 +40,14 @@ public static class PlayerSession
     /// state; a UI hand-off flag, so ClearRunState leaves it alone.</summary>
     public static bool ZoomFromHomeOnOpen = false;
 
+    /// <summary>One-shot: open the strategic scene IN CITY VIEW (the hub state,
+    /// 2026-08-19). Set on cold boot, on guild founding, and when a city-entered
+    /// utility screen (deck editor / card library / upgrade) warps back; consumed
+    /// by StrategicView.BuildAtlas3D, which snaps to the home tile and enters city
+    /// mode instead of framing the world overview. Wins over ZoomFromHomeOnOpen
+    /// when both are set. Not run state; ClearRunState leaves it alone.</summary>
+    public static bool StartInCityOnOpen = false;
+
     /// <summary>True while the campus is open as an IN-WORLD OVERLAY hosted by the
     /// strategic scene (Phase 2, Stage 3 — single-scene merge): no scene swap, the
     /// atlas sits hidden beneath. The campus draws its own chrome, so the global HUD

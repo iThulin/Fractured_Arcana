@@ -94,11 +94,22 @@ public partial class StrategicView : Node2D
     private WorldAtlas3D _atlas3D;
     private Node _campusOverlay;   // Stage 3: campus hosted in-scene as an overlay (no scene swap)
     private HomeBuildingPanelHost _floatingPanel;   // a single building's panel floated over the LIVE city view
-    private CanvasLayer _cityLeaveLayer;   // "to the world map" button, shown only in city view
-    private CanvasLayer _annexLayer;       // "annex a district" toggle, shown only in city view
-    private Button _annexButton;           // the toggle itself (kept so we can reset it after a purchase)
+    // City-view chrome (2026-08-19 rework): the leave/annex/services buttons live in ONE
+    // right-docked VBox on the strategic HUD together with the calendar readout and the
+    // frontier news, so the global top bar, the buttons and the panels stack cleanly
+    // without manual offset arithmetic. Buttons toggle Visible per city state; the whole
+    // stack rebuilds with the HUD.
+    private VBoxContainer _rightHudStack;
+    private Button _cityLeaveBtn;          // "to the world map", shown only in city view
+    private Button _annexButton;           // "annex a district" toggle (kept so we can reset it after a purchase)
+    private Button _buildModeBtn;          // "build" toggle — arms bare-ground clicks to open the construct card
+    private bool _buildMode;               // mirrors _buildModeBtn; gates OnHomeGroundPicked
+    private Button _cityServicesBtn;       // "City Services" reopen button, NPC city view only
+    private Label _hintLabel;              // bottom context hint — text swaps per view mode
+    private CanvasLayer _helpLayer;        // the "first steps" orientation card
+    private Button _helpBtn;               // reopens the help card any time
+    private static bool _helpAutoShown;    // once per app session: auto-open on first home-city entry
     private CityServicesHost _cityServices;   // Phase 3: a visited enemy capital's services menu (auto-opened)
-    private CanvasLayer _cityServicesLayer;   // "City Services" reopen button, shown only in an NPC city view
     private NarrativeEncounterPanel _cityNarrativePanel;  // Phase 3 explore: hosts a district EVENT over the city view
     private CanvasLayer _cityExploreLayer;    // Phase 3 explore: hosts the narrative panel + toasts above the atlas
     private ToastManager _cityExploreToasts;  // Phase 3 explore: stub messages for Fight/Story districts
@@ -132,11 +143,32 @@ public partial class StrategicView : Node2D
             }
             else
             {
+                // THE HUB (2026-08-19): this scene is the game's main screen, so its
+                // boot must be self-sufficient — the jobs CampusScreen._Ready used to
+                // do on the way in happen here. Cards are already primed by the
+                // GameBootstrap autoload; the save is autoloaded, seeded, and its
+                // cycle world generated on demand. A cold boot with NO save routes to
+                // the campus scene, which is now purely the slot picker / founding room.
+                if (SaveManager.ActiveSave == null)
+                {
+                    SaveManager.AutoLoadLast();
+                    if (SaveManager.ActiveSave != null)
+                        PlayerSession.StartInCityOnOpen = true;   // cold boot lands in the city
+                }
+                if (SaveManager.ActiveSave == null)
+                {
+                    CallDeferred(nameof(RouteToCampusFallback));
+                    return;
+                }
+                CycleInitializer.EnsureSaveSeeded();
+                CycleInitializer.EnsureCycleWorld();
+
                 // Real strategic scene: read the resident cycle world.
                 var cycle = SaveManager.ActiveSave?.Cycle;
-                if (cycle == null)
+                if (cycle == null || cycle.World == null || cycle.World.Tiles.Length == 0)
                 {
-                    GD.PrintErr("StrategicView: no active cycle — cannot show world.");
+                    GD.PrintErr("StrategicView: no active cycle/world after init — routing to campus.");
+                    CallDeferred(nameof(RouteToCampusFallback));
                     return;
                 }
                 _world = cycle.World;
@@ -240,6 +272,11 @@ public partial class StrategicView : Node2D
         SaveManager.SaveIfDirty();
     }
 
+    /// <summary>Deferred no-save / no-cycle escape hatch from _Ready: the campus scene
+    /// is the slot picker and founding room, so a boot with nothing to show lands there.
+    /// Deferred because changing scenes inside _Ready tears the tree mid-build.</summary>
+    private void RouteToCampusFallback() => GetTree().ChangeSceneToFile(CampusScenePath);
+
     /// <summary>Inject the real cycle world (campus integration path).</summary>
     public void SetWorld(WorldData world, System.Collections.Generic.Dictionary<string, KingdomState> kingdoms = null)
     {
@@ -336,11 +373,24 @@ public partial class StrategicView : Node2D
 
         _atlas3D.AcceptInput = true;      // full-screen map — always live
 
+        // The hub landing (2026-08-19): open IN CITY VIEW — the game's main screen.
+        // One-shot; set by cold boot, guild founding, and utility-screen returns.
+        // Checked before ZoomFromHomeOnOpen so the city landing wins if both are set.
+        if (PlayerSession.StartInCityOnOpen)
+        {
+            PlayerSession.StartInCityOnOpen = false;
+            PlayerSession.ZoomFromHomeOnOpen = false;
+            if (_world.InBounds(_world.HomeX, _world.HomeY) && _atlas3D.HasCityGrounds)
+            {
+                _atlas3D.SnapToTileClose(_world.HomeX, _world.HomeY);
+                _atlas3D.EnterCityMode();
+            }
+        }
         // Stage 2 (Phase 2): arriving from the campus, start framed on the home city
         // at closest zoom and swoop OUT to the overview — the "ascend from your city
         // into the world". One-shot flag, cleared on use; only the campus→world
         // transition sets it, so expedition returns etc. are unaffected.
-        if (PlayerSession.ZoomFromHomeOnOpen)
+        else if (PlayerSession.ZoomFromHomeOnOpen)
         {
             PlayerSession.ZoomFromHomeOnOpen = false;
             if (_world.InBounds(_world.HomeX, _world.HomeY))
@@ -412,6 +462,11 @@ public partial class StrategicView : Node2D
     /// atlas camera into the home city, then change to the campus scene once the fly
     /// completes. Returns false when there's no atlas/home to fly to, so the caller
     /// (HudManager's Return-to-Campus) falls back to the plain scene warp.</summary>
+    /// <summary>True while the atlas is in city view (home or NPC). Read by HudManager
+    /// to hide its Return-to-Campus warp — the button is moot (home) or a dead click
+    /// (NPC city, where EnterCityMode early-returns) while a city fills the screen.</summary>
+    public bool InCityView => _atlas3D?.CityMode ?? false;
+
     public bool TryDescendToCampus()
     {
         if (_atlas3D == null || !_atlas3D.HasCityGrounds)
@@ -526,7 +581,12 @@ public partial class StrategicView : Node2D
                 ShowCampusOverlay(dest.Panel.Value);   // lifecycle-heavy panel: full overlay for now
         }
         else if (!string.IsNullOrEmpty(dest.ScenePath))
+        {
+            // Entered from the city, so the utility screen's return warp should land
+            // back in the city — consumed by BuildAtlas3D when this scene reloads.
+            PlayerSession.StartInCityOnOpen = true;
             GetTree().ChangeSceneToFile(dest.ScenePath);
+        }
     }
 
     /// <summary>Float a single campus panel over the LIVE city view. Unlike
@@ -604,12 +664,34 @@ public partial class StrategicView : Node2D
 
     private CanvasLayer _constructCard;
 
+    /// <summary>The Build toggle (2026-08-19, playtest): construction is ARMED, like annex
+    /// mode, instead of ambushing from any bare-ground click — the card "jumped out of
+    /// nowhere" with no instruction. Arming disarms annex (and vice versa), announces
+    /// itself with a toast so the player knows what a click will now do, and disarming
+    /// closes any open construct card.</summary>
+    private void OnBuildModeToggled(bool pressed)
+    {
+        _buildMode = pressed;
+        if (pressed)
+        {
+            if (_annexButton != null) _annexButton.ButtonPressed = false;
+            EnsureCityExploreToasts();
+            _cityExploreToasts?.Push("Build mode: click open ground to choose what to raise there.",
+                                     QuestToastKind.Progress);
+        }
+        else
+        {
+            CloseConstructCard();
+        }
+    }
+
     /// <summary>A bare home-grounds hex was clicked: open the construct card —
     /// the unbuilt ledger with tier-1 costs, buildable in place at that hex.
     /// This closes the Phase-2 gap where NEW buildings could only be raised
     /// through the full-screen campus overlay.</summary>
     private void OnHomeGroundPicked(Vector2I coord)
     {
+        if (!_buildMode) return;   // construction is armed via the Build toggle, like annex
         if (_constructCard != null) return;
         // Swap symmetry: clicking bare ground while a building panel floats
         // closes the panel and opens the construct card in its place.
@@ -631,11 +713,22 @@ public partial class StrategicView : Node2D
         var catcher = new Control();
         catcher.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         catcher.MouseFilter = Control.MouseFilterEnum.Stop;
+        // Click-outside-to-close (2026-08-19): the card itself stops input, so any
+        // press reaching the catcher is beside the card — dismiss, like a popup.
+        catcher.GuiInput += ev =>
+        {
+            if (ev is InputEventMouseButton b && b.Pressed && b.ButtonIndex == MouseButton.Left)
+                CloseConstructCard();
+        };
         _constructCard.AddChild(catcher);
 
         var card = new PanelContainer();
         card.SetAnchorsPreset(Control.LayoutPreset.RightWide);
         card.OffsetLeft = -520;
+        // Below the global top bar (2026-08-19): the HUD CanvasLayer (90) draws over
+        // this card's layer (50), so a full-height card had its title + Close button
+        // buried under the bar — "no way to close the menu".
+        card.OffsetTop = HudManager.BarHeight;
         card.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = UITheme.BgBase });
         catcher.AddChild(card);
 
@@ -787,49 +880,131 @@ public partial class StrategicView : Node2D
         if (_atlas3D != null) _atlas3D.AcceptInput = true;
     }
 
-    /// <summary>City view entered/left: reuse the overlay flag to hide the world HUD, and
-    /// show/hide the host buttons (leave-to-world, annex-a-district) that only make sense in
-    /// city view. Leaving city view also resets the annex toggle.</summary>
+    /// <summary>City view entered/left: show/hide the host buttons (leave-to-world,
+    /// annex-a-district, city services) that only make sense in city view. The global
+    /// top-bar HUD stays VISIBLE in city view (2026-08-19 — the city is the hub screen
+    /// and its readouts/menus belong there); RefreshVisibility still runs so the bar's
+    /// Return-to-Campus button can hide itself while we're already home.</summary>
     private void OnCityModeChanged(bool on)
     {
-        PlayerSession.CampusOverlayOpen = on;
         HudManager.Instance?.RefreshVisibility();
-        EnsureCityLeaveButton();
-        EnsureAnnexButton();
-        if (_cityLeaveLayer != null) _cityLeaveLayer.Visible = on;
         bool home = _atlas3D?.ActiveCityIsHome ?? true;
-        // Annexing is a home-campus affordance only — hide it when viewing an NPC city (Phase 3).
-        if (_annexLayer != null) _annexLayer.Visible = on && home;
+        if (_cityLeaveBtn != null) _cityLeaveBtn.Visible = on;
+        // Annexing/building are home-campus affordances only — hide them in an NPC city (Phase 3).
+        if (_annexButton != null) _annexButton.Visible = on && home;
         if ((!on || !home) && _annexButton != null)
             _annexButton.ButtonPressed = false;   // drop annex mode on exit or in an NPC city
+        if (_buildModeBtn != null) _buildModeBtn.Visible = on && home;
+        if ((!on || !home) && _buildModeBtn != null)
+            _buildModeBtn.ButtonPressed = false;  // disarm build mode too (Toggled(false) closes the card)
 
         // Phase 3 services (enemy capital only): show the "City Services" button in an NPC city view
         // and auto-open the menu on entry; hide/close both when leaving the city.
         bool npc = on && !home;
-        EnsureCityServicesButton();
-        if (_cityServicesLayer != null) _cityServicesLayer.Visible = npc;
+        if (_cityServicesBtn != null) _cityServicesBtn.Visible = npc;
         if (npc) ShowCityServices();
         else if (_cityServices != null) _cityServices.Close();
+
+        RefreshHint();
+        // First home-city entry this session: open the orientation card once, unbidden —
+        // the hub otherwise drops a new player in with zero instruction.
+        if (on && home && !_helpAutoShown)
+        {
+            _helpAutoShown = true;
+            ShowHelpCard();
+        }
     }
 
-    /// <summary>The "City Services" button (NPC city view only), to reopen the menu after closing it.
-    /// Sits where the annex button sits in the home city (they never co-occur).</summary>
-    private void EnsureCityServicesButton()
+    /// <summary>Bottom hint line, per view mode. One line, always current — the "click a
+    /// gold beacon" advice only appears where beacons exist.</summary>
+    private void RefreshHint()
     {
-        if (_cityServicesLayer != null) return;
-        _cityServicesLayer = new CanvasLayer { Name = "CityServicesLayer", Layer = 40 };
-        var btn = new Button { Text = "City Services" };
-        btn.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-        btn.OffsetLeft = -244;
-        btn.OffsetTop = 56;
-        btn.OffsetRight = -14;
-        btn.OffsetBottom = 90;
-        btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        UITheme.ApplyButtonStyle(btn, isPrimary: true);
-        btn.Pressed += ShowCityServices;
-        _cityServicesLayer.AddChild(btn);
-        _cityServicesLayer.Visible = false;
-        AddChild(_cityServicesLayer);
+        if (_hintLabel == null) return;
+        bool city = _atlas3D?.CityMode ?? false;
+        bool home = _atlas3D?.ActiveCityIsHome ?? true;
+        _hintLabel.Text = !city
+            ? "Click a gold beacon to deploy an expedition  ·  Q/E to rotate  ·  zoom into your city to return home."
+            : home
+                ? "Click a building to open it  ·  ⚒ Build raises new buildings  ·  Q/E to rotate  ·  ↑ To the World Map to send expeditions."
+                : "Click a fogged district to scout it  ·  click a revealed marker to enter it.";
+    }
+
+    /// <summary>The "first steps" orientation card (2026-08-19): one screen that explains
+    /// the hub loop. Auto-opens once per session on first home-city entry; reopenable any
+    /// time from the "? How this works" button. Dim catcher blocks map input while open.</summary>
+    private void ShowHelpCard()
+    {
+        if (_helpLayer != null) return;
+        _helpLayer = new CanvasLayer { Name = "HubHelpLayer", Layer = 95 };   // above HUD (90), below pause (100)
+        AddChild(_helpLayer);
+
+        var dim = new ColorRect { Color = new Color(0f, 0f, 0f, 0.55f) };
+        dim.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        dim.MouseFilter = Control.MouseFilterEnum.Stop;
+        _helpLayer.AddChild(dim);
+
+        var panel = new PanelContainer
+        {
+            AnchorLeft = 0.5f, AnchorTop = 0.5f, AnchorRight = 0.5f, AnchorBottom = 0.5f,
+            GrowHorizontal = Control.GrowDirection.Both,
+            GrowVertical = Control.GrowDirection.Both,
+            CustomMinimumSize = new Vector2(680, 0),
+        };
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Gold));
+        _helpLayer.AddChild(panel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 24);
+        margin.AddThemeConstantOverride("margin_right", 24);
+        margin.AddThemeConstantOverride("margin_top", 18);
+        margin.AddThemeConstantOverride("margin_bottom", 18);
+        panel.AddChild(margin);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 10);
+        margin.AddChild(vbox);
+
+        var title = new Label { Text = "Your Guild Seat" };
+        title.AddThemeFontSizeOverride("font_size", UITheme.CampusTitleFontSize);
+        title.AddThemeColorOverride("font_color", UITheme.Gold);
+        vbox.AddChild(title);
+
+        void HelpLine(string text)
+        {
+            var l = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            l.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            l.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+            vbox.AddChild(l);
+        }
+
+        HelpLine("•  Every building is a working room of the guild. Click one to open it.");
+        HelpLine("•  The Grand Hall keeps the guild ledger and your save slots.");
+        HelpLine("•  The Gatehouse Yard mounts expeditions.");
+        HelpLine("•  ⚒ Build raises new buildings on open ground.");
+        HelpLine("•  ＋ Annex a district buys a neighbouring tile when the guild outgrows its walls.");
+        HelpLine("•  ↑ To the World Map ascends to the strategic view. Click a gold staging " +
+                 "beacon there to deploy an expedition.");
+        HelpLine("•  Each expedition costs one lunation of the calendar. When the calendar " +
+                 "runs out, the cycle ends at the Grand Conjunction.");
+        HelpLine("•  Camera: WASD or left-drag pans · wheel zooms · Q/E or middle-drag rotates.");
+
+        var okBtn = new Button
+        {
+            Text = "Understood",
+            CustomMinimumSize = new Vector2(200, 40),
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+        };
+        okBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        UITheme.ApplyButtonStyle(okBtn, isPrimary: true);
+        okBtn.Pressed += CloseHelpCard;
+        vbox.AddChild(okBtn);
+    }
+
+    private void CloseHelpCard()
+    {
+        if (_helpLayer == null) return;
+        _helpLayer.QueueFree();
+        _helpLayer = null;
     }
 
     /// <summary>Open the visited capital's services menu (Phase 3). Gates atlas input while it's up
@@ -1050,23 +1225,9 @@ public partial class StrategicView : Node2D
     /// <summary>The "Annex a district" toggle (city view only). While pressed, the atlas shows the
     /// annexable preview flowers and a click buys one; unpressed hides them. Sits just under the
     /// leave-to-world button.</summary>
-    private void EnsureAnnexButton()
-    {
-        if (_annexLayer != null) return;
-        _annexLayer = new CanvasLayer { Name = "AnnexLayer", Layer = 40 };
-        _annexButton = new Button { Text = "＋  Annex a district", ToggleMode = true };
-        _annexButton.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-        _annexButton.OffsetLeft = -244;
-        _annexButton.OffsetTop = 56;
-        _annexButton.OffsetRight = -14;
-        _annexButton.OffsetBottom = 90;
-        _annexButton.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        UITheme.ApplyButtonStyle(_annexButton, isPrimary: false);
-        _annexButton.Toggled += pressed => _atlas3D?.SetAnnexMode(pressed);
-        _annexLayer.AddChild(_annexButton);
-        _annexLayer.Visible = false;
-        AddChild(_annexLayer);
-    }
+    // EnsureAnnexButton / EnsureCityLeaveButton / EnsureCityServicesButton removed
+    // (2026-08-19): the three city-chrome buttons are built with the HUD's right-docked
+    // stack in BuildHud, so they layout WITH the calendar instead of over it.
 
     /// <summary>An annexable district was clicked in annex mode. Confirm the placeholder gold
     /// spend, then unlock the district, persist, and rebuild the city around the new tile.</summary>
@@ -1100,32 +1261,32 @@ public partial class StrategicView : Node2D
         dialog.PopupCentered();
     }
 
-    private void EnsureCityLeaveButton()
+    /// <summary>One button in the right-docked HUD stack. Visibility is state-driven
+    /// (OnCityModeChanged), so every button initializes from the CURRENT city state —
+    /// the HUD can be (re)built before or after city mode engages.</summary>
+    private Button MakeCityChromeButton(string text, bool primary, bool toggle = false)
     {
-        if (_cityLeaveLayer != null) return;
-        _cityLeaveLayer = new CanvasLayer { Name = "CityLeaveLayer", Layer = 40 };
-        var btn = new Button { Text = "↑  To the World Map" };
-        btn.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-        btn.OffsetLeft = -244;
-        btn.OffsetTop = 14;
-        btn.OffsetRight = -14;
-        btn.OffsetBottom = 48;
+        var btn = new Button
+        {
+            Text = text,
+            ToggleMode = toggle,
+            CustomMinimumSize = new Vector2(230, 34),
+        };
         btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        UITheme.ApplyButtonStyle(btn, isPrimary: true);
-        btn.Pressed += () => _atlas3D?.LeaveCityMode();
-        _cityLeaveLayer.AddChild(btn);
-        _cityLeaveLayer.Visible = false;
-        AddChild(_cityLeaveLayer);
+        UITheme.ApplyButtonStyle(btn, isPrimary: primary);
+        _rightHudStack.AddChild(btn);
+        return btn;
     }
 
     public override void _ExitTree()
     {
         // Never leave a dangling overlay-leave callback pointing at a freed view, and if
-        // we're torn down while the overlay OR city view was up (e.g. a new-cycle scene
-        // swap from inside it), clear the flag so the next scene's HUD isn't wrongly hidden.
+        // we're torn down while the overlay was up (e.g. a new-cycle scene swap from
+        // inside it), clear the flag so the next scene's HUD isn't wrongly hidden.
+        // (City mode no longer touches the flag — the HUD stays visible in the city.)
         if (CampusScreen.OverlayLeaveHandler == HideCampusOverlay)
             CampusScreen.OverlayLeaveHandler = null;
-        if (_campusOverlay != null || (_atlas3D?.CityMode ?? false))
+        if (_campusOverlay != null)
             PlayerSession.CampusOverlayOpen = false;
     }
 
@@ -1143,26 +1304,55 @@ public partial class StrategicView : Node2D
         // buttons on the strategic map. The top bar's Return-to-Campus is gated
         // to this scene, so exit-to-campus availability is unchanged.
 
+        // ── Right-docked stack (2026-08-19): city buttons + calendar + news ──
+        // One VBox under the global top bar so nothing overlaps by offset math.
+        // Order: [To the World Map] [Annex] [City Services] → calendar → news.
+        _rightHudStack = new VBoxContainer
+        {
+            AnchorLeft = 1f,
+            AnchorTop = 0f,
+            AnchorRight = 1f,
+            AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            GrowVertical = Control.GrowDirection.End,
+            OffsetLeft = -260,
+            OffsetRight = -16,
+            OffsetTop = 8 + HudManager.BarHeight,   // clear the global top bar
+        };
+        _rightHudStack.AddThemeConstantOverride("separation", 8);
+        _hud.AddChild(_rightHudStack);
+
+        bool cityNow = _atlas3D?.CityMode ?? false;
+        bool homeNow = _atlas3D?.ActiveCityIsHome ?? true;
+        _cityLeaveBtn = MakeCityChromeButton("↑  To the World Map", primary: true);
+        _cityLeaveBtn.Visible = cityNow;
+        _cityLeaveBtn.Pressed += () => _atlas3D?.LeaveCityMode();
+        _annexButton = MakeCityChromeButton("＋  Annex a district", primary: false, toggle: true);
+        _annexButton.Visible = cityNow && homeNow;
+        _annexButton.Toggled += pressed =>
+        {
+            _atlas3D?.SetAnnexMode(pressed);
+            // One ground-click mode at a time: arming annex disarms build.
+            if (pressed && _buildModeBtn != null) _buildModeBtn.ButtonPressed = false;
+        };
+        _buildModeBtn = MakeCityChromeButton("⚒  Build", primary: false, toggle: true);
+        _buildModeBtn.Visible = cityNow && homeNow;
+        _buildModeBtn.Toggled += OnBuildModeToggled;
+        _cityServicesBtn = MakeCityChromeButton("City Services", primary: true);
+        _cityServicesBtn.Visible = cityNow && !homeNow;
+        _cityServicesBtn.Pressed += ShowCityServices;
+        _helpBtn = MakeCityChromeButton("?  How this works", primary: false);
+        _helpBtn.Pressed += ShowHelpCard;   // visible in every mode — orientation is never gated
+
         // ── Calendar readout: the doomsday clock, top-right ──────────────
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle != null)
         {
             var cal = cycle.Calendar;
-            var calPanel = new PanelContainer
-            {
-                AnchorLeft = 1f,
-                AnchorTop = 0f,
-                AnchorRight = 1f,
-                AnchorBottom = 0f,
-                GrowHorizontal = Control.GrowDirection.Begin,
-                OffsetLeft = -260,
-                OffsetRight = -16,
-                OffsetTop = 16 + HudManager.BarHeight, // clear the global top bar
-                OffsetBottom = 108 + HudManager.BarHeight,
-            };
+            var calPanel = new PanelContainer();
             calPanel.AddThemeStyleboxOverride("panel",
                 UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Gold));
-            _hud.AddChild(calPanel);
+            _rightHudStack.AddChild(calPanel);
 
             var calMargin = new MarginContainer();
             calMargin.AddThemeConstantOverride("margin_left", 14);
@@ -1227,21 +1417,10 @@ public partial class StrategicView : Node2D
         var siegeReports = cycle?.PendingSiegeReports;
         if (siegeReports != null && siegeReports.Count > 0)
         {
-            var newsPanel = new PanelContainer
-            {
-                AnchorLeft = 1f,
-                AnchorTop = 0f,
-                AnchorRight = 1f,
-                AnchorBottom = 0f,
-                GrowHorizontal = Control.GrowDirection.Begin,
-                GrowVertical = Control.GrowDirection.End,
-                OffsetLeft = -300,
-                OffsetRight = -16,
-                OffsetTop = 116 + HudManager.BarHeight,
-            };
+            var newsPanel = new PanelContainer();
             newsPanel.AddThemeStyleboxOverride("panel",
                 UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Danger));
-            _hud.AddChild(newsPanel);
+            _rightHudStack.AddChild(newsPanel);
 
             var newsMargin = new MarginContainer();
             newsMargin.AddThemeConstantOverride("margin_left", 14);
@@ -1281,10 +1460,11 @@ public partial class StrategicView : Node2D
             }
         }
 
-        // A short legend so the player knows what they're looking at.
-        var hint = new Label
+        // A short legend so the player knows what they're looking at. Context-sensitive
+        // (2026-08-19): the fixed "gold beacon" line read as broken advice once the city
+        // became the landing view — RefreshHint swaps the text per mode.
+        _hintLabel = new Label
         {
-            Text = "Click a gold beacon to deploy an expedition.",
             AnchorLeft = 0.5f,
             AnchorTop = 1f,
             AnchorRight = 0.5f,
@@ -1293,10 +1473,11 @@ public partial class StrategicView : Node2D
             OffsetTop = -34,
             OffsetBottom = -10,
         };
-        hint.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-        hint.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.5f));
-        hint.HorizontalAlignment = HorizontalAlignment.Center;
-        _hud.AddChild(hint);
+        _hintLabel.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        _hintLabel.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.5f));
+        _hintLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        _hud.AddChild(_hintLabel);
+        RefreshHint();
 
         BuildLensButtons();
         // The archmage standings strip was moved into CouncilScreen (user
@@ -1311,20 +1492,32 @@ public partial class StrategicView : Node2D
     {
         _lensButtons.Clear();
 
-        // A horizontal row under the Return-to-Campus button, top-left.
-        var row = new HBoxContainer
+        // Directly under the global top bar, top-left, WRAPPED in a raised panel
+        // (2026-08-19): the bare row's text and inactive buttons faded into whatever
+        // terrain happened to sit behind them.
+        var lensPanel = new PanelContainer
         {
             AnchorLeft = 0f,
             AnchorTop = 0f,
             AnchorRight = 0f,
             AnchorBottom = 0f,
             OffsetLeft = 16,
-            OffsetTop = 64 + HudManager.BarHeight, // clear the global top bar
-            OffsetRight = 16,
-            OffsetBottom = 96 + HudManager.BarHeight,
+            OffsetTop = 8 + HudManager.BarHeight,   // clear the global top bar
         };
+        lensPanel.AddThemeStyleboxOverride("panel",
+            UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.CampusTitleBarBorder));
+        _hud.AddChild(lensPanel);
+
+        var lensMargin = new MarginContainer();
+        lensMargin.AddThemeConstantOverride("margin_left", 10);
+        lensMargin.AddThemeConstantOverride("margin_right", 10);
+        lensMargin.AddThemeConstantOverride("margin_top", 6);
+        lensMargin.AddThemeConstantOverride("margin_bottom", 6);
+        lensPanel.AddChild(lensMargin);
+
+        var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 6);
-        _hud.AddChild(row);
+        lensMargin.AddChild(row);
 
         var lbl = new Label { Text = "View:" };
         lbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);

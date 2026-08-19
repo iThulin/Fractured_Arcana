@@ -25,7 +25,7 @@ using System.Linq;
 public partial class CardUpgradeScreen : Control
 {
     [Export] public PackedScene CardUIScene;
-    [Export] public string ReturnScenePath = "res://Scenes/Campus/CampusScene.tscn";
+    [Export] public string ReturnScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
 
     private const int MAX_TIER = 4;
     private bool _bypassCastRequirement = false;

@@ -154,7 +154,10 @@ public partial class HudManager : Node
     {
         if (GetTree().CurrentScene is StrategicView sv && sv.TryDescendToCampus())
             return;
-        GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
+        // The hub is the strategic city (2026-08-19): from utility screens this warp
+        // lands in city view, not on the retired standalone campus screen.
+        PlayerSession.StartInCityOnOpen = true;
+        GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
     }
 
     private Label MakeLabel(HBoxContainer row, Color color)
@@ -305,6 +308,12 @@ public partial class HudManager : Node
     private bool ShouldShowReturnToCampus()
     {
         var current = GetTree().CurrentScene;
+        // City view IS home (2026-08-19 hub): the warp is moot there, and the bar now
+        // stays visible in city view, so gate the button on the atlas state directly.
+        if (current is StrategicView sv && sv.InCityView)
+        {
+            return false;
+        }
         string lower = (current?.SceneFilePath ?? "").ToLower();
         if (lower.Contains("campus") || lower.Contains("expedition") ||
             lower.Contains("battlefield") || lower.Contains("combat") ||

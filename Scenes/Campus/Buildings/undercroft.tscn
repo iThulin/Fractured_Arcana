@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+; ═══════════════════════════════════════════════════════════════════
+; PLACEHOLDER (2026-08-19): instances grand_hall's primitive massing
+; so every campus building has a visible tiered model for the system
+; playtest. The anchor-hex name label remains the way buildings are
+; told apart. Replace by overwriting this file with authored art per
+; the contract in BuildingMeshLibrary.cs (root Node3D with children
+; named "T1"/"T2"/"T3", hex radius 1.0, ground at Y=0).
+; ═══════════════════════════════════════════════════════════════════
+
+[ext_resource type="PackedScene" path="res://Scenes/Campus/Buildings/grand_hall.tscn" id="1"]
+
+[node name="BuildingMesh" instance=ExtResource("1")]

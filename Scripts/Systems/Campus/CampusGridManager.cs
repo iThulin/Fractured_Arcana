@@ -66,6 +66,15 @@ public partial class CampusGridManager : HexGridManager
 
     private List<Vector2I> _previewHexes = new();
 
+    /// <summary>Uniform per-tile VISUAL scale (1 = tiles touch). The city view sets ~0.9:
+    /// a district's 7-flower of touching hexes necessarily overhangs its strategic tile's
+    /// edge midpoints (max extent ≈ 0.91·R against an apothem of 0.866·R — the septhex
+    /// never tiles a hexagon), which read as the flower spilling past the city. At 0.9
+    /// the extent drops to the apothem and the grout gaps give the "crafted model" read.
+    /// Applied to the tile NODE, so labels and building meshes shrink with it; lattice
+    /// positions, contour, and analytic picking are untouched.</summary>
+    public float TileVisualShrink = 1f;
+
     /// <summary>Deliberately does NOT call base._Ready() — that schedules the base
     /// class's AutoGenerateIfEmpty() safety net (a procedural GenerateMap() fallback
     /// this class never wants, since it's always populated explicitly via
@@ -91,6 +100,8 @@ public partial class CampusGridManager : HexGridManager
             var tileNode = HexTileScene3D.Instantiate<HexTile>(); // inherited field
             tileNode.Position = worldPos;
             tileNode.Axial = coord;
+            if (TileVisualShrink != 1f)
+                tileNode.Scale = Vector3.One * TileVisualShrink;
             AddChild(tileNode);
             ApplyChildContour(tileNode, coord);   // contour-follow: sit on its district's terrain
 
@@ -198,6 +209,10 @@ public partial class CampusGridManager : HexGridManager
                 continue;
             ApplyVisualToTile(stale);          // inherited — resets albedo to terrain
             stale.TileView?.ClearPoiLabel();
+            // Drop the stale placeholder massing too (see the stamp below) so a
+            // narrative-beat refresh never stacks two meshes on one hex.
+            if (stale.TileView?.GetNodeOrNull(BuildingMeshLibrary.InstanceName) is Node staleMesh)
+                staleMesh.QueueFree();
         }
         _landmarkAtHex.Clear();
         _landmarkStateAtHex.Clear();
@@ -257,6 +272,23 @@ public partial class CampusGridManager : HexGridManager
                 // it is the right text for a future compact/zoomed-out view, and it costs
                 // nothing to keep.
                 tile.TileView.SetPoiLabel(lm.DisplayName, tint, UITheme.Label3DPlaceName);
+
+                // Placeholder massing (2026-08-19): landmarks get the same convention-scene
+                // treatment as buildings — Scenes/Campus/Buildings/{landmarkId}.tscn, tier
+                // group driven by the restoration phase (ruined→T1, active→T2, restored→T3),
+                // so a landmark visibly grows as its arc advances. Null-safe: no scene on
+                // disk keeps today's tint+label rendering.
+                if (tile.TileView.GetNodeOrNull(BuildingMeshLibrary.InstanceName) is Node oldMesh)
+                    oldMesh.QueueFree();
+                int meshTier = state switch
+                {
+                    CampusLandmarkData.LandmarkState.Restored => 3,
+                    CampusLandmarkData.LandmarkState.Active => 2,
+                    _ => 1,
+                };
+                var lmMesh = BuildingMeshLibrary.TryInstantiate(lm.Id, meshTier, 0);
+                if (lmMesh != null)
+                    tile.TileView.AddChild(lmMesh);
             }
         }
     }
@@ -452,11 +484,23 @@ public partial class CampusGridManager : HexGridManager
             var view = kv.Value.TileView;
             if (view == null) continue;
             Vector3 c = view.GlobalPosition;             // tile top-centre in world (incl. contour Y)
-            float t = (c.Y + labelLift - rayOrigin.Y) / rayDir.Y;
-            if (t < 0f) continue;
-            Vector3 hit = rayOrigin + rayDir * t;
-            float d = new Vector2(c.X - hit.X, c.Z - hit.Z).LengthSquared();
-            if (d < best) { best = d; coord = kv.Key; found = true; }
+
+            // TWO candidate aim planes per tile (2026-08-19 pick-offset fix): the tile
+            // SURFACE and the LABEL plane. The label-plane-only version (2026-08-10) was
+            // right when every click aimed at a floating name from a fixed steep pitch,
+            // but the free city camera made surface/building clicks read with a
+            // camera-dependent parallax — the lifted plane's hit lands a hex TOWARD the
+            // camera, worse the shallower the pitch. Testing both planes and keeping the
+            // hit nearest its own tile centre serves both aims exactly.
+            for (int plane = 0; plane < 2; plane++)
+            {
+                float planeY = plane == 0 ? c.Y : c.Y + labelLift;
+                float t = (planeY - rayOrigin.Y) / rayDir.Y;
+                if (t < 0f) continue;
+                Vector3 hit = rayOrigin + rayDir * t;
+                float d = new Vector2(c.X - hit.X, c.Z - hit.Z).LengthSquared();
+                if (d < best) { best = d; coord = kv.Key; found = true; }
+            }
         }
         return found;
     }
@@ -513,6 +557,8 @@ public partial class CampusGridManager : HexGridManager
                 var node = HexTileScene3D.Instantiate<HexTile>();
                 node.Position = AxialToWorld(coord);
                 node.Axial = coord;
+                if (TileVisualShrink != 1f)
+                    node.Scale = Vector3.One * TileVisualShrink;
                 _previewParent.AddChild(node);   // _Ready runs here, material ready for the calls below
                 node.SetHeight(0);
                 node.SetBaseColor(lockedColor);

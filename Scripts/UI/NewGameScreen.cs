@@ -914,7 +914,11 @@ public partial class NewGameScreen : Control
         save.WizardName = wizardName;
         SaveManager.Save();
         GD.Print($"[NewGame] Guild '{guildName}' / Wizard '{wizardName}' founded as {startingSchool} (undeclared).");
-        GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
+        // The hub is the strategic city (2026-08-19): founding drops the player into
+        // their city. StrategicView's _Ready seeds the save and generates the cycle
+        // world on the way in (CycleInitializer), so the fresh save is safe here.
+        PlayerSession.StartInCityOnOpen = true;
+        GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
     }
 
     private void ShowError(string msg)

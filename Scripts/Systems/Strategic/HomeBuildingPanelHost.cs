@@ -36,7 +36,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
 {
     /// <summary>Width of the docked panel strip, in px. Matches the Campus-tab list dock so the
     /// floated panel reads as the same surface the tab bar used to show.</summary>
-    private const int CardWidth = 560;
+    private const int CardWidth = 680;   // 560 → 680 (2026-08-19): subscreen content (disciplines table, save slots) was clipping tight
 
     private CampusPanelId? _panelId;  // null = no system panel (upgrade strip only)
     private string _title = "";
@@ -116,6 +116,10 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         };
         card.SetAnchorsPreset(Control.LayoutPreset.RightWide);
         card.OffsetLeft = -CardWidth;
+        // Below the global top bar (2026-08-19): the HUD now stays visible in city
+        // view and its CanvasLayer draws over this card, so a full-height card had
+        // its header (name + ✕ Close) buried under the bar.
+        card.OffsetTop = HudManager.BarHeight;
         card.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = UITheme.BgBase });
         AddChild(card);
 

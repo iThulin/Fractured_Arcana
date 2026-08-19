@@ -518,7 +518,10 @@ public static class CampusLandmarkRegistry
                 Id = "gatehouse",
                 DisplayName = "The Gatehouse",
                 HexLabel = "GH",
-                Q = 0, R = 1,   // district campus (centre district)
+                Q = -1, R = 1,  // (2026-08-19) west ring of the home district, beside the
+                                // Gatehouse Yard at (-1,0): the gate complex sits together
+                                // on the CITY EXTERIOR, where the main gate will stand.
+                                // Frees (0,1), formerly this landmark, as buildable lawn.
                 RestoredFlag = "campus_gatehouse_restored",
                 Beats = new List<LandmarkBeat>
                 {

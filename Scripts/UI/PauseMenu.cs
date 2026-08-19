@@ -26,7 +26,7 @@ public partial class PauseMenu : Control
 
     [Export] public string SettingsScenePath = "res://Scenes/UI/SettingsMenu.tscn";
     [Export] public string CardLibraryScenePath = "res://Scenes/UI/CardLibrary.tscn";
-    [Export] public string MainMenuScenePath = "res://Scenes/Campus/CampusScene.tscn";
+    [Export] public string MainMenuScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
     [Export] public string OverworldScenePath = "res://Scenes/Overworld/ExpeditionScene.tscn";
 
     private Button _resumeButton;
@@ -110,6 +110,9 @@ public partial class PauseMenu : Control
     private void OnReturnToCampusPressed()
     {
         PauseManager.Instance?.ClosePauseMenu();
+        // The hub is the strategic city (2026-08-19): abandoning an expedition for
+        // home lands in city view, not on the retired standalone campus screen.
+        PlayerSession.StartInCityOnOpen = true;
         GetTree().ChangeSceneToFile(MainMenuScenePath);
     }
 

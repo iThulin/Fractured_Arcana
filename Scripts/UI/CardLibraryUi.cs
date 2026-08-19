@@ -24,7 +24,7 @@ public partial class CardLibraryUi : Control
     // ── Exports ──────────────────────────────────────────────────────────
     [Export] public PackedScene CardUIScene;
     [Export] public string CardJsonDirectory = "res://Data/Cards";
-    [Export] public string ReturnScenePath = "res://Scenes/Campus/CampusScene.tscn";
+    [Export] public string ReturnScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
 
     [Export(PropertyHint.Range, "0.5,1.5,0.05")]
     public float CardScale = 1f;
