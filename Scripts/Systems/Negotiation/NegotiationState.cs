@@ -1190,6 +1190,13 @@ public class NegotiationState
         }
     }
 
+    /// <summary>The table ended because tension hit maximum — as opposed to the
+    /// player walking away, or the NPC's patience running out. The DealRecord
+    /// outcome string and the escalate-to-combat branch both key off this single
+    /// property so the two can never disagree about what "Collapsed" means.</summary>
+    public bool Collapsed =>
+        IsResolved && !DealAccepted && !PlayerWalkedAway && Tension >= TensionMax;
+
     private void Resolve(bool dealAccepted, bool playerWalked)
     {
         IsResolved = true;

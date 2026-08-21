@@ -30,13 +30,14 @@
   },
   {
    "id": "patrol_intel",
-   "description": "Commander Vael shares patrol routes — revealing 3 hexes near the objective.",
+   "description": "Commander Vael opens the garrison's supply-line map — every cache in the kingdom, marked.",
    "favorPlayer": true,
    "isHidden": false,
    "goldDelta": 0,
    "reputationDelta": 0,
    "startingPosition": -1,
-   "weight": 2
+   "weight": 3,
+   "revealsSupplyCaches": true
   },
   {
    "id": "tribute",

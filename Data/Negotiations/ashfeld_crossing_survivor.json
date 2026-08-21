@@ -1,0 +1,74 @@
+{
+ "id": "ashfeld_crossing_survivor",
+ "title": "The Strip Boss",
+ "npcName": "Ganne Hollow",
+ "archetype": "Survivor",
+ "factionId": "ashfeld_scavengers",
+ "openingText": "Hollow has divided the battlefield into strips by an agreement you were not party to, and enforces it with about eleven people and total confidence. 'Everyone comes through here thinking the ground is free,' she says. 'It has not been free since the year after. Which strip did you want?'",
+ "startingTension": 5,
+ "basePatience": 8,
+ "npcResolve": 2,
+ "npcGuile": 1,
+ "npcPoise": 3,
+ "dialogueCordial": "Good. You are the first outfit this season to ask before digging.",
+ "dialogueStrained": "That is a number. It is not yet a number I would explain to my people.",
+ "dialogueHostile": "You are eleven to our eleven and standing in a graveyard. Think about that arithmetic.",
+ "dialogueWalkaway": "Then dig somewhere else and do not let me find out where.",
+ "dialogueAccept": "Agreed. Mark your strip and keep to it and we will have no trouble at all.",
+ "terms": [
+  {
+   "id": "worked_strip",
+   "description": "A strip already picked once, and everything her people left because it was too heavy.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 60,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 4
+  },
+  {
+   "id": "the_sorted_finds",
+   "description": "Two centuries of finds, sorted by regiment, waiting for a buyer who never came.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 45,
+   "reputationDelta": 1,
+   "startingPosition": -1,
+   "weight": 3,
+   "factionId": "ashfeld_scavengers"
+  },
+  {
+   "id": "safe_ford",
+   "description": "Where the gravel holds and where it does not. Four of her people learned the difference badly.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2,
+   "stepsDelta": 3
+  },
+  {
+   "id": "dig_the_trench",
+   "description": "You work a shift on the burial line. It is not optional and it is not paid.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 3,
+   "suppliesDelta": -10,
+   "stepsDelta": -3
+  },
+  {
+   "id": "the_detail_is_watching",
+   "description": "The burial detail have their own arrangement, and Hollow is not part of it.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -20,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2
+  }
+ ]
+}

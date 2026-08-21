@@ -1,0 +1,74 @@
+{
+ "id": "tidewrack_coast_survivor",
+ "title": "The Wrackborn",
+ "npcName": "Odile Ferrant",
+ "archetype": "Survivor",
+ "factionId": "wrackborn",
+ "openingText": "Ferrant speaks for people who came ashore off ships nobody reported missing and stayed. She counts your party, counts your weapons, and does not pretend she is doing anything else. 'We have been here longer than the maps say this beach exists,' she says. 'Say what you want. Slowly.'",
+ "startingTension": 6,
+ "basePatience": 9,
+ "npcResolve": 2,
+ "npcGuile": 1,
+ "npcPoise": 3,
+ "dialogueCordial": "All right. That is the first thing anyone has offered us in a season that was not a threat.",
+ "dialogueStrained": "We have heard better. We have also heard worse, and we are still here.",
+ "dialogueHostile": "You are standing on the only high ground for a mile and telling us about generosity.",
+ "dialogueWalkaway": "Then go. The surge is due and we will not be helping you across.",
+ "dialogueAccept": "Then we have terms. We keep terms. It is the only thing left that we brought with us.",
+ "terms": [
+  {
+   "id": "shore_pilot",
+   "description": "A wrackborn pilot walks your column across ground the tide has rearranged.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "stepsDelta": 4
+  },
+  {
+   "id": "salvage_share",
+   "description": "A share of what the last storm turned up, honestly weighed.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 50,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3
+  },
+  {
+   "id": "winter_stores",
+   "description": "Twenty supplies. They will not survive the season otherwise and both of you know it.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 2,
+   "startingPosition": -1,
+   "weight": 4,
+   "factionId": "wrackborn",
+   "suppliesDelta": -20
+  },
+  {
+   "id": "name_the_ships",
+   "description": "You carry three names inland and see whether anyone is still looking.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2,
+   "stepsDelta": -2
+  },
+  {
+   "id": "they_are_leaving",
+   "description": "Ferrant has already decided to move them. This is provisioning, not trade.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -25,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2
+  }
+ ]
+}

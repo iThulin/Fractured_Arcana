@@ -1,0 +1,75 @@
+{
+ "id": "the_convergence_commander",
+ "title": "Everyone Who Has Held This Ground",
+ "npcName": "Marshal Cazrek Oule",
+ "archetype": "Commander",
+ "factionId": "convergence_claimants",
+ "openingText": "Oule has three ages of rubble under his boots and a banner that has been struck through on every stone in sight. He does not sit and does not offer. 'Every party that has held this crossing lost it,' he says. 'I am aware of the pattern. I am going to be the exception, and you are going to help me or you are going to be part of the stratum. Speak.'",
+ "startingTension": 8,
+ "basePatience": 5,
+ "escalatesToCombat": true,
+ "npcResolve": 5,
+ "npcGuile": 2,
+ "npcPoise": 0,
+ "dialogueCordial": "Then you are useful, and useful things survive here longer than brave ones.",
+ "dialogueStrained": "I have heard that offer from four claimants and buried three of them.",
+ "dialogueHostile": "You are one word from being an incident I write up afterwards.",
+ "dialogueWalkaway": "Then you are hostile by default and my pickets have your description.",
+ "dialogueAccept": "Done. Hold to it. I have never yet had to explain what happens otherwise twice.",
+ "terms": [
+  {
+   "id": "the_centre_ground",
+   "description": "Passage to the junction itself, where the ley-lines cross and nobody is permitted.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 40,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 4,
+   "stepsDelta": 4
+  },
+  {
+   "id": "what_the_strata_hold",
+   "description": "Three ages of dropped material, and Oule's map of which layer is which.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 90,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 4
+  },
+  {
+   "id": "swear_to_the_banner",
+   "description": "You are entered as his auxiliary. Every other claimant here learns it within the day.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": -60,
+   "reputationDelta": -2,
+   "startingPosition": -2,
+   "weight": 4,
+   "factionId": "aegis_concordat"
+  },
+  {
+   "id": "provision_the_line",
+   "description": "Thirty supplies to a force that has been holding open ground for a season.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 2,
+   "startingPosition": -2,
+   "weight": 4,
+   "factionId": "convergence_claimants",
+   "suppliesDelta": -30
+  },
+  {
+   "id": "he_has_no_reserve",
+   "description": "The pickets are all of it. Oule commands one under-strength company and a banner.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -25,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2
+  }
+ ]
+}

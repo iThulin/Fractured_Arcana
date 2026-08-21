@@ -1,0 +1,73 @@
+{
+ "id": "amber_downs_commander",
+ "title": "The Levy Captain",
+ "npcName": "Captain Hollis Aidenne",
+ "archetype": "Commander",
+ "factionId": "downs_levy",
+ "openingText": "Aidenne has four hundred charm-sworn levymen behind her and the expression of a woman who has counted them twice today. 'You are armed, you are foreign, and you are on Aidenne ground,' she says. 'I am obliged to establish which of those matters. Sit.'",
+ "startingTension": 5,
+ "basePatience": 8,
+ "npcResolve": 4,
+ "npcGuile": 1,
+ "npcPoise": 2,
+ "dialogueCordial": "Good. Plain terms, plainly put. I can work with a professional.",
+ "dialogueStrained": "Noted. I am not yet convinced, and I am rarely convinced quickly.",
+ "dialogueHostile": "You will lower your voice on my ground or you will be escorted off it.",
+ "dialogueWalkaway": "Then you will be off Aidenne land by dusk, and I will have riders confirm it.",
+ "dialogueAccept": "Agreed. My word holds as far as my banners do, which is further than the baron's.",
+ "terms": [
+  {
+   "id": "column_escort",
+   "description": "A levy escort to the far boundary. Nothing on the road will trouble you.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "stepsDelta": 4
+  },
+  {
+   "id": "muster_intelligence",
+   "description": "Where the neighbouring barons have put their levies this season, and why.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 55,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3
+  },
+  {
+   "id": "arms_requisition",
+   "description": "She requisitions arms and provisions from your stores at the Crown rate.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 35,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 4,
+   "suppliesDelta": -20
+  },
+  {
+   "id": "no_dealings",
+   "description": "You will not treat with the Verrick charter factors while on her ground.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": -35,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 2
+  },
+  {
+   "id": "she_expects_a_war",
+   "description": "The escort is not courtesy. She wants your column seen on that road.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2,
+   "stepsDelta": -2
+  }
+ ]
+}

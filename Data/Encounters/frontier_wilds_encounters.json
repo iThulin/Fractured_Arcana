@@ -1,108 +1,198 @@
 [
-    {
-      "id": "standing_stones_ritual",
-      "title": "The Standing Stones",
-      "body": "A circle of ancient stones pulses with residual magic. Runes carved into their faces depict a ritual you half-recognize from your studies. The air hums with potential.",
-      "terrainTags": ["ArcaneGround", "Ruins"],
-      "regionTags": ["frontier_wilds"],
-      "choices": [
-        {
-          "label": "Attempt the ritual",
-          "resultText": "The magic responds. Power floods through your party — at a cost.",
-          "hpDelta": -15,
-          "stepDelta": 4
-        },
-        {
-          "label": "Study the runes carefully",
-          "resultText": "Hours of study yield a fragment of lost knowledge. You feel sharper.",
-          "goldDelta": 40,
-          "stepDelta": -1
-        },
-        {
-          "label": "Disturb nothing and leave",
-          "resultText": "Some doors are best left closed."
-        }
-      ]
-    },
-    {
-      "id": "forest_spirit",
-      "title": "Voice in the Deep Wood",
-      "body": "Something old speaks from the treeline — not in words, but in impressions. It is not hostile. It is curious. It has been watching your party for some time.",
-      "terrainTags": ["Forest"],
-      "regionTags": ["frontier_wilds"],
-      "choices": [
-        {
-          "label": "Speak with it openly",
-          "resultText": "It shows you a safe path through the forest. The trees seem to part.",
-          "stepDelta": 3
-        },
-        {
-          "label": "Offer it something from your supplies",
-          "resultText": "It accepts. In return, it marks a cache of ancient coin.",
-          "goldDelta": 50,
-          "hpDelta": -5
-        },
-        {
-          "label": "Ignore it and push on",
-          "resultText": "The presence follows for a while, then fades. The forest feels heavier afterward.",
-          "hpDelta": -5
-        }
-      ]
-    },
-    {
-      "id": "ruined_watchtower",
-      "title": "The Ruined Watchtower",
-      "body": "The old watchtower's upper floors have collapsed, but the base is solid. From what remains of the staircase you can see clear to the horizon.",
-      "terrainTags": ["Ruins"],
-      "regionTags": ["frontier_wilds"],
-      "choices": [
-        {
-          "label": "Climb for a better view",
-          "resultText": "The climb is treacherous but worth it. You map the nearby terrain clearly.",
-          "hpDelta": -5,
-          "stepDelta": 3
-        },
-        {
-          "label": "Search the base for useful debris",
-          "resultText": "Beneath old rubble: a lockbox with coin inside.",
-          "goldDelta": 30
-        },
-        {
-          "label": "Rest in the sheltered base",
-          "resultText": "The stone walls block the wind. You recover before pushing on.",
-          "hpDelta": 25
-        }
-      ]
-    },
-    {
-      "id": "trapped_adventurer",
-      "title": "Trapped Beneath the Stones",
-      "body": "A hand reaches from beneath a fallen arch. An adventurer — alive, barely — trapped under rubble. They're carrying gear that looks expensive.",
-      "terrainTags": [],
-      "regionTags": ["frontier_wilds"],
-      "choices": [
-        {
-          "label": "Help them out — use full strength",
-          "resultText": "They're free. They press coin into your hand before staggering off.",
-          "goldDelta": 40,
-          "hpDelta": -10,
-          "stepDelta": -1
-        },
-        {
-          "label": "Help them out — take it slow",
-          "resultText": "A careful approach. They're grateful, and no one gets hurt.",
-          "goldDelta": 25,
-          "stepDelta": -2
-        },
-        {
-          "label": "Take their gear first, then help",
-          "resultText": "They can't stop you. Afterwards they limp away without a word.",
-          "goldDelta": 60
-        },
-        {
-          "label": "Leave them",
-          "resultText": "You move on. You try not to think about the sound of them calling after you."
-        }
-      ]
-    }
-  ]
+  {
+    "id": "standing_stones_ritual",
+    "title": "The Standing Stones",
+    "body": "A circle of ancient stones pulses with residual magic. Runes carved into their faces depict a ritual you half-recognize from your studies. The air hums with potential.",
+    "terrainTags": [
+      "ArcaneGround",
+      "Ruins"
+    ],
+    "regionTags": [
+      "frontier_wilds"
+    ],
+    "choices": [
+      {
+        "label": "Attempt the ritual",
+        "resultText": "The magic responds. Power floods through your party — at a cost.",
+        "hpDelta": -15,
+        "stepDelta": 4
+      },
+      {
+        "label": "Study the runes carefully",
+        "resultText": "Hours of study yield a fragment of lost knowledge. You feel sharper.",
+        "goldDelta": 40,
+        "stepDelta": -1
+      },
+      {
+        "label": "Disturb nothing and leave",
+        "resultText": "Some doors are best left closed."
+      }
+    ]
+  },
+  {
+    "id": "forest_spirit",
+    "title": "Voice in the Deep Wood",
+    "body": "Something old speaks from the treeline — not in words, but in impressions. It is not hostile. It is curious. It has been watching your party for some time.",
+    "terrainTags": [
+      "Forest"
+    ],
+    "regionTags": [
+      "frontier_wilds"
+    ],
+    "choices": [
+      {
+        "label": "Speak with it openly",
+        "resultText": "It shows you a safe path through the forest. The trees seem to part.",
+        "stepDelta": 3
+      },
+      {
+        "label": "Offer it something from your supplies",
+        "resultText": "It accepts. In return, it marks a cache of ancient coin.",
+        "goldDelta": 50,
+        "hpDelta": -5
+      },
+      {
+        "label": "Ignore it and push on",
+        "resultText": "The presence follows for a while, then fades. The forest feels heavier afterward.",
+        "hpDelta": -5
+      }
+    ]
+  },
+  {
+    "id": "ruined_watchtower",
+    "title": "The Ruined Watchtower",
+    "body": "The old watchtower's upper floors have collapsed, but the base is solid. From what remains of the staircase you can see clear to the horizon.",
+    "terrainTags": [
+      "Ruins"
+    ],
+    "regionTags": [
+      "frontier_wilds"
+    ],
+    "choices": [
+      {
+        "label": "Climb for a better view",
+        "resultText": "The climb is treacherous but worth it. You map the nearby terrain clearly.",
+        "hpDelta": -5,
+        "stepDelta": 3
+      },
+      {
+        "label": "Search the base for useful debris",
+        "resultText": "Beneath old rubble: a lockbox with coin inside.",
+        "goldDelta": 30
+      },
+      {
+        "label": "Rest in the sheltered base",
+        "resultText": "The stone walls block the wind. You recover before pushing on.",
+        "hpDelta": 25
+      }
+    ]
+  },
+  {
+    "id": "trapped_adventurer",
+    "title": "Trapped Beneath the Stones",
+    "body": "A hand reaches from beneath a fallen arch. An adventurer — alive, barely — trapped under rubble. They're carrying gear that looks expensive.",
+    "terrainTags": [],
+    "regionTags": [
+      "frontier_wilds"
+    ],
+    "choices": [
+      {
+        "label": "Help them out — use full strength",
+        "resultText": "They're free. They press coin into your hand before staggering off.",
+        "goldDelta": 40,
+        "hpDelta": -10,
+        "stepDelta": -1
+      },
+      {
+        "label": "Help them out — take it slow",
+        "resultText": "A careful approach. They're grateful, and no one gets hurt.",
+        "goldDelta": 25,
+        "stepDelta": -2
+      },
+      {
+        "label": "Take their gear first, then help",
+        "resultText": "They can't stop you. Afterwards they limp away without a word.",
+        "goldDelta": 60
+      },
+      {
+        "label": "Leave them",
+        "resultText": "You move on. You try not to think about the sound of them calling after you."
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Where the Road Ended",
+    "body": "{site}. {weather} {detail} The road gave out some way back and nobody marked the spot, which is the whole character of the Frontier Wilds: no boundary, just a gradual reduction in the number of things that were put here on purpose. {complication}",
+    "terrainTags": [
+      "Forest",
+      "Ruins",
+      "Grassland"
+    ],
+    "regionTags": [
+      "frontier_wilds"
+    ],
+    "choices": [
+      {
+        "label": "Work the site properly",
+        "resultText": "An hour with hand tools in ground the forest has been holding for a century. It gives up less than a ruin should and more than the forest wanted to.",
+        "goldDelta": 40,
+        "hpDelta": -12
+      },
+      {
+        "label": "Mark it for the guild and move on",
+        "resultText": "A blaze, a bearing and a line in the book. Somebody from the Anchorhold will come out here eventually with more time than you have.",
+        "stepDelta": -1,
+        "revealPois": 1
+      },
+      {
+        "label": "Make camp here — it is defensible",
+        "resultText": "Old walls at your back and one approach to watch. It is the best night's sleep the Wilds has offered in a week.",
+        "hpDelta": 20,
+        "stepDelta": -1
+      }
+    ]
+  },
+  {
+    "id": "frontier_the_unrecognised_warden",
+    "title": "The Warden of No Order",
+    "body": "She is keeping a boundary. She will say so plainly if asked, and she will indicate the line of it, and there is nothing on the line — no stones, no blazes, no change in the ground or the growth. She is not Untamed and she is not guild. She has been walking this boundary for longer than the guild has had a charter, and she is entirely willing to explain what is on the other side of it if you actually want to know.",
+    "terrainTags": [
+      "Forest",
+      "ArcaneGround"
+    ],
+    "regionTags": [
+      "frontier_wilds"
+    ],
+    "choices": [
+      {
+        "label": "Ask what is on the other side",
+        "resultText": "She tells you. It takes four minutes and it is specific, and it is not a metaphor, and afterwards she asks — reasonably, and with some sympathy — whether you would now like to help her keep it.",
+        "hpDelta": -15,
+        "stepDelta": -2,
+        "cardCodex": true,
+        "setMetaFlags": [
+          "deep_frontier_wilds_boundary_learned"
+        ]
+      },
+      {
+        "label": "Walk the boundary with her a day",
+        "resultText": "A full circuit of something with no marks on it, and by the end you can feel where the line runs without being told. She gives you a token off her own belt and does not explain it.",
+        "stepDelta": -3,
+        "itemReward": "trailwardens_compass",
+        "setMetaFlags": [
+          "deep_frontier_wilds_boundary_walked"
+        ]
+      },
+      {
+        "label": "Cross it",
+        "resultText": "She does not stop you. She stands where she is and watches you go over, and she is still standing there when you come back forty minutes later without having found anything at all, and she does not say a word about it.",
+        "hpDelta": -20,
+        "goldDelta": 45,
+        "setMetaFlags": [
+          "deep_frontier_wilds_boundary_crossed"
+        ]
+      }
+    ]
+  }
+]

@@ -1,26 +1,2161 @@
 {
   "site": [
-    { "text": "a cairn of black stones, half-sunk", "terrainTags": ["Snow", "Tundra"], "regionTags": [] },
-    { "text": "a sinkhole rimmed with pale reeds", "terrainTags": ["Swamp", "Marsh"], "regionTags": [] },
-    { "text": "a toppled waystone, its runes scoured", "terrainTags": ["Ruins", "ArcaneGround"], "regionTags": [] },
-    { "text": "a ring of wind-bent trees", "terrainTags": ["Forest"], "regionTags": [] },
-    { "text": "a scorched hollow where nothing grows", "terrainTags": ["Volcanic"], "regionTags": [] },
-    { "text": "a dry wash littered with sun-bleached bone", "terrainTags": ["Desert"], "regionTags": [] },
-    { "text": "a shepherd's shelter, its roof long gone", "terrainTags": ["Grassland", "Hills"], "regionTags": [] },
-    { "text": "a lonely marker leaning off the path", "terrainTags": [], "regionTags": [] }
+    {
+      "text": "a cairn of black stones, half-sunk",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a sinkhole rimmed with pale reeds",
+      "terrainTags": [
+        "Swamp",
+        "Marsh"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a toppled waystone, its runes scoured",
+      "terrainTags": [
+        "Ruins",
+        "ArcaneGround"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a ring of wind-bent trees",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a scorched hollow where nothing grows",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a dry wash littered with sun-bleached bone",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a shepherd's shelter, its roof long gone",
+      "terrainTags": [
+        "Grassland",
+        "Hills"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a lonely marker leaning off the path",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "a boundary-stone toppled into the grain",
+      "terrainTags": [
+        "Grassland"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a hay-cart abandoned mid-load",
+      "terrainTags": [
+        "Grassland",
+        "Road"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a deer-trail that widens into something deliberate",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a stand of trunks blazed with an unfamiliar mark",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a doorway standing alone, its building gone",
+      "terrainTags": [
+        "Ruins"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a mosaic floor open to the sky",
+      "terrainTags": [
+        "Ruins"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a switchback cut into raw rock",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a scree slope holding a rusted anchor-ring",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a boardwalk rotted down to its pilings",
+      "terrainTags": [
+        "Swamp"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a burial mound going under, one handspan a year",
+      "terrainTags": [
+        "Swamp",
+        "Marsh"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a patch of ground where the grass grows in spirals",
+      "terrainTags": [
+        "ArcaneGround"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a glass crater the rain refuses to fill",
+      "terrainTags": [
+        "ArcaneGround"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a lava tube exhaling warm air",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a field of obsidian shards standing on end",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a ford marked by two leaning poles",
+      "terrainTags": [
+        "Water",
+        "Lake"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a swamped skiff nosed into the reeds",
+      "terrainTags": [
+        "Water",
+        "Swamp"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a well-head with the rope cut",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a caravan wheel half-buried and still upright",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a line of stakes leading nowhere",
+      "terrainTags": [
+        "Tundra"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a wind-scoop dug into the frozen ground",
+      "terrainTags": [
+        "Tundra",
+        "Snow"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a drift with something angular under it",
+      "terrainTags": [
+        "Snow"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a shelter cairn, its door-stone rolled aside",
+      "terrainTags": [
+        "Snow",
+        "Mountain"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a milestone with the distances chiselled out",
+      "terrainTags": [
+        "Road"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a toll-post with no toll-keeper",
+      "terrainTags": [
+        "Road",
+        "Grassland"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a firepit gone cold, ringed too neatly",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "a place where the ground has been dug and filled again",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "a boundary-cairn re-stacked to favour somebody's claim",
+      "terrainTags": [
+        "Grassland"
+      ],
+      "regionTags": [
+        "amber_downs"
+      ]
+    },
+    {
+      "text": "a manor gate standing open on an empty avenue",
+      "terrainTags": [
+        "Grassland",
+        "Road"
+      ],
+      "regionTags": [
+        "amber_downs"
+      ]
+    },
+    {
+      "text": "an oath-post hung with ribbon gone colourless",
+      "terrainTags": [
+        "Grassland",
+        "Forest"
+      ],
+      "regionTags": [
+        "amber_downs"
+      ]
+    },
+    {
+      "text": "a pontoon abutment with no pontoon",
+      "terrainTags": [
+        "Water"
+      ],
+      "regionTags": [
+        "ashfeld_crossing"
+      ]
+    },
+    {
+      "text": "a redoubt filled in with its own defenders",
+      "terrainTags": [
+        "Ruins",
+        "Grassland"
+      ],
+      "regionTags": [
+        "ashfeld_crossing"
+      ]
+    },
+    {
+      "text": "a grave-field marked by the fletchings still standing in it",
+      "terrainTags": [
+        "Grassland",
+        "Swamp"
+      ],
+      "regionTags": [
+        "ashfeld_crossing"
+      ]
+    },
+    {
+      "text": "a caravan halted in column, still facing the way it meant to go",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": [
+        "boreal_march"
+      ]
+    },
+    {
+      "text": "a picket line of horses standing exactly where they froze",
+      "terrainTags": [
+        "Tundra",
+        "Snow"
+      ],
+      "regionTags": [
+        "boreal_march"
+      ]
+    },
+    {
+      "text": "a campfire under the ice with the flame still in it",
+      "terrainTags": [
+        "Snow"
+      ],
+      "regionTags": [
+        "boreal_march"
+      ]
+    },
+    {
+      "text": "a canal lock jammed open by a charter dispute",
+      "terrainTags": [
+        "Grassland",
+        "Road"
+      ],
+      "regionTags": [
+        "cogwork_reach"
+      ]
+    },
+    {
+      "text": "a gear-tower ticking over with nobody minding it",
+      "terrainTags": [
+        "Grassland",
+        "Ruins"
+      ],
+      "regionTags": [
+        "cogwork_reach"
+      ]
+    },
+    {
+      "text": "a toll-house with three separate seals nailed to the door",
+      "terrainTags": [
+        "Road",
+        "Grassland"
+      ],
+      "regionTags": [
+        "cogwork_reach"
+      ]
+    },
+    {
+      "text": "a salt pan cracked into plates the size of doors",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": [
+        "dustreach"
+      ]
+    },
+    {
+      "text": "a well shaft with a ladder going down into dry dark",
+      "terrainTags": [
+        "Desert",
+        "Ruins"
+      ],
+      "regionTags": [
+        "dustreach"
+      ]
+    },
+    {
+      "text": "a caravan drawn into a defensive ring it never broke out of",
+      "terrainTags": [
+        "Desert",
+        "Road"
+      ],
+      "regionTags": [
+        "dustreach"
+      ]
+    },
+    {
+      "text": "a ruin the forest has finished arguing with",
+      "terrainTags": [
+        "Forest",
+        "Ruins"
+      ],
+      "regionTags": [
+        "frontier_wilds"
+      ]
+    },
+    {
+      "text": "a hunter's stand grown into the tree that holds it",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "frontier_wilds"
+      ]
+    },
+    {
+      "text": "a ley-scar where the moss grows in a perfect circle",
+      "terrainTags": [
+        "ArcaneGround",
+        "Forest"
+      ],
+      "regionTags": [
+        "frontier_wilds"
+      ]
+    },
+    {
+      "text": "a crevasse crossed by a rope some earlier party left",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "glacial_threshold"
+      ]
+    },
+    {
+      "text": "a shelf of blue ice with a silhouette held inside it",
+      "terrainTags": [
+        "Mountain",
+        "Water"
+      ],
+      "regionTags": [
+        "glacial_threshold"
+      ]
+    },
+    {
+      "text": "an observatory ring cut into the saddle of the pass",
+      "terrainTags": [
+        "Ruins",
+        "Mountain"
+      ],
+      "regionTags": [
+        "glacial_threshold"
+      ]
+    },
+    {
+      "text": "a memorial the mire has almost finished swallowing",
+      "terrainTags": [
+        "Swamp",
+        "Ruins"
+      ],
+      "regionTags": [
+        "hollow_mire"
+      ]
+    },
+    {
+      "text": "a coffin-raft moored to a stump",
+      "terrainTags": [
+        "Swamp",
+        "Water"
+      ],
+      "regionTags": [
+        "hollow_mire"
+      ]
+    },
+    {
+      "text": "a causeway built out of packed grave-goods",
+      "terrainTags": [
+        "Swamp"
+      ],
+      "regionTags": [
+        "hollow_mire"
+      ]
+    },
+    {
+      "text": "a mangrove root-cage holding a boat upright",
+      "terrainTags": [
+        "Swamp",
+        "Water"
+      ],
+      "regionTags": [
+        "jade_coast"
+      ]
+    },
+    {
+      "text": "a shoreline the last storm put somewhere else",
+      "terrainTags": [
+        "Water"
+      ],
+      "regionTags": [
+        "jade_coast"
+      ]
+    },
+    {
+      "text": "a canopy gap punched clean through to the sky",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "jade_coast"
+      ]
+    },
+    {
+      "text": "a lava channel running warm under a crust of glass",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": [
+        "obsidian_waste"
+      ]
+    },
+    {
+      "text": "a colonnade snapped off at a uniform height",
+      "terrainTags": [
+        "Ruins",
+        "Volcanic"
+      ],
+      "regionTags": [
+        "obsidian_waste"
+      ]
+    },
+    {
+      "text": "a vent field breathing in slow rotation",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": [
+        "obsidian_waste"
+      ]
+    },
+    {
+      "text": "a stack-hall standing in four feet of clear water",
+      "terrainTags": [
+        "Water",
+        "Ruins"
+      ],
+      "regionTags": [
+        "sunken_archive"
+      ]
+    },
+    {
+      "text": "a shelf-range surfacing out of the aquifer, spine-up",
+      "terrainTags": [
+        "Water",
+        "Ruins"
+      ],
+      "regionTags": [
+        "sunken_archive"
+      ]
+    },
+    {
+      "text": "a warded door that the water opened for",
+      "terrainTags": [
+        "Ruins",
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "sunken_archive"
+      ]
+    },
+    {
+      "text": "a wall where three ages of rubble meet in one stratum",
+      "terrainTags": [
+        "Ruins"
+      ],
+      "regionTags": [
+        "the_convergence"
+      ]
+    },
+    {
+      "text": "a ley-junction the ground has grown scar tissue over",
+      "terrainTags": [
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "the_convergence"
+      ]
+    },
+    {
+      "text": "a battlefield lying directly on top of an older battlefield",
+      "terrainTags": [
+        "Ruins",
+        "Grassland"
+      ],
+      "regionTags": [
+        "the_convergence"
+      ]
+    },
+    {
+      "text": "a pass narrow enough for two, overlooked from three sides",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "the_crags"
+      ]
+    },
+    {
+      "text": "a ranger's cache under a slab, recently visited",
+      "terrainTags": [
+        "Mountain",
+        "Forest"
+      ],
+      "regionTags": [
+        "the_crags"
+      ]
+    },
+    {
+      "text": "a rockfall that was placed rather than fell",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "the_crags"
+      ]
+    },
+    {
+      "text": "a hull broken over the rocks, keel to the sky",
+      "terrainTags": [
+        "Water"
+      ],
+      "regionTags": [
+        "tidewrack_coast"
+      ]
+    },
+    {
+      "text": "a smuggler's stair cut into the cliff and freshly swept",
+      "terrainTags": [
+        "Water",
+        "Mountain"
+      ],
+      "regionTags": [
+        "tidewrack_coast"
+      ]
+    },
+    {
+      "text": "a tide-line of wreckage two centuries deep",
+      "terrainTags": [
+        "Water",
+        "Swamp"
+      ],
+      "regionTags": [
+        "tidewrack_coast"
+      ]
+    },
+    {
+      "text": "a trunk wider than the road that used to pass it",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "verdant_deep"
+      ]
+    },
+    {
+      "text": "a clearing that closed over an entire settlement",
+      "terrainTags": [
+        "Forest",
+        "Ruins"
+      ],
+      "regionTags": [
+        "verdant_deep"
+      ]
+    },
+    {
+      "text": "a storm-track cut west to east through old growth",
+      "terrainTags": [
+        "Forest",
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "verdant_deep"
+      ]
+    }
   ],
   "detail": [
-    { "text": "The air is wrong here — too still, too watchful.", "terrainTags": [], "regionTags": [] },
-    { "text": "Old offerings rot in a niche, some barely cold.", "terrainTags": [], "regionTags": [] },
-    { "text": "Frost rimes every surface though the season forbids it.", "terrainTags": ["Snow", "Tundra"], "regionTags": [] },
-    { "text": "The mud holds footprints that lead only inward.", "terrainTags": ["Swamp", "Marsh"], "regionTags": [] },
-    { "text": "A faint sigil-hum rises as you step closer.", "terrainTags": ["Ruins", "ArcaneGround"], "regionTags": [] },
-    { "text": "Ash sifts down from a sky with no cloud.", "terrainTags": ["Volcanic"], "regionTags": [] }
+    {
+      "text": "The air is wrong here — too still, too watchful.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "Old offerings rot in a niche, some barely cold.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "Frost rimes every surface though the season forbids it.",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The mud holds footprints that lead only inward.",
+      "terrainTags": [
+        "Swamp",
+        "Marsh"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "A faint sigil-hum rises as you step closer.",
+      "terrainTags": [
+        "Ruins",
+        "ArcaneGround"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Ash sifts down from a sky with no cloud.",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Whatever happened here happened quickly, and then stopped.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "Someone tidied this place, which is somehow worse.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "Everything portable is gone. Everything heavy remains.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "The ground is packed hard, as if from long standing.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "There is no sound at all, not even insects.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "A tally is scratched into the stone and never finished.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "The canopy closes overhead and the light goes green and slow.",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The grain lies flattened in a shape too regular for wind.",
+      "terrainTags": [
+        "Grassland"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Someone has swept the threshold clean and left no other trace.",
+      "terrainTags": [
+        "Ruins"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Stones clatter down the slope long after you have stopped moving.",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The water runs clear over something pale on the bottom.",
+      "terrainTags": [
+        "Water",
+        "Lake"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Heat-shimmer makes the middle distance untrustworthy.",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Wind has scoured the ground down to grit and old iron.",
+      "terrainTags": [
+        "Tundra"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Your breath hangs in front of you and does not drift.",
+      "terrainTags": [
+        "Snow"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The rock is warm enough through your boots to count as a warning.",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Your rings and buckles pull gently toward a spot with nothing in it.",
+      "terrainTags": [
+        "ArcaneGround"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The ruts are fresh, and the traffic went one way only.",
+      "terrainTags": [
+        "Road"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Reeds have been cut back from the water in a careful arc.",
+      "terrainTags": [
+        "Swamp",
+        "Marsh"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The grain is unharvested and perfectly kept. Someone is paying for that.",
+      "terrainTags": [
+        "Grassland"
+      ],
+      "regionTags": [
+        "amber_downs"
+      ]
+    },
+    {
+      "text": "Every fence-line here has been moved at least once, and recently.",
+      "terrainTags": [
+        "Grassland"
+      ],
+      "regionTags": [
+        "amber_downs"
+      ]
+    },
+    {
+      "text": "The mud has been churned by so many boots it has stopped being mud.",
+      "terrainTags": [
+        "Swamp",
+        "Grassland"
+      ],
+      "regionTags": [
+        "ashfeld_crossing"
+      ]
+    },
+    {
+      "text": "Both armies' colours rot in the same ditch, at the same rate.",
+      "terrainTags": [
+        "Ruins",
+        "Grassland"
+      ],
+      "regionTags": [
+        "ashfeld_crossing"
+      ]
+    },
+    {
+      "text": "Nothing here has fallen over. That is the first thing wrong with it.",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": [
+        "boreal_march"
+      ]
+    },
+    {
+      "text": "The wind has blown one direction so long the ground has taken its shape.",
+      "terrainTags": [
+        "Tundra"
+      ],
+      "regionTags": [
+        "boreal_march"
+      ]
+    },
+    {
+      "text": "Everything here carries somebody's mark, including the ground.",
+      "terrainTags": [
+        "Grassland",
+        "Road"
+      ],
+      "regionTags": [
+        "cogwork_reach"
+      ]
+    },
+    {
+      "text": "The noise of the works carries for miles and never entirely stops.",
+      "terrainTags": [
+        "Grassland",
+        "Forest"
+      ],
+      "regionTags": [
+        "cogwork_reach"
+      ]
+    },
+    {
+      "text": "The bones point the same way the road does.",
+      "terrainTags": [
+        "Desert",
+        "Road"
+      ],
+      "regionTags": [
+        "dustreach"
+      ]
+    },
+    {
+      "text": "Salt has crept up the walls and eaten the lower third of everything.",
+      "terrainTags": [
+        "Ruins",
+        "Desert"
+      ],
+      "regionTags": [
+        "dustreach"
+      ]
+    },
+    {
+      "text": "The road ended some way back and nobody marked where.",
+      "terrainTags": [
+        "Forest",
+        "Grassland"
+      ],
+      "regionTags": [
+        "frontier_wilds"
+      ]
+    },
+    {
+      "text": "The forest has taken the walls and left the doorways.",
+      "terrainTags": [
+        "Ruins",
+        "Forest"
+      ],
+      "regionTags": [
+        "frontier_wilds"
+      ]
+    },
+    {
+      "text": "The ice is old enough to be a different colour and clear enough to regret.",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "glacial_threshold"
+      ]
+    },
+    {
+      "text": "Cloud forms below you and hides the way back down.",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "glacial_threshold"
+      ]
+    },
+    {
+      "text": "The water table here is mostly people.",
+      "terrainTags": [
+        "Swamp",
+        "Water"
+      ],
+      "regionTags": [
+        "hollow_mire"
+      ]
+    },
+    {
+      "text": "Every name on the stone was cut by a different hand.",
+      "terrainTags": [
+        "Swamp",
+        "Ruins"
+      ],
+      "regionTags": [
+        "hollow_mire"
+      ]
+    },
+    {
+      "text": "The green here has weight, and it leans.",
+      "terrainTags": [
+        "Forest",
+        "Swamp"
+      ],
+      "regionTags": [
+        "jade_coast"
+      ]
+    },
+    {
+      "text": "Nothing that lives here has learned to be afraid of you.",
+      "terrainTags": [
+        "Forest",
+        "Swamp"
+      ],
+      "regionTags": [
+        "jade_coast"
+      ]
+    },
+    {
+      "text": "They built here on purpose. The evidence of how that went is underfoot.",
+      "terrainTags": [
+        "Ruins",
+        "Volcanic"
+      ],
+      "regionTags": [
+        "obsidian_waste"
+      ]
+    },
+    {
+      "text": "The glass holds the shape of the moment it cooled.",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": [
+        "obsidian_waste"
+      ]
+    },
+    {
+      "text": "The books are intact, which after this long is not reassuring.",
+      "terrainTags": [
+        "Ruins",
+        "Water"
+      ],
+      "regionTags": [
+        "sunken_archive"
+      ]
+    },
+    {
+      "text": "The catalogue is still legible, and still being kept.",
+      "terrainTags": [
+        "Ruins",
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "sunken_archive"
+      ]
+    },
+    {
+      "text": "The seasons here disagree with one another across a hundred paces.",
+      "terrainTags": [
+        "ArcaneGround",
+        "Ruins"
+      ],
+      "regionTags": [
+        "the_convergence"
+      ]
+    },
+    {
+      "text": "Every faction's mark is on this stone, each struck through by the next.",
+      "terrainTags": [
+        "Ruins"
+      ],
+      "regionTags": [
+        "the_convergence"
+      ]
+    },
+    {
+      "text": "Every ridgeline here has a sightline onto this one.",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "the_crags"
+      ]
+    },
+    {
+      "text": "The path is good, well-kept, and used by people who did not build it.",
+      "terrainTags": [
+        "Mountain",
+        "Forest"
+      ],
+      "regionTags": [
+        "the_crags"
+      ]
+    },
+    {
+      "text": "The chart is wrong. The chart is always wrong here, twice a day.",
+      "terrainTags": [
+        "Water"
+      ],
+      "regionTags": [
+        "tidewrack_coast"
+      ]
+    },
+    {
+      "text": "Everything on this beach came off a different ship.",
+      "terrainTags": [
+        "Water"
+      ],
+      "regionTags": [
+        "tidewrack_coast"
+      ]
+    },
+    {
+      "text": "You have not seen the sky in some time and cannot say how long.",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "verdant_deep"
+      ]
+    },
+    {
+      "text": "These trees were old before the Collapse and were not impressed by it.",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "verdant_deep"
+      ]
+    }
   ],
   "complication": [
-    { "text": "Something watches from just past the light.", "terrainTags": [], "regionTags": [] },
-    { "text": "A cold thread of dread says not everything here is dead.", "terrainTags": [], "regionTags": [] },
-    { "text": "Fresh tracks say you are not the first here today.", "terrainTags": [], "regionTags": [] },
-    { "text": "A resonance that matches no known ley-line pulls at your teeth.", "terrainTags": ["Ruins", "ArcaneGround"], "regionTags": [] }
+    {
+      "text": "Something watches from just past the light.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "A cold thread of dread says not everything here is dead.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "Fresh tracks say you are not the first here today.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "A resonance that matches no known ley-line pulls at your teeth.",
+      "terrainTags": [
+        "Ruins",
+        "ArcaneGround"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "You have the distinct sense of having been expected.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "One of your party is already walking toward it, and cannot say why.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "The quiet has the quality of held breath.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "Whatever left these marks has not gone far.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "There is a second set of your own bootprints, going the other way.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "Nothing here is dangerous. That is the part you dislike.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "The stones hold a shape your eye keeps trying to complete.",
+      "terrainTags": [
+        "Ruins",
+        "ArcaneGround"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The water settles wrong, as though something under it just stopped moving.",
+      "terrainTags": [
+        "Swamp",
+        "Water",
+        "Marsh"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The cold here has a direction, and the direction is you.",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The ground ticks as it cools, and the rhythm is too even.",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The birds went silent before you arrived, not after.",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Your own tracks behind you are already gone.",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Something up the slope shifts its footing and holds still again.",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "A levy's charm-oath still hangs in the air, looking for a throat to settle in.",
+      "terrainTags": [
+        "Grassland",
+        "Forest"
+      ],
+      "regionTags": [
+        "amber_downs"
+      ]
+    },
+    {
+      "text": "Two families claim this ground, and both are waiting to see which of them you insult.",
+      "terrainTags": [
+        "Grassland",
+        "Road"
+      ],
+      "regionTags": [
+        "amber_downs"
+      ]
+    },
+    {
+      "text": "The river runs a brown it did not get from soil.",
+      "terrainTags": [
+        "Water"
+      ],
+      "regionTags": [
+        "ashfeld_crossing"
+      ]
+    },
+    {
+      "text": "Scavengers stop working long enough to count how many of you there are.",
+      "terrainTags": [
+        "Ruins",
+        "Grassland"
+      ],
+      "regionTags": [
+        "ashfeld_crossing"
+      ]
+    },
+    {
+      "text": "Something in the ice has changed position since you last looked at it.",
+      "terrainTags": [
+        "Snow"
+      ],
+      "regionTags": [
+        "boreal_march"
+      ]
+    },
+    {
+      "text": "The cold is going out of the air, which here is not a mercy.",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": [
+        "boreal_march"
+      ]
+    },
+    {
+      "text": "Two charters cover this ground and neither will admit the other exists.",
+      "terrainTags": [
+        "Grassland",
+        "Road"
+      ],
+      "regionTags": [
+        "cogwork_reach"
+      ]
+    },
+    {
+      "text": "Something mechanical has been watching the road, and it keeps a ledger.",
+      "terrainTags": [
+        "Road",
+        "Ruins"
+      ],
+      "regionTags": [
+        "cogwork_reach"
+      ]
+    },
+    {
+      "text": "A town stands clear on the horizon. It has been the same distance away for an hour.",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": [
+        "dustreach"
+      ]
+    },
+    {
+      "text": "Someone has been drinking here recently. The well is dry.",
+      "terrainTags": [
+        "Desert",
+        "Ruins"
+      ],
+      "regionTags": [
+        "dustreach"
+      ]
+    },
+    {
+      "text": "The wood is paying attention, the way a room does when you enter it.",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "frontier_wilds"
+      ]
+    },
+    {
+      "text": "Something large came through here at speed and did not slow for obstacles.",
+      "terrainTags": [
+        "Forest",
+        "Swamp"
+      ],
+      "regionTags": [
+        "frontier_wilds"
+      ]
+    },
+    {
+      "text": "The silhouette in the ice was facing the other way this morning.",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "glacial_threshold"
+      ]
+    },
+    {
+      "text": "The thaw line has moved up the slope since you started climbing.",
+      "terrainTags": [
+        "Mountain",
+        "Water"
+      ],
+      "regionTags": [
+        "glacial_threshold"
+      ]
+    },
+    {
+      "text": "The dead here are not restless. They are organised.",
+      "terrainTags": [
+        "Swamp",
+        "Ruins"
+      ],
+      "regionTags": [
+        "hollow_mire"
+      ]
+    },
+    {
+      "text": "Someone has left fresh flowers, and there is nobody within a day's walk.",
+      "terrainTags": [
+        "Swamp"
+      ],
+      "regionTags": [
+        "hollow_mire"
+      ]
+    },
+    {
+      "text": "The tide is going out considerably faster than tides do.",
+      "terrainTags": [
+        "Water",
+        "Swamp"
+      ],
+      "regionTags": [
+        "jade_coast"
+      ]
+    },
+    {
+      "text": "Something in the canopy is keeping pace with you and not hiding it.",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "jade_coast"
+      ]
+    },
+    {
+      "text": "The ground is warmer than it was a hundred paces back, and still warming.",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": [
+        "obsidian_waste"
+      ]
+    },
+    {
+      "text": "The vents have gone quiet. All of them. At once.",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": [
+        "obsidian_waste"
+      ]
+    },
+    {
+      "text": "The wards are holding. You would rather know what they are holding in.",
+      "terrainTags": [
+        "Ruins",
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "sunken_archive"
+      ]
+    },
+    {
+      "text": "The water is lower than it was an hour ago, and nothing is draining.",
+      "terrainTags": [
+        "Water",
+        "Ruins"
+      ],
+      "regionTags": [
+        "sunken_archive"
+      ]
+    },
+    {
+      "text": "The ley-lines run close enough here to feel in your fillings.",
+      "terrainTags": [
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "the_convergence"
+      ]
+    },
+    {
+      "text": "Everyone who has held this ground lost it. You are aware of the pattern.",
+      "terrainTags": [
+        "Ruins"
+      ],
+      "regionTags": [
+        "the_convergence"
+      ]
+    },
+    {
+      "text": "You are being watched from high ground, competently.",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "the_crags"
+      ]
+    },
+    {
+      "text": "The cache was full yesterday. Somebody is running ahead of you.",
+      "terrainTags": [
+        "Mountain",
+        "Forest"
+      ],
+      "regionTags": [
+        "the_crags"
+      ]
+    },
+    {
+      "text": "The tide is coming in behind you, across ground it did not cover this morning.",
+      "terrainTags": [
+        "Water",
+        "Swamp"
+      ],
+      "regionTags": [
+        "tidewrack_coast"
+      ]
+    },
+    {
+      "text": "Something came ashore with the last storm and has not gone back.",
+      "terrainTags": [
+        "Water",
+        "Swamp"
+      ],
+      "regionTags": [
+        "tidewrack_coast"
+      ]
+    },
+    {
+      "text": "The wood has an opinion about you, and it is still forming.",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "verdant_deep"
+      ]
+    },
+    {
+      "text": "The storm-track is fresh, and the ground inside it is different ground.",
+      "terrainTags": [
+        "Forest",
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "verdant_deep"
+      ]
+    }
+  ],
+  "figure": [
+    {
+      "text": "a figure sitting with their back to you",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "a body laid out with more care than it was killed with",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "a child, alone, entirely unhurried",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "a courier's satchel with no courier",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "an old soldier who does not ask which side you are on",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "a scavenger who freezes, then goes back to working",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "a scribe copying an inscription that is not there",
+      "terrainTags": [
+        "Ruins"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a sentry still at their post, still upright, quite dead",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a bog-tanned face looking up through a handspan of water",
+      "terrainTags": [
+        "Swamp",
+        "Marsh"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a pilgrim walking barefoot across warm stone",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a water-seller with full skins and no customers",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a hunter who has been following you for some time",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a woman who flickers whenever you look away",
+      "terrainTags": [
+        "ArcaneGround"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a tinker's cart with the horse cut loose",
+      "terrainTags": [
+        "Road",
+        "Grassland"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "a surveyor taking measurements of empty ground",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "a baron's steward counting something that is not there",
+      "terrainTags": [
+        "Grassland",
+        "Road"
+      ],
+      "regionTags": [
+        "amber_downs"
+      ]
+    },
+    {
+      "text": "a levyman who has forgotten what he swore, and to whom",
+      "terrainTags": [
+        "Grassland",
+        "Forest"
+      ],
+      "regionTags": [
+        "amber_downs"
+      ]
+    },
+    {
+      "text": "a deserter who has been living on the far bank for years",
+      "terrainTags": [
+        "Water",
+        "Forest"
+      ],
+      "regionTags": [
+        "ashfeld_crossing"
+      ]
+    },
+    {
+      "text": "a burial detail that never got its relief",
+      "terrainTags": [
+        "Grassland",
+        "Swamp"
+      ],
+      "regionTags": [
+        "ashfeld_crossing"
+      ]
+    },
+    {
+      "text": "a rider still seated, still reined in, three winters dead",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": [
+        "boreal_march"
+      ]
+    },
+    {
+      "text": "a woman thawing out of a drift one finger at a time",
+      "terrainTags": [
+        "Snow"
+      ],
+      "regionTags": [
+        "boreal_march"
+      ]
+    },
+    {
+      "text": "a guild factor who prices you before he greets you",
+      "terrainTags": [
+        "Road",
+        "Grassland"
+      ],
+      "regionTags": [
+        "cogwork_reach"
+      ]
+    },
+    {
+      "text": "an apprentice sent to steal a design, doing it badly",
+      "terrainTags": [
+        "Grassland",
+        "Ruins"
+      ],
+      "regionTags": [
+        "cogwork_reach"
+      ]
+    },
+    {
+      "text": "a scrapper with a full pack and no water",
+      "terrainTags": [
+        "Desert",
+        "Ruins"
+      ],
+      "regionTags": [
+        "dustreach"
+      ]
+    },
+    {
+      "text": "a guide who names a price before you ask a question",
+      "terrainTags": [
+        "Desert",
+        "Road"
+      ],
+      "regionTags": [
+        "dustreach"
+      ]
+    },
+    {
+      "text": "a trapper who has not spoken to anyone in a season",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "frontier_wilds"
+      ]
+    },
+    {
+      "text": "a warden of no order you recognise, keeping a boundary you cannot see",
+      "terrainTags": [
+        "Forest",
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "frontier_wilds"
+      ]
+    },
+    {
+      "text": "a climber who sat down to rest a very long time ago",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "glacial_threshold"
+      ]
+    },
+    {
+      "text": "an Arcanist taking readings and declining to explain them",
+      "terrainTags": [
+        "Mountain",
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "glacial_threshold"
+      ]
+    },
+    {
+      "text": "a grave-warden who counts you as you pass",
+      "terrainTags": [
+        "Swamp",
+        "Ruins"
+      ],
+      "regionTags": [
+        "hollow_mire"
+      ]
+    },
+    {
+      "text": "a mourner at a stone with no name on it",
+      "terrainTags": [
+        "Swamp"
+      ],
+      "regionTags": [
+        "hollow_mire"
+      ]
+    },
+    {
+      "text": "a wrecked crew who have decided this is home now",
+      "terrainTags": [
+        "Water",
+        "Swamp"
+      ],
+      "regionTags": [
+        "jade_coast"
+      ]
+    },
+    {
+      "text": "a forager who steps aside for the wildlife and not for you",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "jade_coast"
+      ]
+    },
+    {
+      "text": "an Elementalist standing too close to a vent and enjoying it",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": [
+        "obsidian_waste"
+      ]
+    },
+    {
+      "text": "a salvager cutting obsidian blanks with a wet rag over their face",
+      "terrainTags": [
+        "Volcanic",
+        "Ruins"
+      ],
+      "regionTags": [
+        "obsidian_waste"
+      ]
+    },
+    {
+      "text": "a librarian who has not been relieved of duty",
+      "terrainTags": [
+        "Ruins",
+        "Water"
+      ],
+      "regionTags": [
+        "sunken_archive"
+      ]
+    },
+    {
+      "text": "a reader at a table, mid-page, not breathing",
+      "terrainTags": [
+        "Ruins"
+      ],
+      "regionTags": [
+        "sunken_archive"
+      ]
+    },
+    {
+      "text": "a claimant with a deed, a banner, and no soldiers",
+      "terrainTags": [
+        "Ruins",
+        "Grassland"
+      ],
+      "regionTags": [
+        "the_convergence"
+      ]
+    },
+    {
+      "text": "something wearing the uniform of an army that has not existed for an age",
+      "terrainTags": [
+        "Ruins",
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "the_convergence"
+      ]
+    },
+    {
+      "text": "a guide whose price depends on which side of the pass you want",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "the_crags"
+      ]
+    },
+    {
+      "text": "a bowman on the ridge who lets you see him",
+      "terrainTags": [
+        "Mountain",
+        "Forest"
+      ],
+      "regionTags": [
+        "the_crags"
+      ]
+    },
+    {
+      "text": "a wrecker with a lantern and an honest face",
+      "terrainTags": [
+        "Water"
+      ],
+      "regionTags": [
+        "tidewrack_coast"
+      ]
+    },
+    {
+      "text": "a survivor off a ship nobody has reported missing",
+      "terrainTags": [
+        "Water",
+        "Swamp"
+      ],
+      "regionTags": [
+        "tidewrack_coast"
+      ]
+    },
+    {
+      "text": "a druid who addresses the trees first and you second",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "verdant_deep"
+      ]
+    },
+    {
+      "text": "a woodsman marking trunks for a felling that will never be permitted",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "verdant_deep"
+      ]
+    }
+  ],
+  "weather": [
+    {
+      "text": "The light is going, and going faster than the hour allows.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "A wind gets up out of nowhere and dies just as fast.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "Cloud comes over and the temperature drops a full season.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "The sky has the flat white look that comes before something.",
+      "terrainTags": [],
+      "regionTags": []
+    },
+    {
+      "text": "Snow starts, fine as flour, and does not stop.",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The wind carries ice fine enough to breathe.",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The sun stands directly overhead and refuses to move.",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "A dust haze blanks the horizon in every direction.",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Ash sifts down warm and settles on your shoulders.",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Heat rises off the ground in visible sheets.",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Rain arrives in the canopy long before it reaches you.",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Fog stands between the trunks in vertical columns.",
+      "terrainTags": [
+        "Forest",
+        "Swamp"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Mist comes off the water in long slow ropes.",
+      "terrainTags": [
+        "Water",
+        "Swamp",
+        "Lake",
+        "Marsh"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The sky above this spot is a slightly different colour than the sky beside it.",
+      "terrainTags": [
+        "ArcaneGround"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "Cloud pours over the ridge and swallows the way you came.",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The whole field moves at once, though the air is still.",
+      "terrainTags": [
+        "Grassland"
+      ],
+      "regionTags": []
+    },
+    {
+      "text": "The low gold light makes the downs look settled, which they are not.",
+      "terrainTags": [
+        "Grassland"
+      ],
+      "regionTags": [
+        "amber_downs"
+      ]
+    },
+    {
+      "text": "Rain fills the shell-scars and turns the field into a hundred small brown mirrors.",
+      "terrainTags": [
+        "Grassland",
+        "Swamp"
+      ],
+      "regionTags": [
+        "ashfeld_crossing"
+      ]
+    },
+    {
+      "text": "The white runs on until it stops being distance and becomes absence.",
+      "terrainTags": [
+        "Snow",
+        "Tundra"
+      ],
+      "regionTags": [
+        "boreal_march"
+      ]
+    },
+    {
+      "text": "Smoke lies along the valley in flat grey strata, one for each working day.",
+      "terrainTags": [
+        "Grassland",
+        "Mountain"
+      ],
+      "regionTags": [
+        "cogwork_reach"
+      ]
+    },
+    {
+      "text": "The heat comes off the pan as a solid wall you have to walk into.",
+      "terrainTags": [
+        "Desert"
+      ],
+      "regionTags": [
+        "dustreach"
+      ]
+    },
+    {
+      "text": "Rain finds its way through the canopy in cold single drops, hours apart.",
+      "terrainTags": [
+        "Forest"
+      ],
+      "regionTags": [
+        "frontier_wilds"
+      ]
+    },
+    {
+      "text": "The air is thin enough that your own heartbeat is the loudest thing on the mountain.",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "glacial_threshold"
+      ]
+    },
+    {
+      "text": "The mist never lifts here. It only changes height.",
+      "terrainTags": [
+        "Swamp",
+        "Water"
+      ],
+      "regionTags": [
+        "hollow_mire"
+      ]
+    },
+    {
+      "text": "The storm is not on the horizon. It is directly overhead, and has not started.",
+      "terrainTags": [
+        "Water",
+        "Forest"
+      ],
+      "regionTags": [
+        "jade_coast"
+      ]
+    },
+    {
+      "text": "The sky over the plateau is the colour of a healing bruise.",
+      "terrainTags": [
+        "Volcanic"
+      ],
+      "regionTags": [
+        "obsidian_waste"
+      ]
+    },
+    {
+      "text": "The air down here tastes of wet paper and deep standing water.",
+      "terrainTags": [
+        "Water",
+        "Ruins"
+      ],
+      "regionTags": [
+        "sunken_archive"
+      ]
+    },
+    {
+      "text": "Four weathers meet over the Convergence and none of them wins.",
+      "terrainTags": [
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "the_convergence"
+      ]
+    },
+    {
+      "text": "Cloud fills the valleys and turns the crags into islands.",
+      "terrainTags": [
+        "Mountain"
+      ],
+      "regionTags": [
+        "the_crags"
+      ]
+    },
+    {
+      "text": "The surge comes up the strand faster than a walk and slower than a run.",
+      "terrainTags": [
+        "Water"
+      ],
+      "regionTags": [
+        "tidewrack_coast"
+      ]
+    },
+    {
+      "text": "An elemental front is coming up from the west and the canopy has already gone quiet.",
+      "terrainTags": [
+        "Forest",
+        "ArcaneGround"
+      ],
+      "regionTags": [
+        "verdant_deep"
+      ]
+    }
   ]
 }

@@ -1,0 +1,158 @@
+[
+  {
+    "id": "q_the_unbinding",
+    "title": "The Unbinding",
+    "category": "Discoveries",
+    "permanent": false,
+    "summary": "You told one levyman in the Amber Downs what the oath-stone was actually doing to him. Words travel further than people do.",
+    "requiredFlag": "deep_amber_downs_oath_taught",
+    "objectives": [
+      {
+        "text": "Teach a levyman how the charm-work was done to him",
+        "flag": "deep_amber_downs_oath_taught"
+      },
+      {
+        "text": "Find where the telling got to",
+        "flag": "deep_ashfeld_muster_walked"
+      }
+    ]
+  },
+  {
+    "id": "q_the_whole_road",
+    "title": "The Whole Road",
+    "category": "Discoveries",
+    "permanent": false,
+    "summary": "The last caravanner gave you the southern half of a route that dies with him. Somebody has been keeping the northern half alive the entire time.",
+    "requiredFlag": "deep_dustreach_route_learned",
+    "objectives": [
+      {
+        "text": "Learn the Dustreach route from the last man who has it",
+        "flag": "deep_dustreach_route_learned"
+      },
+      {
+        "text": "Find where the road picks up again",
+        "flag": "deep_the_crags_route_continued"
+      }
+    ]
+  },
+  {
+    "id": "q_the_gardener",
+    "title": "The Gardener",
+    "category": "Discoveries",
+    "permanent": false,
+    "summary": "Fresh flowers at a nameless stone in the Hollow Mire, from a stand two days' walk away that somebody tends. There is a second stand, and it is older.",
+    "requiredFlag": "deep_hollow_mire_source_found",
+    "objectives": [
+      {
+        "text": "Track the flowers to their source",
+        "flag": "deep_hollow_mire_source_found"
+      },
+      {
+        "text": "Find the older planting",
+        "flag": "deep_verdant_deep_flowers_matched"
+      }
+    ]
+  },
+  {
+    "id": "q_provenance",
+    "title": "Provenance",
+    "category": "Discoveries",
+    "permanent": false,
+    "summary": "The under-librarian fetched you a book from six feet of water and it came back dry, with a provenance slip that names a mountain instead of a person.",
+    "requiredFlag": "deep_sunken_archive_librarian_served",
+    "objectives": [
+      {
+        "text": "Request a book from the unrelieved librarian",
+        "flag": "deep_sunken_archive_librarian_served"
+      },
+      {
+        "text": "Stand where the slip says the book came from",
+        "flag": "deep_glacial_threshold_provenance_traced"
+      }
+    ]
+  },
+  {
+    "id": "q_one_day_ahead",
+    "title": "One Day Ahead",
+    "category": "Discoveries",
+    "permanent": false,
+    "summary": "Somebody ran your route through the Crags a day in front of you, took only what they could carry, and re-covered every cache. You over-stocked the next one to see what would happen.",
+    "requiredFlag": "deep_the_crags_runner_traded",
+    "objectives": [
+      {
+        "text": "Trade with the runner through the caches",
+        "flag": "deep_the_crags_runner_traded"
+      },
+      {
+        "text": "Find their notation somewhere it has no business being",
+        "flag": "deep_boreal_march_marks_read"
+      }
+    ]
+  },
+  {
+    "id": "q_the_same_gait",
+    "title": "The Same Gait",
+    "category": "Discoveries",
+    "permanent": false,
+    "summary": "A woman walks barefoot across warm stone in the Obsidian Waste and her feet do not burn. She is not the only one.",
+    "requiredFlag": "deep_obsidian_waste_pilgrim_walked",
+    "objectives": [
+      {
+        "text": "Walk the warm stone with the pilgrim",
+        "flag": "deep_obsidian_waste_pilgrim_walked"
+      },
+      {
+        "text": "Meet the second walker",
+        "flag": "deep_jade_coast_second_walker"
+      }
+    ]
+  },
+  {
+    "id": "q_leave_a_mark",
+    "title": "Leave a Mark",
+    "category": "Expansion",
+    "permanent": true,
+    "summary": "The gap report's charge against the encounter layer was that it behaves like a vending machine: coin in, coin out, nothing left behind. Prove otherwise in three places.",
+    "objectives": [
+      {
+        "text": "Leave something permanent behind in the world",
+        "counter": "flags:deep_",
+        "counterTarget": 3
+      }
+    ],
+    "rewardLore": "leave_a_mark"
+  },
+  {
+    "id": "q_a_deep_world",
+    "title": "A Deep World",
+    "category": "Expansion",
+    "permanent": true,
+    "summary": "Seven marks, in seven situations that did not have to go the way they went.",
+    "requiredQuest": "q_leave_a_mark",
+    "objectives": [
+      {
+        "text": "Leave permanent marks across the world",
+        "counter": "flags:deep_",
+        "counterTarget": 7
+      }
+    ],
+    "rewardLore": "a_deep_world"
+  },
+  {
+    "id": "q_the_world_remembers",
+    "title": "The World Remembers",
+    "category": "Expansion",
+    "permanent": true,
+    "summary": "Twelve. At this point the map is not a place you pass through.",
+    "requiredQuest": "q_a_deep_world",
+    "objectives": [
+      {
+        "text": "Leave permanent marks across the world",
+        "counter": "flags:deep_",
+        "counterTarget": 12
+      }
+    ],
+    "rewardLore": "the_world_remembers",
+    "rewardFlag": "world_deeply_marked"
+  }
+]

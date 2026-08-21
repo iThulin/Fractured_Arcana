@@ -1,0 +1,73 @@
+{
+ "id": "cogwork_reach_merchant",
+ "title": "The Charter Factor",
+ "npcName": "Factor Ilse Verrick",
+ "archetype": "Merchant",
+ "factionId": "cogwork_charter",
+ "openingText": "Verrick has your name, your last three contracts, and an opening price, all of them written down before you sat. 'I price people the way I price freight,' she says, not unkindly. 'By what it costs me if you go missing. Shall we?'",
+ "startingTension": 3,
+ "basePatience": 9,
+ "npcResolve": 3,
+ "npcGuile": 3,
+ "npcPoise": 1,
+ "dialogueCordial": "Good. You argue like someone who reads the small print. That is worth a line item.",
+ "dialogueStrained": "I have heard the position. I have not yet heard a number attached to it.",
+ "dialogueHostile": "You are costing me daylight, and daylight in the Reach is invoiced. Mind yourself.",
+ "dialogueWalkaway": "Then we are done. I will note the terms you refused, for next time.",
+ "dialogueAccept": "Signed and sealed. You will find the Charter honours its paper — which is more than most here can say.",
+ "terms": [
+  {
+   "id": "charter_escort",
+   "description": "Charter outriders see your column through the canal-road towns unmolested.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "stepsDelta": 3
+  },
+  {
+   "id": "bulk_purchase",
+   "description": "Verrick buys 20 of your supplies at works rates — 70 gold on the spot.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 70,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 4,
+   "suppliesDelta": -20
+  },
+  {
+   "id": "seal_of_passage",
+   "description": "A provisional Charter seal: tolls waived at three gatehouses this season.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 45,
+   "reputationDelta": 1,
+   "startingPosition": -1,
+   "weight": 3,
+   "factionId": "cogwork_charter"
+  },
+  {
+   "id": "exclusivity_clause",
+   "description": "You agree not to sell the same intelligence to any rival guild. Enforceable.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": -30,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 2
+  },
+  {
+   "id": "assay_fee",
+   "description": "An 'assay and handling' charge she has not mentioned aloud.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -25,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2
+  }
+ ]
+}

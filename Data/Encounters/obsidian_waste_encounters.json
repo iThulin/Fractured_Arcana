@@ -1,0 +1,141 @@
+[
+  {
+    "id": "obsidian_they_were_wrong",
+    "title": "They Were Wrong",
+    "body": "A colonnade snapped off at a uniform height, which is what happens when a pyroclastic flow takes a city at knee height and keeps going. The engineering is superb. The siting is insane. Everything about this place says a competent civilisation looked at three hundred years of quiet ground and drew the obvious conclusion from it.",
+    "terrainTags": [
+      "Ruins",
+      "Volcanic"
+    ],
+    "regionTags": [
+      "obsidian_waste"
+    ],
+    "choices": [
+      {
+        "label": "Excavate the base of the colonnade",
+        "resultText": "Under the flow layer the floor is intact and so is a good deal of what was standing on it when the ash arrived. They had no warning worth the name.",
+        "goldDelta": 75,
+        "hpDelta": -20
+      },
+      {
+        "label": "Work out how long they had",
+        "resultText": "From the vent field to the wall line, at the flow rates the deposits imply: eleven minutes, perhaps twelve. Somebody in this city noticed at minute one, and you can see from the doorways which way they ran.",
+        "stepDelta": -2,
+        "cardCodex": true
+      },
+      {
+        "label": "Take the lesson and not the stone",
+        "resultText": "Three hundred years of quiet ground is not an argument. Everyone in the party understands this on the walk out and nobody says it aloud.",
+        "stepDelta": 1,
+        "hpDelta": 5
+      }
+    ]
+  },
+  {
+    "id": "obsidian_the_quiet_vents",
+    "title": "When the Vents Go Quiet",
+    "body": "The vent field breathes on a rotation you have been half-listening to for an hour without registering it. It has stopped. All of it, at once, which a vent field does not do for meteorological reasons. The ground is a great deal warmer than it was at the last stop and the party has arrived at the same conclusion simultaneously and without discussion.",
+    "terrainTags": [
+      "Volcanic"
+    ],
+    "regionTags": [
+      "obsidian_waste"
+    ],
+    "choices": [
+      {
+        "label": "Run",
+        "resultText": "You are half a mile out when the field comes back, all of it, at once, and considerably more energetically than it left. Running was correct.",
+        "stepDelta": 3,
+        "hpDelta": -20
+      },
+      {
+        "label": "Take readings while it is quiet",
+        "resultText": "Nobody who does this survives the Obsidian Waste for long and everybody who does it learns something. You get the readings. You also get about four seconds of warning, which is three more than the city had.",
+        "hpDelta": -35,
+        "goldDelta": 50,
+        "cardCodex": true
+      },
+      {
+        "label": "Get to high stone and wait",
+        "resultText": "Obsidian outcrop, upwind, twenty feet up. The field resumes below you and does what it does, and you watch it do it, and everyone is fine.",
+        "stepDelta": -2,
+        "hpDelta": -5,
+        "revealPois": 1
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Ground That Has Not Forgiven",
+    "body": "{site}. {weather} {detail} The last cycle ended three hundred years ago and the plateau has spent every one of them making the point. {complication}",
+    "terrainTags": [
+      "Volcanic",
+      "Ruins"
+    ],
+    "regionTags": [
+      "obsidian_waste"
+    ],
+    "choices": [
+      {
+        "label": "Cut obsidian blanks",
+        "resultText": "Hot, sharp, dangerous work with a wet rag over your face. Obsidian cuts better than steel and does it exactly once, which is a market.",
+        "goldDelta": 45,
+        "hpDelta": -20
+      },
+      {
+        "label": "Map the warm channels",
+        "resultText": "The lava tubes run warm and they run somewhere. Knowing which ones connect is the difference between a shortcut and a chimney.",
+        "stepDelta": -2,
+        "revealPois": 2
+      },
+      {
+        "label": "Keep to the cold stone and press on",
+        "resultText": "The long way round is over ground that has finished cooling. It is not faster. It is not on fire.",
+        "stepDelta": -1,
+        "hpDelta": 10
+      }
+    ]
+  },
+  {
+    "id": "obsidian_the_barefoot_pilgrim",
+    "title": "The Barefoot Pilgrim",
+    "body": "She is walking across warm stone without shoes, at an unhurried pace, and her feet are not burned. She is not a Cinderbound adept — she says so herself, with some irritation, as though the question is asked a great deal. She is going to the vent field. She has been going to the vent field for six years. She has not yet arrived.",
+    "terrainTags": [
+      "Volcanic"
+    ],
+    "regionTags": [
+      "obsidian_waste"
+    ],
+    "choices": [
+      {
+        "label": "Walk with her a while",
+        "resultText": "Three hours at her pace. She talks about the ground the way a surveyor talks about a client, and by the end you have taken your own boots off to see, and it works, and she will not explain why.",
+        "stepDelta": -3,
+        "hpDelta": -15,
+        "spellReward": "campward",
+        "setMetaFlags": [
+          "deep_obsidian_waste_pilgrim_walked"
+        ]
+      },
+      {
+        "label": "Ask what happens when she arrives",
+        "resultText": "She stops walking for the first time and thinks about it properly, which suggests nobody has asked. Then she says she does not intend to arrive, and starts walking again.",
+        "stepDelta": -1,
+        "itemReward": "emberproof_charm",
+        "setMetaFlags": [
+          "deep_obsidian_waste_pilgrim_questioned"
+        ]
+      },
+      {
+        "label": "Warn her about the field and go",
+        "resultText": "You tell her the vents went quiet this morning. She thanks you sincerely and continues in exactly the same direction at exactly the same pace.",
+        "stepDelta": 1,
+        "reputationFactionId": "cinderbound_pact",
+        "reputationAmount": 6,
+        "setMetaFlags": [
+          "deep_obsidian_waste_pilgrim_warned"
+        ]
+      }
+    ]
+  }
+]

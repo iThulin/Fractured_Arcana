@@ -1,0 +1,75 @@
+{
+ "id": "amber_downs_idealist",
+ "title": "The Oath-Warden",
+ "npcName": "Warden Sefa Munn",
+ "archetype": "Idealist",
+ "factionId": "oathkeepers",
+ "openingText": "Munn keeps the boundary-stones, and she has been keeping them since before the current barons held the manors. 'You have been near the oath-stones,' she says. It is not an accusation yet. 'I would rather hear what you did there from you than from a levyman with a headache.'",
+ "startingTension": 4,
+ "basePatience": 10,
+ "npcResolve": 1,
+ "npcGuile": 1,
+ "npcPoise": 3,
+ "dialogueCordial": "Then we want the same thing, and I have been alone in wanting it for some while.",
+ "dialogueStrained": "I hear you. I have heard a great many reasonable men explain the downs to me.",
+ "dialogueHostile": "Do not mistake my patience for weakness. I have outlasted four barons.",
+ "dialogueWalkaway": "Go on, then. The stones will still be here, and so will I.",
+ "dialogueAccept": "Then it is agreed, and I will hold you to it, and you will find I am very good at holding.",
+ "terms": [
+  {
+   "id": "wardens_writ",
+   "description": "Munn's writ: safe passage through every manor in the downs, honoured on sight.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 1,
+   "startingPosition": -1,
+   "weight": 3,
+   "factionId": "oathkeepers",
+   "stepsDelta": 3
+  },
+  {
+   "id": "the_true_reading",
+   "description": "She teaches you what the charm-work on the stones actually binds, and to whom.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 1,
+   "startingPosition": 0,
+   "weight": 2,
+   "factionId": "oathkeepers",
+   "spellId": "true_names"
+  },
+  {
+   "id": "leave_the_stones",
+   "description": "You undertake to break no further oath-stone in the Amber Downs.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": -40,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 3
+  },
+  {
+   "id": "provision_the_wardens",
+   "description": "Her wardens are hungry. Fifteen supplies, and she will not ask twice.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "suppliesDelta": -15
+  },
+  {
+   "id": "she_is_recruiting",
+   "description": "This is not a negotiation. It is an interview, and she has already decided.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -15,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 1
+  }
+ ]
+}

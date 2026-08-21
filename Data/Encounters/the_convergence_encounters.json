@@ -1,0 +1,111 @@
+[
+  {
+    "id": "convergence_three_ages_in_one_wall",
+    "title": "Three Ages in One Wall",
+    "body": "A single wall face, standing, showing three distinct strata: dressed pre-Collapse ashlar at the base, a course of frost-shattered rubble above it, and volcanic scoria on top, each layer a different war and a different age and none of them more than a few generations apart. The ley-lines cross under this ground and the ground is a transcript of what that has cost.",
+    "terrainTags": [
+      "Ruins"
+    ],
+    "regionTags": [
+      "the_convergence"
+    ],
+    "choices": [
+      {
+        "label": "Read the wall",
+        "resultText": "Every faction's mark is on this stone and each one is struck through by the next. There is space at the top of the sequence and it is roughly the size of a mark.",
+        "stepDelta": -2,
+        "cardCodex": true
+      },
+      {
+        "label": "Take what the strata have preserved",
+        "resultText": "Three ages of dropped and abandoned material, stacked by catastrophe. It is the richest ground you have worked and you cannot enjoy it.",
+        "goldDelta": 85,
+        "hpDelta": -20
+      },
+      {
+        "label": "Add your mark and move on",
+        "resultText": "You cut it small, high, and clean. Somebody will strike through it. That has never once stopped anybody here.",
+        "stepDelta": -1,
+        "hpDelta": -5
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Where the Lines Cross",
+    "body": "{site}. {weather} {detail} The ley-lines run close enough to the surface here that the season changes across a hundred paces and no two of your party agree on the temperature. {complication}",
+    "terrainTags": [
+      "ArcaneGround",
+      "Ruins",
+      "Volcanic"
+    ],
+    "regionTags": [
+      "the_convergence"
+    ],
+    "choices": [
+      {
+        "label": "Tap the crossing while you are standing on it",
+        "resultText": "It gives generously and it takes something on the way past. Everyone feels the second part for the rest of the day.",
+        "hpDelta": -25,
+        "goldDelta": 55,
+        "cardCodex": true
+      },
+      {
+        "label": "Take bearings on the junction",
+        "resultText": "Four lines, none of them where the Archive puts them, all of them converging on a point you can now walk to.",
+        "stepDelta": -2,
+        "revealPois": 3
+      },
+      {
+        "label": "Get off the crossing",
+        "resultText": "You clear the affected ground inside twenty minutes and the season goes back to being one season. Nobody suggests going back for a better look.",
+        "stepDelta": 1,
+        "hpDelta": 10
+      }
+    ]
+  },
+  {
+    "id": "convergence_the_claimant",
+    "title": "The Claimant",
+    "body": "He has a deed, a banner, and no soldiers. The deed is genuine — sealed, witnessed, and issued by an authority that was real at the time — and it grants him this ground in perpetuity. He is the fourth generation of his family to come here and stand on it holding the document. He is entirely aware of how this is going to go. He has come anyway.",
+    "terrainTags": [
+      "Ruins",
+      "Grassland"
+    ],
+    "regionTags": [
+      "the_convergence"
+    ],
+    "choices": [
+      {
+        "label": "Witness the deed",
+        "resultText": "He asks only that somebody sign as having seen him standing here holding it. You sign. It changes nothing and it was not nothing, and he folds the deed away and starts the walk home.",
+        "stepDelta": -1,
+        "hpDelta": 10,
+        "reputationFactionId": "aegis_concordat",
+        "reputationAmount": 10,
+        "setMetaFlags": [
+          "deep_the_convergence_claim_witnessed"
+        ]
+      },
+      {
+        "label": "Buy the deed",
+        "resultText": "He names a price four generations too low and takes it, and hands over the document, and stands there afterwards for some time with nothing in his hands.",
+        "goldDelta": -70,
+        "itemReward": "greater_wardstone",
+        "setMetaFlags": [
+          "deep_the_convergence_claim_bought"
+        ]
+      },
+      {
+        "label": "Tell him what is coming here",
+        "resultText": "You describe the Convergence honestly and at length. He listens, thanks you, and explains that his great-grandmother was told the same thing by somebody very like you.",
+        "stepDelta": -2,
+        "reputationFactionId": "lantern_order",
+        "reputationAmount": 8,
+        "setMetaFlags": [
+          "deep_the_convergence_claim_warned"
+        ]
+      }
+    ]
+  }
+]

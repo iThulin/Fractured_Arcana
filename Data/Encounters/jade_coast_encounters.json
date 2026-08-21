@@ -1,0 +1,187 @@
+[
+  {
+    "id": "jade_rearranged_shore",
+    "title": "The Rearranged Shore",
+    "body": "Your chart shows a bay. There is no bay. There is a spit of new sand where the bay was, a stand of drowned mangrove where the spit should be, and a wreck sitting upright a quarter mile inland with no channel behind it that could have put it there. The chart is four months old. The last storm did all of this in a night.",
+    "terrainTags": [
+      "Water",
+      "Swamp"
+    ],
+    "regionTags": [
+      "jade_coast"
+    ],
+    "choices": [
+      {
+        "label": "Chart it properly",
+        "resultText": "A day's work with a line and a compass. The result will be wrong again by the next storm season, which does not make it worthless, only perishable.",
+        "stepDelta": -2,
+        "revealPois": 2
+      },
+      {
+        "label": "Board the inland wreck",
+        "resultText": "Nothing has been taken off her. She went over the bar at speed with everything aboard and everyone aboard, and the jungle has had four months to get at what is left.",
+        "goldDelta": 70,
+        "hpDelta": -20
+      },
+      {
+        "label": "Trust your feet over the chart",
+        "resultText": "You put the chart away and read the ground. It is slower and it works, and the party stops asking why the map disagrees with the world.",
+        "stepDelta": -1,
+        "hpDelta": 10
+      }
+    ]
+  },
+  {
+    "id": "jade_unafraid",
+    "title": "Nothing Here Is Afraid",
+    "body": "A big cat on the trail, thirty feet ahead, entirely aware of you. It is not stalking and it is not warning. It has looked at eight armed people and concluded that the situation does not require a decision. Behind it the trail carries on into a stand of trees where several other things are also not making decisions about you.",
+    "terrainTags": [
+      "Forest",
+      "Swamp"
+    ],
+    "regionTags": [
+      "jade_coast"
+    ],
+    "choices": [
+      {
+        "label": "Stand your ground until it moves",
+        "resultText": "Eleven minutes. It leaves the way it was already going and at the pace it was already going. Nobody in the party feels this counts as a victory.",
+        "hpDelta": -5,
+        "stepDelta": -1
+      },
+      {
+        "label": "Make yourselves large and loud",
+        "resultText": "It works, in the sense that the trail clears. It also teaches every animal within half a mile exactly where you are and what you sound like.",
+        "stepDelta": 2,
+        "hpDelta": -15
+      },
+      {
+        "label": "Go round through the mangrove",
+        "resultText": "Chest-deep, slow, and unpleasant. The jungle does not care either way, which is the lesson the Jade Coast keeps offering and nobody enjoys.",
+        "stepDelta": -3,
+        "hpDelta": -10,
+        "goldDelta": 25
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Green and Hungry",
+    "body": "{site}. {weather} {detail} Everything here is green and most of it is hungry, and the two facts are not unrelated. {complication}",
+    "terrainTags": [
+      "Forest",
+      "Swamp",
+      "Water"
+    ],
+    "regionTags": [
+      "jade_coast"
+    ],
+    "choices": [
+      {
+        "label": "Cut straight through",
+        "resultText": "Machete work in wet heat. You make the distance and the distance costs you more than it should have.",
+        "stepDelta": 2,
+        "hpDelta": -20
+      },
+      {
+        "label": "Forage while you are here",
+        "resultText": "The Jade Coast will feed you generously if you know which of it is food. Two of you know. Everyone eats.",
+        "hpDelta": 30,
+        "stepDelta": -2
+      },
+      {
+        "label": "Wait for the tide and take the shore route",
+        "resultText": "Hours of nothing, then a firm sand road that lasts exactly as long as the tide allows.",
+        "stepDelta": -1,
+        "goldDelta": 20
+      }
+    ]
+  },
+  {
+    "id": "jade_the_crew_that_stayed",
+    "title": "The Crew That Stayed",
+    "body": "Nineteen survivors of a wreck that happened eleven years ago, living in a stilt-village they built out of their own ship. They have a garden, a smokehouse, and a functioning system of grievance arbitration. Twice a year a vessel puts in that could take them off. Twice a year they discuss it, and twice a year the vote goes the same way.",
+    "terrainTags": [
+      "Water",
+      "Swamp"
+    ],
+    "regionTags": [
+      "jade_coast"
+    ],
+    "choices": [
+      {
+        "label": "Trade with them properly",
+        "resultText": "They want salt, iron and news, in that order, and they pay in things the jungle gives up only to people who have spent eleven years learning it. Good terms, honestly kept.",
+        "goldDelta": -35,
+        "itemReward": "thornmail",
+        "setMetaFlags": [
+          "deep_jade_coast_crew_traded"
+        ]
+      },
+      {
+        "label": "Argue the case for leaving",
+        "resultText": "You make the case well and it is heard respectfully and it loses eighteen to one. Afterwards the one comes and finds you, and she has questions, and she has been the one for four years.",
+        "stepDelta": -2,
+        "reputationFactionId": "the_untamed",
+        "reputationAmount": -8,
+        "setMetaFlags": [
+          "deep_jade_coast_crew_argued"
+        ]
+      },
+      {
+        "label": "Learn what they know about the coast",
+        "resultText": "Eleven years of watching storms rearrange the same forty miles. They give it up gladly and in enormous detail, and by evening you can read this shoreline the way they do.",
+        "stepDelta": -3,
+        "revealPois": 3,
+        "reputationFactionId": "the_untamed",
+        "reputationAmount": 10,
+        "setMetaFlags": [
+          "deep_jade_coast_crew_taught"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chain_second_walker",
+    "title": "The Second Walker",
+    "body": "Somebody is walking the tide-flats barefoot at a pace you recognise before you recognise anything else about them — unhurried, unvarying, feet placed with the particular economy of someone who has been walking for years and intends to keep walking. It is not the pilgrim from the Obsidian Waste. The gait is identical. They have never heard of her.",
+    "terrainTags": [
+      "Water",
+      "Swamp"
+    ],
+    "regionTags": [
+      "jade_coast"
+    ],
+    "requiredFlag": "deep_obsidian_waste_pilgrim_walked",
+    "choices": [
+      {
+        "label": "Walk with them",
+        "resultText": "Three hours, and by the end you have your boots off again and the flats are not doing to your feet what flats do. The conversation covers everything except how any of this works.",
+        "stepDelta": -3,
+        "hpDelta": -10,
+        "cardCodex": true,
+        "setMetaFlags": [
+          "deep_jade_coast_second_walker"
+        ]
+      },
+      {
+        "label": "Describe the pilgrim to them",
+        "resultText": "They listen to the whole description with polite interest and no recognition whatsoever, and then, without any change of tone, correct one detail you had wrong.",
+        "stepDelta": -1,
+        "goldDelta": 30,
+        "setMetaFlags": [
+          "deep_jade_coast_second_walker"
+        ]
+      },
+      {
+        "label": "Ask where they are going",
+        "resultText": "They give the same answer she gave, in the same words, in a different accent, on the other side of the world, and continue at the same pace.",
+        "stepDelta": -1,
+        "hpDelta": 10,
+        "setMetaFlags": [
+          "deep_jade_coast_second_walker"
+        ]
+      }
+    ]
+  }
+]

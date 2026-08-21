@@ -1,0 +1,182 @@
+[
+  {
+    "id": "ashfeld_the_unwon_ford",
+    "title": "The Unwon Ford",
+    "body": "This is the ford both armies died for. It is forty feet of shallow gravel and it is not, by any measure you can apply standing in it, worth one of the men in the ditch on either bank. There is a pontoon abutment on the far side built by people who expected to be here a long time. The road it was meant to carry was never finished.",
+    "terrainTags": [
+      "Water"
+    ],
+    "regionTags": [
+      "ashfeld_crossing"
+    ],
+    "choices": [
+      {
+        "label": "Work the gravel for what the current has collected",
+        "resultText": "Two centuries of things dropped by men crossing under fire. Buckles, coin, a signet with the device filed off. Cold work, and the river does not want to give any of it up.",
+        "goldDelta": 55,
+        "hpDelta": -15
+      },
+      {
+        "label": "Survey the abutment properly",
+        "resultText": "The engineering is excellent and the plans are still legible in the stonework. You can see exactly where the unbuilt road was going, and it was not going anywhere either army admitted to wanting.",
+        "stepDelta": -2,
+        "revealPois": 2
+      },
+      {
+        "label": "Cross and keep going",
+        "resultText": "Forty feet of shallow gravel. It takes ninety seconds. Nobody says anything on the far bank.",
+        "stepDelta": 2
+      }
+    ]
+  },
+  {
+    "id": "ashfeld_burial_detail",
+    "title": "The Burial Detail",
+    "body": "Four men with spades, working a trench line at a pace that says they have been at it for years and expect to be at it for years more. They wear the remnants of a uniform. Asked whose, they give the name of an army that surrendered before any of them were born. Nobody has come to relieve them. They have not considered stopping.",
+    "terrainTags": [
+      "Grassland",
+      "Swamp"
+    ],
+    "regionTags": [
+      "ashfeld_crossing"
+    ],
+    "choices": [
+      {
+        "label": "Take a spade and work a shift",
+        "resultText": "Nobody speaks. At dusk the eldest hands you a flask and tells you the count, which he has kept in his head since the beginning, and which is far too high.",
+        "hpDelta": -20,
+        "stepDelta": -3,
+        "reputationFactionId": "aegis_concordat",
+        "reputationAmount": 12
+      },
+      {
+        "label": "Tell them the war is over",
+        "resultText": "They take it well, which is the worst part. The eldest thanks you, sits down on the edge of the trench, and does not get up again while you are watching.",
+        "hpDelta": -10,
+        "goldDelta": 25
+      },
+      {
+        "label": "Buy what they have dug up",
+        "resultText": "They have been sorting the finds by regiment for years, in neat rows, waiting for somebody to come and claim them. You are the first person to offer money. They accept it without any evident feeling.",
+        "goldDelta": 60,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": -6
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "The Aftermath Trade",
+    "body": "{site}. {detail} Scavengers work the ground in a loose line, methodical as harvesters, and they have divided this field into strips by some agreement you were not party to. {complication}",
+    "terrainTags": [
+      "Grassland",
+      "Ruins",
+      "Swamp"
+    ],
+    "regionTags": [
+      "ashfeld_crossing"
+    ],
+    "choices": [
+      {
+        "label": "Buy a strip",
+        "resultText": "They name a price for ground rather than goods, which is either sophisticated or a swindle. What comes out of it roughly covers what went in.",
+        "goldDelta": -25,
+        "hpDelta": -5
+      },
+      {
+        "label": "Work an unclaimed strip and take the argument",
+        "resultText": "There are no unclaimed strips. The argument is short, loud and settled without weapons, and you keep about half of what you lifted.",
+        "goldDelta": 40,
+        "hpDelta": -15
+      },
+      {
+        "label": "Sell them what you are carrying",
+        "resultText": "They pay in worn coin from three different mints and do not ask a single question about provenance. Refreshing, in its way.",
+        "goldDelta": 30,
+        "stepDelta": -1
+      }
+    ]
+  },
+  {
+    "id": "ashfeld_the_standard",
+    "title": "The Standard in the Mud",
+    "body": "It is still upright. Somebody drove it deep enough that two hundred years of flood and frost have not put it down, and the mud has preserved the staff and most of the cloth. Both armies at Ashfeld used a march-standard; this one belongs to neither. It is a third device, older, and it is planted in the exact centre of the ground they fought over.",
+    "terrainTags": [
+      "Swamp",
+      "Grassland",
+      "Ruins"
+    ],
+    "regionTags": [
+      "ashfeld_crossing"
+    ],
+    "choices": [
+      {
+        "label": "Pull it up and carry it out",
+        "resultText": "It comes up harder than it should and something in the ground gives with it. The cloth is worth nothing. The staff is worth carrying, and the device on it will be recognised somewhere.",
+        "hpDelta": -18,
+        "itemReward": "standard_of_the_march",
+        "setMetaFlags": [
+          "deep_ashfeld_third_standard_taken"
+        ]
+      },
+      {
+        "label": "Record the device and leave it standing",
+        "resultText": "You copy the device carefully and leave the standard where two centuries have failed to move it. Whoever planted it there was making a point at the expense of both armies, and it is still being made.",
+        "stepDelta": -1,
+        "cardCodex": true,
+        "setMetaFlags": [
+          "deep_ashfeld_third_standard_recorded"
+        ]
+      },
+      {
+        "label": "Burn it",
+        "resultText": "Wet cloth burns badly and takes a long time. By the end there is a scorched pole in the middle of a field and no third claimant at all.",
+        "goldDelta": 20,
+        "hpDelta": -8,
+        "setMetaFlags": [
+          "deep_ashfeld_third_standard_burned"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chain_muster_walked",
+    "title": "The Muster That Walked",
+    "body": "A levy field at Ashfeld with the tents up, the fires lit, and nobody in them. The muster assembled, stood for the swearing, and then — according to a very tired sergeant who has been drinking since noon and is glad of an audience — a man near the back said something quietly to the man beside him about what the oath-stone actually does, and within an hour the field was empty.",
+    "terrainTags": [
+      "Grassland",
+      "Ruins"
+    ],
+    "regionTags": [
+      "ashfeld_crossing"
+    ],
+    "requiredFlag": "deep_amber_downs_oath_taught",
+    "choices": [
+      {
+        "label": "Ask what the man at the back said",
+        "resultText": "The sergeant repeats it almost word for word. It is your explanation, near enough, four hundred miles from where you gave it and improved slightly in transit.",
+        "stepDelta": -1,
+        "goldDelta": 30,
+        "setMetaFlags": [
+          "deep_ashfeld_muster_walked"
+        ]
+      },
+      {
+        "label": "Help him write the report",
+        "resultText": "You draft something that will not end his career and is not quite a lie. He is pathetically grateful and tells you where the levy went, which nobody has asked him.",
+        "stepDelta": -2,
+        "revealPois": 2,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": 10,
+        "setMetaFlags": [
+          "deep_ashfeld_muster_walked"
+        ]
+      },
+      {
+        "label": "Leave him to it",
+        "resultText": "It is his field and his report and his career. You walk out past four hundred empty bedrolls.",
+        "stepDelta": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "crags_placed_rockfall",
+    "title": "The Placed Rockfall",
+    "body": "The pass is blocked. It is blocked well: the largest pieces are at the bottom and the fill is graded, which is not how a rockfall arrives and is exactly how a rockfall is built. Somebody spent a week closing this route, from above, with levers, and then went away. The detour adds two days and passes under three separate ridgelines.",
+    "terrainTags": [
+      "Mountain"
+    ],
+    "regionTags": [
+      "the_crags"
+    ],
+    "choices": [
+      {
+        "label": "Clear a way through",
+        "resultText": "A day of graded stone and bad footing, in full view of whoever built it. Nothing happens. You are unsure whether that is because nobody is watching or because somebody is.",
+        "hpDelta": -25,
+        "stepDelta": -2
+      },
+      {
+        "label": "Take the detour and watch the ridgelines",
+        "resultText": "Two days and a great deal of looking upward. You count four positions with a clear shot at the detour and not one of them is occupied, which is itself information.",
+        "stepDelta": -3,
+        "revealPois": 2
+      },
+      {
+        "label": "Find out what the block is protecting",
+        "resultText": "Nothing on the far side is worth a week with levers. Something on this side is, and working out which direction the block was meant to stop traffic in takes an hour and changes the whole picture.",
+        "stepDelta": -2,
+        "cardCodex": true
+      }
+    ]
+  },
+  {
+    "id": "crags_the_visible_bowman",
+    "title": "The Bowman Who Lets You See Him",
+    "body": "Two hundred yards up and slightly behind, on ground that would be very hard to reach and very easy to leave. He has stood up. He is making no attempt to be anything other than obvious, and an obvious bowman on a ridge in the Crags means either a toll, an escort, or a demonstration for the benefit of somebody further along the pass.",
+    "terrainTags": [
+      "Mountain",
+      "Forest"
+    ],
+    "regionTags": [
+      "the_crags"
+    ],
+    "choices": [
+      {
+        "label": "Pay the toll",
+        "resultText": "You leave coin on a flat stone and walk on. It is gone before you are out of the pass and nothing follows you, which is what you paid for.",
+        "goldDelta": -35,
+        "stepDelta": 2
+      },
+      {
+        "label": "Hire him",
+        "resultText": "He comes down for the conversation, which tells you he was hoping for exactly this. He walks you through to the far end of the Crags and points out four things you would have missed.",
+        "goldDelta": -60,
+        "revealPois": 3,
+        "reputationFactionId": "the_untamed",
+        "reputationAmount": 8
+      },
+      {
+        "label": "Put people on the ridge above him",
+        "resultText": "It takes three hours and by the time your people are in position he is a quarter mile away on a different ridge, sitting down, watching them arrive at where he used to be.",
+        "hpDelta": -15,
+        "stepDelta": -3
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Ranger Country",
+    "body": "{site}. {weather} {detail} Every ridgeline here overlooks this one, and the ground says people use this route regularly and none of them built it. {complication}",
+    "terrainTags": [
+      "Mountain",
+      "Forest"
+    ],
+    "regionTags": [
+      "the_crags"
+    ],
+    "choices": [
+      {
+        "label": "Take the high line and be seen",
+        "resultText": "Slower, more exposed, and unambiguous. In the Crags being obviously not sneaking is worth more than the ground you give up.",
+        "stepDelta": -2,
+        "hpDelta": 10
+      },
+      {
+        "label": "Move low and quiet",
+        "resultText": "You make good time along the streambed. Somebody was on the ridge for the middle third of it and elected to let you pass.",
+        "stepDelta": 2,
+        "hpDelta": -10
+      },
+      {
+        "label": "Find the cache",
+        "resultText": "There is always a cache. This one is under a slab, was full yesterday, and is not full now.",
+        "goldDelta": 35,
+        "stepDelta": -1
+      }
+    ]
+  },
+  {
+    "id": "crags_the_running_cache",
+    "title": "One Day Ahead",
+    "body": "The fourth cache in a row has been emptied within a day of your reaching it. Somebody is running your route ahead of you, taking only what they can carry, and leaving the caches otherwise intact and correctly re-covered. They know the route better than you do. They are not trying to lose you, and given the ground, that is a decision.",
+    "terrainTags": [
+      "Mountain",
+      "Forest"
+    ],
+    "regionTags": [
+      "the_crags"
+    ],
+    "choices": [
+      {
+        "label": "Close the gap",
+        "resultText": "Two hard days at a pace the party will complain about for a week. You find a cold camp, correctly struck, and a note weighted under a stone that begins by using your name.",
+        "hpDelta": -30,
+        "stepDelta": -2,
+        "revealPois": 2,
+        "setMetaFlags": [
+          "deep_the_crags_runner_met"
+        ]
+      },
+      {
+        "label": "Stock the next cache and see what happens",
+        "resultText": "You leave more than you take from it. At the following cache there is repayment, in kind and slightly over, and a route-mark scratched on the slab in a system you do not know but can follow.",
+        "goldDelta": -40,
+        "itemReward": "scouts_leathers",
+        "setMetaFlags": [
+          "deep_the_crags_runner_traded"
+        ]
+      },
+      {
+        "label": "Leave the route entirely",
+        "resultText": "You abandon a good road for a bad one and the emptied caches stop. Whoever it was does not follow you off the route, which is either courtesy or the whole point.",
+        "stepDelta": -3,
+        "hpDelta": -10,
+        "setMetaFlags": [
+          "deep_the_crags_runner_avoided"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chain_route_continued",
+    "title": "The Far End of the Road",
+    "body": "The caravan road does not stop at the edge of the Dustreach. It climbs, badly, into the Crags, and here it is marked in the same shorthand the old caravanner used — well, year, reason — cut into rock faces by someone who learned the system from the same source he did. The marks continue for as far as you can see up the pass, and they are considerably fresher than his were.",
+    "terrainTags": [
+      "Mountain",
+      "Ruins"
+    ],
+    "regionTags": [
+      "the_crags"
+    ],
+    "requiredFlag": "deep_dustreach_route_learned",
+    "choices": [
+      {
+        "label": "Read the marks up the pass",
+        "resultText": "The system holds all the way through. Someone has been maintaining this half of the route for years while the Dustreach half died with one man, and they have marked three water sources the old road never had.",
+        "stepDelta": -2,
+        "revealPois": 3,
+        "setMetaFlags": [
+          "deep_the_crags_route_continued"
+        ]
+      },
+      {
+        "label": "Add the Dustreach half to the record",
+        "resultText": "You cut the southern wells into the rock in the same shorthand, in order, with the years. It takes two days and it joins two halves of a road that have not been connected in a generation.",
+        "hpDelta": -20,
+        "stepDelta": -3,
+        "reputationFactionId": "the_untamed",
+        "reputationAmount": 14,
+        "setMetaFlags": [
+          "deep_the_crags_route_continued"
+        ]
+      },
+      {
+        "label": "Deface the marks behind you",
+        "resultText": "A road only you can read is worth more than a road anyone can. You are perhaps a mile up the pass before you decide you are not proud of the reasoning.",
+        "goldDelta": 50,
+        "hpDelta": -10
+      }
+    ]
+  }
+]

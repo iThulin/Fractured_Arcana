@@ -1,0 +1,76 @@
+{
+ "id": "obsidian_waste_commander",
+ "title": "The Vent Field Compact",
+ "npcName": "Firstburned Sarai Ko",
+ "archetype": "Commander",
+ "factionId": "cinderbound_pact",
+ "openingText": "Ko meets you barefoot on stone warm enough to blister, in front of a vent field that has just gone quiet, and does not acknowledge either fact. 'The ground here ended a civilisation that thought it had three hundred years,' she says. 'It has been eleven minutes since the vents stopped. Say what you came to say inside that.'",
+ "startingTension": 8,
+ "basePatience": 5,
+ "escalatesToCombat": true,
+ "npcResolve": 4,
+ "npcGuile": 2,
+ "npcPoise": 1,
+ "dialogueCordial": "Good. Short, and true, and inside the time. The Pact can use you.",
+ "dialogueStrained": "That is a great deal of words for a field that is about to have an opinion.",
+ "dialogueHostile": "You are arguing on ground that is warming under you. I will not warn you twice.",
+ "dialogueWalkaway": "Then run, and run west, and do not stop at the colonnade.",
+ "dialogueAccept": "Agreed. Stand where I stand and the field will not take you. Step off it and I cannot help.",
+ "terms": [
+  {
+   "id": "safe_ground",
+   "description": "Ko's line across the plateau — the stone that has finished cooling.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "stepsDelta": 4
+  },
+  {
+   "id": "the_glass_rights",
+   "description": "Cutting rights on the obsidian field. It cuts better than steel, exactly once.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 75,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 4
+  },
+  {
+   "id": "pact_standing",
+   "description": "The Cinderbound will know you kept terms on the warm ground. That travels.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 2,
+   "startingPosition": 0,
+   "weight": 3,
+   "factionId": "cinderbound_pact",
+   "spellId": "ember_ward"
+  },
+  {
+   "id": "stand_the_watch",
+   "description": "You hold a vent picket for one rotation. People do not always come back from one rotation.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 4,
+   "suppliesDelta": -15,
+   "stepsDelta": -3
+  },
+  {
+   "id": "the_field_is_overdue",
+   "description": "The quiet is not a lull. Ko knows the interval and it expired yesterday.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -30,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2
+  }
+ ]
+}

@@ -1,0 +1,75 @@
+{
+ "id": "verdant_deep_idealist",
+ "title": "The Standing Opinion",
+ "npcName": "Speaker Wren Ashgrove",
+ "archetype": "Idealist",
+ "factionId": "the_untamed",
+ "openingText": "Ashgrove addresses the trees first and you second, and does not appear to consider this remarkable. 'They were old before the Collapse and they were not impressed by it,' she says, turning at last. 'They have an opinion about your axes. I am here to put it into words you will find actionable.'",
+ "startingTension": 5,
+ "basePatience": 10,
+ "npcResolve": 1,
+ "npcGuile": 1,
+ "npcPoise": 3,
+ "dialogueCordial": "Then we are nearer than I expected, and I will say so to them tonight.",
+ "dialogueStrained": "That is a position. The Deep is not much moved by positions.",
+ "dialogueHostile": "You are shouting under a canopy that has outlasted every empire that shouted before you.",
+ "dialogueWalkaway": "Then walk out the way you came, and mind that the way you came may not be there.",
+ "dialogueAccept": "Agreed. The storm-track is yours to use. Do not mistake permission for welcome.",
+ "terms": [
+  {
+   "id": "storm_track_passage",
+   "description": "Use of the elemental corridor as a road. It runs west to east and it is fast.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "stepsDelta": 4
+  },
+  {
+   "id": "the_green_reading",
+   "description": "What grew in nine days on ground that had nothing, and what that is worth.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 50,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3
+  },
+  {
+   "id": "untamed_standing",
+   "description": "The Untamed will know your name and what you agreed to. That cuts both ways.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 2,
+   "startingPosition": 0,
+   "weight": 3,
+   "factionId": "the_untamed",
+   "spellId": "verdant_passage"
+  },
+  {
+   "id": "no_felling",
+   "description": "No axe work in the Deep. Not for fuel, not for a path, not for a night's fire.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": -40,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 4,
+   "suppliesDelta": -10
+  },
+  {
+   "id": "the_opinion_is_formed",
+   "description": "It was formed before you arrived. This is notification, courteously delivered.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2,
+   "stepsDelta": -2
+  }
+ ]
+}

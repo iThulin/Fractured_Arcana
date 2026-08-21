@@ -99,7 +99,7 @@ public static class QuestNotifier
                     int hn = now.Counters.TryGetValue(ck, out var n) ? n : 0;
                     if (hn > hb)
                         msgs.Add(new QuestToast(
-                            $"{q.Title}: {o.Text} ({hn}/{o.CounterTarget})", QuestToastKind.Progress));
+                            $"{q.Title}: {o.Text} ({hn}/{QuestTracker.TargetFor(o)})", QuestToastKind.Progress));
                 }
             }
         }

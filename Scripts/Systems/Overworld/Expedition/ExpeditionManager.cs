@@ -2680,6 +2680,59 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         CommitCombat(_party.CurrentCoord, def, terrain.ToString(), key);
     }
 
+    /// <summary>negotiation_system.docx Resolution Check, the escalation branch:
+    /// "tension is at 10 and the NPC archetype is aggressive (Commander, some
+    /// Opportunists), triggering combat." Specced since v1 and never wired — a
+    /// collapsed table just closed.
+    ///
+    /// The composition is drawn from the SAME region and archmage pools an
+    /// ordinary Battle-tier POI draws from, so an escalation is a real regional
+    /// engagement that inherits archmage forces on archmage-held ground, rather
+    /// than a bespoke one-off roster. Battle rather than Ambush tier on purpose:
+    /// you are standing across a table from them and both sides watched this
+    /// coming.
+    ///
+    /// <paramref name="hexCoord"/> is WINDOW-LOCAL — it comes from
+    /// EncounterRouter.SavedCombatHexCoord, which TriggerNegotiationEncounter set
+    /// from its own local coord, and which GridLocalOf maps by identity. That is
+    /// the space TerrainAt, RollArchmageAt, DifficultyMultAt and CommitCombat all
+    /// expect, so no conversion happens here.</summary>
+    private void LaunchNegotiationEscalation(Vector2I hexCoord, string escalatedFrom)
+    {
+        string regionId = StagingTemplateRegion();
+        string terrainType = TerrainAt(hexCoord).ToString();
+
+        var arch = RollArchmageAt(hexCoord);
+        var archDef = arch != null
+            ? EncounterPoolLoader.PickFromArchmage(
+                  arch, regionId, EncounterTier.Battle, terrainType,
+                  CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
+            : null;
+        var def = archDef
+            ?? EncounterPoolLoader.Pick(regionId, EncounterTier.Battle,
+                                        terrainType, DifficultyMultAt(hexCoord));
+
+        // Fail CLOSED, never silently. If no composition can be produced the table
+        // ends as an ordinary collapse — the outcome is already recorded either
+        // way, so nothing is lost but the fight.
+        if (def == null || def.Enemies.Count == 0)
+        {
+            LogRun("negotiation_escalation_bypassed",
+                   $"{escalatedFrom} — no {regionId}/Battle composition", at: hexCoord);
+            ShowInfo("The table breaks up badly. Nothing comes of it — this time.");
+            return;
+        }
+
+        // Their own forces showing up IS meeting them (same rule as the ordinary
+        // POI path: seeing the composition opens the dossier).
+        if (archDef != null)
+            AnnounceDossierMet(arch.Id);
+
+        LogRun("negotiation_escalated", $"{escalatedFrom} → {def.Id}", at: hexCoord);
+        ShowInfo("The table breaks. Steel comes out.");
+        CommitCombat(hexCoord, def, terrainType);
+    }
+
     /// <summary>A themed Boss-tier composition per fragment (archetypes resolved
     /// through UnitRegistry; scaled by GuardianDifficultyMult).</summary>
     private EncounterDefinition BuildGuardianEncounter(string key, OverworldHex.TerrainType terrain)
@@ -3287,10 +3340,25 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         else
         {
             LogRun("negotiation_end",
-                   $"no deal: {NegotiationContext.EncounterId}", at: hexCoord);
+                   $"no deal: {NegotiationContext.EncounterId}"
+                   + (NegotiationContext.Escalated ? " (escalating)" : ""), at: hexCoord);
             foreach (var qt in QuestEvents.Raise(QuestEvents.NegotiationWalkaway,
                      NegotiationContext.OriginKingdomId))
                 _toasts?.Push(qt.Text, qt.Kind);
+
+            // Resolution Check (negotiation_system.docx): a table that hit maximum
+            // tension against an aggressive counterpart becomes a fight. Read the
+            // flag and the encounter id BEFORE Clear() — CommitCombat only queues
+            // the scene change (Godot defers it to end of frame), so everything
+            // below this point still executes.
+            if (NegotiationContext.Escalated)
+            {
+                string escalatedFrom = NegotiationContext.EncounterId;
+                NegotiationContext.Clear();
+                LaunchNegotiationEscalation(hexCoord, escalatedFrom);
+                UpdateUI();
+                return;
+            }
             ShowInfo("No deal reached.");
         }
         NegotiationContext.Clear();

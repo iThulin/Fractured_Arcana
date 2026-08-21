@@ -1,0 +1,146 @@
+[
+  {
+    "id": "cogwork_the_third_seal",
+    "title": "The Third Seal",
+    "body": "A toll-house on a canal-road with three charter seals nailed to the door, each one issued by a different guild, each one valid, each one voiding the other two. The toll-keeper collects three times and has done for years. Nobody has litigated it because the litigation would establish which seal is real, and none of the three guilds is confident enough to find out.",
+    "terrainTags": [
+      "Road",
+      "Grassland"
+    ],
+    "regionTags": [
+      "cogwork_reach"
+    ],
+    "choices": [
+      {
+        "label": "Pay all three and pass",
+        "resultText": "Expensive, instant, and entirely without incident. The toll-keeper is scrupulously polite about robbing you legally, three times, in a row.",
+        "goldDelta": -45,
+        "stepDelta": 2
+      },
+      {
+        "label": "Read the seals and find the flaw",
+        "resultText": "The oldest seal has a clerical error in the grant of way. You point at it. The toll-keeper reads it, goes grey, and waves you through free rather than let you say it again where anyone can hear.",
+        "stepDelta": -1,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": -8
+      },
+      {
+        "label": "Buy the toll-keeper's silence about which way you went",
+        "resultText": "Cheaper than the toll and considerably more useful. He also tells you, unprompted, who else has bought the same thing this month.",
+        "goldDelta": -20,
+        "revealPois": 2
+      }
+    ]
+  },
+  {
+    "id": "cogwork_unminded_tower",
+    "title": "The Unminded Tower",
+    "body": "A gear-tower at the edge of a walled town, running. The escapement is sound, the governor is turning, and the whole assembly is doing something with considerable precision. The town says it belongs to a guild two towns over. That guild says the tower is decommissioned. It has been decommissioned for nine years and has not stopped once.",
+    "terrainTags": [
+      "Grassland",
+      "Ruins"
+    ],
+    "regionTags": [
+      "cogwork_reach"
+    ],
+    "choices": [
+      {
+        "label": "Climb it and find out what it is counting",
+        "resultText": "It is counting. That is all it is doing — a tally, advancing on a cycle you can measure but not interpret, with no output and no receiver. Somebody built a very good clock for a purpose nobody recorded.",
+        "hpDelta": -10,
+        "stepDelta": -2,
+        "cardCodex": true
+      },
+      {
+        "label": "Stop it",
+        "resultText": "You jam the escapement and the tower goes quiet for the first time in nine years. The town notices within the hour. Several people come out to look at it and none of them look pleased.",
+        "goldDelta": 40,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": -10
+      },
+      {
+        "label": "Strip the movement for parts",
+        "resultText": "The brass alone is worth the climb, and the escapement is worth more than the brass. The tower runs on for a few minutes after you take the governor, then winds down like something dying politely.",
+        "goldDelta": 75,
+        "hpDelta": -15
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Under Charter",
+    "body": "{site}. {detail} Everything within sight has been stamped, sealed, invoiced or claimed by somebody, and the claim-marks overlap. {complication}",
+    "terrainTags": [
+      "Grassland",
+      "Road",
+      "Ruins"
+    ],
+    "regionTags": [
+      "cogwork_reach"
+    ],
+    "choices": [
+      {
+        "label": "Establish who actually holds it",
+        "resultText": "Two hours with a factor, a ledger and a great deal of patience. The answer is nobody, which in the Reach is a commercial opportunity rather than a legal problem.",
+        "stepDelta": -2,
+        "goldDelta": 35
+      },
+      {
+        "label": "Take what is not nailed down and move quickly",
+        "resultText": "You are a mile gone before anyone works out which of the three claimants ought to be angry about it. They will settle that between themselves.",
+        "goldDelta": 45,
+        "hpDelta": -10
+      },
+      {
+        "label": "File a claim of your own",
+        "resultText": "It costs a fee, a seal, and an afternoon. You now hold a worthless claim on a worthless thing, and a piece of paper that says a guild recognises your name.",
+        "goldDelta": -25,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": 10
+      }
+    ]
+  },
+  {
+    "id": "cogwork_apprentice_ledger",
+    "title": "The Apprentice's Ledger",
+    "body": "You catch an apprentice copying a workshop's designs, badly, in a hand that shakes. The designs are a water-governor of no particular value. The apprentice is fifteen, has been sent to do this by a factor who will disown them the moment it goes wrong, and has already been caught once by somebody who took payment not to mention it.",
+    "terrainTags": [
+      "Grassland",
+      "Road"
+    ],
+    "regionTags": [
+      "cogwork_reach"
+    ],
+    "choices": [
+      {
+        "label": "Teach them to copy properly",
+        "resultText": "An hour on measured drawing, tolerances, and how to lie convincingly about where a design came from. They will be considerably harder to catch and considerably more dangerous to the factor who sent them.",
+        "stepDelta": -2,
+        "itemReward": "trailwardens_compass",
+        "setMetaFlags": [
+          "deep_cogwork_reach_apprentice_taught"
+        ]
+      },
+      {
+        "label": "Take the copy and sell it yourself",
+        "resultText": "The design is worth little. The fact that a factor wanted it is worth a great deal more, and there are three parties in the Reach who will pay to know which factor.",
+        "goldDelta": 65,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": -6,
+        "setMetaFlags": [
+          "deep_cogwork_reach_apprentice_sold"
+        ]
+      },
+      {
+        "label": "Walk them back to the workshop",
+        "resultText": "The master is furious, then thoughtful, then offers the apprentice a place. In the Reach a demonstrated willingness to steal is a qualification.",
+        "goldDelta": 20,
+        "reputationFactionId": "aegis_concordat",
+        "reputationAmount": 8,
+        "setMetaFlags": [
+          "deep_cogwork_reach_apprentice_returned"
+        ]
+      }
+    ]
+  }
+]

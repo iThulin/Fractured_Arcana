@@ -95,17 +95,52 @@ public static class EncounterAssembler
         });
     }
 
-    /// <summary>Non-destructive: returns the original encounter when its body has
-    /// no tokens, else a display clone with an assembled body. Choices are shared
-    /// by reference — resolution still runs against the caller's ORIGINAL
-    /// encounter (Id/flags), so the cached pool entry is never mutated.</summary>
+    /// <summary>Non-destructive: returns the original encounter untouched when
+    /// nothing it displays carries a token, else a display clone with an assembled
+    /// title, body and — new — assembled choice text. Choice text was previously
+    /// un-tokenizable because the clone shared the Choices list by reference;
+    /// writing assembled text into those objects would have poisoned the cached
+    /// pool entry for every later draw. The clone now deep-copies the choice list
+    /// (and ONLY when a choice actually carries a token, so the common case still
+    /// shares by reference and allocates nothing). Resolution reads its effects
+    /// off the choice the panel hands back, and Clone() copies every effect field,
+    /// so outcomes are identical either way. The pool entry is never mutated.</summary>
     public static NarrativeEncounterData ForDisplay(NarrativeEncounterData enc,
                                                     OverworldHex.TerrainType terrain, string regionId)
     {
         if (enc == null) return enc;
         bool bodyHasTokens = !string.IsNullOrEmpty(enc.Body) && enc.Body.IndexOf('{') >= 0;
         bool titleHasTokens = !string.IsNullOrEmpty(enc.Title) && enc.Title.IndexOf('{') >= 0;
-        if (!bodyHasTokens && !titleHasTokens) return enc;
+        bool choicesHaveTokens = false;
+        if (enc.Choices != null)
+        {
+            foreach (var ch in enc.Choices)
+            {
+                if (ch == null) continue;
+                if ((!string.IsNullOrEmpty(ch.Label) && ch.Label.IndexOf('{') >= 0) ||
+                    (!string.IsNullOrEmpty(ch.ResultText) && ch.ResultText.IndexOf('{') >= 0))
+                {
+                    choicesHaveTokens = true;
+                    break;
+                }
+            }
+        }
+        if (!bodyHasTokens && !titleHasTokens && !choicesHaveTokens) return enc;
+
+        var choices = enc.Choices;
+        if (choicesHaveTokens)
+        {
+            choices = new List<EncounterChoice>(enc.Choices.Count);
+            foreach (var ch in enc.Choices)
+            {
+                if (ch == null) { choices.Add(null); continue; }
+                var copy = ch.Clone();
+                copy.Label = Assemble(copy.Label, terrain, regionId);
+                copy.ResultText = Assemble(copy.ResultText, terrain, regionId);
+                choices.Add(copy);
+            }
+        }
+
         return new NarrativeEncounterData
         {
             Id = enc.Id,
@@ -115,18 +150,34 @@ public static class EncounterAssembler
             RegionTags = enc.RegionTags,
             RequiredFlag = enc.RequiredFlag,
             ArchmageId = enc.ArchmageId,
-            Choices = enc.Choices,
+            Choices = choices,
         };
     }
 
-    /// <summary>Pick a fragment for a slot, preferring specificity:
-    /// both-tag match &gt; terrain-only &gt; region-only &gt; unconstrained.</summary>
+    // Specificity weights. A fragment tagged to BOTH this region and this
+    // terrain is six times as likely to be drawn as an unconstrained one — but
+    // it does not silence the broad pool, which is the whole difference between
+    // this and the original hard ladder. Under the ladder, authoring even one
+    // region-tagged fragment collapsed that slot to the region's own fragments
+    // for the entire region, so the in-region repeat rate was pinned to the
+    // number of region fragments no matter how large the library grew. Bespoke
+    // flavour should tilt the draw, not own it.
+    private const int WEIGHT_BOTH = 6;
+    private const int WEIGHT_TERRAIN = 3;
+    private const int WEIGHT_REGION = 2;
+    private const int WEIGHT_ANY = 1;
+
+    /// <summary>Pick a fragment for a slot, weighted toward specificity:
+    /// region+terrain &gt; terrain &gt; region &gt; unconstrained, blended rather
+    /// than hard-preferred so the broad library always stays in the draw.</summary>
     private static string Pick(string slot, string terrainName, string regionId)
     {
         if (_slots == null || !_slots.TryGetValue(slot, out var pool) || pool.Count == 0)
             return null;
 
-        List<string> both = new(), terr = new(), reg = new(), any = new();
+        List<string> texts = new();
+        List<int> weights = new();
+        int total = 0;
         foreach (var fr in pool)
         {
             bool tMatch = fr.TerrainTags.Count == 0 || fr.TerrainTags.Contains(terrainName);
@@ -135,13 +186,22 @@ public static class EncounterAssembler
             if (!tMatch || !rMatch) continue;
             bool tSpec = fr.TerrainTags.Count > 0;
             bool rSpec = fr.RegionTags.Count > 0;
-            if (tSpec && rSpec) both.Add(fr.Text);
-            else if (tSpec) terr.Add(fr.Text);
-            else if (rSpec) reg.Add(fr.Text);
-            else any.Add(fr.Text);
+            int w = tSpec && rSpec ? WEIGHT_BOTH
+                  : tSpec ? WEIGHT_TERRAIN
+                  : rSpec ? WEIGHT_REGION
+                  : WEIGHT_ANY;
+            texts.Add(fr.Text);
+            weights.Add(w);
+            total += w;
         }
-        var chosen = both.Count > 0 ? both : terr.Count > 0 ? terr : reg.Count > 0 ? reg : any;
-        if (chosen.Count == 0) return null;
-        return chosen[(int)(GD.Randi() % (uint)chosen.Count)];
+        if (total <= 0) return null;
+
+        int roll = (int)(GD.Randi() % (uint)total);
+        for (int i = 0; i < texts.Count; i++)
+        {
+            roll -= weights[i];
+            if (roll < 0) return texts[i];
+        }
+        return texts[texts.Count - 1];
     }
 }

@@ -1,0 +1,145 @@
+[
+  {
+    "id": "dustreach_patient_mirage",
+    "title": "The Patient Mirage",
+    "body": "A town on the horizon: walls, a tower, smoke off the roofs. It has been exactly that far away for two hours, which is not how distance works, and it has not shimmered once, which is not how mirages work. Everyone in the party can see it. Everyone in the party has stopped mentioning it.",
+    "terrainTags": [
+      "Desert"
+    ],
+    "regionTags": [
+      "dustreach"
+    ],
+    "choices": [
+      {
+        "label": "Commit and walk to it",
+        "resultText": "It vanishes at the moment you stop being able to turn back, which is the point of the exercise and always has been. What it leaves behind is a real well, dry, and a real road, and you were not going to find either of them.",
+        "hpDelta": -25,
+        "stepDelta": 3,
+        "revealPois": 2
+      },
+      {
+        "label": "Walk a fixed bearing past it and watch what it does",
+        "resultText": "It tracks you. Not perfectly — it lags, and correcting the lag tells you where it is being generated from, which is a spot on the salt with nothing on it.",
+        "stepDelta": -2,
+        "cardCodex": true
+      },
+      {
+        "label": "Ignore it entirely",
+        "resultText": "The Dustreach has been doing this to travellers for a very long time and the correct response is the boring one. It is still there at dusk. It is not there in the morning.",
+        "stepDelta": 1,
+        "hpDelta": -5
+      }
+    ]
+  },
+  {
+    "id": "dustreach_cut_rope",
+    "title": "The Cut Rope",
+    "body": "A well-head with the rope cut clean, a foot above the winding drum — cut, not frayed, by someone who wanted it unusable and did not want that to look like an accident. The shaft is deep and there is water at the bottom of it. There has been water at the bottom of it the whole time the caravans were dying on this road.",
+    "terrainTags": [
+      "Desert",
+      "Ruins"
+    ],
+    "regionTags": [
+      "dustreach"
+    ],
+    "choices": [
+      {
+        "label": "Rig your own line and draw water",
+        "resultText": "Cold, clean, and plentiful. You fill everything you own and sit in the shade of the well-head thinking uncharitable thoughts about whoever held the knife.",
+        "hpDelta": 45,
+        "stepDelta": -2
+      },
+      {
+        "label": "Repair the well properly and leave it working",
+        "resultText": "New rope, new bucket, an afternoon's work, and the next party through this stretch does not die. It is unlikely you will ever hear about it.",
+        "goldDelta": -40,
+        "hpDelta": 25,
+        "reputationFactionId": "the_untamed",
+        "reputationAmount": 12
+      },
+      {
+        "label": "Find out who benefits from it being dry",
+        "resultText": "Follow the water trade backwards from the next settlement and the answer arrives quickly and is not surprising. Knowing it is worth something to the right buyer.",
+        "stepDelta": -3,
+        "goldDelta": 50,
+        "revealPois": 1
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Salt and Bone",
+    "body": "{site}. {weather} {detail} The bones point the same direction the road does, which means these people knew where they were going right up until they did not get there. {complication}",
+    "terrainTags": [
+      "Desert",
+      "Ruins"
+    ],
+    "regionTags": [
+      "dustreach"
+    ],
+    "choices": [
+      {
+        "label": "Work the site in the heat",
+        "resultText": "Brutal, slow, and productive. The salt has kept everything metal in better condition than a wet climate would have.",
+        "goldDelta": 50,
+        "hpDelta": -25
+      },
+      {
+        "label": "Follow the bones onward",
+        "resultText": "They thin out, then stop, then resume half a mile further on in a slightly different direction. Somebody survived this stretch and turned. You can see where they turned to.",
+        "stepDelta": -1,
+        "revealPois": 2
+      },
+      {
+        "label": "Take the water and nothing else",
+        "resultText": "Their skins are dry. Everything is dry. You take a bearing off the road instead and get moving before the sun finishes the job it started on them.",
+        "stepDelta": 2,
+        "hpDelta": -10
+      }
+    ]
+  },
+  {
+    "id": "dustreach_the_last_caravanner",
+    "title": "The Last Caravanner",
+    "body": "He has been walking this road for thirty years and can name every dry well on it, in order, with the year it went. He is not selling anything. He wants to talk, and specifically he wants to talk to somebody who will still be alive next season to repeat it, because he has worked out that he will not be, and the route dies with him.",
+    "terrainTags": [
+      "Desert",
+      "Road"
+    ],
+    "regionTags": [
+      "dustreach"
+    ],
+    "choices": [
+      {
+        "label": "Sit down and learn the route",
+        "resultText": "It takes the whole evening and most of a skin of water. By the end you have the road in your head the way he has it: every well, every year, every reason. He seems easier afterwards.",
+        "hpDelta": -10,
+        "stepDelta": -3,
+        "itemReward": "dune_compass",
+        "setMetaFlags": [
+          "deep_dustreach_route_learned"
+        ]
+      },
+      {
+        "label": "Write it down and sell copies",
+        "resultText": "He does not object — he says a route in a hundred hands is a route that lives. The Free Charter pays well for it and prices it out of reach of anyone walking.",
+        "stepDelta": -2,
+        "goldDelta": 80,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": 8,
+        "setMetaFlags": [
+          "deep_dustreach_route_sold"
+        ]
+      },
+      {
+        "label": "Give him water and keep moving",
+        "resultText": "You leave him a full skin and an hour of daylight. He is still talking when you are out of earshot, and the route is still in his head, and that is where it will stay.",
+        "goldDelta": -15,
+        "hpDelta": 5,
+        "setMetaFlags": [
+          "deep_dustreach_route_lost"
+        ]
+      }
+    ]
+  }
+]

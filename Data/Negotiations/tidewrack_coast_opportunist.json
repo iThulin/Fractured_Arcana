@@ -1,0 +1,74 @@
+{
+ "id": "tidewrack_coast_opportunist",
+ "title": "The Honest Wrecker",
+ "npcName": "Sil Marrow",
+ "archetype": "Opportunist",
+ "factionId": "tidewrack_free_trade",
+ "openingText": "Marrow has a lantern he does not need, an honest face he uses professionally, and a stair cut into the cliff that is a great deal better swept than a smuggler's stair ought to be. 'Everything on this coast came off a ship,' he says. 'The only question anybody sensible asks is whose turn it is.'",
+ "startingTension": 5,
+ "basePatience": 7,
+ "npcResolve": 2,
+ "npcGuile": 4,
+ "npcPoise": 0,
+ "dialogueCordial": "There we are. I knew you had a coast-man's sense the moment you did not ask about the lantern.",
+ "dialogueStrained": "That is a start. It is not a finish. The tide is not going to wait for either of us.",
+ "dialogueHostile": "You want to be careful about which words you use on a beach at night.",
+ "dialogueWalkaway": "Suit yourself. Mind the strand on the way out — it comes up faster than a walk.",
+ "dialogueAccept": "Handsomely done. Come back on a spring tide and ask for me by name.",
+ "terms": [
+  {
+   "id": "tide_tables",
+   "description": "Marrow's real tide-tables — the ones the charts get wrong twice a day.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "spellId": "wayfarers_beacon",
+   "stepsDelta": 3
+  },
+  {
+   "id": "split_the_strand",
+   "description": "A customary share of the season's tide-line. Coin, no questions.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 65,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 4
+  },
+  {
+   "id": "quiet_landing",
+   "description": "A beach nobody watches, for one landing, at a time of your choosing.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 1,
+   "startingPosition": 0,
+   "weight": 2,
+   "factionId": "tidewrack_free_trade"
+  },
+  {
+   "id": "hold_the_lantern",
+   "description": "You walk the cliff path with him one night. You do not have to like it.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": -30,
+   "reputationDelta": -1,
+   "startingPosition": -2,
+   "weight": 3,
+   "factionId": "aegis_concordat"
+  },
+  {
+   "id": "already_promised",
+   "description": "That beach is promised to somebody else on the same night.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -20,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2
+  }
+ ]
+}

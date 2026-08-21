@@ -1,0 +1,73 @@
+{
+ "id": "the_crags_commander",
+ "title": "Toll of the Narrow Way",
+ "npcName": "Ranger-Captain Ede Thallow",
+ "archetype": "Commander",
+ "factionId": "crag_wardens",
+ "openingText": "Thallow lets you see her before she speaks, which in the Crags is a courtesy with a price attached. Two more on the opposite ridge do the same a moment later. 'The pass is two wide and overlooked from three sides,' she says, conversationally. 'I would like us to agree on what that costs before anybody is tired.'",
+ "startingTension": 5,
+ "basePatience": 8,
+ "npcResolve": 4,
+ "npcGuile": 2,
+ "npcPoise": 1,
+ "dialogueCordial": "Good. I would rather take your coin than your kit off the rocks below.",
+ "dialogueStrained": "You are haggling on ground you do not hold. I admire it. I am not moved by it.",
+ "dialogueHostile": "My people are cold and bored and you are raising your voice. Reconsider.",
+ "dialogueWalkaway": "Then the long way is open to you. It adds two days and passes under four ridges.",
+ "dialogueAccept": "Agreed. My whistle goes ahead of you to the far end. Nothing will trouble you inside it.",
+ "terms": [
+  {
+   "id": "through_passage",
+   "description": "Safe conduct the length of the Crags, called ahead ridge by ridge.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "stepsDelta": 4
+  },
+  {
+   "id": "the_watched_ground",
+   "description": "Every position with a sightline on the pass, and which are held this season.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 55,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3
+  },
+  {
+   "id": "cache_rights",
+   "description": "Use of the warden caches on the route. Take what you need, replace what you take.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 1,
+   "startingPosition": 0,
+   "weight": 3,
+   "factionId": "crag_wardens",
+   "suppliesDelta": 15
+  },
+  {
+   "id": "the_toll",
+   "description": "The toll itself, which she has not lowered for anyone in nine years.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": -50,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 4
+  },
+  {
+   "id": "she_is_short_handed",
+   "description": "Three of those ridge positions are empty and she is bluffing one of them.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -15,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 1
+  }
+ ]
+}

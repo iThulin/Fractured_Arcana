@@ -1,0 +1,188 @@
+[
+  {
+    "id": "verdant_the_closed_clearing",
+    "title": "The Clearing That Closed",
+    "body": "There was a settlement here. You can tell because the trees are standing in a street plan — a broad line where the road was, a rectangular gap where a hall stood, root systems that have grown around foundations and taken their shape. The canopy closed over it entirely. Nothing was burned and nothing was pulled down. The forest simply arrived and the arrangement was allowed to lapse.",
+    "terrainTags": [
+      "Forest",
+      "Ruins"
+    ],
+    "regionTags": [
+      "verdant_deep"
+    ],
+    "choices": [
+      {
+        "label": "Dig out the hall's foundation",
+        "resultText": "The roots have to be cut and cutting them is harder work than it looks and feels more consequential than it should. What is under the hall floor was left there deliberately, in order, by people who expected to come back.",
+        "hpDelta": -25,
+        "goldDelta": 65,
+        "reputationFactionId": "the_untamed",
+        "reputationAmount": -10
+      },
+      {
+        "label": "Map the street plan from the trees",
+        "resultText": "A day's careful walking with a compass and a tally. The plan is complete, and it is the plan of a town nobody in any archive has a record of.",
+        "stepDelta": -2,
+        "cardCodex": true
+      },
+      {
+        "label": "Leave it to finish",
+        "resultText": "Another century and the street plan will be gone too, and there will be nothing here but old-growth forest that happens to have very straight avenues in it.",
+        "stepDelta": 1,
+        "reputationFactionId": "the_untamed",
+        "reputationAmount": 8
+      }
+    ]
+  },
+  {
+    "id": "verdant_the_storm_track",
+    "title": "The Storm-Track",
+    "body": "A corridor a hundred yards wide, cut west to east through trees that predate the Collapse, and the ground inside it is not the ground outside it. The soil chemistry has changed. The species growing in the corridor are not the species growing beside it and are not native to anywhere within a month's travel. The elemental front came through nine days ago and left a different country behind it, in a strip.",
+    "terrainTags": [
+      "Forest",
+      "ArcaneGround"
+    ],
+    "regionTags": [
+      "verdant_deep"
+    ],
+    "choices": [
+      {
+        "label": "Walk the corridor west toward the source",
+        "resultText": "Easy going on strange ground for most of a day. The corridor narrows, then forks, then arrives somewhere the front has been arriving for a long time.",
+        "stepDelta": -2,
+        "revealPois": 3
+      },
+      {
+        "label": "Take samples of everything growing in it",
+        "resultText": "Nine days of growth from nothing. Two of the species have no business existing and one of them is going to be worth a great deal to somebody who can tell you why.",
+        "stepDelta": -1,
+        "goldDelta": 55,
+        "cardCodex": true
+      },
+      {
+        "label": "Use it as a road and get out of it before dark",
+        "resultText": "It runs the direction you are going and it is the best going in the Verdant Deep. You leave it at dusk on principle and nobody argues.",
+        "stepDelta": 3,
+        "hpDelta": -10
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "The Trees Have Opinions",
+    "body": "{site}. {weather} {detail} You have not seen the sky today and could not say with confidence when you last did. {complication}",
+    "terrainTags": [
+      "Forest",
+      "Swamp",
+      "ArcaneGround"
+    ],
+    "regionTags": [
+      "verdant_deep"
+    ],
+    "choices": [
+      {
+        "label": "Cut a straight line and take the cost",
+        "resultText": "Hours of axe work through growth that closes behind you. You make the bearing. The Deep notices, in whatever way the Deep notices things.",
+        "stepDelta": 2,
+        "hpDelta": -20,
+        "reputationFactionId": "the_untamed",
+        "reputationAmount": -5
+      },
+      {
+        "label": "Follow the game trails and accept the detour",
+        "resultText": "They wander and they arrive. Everything that lives here has already solved this problem and there is no reason to solve it again badly.",
+        "stepDelta": -2,
+        "hpDelta": 15
+      },
+      {
+        "label": "Climb for a bearing",
+        "resultText": "Ninety feet up an old trunk to get above the second canopy. The view is worth the climb and the descent is worse than the climb.",
+        "hpDelta": -15,
+        "revealPois": 2
+      }
+    ]
+  },
+  {
+    "id": "verdant_the_permission",
+    "title": "The Felling That Will Not Be Permitted",
+    "body": "A woodsman is marking trunks: blaze, number, tally in a book. He is doing it properly and he is doing it to trees that were old before the Collapse. He knows perfectly well that no timber will ever come out of the Verdant Deep. He has been marking for eleven years anyway, because the survey was commissioned, and nobody has ever formally told him to stop.",
+    "terrainTags": [
+      "Forest"
+    ],
+    "regionTags": [
+      "verdant_deep"
+    ],
+    "choices": [
+      {
+        "label": "Read his tally",
+        "resultText": "Eleven years of measurements on trees nobody will fell — girth, height, condition, and rate of growth, all of it consistent, all of it accurate. It is the best record of this forest that exists and he did not mean it to be.",
+        "stepDelta": -2,
+        "itemReward": "emberwood_wand",
+        "cardCodex": true,
+        "setMetaFlags": [
+          "deep_verdant_deep_survey_read"
+        ]
+      },
+      {
+        "label": "Tell him the commission lapsed",
+        "resultText": "He asks who says so, and you cannot answer, because the office that issued it has not existed for six years and nobody inherited its files. He goes back to marking. It seems to settle him rather than otherwise.",
+        "stepDelta": -1,
+        "setMetaFlags": [
+          "deep_verdant_deep_survey_challenged"
+        ]
+      },
+      {
+        "label": "Burn the blazes off",
+        "resultText": "You go back along his line with a rasp and take the marks out of the bark. It takes a day. He does not stop you and he does not help, and he starts again the following week from the beginning.",
+        "hpDelta": -15,
+        "reputationFactionId": "the_untamed",
+        "reputationAmount": 12,
+        "setMetaFlags": [
+          "deep_verdant_deep_survey_erased"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chain_flowers_matched",
+    "title": "The Same Hand",
+    "body": "A circle of ground in the deep forest where the old growth has been kept back, and inside it the same species that grows two days from the nameless stone in the Hollow Mire. Same spacing. Same rows. It is four hundred miles from the mire and it is unmistakably the same gardener, and this stand is older than the other one by a considerable margin.",
+    "terrainTags": [
+      "Forest",
+      "ArcaneGround"
+    ],
+    "regionTags": [
+      "verdant_deep"
+    ],
+    "requiredFlag": "deep_hollow_mire_source_found",
+    "choices": [
+      {
+        "label": "Count the rows",
+        "resultText": "Rows are added on a schedule. Counting back from the newest gives you a start date, and the start date is before the Collapse, and the gardener has not missed a season since.",
+        "stepDelta": -2,
+        "cardCodex": true,
+        "setMetaFlags": [
+          "deep_verdant_deep_flowers_matched"
+        ]
+      },
+      {
+        "label": "Plant a row of your own",
+        "resultText": "You put in a line at the correct spacing on the correct side. Whether it is presumption or participation is not a question you can answer standing there with soil on your hands.",
+        "goldDelta": -20,
+        "hpDelta": 15,
+        "setMetaFlags": [
+          "deep_verdant_deep_flowers_matched"
+        ]
+      },
+      {
+        "label": "Wait out a night at the edge of it",
+        "resultText": "Nothing comes. In the morning there is a new row that was not there at dusk, at the correct spacing, on the correct side, and no tracks anywhere in the circle including your own.",
+        "hpDelta": -18,
+        "stepDelta": -3,
+        "setMetaFlags": [
+          "deep_verdant_deep_flowers_matched"
+        ]
+      }
+    ]
+  }
+]

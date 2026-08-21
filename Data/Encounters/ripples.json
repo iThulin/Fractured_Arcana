@@ -1,0 +1,529 @@
+[
+  {
+    "id": "echo_standing_debt",
+    "title": "The Standing Debt",
+    "body": "The name is chalked on a slate outside a shuttered counting-house: {deal_npc_name}. Under it a sum. Under that a date that has not happened yet. You have never met this person. In some other turn of the loom you sat across a table from them and something passed between you — or conspicuously did not — and the slate does not distinguish between those two things. It records only that an account was opened and never closed.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_standing_debt_eligible",
+    "choices": [
+      {
+        "label": "Settle it",
+        "resultText": "You pay a debt you did not incur, to a clerk who does not ask why. The slate is wiped clean and rechalked for the next name. Somewhere, something notes that you are the kind of thing that pays.",
+        "goldDelta": -60,
+        "hpDelta": 15,
+        "setMetaFlags": [
+          "echo_standing_debt_seen"
+        ]
+      },
+      {
+        "label": "Dispute it",
+        "resultText": "You argue for an hour with a clerk about a transaction in a world that no longer exists. You win. It costs you considerably more than the sum did.",
+        "hpDelta": -10,
+        "stepDelta": -1,
+        "setMetaFlags": [
+          "echo_standing_debt_seen"
+        ]
+      },
+      {
+        "label": "Add your own name beneath theirs",
+        "resultText": "Whatever this ledger is for, you are in it now, and voluntarily. It seemed only fair.",
+        "goldDelta": 20,
+        "stepDelta": -1,
+        "setMetaFlags": [
+          "echo_standing_debt_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_strangers_shrine",
+    "title": "A Stranger's Shrine",
+    "body": "A roadside shrine, well kept and recently tended. Bread, a coin, and the chalk-marks of a {dead_companion_school} laid out in an order that means something to whoever laid them. The name cut into the post is {dead_companion_name}. They fell in {dead_companion_region}, in a cycle this world has no way of remembering, and you have not spoken that name aloud since. Nobody here could have had it from you.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_strangers_shrine_eligible",
+    "choices": [
+      {
+        "label": "Leave an offering of your own",
+        "resultText": "You leave what you can spare and stand there a while longer than you meant to. It does not feel like grief, exactly. It feels like being recognised.",
+        "goldDelta": -20,
+        "hpDelta": 25,
+        "setMetaFlags": [
+          "echo_strangers_shrine_seen"
+        ]
+      },
+      {
+        "label": "Ask who tends it",
+        "resultText": "Nobody will say. But the path away from the shrine is worn in one direction only, and you follow it far enough to learn where it goes.",
+        "stepDelta": -2,
+        "revealPois": 1,
+        "setMetaFlags": [
+          "echo_strangers_shrine_seen"
+        ]
+      },
+      {
+        "label": "Take the offerings and go",
+        "resultText": "You pocket the coin and leave the post bare. Your party does not comment. The road afterwards is very quiet.",
+        "goldDelta": 25,
+        "hpDelta": -10,
+        "setMetaFlags": [
+          "echo_strangers_shrine_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_shape_of_scar",
+    "title": "The Shape of the Scar",
+    "body": "The ground here has healed wrong. There is a depression in the bedrock — not weathering, not tooling — with a specific and unpleasant geometry, and you recognise the geometry, because you have held the thing that makes it. A fragment of the Seal rested here long enough to leave a print, or something exactly its shape did. In a cycle where you had never carried one, you would have walked over this and thought nothing at all.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_shape_of_scar_eligible",
+    "choices": [
+      {
+        "label": "Set your hand into it",
+        "resultText": "It fits, which you had not entirely expected. Something under the rock answers, and for a few hours the country ahead is uncomfortably legible.",
+        "hpDelta": -12,
+        "stepDelta": 3,
+        "setMetaFlags": [
+          "echo_shape_of_scar_seen"
+        ]
+      },
+      {
+        "label": "Take a rubbing and proper measurements",
+        "resultText": "You record the geometry the way the Archive would want it recorded. Two more depressions of the same shape resolve out of your map, and neither is where the Archive says it should be.",
+        "stepDelta": -1,
+        "revealPois": 2,
+        "setMetaFlags": [
+          "echo_shape_of_scar_seen"
+        ]
+      },
+      {
+        "label": "Fill it in",
+        "resultText": "You pack the depression with scree until the shape is gone. Somebody else was going to find this, and you have decided against that.",
+        "stepDelta": -2,
+        "hpDelta": -5,
+        "setMetaFlags": [
+          "echo_shape_of_scar_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_song_nobody_wrote",
+    "title": "The Song Nobody Wrote",
+    "body": "The singer in the taproom has a long ballad nobody asked for and everybody knows the chorus to. It concerns the Convergence, a {convergence_school}, and an ending. The details are wrong in the way songs are always wrong — names shifted, distances flattered, one whole siege invented. The shape of it is exactly right. Asked where the song came from, the singer says it has always been sung, and looks put out at having been asked.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_song_nobody_wrote_eligible",
+    "choices": [
+      {
+        "label": "Buy the singer a drink and hear all of it",
+        "resultText": "Nineteen verses. Two of them describe things you have done. One describes a thing you have not done yet, and describes it in the past tense.",
+        "goldDelta": -25,
+        "stepDelta": -1,
+        "hpDelta": 10,
+        "setMetaFlags": [
+          "echo_song_nobody_wrote_seen"
+        ]
+      },
+      {
+        "label": "Correct the details",
+        "resultText": "The room does not thank you for it. One old man at the back does, quietly, on his way out, and pays for the correction in coin.",
+        "goldDelta": 20,
+        "hpDelta": -5,
+        "setMetaFlags": [
+          "echo_song_nobody_wrote_seen"
+        ]
+      },
+      {
+        "label": "Leave before the chorus",
+        "resultText": "You are out the door and half a street away before the room comes in on the refrain. You can still hear which words they stress.",
+        "stepDelta": 1,
+        "setMetaFlags": [
+          "echo_song_nobody_wrote_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_guestbook",
+    "title": "The Guestbook",
+    "body": "The inn keeps one of those guestbooks that runs a century and is read by nobody. Halfway down a page from a year that has not happened, in a hand you almost recognise: the name of {guild_name}, a room number, and a note that the party stayed three nights and paid in full. The ink has had decades to fade and has done so. By the Anchorhold's count you are {cycle_count} loops into this. The innkeeper cannot think why you have gone quiet.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_guestbook_eligible",
+    "choices": [
+      {
+        "label": "Sign the current page",
+        "resultText": "You write the same name on the same line of a different year. It is either a joke or a rite and you decline to decide which. Something in you settles regardless.",
+        "hpDelta": 15,
+        "stepDelta": -1,
+        "setMetaFlags": [
+          "echo_guestbook_seen"
+        ]
+      },
+      {
+        "label": "Tear the old page out",
+        "resultText": "You take the page into the yard and burn it. The book is a hundred years old. There will be other pages.",
+        "hpDelta": -8,
+        "setMetaFlags": [
+          "echo_guestbook_seen"
+        ]
+      },
+      {
+        "label": "Ask about the room",
+        "resultText": "The room exists. It has been kept made-up for longer than the innkeeper has held the licence, and there is a locked chest under the bed that came with the building.",
+        "goldDelta": -15,
+        "revealPois": 1,
+        "setMetaFlags": [
+          "echo_guestbook_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_the_style",
+    "title": "The Style",
+    "body": "The duellist drilling in the yard is running a sequence you have watched a hundred times: the same false opening, the same recovery onto the wrong foot that has no business working and works anyway. It was {style_companion_name}'s. It was theirs alone — a bad habit that beat better swordsmen for years and was buried with them. This one has never heard the name. They learned the form from their teacher, who had it from hers.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_the_style_eligible",
+    "choices": [
+      {
+        "label": "Tell them whose habit they are wearing",
+        "resultText": "They do not believe you, which is reasonable. They write the name down anyway, which is more than you expected.",
+        "goldDelta": 20,
+        "hpDelta": -5,
+        "setMetaFlags": [
+          "echo_the_style_seen"
+        ]
+      },
+      {
+        "label": "Drill against them",
+        "resultText": "You know every line of it, which turns out not to be the advantage you assumed. Losing to a dead friend's footwork twice in one lifetime is instructive both times.",
+        "hpDelta": -20,
+        "stepDelta": 2,
+        "setMetaFlags": [
+          "echo_the_style_seen"
+        ]
+      },
+      {
+        "label": "Say nothing, and watch to the end",
+        "resultText": "You stay for the whole form. It is done properly, all the way through. Whatever else the loom takes back, it did not take this.",
+        "hpDelta": 20,
+        "stepDelta": -1,
+        "setMetaFlags": [
+          "echo_the_style_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_village_burns",
+    "title": "The Village That Always Burns",
+    "body": "The village is standing. New thatch, a good well, children entirely unbothered by armed strangers. You have watched this village burn. Not here and not in this cycle — but the layout is identical down to the crooked lane behind the smithy, and the loom does not repeat a thing that precisely for no reason. This is cycle {cycle_number} by the Anchorhold's count, and the pattern has held every time you have been in a position to check.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_village_burns_eligible",
+    "choices": [
+      {
+        "label": "Warn them",
+        "resultText": "You tell them to clear the thatch back and sink a second well. They hear a stranger out politely and do roughly a third of it, which may be enough and may not.",
+        "goldDelta": -30,
+        "hpDelta": 10,
+        "stepDelta": -2,
+        "setMetaFlags": [
+          "echo_village_burns_seen"
+        ]
+      },
+      {
+        "label": "Find out what burns it",
+        "resultText": "A day walking the ground turns it up: sitting quietly upslope, entirely mundane, and obvious the moment you know to look. You leave instructions with the headman.",
+        "stepDelta": -3,
+        "revealPois": 2,
+        "setMetaFlags": [
+          "echo_village_burns_seen"
+        ]
+      },
+      {
+        "label": "Say nothing — it is not this village",
+        "resultText": "You are almost certainly right about that. You do not look back at it on the way out, and you notice yourself not looking.",
+        "stepDelta": 2,
+        "hpDelta": -5,
+        "setMetaFlags": [
+          "echo_village_burns_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_kept_notes",
+    "title": "Kept Notes",
+    "body": "A field-desk in a burned-out surveyor's post, and inside it a working notebook: star-tables, margin arithmetic, a running list of dates with the confident ones underlined. You have read enough of this hand by now to know it on sight. It is the Astrologer's. The final entry is a date, underlined twice, and set beside it the name of {guild_name}, followed by a question mark.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_kept_notes_eligible",
+    "choices": [
+      {
+        "label": "Read it through",
+        "resultText": "Most of the arithmetic is past following. The parts you can follow are about you, and they were set down well before you arrived in this cycle.",
+        "hpDelta": -10,
+        "stepDelta": -2,
+        "revealPois": 1,
+        "setMetaFlags": [
+          "echo_kept_notes_seen"
+        ]
+      },
+      {
+        "label": "Take the notebook",
+        "resultText": "It goes in your pack. Whatever the Astrologer is presently doing, they are doing it one notebook short, and will notice.",
+        "stepDelta": 1,
+        "setMetaFlags": [
+          "echo_kept_notes_seen"
+        ]
+      },
+      {
+        "label": "Answer the question mark",
+        "resultText": "You write your own name under theirs, close the book, and leave it exactly where you found it. If they come back for it, they will have their answer.",
+        "goldDelta": -10,
+        "hpDelta": 8,
+        "setMetaFlags": [
+          "echo_kept_notes_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_unfinished_business",
+    "title": "Still Posted",
+    "body": "A contract is still nailed to the board outside a hiring hall, weathered pale but perfectly legible, and the work it describes is {unfinished_quest_title}. You took that contract in cycle {unfinished_cycle}. You got {unfinished_objectives_done} of {unfinished_objectives_total} steps into it before the loom turned over and unmade the world it was set in. The board does not know that. The board has simply kept the posting open, and somebody has been dusting it.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_unfinished_business_eligible",
+    "choices": [
+      {
+        "label": "Take the contract down",
+        "resultText": "You unpin it, fold it, and put it in your coat. Nobody at the hall objects and nobody at the hall remembers posting it. It is not finished, but it is at least in the hands of the person it belongs to.",
+        "stepDelta": -1,
+        "hpDelta": 12,
+        "setMetaFlags": [
+          "echo_unfinished_business_seen"
+        ]
+      },
+      {
+        "label": "Finish what you can of it here",
+        "resultText": "Some of the work is still doable in this world and some of it is not. You do the doable part in an afternoon, for a client who does not exist, and the doing is the point.",
+        "goldDelta": -20,
+        "stepDelta": -3,
+        "hpDelta": 20,
+        "setMetaFlags": [
+          "echo_unfinished_business_seen"
+        ]
+      },
+      {
+        "label": "Post a completion notice over it",
+        "resultText": "You write CLOSED across it in a firm hand and pin the note above the original. It is a lie. It is also the only version of an ending this particular thing is ever going to get.",
+        "goldDelta": 15,
+        "hpDelta": -8,
+        "setMetaFlags": [
+          "echo_unfinished_business_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_walked_away",
+    "title": "The Table You Left",
+    "body": "The table is set for two and one chair is pushed back. There is a name inked on the reverse of the standing card — {walkaway_npc_name} — and the terms sheet is still face-up where it was left, unsigned, with the final figure circled twice. You have never sat here. In another turn of the loom you stood up from a table exactly like this and walked out, and somebody kept the setting.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_walked_away_eligible",
+    "choices": [
+      {
+        "label": "Sit down",
+        "resultText": "Nobody comes. You sit for the better part of an hour with an unsigned sheet in front of you and read the circled figure until it stops meaning anything, and then you get up and the chair stays pushed back.",
+        "stepDelta": -2,
+        "hpDelta": 15,
+        "setMetaFlags": [
+          "echo_walked_away_seen"
+        ]
+      },
+      {
+        "label": "Sign it",
+        "resultText": "You put your name to terms agreed in a world that no longer exists, with a party who never met you. Within the week somebody honours it, which is considerably worse than nobody honouring it.",
+        "goldDelta": 55,
+        "hpDelta": -15,
+        "setMetaFlags": [
+          "echo_walked_away_seen"
+        ]
+      },
+      {
+        "label": "Take the terms sheet and burn it",
+        "resultText": "It goes up quickly. Whatever that deal was going to cost, it is not going to cost it here.",
+        "goldDelta": 20,
+        "stepDelta": 1,
+        "setMetaFlags": [
+          "echo_walked_away_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_table_collapsed",
+    "title": "The Terms That Broke",
+    "body": "There is a story in this district about a negotiation that went wrong badly enough to be worth retelling — voices raised, a table overturned, and a party on one side who left through a window. The name attached to the story is {collapsed_npc_name}. It happened, by local reckoning, some years ago, and the teller was there, and the teller describes your posture accurately.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_table_collapsed_eligible",
+    "choices": [
+      {
+        "label": "Ask what the sticking point was",
+        "resultText": "The teller remembers the figure, the clause, and exactly which of the two parties moved first. You had it wrong in your own memory, and not in the direction that flatters you.",
+        "stepDelta": -1,
+        "hpDelta": -8,
+        "goldDelta": 20,
+        "setMetaFlags": [
+          "echo_table_collapsed_seen"
+        ]
+      },
+      {
+        "label": "Make it right on the other side's behalf",
+        "resultText": "You find who is owed by the local reckoning and settle it out of your own purse. It is not your debt, in this world or arguably any other, and paying it costs exactly as much as it would have.",
+        "goldDelta": -65,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": 12,
+        "setMetaFlags": [
+          "echo_table_collapsed_seen"
+        ]
+      },
+      {
+        "label": "Let the story stand",
+        "resultText": "It is a good story and it is told well and the version in the room is more useful to you than the truth. You buy the teller a drink for it.",
+        "goldDelta": -10,
+        "stepDelta": 1,
+        "setMetaFlags": [
+          "echo_table_collapsed_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_honored_enemy",
+    "title": "The Enemy You Kept",
+    "body": "The shrine is small, private, and maintained by a family who will tell you plainly whose it is: {honored_enemy_name}, a {honored_enemy_school}, lost in {honored_enemy_region}, body never returned. They are wrong about the last part. You returned it — carried it off the field, gave it a name in the Ossuary, and have called on it since. Nobody in this house has any way of knowing that, and one of them is wearing the face.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_honored_enemy_eligible",
+    "choices": [
+      {
+        "label": "Tell them where the body went",
+        "resultText": "You give them the truth, all of it, including the part where you were the reason. They take it in silence and then thank you for the half that is a kindness, and do not mention the other half at all.",
+        "hpDelta": -20,
+        "stepDelta": -2,
+        "reputationFactionId": "aegis_concordat",
+        "reputationAmount": 12,
+        "setMetaFlags": [
+          "echo_honored_enemy_seen"
+        ]
+      },
+      {
+        "label": "Leave what you carry of them at the shrine",
+        "resultText": "You set something down that came off the field with them. It fits the shrine the way a returned thing does. The family does not ask and you do not offer.",
+        "goldDelta": -30,
+        "hpDelta": 25,
+        "setMetaFlags": [
+          "echo_honored_enemy_seen"
+        ]
+      },
+      {
+        "label": "Say nothing and accept their hospitality",
+        "resultText": "They feed you, house you, and speak warmly about someone you killed. You sleep badly and leave early and pay more than the room was worth.",
+        "goldDelta": -20,
+        "hpDelta": 15,
+        "stepDelta": 1,
+        "setMetaFlags": [
+          "echo_honored_enemy_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_fluent_tongue",
+    "title": "The Second Tongue",
+    "body": "The argument in the yard is technical, heated, and conducted entirely in the working idiom of a {fluent_school} — the shorthand, the assumptions, the two or three things practitioners never bother saying out loud. You follow all of it. You are not a {fluent_school} and you have never been taught one word of this, and you are standing in a yard understanding a conversation that is not meant for you.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_fluent_tongue_eligible",
+    "choices": [
+      {
+        "label": "Settle the argument",
+        "resultText": "You give the answer, correctly, in their idiom. The yard goes quiet. Somebody asks who taught you and you find you have no answer that is both true and short.",
+        "stepDelta": -1,
+        "goldDelta": 35,
+        "cardCodex": true,
+        "setMetaFlags": [
+          "echo_fluent_tongue_seen"
+        ]
+      },
+      {
+        "label": "Listen to the end without speaking",
+        "resultText": "They work it out themselves, slowly, and get there. You learn where their idiom is imprecise, which is worth considerably more than winning the argument would have been.",
+        "stepDelta": -2,
+        "hpDelta": 10,
+        "setMetaFlags": [
+          "echo_fluent_tongue_seen"
+        ]
+      },
+      {
+        "label": "Ask them to explain it to you from the beginning",
+        "resultText": "They do, patiently, as to an outsider. You already know every word of it. Hearing it laid out from first principles by somebody who assumes you do not is its own kind of information.",
+        "goldDelta": -15,
+        "stepDelta": -2,
+        "cardCodex": true,
+        "setMetaFlags": [
+          "echo_fluent_tongue_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "echo_famous_terms",
+    "title": "The Terms Everyone Quotes",
+    "body": "There is a form of words traders in this district use for a bargain that came out unreasonably well on both sides. It has a specific shape — a rider, a clause, a way of splitting the risk that nobody had thought of before somebody did. It is your clause. You wrote it at a table in a cycle this world cannot have witnessed, and the count in the telling matches your own: {five_star_count}.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "echo_famous_terms_eligible",
+    "choices": [
+      {
+        "label": "Use it here",
+        "resultText": "You open with your own clause against people who learned it from somewhere you have never been. It works exactly as well as it did the first time, which is unsettling and lucrative in roughly equal measure.",
+        "goldDelta": 70,
+        "hpDelta": -5,
+        "setMetaFlags": [
+          "echo_famous_terms_seen"
+        ]
+      },
+      {
+        "label": "Ask where they had it from",
+        "resultText": "From a factor, who had it from a broker, who had it from a woman at a table some years back who nobody can name. The chain has four links and ends in a description of you.",
+        "stepDelta": -2,
+        "revealPois": 1,
+        "setMetaFlags": [
+          "echo_famous_terms_seen"
+        ]
+      },
+      {
+        "label": "Teach them the version you never used",
+        "resultText": "There was a better draft of that clause that never left your notes. You give it to them for nothing. In a season it will be the form of words this district uses, and it will not be attributed either.",
+        "goldDelta": -25,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": 14,
+        "setMetaFlags": [
+          "echo_famous_terms_seen"
+        ]
+      }
+    ]
+  }
+]

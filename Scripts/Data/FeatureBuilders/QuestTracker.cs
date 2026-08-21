@@ -44,12 +44,35 @@ public static class QuestTracker
     {
         if (!string.IsNullOrEmpty(o.Flag)) return FlagSet(save, o.Flag);
         if (!string.IsNullOrEmpty(o.Lore)) return LoreHas(save, o.Lore);
-        if (!string.IsNullOrEmpty(o.Counter)) return CountFor(o.Counter, save) >= o.CounterTarget;
+        if (!string.IsNullOrEmpty(o.Counter))
+        {
+            int need = TargetFor(o);
+            // A non-positive target would make the objective trivially satisfied
+            // (n >= 0 is always true), which is a silently-complete quest rather
+            // than an authoring error you can see. Refuse it instead.
+            return need > 0 && CountFor(o.Counter, save) >= need;
+        }
         return false;
     }
 
+    /// <summary>The effective target for a counter objective. An explicit
+    /// non-zero CounterTarget in the JSON always wins. When the JSON omits it,
+    /// the counter family supplies a target the CODE owns — so a threshold that
+    /// already exists as a C# constant is defined in exactly one place instead
+    /// of being copied into every quest that tracks it and drifting the next
+    /// time it is retuned. Currently: "mastery:" defers to
+    /// SchoolMasteryService.FluencyThreshold.</summary>
+    public static int TargetFor(QuestObjective o)
+    {
+        if (o == null) return 0;
+        if (o.CounterTarget > 0) return o.CounterTarget;
+        if (!string.IsNullOrEmpty(o.Counter) && o.Counter.StartsWith("mastery:"))
+            return SchoolMasteryService.FluencyThreshold;
+        return 0;
+    }
+
     public static (int have, int need) CounterProgress(QuestObjective o, GuildSaveData save)
-        => (CountFor(o.Counter, save), o.CounterTarget);
+        => (CountFor(o.Counter, save), TargetFor(o));
 
     // ── internals ────────────────────────────────────────────────────────
     private static bool AllObjectivesDone(QuestDefinition q, GuildSaveData save)
@@ -66,6 +89,8 @@ public static class QuestTracker
         if (!string.IsNullOrEmpty(q.RequiredFlag) && !FlagSet(save, q.RequiredFlag)) return false;
         if (!string.IsNullOrEmpty(q.RequiredQuest) &&
             !(save.Ledger?.CompletedQuestIds?.Contains(q.RequiredQuest) ?? false)) return false;
+        if (!string.IsNullOrEmpty(q.RequiredCounter) &&
+            CountFor(q.RequiredCounter, save) < q.RequiredCounterTarget) return false;
         return true;
     }
 
@@ -112,6 +137,18 @@ public static class QuestTracker
                 foreach (var f in mf)
                     if (f.StartsWith(prefix)) n++;
             return n;
+        }
+
+        // ── Generic family: mastery:<school> ────────────────────────────
+        // Cross-cycle SchoolMastery points, the progression spine the Fluency
+        // quests track. Reads through SchoolMasteryService so school-name
+        // normalisation stays in one place. NOTE: this is SchoolMastery, not
+        // CastMastery — see the naming warning in SchoolMasteryService.cs.
+        // Quest JSON example: { "counter": "mastery:Necromancer", "counterTarget": 60 }
+        if (counter.StartsWith("mastery:"))
+        {
+            string school = counter.Substring(8);
+            return string.IsNullOrEmpty(school) ? 0 : SchoolMasteryService.Points(save, school);
         }
 
         // ── Named counters (original, backwards-compatible) ─────────────

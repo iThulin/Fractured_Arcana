@@ -83,12 +83,20 @@ public static class NegotiationContext
     /// other results by NegotiationManager.</summary>
     public static bool ResolvedCordial = false;
 
+    /// <summary>True when the table collapsed at maximum tension AND the
+    /// counterpart escalates (NegotiationEncounterData.Escalates). Read by
+    /// ExpeditionManager.OnNegotiationReturned, which launches the fight on the
+    /// overworld side — the negotiation scene must not start combat itself, since
+    /// combat is entered through EncounterRouter from the expedition scene.</summary>
+    public static bool Escalated = false;
+
     public static void SetResult(bool accepted, int gold, int rep, string factionId,
                                  string spellGranted = "", bool resolvedCordial = false,
                                  int supplies = 0, bool revealSupplyCaches = false,
-                                 int steps = 0)
+                                 int steps = 0, bool escalated = false)
     {
         HasResult = true;
+        Escalated = escalated;
         DealAccepted = accepted;
         GoldDelta = gold;
         ReputationDelta = rep;
@@ -114,6 +122,7 @@ public static class NegotiationContext
         FactionId = "";
         SpellGranted = "";
         ResolvedCordial = false;
+        Escalated = false;
         EncounterId = "";
         HexCoordKey = "";
         NpcArchetype = "";

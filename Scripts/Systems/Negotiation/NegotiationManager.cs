@@ -1702,7 +1702,10 @@ public partial class NegotiationManager : Control
             resolvedCordial: _state.Zone == TensionZone.Cordial, // S5: compulsion-echo burial gate
             supplies: _state.GetSuppliesOutcome(),
             revealSupplyCaches: _state.GetSupplyIntelOutcome(),
-            steps: _state.GetStepsOutcome());
+            steps: _state.GetStepsOutcome(),
+            // Resolution Check (negotiation_system.docx): max tension against an
+            // aggressive counterpart does not close the table, it opens a fight.
+            escalated: _state.Collapsed && _state.Data.Escalates);
 
         RecordDeal(spellGranted);   // Hall of Records — every outcome, every timeline
 
@@ -1909,7 +1912,7 @@ public partial class NegotiationManager : Control
 
         string outcome = _state.DealAccepted ? "Signed"
             : _state.PlayerWalkedAway ? "WalkedAway"
-            : _state.Tension >= NegotiationState.TensionMax ? "Collapsed"
+            : _state.Collapsed ? "Collapsed"
             : "TheyLeft";
 
         var record = new DealRecord
