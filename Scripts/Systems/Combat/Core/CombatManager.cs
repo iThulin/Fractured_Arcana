@@ -1353,6 +1353,11 @@ public partial class CombatManager : Node3D
                 var d = ItemDatabase.Get(inst.DefinitionId);
                 if (d == null || !d.IsConsumable)
                     continue;
+                // Deploy loadout (2026-08-21): kinds unchecked on the launch
+                // drawer stay in the campus stores — they never reach the field.
+                if (save.Cycle?.ExcludedConsumableIds != null &&
+                    save.Cycle.ExcludedConsumableIds.Contains(inst.DefinitionId))
+                    continue;
                 if (byDef.TryGetValue(inst.DefinitionId, out var cur))
                     byDef[inst.DefinitionId] = (cur.first, cur.count + 1);
                 else

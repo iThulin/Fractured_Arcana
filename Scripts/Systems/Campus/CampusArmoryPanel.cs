@@ -81,6 +81,115 @@ public sealed class CampusArmoryPanel : CampusPanel
         // ── Unequipped items ─────────────────────────────────────────────
         AddSectionHeader(_container, "Armory");
         BuildUnequippedPanel(save);
+
+        // ── Scriptorium (rehomed 2026-08-21) ─────────────────────────────
+        // Scroll crafting lived on the Expedition tab, but the deploy-flow
+        // streamline routes the Gatehouse straight to the launch drawer, so
+        // that tab is no longer on the normal path. Scrolls are items; the
+        // Armory is their door now. (The Expedition tab keeps a copy for its
+        // fallback appearances — known duplication, unify when the Scribe's
+        // Tower claims scroll crafting per R8.)
+        _container.AddChild(new HSeparator());
+        AddSectionHeader(_container, "Scriptorium — Scrolls");
+        var scrollHint = new Label
+        {
+            Text = "A scroll holds one cast of a spell the guild knows — usable by any " +
+                   "school, consuming no Essence, spent on use.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        scrollHint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        scrollHint.Modulate = UITheme.CampusSubtleText;
+        _container.AddChild(scrollHint);
+        _scriptoriumList = MakeVBox(6);
+        _container.AddChild(_scriptoriumList);
+        RefreshScriptorium();
+    }
+
+    // ── Scriptorium (mirrors CampusExpeditionPanel.RefreshScriptorium) ───
+
+    private VBoxContainer _scriptoriumList;
+
+    /// <summary>S4: rebuild the Scriptorium rows — one per scribable spell
+    /// (school innates + learned spells; no Attunements, no Emulate). Narrow
+    /// refresh on scribe so the shopping scroll position survives.</summary>
+    private void RefreshScriptorium()
+    {
+        if (_scriptoriumList == null)
+            return;
+        foreach (var child in _scriptoriumList.GetChildren())
+            child.QueueFree();
+
+        var save = Ctx?.Save;
+        var grim = save?.Cycle?.Grimoire;
+        if (grim == null)
+            return;
+        OverworldSpellRegistry.EnsureLoaded();
+
+        var scribable = new System.Collections.Generic.List<OverworldSpellDefinition>();
+        void AddDef(OverworldSpellDefinition d)
+        {
+            if (d != null && !d.IsAttunement && d.EffectKey != "emulate" && !scribable.Contains(d))
+                scribable.Add(d);
+        }
+        foreach (var innate in OverworldSpellRegistry.InnatesFor(save.Cycle.SelectedSchool))
+            AddDef(innate);
+        foreach (var id in grim.KnownSpellIds)
+            AddDef(OverworldSpellRegistry.Get(id));
+        scribable.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+
+        if (scribable.Count == 0)
+        {
+            var none = new Label
+            {
+                Text = "The guild knows nothing worth scribing yet — spells are learned " +
+                       "afield (lore sites, cordial deals, the dead).",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            none.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            none.Modulate = UITheme.CampusSubtleText;
+            _scriptoriumList.AddChild(none);
+            return;
+        }
+
+        foreach (var def in scribable)
+        {
+            int cost = SpellAcquisition.ScrollGoldCost(def);
+            grim.ScrollInventory.TryGetValue(def.Id, out int held);
+
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 10);
+            _scriptoriumList.AddChild(row);
+
+            var name = new Label
+            {
+                Text = $"{def.Name}  ·  {def.Magnitude}" + (held > 0 ? $"  ·  ×{held} held" : ""),
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                TooltipText = def.Description,
+            };
+            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            name.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+            row.AddChild(name);
+
+            var craftBtn = MakeButton($"Scribe — {cost} g", 150, 34,
+                UITheme.CampusSmallFontSize, isPrimary: false);
+            craftBtn.Disabled = save.Gold < cost;
+            string id = def.Id; // capture per-iteration
+            craftBtn.Pressed += () =>
+            {
+                var s = Ctx?.Save;
+                var g = s?.Cycle?.Grimoire;
+                if (s == null || g == null || s.Gold < cost)
+                    return;
+                s.Gold -= cost;
+                g.ScrollInventory[id] = g.ScrollInventory.TryGetValue(id, out int n) ? n + 1 : 1;
+                SaveManager.MarkDirty();
+                GD.Print($"[Scriptorium] Scribed '{id}' for {cost}g " +
+                         $"(held ×{g.ScrollInventory[id]}, gold {s.Gold}).");
+                Ctx.RefreshGold?.Invoke();
+                RefreshScriptorium();
+            };
+            row.AddChild(craftBtn);
+        }
     }
 
     // ── Unit selector row ────────────────────────────────────────────────

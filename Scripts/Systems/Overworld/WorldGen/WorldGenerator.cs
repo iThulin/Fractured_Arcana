@@ -817,15 +817,26 @@ public static class WorldGenerator
         // The Distant (foreign) outpost is the anti-softlock guarantee — always
         // seeded (StartingOutposts >= 1). The near Frontier outpost is convenience,
         // seeded at >= 2 (shipping). An extra Waystation is seeded at >= 3.
+        //
+        // COST-AWARE SEEDING (2026-08-21 playtest fix): the old rings were
+        // crow-flies hex distances (10–12 / 13–18 / 8–14), but the step budget
+        // is spent in COST units — forest 2, swamp 3, mountain 4, ford +2 — so
+        // on rough maps the "near" outpost alone exceeded the whole 40-step
+        // OperatingRange. Bands below are ACTUAL walked step cost (Dijkstra over
+        // the real movement-cost function): Frontier ≈ half the budget one-way,
+        // leaving room for the run's POIs; Distant reachable one-way at ~70–85%
+        // of budget (arrival grants staging = free extract, so one-way is the
+        // contract); Waystation between. Starting values — tune in playtest.
         int outposts = Mathf.Clamp(p.StartingOutposts, 1, 3);
+        var costMap = StepCostMap(world, start, cap: 64);
         if (outposts >= 2)
             // Near outpost: inside the first window, home kingdom is fine — it bootstraps the loop.
-            SeedBootstrapOutpost(world, start, minD: 10, maxD: 12, rng, "Frontier Outpost", foreignTo: null);
+            SeedBootstrapOutpost(world, start, costMap, minCost: 18, maxCost: 24, rng, "Frontier Outpost", foreignTo: null);
         // Distant outpost: MUST be in a different kingdom, so its window reaches foreign ground.
         // This is the anti-softlock guarantee — without it every staging point can stay home.
-        SeedBootstrapOutpost(world, start, minD: 13, maxD: 18, rng, "Distant Outpost", foreignTo: startKingdom);
+        SeedBootstrapOutpost(world, start, costMap, minCost: 28, maxCost: 34, rng, "Distant Outpost", foreignTo: startKingdom);
         if (outposts >= 3)
-            SeedBootstrapOutpost(world, start, minD: 8, maxD: 14, rng, "Waystation Outpost", foreignTo: null);
+            SeedBootstrapOutpost(world, start, costMap, minCost: 14, maxCost: 20, rng, "Waystation Outpost", foreignTo: null);
 
         // Pre-discover the nearest few ordinary POIs too, so the first strategic
         // view has texture beyond the guaranteed outposts.
@@ -838,53 +849,142 @@ public static class WorldGenerator
             poi.Discovered = true;
     }
 
+    /// <summary>Dijkstra over the REAL expedition movement-cost function, from the
+    /// start tile out to <paramref name="cap"/> steps: terrain step cost to enter
+    /// (OverworldMovementCost.TerrainStep), road-edge discount, unbridged-ford
+    /// penalty — the same arithmetic StepCost charges the party, minus the spell
+    /// adjustments (no expedition exists at worldgen). Water never entered.
+    /// Returns cost-to-enter per tile index; int.MaxValue = unreachable/beyond cap.
+    /// Deliberately duplicates StepCost's edge math with the SHARED constants
+    /// (RoadDiscount/FordPenalty) rather than calling it, so worldgen cannot be
+    /// perturbed by lingering OverworldSpellEffects static state.</summary>
+    private static int[] StepCostMap(WorldData world, (int x, int y) start, int cap)
+    {
+        var dist = new int[world.Width * world.Height];
+        System.Array.Fill(dist, int.MaxValue);
+        var pq = new PriorityQueue<(int x, int y), int>();
+        dist[start.y * world.Width + start.x] = 0;
+        pq.Enqueue(start, 0);
+
+        while (pq.TryDequeue(out var cur, out int d))
+        {
+            int ci = cur.y * world.Width + cur.x;
+            if (d > dist[ci] || d >= cap)
+                continue;
+            var fromTile = world.GetTile(cur.x, cur.y);
+            var (fq, fr) = HexCoord.OffsetToAxial(cur.x, cur.y);
+            foreach (var (nx, ny) in HexCoord.Neighbors(cur.x, cur.y, world.Width, world.Height))
+            {
+                var to = world.GetTile(nx, ny);
+                if (to.IsWater)
+                    continue;
+                int step = OverworldMovementCost.TerrainStep(to.Terrain);
+                var (tq, tr) = HexCoord.OffsetToAxial(nx, ny);
+                int dir = OverworldMovementCost.EdgeDirection(
+                    new Vector2I(fq, fr), new Vector2I(tq, tr));
+                if (dir >= 0)
+                {
+                    int bit = 1 << dir;
+                    bool road = (fromTile.RoadEdges & bit) != 0;
+                    bool river = (fromTile.RiverEdges & bit) != 0;
+                    if (road) step -= OverworldMovementCost.RoadDiscount;
+                    if (river && road == false) step += OverworldMovementCost.FordPenalty;
+                }
+                step = Mathf.Max(1, step);
+                int nd = d + step;
+                int ni = ny * world.Width + nx;
+                if (nd < dist[ni])
+                {
+                    dist[ni] = nd;
+                    pq.Enqueue((nx, ny), nd);
+                }
+            }
+        }
+        return dist;
+    }
+
     /// <summary>Force a discovered, staging-granting Outpost POI onto a walkable
-    /// land tile within [minD, maxD] hex distance of the start. Guarantees the
-    /// exploration loop can bootstrap a second staging point.</summary>
+    /// land tile whose ACTUAL walked step cost from the start (per
+    /// <see cref="StepCostMap"/>) lies in [minCost, maxCost] — dimensioned
+    /// against ExpeditionManager.OperatingRange, unlike the old crow-flies
+    /// rings. Prefers road-adjacent sites (outposts sit on roads; a road
+    /// approach floors near 1/step). Guarantees the exploration loop can
+    /// bootstrap a second staging point.</summary>
     private static void SeedBootstrapOutpost(WorldData world, (int x, int y) start,
-                                                 int minD, int maxD,
+                                                 int[] costMap, int minCost, int maxCost,
                                                  RandomNumberGenerator rng, string name,
                                                  string foreignTo)
     {
-        var candidates = new List<(int x, int y)>();
-        var foreignCandidates = new List<(int x, int y)>();
-        for (int y = 0; y < world.Height; y++)
+        List<(int x, int y)> candidates = new(), foreignCandidates = new();
+        List<(int x, int y)> roadCandidates = new(), foreignRoadCandidates = new();
+
+        void Collect(int lo, int hi)
         {
-            for (int x = 0; x < world.Width; x++)
+            candidates.Clear(); foreignCandidates.Clear();
+            roadCandidates.Clear(); foreignRoadCandidates.Clear();
+            for (int y = 0; y < world.Height; y++)
             {
-                int d = Dist((x, y), start);
-                if (d < minD || d > maxD)
-                    continue;
-                var tile = world.GetTile(x, y);
-                if (tile.IsWater)
-                    continue;
-                if (tile.PoiIndex >= 0)
-                    continue;
-                if (tile.IsStagingPoint)
-                    continue;
-                if (tile.ShardZoneIndex >= 0)
-                    continue; // never bootstrap a staging outpost inside a shard vault
-                candidates.Add((x, y));
-                if (!string.IsNullOrEmpty(foreignTo) &&
-                    !string.IsNullOrEmpty(tile.KingdomId) &&
-                    tile.KingdomId != foreignTo)
-                    foreignCandidates.Add((x, y));
+                for (int x = 0; x < world.Width; x++)
+                {
+                    int c = costMap[y * world.Width + x];
+                    if (c < lo || c > hi)
+                        continue;
+                    var tile = world.GetTile(x, y);
+                    if (tile.IsWater)
+                        continue;
+                    if (tile.PoiIndex >= 0)
+                        continue;
+                    if (tile.IsStagingPoint)
+                        continue;
+                    if (tile.ShardZoneIndex >= 0)
+                        continue; // never bootstrap a staging outpost inside a shard vault
+                    bool road = tile.RoadEdges != 0;
+                    bool foreign = !string.IsNullOrEmpty(foreignTo) &&
+                                   !string.IsNullOrEmpty(tile.KingdomId) &&
+                                   tile.KingdomId != foreignTo;
+                    candidates.Add((x, y));
+                    if (road) roadCandidates.Add((x, y));
+                    if (foreign) foreignCandidates.Add((x, y));
+                    if (foreign && road) foreignRoadCandidates.Add((x, y));
+                }
             }
         }
 
-        // Prefer a foreign-kingdom site when one is required and available.
-        var pickList = (foreignTo != null && foreignCandidates.Count > 0)
-            ? foreignCandidates
-            : candidates;
+        Collect(minCost, maxCost);
+        // A cramped/rough map can leave the band empty (or empty of foreign
+        // ground for the anti-softlock outpost): widen upward once before
+        // giving up — a farther outpost beats no outpost.
+        if (candidates.Count == 0 || (foreignTo != null && foreignCandidates.Count == 0))
+        {
+            var keepC = candidates; var keepF = foreignCandidates;
+            var keepRC = new List<(int x, int y)>(roadCandidates);
+            var keepFRC = new List<(int x, int y)>(foreignRoadCandidates);
+            Collect(minCost, maxCost + 10);
+            if (foreignTo != null && foreignCandidates.Count == 0 && keepC.Count > 0)
+            {
+                // Widening found no foreign ground either — restore the tight
+                // band so at least the site stays close.
+                candidates = keepC; foreignCandidates = keepF;
+                roadCandidates = keepRC; foreignRoadCandidates = keepFRC;
+            }
+        }
+
+        // Preference order: foreign road > foreign > road > anything — foreign
+        // is the softlock guarantee (when required), roads are the approach.
+        var pickList =
+            (foreignTo != null && foreignRoadCandidates.Count > 0) ? foreignRoadCandidates :
+            (foreignTo != null && foreignCandidates.Count > 0) ? foreignCandidates :
+            roadCandidates.Count > 0 ? roadCandidates :
+            candidates;
 
         if (foreignTo != null && foreignCandidates.Count == 0)
-            GD.PushWarning($"[WorldGenerator] No FOREIGN bootstrap site for '{name}' in ring " +
-                           $"[{minD},{maxD}] — falling back to home kingdom; softlock risk.");
+            GD.PushWarning($"[WorldGenerator] No FOREIGN bootstrap site for '{name}' in cost band " +
+                           $"[{minCost},{maxCost}] — falling back to home kingdom; softlock risk.");
 
         if (pickList.Count == 0)
         {
-            GD.PushWarning($"[WorldGenerator] No bootstrap-outpost site in ring " +
-                           $"[{minD},{maxD}] — staging may not bootstrap.");
+            GD.PushWarning($"[WorldGenerator] No bootstrap-outpost site in cost band " +
+                           $"[{minCost},{maxCost}] — staging may not bootstrap.");
             return;
         }
 
@@ -905,7 +1005,9 @@ public static class WorldGenerator
         world.Tiles[idx] = ot;
 
         GD.Print($"[WorldGenerator] Bootstrap outpost '{name}' at ({ox},{oy}), " +
-                 $"hex distance {Dist((ox, oy), start)} from start, kingdom '{world.GetTile(ox, oy).KingdomId}'.");
+                 $"walked cost {costMap[oy * world.Width + ox]} steps " +
+                 $"(hex distance {Dist((ox, oy), start)}), road-adjacent " +
+                 $"{world.GetTile(ox, oy).RoadEdges != 0}, kingdom '{world.GetTile(ox, oy).KingdomId}'.");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────

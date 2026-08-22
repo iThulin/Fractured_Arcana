@@ -109,16 +109,154 @@ public sealed partial class CityServicesHost : CanvasLayer
         closeBtn.Pressed += Close;
         header.AddChild(closeBtn);
 
-        var sub = new Label { Text = "A foreign capital. What business brings you here?" };
+        // Subtitle scales with the settlement (Phase 3: towns and ordinary cities
+        // descend now, not just seat capitals).
+        bool isTown = _city != null && _city.Tier == SettlementTier.Town;
+        var sub = new Label
+        {
+            Text = isTown
+                ? "A waystop town. Traders, gossip, little else."
+                : (_city?.IsSeat ?? true)
+                    ? "A foreign capital. What business brings you here?"
+                    : "A working city of the kingdom. What business brings you here?",
+        };
         sub.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         sub.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         vbox.AddChild(sub);
 
-        // Service sections. Recruit (K3) and Market (Q4) are LIVE; Quests
-        // remains a placeholder until its service is built.
+        // Service sections — Market (Q4), Recruit (K3), and the contracts board
+        // (Phase 3 Quests) are all LIVE. Towns are market-only: no hiring hall
+        // (K3's halls are city institutions) and no contracts board.
         BuildMarketSection(vbox);
-        BuildRecruitSection(vbox);
-        AddService(vbox, "Quests", "Take contracts posted on the capital's board.");
+        if (!isTown)
+        {
+            BuildRecruitSection(vbox);
+            BuildQuestsSection(vbox);
+        }
+    }
+
+    // ── Phase 3: the contracts board (Quests service) ────────────────────
+
+    private VBoxContainer _questsBox;
+
+    /// <summary>The live Quests section: this lunation's posted contracts with
+    /// Accept / progress / Turn-in per row. Stock from CityContractService
+    /// (lazy per-lunation refresh; accepted contracts persist across refreshes).</summary>
+    private void BuildQuestsSection(VBoxContainer parent)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (_city == null || cycle == null)
+        {
+            AddService(parent, "Quests", "Take contracts posted on the capital's board.");
+            return;
+        }
+
+        var panel = new PanelContainer();
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = UITheme.BgCard,
+            ContentMarginLeft = 12, ContentMarginRight = 12,
+            ContentMarginTop = 10, ContentMarginBottom = 10,
+        });
+        parent.AddChild(panel);
+
+        var section = new VBoxContainer();
+        section.AddThemeConstantOverride("separation", 6);
+        panel.AddChild(section);
+
+        var title = new Label { Text = "Contracts Board" };
+        title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        section.AddChild(title);
+
+        _questsBox = new VBoxContainer();
+        _questsBox.AddThemeConstantOverride("separation", 6);
+        section.AddChild(_questsBox);
+
+        PopulateContracts();
+    }
+
+    /// <summary>(Re)fill the board — called at build and after accept/turn-in,
+    /// keeping the postings and the gold readout honest together.</summary>
+    private void PopulateContracts()
+    {
+        if (_questsBox == null) return;
+        foreach (var child in _questsBox.GetChildren())
+            child.QueueFree();
+
+        var save = SaveManager.ActiveSave;
+        var cycle = save?.Cycle;
+        if (cycle == null) return;
+
+        var board = CityContractService.GetOrRefresh(cycle, _city);
+        if (board == null || board.Offers.Count == 0)
+        {
+            var empty = new Label { Text = "The board is bare this lunation." };
+            empty.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            empty.AddThemeColorOverride("font_color", UITheme.TextDim);
+            _questsBox.AddChild(empty);
+            return;
+        }
+
+        foreach (var contract in new System.Collections.Generic.List<CityContract>(board.Offers))
+        {
+            var c = contract;   // capture per row
+
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 8);
+            _questsBox.AddChild(row);
+
+            var info = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            row.AddChild(info);
+
+            var name = new Label { Text = CityContractService.Describe(cycle, board, c) };
+            name.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            name.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            info.AddChild(name);
+
+            var pay = new Label
+            {
+                Text = c.Accepted && !c.Completed
+                    ? $"{c.GoldReward}g on completion  ·  {c.Progress}/{c.Target} done"
+                    : $"{c.GoldReward}g on completion",
+            };
+            pay.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            pay.AddThemeColorOverride("font_color", UITheme.TextDim);
+            info.AddChild(pay);
+
+            Button btn;
+            if (c.Completed)
+            {
+                btn = new Button { Text = $"Turn in ({c.GoldReward}g)" };
+                UITheme.ApplyButtonStyle(btn, isPrimary: true);
+                btn.Pressed += () =>
+                {
+                    string echo = CityContractService.TurnIn(cycle, board, c);
+                    if (echo != null) GD.Print($"[Contracts] {echo}");
+                    SaveManager.Save();
+                    PopulateContracts();
+                    PopulateRecruits();   // shared gold readout stays honest
+                };
+            }
+            else if (c.Accepted)
+            {
+                btn = new Button { Text = $"{c.Progress}/{c.Target}", Disabled = true };
+                UITheme.ApplyButtonStyle(btn, isPrimary: false);
+            }
+            else
+            {
+                btn = new Button { Text = "Accept" };
+                UITheme.ApplyButtonStyle(btn, isPrimary: false);
+                btn.Pressed += () =>
+                {
+                    c.Accepted = true;
+                    SaveManager.Save();
+                    PopulateContracts();
+                };
+            }
+            btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            btn.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            row.AddChild(btn);
+        }
     }
 
     // ── Q4: the city market (companion_item_systems v2.1 §7c) ────────────

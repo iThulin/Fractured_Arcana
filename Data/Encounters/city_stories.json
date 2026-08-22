@@ -1,0 +1,214 @@
+[
+  {
+    "id": "cs_bellfounders_apprentice",
+    "title": "The Bellfounder's Apprentice",
+    "body": "The foundry's bell has hung silent for a year. Its apprentice — mid-twenties, burn-scarred hands — tells you why without being asked: the master died with the alloy's proportion in his head, and the guild that commissioned the bell wants its deposit back. She has the mold, the bronze, and one guess. DRAFT: rewrite in author voice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Fund another casting (30 gold)",
+        "resultText": "The second pour rings true. She names the bell after no one, which you understand is a kind of naming.",
+        "goldDelta": -30,
+        "setFlags": ["cs_bell_rung"]
+      },
+      {
+        "label": "Read the master's ledger with an arcanist's eye",
+        "resultText": "The proportion was never in his head — it's in the marginal tallies, disguised as debts. She laughs once, sharp, and gets to work.",
+        "setFlags": ["cs_bell_rung"]
+      },
+      {
+        "label": "Leave the bell silent",
+        "resultText": "Some cities keep a silence where a sound should be. This one keeps yours now too."
+      }
+    ]
+  },
+  {
+    "id": "cs_bell_heard_again",
+    "title": "The Bell, Heard Again",
+    "requiredFlag": "cs_bell_rung",
+    "body": "You hear it three streets before you place it — the foundry bell, swinging full. The apprentice, now the master, keeps a small crowd of debtors-turned-patrons. She spots you and doesn't wave; she just nods at the tower, meaning: that's yours as much as mine. DRAFT: rewrite in author voice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Accept the founder's due",
+        "resultText": "She presses a purse into your hands, cast from the first pour's excess. It's heavier than it looks.",
+        "goldDelta": 45
+      },
+      {
+        "label": "Ask her to ring it for the honored dead",
+        "resultText": "She rings it nine times. The city pauses. You don't tell her who it was for, and she doesn't ask.",
+        "setMetaFlags": ["cs_bell_tolled_for_dead"]
+      }
+    ]
+  },
+  {
+    "id": "cs_cartographers_dispute",
+    "title": "The Cartographers' Dispute",
+    "body": "Two mapmakers keep shops on the same lane and have not spoken in a decade. Each sells a map of the city with the other's street left blank. The lane's residents navigate by grudge. A courier, arms full of misdelivered parcels, begs you to settle it — either of them, both of them, she doesn't care. DRAFT: rewrite in author voice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Commission one map from both (25 gold)",
+        "resultText": "They accept only because refusing your coin means the other might not. The finished map has two compass roses. The lane finds this correct.",
+        "goldDelta": -25,
+        "setFlags": ["cs_lane_mapped"]
+      },
+      {
+        "label": "Buy the blank-street maps as curiosities",
+        "resultText": "You pay collector's prices for mutually assured omission. Somewhere a scholar of grudges will thank you.",
+        "goldDelta": -10
+      },
+      {
+        "label": "Let the lane keep its feud",
+        "resultText": "The courier sighs, redistributes her parcels by memory, and wishes you a pointed good day."
+      }
+    ]
+  },
+  {
+    "id": "cs_night_ferry",
+    "title": "The Night Ferry",
+    "body": "The canal ferryman poles only after dark and takes no coin — he takes questions, one per passenger, to be answered honestly. The queue at his mooring is short and quiet. People who ride with him disembark looking lighter or heavier, never the same. DRAFT: rewrite in author voice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Ride, and answer his question",
+        "resultText": "He asks what you would keep if the cycle took everything else. You answer. The far bank arrives sooner than it should.",
+        "setMetaFlags": ["cs_ferry_answered"]
+      },
+      {
+        "label": "Watch who rides",
+        "resultText": "A magistrate. A gravedigger. A girl with a soldier's boots. You learn the city by its passengers.",
+        "goldDelta": 0,
+        "setFlags": ["cs_ferry_watched"]
+      }
+    ]
+  },
+  {
+    "id": "cs_archive_of_receipts",
+    "title": "The Archive of Receipts",
+    "body": "A basement archive holds every receipt the city has issued for three hundred years, curated by a clerk who believes commerce is the only honest history. 'Chronicles lie,' he says, pulling a drawer. 'Nobody lies to a ledger they're paying.' He'll trade access for a receipt of yours — any purchase, honestly documented. DRAFT: rewrite in author voice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Trade a receipt and read the stacks",
+        "resultText": "Three hundred years of prices tell you exactly when this city was afraid, and of what. Useful. Sobering.",
+        "setFlags": ["cs_receipts_read"]
+      },
+      {
+        "label": "Sell him the guild's provisioning ledger page (gain 20 gold)",
+        "resultText": "He pays collector's rates for your arithmetic. Your grocery list is now history.",
+        "goldDelta": 20
+      }
+    ]
+  },
+  {
+    "id": "cs_saint_of_small_repairs",
+    "title": "The Saint of Small Repairs",
+    "body": "There's a shrine here to a saint no church recognizes: the Saint of Small Repairs, patron of mended handles, patched roofs, and apologies delivered late but delivered. Offerings are broken things. The shrine-keeper mends them overnight and returns them to the city's stoops by dawn. She is visibly exhausted. DRAFT: rewrite in author voice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Leave gold in the offering bowl (15 gold)",
+        "resultText": "She uses it for solder and thread, which is to say, for the city.",
+        "goldDelta": -15,
+        "setFlags": ["cs_shrine_tended"]
+      },
+      {
+        "label": "Spend the evening mending beside her",
+        "resultText": "Your hands learn six small skills and one large one: how to fix a thing without being asked whose fault the breaking was.",
+        "setFlags": ["cs_shrine_tended"]
+      },
+      {
+        "label": "Leave a broken thing of your own",
+        "resultText": "By dawn it's on the stoop of the inn where you slept, whole. You did not tell anyone where you were staying."
+      }
+    ]
+  },
+  {
+    "id": "cs_rooftop_parliament",
+    "title": "The Rooftop Parliament",
+    "body": "The city's pigeon-keepers meet at dusk on the granary roof and call themselves, without irony, the Parliament. Their birds carry half the kingdom's gossip, which makes the keepers the best-informed people in the city and the least consulted. Their speaker offers you a seat for the evening session. DRAFT: rewrite in author voice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Sit the session and listen",
+        "resultText": "You learn which merchant is quietly insolvent, which garrison is under strength, and which courtier reads other people's letters. The Parliament adjourns; the knowledge stays.",
+        "setFlags": ["cs_parliament_heard"]
+      },
+      {
+        "label": "Buy a bird's message-run (10 gold)",
+        "resultText": "Your word goes out over the walls faster than any rider. You are now, technically, gossip.",
+        "goldDelta": -10
+      }
+    ]
+  },
+  {
+    "id": "cs_unfinished_statue",
+    "title": "The Unfinished Statue",
+    "body": "In the old plaza stands a statue abandoned mid-carving: legs, torso, one extended arm, no face. The city argues about who it was meant to be; the arguments have outlived everyone who could have known. A sculptor circles it with calipers, commissioned by the council to finish it — any face, they said, just finish it. She hates the commission. DRAFT: rewrite in author voice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Argue it should stay unfinished",
+        "resultText": "'A face would end the arguing,' she says. 'The arguing is the only civic tradition this plaza has.' She returns the council's advance the next morning.",
+        "setFlags": ["cs_statue_unfinished"]
+      },
+      {
+        "label": "Suggest she carve a mirror-polish blank",
+        "resultText": "A year of polishing later, they say, the statue will wear the face of whoever looks. The council thinks it's a compromise. It is not.",
+        "setFlags": ["cs_statue_mirror"]
+      }
+    ]
+  },
+  {
+    "id": "cs_debt_of_lanterns",
+    "title": "A Debt of Lanterns",
+    "body": "Every lantern on the harbor stair is dark. The lamplighter's oil merchant won't extend credit again, the watch won't pay for what it calls a 'decorative' service, and last month two porters went off the stair's edge in the dark. The lamplighter shows you her ledger like a wound. DRAFT: rewrite in author voice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Settle the oil debt (25 gold)",
+        "resultText": "The stair comes back light by light while you watch. The porters' guild sends her a ham. She cries about the ham, not the debt.",
+        "goldDelta": -25,
+        "setFlags": ["cs_lanterns_lit"]
+      },
+      {
+        "label": "Show her a cold-flame glyph that burns no oil",
+        "resultText": "It takes her an evening to learn and costs her nothing forever after. The oil merchant is furious, which she reports with relish.",
+        "setFlags": ["cs_lanterns_lit"]
+      },
+      {
+        "label": "Walk on",
+        "resultText": "The stair stays dark. You take the long way down, which is what everyone does now."
+      }
+    ]
+  },
+  {
+    "id": "cs_gate_names",
+    "title": "What the Gates Are Called",
+    "body": "The city's gates have official names — Triumph, Concord, the Sovereign's Arch — and real ones: Butcher's Gate, the Widow's Door, Lastlook. A gate-warden collects the real names and their reasons in a battered book, against the day the council next renames everything. 'Cities remember in nicknames,' he says. 'Paper is where names go to be forgotten.' DRAFT: rewrite in author voice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Add what you've heard on the roads",
+        "resultText": "You give him three names from three kingdoms and the reasons behind them. He writes them in the back, under 'elsewhere,' which is the book's largest section.",
+        "setFlags": ["cs_gate_names_shared"]
+      },
+      {
+        "label": "Ask which name this city will keep for you",
+        "resultText": "He looks at you longer than is comfortable. 'Depends on what you break,' he says, 'and what you mend.'",
+        "setMetaFlags": ["cs_gate_names_warned"]
+      }
+    ]
+  }
+]

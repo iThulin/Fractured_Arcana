@@ -30,7 +30,8 @@ public static class CityMarketService
 {
     // ── Tuning (Q4 starting values) ──────────────────────────────────────
 
-    /// <summary>Stock slots: ordinary city 3, seat/capital 4.</summary>
+    /// <summary>Stock slots: town 2, ordinary city 3, seat/capital 4.</summary>
+    public const int TownStock = 2;
     public const int CityStock = 3;
     public const int SeatStock = 4;
 
@@ -84,7 +85,8 @@ public static class CityMarketService
         var all = ItemDatabase.GetAll();
         if (all == null || all.Count == 0) return;
 
-        int slots = city.IsSeat ? SeatStock : CityStock;
+        int slots = city.IsSeat ? SeatStock
+                  : city.Tier == SettlementTier.City ? CityStock : TownStock;
         int totalWeight = RarityWeights.Sum(w => w.weight);
 
         // Consumables (2026-08-13): every shop reliably carries sundries —

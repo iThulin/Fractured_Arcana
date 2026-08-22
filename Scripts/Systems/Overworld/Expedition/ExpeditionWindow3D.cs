@@ -105,6 +105,8 @@ public partial class ExpeditionWindow3D : Node3D
     private GeometryInstance3D _landLayer;      // welded ArrayMesh (stage 2) or MultiMesh fallback
     private MultiMeshInstance3D _waterLayer;
     private GeometryInstance3D _canvasLayer;    // Hidden fog = unpainted canvas (welded sheet or MultiMesh fallback)
+    private Node3D _mistLayer;                  // 2026-08-21 rev 2: volumetric mist stack (deck + 2 wisp sheets)
+    private readonly List<ShaderMaterial> _mistMats = new();   // deck, wispA, wispB — restyled live by ApplySurround
     private MeshInstance3D _riverLayer;         // A9b: one winding ribbon mesh (RiverMesh)
     private MeshInstance3D _roadLayer;          // stage 2: ground-following ribbon too
     private readonly List<Node3D> _decor = new();
@@ -325,8 +327,13 @@ public partial class ExpeditionWindow3D : Node3D
     // standalone), see the change — no code edits.
     [ExportGroup("Scrying Chamber")]
     [Export] public Color ChamberBackground = new Color(0.035f, 0.045f, 0.065f);
-    [Export] public float ChamberFogDensity = 0.05f;
-    [Export] public float ChamberAmbientEnergy = 0.40f;
+    // Playtest 2026-08-21 ("too dark in general"): the map readability knobs are
+    // the CHAMBER's, not the shared daylight rig — the base sun/ambient stay at
+    // the A4b atlas-parity values so the two 3D views keep lighting the A1
+    // palette identically. Fog density down (dark distance fog was eating the
+    // projection), chamber ambient up.
+    [Export] public float ChamberFogDensity = 0.032f;
+    [Export] public float ChamberAmbientEnergy = 0.62f;
     /// <summary>Arcane glow shared by the projection rim, the chamber light, and
     /// the figures' under-light, so the scene reads as one magical source.</summary>
     [Export] public Color ArcaneGlow = new Color(0.42f, 0.68f, 0.92f);
@@ -337,7 +344,7 @@ public partial class ExpeditionWindow3D : Node3D
     [Export] public float TableTopY = -0.35f;   // just below the map ⇒ projection floats
     [Export] public float FloorY = -3.2f;       // chamber floor the figures stand on
     [Export] public float ProjectionRimEnergy = 3.4f;
-    [Export] public float GlowEnergy = 3.2f;
+    [Export] public float GlowEnergy = 3.6f;   // was 3.2 — part of the 2026-08-21 brightness pass
 
     [ExportGroup("Companions")]
     [Export] public int CompanionCount = 5;
@@ -403,6 +410,7 @@ public partial class ExpeditionWindow3D : Node3D
                 _env.FogDensity = ChamberFogDensity;
                 break;
         }
+        ApplyMistStyle();   // the mist must match the active look (B-cycle safe)
     }
 
     /// <summary>Restyle an unexplored (canvas) tile's tone so unknown ground is
@@ -685,11 +693,14 @@ public partial class ExpeditionWindow3D : Node3D
         _landLayer?.QueueFree();
         _waterLayer?.QueueFree();
         _canvasLayer?.QueueFree();
+        _mistLayer?.QueueFree();
         _waterLayer = null;
         _canvasLayer = null;
+        _mistLayer = null;
 
         BuildFieldData();
         _landLayer = BuildHeightmapSurface();
+        RebuildMistLayer();
 
         // Keep the active V-key diagnostic mode across rebuilds.
         if (_debugViz != 0)
@@ -812,13 +823,38 @@ public partial class ExpeditionWindow3D : Node3D
                 float wx = _fieldMin.X + wSpan * i / nx;
                 float wz = _fieldMin.Y + hSpan * j / nz;
                 int idx = j * stride + i;
-                float baseH = SampleField(wx, wz, out var c);   // one sample: height + colour
                 float rad = Mathf.Sqrt((wx - cx) * (wx - cx) + (wz - cz) * (wz - cz));
-                outside[idx] = rad > discR;
+                // Rim CLAMP, not clip (2026-08-21 rev 9 — the final sawtooth
+                // fix). Dropping whole quads outside the disc left a staircase
+                // OUTLINE that survived every cover-up (sink, mist alpha) and
+                // kept silhouetting through the translucent rim band. Instead,
+                // vertices beyond the disc are pulled RADIALLY onto the circle:
+                // the mesh boundary IS the circle now — there is no sawtooth to
+                // hide. Outer quads compress to thin slivers along the arc
+                // (zero-area ones render nothing); `outside` stays false so no
+                // quad is ever dropped.
+                if (rad > discR)
+                {
+                    float k = discR / rad;
+                    wx = cx + (wx - cx) * k;
+                    wz = cz + (wz - cz) * k;
+                    rad = discR;
+                }
+                float baseH = SampleField(wx, wz, out var c);   // one sample: height + colour
                 if (rad > discR - rimFade)
                 {
                     float t = Mathf.Clamp((rad - (discR - rimFade)) / rimFade, 0f, 1f);
                     c = c.Lerp(_surroundEdge, t * t * (3f - 2f * t));   // smoothstep to surround
+                }
+                // Rim sink (rev 7): the outermost band dives below the mist
+                // deck to exactly TableTopY, so the (now circular) boundary
+                // meets the barrel base under the fog, out of sight.
+                const float sinkBand = 2.0f;
+                if (rad > discR - sinkBand)
+                {
+                    float s = Mathf.Clamp((rad - (discR - sinkBand)) / sinkBand, 0f, 1f);
+                    s = s * s * (3f - 2f * s);
+                    baseH = Mathf.Lerp(baseH, FogSlabHeight - 0.6f, s);
                 }
                 pos[idx] = new Vector3(wx, baseH + Undulation(wx, wz), wz);
                 col[idx] = c;
@@ -926,8 +962,32 @@ public partial class ExpeditionWindow3D : Node3D
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         });
 
-        // Glowing projection rim — a flat emissive annulus at the map edge.
-        Add(MakeRing(c + new Vector3(0f, tableTopY + 0.06f, 0f), R - 0.2f, R + 0.35f, ArcaneGlow, ProjectionRimEnergy));
+        // The LENS FRAME (2026-08-21 playtest: "contained in the frame"). The
+        // rim used to be a flat annulus at table level, far below the mist —
+        // the fog looked like it was spilling over an open plate. Now the
+        // frame is a vessel: a dark barrel wall rises from the table top to
+        // just above the mist deck's crests, and the glowing annulus sits on
+        // its lip, so the mist reads as held INSIDE the scrying lens.
+        float rimY = FogSlabHeight + 0.12f + MistDeckAmp + 0.35f;   // just above the mist tops
+        Add(new MeshInstance3D
+        {
+            Name = "LensBarrel",
+            Mesh = new CylinderMesh
+            {
+                TopRadius = R + 0.55f, BottomRadius = R + 0.75f,
+                Height = rimY - tableTopY, RadialSegments = 64,
+                CapTop = false, CapBottom = false,
+            },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = TableColor.Darkened(0.15f), Roughness = 0.8f,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,   // inner wall visible from above
+            },
+            Position = c + new Vector3(0f, (rimY + tableTopY) * 0.5f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+        // Glowing lip on the barrel's top edge.
+        Add(MakeRing(c + new Vector3(0f, rimY, 0f), R + 0.30f, R + 0.85f, ArcaneGlow, ProjectionRimEnergy));
 
         // Arcane light from the projection — lights ONLY the rig (cull mask), so
         // the map colours stay as tuned. No shadows (avoids the acne we fixed).
@@ -1064,6 +1124,299 @@ public partial class ExpeditionWindow3D : Node3D
         }
         return 0.22f + (h - 0.22f) * HeightScale;
     }
+
+    // ── Volumetric mist over undiscovered ground (2026-08-21, rev 2) ─────────
+    // Playtest rev 2: the single translucent sheet read as a flat wash and let
+    // the unexplored terrain colour bleed through. Now a three-layer stack that
+    // fakes a volume convincingly on any renderer:
+    //  1. DECK — a subdivided plane vertex-DISPLACED by curl-bent scrolling
+    //     noise (real lumpy geometry, finite-difference normals, manual lambert
+    //     shading) that goes NEAR-OPAQUE over fully hidden ground, so the
+    //     canvas colour underneath is actually gone;
+    //  2/3. WISPS — two light translucent sheets above at different scales,
+    //     speeds and directions; their parallax against the moving deck is
+    //     what sells the volume. All alpha comes from the blurred hidden-mask
+    //     (world-space lookup), so mist sits only over undiscovered ground and
+    //     thins to wisps at the frontier. Silhouette-ring tiles stay unmisted.
+    private const float MistDeckHeight = FogSlabHeight + 0.12f;
+    private const float MistDeckAmp = 0.95f;      // vertex displacement ceiling
+    private const int MistMaskRes = 112;
+    private const int MistDeckSubdiv = 100;
+
+    private const string MistDeckShaderCode = @"
+shader_type spatial;
+render_mode unshaded, blend_mix, cull_back, shadows_disabled;
+
+uniform sampler2D hidden_mask : filter_linear, repeat_disable;
+uniform sampler2D noise_tex : filter_linear, repeat_enable;
+uniform vec4 mist_color : source_color = vec4(0.52, 0.55, 0.72, 1.0);
+uniform float density : hint_range(0.0, 1.0) = 0.96;
+uniform float amp = 0.95;
+uniform float swirl = 0.4;
+uniform float speed = 0.03;
+uniform vec2 mask_min;
+uniform vec2 mask_size;
+uniform vec2 disc_center;
+uniform float disc_radius = 1e6;
+uniform float rim_fade = 6.0;
+uniform vec2 wind = vec2(1.0, 0.35);
+uniform float rim_reach = 0.5;
+
+varying float v_cloud;
+varying vec3 v_normal;
+varying vec3 v_world;
+
+// Rolling ADVECTION, not churn: every octave drifts the SAME heading at a
+// different rate (in-cloud parallax), and the curl field itself evolves
+// slowly. The old counter-scrolling octaves had zero net motion — pure
+// in-place churn, which reads as boiling liquid, not weather.
+float cloud(vec2 p, float t) {
+    vec2 drift = normalize(wind) * t;
+    float na = textureLod(noise_tex, p * 0.9 - drift * 0.35 + vec2(0.0, t * 0.05), 0.0).r;
+    float nb = textureLod(noise_tex, p * 1.3 - drift * 0.5 + vec2(t * 0.04, 0.0), 0.0).r;
+    vec2 bend = vec2(na - 0.5, nb - 0.5) * swirl;
+    float body = textureLod(noise_tex, p * 0.5 + bend - drift, 0.0).r;
+    float wisp = textureLod(noise_tex, p * 1.5 + bend * 1.4 - drift * 1.4, 0.0).r;
+    return clamp(body * 0.75 + wisp * 0.45, 0.0, 1.0);
+}
+
+void vertex() {
+    vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+    vec2 muv = (wp.xz - mask_min) / mask_size;
+    float m = textureLod(hidden_mask, muv, 0.0).r;
+    float t = TIME * speed;
+    // Broader features than rev 2 (0.13 → 0.09): banks and shelves, not bubbles.
+    vec2 p = wp.xz * 0.09;
+    float c = cloud(p, t);
+    // Finite-difference normal from the same field (dx in world units).
+    float e = 0.5;
+    float cx = cloud(p + vec2(e * 0.09, 0.0), t);
+    float cz = cloud(p + vec2(0.0, e * 0.09), t);
+    // Displacement is full-height to the wall (rev 6): the barrel lip sits
+    // at deck base + FULL amp + 0.35, so rolling cloud clears the frame.
+    // Rim/mask ALPHA moved to the FRAGMENT stage (rev 8): computed per-
+    // vertex they were interpolated across the 100² grid's triangles, which
+    // quantized the circular fade into a sawtooth at the rim (the arrowed
+    // jagged seam). Per-pixel, the edge is a true circle.
+    VERTEX.y += c * amp * m;
+    v_cloud = c;
+    v_world = wp;
+    v_normal = normalize(vec3((c - cx) * amp * m / e, 1.0, (c - cz) * amp * m / e));
+}
+
+void fragment() {
+    // Manual lambert off the displaced surface: crests catch light, hollows
+    // sink — the shading is what makes the deck read as a body, not a sheet.
+    float lit = clamp(dot(normalize(v_normal), normalize(vec3(0.45, 0.75, 0.35))), 0.0, 1.0);
+    ALBEDO = mist_color.rgb * (0.52 + 0.50 * lit) + vec3(v_cloud * 0.04);
+    // Near-opaque over fully hidden ground (the underlying colour must GO);
+    // the frontier fade rides the blurred mask, the disc clip the rim —
+    // both PER-PIXEL (rev 8), so neither edge can alias against the grid.
+    float m = texture(hidden_mask, (v_world.xz - mask_min) / mask_size).r;
+    float dRim = distance(v_world.xz, disc_center);
+    float arim = 1.0 - smoothstep(disc_radius - 1.2, disc_radius + rim_reach, dRim);
+    ALPHA = smoothstep(0.04, 0.45, m) * density * arim;
+}";
+
+    private const string MistWispShaderCode = @"
+shader_type spatial;
+render_mode unshaded, blend_mix, cull_disabled, shadows_disabled;
+
+uniform sampler2D hidden_mask : filter_linear, repeat_disable;
+uniform sampler2D noise_tex : filter_linear, repeat_enable;
+uniform vec4 mist_color : source_color = vec4(0.58, 0.61, 0.78, 1.0);
+uniform float density : hint_range(0.0, 1.0) = 0.4;
+uniform float scale = 0.2;
+uniform float swirl = 0.35;
+uniform float speed = 0.045;
+uniform vec2 mask_min;
+uniform vec2 mask_size;
+uniform vec2 disc_center;
+uniform float disc_radius = 1e6;
+uniform float rim_fade = 6.0;
+uniform vec2 wind = vec2(1.0, 0.35);
+uniform float rim_reach = 0.5;
+
+varying vec3 world_pos;
+
+void vertex() {
+    world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+void fragment() {
+    vec2 muv = (world_pos.xz - mask_min) / mask_size;
+    float m = texture(hidden_mask, muv).r;
+    if (m < 0.02) {
+        ALPHA = 0.0;
+    } else {
+        vec2 uv = world_pos.xz * scale;
+        float t = TIME * speed;
+        // Same one-heading advection as the deck (see MistDeckShaderCode).
+        vec2 drift = normalize(wind) * t;
+        float na = texture(noise_tex, uv * 0.9 - drift * 0.35 + vec2(0.0, t * 0.05)).r;
+        float nb = texture(noise_tex, uv * 1.3 - drift * 0.5 + vec2(t * 0.04, 0.0)).r;
+        vec2 bend = vec2(na - 0.5, nb - 0.5) * swirl;
+        float body = texture(noise_tex, uv * 0.55 + bend - drift).r;
+        float wisp = texture(noise_tex, uv * 1.8 + bend * 1.4 - drift * 1.4).r;
+        // Threshold into puffs (not a wash) so each sheet reads as drifting
+        // cloud matter with gaps the deck shows through — the parallax cue.
+        float puff = smoothstep(0.42, 0.75, body * 0.7 + wisp * 0.45);
+        float edge = smoothstep(0.05, 0.55, m);
+        // Alpha runs to rim_reach past the disc (the barrel wall), matching the
+        // deck — see the deck shader's jagged-seam note.
+        float rim = 1.0 - smoothstep(disc_radius - 1.2, disc_radius + rim_reach, distance(world_pos.xz, disc_center));
+        ALPHA = puff * density * edge * rim;
+        ALBEDO = mist_color.rgb + vec3(wisp * 0.05);
+    }
+}";
+
+    /// <summary>Build the three-layer mist stack over the current field bounds:
+    /// bake the blurred hidden-mask from the fog model, then the displaced deck
+    /// plus two wisp sheets. Rebuilt with the tiles (fog changes every reveal).
+    /// Style tint/density applied via <see cref="ApplyMistStyle"/>.</summary>
+    private void RebuildMistLayer()
+    {
+        _mistMats.Clear();
+        float w = _fieldMax.X - _fieldMin.X, h = _fieldMax.Y - _fieldMin.Y;
+        if (w <= 0f || h <= 0f) return;
+
+        // Bake the hidden mask: 1 = undiscovered (or off-world), 0 = painted.
+        var raw = new float[MistMaskRes * MistMaskRes];
+        for (int j = 0; j < MistMaskRes; j++)
+        {
+            for (int i = 0; i < MistMaskRes; i++)
+            {
+                float wx = _fieldMin.X + (i + 0.5f) / MistMaskRes * w;
+                float wz = _fieldMin.Y + (j + 0.5f) / MistMaskRes * h;
+                var (c, r) = WorldToOffset(wx, wz);
+                bool hidden = !_world.InBounds(c, r) ||
+                              _fog.FogAt(new Vector2I(c, r)) == Fog.Hidden;
+                raw[j * MistMaskRes + i] = hidden ? 1f : 0f;
+            }
+        }
+        // One 3×3 box pass: softens the tile-quantised edge so the shaders'
+        // smoothsteps have a gradient to ride (wisps at the frontier).
+        var img = Image.CreateEmpty(MistMaskRes, MistMaskRes, false, Image.Format.L8);
+        for (int j = 0; j < MistMaskRes; j++)
+        {
+            for (int i = 0; i < MistMaskRes; i++)
+            {
+                float sum = 0f; int n = 0;
+                for (int dj = -1; dj <= 1; dj++)
+                {
+                    for (int di = -1; di <= 1; di++)
+                    {
+                        int x = i + di, y = j + dj;
+                        if (x < 0 || y < 0 || x >= MistMaskRes || y >= MistMaskRes) continue;
+                        sum += raw[y * MistMaskRes + x]; n++;
+                    }
+                }
+                float v = sum / n;
+                img.SetPixel(i, j, new Color(v, v, v));
+            }
+        }
+        var mask = ImageTexture.CreateFromImage(img);
+
+        var noise = new NoiseTexture2D
+        {
+            Noise = new FastNoiseLite
+            {
+                NoiseType = FastNoiseLite.NoiseTypeEnum.Perlin,
+                Frequency = 0.02f,
+                FractalOctaves = 3,
+            },
+            Seamless = true,
+            Width = 256,
+            Height = 256,
+        };
+
+        _mistLayer = new Node3D { Name = "MistStack" };
+        AddChild(_mistLayer);
+
+        ShaderMaterial MakeMat(string code)
+        {
+            var mat = new ShaderMaterial { Shader = new Shader { Code = code } };
+            mat.SetShaderParameter("hidden_mask", mask);
+            mat.SetShaderParameter("noise_tex", noise);
+            mat.SetShaderParameter("mask_min", new Vector2(_fieldMin.X, _fieldMin.Y));
+            mat.SetShaderParameter("mask_size", new Vector2(w, h));
+            // Scrying-disc clip: BuildHeightmapSurface ran just before us and
+            // stamped the projection's centre/radius — the mist stack must be
+            // the same round island the land is (rim band matches its 7u fade).
+            mat.SetShaderParameter("disc_center", new Vector2(_mapCenterX, _mapCenterZ));
+            mat.SetShaderParameter("disc_radius", _mapDiscR);
+            mat.SetShaderParameter("rim_fade", 6.0f);
+            // Alpha reach past the disc edge: keep just inside the barrel's
+            // inner wall (R + 0.55 at the top) so mist laps the vessel and
+            // buries the land mesh's whole-quad clip staircase.
+            mat.SetShaderParameter("rim_reach", 0.5f);
+            _mistMats.Add(mat);
+            return mat;
+        }
+        void AddPlane(string name, ShaderMaterial mat, float y, int subdiv)
+        {
+            _mistLayer.AddChild(new MeshInstance3D
+            {
+                Name = name,
+                Mesh = new PlaneMesh
+                {
+                    Size = new Vector2(w, h),
+                    SubdivideWidth = subdiv,
+                    SubdivideDepth = subdiv,
+                },
+                MaterialOverride = mat,
+                Position = new Vector3((_fieldMin.X + _fieldMax.X) * 0.5f, y,
+                                       (_fieldMin.Y + _fieldMax.Y) * 0.5f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            });
+        }
+
+        // Deck: the displaced, near-opaque body of the mist.
+        var deck = MakeMat(MistDeckShaderCode);
+        deck.SetShaderParameter("amp", MistDeckAmp);
+        AddPlane("MistDeck", deck, MistDeckHeight, MistDeckSubdiv);
+
+        // Wisps: two translucent drift sheets. Same general WIND HEADING as the
+        // deck (opposite directions read as churn — the "bubbling" complaint),
+        // but different rates and a small angular spread, so the layers slide
+        // over each other like cloud decks in shear (the parallax volume cue).
+        var wispA = MakeMat(MistWispShaderCode);
+        wispA.SetShaderParameter("scale", 0.20f);
+        wispA.SetShaderParameter("speed", 0.045f);
+        AddPlane("MistWispA", wispA, MistDeckHeight + MistDeckAmp * 0.75f, 0);
+
+        var wispB = MakeMat(MistWispShaderCode);
+        wispB.SetShaderParameter("scale", 0.30f);
+        wispB.SetShaderParameter("speed", 0.06f);
+        wispB.SetShaderParameter("wind", new Vector2(0.8f, 0.6f));   // ~20° off the deck's heading
+        AddPlane("MistWispB", wispB, MistDeckHeight + MistDeckAmp * 1.15f, 0);
+
+        ApplyMistStyle();
+    }
+
+    /// <summary>Tint + thickness of the mist per surround style, applied at build
+    /// and again when B cycles the surround (the mist must read as part of each
+    /// look, not pasted over it). Layer order in <see cref="_mistMats"/> is
+    /// deck, wispA, wispB.</summary>
+    private void ApplyMistStyle()
+    {
+        if (_mistMats.Count == 0) return;
+        var (col, deckDen) = _surround switch
+        {
+            SurroundStyle.Haze => (new Color(0.93f, 0.92f, 0.88f), 0.93f),
+            SurroundStyle.Desk => (new Color(0.85f, 0.79f, 0.68f), 0.92f),
+            _ => (new Color(0.50f, 0.53f, 0.70f), 0.96f),   // Vignette chamber
+        };
+        for (int i = 0; i < _mistMats.Count; i++)
+        {
+            // Upper sheets run lighter and thinner than the deck.
+            var layerCol = i == 0 ? col : col.Lightened(0.08f * i);
+            float den = i == 0 ? deckDen : (i == 1 ? 0.40f : 0.28f);
+            _mistMats[i].SetShaderParameter("mist_color", layerCol);
+            _mistMats[i].SetShaderParameter("density", den);
+        }
+    }
+
 
     // ── Rivers & roads (edge masks) ──────────────────────────────────────────
 
@@ -1435,22 +1788,52 @@ public partial class ExpeditionWindow3D : Node3D
                        : cost == 2 ? UITheme.MoveHighlightModerate
                        : UITheme.MoveHighlightExpensive;
 
-            var pos = TileOrigin(nc, nr); pos.Y = TileHeight(coord) + 0.06f;
-            var disc = new MeshInstance3D
+            // Playtest 2026-08-21 redesign: the old translucent hex-disc fills
+            // implied a tile lattice the smooth heightmap no longer shows, and
+            // their 30%-alpha colours vanished into same-hue terrain (amber on
+            // savanna). Now: a crisp UNSHADED ring — reads as UI, not ground —
+            // over a near-black underlay disc that guarantees contrast on any
+            // terrain colour, in any chamber lighting. Circles, not hexagons:
+            // the ground has no cells to echo.
+            var pos = TileOrigin(nc, nr); pos.Y = TileHeight(coord) + 0.10f;
+
+            var under = new MeshInstance3D
             {
-                Mesh = new CylinderMesh { TopRadius = HexR * 0.7f, BottomRadius = HexR * 0.7f, Height = 0.05f, RadialSegments = 6, Rings = 0 },
+                Mesh = new CylinderMesh { TopRadius = HexR * 0.62f, BottomRadius = HexR * 0.62f,
+                                          Height = 0.02f, RadialSegments = 32, Rings = 0 },
                 MaterialOverride = new StandardMaterial3D
-                { AlbedoColor = new Color(tint.R, tint.G, tint.B, 0.5f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                  EmissionEnabled = true, Emission = tint, EmissionEnergyMultiplier = 0.25f },
-                Position = pos,
+                {
+                    AlbedoColor = new Color(0.02f, 0.02f, 0.05f, 0.45f),
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                },
+                Position = pos - new Vector3(0f, 0.03f, 0f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             };
-            AddChild(disc); _moveHints.Add(disc);
+            AddChild(under); _moveHints.Add(under);
+
+            var ring = new MeshInstance3D
+            {
+                Mesh = new TorusMesh { InnerRadius = HexR * 0.46f, OuterRadius = HexR * 0.58f,
+                                       Rings = 32, RingSegments = 6 },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = new Color(tint.R, tint.G, tint.B, 0.95f),
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                },
+                Position = pos,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            };
+            AddChild(ring); _moveHints.Add(ring);
 
             var label = new Label3D
             {
                 Text = cost.ToString(), Position = pos + new Vector3(0f, 0.4f, 0f),
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true,
-                FontSize = 40, PixelSize = 0.012f, Modulate = Colors.White, OutlineSize = 8,
+                FontSize = 40, PixelSize = 0.012f,
+                Modulate = Colors.White, OutlineSize = 12,
+                OutlineModulate = new Color(0.02f, 0.02f, 0.05f, 1f),
             };
             AddChild(label); _moveHints.Add(label);
         }

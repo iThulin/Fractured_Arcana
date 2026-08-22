@@ -113,6 +113,11 @@ public partial class StrategicView : Node2D
     private NarrativeEncounterPanel _cityNarrativePanel;  // Phase 3 explore: hosts a district EVENT over the city view
     private CanvasLayer _cityExploreLayer;    // Phase 3 explore: hosts the narrative panel + toasts above the atlas
     private ToastManager _cityExploreToasts;  // Phase 3 explore: stub messages for Fight/Story districts
+    private WorldSettlement _reenterNpcCity;  // Phase 3 fights: land back inside this city after a combat round-trip
+    private string _reenterToast = "";        // outcome toast shown once the city view is back up
+    private QuestToastKind _reenterToastKind = QuestToastKind.Progress;
+    private System.Collections.Generic.List<string> _reenterContractToasts;  // contract completions from the fight
+    private bool _suppressServicesOnce;       // skip the services auto-open for one city entry (fight return)
     private const int DistrictAnnexCost = 250;   // placeholder gold cost to annex a district — tune in playtest
     [Export] public bool Use3DStrategicMap = true;
 
@@ -190,6 +195,11 @@ public partial class StrategicView : Node2D
                 // anything renders, so the outcome beat lands on the map the
                 // player left rather than after a frame of normal play.
                 ConsumeConvergenceReturn(cycle);
+
+                // A returning district FIGHT (Phase 3 explore) resolves here the
+                // same way: bank rewards, clear the district on victory, and queue
+                // the re-entry so BuildAtlas3D lands back inside the fought city.
+                ConsumeDistrictFightReturn(cycle);
 
                 // Mid-finale reload: once the Anchorhold is open, the Convergence
                 // is the only thing left in this timeline (spec §2). Route back to
@@ -352,6 +362,7 @@ public partial class StrategicView : Node2D
         _atlas3D.HomeGroundPicked += OnHomeGroundPicked;
         _atlas3D.CityModeChanged += OnCityModeChanged;
         _atlas3D.DistrictContentTriggered += OnDistrictContentTriggered;
+        _atlas3D.DistrictScouted += OnDistrictScouted;
         vp.AddChild(_atlas3D);            // _Ready builds the camera (no world yet)
         // Discovery gates the strategic map exactly as the 2D view did: normal play
         // shows only charted/explored ground (unseen = void), debug reveals all.
@@ -373,10 +384,33 @@ public partial class StrategicView : Node2D
 
         _atlas3D.AcceptInput = true;      // full-screen map — always live
 
+        // Phase 3 explore: a district fight round-trip lands back INSIDE the city it
+        // left, with its outcome toast — checked before the hub landing so the fight
+        // return wins over StartInCityOnOpen. Services are suppressed for this one
+        // entry (the player left a fight, not a shop queue); the City Services
+        // button still reopens them.
+        if (_reenterNpcCity != null)
+        {
+            var backCity = _reenterNpcCity;
+            _reenterNpcCity = null;
+            PlayerSession.StartInCityOnOpen = false;
+            PlayerSession.ZoomFromHomeOnOpen = false;
+            _suppressServicesOnce = true;
+            _atlas3D.SnapToTileClose(backCity.CenterX, backCity.CenterY);
+            _atlas3D.EnterCityView(backCity);
+            if (!string.IsNullOrEmpty(_reenterToast))
+            {
+                EnsureCityExploreToasts();
+                _cityExploreToasts?.Push(_reenterToast, _reenterToastKind);
+                _reenterToast = "";
+            }
+            PushContractToasts(_reenterContractToasts);
+            _reenterContractToasts = null;
+        }
         // The hub landing (2026-08-19): open IN CITY VIEW — the game's main screen.
         // One-shot; set by cold boot, guild founding, and utility-screen returns.
         // Checked before ZoomFromHomeOnOpen so the city landing wins if both are set.
-        if (PlayerSession.StartInCityOnOpen)
+        else if (PlayerSession.StartInCityOnOpen)
         {
             PlayerSession.StartInCityOnOpen = false;
             PlayerSession.ZoomFromHomeOnOpen = false;
@@ -414,6 +448,34 @@ public partial class StrategicView : Node2D
     {
         if (_world == null)
             return;
+
+        // City view owns clicks: when this pick just DESCENDED into a settlement
+        // (HandlePick enters city mode, then TilePicked still fires), none of the
+        // world-map verbs below may run — most visibly the staging snap, which would
+        // pop a deploy window over the freshly entered city (any settlement footprint
+        // tile sits within StagingClickTolerance of its own beacon).
+        if (_atlas3D != null && _atlas3D.CityMode)
+            return;
+
+        // Deploy drawer open: the map is live for RETARGETING only — a click near
+        // another staging beacon moves the drawer there; caches/warfronts wait
+        // until the drawer closes (no dialog stacking over the launch screen).
+        if (_deployUi != null)
+        {
+            StagingPoint retarget = null;
+            int retargetD = int.MaxValue;
+            if (_world.StagingPoints != null)
+                foreach (var sp in _world.StagingPoints)
+                {
+                    if (!sp.Available) continue;
+                    int d = HexCoord.OffsetDistance(col, row, sp.X, sp.Y);
+                    if (d < retargetD) { retargetD = d; retarget = sp; }
+                }
+            if (retarget != null && retargetD <= StagingClickTolerance &&
+                retarget != _pendingStaging)
+                OnStagingClicked(retarget);   // rebuilds the drawer on the new point
+            return;
+        }
 
         // Supply cache first, on the EXACT tile (caches are denser than staging, so no
         // snap — an exact click opens the cache; a near click falls through to the
@@ -572,6 +634,16 @@ public partial class StrategicView : Node2D
         }
         if (dest.Panel.HasValue)
         {
+            // Deploy-flow streamline (2026-08-21): the Gatehouse no longer opens
+            // the Expedition tab. Clicking it IS the deploy order — fly out of
+            // the city and open the deploy drawer on the last-used staging
+            // point. The old Expedition overlay remains only as the fallback
+            // for lifecycle moments (new-cycle school pick, ungenerated world).
+            if (dest.Panel.Value == CampusPanelId.Expedition)
+            {
+                BeginDeployFlow();
+                return;
+            }
             if (HomeBuildingPanelHost.CanFloat(dest.Panel.Value))
             {
                 ShowFloatingPanel(dest.Panel.Value, buildingId);
@@ -902,8 +974,9 @@ public partial class StrategicView : Node2D
         // and auto-open the menu on entry; hide/close both when leaving the city.
         bool npc = on && !home;
         if (_cityServicesBtn != null) _cityServicesBtn.Visible = npc;
-        if (npc) ShowCityServices();
-        else if (_cityServices != null) _cityServices.Close();
+        if (npc && !_suppressServicesOnce) ShowCityServices();
+        else if (!npc && _cityServices != null) _cityServices.Close();
+        if (npc) _suppressServicesOnce = false;   // one-shot (fight return lands on the city, not the menu)
 
         RefreshHint();
         // First home-city entry this session: open the orientation card once, unbidden —
@@ -1048,16 +1121,10 @@ public partial class StrategicView : Node2D
                 TriggerCityEvent(entry, city);
                 break;
             case DistrictContentType.Fight:
-                EnsureCityExploreToasts();
-                _cityExploreToasts?.Push("A hostile enclave stirs here. (District fights — coming soon.)",
-                                         QuestToastKind.Progress);
-                ClearDistrict(entry);
+                LaunchDistrictFight(entry, city);
                 break;
             case DistrictContentType.Story:
-                EnsureCityExploreToasts();
-                _cityExploreToasts?.Push("You uncover a thread of this city's story. (Story beats — coming soon.)",
-                                         QuestToastKind.Progress);
-                ClearDistrict(entry);
+                TriggerCityStory(entry, city);
                 break;
         }
     }
@@ -1090,18 +1157,219 @@ public partial class StrategicView : Node2D
             save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign,
             hasItem: id => save.Armory.OwnedItems.Exists(i => i.DefinitionId == id),
             hasCompanion: id => CompanionRoster.GetActiveParty().Exists(c => c.Id == id));
-        _cityNarrativePanel.OnCompleted = choice => OnCityEventCompleted(enc, choice, entry);
+        _cityNarrativePanel.OnCompleted = choice => OnCityEventCompleted(enc, choice, entry, city);
     }
 
     /// <summary>Apply a city event's chosen outcome to the guild save (gold, flags, meta-flags,
     /// completed-event marker), then clear the district. HP/steps deltas don't apply outside an
     /// expedition; item/companion rewards are deferred to a later increment.</summary>
-    private void OnCityEventCompleted(NarrativeEncounterData enc, EncounterChoice choice, CityDistrictEntry entry)
+    private void OnCityEventCompleted(NarrativeEncounterData enc, EncounterChoice choice,
+        CityDistrictEntry entry, WorldSettlement city)
     {
         if (_cityNarrativePanel != null) _cityNarrativePanel.Visible = false;
         if (_atlas3D != null) _atlas3D.AcceptInput = true;
         ApplyNarrativeOutcome(enc, choice);
         ClearDistrict(entry);
+        // Phase 3 contracts: a resolved district event advances "aid" contracts.
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle != null && city != null)
+            PushContractToasts(CityContractService.NoteAid(cycle, city.KingdomId));
+    }
+
+    /// <summary>Run a STORY beat for a district: pick from the authored city-vignette
+    /// pool (Data/Encounters/city_stories.json — one-shot ids, flag-gated chains) and
+    /// show it on the same city-hosted panel the Events use. Outcomes route through
+    /// ApplyNarrativeOutcome like any narrative choice. Exhausted pool → a closing
+    /// line rather than a dead click, and the district clears.</summary>
+    private void TriggerCityStory(CityDistrictEntry entry, WorldSettlement city)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null) { ClearDistrict(entry); return; }
+
+        var pool = NarrativeEncounterLoader.LoadCityStories();
+        var enc = NarrativeEncounterLoader.PickRandom(pool, "", save.CompletedEvents, save);
+        if (enc == null)
+        {
+            EnsureCityExploreToasts();
+            _cityExploreToasts?.Push("The quarter's stories have all found their endings — for this cycle.",
+                                     QuestToastKind.Progress);
+            ClearDistrict(entry);
+            return;
+        }
+
+        EnsureCityNarrativePanel();
+        if (_atlas3D != null) _atlas3D.AcceptInput = false;   // panel owns the screen
+        _cityNarrativePanel.Visible = true;
+        _cityNarrativePanel.ShowEncounter(enc, save.HasFlag,
+            save.Cycle?.SelectedSchool, save.Gold, save.Cycle?.Campaign,
+            hasItem: id => save.Armory.OwnedItems.Exists(i => i.DefinitionId == id),
+            hasCompanion: id => CompanionRoster.GetActiveParty().Exists(c => c.Id == id));
+        // Story beats are not "aid" — no contract credit; otherwise the same
+        // completion path as an Event (apply outcome, clear the district).
+        _cityNarrativePanel.OnCompleted = choice =>
+        {
+            if (_cityNarrativePanel != null) _cityNarrativePanel.Visible = false;
+            if (_atlas3D != null) _atlas3D.AcceptInput = true;
+            ApplyNarrativeOutcome(enc, choice);
+            ClearDistrict(entry);
+        };
+    }
+
+    /// <summary>Launch a district FIGHT (Phase 3 explore): compose an encounter from
+    /// the owning kingdom's region pool at the kingdom's difficulty, record which
+    /// district is being fought in the cycle save (survives the scene swap), and
+    /// round-trip through the combat scene via the proven strategic pattern
+    /// (OpenAnchorhold / CampusScreen.LaunchCampusCombat): return override → carrier
+    /// → scene change. ConsumeDistrictFightReturn picks it up on the way back.</summary>
+    private void LaunchDistrictFight(CityDistrictEntry entry, WorldSettlement city)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (entry == null || city == null || cycle == null || _world == null)
+            return;
+
+        // Composition source: the kingdom's template region pool, at the same
+        // difficulty an expedition fight there would roll (DifficultyMultAt's math:
+        // region mult × kingdom-tier factor × timeline threat). Seats field Battle
+        // weight; ordinary settlements Skirmish.
+        string regionId = "";
+        float mult = 1.0f;
+        if (_kingdoms != null && !string.IsNullOrEmpty(city.KingdomId)
+            && _kingdoms.TryGetValue(city.KingdomId, out var ks))
+        {
+            regionId = string.IsNullOrEmpty(ks.TemplateRegionId) ? ks.RegionId : ks.TemplateRegionId;
+            float regionMult = RegionLoader.LoadOrDefault(ks.TemplateRegionId)?.EnemyDifficultyMult ?? 1.0f;
+            float tierFactor = ks.Tier switch
+            {
+                <= 1 => 1.0f,
+                2 => 1.25f,
+                _ => 1.5f,   // tier 3+
+            };
+            mult = regionMult * tierFactor * CampaignEscalation.CombatDifficultyMult(cycle);
+        }
+        var tier = city.IsSeat ? EncounterTier.Battle : EncounterTier.Skirmish;
+        string terrain = _world.InBounds(city.CenterX, city.CenterY)
+            ? _world.GetTile(city.CenterX, city.CenterY).Terrain.ToString()
+            : "Plains";
+
+        var def = EncounterPoolLoader.Pick(regionId, tier, terrain, mult);
+        if (def == null || def.Enemies.Count == 0)
+        {
+            // Never dead-end the click: no resolvable roster → the enclave scatters.
+            int gold = 20 + (int)(GD.Randf() * 20f);
+            var s = SaveManager.ActiveSave;
+            if (s != null) s.Gold += gold;
+            EnsureCityExploreToasts();
+            _cityExploreToasts?.Push($"The enclave scatters before you arrive. (+{gold} gold)",
+                                     QuestToastKind.Complete);
+            ClearDistrict(entry);
+            PushContractToasts(CityContractService.NotePurge(cycle, city.KingdomId));
+            return;
+        }
+
+        if (EncounterRouter.Instance == null)
+            GetTree().Root.AddChild(new EncounterRouter { Name = "EncounterRouter" });
+        var router = EncounterRouter.Instance;
+        if (router == null)
+            return;
+
+        cycle.PendingCityFightCityId = CityExploreService.CityId(city);
+        cycle.PendingCityFightDq = entry.Dq;
+        cycle.PendingCityFightDr = entry.Dr;
+        SaveManager.MarkDirty();
+
+        router.HasPendingReturn = false;
+        router.SavedCombatWasPatrolAmbush = false;
+        router.SavedCombatPatrolArchmageId = "";
+        router.SavedCombatGuardianKey = "";
+        router.SavedCombatArchmageId = "";
+        router.SavedResolutionArchmageId = "";
+        router.ReturnSceneOverride = StrategicScenePath;
+        router.SetCurrentTier(def.Tier);
+
+        SaveManager.SaveIfDirty();
+        EncounterContextCarrier.Set(def);
+        EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
+        GetTree().ChangeSceneToFile(router.CombatScenePath);
+    }
+
+    /// <summary>Pick up a returning district fight (Phase 3 explore). Keyed on the
+    /// cycle's pending-city-fight record AND the router's return override being this
+    /// scene — a stale pending record with no router return (mid-combat reload) is
+    /// dropped and the district stays live. Victory banks gold/splinters, rolls the
+    /// Q4.4 combat loot faucet at the kingdom's territory tier, and clears the
+    /// district; either way the player lands back inside the fought city
+    /// (BuildAtlas3D consumes _reenterNpcCity) with an outcome toast.</summary>
+    private void ConsumeDistrictFightReturn(CycleState cycle)
+    {
+        if (cycle == null || string.IsNullOrEmpty(cycle.PendingCityFightCityId))
+            return;
+
+        string cityId = cycle.PendingCityFightCityId;
+        var district = new Vector2I(cycle.PendingCityFightDq, cycle.PendingCityFightDr);
+        cycle.PendingCityFightCityId = "";
+        cycle.PendingCityFightDq = 0;
+        cycle.PendingCityFightDr = 0;
+        SaveManager.MarkDirty();
+
+        var router = EncounterRouter.Instance;
+        if (router == null || !router.HasPendingReturn ||
+            router.ReturnSceneOverride != StrategicScenePath)
+            return;   // stale record — the fight never resolved; district stays live
+
+        bool won = router.CombatWon;
+        router.HasPendingReturn = false;
+        router.ReturnSceneOverride = "";
+
+        var save = SaveManager.ActiveSave;
+        if (save == null)
+            return;
+
+        // Resolve the city record (CityId is stable within the cycle).
+        WorldSettlement city = null;
+        if (_world?.Settlements != null)
+            foreach (var s in _world.Settlements)
+                if (CityExploreService.CityId(s) == cityId) { city = s; break; }
+
+        if (won)
+        {
+            save.Gold += router.GoldReward;
+            save.ArcaneSplinters += router.SplinterReward;
+
+            // Q4.4 loot faucet, tiered by the owning kingdom (expedition parity —
+            // city ground is not corrupted, so no blight roll).
+            int terrTier = 1;
+            if (city != null && _kingdoms != null && !string.IsNullOrEmpty(city.KingdomId)
+                && _kingdoms.TryGetValue(city.KingdomId, out var ks))
+                terrTier = ks.Tier;
+            int items = 0;
+            foreach (var lootDef in CombatLootTable.Roll(terrTier, router.CurrentTier))
+            {
+                save.Armory.AddItem(ItemInstance.FromDefinition(lootDef));
+                items++;
+            }
+
+            var st = CityExploreService.Get(cycle, cityId);
+            var entry = st != null ? CityExploreService.FindDistrict(st, district) : null;
+            if (entry != null) entry.Cleared = true;
+
+            _reenterToast = $"The enclave is broken. (+{router.GoldReward} gold, +{router.SplinterReward} splinters"
+                          + (items > 0 ? $", {items} item{(items == 1 ? "" : "s")})" : ")");
+            _reenterToastKind = QuestToastKind.Complete;
+
+            // Phase 3 contracts: an enclave defeated advances "purge" contracts in
+            // the owning kingdom; completions toast after the landing (below).
+            if (city != null)
+                _reenterContractToasts = CityContractService.NotePurge(cycle, city.KingdomId);
+        }
+        else
+        {
+            _reenterToast = "Driven back — the enclave holds its district.";
+            _reenterToastKind = QuestToastKind.Progress;
+        }
+
+        _reenterNpcCity = city;   // BuildAtlas3D lands back in the city (null-safe there)
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
     }
 
     /// <summary>The non-expedition narrative outcome, shared by city district
@@ -1191,6 +1459,24 @@ public partial class StrategicView : Node2D
     }
 
     /// <summary>Mark a district's content consumed, refresh the atlas markers, and persist.</summary>
+    /// <summary>Phase 3 contracts: a district was scouted — advance any accepted
+    /// "scout" contracts in the owning kingdom and toast completions.</summary>
+    private void OnDistrictScouted(WorldSettlement city)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || city == null) return;
+        PushContractToasts(CityContractService.NoteScout(cycle, city.KingdomId));
+    }
+
+    /// <summary>Toast contract-completion lines from a CityContractService.Note* call.</summary>
+    private void PushContractToasts(System.Collections.Generic.List<string> lines)
+    {
+        if (lines == null || lines.Count == 0) return;
+        EnsureCityExploreToasts();
+        foreach (var line in lines)
+            _cityExploreToasts?.Push(line, QuestToastKind.Complete);
+    }
+
     private void ClearDistrict(CityDistrictEntry entry)
     {
         if (entry != null) entry.Cleared = true;
@@ -2631,6 +2917,43 @@ public partial class StrategicView : Node2D
         ShowDeployConfirm(sp);
     }
 
+    /// <summary>Deploy-flow streamline (2026-08-21): clicking the Gatehouse goes
+    /// STRAIGHT to the launch drawer — fly out of the city, open deploy on the
+    /// last-used staging point (Home Camp on a fresh cycle). The old chain
+    /// (Expedition tab → "Open Strategic Map" → find beacon → click) collapses
+    /// to one click plus an optional beacon retarget. Lifecycle moments the
+    /// Expedition tab still owns (post-Conjunction school pick, a world not yet
+    /// woven, no staging at all) fall back to the overlay as before.</summary>
+    private void BeginDeployFlow()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (PlayerSession.CycleEndedByConjunction || cycle?.World == null ||
+            cycle.World.Tiles.Length == 0 || _world == null)
+        {
+            ShowCampusOverlay(CampusPanelId.Expedition);
+            return;
+        }
+
+        // Priority: last-used staging → Home Camp → first available.
+        StagingPoint last = null, home = null, first = null;
+        foreach (var sp in _world.StagingPoints)
+        {
+            if (!sp.Available) continue;
+            if ($"{sp.X},{sp.Y}" == cycle.LastDeployStagingKey) last ??= sp;
+            if (sp.Source == "Start") home ??= sp;
+            first ??= sp;
+        }
+        var pick = last ?? home ?? first;
+        if (pick == null)
+        {
+            ShowCampusOverlay(CampusPanelId.Expedition);
+            return;
+        }
+
+        _atlas3D?.LeaveCityMode();   // fly out of the city — the drawer reads against the world
+        OnStagingClicked(pick);
+    }
+
     // ── Supply caches: markers + control/overseer/siege dialog ──────────────
 
     private Node2D _supplyLayer;
@@ -3203,7 +3526,64 @@ public partial class StrategicView : Node2D
         var ui = _deployUi;
         _deployUi = null;
         _pendingStaging = null;
+        if (_atlas3D != null) _atlas3D.SuppressCityEntry = false;
         CloseDrawer(panel, ui);
+    }
+
+    /// <summary>The launch drawer's consumable loadout: one checkbox row per owned
+    /// consumable KIND (grouped like the combat popup), checked = carried. Unchecked
+    /// kinds go into CycleState.ExcludedConsumableIds and are filtered from the
+    /// combat consumable list. No slot cap in v1 — the mechanic is opt-out, so the
+    /// default sortie is identical to before this UI existed.</summary>
+    private void BuildConsumableLoadout(VBoxContainer vbox, GuildSaveData save)
+    {
+        var cycle = save?.Cycle;
+        if (cycle == null || save.Armory?.OwnedItems == null)
+            return;
+
+        var byDef = new System.Collections.Generic.Dictionary<string, (string name, int count)>();
+        foreach (var inst in save.Armory.OwnedItems)
+        {
+            var d = ItemDatabase.Get(inst.DefinitionId);
+            if (d == null || !d.IsConsumable) continue;
+            byDef[d.Id] = byDef.TryGetValue(d.Id, out var cur)
+                ? (d.Name, cur.count + 1) : (d.Name, 1);
+        }
+        if (byDef.Count == 0)
+            return;
+
+        var header = new Label { Text = "Provisions" };
+        header.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        header.AddThemeColorOverride("font_color", UITheme.Gold);
+        vbox.AddChild(header);
+
+        var scroll = new ScrollContainer
+        {
+            CustomMinimumSize = new Vector2(0, Mathf.Min(30 * byDef.Count, 130)),
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+        };
+        vbox.AddChild(scroll);
+        var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        scroll.AddChild(list);
+
+        foreach (var kv in byDef)
+        {
+            string defId = kv.Key;
+            var check = new CheckBox
+            {
+                Text = $"{kv.Value.name}  ×{kv.Value.count}",
+                ButtonPressed = !cycle.ExcludedConsumableIds.Contains(defId),
+            };
+            check.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+            check.Toggled += on =>
+            {
+                if (on) cycle.ExcludedConsumableIds.Remove(defId);
+                else if (!cycle.ExcludedConsumableIds.Contains(defId))
+                    cycle.ExcludedConsumableIds.Add(defId);
+                SaveManager.MarkDirty();
+            };
+            list.AddChild(check);
+        }
     }
 
     private void ShowDeployConfirm(StagingPoint sp)
@@ -3211,6 +3591,9 @@ public partial class StrategicView : Node2D
         _deployUi?.QueueFree();
         _deployUi = new CanvasLayer { Name = "DeployUI" };
         AddChild(_deployUi);
+        // Map stays live under the drawer, but a settlement click must not
+        // descend into city view underneath it (cleared on close/launch).
+        if (_atlas3D != null) _atlas3D.SuppressCityEntry = true;
 
         // 3D-native deploy: no dimming backdrop — the map stays visible with this
         // staging point's deploy footprint (WorldAtlas3D's window preview) highlighted
@@ -3218,11 +3601,12 @@ public partial class StrategicView : Node2D
         // half-drawer-width shift centers the beacon in the map area LEFT of the drawer.
         _atlas3D?.FlyToTile(sp.X, sp.Y, 30f, SidebarWidth * 0.5f);
 
-        // A transparent full-rect guard blocks stray map clicks while the panel is up
-        // (so you can't open a second deploy over this one) without hiding the map.
-        var guard = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
-        guard.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _deployUi.AddChild(guard);
+        // Deploy-flow streamline (2026-08-21): the map stays LIVE under the
+        // drawer — pan/zoom to read the region, and clicking another staging
+        // beacon RETARGETS this drawer (OnAtlas3DTilePicked filters to staging-
+        // only while the drawer is up, so caches/warfronts can't stack dialogs
+        // over it). The old full-rect Stop guard is gone; the drawer panel
+        // itself still swallows clicks over its own rect.
 
         // Full-height sidebar flush to the right edge (below the global top bar) that
         // SLIDES OUT from off-screen — a drawer opening, not a modal popping in. The
@@ -3357,6 +3741,11 @@ public partial class StrategicView : Node2D
 
         // S4: Grimoire preparation — §4a prepared slots, chosen at launch.
         BuildGrimoirePrep(vbox, deploySave);
+
+        // Deploy-flow streamline (2026-08-21): the consumable LOADOUT lives on the
+        // launch screen — check/uncheck what the party carries. Default all-carried
+        // (today's behaviour); exclusions persist this cycle.
+        BuildConsumableLoadout(vbox, deploySave);
 
         vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
 
@@ -3542,6 +3931,10 @@ public partial class StrategicView : Node2D
         // when the player returned to the map). Clear it before this lunation's
         // tick appends fresh reports.
         cycle.PendingSiegeReports?.Clear();
+
+        // Deploy-flow streamline: remember the launch point so the next Gatehouse
+        // click reopens the drawer here directly.
+        cycle.LastDeployStagingKey = $"{_pendingStaging.X},{_pendingStaging.Y}";
 
         // ── Time advances on deploy: one expedition costs one whole lunation. ──
         // AdvanceLunation snaps the calendar to the next new moon, so every
