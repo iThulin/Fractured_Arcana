@@ -169,6 +169,13 @@ public static class PlayerSession
         ScryingPortentAvailable = false;
     }
 
+    /// <summary>Mobile Fortress §4 (Chronomancer / Hourglass Redoubt): moves left
+    /// this sortie that burn a flat cost. Set ONLY on a fresh deploy (from the castle
+    /// def), NOT reset on a combat return, so the quirk survives round-trips — hence
+    /// it is deliberately NOT cleared in ClearRunState (which runs on every deploy).
+    /// Decremented at the charge site.</summary>
+    public static int ChronoFlatMovesLeft = 0;
+
     // ── Wizard expedition HP carry (K2.5 symmetry, 2026-07-29) ───────────
 
     /// <summary>The wizard's in-combat HP carried between fights of the same

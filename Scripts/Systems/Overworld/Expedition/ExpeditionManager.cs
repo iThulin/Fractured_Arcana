@@ -36,8 +36,21 @@ using System.Collections.Generic;
 public partial class ExpeditionManager : Node2D
 {
     [Export] public int WindowRadius = 12;
-    [Export] public int OperatingRange = 40;   // step budget for one sortie (crosses a window + probes onward)
+    // Fuel skin (Mobile Fortress §3): OperatingRange IS MaxFuel and the per-tile
+    // burn IS OverworldMovementCost.StepCost — the entire step economy carries over
+    // untouched, relabeled. The serialized/code names stay "steps" (§10: renaming
+    // serialized fields is not worth a migration); only the UI says Fuel/Furnace.
+    [Export] public int OperatingRange = 40;   // MaxFuel budget for one sortie (fuel-in-disguise)
     [Export] public int ExhaustionDamagePerStep = 10;
+
+    // ── Fuel refueling tuning (Mobile Fortress §3.2 / §13) ───────────────
+    /// <summary>Fuel restored on resting at a refuge (§14.4 APPROVED). Watch note
+    /// (§3.2): cut to 3 or 0 if routes stop feeling finite. Doubled by the Druid
+    /// Verdant Ark quirk in F3.</summary>
+    [Export] public int RestRefuel = 5;
+    /// <summary>Fuel restored the first time a supply cache is scouted/collected
+    /// (§3.2). Gated to first discovery so a persistent cache can't be milked.</summary>
+    [Export] public int CacheRefuel = 8;
 
     // ── W1: sliding window (claude/expedition_window_sliding_v1) ─────────
     /// <summary>Debug A/B lever: true restores the old fixed-perimeter window
@@ -97,9 +110,36 @@ public partial class ExpeditionManager : Node2D
     private bool _hasLastMove = false;
 
     // ── Runtime resource state (rides EncounterRouter across combat) ─────
+    /// <summary>Current fuel (fuel-in-disguise; serialized name kept per §10).</summary>
     public int StepsRemaining { get; set; }
+    /// <summary>Fuel tank capacity this sortie = OperatingRange + campus BonusSteps,
+    /// recomputed deterministically each Deploy (so it survives combat round-trips
+    /// without riding the router). Refuel clamps to this; the negotiation overrun
+    /// above it is left honest, exactly as before.</summary>
+    public int MaxFuel { get; set; }
+
+    /// <summary>The active sortie's castle (Mobile Fortress §4), keyed by the founding
+    /// school. Its movement signature is pushed into OverworldMovementCost; its quirks
+    /// are read at the relevant sites (MaxFuel, rest refuel, corruption/weather drain,
+    /// scry). Set every Deploy.</summary>
+    private CastleTypeDef _castle;
+
+    /// <summary>This sortie's crew effects (Mobile Fortress §5), computed at deploy
+    /// from the active party's station assignment. Helm/Furnace/Lens are applied to
+    /// fuel/MaxFuel/scry; Wardroom (ambush delay) is read by F6; Quartermaster (loot)
+    /// later. Recomputed every deploy.</summary>
+    private CrewEffects _crew = CrewEffects.None;
+    private System.Collections.Generic.Dictionary<CrewStation, Companion> _crewAssign = new();
     public int CurrentHP { get; set; }
     public int MaxHP { get; set; }
+
+    // Mobile Fortress §2.1: Hull IS the sortie pool (this pool never took combat
+    // damage — router.DamageTaken has arrived as 0 since the K2.5 carried-HP
+    // system landed; combat runs on per-companion HP, §7.3). Overworld attrition
+    // drains Hull; Hull-0 is a forced RECALL (damaged, never lost), not a loss.
+    // Aliases only — CurrentHP/MaxHP stay the serialized backing (§10: no rename).
+    public int Hull    { get => CurrentHP; set => CurrentHP = value; }
+    public int MaxHull { get => MaxHP;     set => MaxHP = value; }
 
     /// <summary>Casualty summary from the most recent §5b wipe roll, consumed
     /// by FailExpedition's banner so the human cost is visible at the moment
@@ -200,6 +240,9 @@ public partial class ExpeditionManager : Node2D
 
     // ── UI ──────────────────────────────────────────────────────────────
     private Label _stepLabel, _hpLabel, _infoLabel, _windowLabel;
+    private ProgressBar _fuelGauge;   // Mobile Fortress §3.1: furnace dial
+    private Label _weatherLabel;      // Mobile Fortress weather (W1): field readout
+    private WeatherType _lastWeatherAtParty = WeatherType.Clear;
 
     /// <summary>Persistent objective line at the top of the expedition HUD. Before
     /// 2026-08-06 a warfront's objective was stated ONCE, in the deploy ShowInfo, and
@@ -350,6 +393,25 @@ public partial class ExpeditionManager : Node2D
         MaxHP += bonuses.BonusHP;
         CurrentHP = MaxHP;
         StepsRemaining += bonuses.BonusSteps;
+        // §4 castle: the school's chassis. Configure its movement signature (static
+        // ambient read by StepCost) and fold its MaxFuel quirk into the tank. Set
+        // every deploy — stateless and deterministic from the school.
+        _castle = CastleTypes.For(PlayerSession.SelectedSchool);
+        OverworldMovementCost.CastleCheapTerrains = _castle.CheapTerrains;
+        OverworldMovementCost.CastleTerrainDiscount = _castle.TerrainDiscount;
+        OverworldMovementCost.CastleExtraRoadDiscount = _castle.ExtraRoadDiscount;
+        OverworldMovementCost.CastleWaiveFord = _castle.WaiveFord;
+        MaxFuel = OperatingRange + bonuses.BonusSteps + _castle.BonusMaxFuel;   // fuel tank capacity (§3.1/§4)
+
+        // §5 crew: the active party mans the stations. Auto-assign, compute the
+        // effects, and apply Helm (fuel burn), Furnace (MaxFuel) now; Lens (scry)
+        // folds into VisionModifiers below; Wardroom/Quartermaster are stored on
+        // _crew for F6 / the loot pass. Recomputed every deploy from the roster.
+        _crewAssign = CrewStations.AutoAssign(ActivePartyCompanions());
+        _crew = CrewStations.Compute(_crewAssign);
+        OverworldMovementCost.CrewFuelMultiplier = _crew.FuelBurnMultiplier;
+        MaxFuel += _crew.BonusMaxFuel;
+
         GoldEarned += bonuses.BonusGold;
 
         PlayerSession.IsOnExpedition = true;
@@ -386,9 +448,16 @@ public partial class ExpeditionManager : Node2D
             RunEventLog.Begin(StagingTemplateRegion(),
                 PlayerSession.SelectedSchool.ToString(),
                 GoldEarned, SplinterEarned, CurrentHP, MaxHP, StepsRemaining);
+            // §4 castle: name it in the log, and seed the Chronomancer flat-move
+            // counter (fresh deploy only, so it survives combat round-trips).
+            LogRun("castle", $"{_castle.Name}: {_castle.Quirk}");
+            PlayerSession.ChronoFlatMovesLeft = _castle.ChronoFlatMoves;
+            // §5 crew: log the station assignment + the effects it yields.
+            LogRun("crew", $"{CrewSummary()} → " +
+                   $"burn ×{_crew.FuelBurnMultiplier:0.00}, +{_crew.BonusMaxFuel} fuel, +{_crew.BonusScry} scry");
             if (bonuses.BonusGold != 0 || bonuses.BonusHP != 0 || bonuses.BonusSteps != 0)
                 LogRun("campus_bonus",
-                    $"buildings: +{bonuses.BonusGold}g +{bonuses.BonusHP}maxHP +{bonuses.BonusSteps}steps");
+                    $"buildings: +{bonuses.BonusGold}g +{bonuses.BonusHP}maxHP +{bonuses.BonusSteps}fuel");
             if (PlayerSession.DebugMode && (PlayerSession.StartWithGold || PlayerSession.StartWithSplinters))
                 LogRun("debug_grant",
                     $"{(PlayerSession.StartWithGold ? "+5000g " : "")}{(PlayerSession.StartWithSplinters ? "+5000sp" : "")}".Trim());
@@ -400,11 +469,31 @@ public partial class ExpeditionManager : Node2D
             // with more precision (side, stakes, distance), so a second line here
             // just said the same thing twice, two inches apart.
             if (!_isWarfront)
-                ShowInfo("Expedition deployed. Explore the region; extract before your range runs out.");
+                ShowInfo("The castle strides out. Explore the region; recall before the fuel runs out.");
 
             if (PlayerSession.DebugMode && PlayerSession.NoFog)
                 RevealAllFog();
         }
+
+        // ── Mobile Fortress weather field (W1) ───────────────────────────
+        // Bind the field to this window every deploy (so a combat-return
+        // re-points the terrain sampler at the new instance while keeping the
+        // fronts it left with); reseed fronts only on a fresh deploy. Season is
+        // the lunation mod 4. Party is placed by both branches above, so the
+        // readout baseline reads a valid tile.
+        bool weatherFresh = !(router != null && router.HasPendingReturn &&
+                              string.IsNullOrEmpty(router.ReturnSceneOverride));
+        int wSeason = (SaveManager.ActiveSave?.Cycle?.Calendar?.CurrentLunation ?? 0) % 4;
+        WeatherSystem.Configure(_grid.Hexes.Keys, TerrainAt, wSeason);
+        if (weatherFresh)
+        {
+            ulong wSeed = ((ulong)GD.Randi() << 32) ^ GD.Randi();
+            WeatherSystem.Seed(wSeed);
+            LogRun("weather_seed", WeatherSummary());
+        }
+        _lastWeatherAtParty = WeatherSystem.WeatherAt(_party.CurrentCoord);
+        VisionModifiers.ScryBonus = WeatherCatalog.Def(_lastWeatherAtParty).ScryDelta
+                                    + (_castle?.BonusScry ?? 0) + _crew.BonusScry;   // W2 + §4 Arcanist + §5 Lens
 
         // ── S2: overworld spellcasting — manager + Grimoire panel ────────
         // Fresh deploys reset the Essence pool / cast counts / beacons;
@@ -417,6 +506,7 @@ public partial class ExpeditionManager : Node2D
         _spells.FogQuery = local => _fog.FogAt(local);
         _spells.OverlayQuery = local => _overlay.OverlayAt(local);
         _spells.FogWrite = (local, state) => _fog.SetFog(local, state);
+        _spells.StrideLockQuery = () => _striding;   // §3.4: seal the Grimoire mid-stride
         AddChild(_spells);
         _spells.Initialize(this, _grid, cycle.Grimoire, freshDeploy: !pendingReturn);
         _spells.ApplyAttunement(_party.CurrentCoord);
@@ -763,7 +853,7 @@ public partial class ExpeditionManager : Node2D
             string kid = KingdomIdAt(_party.CurrentCoord);
             if (string.IsNullOrEmpty(kid))
             {
-                ShowInfo("[DEBUG] No kingdom here — cannot mint test favors.");
+                ShowInfo("[DEBUG] No kingdom here, so no test favors can be minted.");
             }
             else
             {
@@ -922,7 +1012,7 @@ public partial class ExpeditionManager : Node2D
 
         FeedWindow3D(frameCamera: true);
         UpdateView3DButton();
-        ShowInfo("3D expedition view — click an adjacent tile to walk. \"Switch to 2D\" or M returns.");
+        ShowInfo("3D expedition view. Click an adjacent tile to walk. \"Switch to 2D\" or M returns.");
     }
 
     private void CloseWindow3D()
@@ -994,19 +1084,313 @@ public partial class ExpeditionManager : Node2D
     /// coordinate mismatch is harmless — it simply doesn't move.</summary>
     private void OnWindow3DMove(Vector2I worldCoord)
     {
+        // A click mid-stride is the one order accepted while marching: cancel (§3.4).
+        if (_striding) { CancelStride(); return; }
+
         var local = _window.LocalOf(worldCoord.X, worldCoord.Y);
-        _party.TryMoveTo(local);
+        if (_party == null) return;
+
+        // Adjacent → a single ordinary step. Distant → a stride order (§3.4).
+        if (_grid.GetNeighbors(_party.CurrentCoord).Contains(local))
+            _party.TryMoveTo(local);
+        else
+            BeginStride(local);
     }
 
     /// <summary>3D-view hover → drive the same tile tooltip the 2D grid drives (world→local, then
-    /// the existing OnHexHovered/OnHexUnhovered path).</summary>
+    /// the existing OnHexHovered/OnHexUnhovered path), AND preview the stride path to that tile.</summary>
     private void OnWindow3DHover(Vector2I worldCoord)
-        => OnHexHovered(_window.LocalOf(worldCoord.X, worldCoord.Y));
+    {
+        var local = _window.LocalOf(worldCoord.X, worldCoord.Y);
+        OnHexHovered(local);
+        ShowStridePreview(local);
+    }
 
     private void OnWindow3DUnhover()
     {
         if (_hoveredCoord.HasValue)
             OnHexUnhovered(_hoveredCoord.Value);
+        _window3D?.ClearStridePath();
+    }
+
+    // ── Stride orders (§3.4): plan + preview (F8a) ───────────────────────────
+    /// <summary>POI path-weight penalty (§3.4): a stride routes AROUND known
+    /// encounters rather than into them; the goal tile is exempt so a POI can be
+    /// ordered as a destination normally.</summary>
+    private const int StridePoiPenalty = 6;
+    private Vector2I _strideGoal;
+
+    // Stride execution (F8b) + exploratory march (F8d)
+    private bool _striding;
+    private bool _strideHasMoved;   // don't halt on the tile we STARTED on (e.g. a staging outpost)
+    private int _strideConsecutive; // uninterrupted stride steps taken; drives momentum (§3.4)
+    private Vector2I _strideLastTile;  // the tile we came from (blind march no-backtrack)
+    private int _strideBestDist;       // best hex distance to the goal achieved so far
+    private int _strideStuck;          // blind steps without improving _strideBestDist
+    private Button _haltButton;
+    private const float StrideStepSeconds = 0.25f;   // pacing per tile (watchable)
+
+    /// <summary>An ENCOUNTER POI stops a stride; a benign anchor/service (outpost,
+    /// seat, settlement, rest, cache) does not — the castle may deploy on or stride
+    /// past those without the march refusing to start.</summary>
+    private static bool IsEncounterPoi(OverworldHex.POIType p)
+        => p == OverworldHex.POIType.Combat || p == OverworldHex.POIType.Narrative
+        || p == OverworldHex.POIType.Negotiation || p == OverworldHex.POIType.Prison
+        || p == OverworldHex.POIType.Objective;
+
+    /// <summary>Can a stride traverse or stop on this local tile? In the loaded
+    /// window, not water, and not Hidden fog (the lens cannot command unscried
+    /// ground). Silhouette IS orderable (planned at a pessimistic flat cost).</summary>
+    private bool StrideOrderable(Vector2I local)
+        => _grid != null && _grid.Hexes.ContainsKey(local)
+           && !(TryTileAt(local, out var t) && t.IsWater)
+           && _fog.FogAt(local) != OverworldHex.FogState.Hidden;
+
+    /// <summary>Fuel to step from `from` into `to` for the planner AND the estimate —
+    /// the SAME cost the live move charges (G1), plus the Silhouette pessimistic
+    /// cost and the POI routing penalty. Weather surcharge rides inside StepCost.</summary>
+    private int StrideEdgeCost(Vector2I from, Vector2I to)
+    {
+        int cost;
+        if (_fog.FogAt(to) == OverworldHex.FogState.Silhouette)
+        {
+            cost = 2; // terrain unknown under a silhouette — plan pessimistically
+        }
+        else
+        {
+            var terr = TerrainAt(to);
+            WorldTile? fromTile = TryTileAt(from, out var ft) ? ft : (WorldTile?)null;
+            cost = OverworldMovementCost.StepCost(terr, fromTile, from, to,
+                       EquipmentLoadout.PartyPathfinder(terr.ToString()));
+        }
+        var ov = _overlay.OverlayAt(to);
+        if (to != _strideGoal && ov.Poi != OverworldHex.POIType.None && !ov.Consumed)
+            cost += StridePoiPenalty;
+        return cost;
+    }
+
+    /// <summary>Plan the stride path from the castle to a local goal, or null if the
+    /// goal is unscried/water/unreachable. Path excludes the current tile, ends on
+    /// the goal.</summary>
+    private System.Collections.Generic.List<Vector2I> PlanStride(Vector2I goalLocal)
+    {
+        if (_party == null || _grid == null)
+            return null;
+        _strideGoal = goalLocal;
+        return StridePlanner.Plan(
+            _party.CurrentCoord, goalLocal,
+            local => _grid.GetNeighbors(local),
+            StrideOrderable,
+            StrideEdgeCost,
+            local => _grid.Distance(local, goalLocal));
+    }
+
+    /// <summary>Hover preview: draw the ribbon + total-fuel estimate to the hovered
+    /// tile. Clears when the tile is the castle's own or unreachable.</summary>
+    private void ShowStridePreview(Vector2I goalLocal)
+    {
+        if (_window3D == null)
+            return;
+        if (_striding)   // no hover previews while the castle is already marching
+        { _window3D.ClearStridePath(); return; }
+        if (_party == null || goalLocal == _party.CurrentCoord)
+        { _window3D.ClearStridePath(); return; }
+        if (!_grid.Hexes.ContainsKey(goalLocal) || (TryTileAt(goalLocal, out var gt) && gt.IsWater))
+        { _window3D.ClearStridePath(); return; }
+
+        var path = PlanStride(goalLocal);
+        if (path != null && path.Count > 0)
+        {
+            // Charted route: solid ribbon + total-fuel estimate.
+            var worldPath = new System.Collections.Generic.List<Vector2I>(path.Count);
+            foreach (var l in path)
+                if (_window.TryLocalToWorld(l, out int wx, out int wy))
+                    worldPath.Add(new Vector2I(wx, wy));
+            int fuel = StridePlanner.FuelEstimate(_party.CurrentCoord, path, StrideEdgeCost);
+            _window3D.ShowStridePath(worldPath, fuel, exploratory: false);
+            return;
+        }
+
+        // Fog goal: no charted route — show the bearing into the unknown (a dashed
+        // line from the castle to the target). The march will path there blind.
+        var seg = new System.Collections.Generic.List<Vector2I>();
+        if (_window.TryLocalToWorld(_party.CurrentCoord, out int sx, out int sy)) seg.Add(new Vector2I(sx, sy));
+        if (_window.TryLocalToWorld(goalLocal, out int gx, out int gy)) seg.Add(new Vector2I(gx, gy));
+        if (seg.Count == 2)
+            _window3D.ShowStridePath(seg, -1, exploratory: true);
+        else
+            _window3D.ClearStridePath();
+    }
+
+    // ── Stride orders (§3.4): execution (F8b) + exploratory march (F8d) ──────
+    /// <summary>Begin a march to a distant tile — KNOWN or in the fog. The castle
+    /// paths across scried ground toward it, then presses on blind toward the
+    /// bearing (revealing as it goes), marching one tile at a time through the REAL
+    /// per-step move (fuel/Hull/vision/patrols/ambush all fire per step), paced
+    /// ~0.25 s and haltable. The next tile is chosen fresh each step, so newly
+    /// revealed ground re-routes the march automatically.</summary>
+    private void BeginStride(Vector2I goalLocal)
+    {
+        if (_striding || ExpeditionComplete || _party == null)
+            return;
+        if (goalLocal == _party.CurrentCoord)
+            return;
+        // Orderable as a destination: in the loaded window and not open water. Fog
+        // IS allowed — that is the exploratory march (spec §3.4 revisited): you can
+        // command the fortress toward the unknown, not only across charted ground.
+        if (!_grid.Hexes.ContainsKey(goalLocal) || (TryTileAt(goalLocal, out var gt) && gt.IsWater))
+        { ShowInfo("The castle cannot march there."); return; }
+
+        _strideGoal = goalLocal;
+        _striding = true;
+        _strideHasMoved = false;
+        _strideConsecutive = 0;
+        _strideLastTile = new Vector2I(int.MinValue, int.MinValue);
+        _strideBestDist = _grid.Distance(_party.CurrentCoord, goalLocal);
+        _strideStuck = 0;
+        _window3D?.ClearStridePath();
+        SetHaltButton(true);
+        _grimoirePanel?.Refresh();   // §3.4: grey the sealed Grimoire
+        StrideStep();   // first step now; subsequent steps self-schedule
+    }
+
+    /// <summary>One beat of the march: wait for the pawn to finish its last hop,
+    /// run the halt checks, choose the next tile (known-ground routing, else a blind
+    /// step toward the bearing), commit it, and schedule the following.</summary>
+    private void StrideStep()
+    {
+        if (!_striding)
+            return;
+
+        // Interruptions from the world (combat launched, ambush, run ended).
+        if (ExpeditionComplete || _ambushPending)
+        { EndStride(null); return; }
+
+        // Wait for the previous hop's animation to land before issuing the next.
+        if (_party.IsMoving)
+        { ScheduleStrideTick(0.05f); return; }
+
+        // Arrived at the ordered tile.
+        if (_party.CurrentCoord == _strideGoal)
+        { EndStride("Arrived."); return; }
+
+        // An ENCOUNTER opened on a tile we ARRIVED on (scout report, narrative,
+        // negotiation, …) stops the march so the player decides. Only checked once
+        // the castle has actually moved, so deploying on a staging outpost (a benign
+        // POI) does not refuse the first step.
+        if (_strideHasMoved)
+        {
+            var ovHere = _overlay.OverlayAt(_party.CurrentCoord);
+            if (IsEncounterPoi(ovHere.Poi) && !ovHere.Consumed)
+            { EndStride("The castle halts as something ahead demands your attention."); return; }
+        }
+
+        // Safety halt: don't grind the Hull down to nothing on a long order.
+        if (MaxHull > 0 && Hull <= Mathf.CeilToInt(MaxHull * 0.25f))
+        { EndStride("The castle halts to spare its Hull."); return; }
+
+        // Choose the next tile: known-ground routing first, else a blind step toward
+        // the bearing (the exploratory march). Dead-end / lost-in-fog halts here.
+        if (!TryNextStrideTile(out var next))
+        { EndStride("The castle can find no way onward."); return; }
+
+        // Fuel gate: a stride never spends Hull to press on. It halts when the
+        // furnace cannot cover the next tile (§3.4). Momentum discounts the gate
+        // identically to the charge so the two never disagree.
+        int nextCost = StrideEdgeCost(_party.CurrentCoord, next);
+        if (_strideConsecutive >= 3)
+            nextCost = Mathf.Max(1, nextCost - 1);
+        if (StepsRemaining < nextCost)
+        { EndStride("The castle halts, out of fuel."); return; }
+
+        // A KNOWN encounter on the next tile (not the goal) stops the march before
+        // the castle walks into it. (Fog tiles are unknown — that is the risk.)
+        var ovNext = _overlay.OverlayAt(next);
+        if (next != _strideGoal && IsEncounterPoi(ovNext.Poi) && !ovNext.Consumed)
+        { EndStride("The castle halts as the way ahead is no longer clear."); return; }
+
+        var from = _party.CurrentCoord;
+        if (!_party.TryMoveTo(next))
+        { EndStride("The castle halts; the way is blocked."); return; }
+        _strideLastTile = from;
+        _strideHasMoved = true;
+        _strideConsecutive++;   // this step is now behind us; momentum builds toward step 4
+
+        // Bound a blind march that wanders: if several steps pass without getting
+        // any closer than our best-yet distance, the bearing is lost — halt.
+        int d = _grid.Distance(_party.CurrentCoord, _strideGoal);
+        if (d < _strideBestDist) { _strideBestDist = d; _strideStuck = 0; }
+        else if (++_strideStuck > 5) { EndStride("The castle loses the bearing in the fog."); return; }
+
+        ScheduleStrideTick(StrideStepSeconds);
+    }
+
+    /// <summary>Pick the next tile of the march. First tries known-ground A* to the
+    /// goal (routes around charted POIs/hazards); if the goal is in fog / unreachable
+    /// by charted ground, takes a blind step toward the bearing — the passable
+    /// neighbour that most reduces hex distance to the goal, not backtracking. Falls
+    /// back to any passable neighbour (incl. backtrack) before giving up.</summary>
+    private bool TryNextStrideTile(out Vector2I next)
+    {
+        next = default;
+
+        var path = PlanStride(_strideGoal);
+        if (path != null && path.Count > 0)
+        { next = path[0]; return true; }
+
+        int bestDist = int.MaxValue; bool found = false; Vector2I best = default;
+        foreach (var nb in _grid.GetNeighbors(_party.CurrentCoord))
+        {
+            if (!BlindStridePassable(nb, allowBacktrack: false)) continue;
+            int d = _grid.Distance(nb, _strideGoal);
+            if (d < bestDist) { bestDist = d; best = nb; found = true; }
+        }
+        if (!found)
+            foreach (var nb in _grid.GetNeighbors(_party.CurrentCoord))
+            {
+                if (!BlindStridePassable(nb, allowBacktrack: true)) continue;
+                int d = _grid.Distance(nb, _strideGoal);
+                if (d < bestDist) { bestDist = d; best = nb; found = true; }
+            }
+
+        next = best;
+        return found;
+    }
+
+    /// <summary>A tile the blind march may step onto: loaded, not water, and (unless
+    /// allowed) not the tile we just came from. Fog is fine — that is the point.</summary>
+    private bool BlindStridePassable(Vector2I nb, bool allowBacktrack)
+        => _grid.Hexes.ContainsKey(nb)
+           && !(TryTileAt(nb, out var t) && t.IsWater)
+           && (allowBacktrack || nb != _strideLastTile);
+
+    private void ScheduleStrideTick(float delay)
+    {
+        if (!_striding)
+            return;
+        GetTree().CreateTimer(delay).Timeout += StrideStep;
+    }
+
+    /// <summary>Player cancelled the march (Halt button or a map click).</summary>
+    private void CancelStride() => EndStride("The castle holds.");
+
+    private void EndStride(string note)
+    {
+        if (!_striding)
+            return;
+        _striding = false;
+        _strideConsecutive = 0;
+        SetHaltButton(false);
+        _window3D?.ClearStridePath();
+        _grimoirePanel?.Refresh();   // §3.4: the Grimoire unseals on halt
+        if (!string.IsNullOrEmpty(note) && !ExpeditionComplete)
+            ShowInfo(note);
+    }
+
+    private void SetHaltButton(bool show)
+    {
+        if (_haltButton != null)
+            _haltButton.Visible = show;
     }
 
     // ── [DEBUG] Narrative-chain proof rig (2026-07-18) ───────────────────
@@ -1213,6 +1597,21 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             ShowInfo("Within the vault's bounds, the wilds' toll lifts \u2014 no terrain, corruption, or supply drain here.");
         _lastInVault = inVault;
 
+        // §4 Chronomancer flat + §3.4 momentum. These are temporally disjoint (the
+        // flat covers the sortie's first 3 moves; momentum begins at stride step 4),
+        // so the flat takes priority and momentum only applies when the flat did not
+        // — "the cheaper of the two, never both" (§3.4). The flat OVERRIDES terrain +
+        // edge to a flat burn; momentum shaves 1 off the finalised cost.
+        if (PlayerSession.ChronoFlatMovesLeft > 0)
+        {
+            stepCost = Mathf.Max(1, _castle?.ChronoFlatCost ?? 1);
+            PlayerSession.ChronoFlatMovesLeft--;
+        }
+        else if (_striding && _strideConsecutive >= 3)
+        {
+            stepCost = Mathf.Max(1, stepCost - 1);
+        }
+
         // S3 (Retrace): remember this move so it can be undone. Records the
         // cost actually charged (0 on the exhaustion path — HP is not refunded).
         _lastMoveFrom = oldCoord;
@@ -1231,13 +1630,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
             else
             {
-                // Range exhausted: each further step costs HP. Forced extraction
-                // when HP would run out is handled below.
-                CurrentHP -= ExhaustionDamagePerStep;
-                LogRun("exhaustion", "step beyond range",
+                // Fuel spent: striding on with a dry furnace grinds the Hull.
+                // Hull-0 is a forced RECALL, not a loss (§2.1: damaged never lost).
+                Hull -= ExhaustionDamagePerStep;
+                LogRun("exhaustion", "stride beyond fuel",
                        hpDelta: -ExhaustionDamagePerStep, at: newCoord);
-                if (CurrentHP <= 0)
-                { CurrentHP = 0; FailExpedition("Stranded beyond your range."); return; }
+                if (Hull <= 0)
+                { Hull = 0; EmergencyExtract("The furnace runs dry and the hull gives out, forcing a recall."); return; }
             }
 
             // S4.2 (user ruling): the causeway spares you the terrain's bite —
@@ -1265,12 +1664,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             if (hpDrain > 0)
             {
-                CurrentHP -= hpDrain;
+                Hull -= hpDrain;
                 LogRun("terrain_drain", destKnown ? destTerrain.ToString() : "?",
                        hpDelta: -hpDrain, at: newCoord);
-                ShowInfo($"Hazardous terrain! Lost {hpDrain} HP.");
-                if (CurrentHP <= 0)
-                { CurrentHP = 0; FailExpedition("Lost to the wilds."); return; }
+                ShowInfo($"Hazardous terrain! The castle takes {hpDrain} Hull damage.");
+                if (Hull <= 0)
+                { Hull = 0; EmergencyExtract("The wilds batter the castle to breaking, forcing a recall."); return; }
             }
 
             // Corruption attrition: crossing corrupted ground bleeds you. Light at
@@ -1297,12 +1696,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 int tier = CorruptionTierAt(newCoord);
                 int ward = Mathf.Min(EquipmentLoadout.PartyCorruptionWard(), tier * 2);
                 corruptionDrain = Mathf.Max(1, corruptionDrain - ward);
-                CurrentHP -= corruptionDrain;
+                // §4 Necromancer (Ossuary Ambulant): corruption Hull drain halved.
+                if (_castle != null && _castle.CorruptionDrainMultiplier != 1f)
+                    corruptionDrain = Mathf.Max(1, Mathf.RoundToInt(corruptionDrain * _castle.CorruptionDrainMultiplier));
+                Hull -= corruptionDrain;
                 LogRun("corruption_drain", $"tier {tier}",
                        hpDelta: -corruptionDrain, at: newCoord);
-                ShowInfo($"The corruption sears you! Lost {corruptionDrain} HP.");
-                if (CurrentHP <= 0)
-                { CurrentHP = 0; FailExpedition("Consumed by corruption."); return; }
+                ShowInfo($"The corruption sears the castle! {corruptionDrain} Hull lost.");
+                if (Hull <= 0)
+                { Hull = 0; EmergencyExtract("Corruption eats through the hull, forcing a recall."); return; }
             }
 
             // W3: the soft leash. Past supply range of the nearest anchor, each
@@ -1326,18 +1728,37 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 // for the lone wizard; the wilds stay priced.
                 if (roadTravel)
                 {
-                    ShowInfo("The road bears your supply — safe going while you follow it.");
+                    ShowInfo("The road bears your supply, so the going stays safe while you follow it.");
                 }
                 else
                 {
                     int leashDrain = band * LeashDrainPerBand;
-                    CurrentHP -= leashDrain;
+                    Hull -= leashDrain;
                     LogRun("leash_drain", $"band {band}",
                            hpDelta: -leashDrain, at: newCoord);
-                    ShowInfo($"Beyond your supply line ({(band > 1 ? $"band {band}" : "the fringe")}). Lost {leashDrain} HP.");
-                    if (CurrentHP <= 0)
-                    { CurrentHP = 0; FailExpedition("Lost beyond the supply line."); return; }
+                    ShowInfo($"Beyond your supply line ({(band > 1 ? $"band {band}" : "the fringe")}). The castle strains and loses {leashDrain} Hull.");
+                    if (Hull <= 0)
+                    { Hull = 0; EmergencyExtract("Cut off beyond the supply line, the castle is forced to limp home."); return; }
                 }
+            }
+
+            // Mobile Fortress weather (W2): the front over this tile grinds the
+            // Hull, stacking on terrain/corruption. Suppressed inside a vault
+            // sanctuary (like the other tolls). Cinderhold is immune; Storm
+            // Anchors will halve it (F5). Hull-0 is a forced recall, not a loss.
+            var wDef = WeatherCatalog.Def(WeatherSystem.WeatherAt(newCoord));
+            int weatherHull = wDef.IsWeatherHullDrain ? wDef.HullPerTile : 0;
+            if (weatherHull > 0 && inVault)
+                weatherHull = 0;
+            if (weatherHull > 0 && _castle != null && _castle.WeatherHullImmune)
+                weatherHull = 0; // §4 Cinderhold (Elementalist): immune to weather Hull drain
+            if (weatherHull > 0)
+            {
+                Hull -= weatherHull;
+                LogRun("weather_drain", wDef.Name, hpDelta: -weatherHull, at: newCoord);
+                ShowInfo($"{wDef.Name} batters the castle. {weatherHull} Hull lost.");
+                if (Hull <= 0)
+                { Hull = 0; EmergencyExtract($"{wDef.Name} breaks the hull, forcing a recall."); return; }
             }
         }
 
@@ -1347,6 +1768,24 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (!HardWindowMode &&
             _grid.Distance(_party.CurrentCoord, _windowCenterLocal) >= RecenterThreshold)
             RecenterWindow(_party.CurrentCoord);
+
+        // Mobile Fortress weather (W1): fronts drift one wind-step per committed
+        // stride, then announce a change in the weather standing over the castle.
+        // (Effects on fuel/Hull/scry/combat arrive in W2+; W1 is the field only.)
+        WeatherSystem.Advect();
+        var wNow = WeatherSystem.WeatherAt(_party.CurrentCoord);
+        // W2 weather scry penalty + §4 Arcanist + §5 crew Lens Room, summed into the
+        // shared modifier both reveal paths read.
+        VisionModifiers.ScryBonus = WeatherCatalog.Def(wNow).ScryDelta + (_castle?.BonusScry ?? 0) + _crew.BonusScry;
+        if (wNow != _lastWeatherAtParty)
+        {
+            _lastWeatherAtParty = wNow;
+            var wd = WeatherCatalog.Def(wNow);
+            LogRun("weather", wd.Name, at: newCoord);
+            ShowInfo(wNow == WeatherType.Clear
+                ? "The skies clear over the castle."
+                : $"{wd.Name} closes over the castle.");
+        }
 
         // S2: spell-effect windows tick per committed step; Arcane Ground
         // feeds the pool (+1, §5 — a terrain property); the school Attunement
@@ -1384,7 +1823,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // Range warning + auto-extract offer.
         if (StepsRemaining == 0 && !ExpeditionComplete)
-            ShowInfo("Operating range spent. Extract now, or press on at the cost of HP.");
+            ShowInfo("Fuel spent. Recall now, or press on at the cost of HP.");
 
         CenterCamera();
         UpdateUI();
@@ -1551,12 +1990,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             string wsMark = $"{wcol},{wrow}";
             if (grimWs != null && grimWs.ActiveWaystations.Remove(wsMark))
             {
-                int wsHeal = MaxHP / 4;
-                CurrentHP = Mathf.Min(CurrentHP + wsHeal, MaxHP);
+                // Ruling (turnaround-only Hull repair): a waystation restores
+                // Essence, not Hull. Hull mends only at the between-sortie dock.
                 _spells?.AddEssence(3, "Waystation");
                 _grid.GetNodeOrNull($"WaystationMarker_{wcol}_{wrow}")?.QueueFree();
                 SaveManager.MarkDirty();
-                ShowInfo($"The waystation serves its purpose and breaks down. Recovered {wsHeal} HP.");
+                ShowInfo("The waystation serves its purpose and breaks down. Essence restored.");
                 UpdateUI();
             }
         }
@@ -1586,20 +2025,16 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 break;
 
             case OverworldHex.POIType.Rest:
-                int heal = MaxHP / 4;
-                // S2: Campward (§8) — the armed charge makes this Rest heal
-                // +50% and grant +2 extra Essence, then is consumed.
+                // Ruling (turnaround-only Hull repair): a refuge no longer mends the
+                // castle's Hull — it restores Essence, tops the furnace up, and mends
+                // the crew's carried COMBAT HP (a separate economy). Hull waits for
+                // the dock. S2 Campward (§8) now grants only the +2 extra Essence.
                 bool campward = OverworldSpellEffects.ConsumeCampward();
-                if (campward)
-                    heal += MaxHP / 8;
-                int restHpBefore = CurrentHP;
-                CurrentHP = Mathf.Min(CurrentHP + heal, MaxHP);
                 _spells?.AddEssence(3 + (campward ? 2 : 0), campward ? "Rest + Campward" : "Rest");
                 ConsumeOverlayPoi(coord);
                 ConsumeWorldPoi(coord);
-                // K2.5 carry (2026-07-29): a rest also mends the party's
-                // carried COMBAT HP — a quarter of max each, mirroring the
-                // pool heal above. Stabilized (0) companions stay down.
+                // K2.5: a rest still mends the crew's carried COMBAT HP (quarter of
+                // max each). This is combat HP, not Hull — untouched by the ruling.
                 CompanionInjurySystem.HealExpeditionHP(SaveManager.ActiveSave, 0.25f);
                 if (PlayerSession.WizardExpeditionHP >= 0)
                     PlayerSession.WizardExpeditionHP = Mathf.Min(
@@ -1610,10 +2045,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 SplinterEarned += restSpl;
                 GoldEarned += 15;
                 LogRun("rest_site", campward ? "rest (Campward)" : "rest",
-                       goldDelta: +15, splinterDelta: +restSpl,
-                       hpDelta: CurrentHP - restHpBefore, at: coord);
-                ShowInfo($"Rest site{(campward ? " (Campward)" : "")}. Recovered {heal} HP. " +
-                         $"+{restSpl} Arcane Splinters.");
+                       goldDelta: +15, splinterDelta: +restSpl, at: coord);
+                // Mobile Fortress §3.2: a refuge tops the furnace up (+RestRefuel).
+                // §4 Druid (Verdant Ark) doubles rest-site refuel.
+                int restFuelBefore = StepsRemaining;
+                Refuel(RestRefuel * (_castle?.RestRefuelMultiplier ?? 1), "rest site", coord);
+                int restFuelGain = StepsRemaining - restFuelBefore;
+                ShowInfo($"Rest site{(campward ? " (Campward)" : "")}. Essence restored." +
+                         $" +{restSpl} Arcane Splinters." +
+                         (restFuelGain > 0 ? $" +{restFuelGain} fuel." : ""));
                 UpdateUI();
                 break;
 
@@ -1635,26 +2075,28 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 break;
 
             case OverworldHex.POIType.Outpost:
-                // Full-heal checkpoint + grants a staging point (world-scale reward).
-                int outHpBefore = CurrentHP;
-                CurrentHP = MaxHP;
+                // Secured checkpoint + a staging point (world-scale reward). Ruling
+                // (turnaround-only Hull repair): an outpost refuels fully and grants
+                // full Essence, but does NOT mend the castle's Hull in the field —
+                // that waits for the between-sortie dock. Crew combat HP still mends.
                 _spells?.RestoreEssenceFull(); // S2: Outpost = full Essence (§5)
                 ConsumeOverlayPoi(coord);
                 ConsumeWorldPoi(coord);
                 GrantStagingPointAt(coord);
-                // K2.5 carry (2026-07-29): an outpost is a full rest for the
-                // fights too — carriers mend to full; the wizard fields fresh.
-                // Stabilized (0) companions stay down (HealExpeditionHP skips 0).
+                // K2.5 carry (2026-07-29): an outpost is a full rest for the fights —
+                // carriers mend to full; the wizard fields fresh. This is combat HP,
+                // not Hull. Stabilized (0) companions stay down.
                 CompanionInjurySystem.HealExpeditionHP(SaveManager.ActiveSave, 1.0f);
                 PlayerSession.WizardExpeditionHP = -1;
                 int outSpl = SplinterDropTable.RestSite();
                 SplinterEarned += outSpl;
                 GoldEarned += 25;
-                LogRun("outpost", "secured (full heal, staging point)",
-                       goldDelta: +25, splinterDelta: +outSpl,
-                       hpDelta: CurrentHP - outHpBefore, at: coord);
+                LogRun("outpost", "secured (refuel, staging point)",
+                       goldDelta: +25, splinterDelta: +outSpl, at: coord);
+                // Mobile Fortress §3.2: a secured outpost refuels the castle fully.
+                Refuel(0, "outpost (full)", coord, full: true);
                 SaveManager.SaveIfDirty(); // checkpoint
-                ShowInfo($"Outpost secured. Fully rested. +{outSpl} Arcane Splinters.");
+                ShowInfo($"Outpost secured and refueled. +{outSpl} Arcane Splinters.");
                 UpdateUI();
                 break;
 
@@ -1672,23 +2114,50 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     // or misreport it as a cache.
                     if (scPoi != null && scPoi.Kind == PoiKind.SupplyCache && scCycle != null)
                     {
+                        // Mobile Fortress §3.2: a cache refuels +CacheRefuel on
+                        // COLLECTION. A cache here is a persistent strategic node
+                        // (never consumed), so "collection" = the first scout — the
+                        // one-time discovery event — which keeps it un-milkable.
+                        int cacheFuelGain = 0;
                         if (!scPoi.Discovered)
                         {
                             scPoi.Discovered = true;
                             SaveManager.MarkDirty();
+                            int cacheFuelBefore = StepsRemaining;
+                            Refuel(CacheRefuel, "supply cache", coord);
+                            cacheFuelGain = StepsRemaining - cacheFuelBefore;
                         }
                         string scCtrl = SupplyCacheSystem.ControllerDisplay(
                             scCycle, SupplyCacheSystem.ControllerOf(scPoi));
-                        ShowInfo($"Supply cache — harvested by {scCtrl} " +
+                        ShowInfo($"Supply cache harvested by {scCtrl} " +
                                  $"(+{SupplyCacheSystem.YieldOf(scPoi)} supplies/lunation). " +
+                                 (cacheFuelGain > 0 ? $"+{cacheFuelGain} fuel drawn from the stores. " : "") +
                                  "Sieges are laid from the strategic map.");
                         LogRun("supply_cache", $"scouted the cache; held by {scCtrl}", at: coord);
+                        UpdateUI();
                     }
                 }
                 break;
 
             case OverworldHex.POIType.Seat:
             case OverworldHex.POIType.Settlement:
+                // Ruling (§3.2): reaching the guild's OWN seat is a home dock — the
+                // one in-field place Hull mends, because the seat IS home: full Hull
+                // repair, full refuel, full Essence, crew mended. (Enemy capitals /
+                // lesser cities fall through to their services menu below.)
+                if (_window.TryLocalToWorld(coord, out int seatCol, out int seatRow)
+                    && _world.SettlementAt(seatCol, seatRow) is { IsGuildHome: true })
+                {
+                    Hull = MaxHull;
+                    _spells?.RestoreEssenceFull();
+                    Refuel(0, "home seat (full)", coord, full: true);
+                    CompanionInjurySystem.HealExpeditionHP(SaveManager.ActiveSave, 1.0f);
+                    PlayerSession.WizardExpeditionHP = -1;
+                    LogRun("home_seat", "docked at the seat (full repair + refuel)", at: coord);
+                    ShowInfo("The castle docks at your seat. Hull fully repaired and refueled.");
+                    UpdateUI();
+                    break;
+                }
                 // Phase 3: reaching a CITY centre on foot (a gold seat capital or a blue lesser city)
                 // opens its services menu — the same shell as the strategic-map city view. Gated to
                 // Tier==City inside OpenCityServices, so towns fall through. Persistent (never
@@ -1840,6 +2309,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SavedEncountersWon = EncountersWon;
         router.SavedPartyCoord = _party.CurrentCoord;
         router.SavedCombatHexCoord = hexCoord;
+        // W3: carry the weather over the combat tile into the fight; the
+        // battlefield injects a matching weather_tick hazard (§combat).
+        router.SavedWeather = WeatherSystem.WeatherAt(hexCoord);
+        // §3.4: record whether the castle was mid-stride at combat launch. Only an
+        // ambush interrupts a march (a normal fight cancels the stride first), so
+        // this is true exactly for a stride-interrupting ambush — F6 adds +1 round
+        // to the wizard's teleport delay from it.
+        router.SavedStrideAmbush = _striding;
         router.HasPendingReturn = false;
         // Reset ambush attribution — OnPatrolCapturedPlayer re-marks it AFTER
         // this call for genuine patrol fights. Without this reset, the flag
@@ -1927,7 +2404,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     patrolKingdom, CouncilEcho.PatrolCompelled,
                     positive: false, isMajor: false);
 
-            ShowInfo("The compulsion takes hold — the patrol will talk instead of fight." +
+            ShowInfo("The compulsion takes hold, and the patrol will talk instead of fight." +
                      (compulsionToast != null ? $" {compulsionToast}" : ""));
             // Dossier: a compelled parley still counts as crossing paths.
             AnnounceDossierMet(archmageId);
@@ -1942,7 +2419,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (PlayerSession.ScryingPortentAvailable)
         {
             PlayerSession.ScryingPortentAvailable = false;
-            ShowInfo("The scrying held true — you foresee the patrol and slip past unseen.");
+            ShowInfo("The scrying held true, and you foresee the patrol and slip past unseen.");
             return;
         }
 
@@ -2426,7 +2903,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         SaveManager.MarkDirty();
         LogRun("shard_collected", $"{z.Name} ({z.FragmentKey}) — vault becomes staging point");
         _toasts?.Push($"Shard recovered: {z.Name}.", QuestToastKind.Complete);
-        ShowInfo($"You take the shard from {z.Name}. Its power is yours — and the vault " +
+        ShowInfo($"You take the shard from {z.Name}. Its power is yours, and the vault " +
                  "is now a staging point.");
         foreach (var qt in QuestNotifier.NotifyNew(before, save))
             _toasts?.Push(qt.Text, qt.Kind);
@@ -2719,7 +3196,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             LogRun("negotiation_escalation_bypassed",
                    $"{escalatedFrom} — no {regionId}/Battle composition", at: hexCoord);
-            ShowInfo("The table breaks up badly. Nothing comes of it — this time.");
+            ShowInfo("The table breaks up badly. Nothing comes of it this time.");
             return;
         }
 
@@ -2875,11 +3352,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             GoldEarned = Mathf.Max(0, GoldEarned + choice.GoldDelta);
         if (choice.HPDelta != 0)
         {
-            CurrentHP = Mathf.Clamp(CurrentHP + choice.HPDelta, 0, MaxHP);
+            Hull = Mathf.Clamp(Hull + choice.HPDelta, 0, MaxHull);
             if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
-                CurrentHP = Mathf.Max(1, CurrentHP);
-            if (CurrentHP <= 0)
-            { FailExpedition("Lost to a fateful choice."); return; }
+                Hull = Mathf.Max(1, Hull);
+            if (Hull <= 0)
+            { EmergencyExtract("A fateful choice cripples the castle, forcing a recall."); return; }
         }
         if (choice.StepDelta != 0)
             StepsRemaining = Mathf.Max(0, StepsRemaining + choice.StepDelta);
@@ -3054,7 +3531,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         string terrain = TerrainAt(coord).ToString();   // Step 3: world read
         var encounter = NegotiationEncounterLoader.PickForTerrain(terrain, kingdomId);
         if (encounter == null)
-        { ShowInfo("The patrol shakes off the compulsion — nothing to say."); UpdateUI(); return; }
+        { ShowInfo("The patrol shakes off the compulsion and has nothing to say."); UpdateUI(); return; }
 
         NegotiationContext.Clear();
         NegotiationContext.EncounterId = encounter.Id;
@@ -3392,10 +3869,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// rest injured 1–2 lunations). AMENDS K2.5's "no death risk outside
     /// losing fights" — this is the price of extraction beyond the line.
     /// Spoils and discoveries ARE kept: the cost is time and bodies, not loot.</summary>
-    private void EmergencyExtract()
+    private void EmergencyExtract(string reason = null)
     {
         if (ExpeditionComplete)
             return;
+        if (_striding) EndStride(null);   // a run-end cancels any march
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
 
@@ -3406,6 +3884,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
+        WeatherSystem.Reset();         // W1: weather fronts end with the expedition
+        VisionModifiers.Reset();       // W2: clear the weather scry penalty
         _identifiedEncounters.Clear(); // S4: Identify pins end with it too
         _pinnedNegotiations.Clear();   // S5: True Names pre-reads likewise
 
@@ -3419,11 +3899,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         BankResources(extracted: true);
         string casualties = string.IsNullOrEmpty(_casualtyNote) ? "" : $" {_casualtyNote}";
+        string emReason = string.IsNullOrEmpty(reason) ? "Emergency recall." : reason;
         RunEventLog.End("emergency_extract",
-            $"straggled home, +1 lunation.{casualties}",
+            $"{emReason} straggled home, +1 lunation.{casualties}",
             GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
             goldBanked: true, materials: MaterialEarned, supplies: SuppliesEarned);
-        ShowInfo($"Emergency extraction. The party straggles home — a lunation will pass. " +
+        // §2.2 turnaround: the recall IS the refuel/restock/unload/repair — the
+        // narration for the existing lunation cadence (no new timer).
+        ShowInfo($"{emReason} The castle limps home to refuel, restock, unload, and repair, and a lunation will pass. " +
                  $"Gold: {GoldEarned}, Splinters: {SplinterEarned}.{casualties}");
         _casualtyNote = null;
         ShowReturnButton();
@@ -3436,6 +3919,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         if (ExpeditionComplete)
             return;
+        if (_striding) EndStride(null);   // a run-end cancels any march
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
 
@@ -3446,6 +3930,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
+        WeatherSystem.Reset();         // W1: weather fronts end with the expedition
+        VisionModifiers.Reset();       // W2: clear the weather scry penalty
         _identifiedEncounters.Clear(); // S4: Identify pins end with it too
         _pinnedNegotiations.Clear();   // S5: True Names pre-reads likewise
 
@@ -3466,7 +3952,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             $"voluntary extraction at supply anchor.{(string.IsNullOrEmpty(extractCasualties) ? "" : " " + extractCasualties)}",
             GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
             goldBanked: true, materials: MaterialEarned, supplies: SuppliesEarned);
-        ShowInfo($"Extracted. Gold: {GoldEarned}, Splinters: {SplinterEarned}" +
+        ShowInfo($"The castle docks to refuel, restock, unload, and make repairs. " +
+                 $"Gold: {GoldEarned}, Splinters: {SplinterEarned}" +
                  $"{(SuppliesEarned != 0 ? $", Supplies: {SuppliesEarned}" : "")}" +
                  $"{(MaterialEarned != 0 ? $", Materials: {MaterialEarned}" : "")}" +
                  $", Encounters: {EncountersWon}." +
@@ -3479,6 +3966,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         if (ExpeditionComplete)
             return;
+        if (_striding) EndStride(null);   // a run-end cancels any march
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
 
@@ -3494,6 +3982,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // accounting on this path; carried HP just clears.
         CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
+        WeatherSystem.Reset();         // W1: weather fronts end with the expedition
+        VisionModifiers.Reset();       // W2: clear the weather scry penalty
         _identifiedEncounters.Clear(); // S4: Identify pins end with it too
         _pinnedNegotiations.Clear();   // S5: True Names pre-reads likewise
 
@@ -3616,12 +4106,40 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         _stepLabel = MakeHudLabel();
         vbox.AddChild(_stepLabel);
+        // Mobile Fortress §3.1: the fuel gauge rendered as the castle's furnace
+        // dial — a thin ember-lit bar under the readout. Denominator is MaxFuel.
+        _fuelGauge = new ProgressBar
+        {
+            MinValue = 0,
+            MaxValue = 1,
+            ShowPercentage = false,
+            CustomMinimumSize = new Vector2(0, 6),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        var fuelBg = new StyleBoxFlat
+        {
+            BgColor = new Color(0.12f, 0.08f, 0.05f),
+            CornerRadiusTopLeft = 3, CornerRadiusTopRight = 3,
+            CornerRadiusBottomLeft = 3, CornerRadiusBottomRight = 3,
+        };
+        var fuelFill = new StyleBoxFlat
+        {
+            BgColor = new Color(0.95f, 0.55f, 0.15f), // furnace ember
+            CornerRadiusTopLeft = 3, CornerRadiusTopRight = 3,
+            CornerRadiusBottomLeft = 3, CornerRadiusBottomRight = 3,
+        };
+        _fuelGauge.AddThemeStyleboxOverride("background", fuelBg);
+        _fuelGauge.AddThemeStyleboxOverride("fill", fuelFill);
+        vbox.AddChild(_fuelGauge);
         _hpLabel = MakeHudLabel();
         vbox.AddChild(_hpLabel);
         // S2: the second scarcity, read beside the first (§12).
         _essenceLabel = MakeHudLabel();
         _essenceLabel.AddThemeColorOverride("font_color", UITheme.EssenceText);
         vbox.AddChild(_essenceLabel);
+        // Mobile Fortress weather (W1): the front standing over the castle.
+        _weatherLabel = MakeHudLabel();
+        vbox.AddChild(_weatherLabel);
         vbox.AddChild(new HSeparator());
         _windowLabel = MakeHudLabel();
         vbox.AddChild(_windowLabel);
@@ -3652,6 +4170,22 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _extractButton.Pressed += OnExtractPressed;
         _hudCanvas.AddChild(_extractButton);
 
+        // §3.4 Stride: a Halt button appears (top-centre) only while marching.
+        _haltButton = new Button
+        {
+            Text = "■ Halt",
+            Visible = false,
+            AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0f, AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.Both,
+            OffsetLeft = -72, OffsetRight = 72,
+            OffsetTop = 12 + HudManager.BarHeight,
+            OffsetBottom = 52 + HudManager.BarHeight,
+        };
+        _haltButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        UITheme.ApplyButtonStyle(_haltButton, isPrimary: true);
+        _haltButton.Pressed += CancelStride;
+        _hudCanvas.AddChild(_haltButton);
+
         // W3: emergency-extraction confirm. Free extraction happens only on a
         // supply anchor; anywhere else the party straggles home at real cost.
         _emergencyConfirm = new ConfirmationDialog
@@ -3664,7 +4198,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                          "Spoils and discoveries are kept. Extract anyway?",
             OkButtonText = "Extract",
         };
-        _emergencyConfirm.Confirmed += EmergencyExtract;
+        _emergencyConfirm.Confirmed += () => EmergencyExtract();
         _hudCanvas.AddChild(_emergencyConfirm);
 
         // Ledger button (C3), stacked under Extract.
@@ -3854,13 +4388,38 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         RefreshObjectiveBanner();
 
-        _stepLabel.Text = (PlayerSession.DebugMode && PlayerSession.UnlimitedSteps)
-            ? "Range: ∞ [DEBUG]"
-            : $"Range: {StepsRemaining} / {OperatingRange}";
+        bool unlimitedFuel = PlayerSession.DebugMode && PlayerSession.UnlimitedSteps;
+        _stepLabel.Text = unlimitedFuel
+            ? "Fuel: ∞ [DEBUG]"
+            : $"Fuel: {StepsRemaining} / {MaxFuel}";
         _stepLabel.Modulate = StepsRemaining > 5 ? Colors.White : UITheme.OverworldLowResourceWarning;
 
-        _hpLabel.Text = $"HP: {CurrentHP} / {MaxHP}";
-        _hpLabel.Modulate = CurrentHP > MaxHP / 3 ? Colors.White : UITheme.OverworldLowResourceWarning;
+        // Furnace dial: fill = fuel/MaxFuel (clamped; a negotiation overrun reads full).
+        if (_fuelGauge != null)
+        {
+            double frac = (unlimitedFuel || MaxFuel <= 0) ? 1.0 : (double)StepsRemaining / MaxFuel;
+            _fuelGauge.Value = frac < 0.0 ? 0.0 : (frac > 1.0 ? 1.0 : frac);
+        }
+
+        _hpLabel.Text = $"Hull: {Hull} / {MaxHull}";
+        _hpLabel.Modulate = Hull > MaxHull / 3 ? Colors.White : UITheme.OverworldLowResourceWarning;
+
+        // Mobile Fortress weather (W1): the front over the castle. Severe
+        // fronts (severity ≥ 3) read in the warning tint; milder ones stay plain.
+        if (_weatherLabel != null && _party != null)
+        {
+            var wt = WeatherSystem.Active ? WeatherSystem.WeatherAt(_party.CurrentCoord) : WeatherType.Clear;
+            var wd = WeatherCatalog.Def(wt);
+            // W2: name the front + its per-tile toll so the tradeoff is legible.
+            var fx = new System.Collections.Generic.List<string>();
+            if (wd.FuelPerTile != 0) fx.Add($"+{wd.FuelPerTile} fuel");
+            bool cinderImmune = _castle != null && _castle.WeatherHullImmune;
+            if (wd.HullPerTile != 0) fx.Add(cinderImmune ? "Hull immune" : $"-{wd.HullPerTile} Hull");
+            if (wd.ScryDelta != 0) fx.Add($"scry {wd.ScryDelta}");
+            string suffix = fx.Count > 0 ? $"  ({string.Join(", ", fx)})" : "";
+            _weatherLabel.Text = $"Weather: {wd.Glyph} {wd.Name}{suffix}";
+            _weatherLabel.Modulate = wd.Severity >= 3 ? UITheme.OverworldLowResourceWarning : Colors.White;
+        }
 
         // S2: the Essence pool, beside the other scarcities (§12).
         var grimoire = SaveManager.ActiveSave?.Cycle?.Grimoire;
@@ -3902,6 +4461,65 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// <summary>RunEventLog bridge: stamps the event with the current resource
     /// totals and the party's WORLD coordinate (stable across windows). All
     /// expedition-side run logging funnels through here.</summary>
+    /// <summary>The active party's companions, resolved from ids (§5 crew source).</summary>
+    private System.Collections.Generic.List<Companion> ActivePartyCompanions()
+    {
+        var list = new System.Collections.Generic.List<Companion>();
+        var save = SaveManager.ActiveSave;
+        if (save?.ActivePartyCompanionIds == null || save.Companions == null)
+            return list;
+        foreach (var id in save.ActivePartyCompanionIds)
+        {
+            var c = save.Companions.Find(x => x.Id == id);
+            if (c != null) list.Add(c);
+        }
+        return list;
+    }
+
+    /// <summary>One-line summary of the crew station assignment, for the run log.</summary>
+    private string CrewSummary()
+    {
+        if (_crewAssign == null || _crewAssign.Count == 0)
+            return "no crew";
+        var parts = new System.Collections.Generic.List<string>();
+        foreach (var kv in _crewAssign)
+            parts.Add($"{CrewStations.StationName(kv.Key)}={kv.Value.Name}");
+        return string.Join(", ", parts);
+    }
+
+    /// <summary>One-line summary of the seeded weather fronts, for the run log.</summary>
+    private string WeatherSummary()
+    {
+        var counts = new System.Collections.Generic.Dictionary<WeatherType, int>();
+        foreach (var f in WeatherSystem.Fronts)
+        {
+            counts.TryGetValue(f.Type, out int c);
+            counts[f.Type] = c + 1;
+        }
+        if (counts.Count == 0)
+            return "clear";
+        var parts = new System.Collections.Generic.List<string>();
+        foreach (var kv in counts)
+            parts.Add($"{kv.Value}× {WeatherCatalog.Name(kv.Key)}");
+        return $"fronts: {string.Join(", ", parts)}";
+    }
+
+    /// <summary>Field refueling (§3.2). Adds fuel, clamped to MaxFuel (never
+    /// exceeds the tank), logs the gain as a fuel line, and refreshes the HUD.
+    /// A pre-existing negotiation overrun above MaxFuel is left untouched — this
+    /// only tops the tank up, it never trims. Pass a negative/zero amount and it
+    /// no-ops. `full: true` fills to MaxFuel regardless of `amount`.</summary>
+    private void Refuel(int amount, string source, Vector2I? at = null, bool full = false)
+    {
+        int before = StepsRemaining;
+        int target = full ? MaxFuel : StepsRemaining + Mathf.Max(0, amount);
+        // Only ever raise toward MaxFuel; never lower an existing overrun.
+        StepsRemaining = Mathf.Max(before, Mathf.Min(MaxFuel, target));
+        int gained = StepsRemaining - before;
+        if (gained > 0)
+            LogRun("refuel", source, stepsDelta: gained, at: at);
+    }
+
     private void LogRun(string type, string detail,
                         int goldDelta = 0, int splinterDelta = 0,
                         int hpDelta = 0, int stepsDelta = 0, Vector2I? at = null)
@@ -4350,15 +4968,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         if (CorruptionTierAt(_party.CurrentCoord) < 3)
             return null;
-        CurrentHP -= Tier3CastExposureHP;
+        Hull -= Tier3CastExposureHP;
         if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
-            CurrentHP = Mathf.Max(1, CurrentHP);
+            Hull = Mathf.Max(1, Hull);
         LogRun("cast_exposure", "cast from tier-3 corrupted ground",
                hpDelta: -Tier3CastExposureHP);
-        if (CurrentHP <= 0)
+        if (Hull <= 0)
         {
-            CurrentHP = 0;
-            FailExpedition("Consumed by corruption mid-casting.");
+            Hull = 0;
+            EmergencyExtract("The channeling shatters the hull, forcing a recall.");
             return null;
         }
         UpdateUI();
@@ -4905,9 +5523,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
             case "Economic":
             {
-                int heal = MaxHP / 4;
-                CurrentHP = Mathf.Min(CurrentHP + heal, MaxHP);
-                return (true, $"The Steward's supply train reaches you. Recovered {heal} HP.");
+                // Ruling (turnaround-only Hull repair): the Steward's supply train
+                // brings FUEL, not hull plate — it can't mend the castle in the field.
+                int before = StepsRemaining;
+                Refuel(MaxFuel / 4, "Steward supply train");
+                int got = StepsRemaining - before;
+                return got > 0
+                    ? (true, $"The Steward's supply train reaches you. +{got} fuel.")
+                    : (true, "The Steward's supply train reaches you, but the furnace is already full.");
             }
             case "Intelligence":
             {

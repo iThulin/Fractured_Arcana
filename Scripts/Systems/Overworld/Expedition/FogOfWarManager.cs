@@ -106,7 +106,11 @@ public partial class FogOfWarManager : Node2D
     /// </summary>
     public void UpdateVision(Vector2I partyCoord, int bonusRadius = 0)
     {
-        int revealRange = BaseVisionRadius + bonusRadius;
+        // Shared scry modifier (weather penalty, Arcanist/Lens/Farseeing bonuses).
+        // Floored at 1 so the castle always scries its OWN tile plus the adjacent
+        // ring — the tiles it can step into must always show their move cost, even
+        // in the worst storm (weather blinds the far lens, never the near one).
+        int revealRange = Mathf.Max(1, BaseVisionRadius + bonusRadius + VisionModifiers.ScryBonus);
         int silhouetteRange = revealRange + 1;
 
         foreach (var kvp in _grid.Hexes)

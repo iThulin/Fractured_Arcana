@@ -186,7 +186,7 @@ public partial class ScoutReportPanel : Control
 
         // ── Step note ────────────────────────────────────────────────────
         _stepNoteLabel.Text = stepCostPaid > 0
-            ? $"You entered this territory ({stepCostPaid} step cost already paid)."
+            ? $"You entered this territory ({stepCostPaid} fuel already burned)."
             : "";
 
         Visible = true;

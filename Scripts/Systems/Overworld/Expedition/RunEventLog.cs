@@ -53,9 +53,13 @@ public static class RunEventLog
     private static string _runId;
     private static int _seq;
 
+    // Mobile Fortress §11: fuel columns are ADDED alongside the steps columns,
+    // not in place of them. steps_delta/steps_remaining keep their names (§10:
+    // steps are fuel-in-disguise, no schema churn); fuel_delta/fuel_remaining
+    // mirror them so analysis can read the run in the new vocabulary.
     private const string CsvHeader =
         "run_id,when_utc,seq,event,detail,gold_delta,splinter_delta,hp_delta,steps_delta," +
-        "gold_total,splinter_total,hp,steps_remaining,coord";
+        "gold_total,splinter_total,hp,steps_remaining,coord,fuel_delta,fuel_remaining";
 
     // ═══════════════════════════════════════════════════════════════
     // Public API
@@ -78,7 +82,7 @@ public static class RunEventLog
             AppendLog("════════════════════════════════════════════════════════════");
             AppendLog($" EXPEDITION RUN {_runId}");
             AppendLog($" Region: {regionId}   School: {school}");
-            AppendLog($" Start:  HP {hp}/{maxHp}   Steps {steps}   Gold {gold}   Splinters {splinters}");
+            AppendLog($" Start:  HP {hp}/{maxHp}   Fuel {steps}   Gold {gold}   Splinters {splinters}");
             AppendLog("════════════════════════════════════════════════════════════");
 
             AppendCsvRow("run_start", $"region={regionId} school={school}",
@@ -107,12 +111,12 @@ public static class RunEventLog
             if (goldDelta != 0)     deltas.Append($" {Sign(goldDelta)}g");
             if (splinterDelta != 0) deltas.Append($" {Sign(splinterDelta)}sp");
             if (hpDelta != 0)       deltas.Append($" {Sign(hpDelta)}hp");
-            if (stepsDelta != 0)    deltas.Append($" {Sign(stepsDelta)}st");
+            if (stepsDelta != 0)    deltas.Append($" {Sign(stepsDelta)}fuel");
             string deltaStr = deltas.Length > 0 ? $"[{deltas.ToString().Trim()}]" : "";
 
             string at = string.IsNullOrEmpty(coord) ? "" : $" @({coord})";
             AppendLog($"[{DateTime.Now:HH:mm:ss}] #{_seq:D3} {type,-18} {deltaStr,-22} {detail}" +
-                      $"  |  G:{goldTotal} S:{splinterTotal} HP:{hp} St:{stepsRemaining}{at}");
+                      $"  |  G:{goldTotal} S:{splinterTotal} HP:{hp} Fuel:{stepsRemaining}{at}");
 
             AppendCsvRow(type, detail, goldDelta, splinterDelta, hpDelta, stepsDelta,
                           goldTotal, splinterTotal, hp, stepsRemaining, coord);
@@ -136,7 +140,7 @@ public static class RunEventLog
 
             AppendLog("════════════════════════════════════════════════════════════");
             AppendLog($" RUN END — {outcome.ToUpperInvariant()}   ({detail})");
-            AppendLog($" Encounters won: {encountersWon}   HP left: {hp}   Steps left: {stepsRemaining}");
+            AppendLog($" Encounters won: {encountersWon}   HP left: {hp}   Fuel left: {stepsRemaining}");
             // Materials/supplies appear only when nonzero — most runs carry none.
             string extras = (materials != 0 ? $" + {materials} materials" : "")
                           + (supplies != 0 ? $" + {supplies} supplies" : "");
@@ -163,7 +167,8 @@ public static class RunEventLog
             _runId, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"), _seq.ToString(),
             type, detail ?? "",
             gD.ToString(), sD.ToString(), hD.ToString(), stD.ToString(),
-            g.ToString(), s.ToString(), hp.ToString(), st.ToString(), coord ?? ""));
+            g.ToString(), s.ToString(), hp.ToString(), st.ToString(), coord ?? "",
+            stD.ToString(), st.ToString()));   // §11: fuel_delta, fuel_remaining (mirror of steps)
 
     private static void AppendLine(string path, string header, string line)
     {

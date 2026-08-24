@@ -113,6 +113,7 @@ public partial class ExpeditionWindow3D : Node3D
     private readonly List<Node3D> _markers = new();
     private readonly List<Node3D> _entities = new();   // moving entities: enemy patrols + roamer
     private readonly List<Node3D> _moveHints = new();
+    private readonly List<Node3D> _stridePath = new();   // §3.4 stride-order preview ribbon
     private Node3D _pawn;
 
     private Vector3 _camTarget = Vector3.Zero;
@@ -244,12 +245,16 @@ public partial class ExpeditionWindow3D : Node3D
     /// within VisionRadius → Revealed, one ring beyond & still Hidden → Silhouette.</summary>
     private void UpdateVision()
     {
+        // Shared scry modifier (weather penalty, Arcanist/Lens/Farseeing bonuses),
+        // floored at 1 so the adjacent ring the castle can step into is always
+        // scried — weather blinds the far lens, never the immediate one.
+        int vr = Mathf.Max(1, VisionRadius + VisionModifiers.ScryBonus);
         foreach (var c in _windowTiles)
         {
             int d = HexCoord.OffsetDistance(c.X, c.Y, _party.X, _party.Y);
             var cur = _fog.FogAt(c);
-            if (d <= VisionRadius) _fog.Set(c, Fog.Revealed);
-            else if (d <= VisionRadius + 1 && cur == Fog.Hidden) _fog.Set(c, Fog.Silhouette);
+            if (d <= vr) _fog.Set(c, Fog.Revealed);
+            else if (d <= vr + 1 && cur == Fog.Hidden) _fog.Set(c, Fog.Silhouette);
         }
     }
 
@@ -269,6 +274,8 @@ public partial class ExpeditionWindow3D : Node3D
             AmbientLightColor = new Color(0.55f, 0.56f, 0.60f),
             AmbientLightEnergy = 0.5f,
         };
+        _baseAmbient = _env.AmbientLightColor;   // W4: weather tint lerps from this
+        _haveBaseAmbient = true;
         AddChild(new WorldEnvironment { Environment = _env });
         ApplySurround();
         var sun = new DirectionalLight3D
@@ -310,6 +317,16 @@ public partial class ExpeditionWindow3D : Node3D
     // cycles to Haze/Desk for comparison.
     private SurroundStyle _surround = SurroundStyle.Vignette;
     private Godot.Environment _env;
+
+    // ── W4: weather VFX (per-front particle emitters + ambient tint) ─────────
+    private Node3D _weatherLayer;
+    private CpuParticles3D[] _weatherEmitters;
+    private MeshInstance3D[] _weatherClouds;   // visible moving cloud mass per front
+    private double _wxAccum;                 // throttle accumulator
+    private Color _baseAmbient;              // captured in BuildEnvironment
+    private bool _haveBaseAmbient;
+    private const float WeatherEmitHeight = 5.0f;   // precip fall height above the tile tops
+    private const float WeatherCloudHeight = 3.2f;  // cloud-layer height above the tile tops
     /// <summary>Colour the ground fades toward at its rim (set per style) — the
     /// heightmap lerps edge vertices to this so the boundary dissolves.</summary>
     private Color _surroundEdge = new Color(0.92f, 0.89f, 0.82f);
@@ -455,6 +472,216 @@ public partial class ExpeditionWindow3D : Node3D
         => new Vector3(col * ColSpacing, 0f,
                        row * RowSpacing + (((col & 1) == 1) ? RowSpacing * 0.5f : 0f));
 
+    // ── W4: weather 3D visuals ───────────────────────────────────────────────
+    // Per-front CpuParticles3D emitters follow the moving fronts (W1), styled by
+    // type (W1/W2), plus a subtle ambient tint when the castle sits under a front.
+    // The field lives in local render space (HexCoord.OffsetRenderPosition, unit
+    // spacing); TileOrigin scales that same odd-q grid by ColSpacing/RowSpacing,
+    // so a front centre maps to 3D by the same scale — no tile lookup needed.
+
+    private Vector3 FrontToWorld(Vector2 center, float height)
+        => new Vector3(center.X * ColSpacing, height, center.Y * RowSpacing);
+
+    private void EnsureWeatherEmitters()
+    {
+        if (_weatherLayer != null && GodotObject.IsInstanceValid(_weatherLayer))
+            return;
+        _weatherLayer = new Node3D { Name = "WeatherVfx" };
+        AddChild(_weatherLayer);
+        int n = Mathf.Max(1, WeatherCatalog.FrontCount);
+        _weatherEmitters = new CpuParticles3D[n];
+        _weatherClouds = new MeshInstance3D[n];
+        for (int i = 0; i < n; i++)
+        {
+            // Precipitation emitter — quads big enough to read at map distance.
+            var mat = new StandardMaterial3D
+            {
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
+                AlbedoColor = new Color(1f, 1f, 1f, 0.8f),
+                VertexColorUseAsAlbedo = false,
+            };
+            var quad = new QuadMesh { Size = new Vector2(0.35f, 0.35f), Material = mat };
+            var p = new CpuParticles3D
+            {
+                Name = $"WxFront{i}",
+                Mesh = quad,
+                Emitting = false,
+                Amount = 90,
+                Lifetime = 1.2f,
+                EmissionShape = CpuParticles3D.EmissionShapeEnum.Box,
+                EmissionBoxExtents = new Vector3(3f, 0.3f, 3f),
+                Gravity = new Vector3(0f, -18f, 0f),
+                Direction = new Vector3(0f, -1f, 0f),
+                Spread = 6f,
+            };
+            _weatherLayer.AddChild(p);
+            _weatherEmitters[i] = p;
+
+            // Cloud mass — a flat translucent plane hovering over the front, the
+            // clearly-visible "storm cloud" that drifts across the map. Horizontal
+            // (PlaneMesh lies in XZ), two-sided, no billboard so it stays a layer.
+            var cmat = new StandardMaterial3D
+            {
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+                AlbedoColor = new Color(0.3f, 0.3f, 0.35f, 0.0f),
+            };
+            var plane = new PlaneMesh { Size = new Vector2(2f, 2f), Material = cmat };
+            var cloud = new MeshInstance3D { Name = $"WxCloud{i}", Mesh = plane, Visible = false };
+            _weatherLayer.AddChild(cloud);
+            _weatherClouds[i] = cloud;
+        }
+    }
+
+    /// <summary>Sync the front emitters + cloud planes to the live field and tint
+    /// the ambient. Throttled — the field only advances on a committed stride, so
+    /// ~6 Hz is ample and keeps the per-frame cost negligible.</summary>
+    private void UpdateWeatherVfx(float dt)
+    {
+        _wxAccum += dt;
+        if (_wxAccum < 0.16)
+            return;
+        _wxAccum = 0;
+
+        EnsureWeatherEmitters();
+        var fronts = WeatherSystem.Fronts;
+        int shown = WeatherSystem.Active ? fronts.Count : 0;
+
+        for (int i = 0; i < _weatherEmitters.Length; i++)
+        {
+            var p = _weatherEmitters[i];
+            var cloud = _weatherClouds[i];
+            if (i >= shown || fronts[i].Type == WeatherType.Clear)
+            {
+                if (p.Emitting) p.Emitting = false;
+                if (cloud.Visible) cloud.Visible = false;
+                continue;
+            }
+            var f = fronts[i];
+            float rx = Mathf.Max(1.5f, f.Radius * ColSpacing);
+
+            // Precipitation.
+            p.Position = FrontToWorld(f.Center, WeatherEmitHeight);
+            p.EmissionBoxExtents = new Vector3(rx, 0.3f, rx);
+            StyleWeatherEmitter(p, f.Type, rx);
+            if (!p.Emitting) p.Emitting = true;
+
+            // Cloud mass, sized to the front and coloured by type.
+            cloud.Position = FrontToWorld(f.Center, WeatherCloudHeight);
+            cloud.Scale = new Vector3(rx, 1f, rx);   // PlaneMesh half-size 1 → radius rx
+            StyleWeatherCloud(cloud, f.Type);
+            if (!cloud.Visible) cloud.Visible = true;
+        }
+
+        // Ambient tint: nudge toward the front's colour by severity when the
+        // castle sits under weather. Reversible (lerps from the captured base).
+        if (_haveBaseAmbient && _env != null && WeatherSystem.Active)
+        {
+            var wt = WeatherSystem.WeatherAt(_party);
+            var wd = WeatherCatalog.Def(wt);
+            float k = Mathf.Clamp(wd.Severity * 0.06f, 0f, 0.22f);
+            _env.AmbientLightColor = _baseAmbient.Lerp(WeatherTint(wt), k);
+        }
+        else if (_haveBaseAmbient && _env != null)
+        {
+            _env.AmbientLightColor = _baseAmbient;
+        }
+    }
+
+    private static Color WeatherTint(WeatherType t) => t switch
+    {
+        WeatherType.Storm    => new Color(0.30f, 0.34f, 0.45f),
+        WeatherType.Blizzard => new Color(0.72f, 0.78f, 0.88f),
+        WeatherType.Ashfall  => new Color(0.34f, 0.30f, 0.28f),
+        WeatherType.Rain     => new Color(0.40f, 0.46f, 0.56f),
+        WeatherType.Fog      => new Color(0.60f, 0.62f, 0.66f),
+        WeatherType.Gale     => new Color(0.52f, 0.56f, 0.58f),
+        _                    => new Color(0.55f, 0.56f, 0.60f),
+    };
+
+    private void StyleWeatherEmitter(CpuParticles3D p, WeatherType t, float rx)
+    {
+        // Amount scales with the covered area (bigger fronts, more particles).
+        int baseAmt = t switch
+        {
+            WeatherType.Storm    => 120,
+            WeatherType.Rain     => 80,
+            WeatherType.Blizzard => 70,
+            WeatherType.Ashfall  => 55,
+            WeatherType.Gale     => 40,
+            WeatherType.Fog      => 40,
+            _                    => 0,
+        };
+        p.Amount = Mathf.Max(8, (int)(baseAmt * Mathf.Clamp(rx / (5f * ColSpacing), 0.5f, 2f)));
+
+        Color col;
+        switch (t)
+        {
+            case WeatherType.Storm:
+                col = new Color(0.72f, 0.80f, 1.0f, 0.85f);
+                p.Lifetime = 0.7f; p.Gravity = new Vector3(0f, -26f, 0f);
+                p.InitialVelocityMin = 10f; p.InitialVelocityMax = 16f;
+                p.ScaleAmountMin = 1.4f; p.ScaleAmountMax = 2.4f; p.Spread = 4f;
+                break;
+            case WeatherType.Rain:
+                col = new Color(0.64f, 0.74f, 1.0f, 0.7f);
+                p.Lifetime = 0.9f; p.Gravity = new Vector3(0f, -20f, 0f);
+                p.InitialVelocityMin = 6f; p.InitialVelocityMax = 10f;
+                p.ScaleAmountMin = 1.1f; p.ScaleAmountMax = 1.9f; p.Spread = 5f;
+                break;
+            case WeatherType.Blizzard:
+                col = new Color(0.95f, 0.97f, 1.0f, 0.85f);
+                p.Lifetime = 3.0f; p.Gravity = new Vector3(0f, -2.2f, 0f);
+                p.InitialVelocityMin = 0.5f; p.InitialVelocityMax = 1.5f;
+                p.ScaleAmountMin = 0.8f; p.ScaleAmountMax = 1.4f; p.Spread = 30f;
+                break;
+            case WeatherType.Ashfall:
+                col = new Color(0.32f, 0.30f, 0.30f, 0.75f);
+                p.Lifetime = 2.6f; p.Gravity = new Vector3(0f, -2.8f, 0f);
+                p.InitialVelocityMin = 0.4f; p.InitialVelocityMax = 1.2f;
+                p.ScaleAmountMin = 0.7f; p.ScaleAmountMax = 1.2f; p.Spread = 25f;
+                break;
+            case WeatherType.Gale:
+                col = new Color(0.80f, 0.84f, 0.88f, 0.5f);
+                p.Lifetime = 1.0f; p.Gravity = new Vector3(0f, -1.0f, 0f);
+                p.Direction = new Vector3(1f, -0.15f, 0.3f);
+                p.InitialVelocityMin = 10f; p.InitialVelocityMax = 18f;
+                p.ScaleAmountMin = 0.5f; p.ScaleAmountMax = 0.9f; p.Spread = 12f;
+                break;
+            case WeatherType.Fog:
+            default:
+                col = new Color(0.85f, 0.87f, 0.90f, 0.32f);
+                p.Lifetime = 4.0f; p.Gravity = new Vector3(0f, 0.1f, 0f);
+                p.InitialVelocityMin = 0.1f; p.InitialVelocityMax = 0.5f;
+                p.ScaleAmountMin = 3.0f; p.ScaleAmountMax = 5.0f; p.Spread = 40f;
+                break;
+        }
+        p.Color = col;
+        if (p.Mesh is QuadMesh qm && qm.Material is StandardMaterial3D sm)
+            sm.AlbedoColor = col;
+    }
+
+    /// <summary>Colour + opacity of a front's cloud plane by type. Storm reads
+    /// dark and heavy; blizzard/fog pale; ashfall dim brown; gale faint.</summary>
+    private void StyleWeatherCloud(MeshInstance3D cloud, WeatherType t)
+    {
+        Color c = t switch
+        {
+            WeatherType.Storm    => new Color(0.16f, 0.18f, 0.26f, 0.62f),
+            WeatherType.Blizzard => new Color(0.88f, 0.91f, 0.97f, 0.52f),
+            WeatherType.Ashfall  => new Color(0.24f, 0.21f, 0.20f, 0.58f),
+            WeatherType.Rain     => new Color(0.34f, 0.39f, 0.47f, 0.44f),
+            WeatherType.Gale     => new Color(0.55f, 0.58f, 0.62f, 0.24f),
+            WeatherType.Fog      => new Color(0.82f, 0.84f, 0.88f, 0.44f),
+            _                    => new Color(0.5f, 0.5f, 0.5f, 0f),
+        };
+        if (cloud.Mesh is PlaneMesh pm && pm.Material is StandardMaterial3D sm)
+            sm.AlbedoColor = c;
+    }
+
     private void FrameCamera()
     {
         // Start close on the party — an expedition is walked, not surveyed. The
@@ -478,6 +705,7 @@ public partial class ExpeditionWindow3D : Node3D
 
     public override void _Process(double delta)
     {
+        UpdateWeatherVfx((float)delta);   // W4: weather VFX animate regardless of input focus
         if (!AcceptInput || _camera == null) return;
         float dt = (float)delta;
         bool moved = false;
@@ -581,14 +809,18 @@ public partial class ExpeditionWindow3D : Node3D
     {
         if (!TryPickTile(screenPos, out var best))
             return;
-        // Only an adjacent, non-water tile is a legal step (party rule: water blocks; everything
-        // else walkable, including into adjacent fog to explore it). Same gate the 2D token uses.
-        if (HexCoord.OffsetDistance(best.X, best.Y, _party.X, _party.Y) != 1) return;
-        if (_world.GetTile(best.X, best.Y).IsWater) return;
+        if (_world.GetTile(best.X, best.Y).IsWater) return;   // water always blocks
+
+        bool adjacent = HexCoord.OffsetDistance(best.X, best.Y, _party.X, _party.Y) == 1;
         if (SelfDrive)
-            MoveParty(best);          // harness: move ourselves
-        else
-            MoveRequested?.Invoke(best);   // live: the host drives the real run
+        {
+            // Harness self-move is single-step only (no host to plan a stride).
+            if (adjacent) MoveParty(best);
+            return;
+        }
+        // Live: report the clicked tile to the host — adjacent is a single step,
+        // a distant tile is a stride order (§3.4). The host validates reach/fog.
+        MoveRequested?.Invoke(best);
     }
 
     /// <summary>RAY pick that respects tile HEIGHT: intersect the click ray with EACH tile's own top
@@ -1765,6 +1997,9 @@ void fragment() {
     {
         foreach (var h in _moveHints) h.QueueFree();
         _moveHints.Clear();
+        ClearStridePath();   // a moved/streamed window invalidates the old ribbon
+
+
 
         var fromTile = _world.GetTile(_party.X, _party.Y);
         var (pq, pr) = HexCoord.OffsetToAxial(_party.X, _party.Y);
@@ -1795,7 +2030,11 @@ void fragment() {
             // over a near-black underlay disc that guarantees contrast on any
             // terrain colour, in any chamber lighting. Circles, not hexagons:
             // the ground has no cells to echo.
-            var pos = TileOrigin(nc, nr); pos.Y = TileHeight(coord) + 0.10f;
+            // Float the hint a touch higher and render it with NoDepthTest so the
+            // undulating terrain can never poke through the flat ring — it reads as
+            // a UI pin over the map (the same treatment the POI markers use), not a
+            // decal welded to a sloped tile. (Was clipping into terrain constantly.)
+            var pos = TileOrigin(nc, nr); pos.Y = TileHeight(coord) + 0.18f;
 
             var under = new MeshInstance3D
             {
@@ -1806,6 +2045,7 @@ void fragment() {
                     AlbedoColor = new Color(0.02f, 0.02f, 0.05f, 0.45f),
                     Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
                     ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    NoDepthTest = true,
                 },
                 Position = pos - new Vector3(0f, 0.03f, 0f),
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
@@ -1821,6 +2061,7 @@ void fragment() {
                     AlbedoColor = new Color(tint.R, tint.G, tint.B, 0.95f),
                     Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
                     ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    NoDepthTest = true,
                 },
                 Position = pos,
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
@@ -1837,6 +2078,103 @@ void fragment() {
             };
             AddChild(label); _moveHints.Add(label);
         }
+    }
+
+    // ── §3.4 Stride-order path preview ────────────────────────────────────────
+    // The manager plans the path (over the real fuel cost) and hands us the tiles
+    // in world-offset coords plus the total fuel estimate; we draw a dotted ribbon
+    // of NoDepthTest pins along it with the estimate floating at the goal. Purely a
+    // preview — clicking still runs through the manager (execution is F8b).
+
+    /// <summary>Draw the stride ribbon to a goal. Charted route (`exploratory` =
+    /// false): `worldPath` is the tiles after the castle ending on the goal, `fuel`
+    /// the total estimate, drawn as solid pins + a "~N fuel" label. Exploratory
+    /// (`exploratory` = true): `worldPath` is just [castle, goal] and the line is
+    /// drawn dashed toward the unknown with a "March into the unknown" label.</summary>
+    public void ShowStridePath(List<Vector2I> worldPath, int fuel, bool exploratory = false)
+    {
+        ClearStridePath();
+        if (worldPath == null || worldPath.Count == 0)
+            return;
+
+        Vector2I g;
+        if (exploratory && worldPath.Count == 2)
+        {
+            // Dashed bearing: sample points along the straight castle→goal segment.
+            var a = worldPath[0]; var b = worldPath[1];
+            Vector3 pa = TileOrigin(a.X, a.Y); pa.Y = TileHeight(a) + 0.3f;
+            Vector3 pb = TileOrigin(b.X, b.Y); pb.Y = TileHeight(b) + 0.3f;
+            int dots = Mathf.Clamp((int)(pa.DistanceTo(pb) / (ColSpacing * 0.6f)), 3, 40);
+            for (int i = 1; i <= dots; i++)
+            {
+                float f = (float)i / (dots + 1);
+                if (i % 2 == 0) continue;                 // gaps → dashed
+                var p = pa.Lerp(pb, f);
+                var dash = new MeshInstance3D
+                {
+                    Mesh = new SphereMesh { Radius = 0.1f, Height = 0.2f, RadialSegments = 8, Rings = 4 },
+                    MaterialOverride = new StandardMaterial3D
+                    {
+                        AlbedoColor = new Color(0.75f, 0.85f, 1f, 0.85f),
+                        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                        NoDepthTest = true,
+                    },
+                    Position = p,
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                };
+                AddChild(dash); _stridePath.Add(dash);
+            }
+            g = b;
+        }
+        else
+        {
+            for (int i = 0; i < worldPath.Count; i++)
+            {
+                var c = worldPath[i];
+                bool goal = i == worldPath.Count - 1;
+                var pos = TileOrigin(c.X, c.Y); pos.Y = TileHeight(c) + 0.25f;
+                var dot = new MeshInstance3D
+                {
+                    Mesh = new SphereMesh
+                    {
+                        Radius = goal ? 0.22f : 0.13f, Height = goal ? 0.44f : 0.26f,
+                        RadialSegments = 10, Rings = 5,
+                    },
+                    MaterialOverride = new StandardMaterial3D
+                    {
+                        AlbedoColor = goal ? new Color(1f, 0.78f, 0.32f, 0.98f)
+                                           : new Color(1f, 0.90f, 0.55f, 0.9f),
+                        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                        NoDepthTest = true,
+                    },
+                    Position = pos,
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                };
+                AddChild(dot); _stridePath.Add(dot);
+            }
+            g = worldPath[worldPath.Count - 1];
+        }
+
+        var gp = TileOrigin(g.X, g.Y); gp.Y = TileHeight(g) + 0.75f;
+        var lbl = new Label3D
+        {
+            Text = exploratory ? "March into the unknown" : $"~{fuel} fuel",
+            Position = gp,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true,
+            FontSize = exploratory ? 28 : 34, PixelSize = 0.012f,
+            Modulate = exploratory ? new Color(0.78f, 0.88f, 1f) : new Color(1f, 0.86f, 0.5f),
+            OutlineSize = 12, OutlineModulate = new Color(0.02f, 0.02f, 0.05f, 1f),
+        };
+        AddChild(lbl); _stridePath.Add(lbl);
+    }
+
+    public void ClearStridePath()
+    {
+        foreach (var n in _stridePath)
+            if (GodotObject.IsInstanceValid(n)) n.QueueFree();
+        _stridePath.Clear();
     }
 
     private bool InWindow(Vector2I c)

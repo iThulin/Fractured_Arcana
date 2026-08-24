@@ -34,6 +34,32 @@ public static class OverworldMovementCost
     /// <summary>Added to a step that crosses an unbridged river edge (a ford).</summary>
     public static int FordPenalty = 2;
 
+    // ── Castle movement signature (Mobile Fortress §4) ───────────────────
+    // Static ambient set once per sortie by ExpeditionManager from the active
+    // CastleTypeDef, read inside StepCost so the preview and the charge apply
+    // the identical modifier (mirrors the OverworldSpellEffects pattern). These
+    // are all STATELESS per-edge modifiers — the Chronomancer's stateful
+    // first-3-flat quirk is handled at the charge site, NOT here.
+    public static System.Collections.Generic.HashSet<OverworldHex.TerrainType> CastleCheapTerrains = new();
+    public static int CastleTerrainDiscount = 0;   // subtracted for a CheapTerrains destination
+    public static int CastleExtraRoadDiscount = 0; // added to RoadDiscount (Tinker)
+    public static bool CastleWaiveFord = false;    // Enchanter
+
+    /// <summary>Crew Helm station (§5): multiplies the finished per-tile burn
+    /// (1.0 = none, 0.9 = −10%). Static ambient set at deploy, applied inside
+    /// StepCost so the preview and the charge agree (G1). Floored at 1.</summary>
+    public static float CrewFuelMultiplier = 1f;
+
+    /// <summary>Clear the castle signature (fresh deploy resets it before configuring).</summary>
+    public static void ResetCastle()
+    {
+        CastleCheapTerrains = new System.Collections.Generic.HashSet<OverworldHex.TerrainType>();
+        CastleTerrainDiscount = 0;
+        CastleExtraRoadDiscount = 0;
+        CastleWaiveFord = false;
+        CrewFuelMultiplier = 1f;
+    }
+
     // ── Terrain tables ───────────────────────────────────────────────────
 
     /// <summary>Base step cost of entering a tile of this terrain. Mirrors the
@@ -90,6 +116,11 @@ public static class OverworldMovementCost
         // within a bounded window, never a refund).
         cost = OverworldSpellEffects.AdjustTerrainStep(destTerrain, cost);
 
+        // §4 castle movement signature: the school's chassis strides its home
+        // terrain cheaper (e.g. Verdant Ark on Forest/Swamp).
+        if (CastleTerrainDiscount > 0 && CastleCheapTerrains.Contains(destTerrain))
+            cost -= CastleTerrainDiscount;
+
         int d = EdgeDirection(from, to);
         if (d >= 0 && fromHex != null)
         {
@@ -99,10 +130,19 @@ public static class OverworldMovementCost
             bool bridge = road && river;   // road over a river
 
             if (road)
-                cost -= RoadDiscount;       // includes bridges (a bridge is a road)
-            if (river && !bridge)
-                cost += FordPenalty;        // unbridged ford
+                cost -= RoadDiscount + CastleExtraRoadDiscount; // §4 Gearspire doubles the road discount
+            if (river && !bridge && !CastleWaiveFord)           // §4 Lantern Keep waives the ford
+                cost += FordPenalty;
         }
+
+        // Weather (W2): a front over the destination raises the burn. Applied
+        // HERE — the single source of truth — so the preview ribbon and the
+        // charge cannot diverge (G1). WeatherAt returns Clear (0) when inactive.
+        cost += WeatherCatalog.Def(WeatherSystem.WeatherAt(to)).FuelPerTile;
+
+        // §5 crew Helm: shave the finished burn (preview and charge alike).
+        if (CrewFuelMultiplier < 1f)
+            cost = Mathf.RoundToInt(cost * CrewFuelMultiplier);
 
         return Mathf.Max(1, cost);
     }
@@ -121,6 +161,10 @@ public static class OverworldMovementCost
         int cost = TerrainStep(destTerrain) - Mathf.Max(0, pathfinderReduction);
         cost = OverworldSpellEffects.AdjustTerrainStep(destTerrain, cost);
 
+        // §4 castle movement signature (same as the node overload).
+        if (CastleTerrainDiscount > 0 && CastleCheapTerrains.Contains(destTerrain))
+            cost -= CastleTerrainDiscount;
+
         int d = EdgeDirection(from, to);
         if (d >= 0 && fromTile.HasValue)
         {
@@ -130,10 +174,18 @@ public static class OverworldMovementCost
             bool bridge = road && river;   // road over a river
 
             if (road)
-                cost -= RoadDiscount;       // includes bridges (a bridge is a road)
-            if (river && !bridge)
-                cost += FordPenalty;        // unbridged ford
+                cost -= RoadDiscount + CastleExtraRoadDiscount; // §4 Gearspire
+            if (river && !bridge && !CastleWaiveFord)           // §4 Lantern Keep
+                cost += FordPenalty;
         }
+
+        // Weather (W2): same front surcharge as the node overload — preview
+        // and charge read the identical WeatherAt(to), so they cannot diverge.
+        cost += WeatherCatalog.Def(WeatherSystem.WeatherAt(to)).FuelPerTile;
+
+        // §5 crew Helm: shave the finished burn (preview and charge alike).
+        if (CrewFuelMultiplier < 1f)
+            cost = Mathf.RoundToInt(cost * CrewFuelMultiplier);
 
         return Mathf.Max(1, cost);
     }
